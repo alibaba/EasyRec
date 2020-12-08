@@ -1,0 +1,5 @@
+{
+   "param": {
+      "feature_configs[input_names[0]=c21].boundaries": [10.0, 20.0, 30.0, 40.0]
+    }
+}

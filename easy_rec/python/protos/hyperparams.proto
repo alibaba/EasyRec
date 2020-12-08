@@ -1,0 +1,54 @@
+syntax = "proto2";
+
+package protos;
+
+// Proto with one-of field for regularizers.
+message Regularizer {
+    oneof regularizer_oneof {
+        L1Regularizer l1_regularizer = 1;
+        L2Regularizer l2_regularizer = 2;
+        L1L2Regularizer l1_l2_regularizer = 3;
+    }
+}
+
+// Configuration proto for L1 Regularizer.
+message L1Regularizer {
+    optional float scale = 1 [default = 1.0];
+}
+
+// Configuration proto for L2 Regularizer.
+message L2Regularizer {
+    optional float scale = 1 [default = 1.0];
+}
+
+// Configuration proto for L2 Regularizer.
+message L1L2Regularizer {
+    optional float scale_l1 = 1 [default = 1.0];
+    optional float scale_l2 = 2 [default = 1.0];
+}
+
+// Proto with one-of field for initializers.
+message Initializer {
+    oneof initializer_oneof {
+        TruncatedNormalInitializer truncated_normal_initializer = 1;
+        RandomNormalInitializer random_normal_initializer = 2;
+        GlorotNormalInitializer glorot_normal_initializer = 3;
+    }
+}
+
+// Configuration proto for truncated normal initializer. See
+// https://www.tensorflow.org/api_docs/python/tf/truncated_normal_initializer
+message TruncatedNormalInitializer {
+    optional float mean = 1 [default = 0.0];
+    optional float stddev = 2 [default = 1.0];
+}
+
+// Configuration proto for random normal initializer. See
+// https://www.tensorflow.org/api_docs/python/tf/random_normal_initializer
+message RandomNormalInitializer {
+    optional float mean = 1 [default = 0.0];
+    optional float stddev = 2 [default = 1.0];
+}
+
+message GlorotNormalInitializer {
+}

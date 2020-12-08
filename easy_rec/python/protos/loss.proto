@@ -1,0 +1,8 @@
+syntax = "proto2";
+package protos;
+
+enum LossType {
+    CLASSIFICATION = 0;
+    L2_LOSS = 1;
+    SIGMOID_L2_LOSS = 2;
+}

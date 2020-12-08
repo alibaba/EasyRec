@@ -1,0 +1,11 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/tower.proto";
+
+message ESMM {
+    repeated Tower groups = 1;
+    required TaskTower ctr_tower = 2;
+    required TaskTower cvr_tower = 3;
+    required float l2_regularization = 4 [default = 1e-4];
+}

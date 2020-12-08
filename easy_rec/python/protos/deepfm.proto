@@ -1,0 +1,15 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message DeepFM {
+    required DNN dnn = 1;
+    optional DNN final_dnn = 2;
+    optional uint32 wide_output_dim = 3 [default = 1];
+    // deprecated
+    optional float wide_regularization = 4 [default = 1e-4];
+    // deprecated
+    optional float dense_regularization = 5 [default = 1e-4];
+    optional float l2_regularization = 6 [default = 1e-4];
+}

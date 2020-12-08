@@ -1,0 +1,100 @@
+syntax = "proto2";
+package protos;
+
+message DatasetConfig {
+    // mini batch size to use for training and evaluation.
+    optional uint32 batch_size = 1 [default = 32];
+
+    enum FieldType {
+        INT32 = 0;
+        INT64 = 1;
+        STRING = 2;
+        FLOAT = 4;
+        DOUBLE = 5;
+        BOOL = 6;
+    }
+
+    message Field {
+        required string input_name = 1;
+        required FieldType input_type = 2 [default = STRING];
+        optional string default_val = 3;
+    }
+
+    // set auto_expand_input_fields to true to
+    // auto_expand field[1-21] to field1, field2, ..., field21
+    optional bool auto_expand_input_fields = 3 [default = false];
+
+    // label fields, normally only one field is used.
+    // For multiple target models such as MMOE
+    // multiple label_fields will be set.
+    repeated string label_fields = 4;
+
+    // whether to shuffle data
+    optional bool shuffle = 5 [default = true];
+
+    // shufffle buffer for better performance, even shuffle buffer is set,
+    // it is suggested to do full data shuffle before training
+    // especially when the performance of models is not good.
+    optional int32 shuffle_buffer_size = 11 [default = 32];
+
+    // The number of times a data source is read. If set to zero, the data source
+    // will be reused indefinitely.
+    optional uint32 num_epochs = 6 [default = 0];
+
+    // Number of decoded records to prefetch before batching.
+    optional uint32 prefetch_size = 7 [default = 512];
+
+    // shard dataset to 1/num_workers in distribute mode
+    optional bool shard = 8 [default = false];
+
+    enum InputType {
+        // csv format input, could be used in local or hdfs
+        CSVInput = 0;
+        // @Depreciated
+        CSVInputV2 = 1;
+        // @Depreciated, has memory leak problem
+        OdpsInput = 2;
+        // odps input, used on pai
+        OdpsInputV2 = 3;
+        RTPInput = 4;
+        RTPInputV2 = 5;
+        OdpsRTPInput = 6;
+        // for the purpose to debug performance bottleneck of
+        // input pipelines
+        DummyInput = 7;
+        KafkaInput = 8;
+    }
+    required InputType input_type = 10;
+
+    // separator of column features, only used for CSVInput*
+    // not used in OdpsInput*
+    // binary separators are supported:
+    //   CTRL+A could be set as '\001'
+    //   CTRL+B could be set as '\002'
+    //   CTRL+C could be set as '\003'
+    // for RTPInput and OdpsRTPInput it is usually set
+    // to '\002'
+    optional string separator = 12 [default = ','];
+
+    // parallel preproces of raw data, avoid using too small
+    // or too large numbers(suggested be to small than
+    // number of the cores)
+    optional uint32 num_parallel_calls = 13 [default = 8];
+
+    // only used for OdpsInput/OdpsInputV2/OdpsRTPInput, comma separated
+    // for RTPInput, selected_cols use indices as column names
+    //  such as '1,2,4', where 1,2 are label columns, and
+    //  4 is the feature column, column 0,3 are not used,
+    optional string selected_cols = 14 [default = ''];
+
+    // selected col types, only used for OdpsInput/OdpsInputV2
+    // to avoid error setting of data types
+    optional string selected_col_types = 15 [default = ''];
+
+    // the input fields must be the same number and in the
+    // same order as data in csv files or odps tables
+    repeated Field input_fields = 16;
+
+    // for RTPInput only
+    optional string rtp_separator = 17 [default = ';'];
+}

@@ -1,0 +1,97 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/optimizer.proto";
+
+enum DistributionStrategy {
+    // use old SyncReplicasOptimizer for ParameterServer training
+    NoStrategy = 0;
+    // PSStrategy with multiple gpus on one node could not work
+    // on pai-tf, could only work on TF >=1.15
+    PSStrategy = 1;
+    // could only work on PaiTF or TF >=1.15
+    // single worker multiple gpu mode
+    MirroredStrategy = 2;
+    // Depreciated
+    CollectiveAllReduceStrategy = 3;
+    // currently not working good
+    ExascaleStrategy = 4;
+    // multi worker multi gpu mode
+    // see tf.distribute.experimental.MultiWorkerMirroredStrategy
+    MultiWorkerMirroredStrategy = 5;
+}
+
+// Message for configuring DetectionModel training jobs (train.py).
+// Next id: 25
+message TrainConfig {
+    /* optimizer options */
+    optional Optimizer optimizer_config = 1;
+
+    // If greater than 0, clips gradients by this value.
+    optional float gradient_clipping_by_norm = 2 [default = 0.0];
+
+    // Number of steps to train the models: if 0, will train the model
+    // indefinitely.
+    optional uint32 num_steps = 5 [default = 0];
+
+    /* options related checkpoint save and restore
+       NOTE: there are some options which are set in tf.estimator.RunConfig */
+    // Checkpoint to restore variables from.
+    optional string fine_tune_checkpoint = 6 [default = ""];
+
+    optional string fine_tune_ckpt_var_map = 8 [default = ""];
+
+    /* The following fields are for distributed training */
+    // Whether to synchronize replicas during training.
+    // In case so, build a SyncReplicateOptimizer
+    optional bool sync_replicas = 9 [default = false];
+
+    // Number of training steps between replica startup.
+    // This flag must be set to 0 if sync_replicas is set to true.
+    optional float startup_delay_steps = 10 [default = 15];
+
+    // Step interval for saving checkpoint
+    optional uint32 save_checkpoints_steps = 14 [default = 5000];
+
+    // Seconds interval for saving checkpoint
+    optional uint32 save_checkpoints_secs = 15;
+
+    // Save summaries every this many steps.
+    optional uint32 save_summary_steps = 16 [default = 1000];
+
+    // The frequency global step/sec and the loss will be logged during training.
+    optional uint32 log_step_count_steps = 17 [default = 10];
+
+    // profiling or not
+    optional bool is_profiling = 18 [default = false];
+
+    // if variable shape is incompatible, clip or pad variables in checkpoint
+    optional bool force_restore_shape_compatible = 19 [default = false];
+
+    // DistributionStrategy, available values are 'mirrored' and 'collective' and 'ess'
+    // - mirrored: MirroredStrategy, single machine and multiple devices;
+    // - collective: CollectiveAllReduceStrategy, multiple machines and multiple devices.
+    optional DistributionStrategy train_distribute = 20 [default = NoStrategy];
+
+    // Number of gpus per machine
+    optional int32 num_gpus_per_worker = 21 [default = 1];
+
+    optional bool separate_save = 22 [default = false];
+
+    // summary model variables or not
+    optional bool summary_model_vars = 23 [default = false];
+
+    // distribute training protocol [grpc++ | star_server]
+    // grpc++: https://help.aliyun.com/document_detail/173157.html?spm=5176.10695662.1996646101.searchclickresult.3ebf450evuaPT3
+    // star_server: https://help.aliyun.com/document_detail/173154.html?spm=a2c4g.11186623.6.627.39ad7e3342KOX4
+    optional string protocol = 25;
+
+    // inter_op_parallelism_threads
+    optional int32 inter_op_parallelism_threads = 26 [default = 0];
+
+    // intra_op_parallelism_threads
+    optional int32 intra_op_parallelism_threads = 27 [default = 0];
+
+    // tensor fusion on PAI-TF
+    optional bool tensor_fuse = 28 [default = false];
+}

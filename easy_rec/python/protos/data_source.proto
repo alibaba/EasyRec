@@ -1,0 +1,10 @@
+syntax = "proto2";
+package protos;
+
+message KafkaServer {
+    required string server     = 1;
+    required string topic      = 2;
+    required string group      = 3;
+    required uint32 partitions = 4;
+    required uint32 offset     = 5;
+}

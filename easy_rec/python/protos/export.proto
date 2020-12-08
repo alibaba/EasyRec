@@ -1,0 +1,33 @@
+syntax = "proto2";
+package protos;
+
+// Message for configuring exporting models.
+message ExportConfig {
+    // batch size used for exported model, -1 indicates batch_size is None
+    // which is only supported by classification model right now, while
+    // other models support static batch_size
+    optional int32 batch_size = 1 [default = -1];
+
+    // type of exporter [final | latest | best | none] when train_and_evaluation
+    // final: performs a single export in the end of training
+    // latest: regularly exports the serving graph and checkpoints
+    // latest: export the best model according to best_exporter_metric
+    // none: do not perform export
+    optional string exporter_type = 2 [default = 'final'];
+
+    // for large embedding models to serve on eas
+    // embedding lookup is done outside of tensorflow graph;
+    // so the tensorflow graph contains only the dnn graphs(the attention part included);
+    // the lookuped results are passed to dnn graphs via embedding placeholders;
+    // we dump embedding placeholder shapes, so that embedding
+    // placeholders could be built.
+    optional bool dump_embedding_shape = 3 [default = false];
+
+    // the metric used to determine the best checkpoint
+    optional string best_exporter_metric = 4 [default = 'auc'];
+    // metric value the bigger the best
+    optional bool metric_bigger = 5 [default = true];
+
+    // each feature has a placeholder
+    optional bool multi_placeholder = 6 [default = true];
+}

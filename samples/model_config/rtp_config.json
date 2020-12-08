@@ -1,0 +1,4006 @@
+{
+  "data_config": {
+    "label_fields": [
+      "clk"
+    ],
+    "input_type": "CSVInput",
+    "batch_size": 1024,
+    "separator": "\u0002",
+    "num_epochs": 20,
+    "input_fields": [
+      {
+        "input_type": "INT32",
+        "input_name": "clk",
+        "default_val": "0"
+      },
+      {
+        "input_type": "STRING",
+        "input_name": "q_query_id"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_prefer_seller",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_clk_prefer_seller",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_pay_prefer_seller",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_hits",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_prefer_cate",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_prefer_tag",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_showuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_clkuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_wantuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_payuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_showuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_clkuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_wantuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_payuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_showuv37",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_clkuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_wantuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_payuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_showuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_clkuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_wantuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "q_payuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_zhimascore",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_pv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_ipv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_chatpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_paypv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_likepv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_commpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_collectpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_uv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_clkuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_chatuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_payuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_likeuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_commuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_collectuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_uvctr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_uvcvr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_uvclk2chat",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_uvchat2pay",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "u_xingzuo"
+      },
+      {
+        "input_name": "u_gender"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_age",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "u_pay_class"
+      },
+      {
+        "input_name": "u_province"
+      },
+      {
+        "input_name": "u_city"
+      },
+      {
+        "input_name": "u_vip_level"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_show_item_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_click_item_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_want_item_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_buy_item_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_show_item_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_click_item_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_want_item_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_buy_item_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_show_item_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_click_item_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_want_item_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "u_buy_item_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_xycate"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_posted_price",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_publish_days",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_item_from"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_contains_video",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_prov"
+      },
+      {
+        "input_name": "i_city"
+      },
+      {
+        "input_name": "i_auction_type"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_sold_quantity",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_tag"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_grade",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_tbcate"
+      },
+      {
+        "input_name": "i_brand"
+      },
+      {
+        "input_name": "i_class"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_gmtdd",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_moddd",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_sreplyscore",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_showuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_clkuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_wantuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replyuv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askpv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replypv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_modpv3",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_showuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_clkuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_wantuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replyuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askpv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replypv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_modpv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_showuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_clkuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_wantuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replyuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askpv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replypv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_modpv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_showuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_clkuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_wantuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replyuv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_askpv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_replypv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_modpv30",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_prefer_q",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "iclk_prefer_q",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "ipay_prefer_q",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_showuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_clkuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_wantuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_askuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_replyuv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_askpv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_replypv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_modpv7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_showuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_clkuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_wantuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_askuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_replyuv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_askpv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_replypv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_c_modpv14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_zhimascore",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_replytime",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_replycnt",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_noreplycnt",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_firstreplytime",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_pv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_ipv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_chatpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_paypv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_likepv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_commpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_collectpv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_uv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_clkuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_chatuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_payuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_likeuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_commuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_collectuv",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_uvctr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_uvcvr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_uvclk2chat",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_uvchat2pay",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_logondd",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_logsigndd",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_visits_30d",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_rate_slr_all",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_rate_slr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_good_rate_slr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_bad_rate_slr",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_good_rate_slr_rate",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_s_xingzuo"
+      },
+      {
+        "input_name": "i_s_gender"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_age",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "i_s_pay_class"
+      },
+      {
+        "input_name": "i_s_province"
+      },
+      {
+        "input_name": "i_s_city"
+      },
+      {
+        "input_name": "i_s_vip_level"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_show_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_click_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_want_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_asked_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_reply_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_sell_uv_21",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_show_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_click_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_want_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_asked_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_reply_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_sell_uv_14",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_show_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_click_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_want_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_asked_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_reply_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_sell_uv_7",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "i_s_proseller",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "ctx_position",
+        "default_val": "0.0"
+      },
+      {
+        "input_type": "DOUBLE",
+        "input_name": "ctx_hh",
+        "default_val": "0.0"
+      },
+      {
+        "input_name": "comb_age_gender_time"
+      },
+      {
+        "input_name": "comb_age_gender_position"
+      },
+      {
+        "input_name": "comb_xingzuo_seller_id"
+      },
+      {
+        "input_name": "comb_xingzuo_xycate"
+      },
+      {
+        "input_name": "comb_xingzuo_item_from"
+      },
+      {
+        "input_name": "comb_xingzuo_publish_days"
+      },
+      {
+        "input_name": "comb_xingzuo_contains_video"
+      },
+      {
+        "input_name": "comb_xingzuo_prov"
+      },
+      {
+        "input_name": "comb_xingzuo_auction_type"
+      },
+      {
+        "input_name": "comb_xingzuo_tag"
+      },
+      {
+        "input_name": "comb_xingzuo_tbcate"
+      },
+      {
+        "input_name": "comb_xingzuo_brand"
+      },
+      {
+        "input_name": "comb_xingzuo_class"
+      },
+      {
+        "input_name": "comb_gender_seller_id"
+      },
+      {
+        "input_name": "comb_gender_xycate"
+      },
+      {
+        "input_name": "comb_gender_item_from"
+      },
+      {
+        "input_name": "comb_gender_publish_days"
+      },
+      {
+        "input_name": "comb_gender_contains_video"
+      },
+      {
+        "input_name": "comb_gender_prov"
+      },
+      {
+        "input_name": "comb_gender_auction_type"
+      },
+      {
+        "input_name": "comb_gender_tag"
+      },
+      {
+        "input_name": "comb_gender_tbcate"
+      },
+      {
+        "input_name": "comb_gender_brand"
+      },
+      {
+        "input_name": "comb_gender_class"
+      },
+      {
+        "input_name": "comb_age_seller_id"
+      },
+      {
+        "input_name": "comb_age_xycate"
+      },
+      {
+        "input_name": "comb_age_item_from"
+      },
+      {
+        "input_name": "comb_age_publish_days"
+      },
+      {
+        "input_name": "comb_age_contains_video"
+      },
+      {
+        "input_name": "comb_age_prov"
+      },
+      {
+        "input_name": "comb_age_auction_type"
+      },
+      {
+        "input_name": "comb_age_tag"
+      },
+      {
+        "input_name": "comb_age_tbcate"
+      },
+      {
+        "input_name": "comb_age_brand"
+      },
+      {
+        "input_name": "comb_age_class"
+      },
+      {
+        "input_name": "comb_pay_class_seller_id"
+      },
+      {
+        "input_name": "comb_pay_class_xycate"
+      },
+      {
+        "input_name": "comb_pay_class_item_from"
+      },
+      {
+        "input_name": "comb_pay_class_publish_days"
+      },
+      {
+        "input_name": "comb_pay_class_contains_video"
+      },
+      {
+        "input_name": "comb_pay_class_prov"
+      },
+      {
+        "input_name": "comb_pay_class_auction_type"
+      },
+      {
+        "input_name": "comb_pay_class_tag"
+      },
+      {
+        "input_name": "comb_pay_class_tbcate"
+      },
+      {
+        "input_name": "comb_pay_class_brand"
+      },
+      {
+        "input_name": "comb_pay_class_class"
+      },
+      {
+        "input_name": "comb_province_seller_id"
+      },
+      {
+        "input_name": "comb_province_xycate"
+      },
+      {
+        "input_name": "comb_province_item_from"
+      },
+      {
+        "input_name": "comb_province_publish_days"
+      },
+      {
+        "input_name": "comb_province_contains_video"
+      },
+      {
+        "input_name": "comb_province_prov"
+      },
+      {
+        "input_name": "comb_province_auction_type"
+      },
+      {
+        "input_name": "comb_province_tag"
+      },
+      {
+        "input_name": "comb_province_tbcate"
+      },
+      {
+        "input_name": "comb_province_brand"
+      },
+      {
+        "input_name": "comb_province_class"
+      },
+      {
+        "input_name": "comb_vip_level_seller_id"
+      },
+      {
+        "input_name": "comb_vip_level_xycate"
+      },
+      {
+        "input_name": "comb_vip_level_item_from"
+      },
+      {
+        "input_name": "comb_vip_level_publish_days"
+      },
+      {
+        "input_name": "comb_vip_level_contains_video"
+      },
+      {
+        "input_name": "comb_vip_level_prov"
+      },
+      {
+        "input_name": "comb_vip_level_auction_type"
+      },
+      {
+        "input_name": "comb_vip_level_tag"
+      },
+      {
+        "input_name": "comb_vip_level_tbcate"
+      },
+      {
+        "input_name": "comb_vip_level_brand"
+      },
+      {
+        "input_name": "comb_vip_level_class"
+      },
+      {
+        "input_name": "comb_query_id_seller_id"
+      },
+      {
+        "input_name": "comb_query_id_xycate"
+      },
+      {
+        "input_name": "comb_query_id_item_from"
+      },
+      {
+        "input_name": "comb_query_id_publish_days"
+      },
+      {
+        "input_name": "comb_query_id_contains_video"
+      },
+      {
+        "input_name": "comb_query_id_prov"
+      },
+      {
+        "input_name": "comb_query_id_auction_type"
+      },
+      {
+        "input_name": "comb_query_id_tag"
+      },
+      {
+        "input_name": "comb_query_id_tbcate"
+      },
+      {
+        "input_name": "comb_query_id_brand"
+      },
+      {
+        "input_name": "comb_query_id_class"
+      },
+      {
+        "input_name": "comb_position_seller_id"
+      },
+      {
+        "input_name": "comb_position_xycate"
+      },
+      {
+        "input_name": "comb_position_item_from"
+      },
+      {
+        "input_name": "comb_position_publish_days"
+      },
+      {
+        "input_name": "comb_position_contains_video"
+      },
+      {
+        "input_name": "comb_position_prov"
+      },
+      {
+        "input_name": "comb_position_auction_type"
+      },
+      {
+        "input_name": "comb_position_tag"
+      },
+      {
+        "input_name": "comb_position_tbcate"
+      },
+      {
+        "input_name": "comb_position_brand"
+      },
+      {
+        "input_name": "comb_position_class"
+      },
+      {
+        "input_name": "comb_hh_seller_id"
+      },
+      {
+        "input_name": "comb_hh_xycate"
+      },
+      {
+        "input_name": "comb_hh_item_from"
+      },
+      {
+        "input_name": "comb_hh_publish_days"
+      },
+      {
+        "input_name": "comb_hh_contains_video"
+      },
+      {
+        "input_name": "comb_hh_prov"
+      },
+      {
+        "input_name": "comb_hh_auction_type"
+      },
+      {
+        "input_name": "comb_hh_tag"
+      },
+      {
+        "input_name": "comb_hh_tbcate"
+      },
+      {
+        "input_name": "comb_hh_brand"
+      },
+      {
+        "input_name": "comb_hh_class"
+      }
+    ]
+  },
+  "train_input_path": "data/test/rtp/xys_cxr_fg_sample_test2_with_lbl.txt",
+  "train_config": {
+    "optimizer_config": {
+      "use_moving_average": false,
+      "adam_optimizer": {
+        "learning_rate": {
+          "exponential_decay_learning_rate": {
+            "decay_factor": 0.5,
+            "decay_steps": 100000,
+            "initial_learning_rate": 9.999999747378752e-05,
+            "min_learning_rate": 1.0000000116860974e-07
+          }
+        }
+      }
+    },
+    "log_step_count_steps": 200,
+    "num_steps": 1000,
+    "sync_replicas": false,
+    "save_checkpoints_steps": 500
+  },
+  "model_config": {
+    "model_class": "MultiTower",
+    "multi_tower": {
+      "towers": [
+        {
+          "input": "user",
+          "dnn": {
+            "hidden_units": [
+              320,
+              256,
+              192,
+              128
+            ]
+          }
+        },
+        {
+          "input": "item",
+          "dnn": {
+            "hidden_units": [
+              320,
+              256,
+              192,
+              128
+            ]
+          }
+        },
+        {
+          "input": "query",
+          "dnn": {
+            "hidden_units": [
+              320,
+              256,
+              192,
+              128
+            ]
+          }
+        },
+        {
+          "input": "combo",
+          "dnn": {
+            "hidden_units": [
+              192,
+              256,
+              192,
+              128
+            ]
+          }
+        }
+      ],
+      "final_dnn": {
+        "hidden_units": [
+          256,
+          192,
+          128,
+          64
+        ]
+      },
+      "l2_regularization": 9.999999747378752e-05
+    },
+    "embedding_regularization": 9.999999747378752e-06,
+    "feature_groups": [
+      {
+        "wide_deep": "DEEP",
+        "feature_names": [
+          "u_zhimascore",
+          "u_pv",
+          "u_ipv",
+          "u_chatpv",
+          "u_paypv",
+          "u_likepv",
+          "u_commpv",
+          "u_collectpv",
+          "u_uv",
+          "u_clkuv",
+          "u_chatuv",
+          "u_payuv",
+          "u_likeuv",
+          "u_commuv",
+          "u_collectuv",
+          "u_uvctr",
+          "u_uvcvr",
+          "u_uvclk2chat",
+          "u_uvchat2pay",
+          "u_xingzuo",
+          "u_gender",
+          "u_age",
+          "u_pay_class",
+          "u_province",
+          "u_city",
+          "u_vip_level",
+          "u_show_item_uv_21",
+          "u_click_item_uv_21",
+          "u_want_item_uv_21",
+          "u_buy_item_uv_21",
+          "u_show_item_uv_14",
+          "u_click_item_uv_14",
+          "u_want_item_uv_14",
+          "u_buy_item_uv_14",
+          "u_show_item_uv_7",
+          "u_click_item_uv_7",
+          "u_want_item_uv_7",
+          "u_buy_item_uv_7"
+        ],
+        "group_name": "user"
+      },
+      {
+        "wide_deep": "DEEP",
+        "feature_names": [
+          "i_xycate",
+          "i_posted_price",
+          "i_publish_days",
+          "i_item_from",
+          "i_contains_video",
+          "i_prov",
+          "i_city",
+          "i_auction_type",
+          "i_sold_quantity",
+          "i_tag",
+          "i_grade",
+          "i_tbcate",
+          "i_brand",
+          "i_class",
+          "i_gmtdd",
+          "i_moddd",
+          "i_sreplyscore",
+          "i_showuv3",
+          "i_clkuv3",
+          "i_wantuv3",
+          "i_askuv3",
+          "i_replyuv3",
+          "i_askpv3",
+          "i_replypv3",
+          "i_modpv3",
+          "i_showuv7",
+          "i_clkuv7",
+          "i_wantuv7",
+          "i_askuv7",
+          "i_replyuv7",
+          "i_askpv7",
+          "i_replypv7",
+          "i_modpv7",
+          "i_showuv14",
+          "i_clkuv14",
+          "i_wantuv14",
+          "i_askuv14",
+          "i_replyuv14",
+          "i_askpv14",
+          "i_replypv14",
+          "i_modpv14",
+          "i_showuv30",
+          "i_clkuv30",
+          "i_wantuv30",
+          "i_askuv30",
+          "i_replyuv30",
+          "i_askpv30",
+          "i_replypv30",
+          "i_modpv30",
+          "i_prefer_q",
+          "i_c_showuv7",
+          "i_c_clkuv7",
+          "i_c_wantuv7",
+          "i_c_askuv7",
+          "i_c_replyuv7",
+          "i_c_askpv7",
+          "i_c_replypv7",
+          "i_c_modpv7",
+          "i_c_showuv14",
+          "i_c_clkuv14",
+          "i_c_wantuv14",
+          "i_c_askuv14",
+          "i_c_replyuv14",
+          "i_c_askpv14",
+          "i_c_replypv14",
+          "i_c_modpv14",
+          "i_s_zhimascore",
+          "i_s_replytime",
+          "i_s_replycnt",
+          "i_s_noreplycnt",
+          "i_s_firstreplytime",
+          "i_s_pv",
+          "i_s_ipv",
+          "i_s_chatpv",
+          "i_s_paypv",
+          "i_s_likepv",
+          "i_s_commpv",
+          "i_s_collectpv",
+          "i_s_uv",
+          "i_s_clkuv",
+          "i_s_chatuv",
+          "i_s_payuv",
+          "i_s_likeuv",
+          "i_s_commuv",
+          "i_s_collectuv",
+          "i_s_uvctr",
+          "i_s_uvcvr",
+          "i_s_uvclk2chat",
+          "i_s_uvchat2pay",
+          "i_s_logondd",
+          "i_s_logsigndd",
+          "i_s_visits_30d",
+          "i_s_rate_slr_all",
+          "i_s_rate_slr",
+          "i_s_good_rate_slr",
+          "i_s_bad_rate_slr",
+          "i_s_good_rate_slr_rate",
+          "i_s_xingzuo",
+          "i_s_gender",
+          "i_s_age",
+          "i_s_pay_class",
+          "i_s_province",
+          "i_s_city",
+          "i_s_vip_level",
+          "i_s_show_uv_21",
+          "i_s_click_uv_21",
+          "i_s_want_uv_21",
+          "i_s_asked_uv_21",
+          "i_s_reply_uv_21",
+          "i_s_sell_uv_21",
+          "i_s_show_uv_14",
+          "i_s_click_uv_14",
+          "i_s_want_uv_14",
+          "i_s_asked_uv_14",
+          "i_s_reply_uv_14",
+          "i_s_sell_uv_14",
+          "i_s_show_uv_7",
+          "i_s_click_uv_7",
+          "i_s_want_uv_7",
+          "i_s_asked_uv_7",
+          "i_s_reply_uv_7",
+          "i_s_sell_uv_7",
+          "i_s_proseller"
+        ],
+        "group_name": "item"
+      },
+      {
+        "wide_deep": "DEEP",
+        "feature_names": [
+          "q_query_id",
+          "q_prefer_seller",
+          "q_clk_prefer_seller",
+          "q_pay_prefer_seller",
+          "q_hits",
+          "q_prefer_cate",
+          "q_prefer_tag",
+          "q_showuv30",
+          "q_clkuv30",
+          "q_wantuv30",
+          "q_payuv30",
+          "q_showuv14",
+          "q_clkuv14",
+          "q_wantuv14",
+          "q_payuv14",
+          "q_showuv37",
+          "q_clkuv7",
+          "q_wantuv7",
+          "q_payuv7",
+          "q_showuv3",
+          "q_clkuv3",
+          "q_wantuv3",
+          "q_payuv3"
+        ],
+        "group_name": "query"
+      },
+      {
+        "wide_deep": "DEEP",
+        "feature_names": [
+          "comb_age_gender_time",
+          "comb_age_gender_position",
+          "comb_xingzuo_seller_id",
+          "comb_xingzuo_xycate",
+          "comb_xingzuo_item_from",
+          "comb_xingzuo_publish_days",
+          "comb_xingzuo_contains_video",
+          "comb_xingzuo_prov",
+          "comb_xingzuo_auction_type",
+          "comb_xingzuo_tag",
+          "comb_xingzuo_tbcate",
+          "comb_xingzuo_brand",
+          "comb_xingzuo_class",
+          "comb_gender_seller_id",
+          "comb_gender_xycate",
+          "comb_gender_item_from",
+          "comb_gender_publish_days",
+          "comb_gender_contains_video",
+          "comb_gender_prov",
+          "comb_gender_auction_type",
+          "comb_gender_tag",
+          "comb_gender_tbcate",
+          "comb_gender_brand",
+          "comb_gender_class",
+          "comb_age_seller_id",
+          "comb_age_xycate",
+          "comb_age_item_from",
+          "comb_age_publish_days",
+          "comb_age_contains_video",
+          "comb_age_prov",
+          "comb_age_auction_type",
+          "comb_age_tag",
+          "comb_age_tbcate",
+          "comb_age_brand",
+          "comb_age_class",
+          "comb_pay_class_seller_id",
+          "comb_pay_class_xycate",
+          "comb_pay_class_item_from",
+          "comb_pay_class_publish_days",
+          "comb_pay_class_contains_video",
+          "comb_pay_class_prov",
+          "comb_pay_class_auction_type",
+          "comb_pay_class_tag",
+          "comb_pay_class_tbcate",
+          "comb_pay_class_brand",
+          "comb_pay_class_class",
+          "comb_province_seller_id",
+          "comb_province_xycate",
+          "comb_province_item_from",
+          "comb_province_publish_days",
+          "comb_province_contains_video",
+          "comb_province_prov",
+          "comb_province_auction_type",
+          "comb_province_tag",
+          "comb_province_tbcate",
+          "comb_province_brand",
+          "comb_province_class",
+          "comb_vip_level_seller_id",
+          "comb_vip_level_xycate",
+          "comb_vip_level_item_from",
+          "comb_vip_level_publish_days",
+          "comb_vip_level_contains_video",
+          "comb_vip_level_prov",
+          "comb_vip_level_auction_type",
+          "comb_vip_level_tag",
+          "comb_vip_level_tbcate",
+          "comb_vip_level_brand",
+          "comb_vip_level_class",
+          "comb_query_id_seller_id",
+          "comb_query_id_xycate",
+          "comb_query_id_item_from",
+          "comb_query_id_publish_days",
+          "comb_query_id_contains_video",
+          "comb_query_id_prov",
+          "comb_query_id_auction_type",
+          "comb_query_id_tag",
+          "comb_query_id_tbcate",
+          "comb_query_id_brand",
+          "comb_query_id_class",
+          "comb_position_seller_id",
+          "comb_position_xycate",
+          "comb_position_item_from",
+          "comb_position_publish_days",
+          "comb_position_contains_video",
+          "comb_position_prov",
+          "comb_position_auction_type",
+          "comb_position_tag",
+          "comb_position_tbcate",
+          "comb_position_brand",
+          "comb_position_class",
+          "comb_hh_seller_id",
+          "comb_hh_xycate",
+          "comb_hh_item_from",
+          "comb_hh_publish_days",
+          "comb_hh_contains_video",
+          "comb_hh_prov",
+          "comb_hh_auction_type",
+          "comb_hh_tag",
+          "comb_hh_tbcate",
+          "comb_hh_brand",
+          "comb_hh_class"
+        ],
+        "group_name": "combo"
+      }
+    ]
+  },
+  "eval_input_path": "data/test/rtp/xys_cxr_fg_sample_test2_with_lbl.txt",
+  "model_dir": "experiments/rtp_fg_json_format/",
+  "feature_configs": [
+    {
+      "input_names": [
+        "q_query_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "q_prefer_seller"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_clk_prefer_seller"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_pay_prefer_seller"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_hits"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_prefer_cate"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_prefer_tag"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_showuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_clkuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_wantuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_payuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_showuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_clkuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_wantuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_payuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_showuv37"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_clkuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_wantuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_payuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_showuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_clkuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_wantuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "q_payuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_zhimascore"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_pv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_ipv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_chatpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_paypv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_likepv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_commpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_collectpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_uv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_clkuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_chatuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_payuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_likeuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_commuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_collectuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_uvctr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_uvcvr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_uvclk2chat"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_uvchat2pay"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_xingzuo"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_gender"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_age"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_pay_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_province"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_city"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_vip_level"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "u_show_item_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_click_item_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_want_item_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_buy_item_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_show_item_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_click_item_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_want_item_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_buy_item_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_show_item_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_click_item_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_want_item_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "u_buy_item_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "cate_id_shared"
+    },
+    {
+      "input_names": [
+        "i_posted_price"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_publish_days"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_contains_video"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_city"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_sold_quantity"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "cate_id_shared"
+    },
+    {
+      "input_names": [
+        "i_grade"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "cate_id_shared"
+    },
+    {
+      "input_names": [
+        "i_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "cate_id_shared"
+    },
+    {
+      "input_names": [
+        "i_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "cate_id_shared"
+    },
+    {
+      "input_names": [
+        "i_gmtdd"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_moddd"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_sreplyscore"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_showuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_clkuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_wantuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replyuv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askpv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replypv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_modpv3"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_showuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_clkuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_wantuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replyuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askpv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replypv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_modpv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_showuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_clkuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_wantuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replyuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askpv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replypv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_modpv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_showuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_clkuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_wantuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replyuv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_askpv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_replypv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_modpv30"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_prefer_q"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "iclk_prefer_q"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "ipay_prefer_q"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_showuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_clkuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_wantuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_askuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_replyuv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_askpv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_replypv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_modpv7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_showuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_clkuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_wantuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_askuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_replyuv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_askpv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_replypv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_c_modpv14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_zhimascore"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_replytime"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_replycnt"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_noreplycnt"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_firstreplytime"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_pv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_ipv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_chatpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_paypv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_likepv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_commpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_collectpv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_uv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_clkuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_chatuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_payuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_likeuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_commuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_collectuv"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_uvctr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_uvcvr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_uvclk2chat"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_uvchat2pay"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_logondd"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_logsigndd"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_visits_30d"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_rate_slr_all"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_rate_slr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_good_rate_slr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_bad_rate_slr"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_good_rate_slr_rate"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_xingzuo"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_gender"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_age"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_pay_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_province"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_city"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_vip_level"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "i_s_show_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_click_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_want_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_asked_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_reply_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_sell_uv_21"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_show_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_click_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_want_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_asked_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_reply_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_sell_uv_14"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_show_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_click_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_want_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_asked_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_reply_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_sell_uv_7"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "i_s_proseller"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "ctx_position"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "ctx_hh"
+      ],
+      "separator": "\u0003",
+      "feature_type": "RawFeature"
+    },
+    {
+      "input_names": [
+        "comb_age_gender_time"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_gender_position"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_xingzuo_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_gender_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_publish_days"
+      ],
+      "feature_type": "IdFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_age_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_pay_class_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_province_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_vip_level_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_query_id_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "query_id_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_position_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_seller_id"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_xycate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_item_from"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_publish_days"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_contains_video"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_prov"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_auction_type"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_tag"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_tbcate"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_brand"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    },
+    {
+      "input_names": [
+        "comb_hh_class"
+      ],
+      "feature_type": "TagFeature",
+      "hash_bucket_size": 50000,
+      "embedding_dim": 16,
+      "separator": "\u0003",
+      "embedding_name": "combo_shared"
+    }
+  ]
+}

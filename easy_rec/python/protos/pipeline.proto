@@ -1,0 +1,38 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/train.proto";
+import "easy_rec/python/protos/eval.proto";
+import "easy_rec/python/protos/export.proto";
+import "easy_rec/python/protos/dataset.proto";
+import "easy_rec/python/protos/feature_config.proto";
+import "easy_rec/python/protos/easy_rec_model.proto";
+import "easy_rec/python/protos/data_source.proto";
+
+// EasyRecConfig: the pipeline_config, including all sub configs
+
+message EasyRecConfig {
+  oneof train_path {
+      string train_input_path = 1;
+      KafkaServer kafka_train_input = 2;
+  }
+  oneof eval_path {
+      string eval_input_path = 3;
+      KafkaServer kafka_eval_input = 4;
+  }
+  required string model_dir = 5;
+
+  //train config, including optimizer, weight decay, num_steps and so on
+  optional TrainConfig train_config = 6;
+
+  optional EvalConfig eval_config = 7;
+
+  optional DatasetConfig data_config = 8;
+
+  repeated FeatureConfig feature_configs = 9;
+
+  // recommendation model config
+  required EasyRecModel model_config = 10;
+
+  optional ExportConfig export_config = 11;
+}

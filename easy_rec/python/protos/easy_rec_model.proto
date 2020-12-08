@@ -1,0 +1,51 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/fm.proto";
+import "easy_rec/python/protos/deepfm.proto";
+import "easy_rec/python/protos/wide_and_deep.proto";
+import "easy_rec/python/protos/multi_tower.proto";
+import "easy_rec/python/protos/feature_config.proto";
+import "easy_rec/python/protos/dssm.proto";
+import "easy_rec/python/protos/mmoe.proto";
+import "easy_rec/python/protos/esmm.proto";
+import "easy_rec/python/protos/dbmtl.proto";
+import "easy_rec/python/protos/simple_multi_task.proto";
+import "easy_rec/python/protos/loss.proto";
+
+// for input performance test
+message DummyModel {
+
+}
+
+message EasyRecModel {
+    required string model_class = 1;
+
+    // actually input layers, each layer produce a group of feature
+    repeated FeatureGroupConfig feature_groups = 2;
+
+    // model parameters
+    oneof model {
+        DummyModel dummy = 101;
+        WideAndDeep wide_and_deep = 102;
+        DeepFM deepfm = 103;
+        MultiTower multi_tower = 104;
+        FM fm = 105;
+        DSSM dssm = 201;
+        MMoE mmoe = 301;
+        ESMM esmm = 302;
+        DBMTL dbmtl = 303;
+        SimpleMultiTask simple_multi_task = 304;
+    }
+    repeated SeqAttGroupConfig seq_att_groups = 7;
+    // implemented in easy_rec/python/model/easy_rec_estimator
+    // add regularization to all variables with "embedding_weights:"
+    // in name
+    optional float embedding_regularization = 8 [default = 0.0];
+
+    optional LossType loss_type = 9 [default = CLASSIFICATION];
+
+    optional uint32 num_class = 10 [default = 1];
+
+    optional bool use_embedding_variable = 11 [default=false];
+}

@@ -1,0 +1,24 @@
+# python build
+build
+dist
+easy_rec.egg-info
+
+# python temp
+*.pyc
+
+# proto
+protoc
+protoc-3.4.0.tar.gz
+*_pb2.py
+
+# misc
+experiments
+log
+*.swp
+*.swo
+.vscode
+
+
+# pai job
+pai_jobs/easy_rec
+pai_jobs/easy_rec.tar.gz

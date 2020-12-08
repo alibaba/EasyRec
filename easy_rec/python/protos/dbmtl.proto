@@ -1,0 +1,18 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/tower.proto";
+
+message DBMTL {
+    // shared bottom dnn layer
+    optional DNN bottom_dnn = 1;
+    // mmoe expert dnn layer definition
+    optional DNN expert_dnn = 2;
+    // number of mmoe experts
+    optional uint32 num_expert = 3 [default=0];
+    // bayes task tower
+    repeated BayesTaskTower task_towers = 4;
+    // l2 regularization
+    optional float l2_regularization = 5 [default = 1e-4];
+}

@@ -1,0 +1,5 @@
+{
+   "param": {
+      "feature_configs[input_names[0]=site_id].embedding_dim": 32
+    }
+}

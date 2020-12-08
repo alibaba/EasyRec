@@ -1,0 +1,5 @@
+{
+   "param": {
+      "feature_configs[10:-2].embedding_dim": 37
+    }
+}

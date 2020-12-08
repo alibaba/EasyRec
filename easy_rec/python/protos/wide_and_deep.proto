@@ -1,0 +1,8 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message WideAndDeep {
+    required DNN dnn = 1;
+}

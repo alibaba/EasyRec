@@ -1,0 +1,67 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/eval.proto";
+import "easy_rec/python/protos/loss.proto";
+import "easy_rec/python/protos/dnn.proto";
+
+message Tower {
+    required string input = 1;
+    required DNN dnn = 2;
+};
+
+
+message TaskTower {
+    // task name for the task tower
+    required string tower_name = 1;
+    // label for the task, default is label_fields by order
+    optional string label_name = 2;
+    // metrics for the task
+    repeated EvalMetrics metrics_set = 3;
+    // loss for the task
+    optional LossType loss_type = 4 [default = CLASSIFICATION];
+    // num_class for multi-class classification loss
+    optional uint32 num_class = 5 [default = 1];
+    // task specific dnn
+    optional DNN dnn = 6;
+    // training loss weights
+    optional float weight = 7 [default = 1.0];
+    // label name for indcating the sample space for the task tower
+    optional string task_space_indicator_label = 10;
+    // the loss weight for sample in the task space
+    optional float in_task_space_weight = 11 [default = 1.0];
+    // the loss weight for sample out the task space
+    optional float out_task_space_weight = 12 [default = 1.0];
+};
+
+
+message BayesTaskTower {
+    // task name for the task tower
+    required string tower_name = 1;
+    // label for the task, default is label_fields by order
+    optional string label_name = 2;
+    // metrics for the task
+    repeated EvalMetrics metrics_set = 3;
+    // loss for the task
+    optional LossType loss_type = 4 [default = CLASSIFICATION];
+    // num_class for multi-class classification loss
+    optional uint32 num_class = 5 [default = 1];
+    // task specific dnn
+    optional DNN dnn = 6;
+    // related tower names
+    repeated string relation_tower_names = 7;
+    // relation dnn
+    optional DNN relation_dnn = 8;
+    // training loss weights
+    optional float weight = 9 [default = 1.0];
+    // label name for indcating the sample space for the task tower
+    optional string task_space_indicator_label = 10;
+    // the loss weight for sample in the task space
+    optional float in_task_space_weight = 11 [default = 1.0];
+    // the loss weight for sample out the task space
+    optional float out_task_space_weight = 12 [default = 1.0];
+    // level for prediction
+    // required uint32 prediction_level = 13;
+    // prediction weights
+    // optional float prediction_weight = 14 [default = 1.0];
+};

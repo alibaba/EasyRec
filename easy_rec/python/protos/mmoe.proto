@@ -1,0 +1,23 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/tower.proto";
+
+message ExpertTower {
+    required string expert_name = 1;
+    required DNN dnn = 2;
+};
+
+message MMoE {
+    // deprecated: original mmoe experts config
+    repeated ExpertTower experts = 1;
+    // mmoe expert dnn layer definition
+    optional DNN expert_dnn = 2;
+    // number of mmoe experts
+    optional uint32 num_expert = 3 [default=0];
+    // task tower
+    repeated TaskTower task_towers = 4;
+    // l2 regularization
+    required float l2_regularization = 5 [default = 1e-4];
+}

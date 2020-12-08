@@ -1,0 +1,85 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/hyperparams.proto";
+
+enum WideOrDeep {
+    DEEP = 0;
+    WIDE = 1;
+    WIDE_AND_DEEP = 2;
+}
+
+message FeatureConfig {
+    enum FeatureType {
+        IdFeature = 0;
+        RawFeature = 1;
+        TagFeature = 2;
+        ComboFeature = 3;
+        LookupFeature = 4;
+        SequenceFeature = 5;
+    }
+
+    // input field names: must be included in DatasetConfig.input_fields
+    repeated string input_names = 1;
+    required FeatureType feature_type = 2 [default = IdFeature];
+    optional string embedding_name = 3 [default = ''];
+    optional uint32 embedding_dim = 4 [default = 0];
+
+    optional uint32 hash_bucket_size = 5 [default = 0];
+    // for categorical_column_with_identity
+    optional uint32 num_buckets = 15 [default = 0];
+
+    // only for raw features
+    repeated float boundaries = 6;
+
+    optional string separator = 7 [default = '|'];
+
+    // delimeter to separator key from value
+    optional string kv_separator = 8 [default = ':'];
+
+    optional string feature_name = 9;
+
+    optional string vocab_file = 11;
+    repeated string vocab_list = 12;
+
+    // many other field share this config
+    repeated string shared_names = 16;
+
+    // lookup max select element number, default 10
+    optional int32 lookup_max_sel_elem_num = 17 [default = 10];
+
+    // max_partitions
+    optional int32 max_partitions = 18 [default = 1];
+
+    // combiner
+    optional string combiner = 19 [default = 'mean'];
+
+    // embedding initializer
+    optional Initializer initializer = 20;
+
+    // number of digits kept after dot in format float/double to string
+    // scientific format is not used.
+    // in default it is not allowed to convert float/double to string
+    optional int32 precision = 21 [default = -1];
+
+    // normalize raw feature to [0-1]
+    optional float min_val = 22 [default=0.0];
+    optional float max_val = 23 [default=0.0];
+}
+
+message FeatureGroupConfig {
+    optional string group_name = 1;
+    repeated string feature_names = 2;
+
+    optional WideOrDeep wide_deep = 3 [default = DEEP];
+}
+
+message SeqAttMap {
+    required string key = 1;
+    required string hist_seq = 2;
+}
+
+message SeqAttGroupConfig {
+    optional string group_name = 1;
+    repeated SeqAttMap seq_att_map = 2;
+}

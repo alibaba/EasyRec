@@ -1,0 +1,62 @@
+syntax = "proto3";
+package protos;
+
+message EmbeddingPartData {
+    // Shape of the embedding
+    repeated int64 shape = 1;
+    // Data
+    repeated float data = 2 [packed = true];
+}
+
+message Config {
+    // 例如输入特征为"1005,109;0;93eaba74",此时分号分割的为column，
+    // 逗号分割的为每个column的多个feature, 下划线分割为feature名字和对应的value。
+    string column_delim = 1;
+    string feature_delim = 2;
+
+    // 指定字符串hash分桶的算法，支持HarmHash（对应于tf.strings.to_hash_bucket_fast()）
+    // 和SipHash(对应于tf.strings.to_hash_bucket_strong())两种字符串hash分桶算法
+    string hash = 3;
+
+    // embedding_name to embedding
+    map<string, Embedding> embeddings = 4;
+    // 指定embedding lookup的结果的最大L2-norm
+    map<string, float> embedding_max_norm = 5;
+    // 指定embedding的combiner策略，支持sum, mean和sqrtn
+    map<string, string> embedding_combiner = 6;
+
+    Model model = 7;
+}
+
+message Embedding {
+    // 指定该embedding切分的总数
+    int32 partition_num = 1;
+    repeated EmbeddingPart parts = 2;
+}
+
+message EmbeddingPart {
+    // 指定EmbeddingPartData(*.pb)所在的路径
+    string embedding_part_path = 1;
+    // 指定该embedding part所属第几个part
+    int32 partition_id = 2;
+    // 指定该embedding part的shape(可以从EmbeddingPartData中读取)
+    repeated int64 shape = 3;
+    // embedding part的部署策略, 支持本地部署（local）和远程部署(remote)
+    string deploy_strategy = 4;
+}
+
+message ModelInput {
+    string feature_name = 1;
+    string embedding_name = 2;
+    string placeholder_name = 3;
+    string weight_name = 4;
+}
+
+message Model {
+    // 指定模型所在路径，便于加载模型
+    string model_path = 1;
+    // 指定模型的sinature的名字
+    string model_signature_name = 2;
+    // model input description
+    repeated ModelInput model_inputs = 3;
+}

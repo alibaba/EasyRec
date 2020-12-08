@@ -1,0 +1,17 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+
+message DSSMTower {
+    required string id = 1;
+    required DNN dnn = 2;
+};
+
+
+message DSSM {
+    required DSSMTower user_tower = 1;
+    required DSSMTower item_tower = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+}

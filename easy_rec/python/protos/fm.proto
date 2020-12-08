@@ -1,0 +1,6 @@
+syntax = "proto2";
+package protos;
+
+message FM {
+    optional float l2_regularization = 5 [default = 1e-4];
+}

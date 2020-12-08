@@ -1,0 +1,47 @@
+syntax = "proto2";
+package protos;
+
+message AUC {
+}
+
+message RecallAtTopK {
+    optional uint32 topk = 1 [default = 5];
+}
+
+message MeanAbsoluteError {
+}
+
+message MeanSquaredError {
+}
+
+message Accuracy {
+}
+
+message EvalMetrics {
+    oneof metric {
+        AUC auc = 1;
+        RecallAtTopK recall_at_topk = 2;
+        MeanAbsoluteError mean_absolute_error = 3;
+        MeanSquaredError mean_squared_error = 4;
+        Accuracy accuracy = 5;
+    }
+}
+
+// Message for configuring DetectionModel evaluation jobs (eval.py).
+message EvalConfig {
+    // Number of examples to process of evaluation.
+    optional uint32 num_examples = 1 [default = 0];
+
+    // How often to run evaluation.
+    optional uint32 eval_interval_secs = 2 [default = 300];
+
+    // Maximum number of times to run evaluation. If set to 0, will run forever.
+    optional uint32 max_evals = 3 [default = 0];
+
+    // Whether the TensorFlow graph used for evaluation should be saved to disk.
+    optional bool save_graph = 4 [default = false];
+
+    // Type of metrics to use for evaluation.
+    // possible values:
+    repeated EvalMetrics metrics_set = 5;
+}

@@ -1,0 +1,6 @@
+{
+   "param": {
+      "train_config.fine_tune_checkpoint":"oss://easy-rec/test/experiment/ctr_v93/model.ckpt-1000",
+      "model_dir":"oss://easy-rec/test/experiment/ctr_v93/model_dir"
+   }
+}

@@ -1,0 +1,27 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/tower.proto";
+
+message DINTower {
+    required string input = 1;
+    required DNN dnn = 2;
+};
+
+
+message BSTTower {
+    required string input = 1;
+    required uint32 seq_len = 2 [default = 5];
+    required uint32 multi_head_size = 3 [default = 4];
+};
+
+
+message MultiTower {
+    repeated Tower towers = 1;
+    required DNN final_dnn = 4;
+
+    required float l2_regularization = 5 [default = 1e-4];
+    repeated DINTower din_towers = 6;
+    repeated BSTTower bst_towers = 7;
+}

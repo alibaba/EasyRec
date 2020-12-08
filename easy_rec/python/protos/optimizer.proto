@@ -1,0 +1,124 @@
+syntax = "proto2";
+package protos;
+
+// Messages for configuring the optimizing strategy for cvmodels.
+
+// Top level optimizer message.
+message Optimizer {
+  oneof optimizer {
+    RMSPropOptimizer rms_prop_optimizer = 101;
+    MomentumOptimizer momentum_optimizer = 102;
+    AdamOptimizer adam_optimizer = 103;
+    AdamAsyncOptimizer adam_async_optimizer = 104;
+    AdagradOptimizer adagrad_optimizer = 105;
+  }
+  optional bool use_moving_average = 5 [default = false];
+  optional float moving_average_decay = 6 [default = 0.9999];
+}
+
+// Configuration message for the RMSPropOptimizer
+// See: https://www.tensorflow.org/api_docs/python/tf/train/RMSPropOptimizer
+message RMSPropOptimizer {
+    optional LearningRate learning_rate = 1;
+    optional float momentum_optimizer_value = 2 [default = 0.9];
+    optional float decay = 3 [default = 0.9];
+    optional float epsilon = 4 [default = 1.0];
+}
+
+// Configuration message for the MomentumOptimizer
+// See: https://www.tensorflow.org/api_docs/python/tf/train/MomentumOptimizer
+message MomentumOptimizer {
+    optional LearningRate learning_rate = 1;
+    optional float momentum_optimizer_value = 2 [default = 0.9];
+}
+
+// Configuration message for the AdamOptimizer
+// See: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
+message AdamOptimizer {
+    optional LearningRate learning_rate = 1;
+    optional float beta1 = 3 [default = 0.9];
+    optional float beta2 = 4 [default = 0.999];
+}
+
+// Configuration message for the AdagradOptimizer
+// See: https://www.tensorflow.org/api_docs/python/tf/train/AdagradOptimizer
+message AdagradOptimizer {
+    optional LearningRate learning_rate = 1;
+}
+
+// Developed by pai
+message AdamAsyncOptimizer {
+  optional LearningRate learning_rate = 1;
+  optional float beta1 = 3 [default = 0.9];
+  optional float beta2 = 4 [default = 0.999];
+}
+
+// Configuration message for optimizer learning rate.
+message LearningRate {
+    oneof learning_rate {
+        ConstantLearningRate constant_learning_rate = 1;
+        ExponentialDecayLearningRate exponential_decay_learning_rate = 2;
+        ManualStepLearningRate manual_step_learning_rate = 3;
+        CosineDecayLearningRate cosine_decay_learning_rate = 4;
+        PolyDecayLearningRate poly_decay_learning_rate = 5;
+        TransformerLearningRate transformer_learning_rate = 6;
+    }
+}
+
+// Configuration message for a constant learning rate.
+message ConstantLearningRate {
+    optional float learning_rate = 1 [default = 0.002];
+}
+
+// Configuration message for an exponentially decaying learning rate.
+// See https://www.tensorflow.org/versions/master/api_docs/python/train/ \
+//     decaying_the_learning_rate#exponential_decay
+message ExponentialDecayLearningRate {
+    optional float initial_learning_rate = 1 [default = 0.002];
+    optional uint32 decay_steps = 2 [default = 4000000];
+    optional float decay_factor = 3 [default = 0.95];
+    optional bool staircase = 4 [default = true];
+    optional float burnin_learning_rate = 5 [default = 0.0];
+    optional uint32 burnin_steps = 6 [default = 0];
+    optional float min_learning_rate = 7 [default = 0.0];
+}
+
+// Configuration message for a manually defined learning rate schedule.
+message ManualStepLearningRate {
+    optional float initial_learning_rate = 1 [default = 0.002];
+    message LearningRateSchedule {
+        optional uint32 step = 1;
+        optional float learning_rate = 2 [default = 0.002];
+    }
+    repeated LearningRateSchedule schedule = 2;
+
+    // Whether to linearly interpolate learning rates for steps in
+    // [0, schedule[0].step].
+    optional bool warmup = 3 [default = false];
+}
+
+// Configuration message for a cosine decaying learning rate as defined in
+// utils/learning_schedules.py
+message CosineDecayLearningRate {
+    optional float learning_rate_base = 1 [default = 0.002];
+    optional uint32 total_steps = 2 [default = 4000000];
+    optional float warmup_learning_rate = 3 [default = 0.0002];
+    optional uint32 warmup_steps = 4 [default = 10000];
+    optional uint32 hold_base_rate_steps = 5 [default = 0];
+}
+
+// Configuration message for a poly decaying learning rate.
+// See https://www.tensorflow.org/api_docs/python/tf/train/polynomial_decay.
+message PolyDecayLearningRate {
+    required float learning_rate_base = 1;
+    required int64 total_steps = 2;
+    required float power = 3;
+    optional float end_learning_rate = 4 [default = 0];
+}
+
+message TransformerLearningRate {
+    required float learning_rate_base = 1;
+    required int32 hidden_size = 2;
+    required int32 warmup_steps = 3;
+    optional float step_scaling_rate = 4 [default = 1.0];
+}

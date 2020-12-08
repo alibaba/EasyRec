@@ -1,0 +1,9 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/tower.proto";
+
+message SimpleMultiTask {
+    repeated TaskTower task_towers = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+}
