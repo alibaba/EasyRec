@@ -8,3 +8,13 @@ easy\_rec.python.core.learning\_schedules
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: easy_rec.python.core.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: easy_rec.python.core.sampler
+   :members:
+   :undoc-members:
+   :show-inheritance:

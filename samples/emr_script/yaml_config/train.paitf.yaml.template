@@ -1,0 +1,19 @@
+app:
+  app_name: easyrec_tf_train
+  app_type: tensorflow-ps
+  command: python -m easy_rec.python.train_eval --pipeline_config_path {TEMP_DIR}/configs/deepfm.config --odps_config ./.odps_config.ini --continue_train
+  exit_mode: true
+  files: {TEMP_DIR}/configs/deepfm.config,./.odps_config.ini
+  hook: /usr/local/dstools/bin/hooks.sh
+  mode: local
+  verbose: true
+  wait_time: 8
+resource:
+  ps_cpu: 1
+  ps_memory: 10g
+  ps_mode_arg: null
+  ps_num: 1
+  worker_cpu: 1
+  worker_memory: 10g
+  worker_mode_arg: null
+  worker_num: 2

@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
 from easy_rec.python.model.multi_task_model import MultiTaskModel
@@ -28,12 +27,7 @@ class DBMTL(MultiTaskModel):
     assert isinstance(self._model_config, DBMTLConfig)
 
     self._features, _ = self._input_layer(self._feature_dict, 'all')
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._features])
-
     self._init_towers(self._model_config.task_towers)
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def build_predict_graph(self):
     if self._model_config.HasField('bottom_dnn'):
@@ -92,7 +86,7 @@ class DBMTL(MultiTaskModel):
 
       output_logits = tf.layers.dense(
           relation_fea,
-          self._num_class,
+          task_tower_cfg.num_class,
           kernel_regularizer=self._l2_reg,
           name=tower_name + '/output')
       tower_outputs[tower_name] = output_logits

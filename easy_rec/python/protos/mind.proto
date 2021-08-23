@@ -1,0 +1,50 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+message Capsule {
+  // max number of high capsules
+  optional uint32 max_k = 1 [default = 5];
+  // max behaviour sequence length
+  required uint32 max_seq_len = 2;
+  // high capsule embedding vector dimension
+  required uint32 high_dim = 3;
+  // number EM iterations
+  optional uint32 num_iters = 4 [default=3];
+  // routing logits scale
+  optional float routing_logits_scale = 5 [default=20];
+  // routing logits initial stddev
+  optional float routing_logits_stddev = 6 [default=1.0];
+}
+
+message MIND {
+  enum UserSeqCombineMethod {
+    CONCAT = 0;
+    SUM = 1;
+  }
+  // preprocessing dnn before entering capsule layer
+  optional DNN pre_capsule_dnn = 101;
+
+  // dnn layers applied on concated results of
+  // capsule output and user_context(none sequence features)
+  required DNN user_dnn = 102;
+
+  // method to combine several user sequences
+  // such as item_ids, category_ids
+  optional UserSeqCombineMethod user_seq_combine = 103 [default=SUM];
+
+  // dnn layers applied on item features
+  required DNN item_dnn = 2;
+
+  required Capsule capsule_config = 3;
+
+  // similarity power, the paper says that the big
+  // the better
+  optional float simi_pow = 4 [default=10];
+
+  optional Similarity simi_func = 6 [default=COSINE];
+
+  required float l2_regularization = 7 [default = 1e-4];
+}

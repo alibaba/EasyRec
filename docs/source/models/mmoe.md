@@ -56,23 +56,27 @@ model_config {
 
 ```
 
-- model\_class: 'MMoE', 不需要修改
-- feature\_groups: 配置一个名为'all'的feature\_group。
+- model_class: 'MMoE', 不需要修改
+- feature_groups: 配置一个名为'all'的feature_group。
 - mmoe: mmoe相关的参数
-  - expert\_dnn: MMOE的专家DNN配置
-    - hidden\_units: dnn每一层的channel数目，即神经元的数目
-  - expert\_num: 专家DNN的数目
-  - task\_towers: 根据任务数配置task\_towers
-    - tower\_name：任务名
-    - label\_name: tower对应的label名，若不设置，label\_fields需与task\_towers一一对齐
+  - expert_dnn: MMOE的专家DNN配置
+    - hidden_units: dnn每一层的channel数目，即神经元的数目
+  - expert_num: 专家DNN的数目
+  - task_towers: 根据任务数配置task_towers
+    - tower_name：任务名
+    - label_name: tower对应的label名，若不设置，label_fields需与task_towers一一对齐
     - dnn: deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-    - 默认为二分类任务，即num\_class默认为1，weight默认为1.0，loss\_type默认为CLASSIFICATION，metrics\_set为auc
-  - embedding\_regularization: 对embedding部分加regularization，防止overfit
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+    - 默认为二分类任务，即num_class默认为1，weight默认为1.0，loss_type默认为CLASSIFICATION，metrics_set为auc
+  - embedding_regularization: 对embedding部分加regularization，防止overfit
+
+MMoE模型每个塔的输出名为："logits\_" / "probs\_" / "y\_" + tower_name
+其中，logits/probs/y对应: sigmoid之前的值/概率/回归模型的预测值
+MMoE模型每个塔的指标为：指标名+ "\_" + tower_name
 
 ### 示例Config
 
-[MMoE\_demo.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/mmoe.config)
+[MMoE_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mmoe.config)
 
 ### 参考论文
 

@@ -8,6 +8,7 @@ import time
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.lib.io import file_io
 from tensorflow.python.saved_model import signature_constants
 
 from easy_rec.python.builders import optimizer_builder
@@ -75,6 +76,12 @@ class EasyRecEstimator(tf.estimator.Estimator):
           regularization_losses, name='regularization_loss')
       loss_dict['regularization_loss'] = regularization_losses
 
+    variational_dropout_loss = tf.get_collection('variational_dropout_loss')
+    if variational_dropout_loss:
+      variational_dropout_loss = tf.add_n(
+          variational_dropout_loss, name='variational_dropout_loss')
+      loss_dict['variational_dropout_loss'] = variational_dropout_loss
+
     loss = tf.add_n(list(loss_dict.values()))
     loss_dict['total_loss'] = loss
     for key in loss_dict:
@@ -103,6 +110,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
           total_num_replicas=run_config.num_worker_replicas)
       hooks.append(
           optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
+
+    # add barrier for no strategy case
+    if run_config.num_worker_replicas > 1 and \
+       self.train_config.train_distribute == DistributionStrategy.NoStrategy:
       hooks.append(
           estimator_utils.ExitBarrierHook(run_config.num_worker_replicas,
                                           run_config.is_chief, self.model_dir))
@@ -115,6 +126,17 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if gradient_clipping_by_norm <= 0:
       gradient_clipping_by_norm = None
 
+    gradient_multipliers = None
+    if self.train_config.optimizer_config.HasField(
+        'embedding_learning_rate_multiplier'):
+      gradient_multipliers = {
+          var:
+          self.train_config.optimizer_config.embedding_learning_rate_multiplier
+          for var in tf.trainable_variables()
+          if 'embedding_weights:' in var.name or
+          '/embedding_weights/part_' in var.name
+      }
+
     # optimize loss
     # colocate_gradients_with_ops=True means to compute gradients
     # on the same device on which op is processes in forward process
@@ -124,10 +146,27 @@ class EasyRecEstimator(tf.estimator.Estimator):
         learning_rate=None,
         clip_gradients=gradient_clipping_by_norm,
         optimizer=optimizer,
+        gradient_multipliers=gradient_multipliers,
         variables=tf.trainable_variables(),
         summaries=summaries,
         colocate_gradients_with_ops=True,
+        not_apply_grad_after_first_step=run_config.is_chief and
+        self._pipeline_config.data_config.chief_redundant,
         name='')  # Preventing scope prefix on all variables.
+
+    # online evaluation
+    metric_update_op_dict = None
+    if self.eval_config.eval_online:
+      metric_update_op_dict = {}
+      metric_dict = model.build_metric_graph(self.eval_config)
+      for k, v in metric_dict.items():
+        metric_update_op_dict['%s/batch' % k] = v[1]
+        tf.summary.scalar('%s/batch' % k, v[1])
+      train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
+      if estimator_utils.is_chief():
+        hooks.append(
+            estimator_utils.OnlineEvaluationHook(
+                metric_dict=metric_dict, output_dir=self.model_dir))
 
     if self.train_config.HasField('fine_tune_checkpoint'):
       fine_tune_ckpt = self.train_config.fine_tune_checkpoint
@@ -141,11 +180,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
           force_restore_shape_compatible=force_restore)
       if restore_hook is not None:
         hooks.append(restore_hook)
+
     # logging
     logging_dict = OrderedDict()
     logging_dict['lr'] = learning_rate[0]
     logging_dict['step'] = tf.train.get_global_step()
     logging_dict.update(loss_dict)
+    if metric_update_op_dict is not None:
+      logging_dict.update(metric_update_op_dict)
     tensor_order = logging_dict.keys()
 
     def format_fn(tensor_dict):
@@ -170,7 +212,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       scaffold = tf.train.Scaffold()
       chief_hooks = []
     else:
-      scaffold = tf.train.Scaffold(saver=tf.train.Saver(sharded=False))
+      scaffold = tf.train.Scaffold(
+          saver=tf.train.Saver(
+              sharded=True, max_to_keep=self.train_config.keep_checkpoint_max))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
@@ -178,10 +222,12 @@ class EasyRecEstimator(tf.estimator.Estimator):
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
           write_graph=True)
-      chief_hooks = [saver_hook]
+      chief_hooks = []
+      if estimator_utils.is_chief():
+        hooks.append(saver_hook)
 
     # profiling hook
-    if self.train_config.is_profiling and run_config.is_chief:
+    if self.train_config.is_profiling and estimator_utils.is_chief():
       profile_hook = tf.train.ProfilerHook(
           save_steps=log_step_count_steps, output_dir=self.model_dir)
       hooks.append(profile_hook)
@@ -222,66 +268,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
 
-  def _export_model_fn(self, features, labels, run_config):
-    if self.export_config.dump_embedding_shape:
-      logging.info('use embedded features as input')
-      model = self._model_cls(
-          self.model_config, None, features, labels=None, is_training=False)
-    else:
-      model = self._model_cls(
-          self.model_config,
-          self.feature_configs,
-          features,
-          labels=None,
-          is_training=False)
+  def _export_model_fn(self, features, labels, run_config, params):
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels=None,
+        is_training=False)
     predict_dict = model.build_predict_graph()
-
-    # for embedding export to redis
-    # norm_name is the embedding name will be used in redis
-    # redis_key_name = norm_name + ":" + hash_id(int)
-    def _get_norm_name(name):
-      name_toks = name.split('/')
-      for i in range(0, len(name_toks) - 1):
-        if name_toks[i + 1].startswith('embedding_weights:'):
-          var_id = name_toks[i + 1].replace('embedding_weights:', '')
-          if name_toks[i].endswith('_embedding'):
-            tmp_name = name_toks[i][:-len('_embedding')]
-          else:
-            tmp_name = name_toks[i]
-          if var_id != '0':
-            tmp_name = tmp_name + '_' + var_id
-          return tmp_name, 0
-        if i > 1 and name_toks[i + 1].startswith('part_') and \
-           name_toks[i] == 'embedding_weights':
-          part_id = name_toks[i + 1].replace('part_', '')
-          part_toks = part_id.split(':')
-          if name_toks[i - 1].endswith('_embedding'):
-            tmp_name = name_toks[i - 1][:-len('_embedding')]
-          else:
-            tmp_name = name_toks[i - 1]
-          if part_toks[1] != '0':
-            tmp_name = tmp_name + '_' + part_toks[1]
-          return tmp_name, int(part_toks[0])
-      return None, None
-
-    embed_vars = {}
-    for x in tf.global_variables():
-      if 'embedding_weights' not in x.name:
-        continue
-      if '/embedding_weights:' in x.name or\
-         '/embedding_weights/part_' in x.name:
-        norm_name, part_id = _get_norm_name(x.name)
-        if '/part_' in x.name:
-          toks = x.name.split('/')
-          toks = toks[:-1]
-          var_name = '/'.join(toks)
-        else:
-          var_name = x.name
-          var_name = var_name.split(':')[0]
-        embed_vars[norm_name] = var_name
-    for norm_name in embed_vars.keys():
-      tf.add_to_collections('easy_rec_embedding_vars', embed_vars[norm_name])
-      tf.add_to_collections('easy_rec_embedding_names', norm_name)
 
     # add output info to estimator spec
     outputs = {}
@@ -297,20 +291,23 @@ class EasyRecEstimator(tf.estimator.Estimator):
         signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
             tf.estimator.export.PredictOutput(outputs)
     }
-    tf.add_to_collection(
-        tf.GraphKeys.ASSET_FILEPATHS,
-        tf.constant(
-            self._model_dir + '/pipeline.config',
-            dtype=tf.string,
-            name='pipeline.config'))
-    if self.export_config.dump_embedding_shape:
-      embed_input_desc_files = tf.gfile.Glob(
-          os.path.join(self.model_dir, 'embedding_shapes', 'input_layer_*.txt'))
-      for one_file in embed_input_desc_files:
-        _, one_file_name = os.path.split(one_file)
+
+    # save train pipeline.config for debug purpose
+    pipeline_path = os.path.join(self._model_dir, 'pipeline.config')
+    if tf.gfile.Exists(pipeline_path):
+      tf.add_to_collection(
+          tf.GraphKeys.ASSET_FILEPATHS,
+          tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'))
+    else:
+      print('train pipeline_path(%s) does not exist' % pipeline_path)
+
+    # add more asset files
+    if 'asset_files' in params:
+      for asset_file in params['asset_files'].split(','):
+        _, asset_name = os.path.split(asset_file)
         tf.add_to_collection(
             tf.GraphKeys.ASSET_FILEPATHS,
-            tf.constant(one_file, dtype=tf.string, name=one_file_name))
+            tf.constant(asset_file, dtype=tf.string, name=asset_name))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,
@@ -319,9 +316,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
         export_outputs=export_outputs)
 
   def _model_fn(self, features, labels, mode, config, params):
+    os.environ['tf.estimator.mode'] = mode
+    os.environ['tf.estimator.ModeKeys.TRAIN'] = tf.estimator.ModeKeys.TRAIN
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:
       return self._eval_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.PREDICT:
-      return self._export_model_fn(features, labels, config)
+      return self._export_model_fn(features, labels, config, params)

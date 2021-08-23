@@ -1,9 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
-
 import tensorflow as tf
 
+from easy_rec.python.builders import loss_builder
+from easy_rec.python.core import metrics as metrics_lib
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 
@@ -44,9 +44,12 @@ class RankModel(EasyRecModel):
         prediction_dict['logits' + suffix] = output
         prediction_dict['probs' + suffix] = probs
         prediction_dict['y' + suffix] = tf.argmax(output, axis=1)
-    else:
+    elif loss_type == LossType.L2_LOSS:
       output = tf.squeeze(output, axis=1)
       prediction_dict['y' + suffix] = output
+    elif loss_type == LossType.SIGMOID_L2_LOSS:
+      output = tf.squeeze(output, axis=1)
+      prediction_dict['y' + suffix] = tf.sigmoid(output)
     return prediction_dict
 
   def _add_to_prediction_dict(self, output):
@@ -62,27 +65,17 @@ class RankModel(EasyRecModel):
                        suffix=''):
     loss_dict = {}
     if loss_type == LossType.CLASSIFICATION:
-      if num_class == 1:
-        loss = tf.losses.sigmoid_cross_entropy(
-            self._labels[label_name],
-            logits=self._prediction_dict['logits' + suffix],
-            weights=loss_weight)
-        loss_dict['cross_entropy_loss' + suffix] = loss
-      else:
-        loss = tf.losses.sparse_softmax_cross_entropy(
-            labels=self._labels[label_name],
-            logits=self._prediction_dict['logits' + suffix],
-            weights=loss_weight)
-        loss_dict['cross_entropy_loss' + suffix] = loss
-    elif loss_type == LossType.L2_LOSS:
-      logging.info('l2 loss is used')
-      loss = tf.losses.mean_squared_error(
-          labels=self._labels[label_name],
-          predictions=self._prediction_dict['y' + suffix],
-          weights=loss_weight)
-      loss_dict['l2_loss' + suffix] = loss
+      loss_name = 'cross_entropy_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+      loss_name = 'l2_loss' + suffix
+      pred = self._prediction_dict['y' + suffix]
     else:
-      raise ValueError('invalid loss type: %s' % str(loss_type))
+      raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
+
+    loss_dict[loss_name] = loss_builder.build(loss_type,
+                                              self._labels[label_name], pred,
+                                              loss_weight, num_class)
     return loss_dict
 
   def build_loss_graph(self):
@@ -90,7 +83,14 @@ class RankModel(EasyRecModel):
         self._build_loss_impl(
             self._loss_type,
             label_name=self._label_name,
+            loss_weight=self._sample_weight,
             num_class=self._num_class))
+
+    # build kd loss
+    kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
+                                              self._labels)
+    self._loss_dict.update(kd_loss_dict)
+
     return self._loss_dict
 
   def _build_metric_impl(self,
@@ -102,10 +102,64 @@ class RankModel(EasyRecModel):
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
       assert loss_type == LossType.CLASSIFICATION
-      assert num_class == 1
-      label = tf.to_int64(self._labels[label_name])
-      metric_dict['auc' + suffix] = tf.metrics.auc(
-          label, self._prediction_dict['probs' + suffix])
+      if num_class == 1:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['auc' + suffix] = tf.metrics.auc(
+            label, self._prediction_dict['probs' + suffix])
+      elif num_class == 2:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['auc' + suffix] = tf.metrics.auc(
+            label, self._prediction_dict['probs' + suffix][:, 1])
+      else:
+        raise ValueError('Wrong class number')
+    elif metric.WhichOneof('metric') == 'gauc':
+      assert loss_type == LossType.CLASSIFICATION
+      if num_class == 1:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['gauc' + suffix] = metrics_lib.gauc(
+            label,
+            self._prediction_dict['probs' + suffix],
+            uids=self._feature_dict[metric.gauc.uid_field],
+            reduction=metric.gauc.reduction)
+      elif num_class == 2:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['gauc' + suffix] = metrics_lib.gauc(
+            label,
+            self._prediction_dict['probs' + suffix][:, 1],
+            uids=self._feature_dict[metric.gauc.uid_field],
+            reduction=metric.gauc.reduction)
+      else:
+        raise ValueError('Wrong class number')
+    elif metric.WhichOneof('metric') == 'session_auc':
+      assert loss_type == LossType.CLASSIFICATION
+      if num_class == 1:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['gauc' + suffix] = metrics_lib.session_auc(
+            label,
+            self._prediction_dict['probs' + suffix],
+            session_ids=self._feature_dict[metric.session_auc.session_id_field],
+            reduction=metric.session_auc.reduction)
+      elif num_class == 2:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['gauc' + suffix] = metrics_lib.session_auc(
+            label,
+            self._prediction_dict['probs' + suffix][:, 1],
+            session_ids=self._feature_dict[metric.session_auc.session_id_field],
+            reduction=metric.session_auc.reduction)
+      else:
+        raise ValueError('Wrong class number')
+    elif metric.WhichOneof('metric') == 'max_f1':
+      assert loss_type == LossType.CLASSIFICATION
+      if num_class == 1:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['f1' + suffix] = metrics_lib.max_f1(
+            label, self._prediction_dict['logits' + suffix])
+      elif num_class == 2:
+        label = tf.to_int64(self._labels[label_name])
+        metric_dict['f1' + suffix] = metrics_lib.max_f1(
+            label, self._prediction_dict['logits' + suffix][:, 1])
+      else:
+        raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'recall_at_topk':
       assert loss_type == LossType.CLASSIFICATION
       assert num_class > 1
@@ -115,7 +169,7 @@ class RankModel(EasyRecModel):
           metric.recall_at_topk.topk)
     elif metric.WhichOneof('metric') == 'mean_absolute_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type == LossType.L2_LOSS:
+      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
         metric_dict['mean_absolute_error' +
                     suffix] = tf.metrics.mean_absolute_error(
                         label, self._prediction_dict['y' + suffix])
@@ -127,7 +181,7 @@ class RankModel(EasyRecModel):
         assert False, 'mean_absolute_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type == LossType.L2_LOSS:
+      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
         metric_dict['mean_squared_error' +
                     suffix] = tf.metrics.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -137,6 +191,18 @@ class RankModel(EasyRecModel):
                         label, self._prediction_dict['probs' + suffix])
       else:
         assert False, 'mean_squared_error is not supported for this model'
+    elif metric.WhichOneof('metric') == 'root_mean_squared_error':
+      label = tf.to_float(self._labels[label_name])
+      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+        metric_dict['root_mean_squared_error' +
+                    suffix] = tf.metrics.root_mean_squared_error(
+                        label, self._prediction_dict['y' + suffix])
+      elif loss_type == LossType.CLASSIFICATION and num_class == 1:
+        metric_dict['root_mean_squared_error' +
+                    suffix] = tf.metrics.root_mean_squared_error(
+                        label, self._prediction_dict['probs' + suffix])
+      else:
+        assert False, 'root_mean_squared_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'accuracy':
       assert loss_type == LossType.CLASSIFICATION
       assert num_class > 1
@@ -162,10 +228,10 @@ class RankModel(EasyRecModel):
         return ['probs' + suffix, 'logits' + suffix]
       else:
         return ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
-    elif loss_type == LossType.L2_LOSS:
+    elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
     else:
-      raise ValueError('invalid loss type: %s' % str(loss_type))
+      raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
 
   def get_outputs(self):
     return self._get_outputs_impl(self._loss_type, self._num_class)

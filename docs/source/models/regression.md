@@ -3,7 +3,7 @@
 回归模型和CTR模型基本一致，只是采用的loss不一样。
 
 如下图所示, 和CTR模型相比增加了:
-loss\_type: L2\_LOSS
+loss_type: L2_LOSS
 
 ```protobuf
 model_config:{

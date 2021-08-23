@@ -6,8 +6,8 @@
 
 #### 示例数据
 
-- train: [dwd\_avazu\_ctr\_deepmodel\_train.csv](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
-- test: [dwd\_avazu\_ctr\_deepmodel\_test.csv](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)
+- train: [dwd_avazu_ctr_deepmodel_train.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
+- test: [dwd_avazu_ctr_deepmodel_test.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)
 - 示例:
 
 ```
@@ -19,14 +19,14 @@
 ### 安装包
 
 ```bash
-pip install http://easy-rec.oss-cn-hangzhou.aliyuncs.com/releases/easy_rec-20200922-py2.py3-none-any.whl
+pip install -U https://easyrec.oss-cn-beijing.aliyuncs.com/releases/easy_rec-0.1.0-py2.py3-none-any.whl
 ```
 
 ### 启动命令:
 
 #### 配置文件:
 
-[dwd\_avazu\_ctr\_deepmodel\_local.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/DeepFM/dwd_avazu_ctr_deepmodel_local.config), 配置文件采用prototxt格式
+[dwd_avazu_ctr_deepmodel_local.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/DeepFM/dwd_avazu_ctr_deepmodel_local.config), 配置文件采用prototxt格式
 
 #### GPU单机单卡:
 
@@ -34,8 +34,8 @@ pip install http://easy-rec.oss-cn-hangzhou.aliyuncs.com/releases/easy_rec-20200
 CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config
 ```
 
-- \--pipeline\_config\_path: 训练用的配置文件
-- \--continue\_train: 是否继续训
+- --pipeline_config_path: 训练用的配置文件
+- --continue_train: 是否继续训
 
 #### GPU PS训练
 
@@ -45,7 +45,7 @@ CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval --pipeline_config_pa
 - Note: 本地只支持ps, master, worker模式，不支持ps, chief, worker, evaluator模式
 
 ```bash
-wget https://easy-rec.oss-cn-hangzhou.aliyuncs.com/scripts/train_2gpu.sh
+wget https://easyrec.oss-cn-beijing.aliyuncs.com/scripts/train_2gpu.sh
 sh train_2gpu.sh dwd_avazu_ctr_deepmodel_local.config
 ```
 
@@ -280,4 +280,4 @@ model_config:{
 
 #### 参考手册
 
-[EasyRecConfig参考手册](../proto.html)
+[EasyRecConfig参考手册](../reference.md)

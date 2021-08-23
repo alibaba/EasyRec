@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import fm
 from easy_rec.python.layers import input_layer
 from easy_rec.python.model.rank_model import RankModel
@@ -32,18 +31,16 @@ class FM(RankModel):
     self._wide_features, _ = self._input_layer(self._feature_dict, 'wide')
     self._deep_features, self._fm_features = self._input_layer(
         self._feature_dict, 'deep')
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._wide_features])
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._deep_features])
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
     self._input_layer = input_layer.InputLayer(
         feature_configs,
         model_config.feature_groups,
-        wide_output_dim=1,
-        use_embedding_variable=model_config.use_embedding_variable)
+        wide_output_dim=model_config.num_class,
+        use_embedding_variable=model_config.use_embedding_variable,
+        embedding_regularizer=self._emb_reg,
+        kernel_regularizer=self._l2_reg)
 
   def build_predict_graph(self):
     wide_fea = tf.reduce_sum(
@@ -55,8 +52,7 @@ class FM(RankModel):
       fm_fea = tf.layers.dense(
           fm_fea,
           self._num_class,
-          kernel_regularizer=regularizers.l2_regularizer(
-              self._model_config.l2_regularization),
+          kernel_regularizer=self._l2_reg,
           name='fm_logits')
     else:
       fm_fea = tf.reduce_sum(fm_fea, 1, keepdims=True)

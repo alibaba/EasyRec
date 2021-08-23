@@ -39,8 +39,6 @@ class MultiTowerBST(RankModel):
     for tower_id in range(self._tower_num):
       tower = self._model_config.towers[tower_id]
       tower_feature, _ = self._input_layer(self._feature_dict, tower.input)
-      regularizers.apply_regularization(
-          self._emb_reg, weights_list=[tower_feature])
       self._tower_features.append(tower_feature)
 
     self._bst_tower_features = []
@@ -58,9 +56,6 @@ class MultiTowerBST(RankModel):
       regularizers.apply_regularization(
           self._emb_reg, weights_list=[tower_feature['hist_seq_emb']])
       self._bst_tower_features.append(tower_feature)
-
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def dnn_net(self, net, dnn_units, name):
     with tf.variable_scope(name_or_scope=name, reuse=tf.AUTO_REUSE):

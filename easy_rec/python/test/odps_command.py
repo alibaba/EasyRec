@@ -21,7 +21,7 @@ class OdpsCommand:
                                  odps_oss_config.endpoint,
                                  odps_oss_config.bucket_name)
     self.bucket_name = odps_oss_config.bucket_name
-    self.script_path = odps_oss_config.temp_dir
+    self.temp_dir = odps_oss_config.temp_dir
     self.log_path = odps_oss_config.log_dir
     self.odpscmd = odps_oss_config.odpscmd_path
     self.odps_config_path = odps_oss_config.odps_config_path
@@ -37,7 +37,7 @@ class OdpsCommand:
     Raise:
       ValueError if failed
     """
-    exec_file_path = os.path.join(self.script_path, script_file)
+    exec_file_path = os.path.join(self.temp_dir, script_file)
     file_name = os.path.split(script_file)[1]
     log_file = os.path.join(self.log_path, file_name)
 

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 
+import psutil
 import tensorflow as tf
 from tensorflow.python.summary import summary_iterator
 
@@ -77,36 +78,39 @@ def save_eval_metrics(model_dir, metric_save_path, has_evaluator=True):
 
 
 def kill_old_proc(tmp_dir, platform='pai'):
-  old_proc_file = os.path.join(tmp_dir, 'old_proc.txt')
+  curr_pid = os.getpid()
   if platform == 'pai':
-    os.system(
-        "ps -auxwww | grep easy_rec.python.hpo.pai_hpo | grep python | grep -v grep | awk '{ print $2 }' >> %s"
-        % old_proc_file)
-    os.system(
-        "ps -auxwww | grep client/experiment_main.py | grep python | grep -v grep | awk '{ print $2 }' >> %s"
-        % old_proc_file)
+    for p in psutil.process_iter():
+      try:
+        cmd = ' '.join(p.cmdline())
+        if 'easy_rec.python.hpo.pai_hpo' in cmd and 'python' in cmd:
+          if p.pid != curr_pid:
+            logging.info('will kill: [%d] %s' % (p.pid, cmd))
+            p.terminate()
+        if 'client/experiment_main.py' in cmd and 'python' in cmd:
+          if p.pid != curr_pid:
+            logging.info('will kill: [%d] %s' % (p.pid, cmd))
+            p.terminate()
+      except Exception:
+        pass
   else:
-    os.system(
-        "ps -auxwww | grep easy_rec.python.hpo.emr_hpo  | grep -v grep | awk '{ print $2 }' > %s"
-        % old_proc_file)
-    os.system(
-        "ps -auxwww | grep client/experiment_main.py | grep python | grep -v grep | awk '{ print $2 }' >> %s "
-        % old_proc_file)
-    os.system(
-        "ps -auxwww | grep el_submit | grep easy_rec_hpo | grep -v grep | awk '{ print $2 }' >> %s "
-        % old_proc_file)
-  proc_arr = []
-  with open(old_proc_file, 'r') as fin:
-    for line_str in fin:
-      line_str = line_str.strip()
-      proc_arr.append(line_str)
-  proc_arr = list(set(proc_arr))
-  # remove current pid to avoid current process being killed
-  pid = os.getpid()
-  proc_arr.remove(str(pid))
-  if len(proc_arr) > 0:
-    logging.info('old process to be killed: %s' % ','.join(proc_arr))
-    os.system('kill -9 %s' % (' '.join(proc_arr)))
+    for p in psutil.process_iter():
+      try:
+        cmd = ' '.join(p.cmdline())
+        if 'easy_rec.python.hpo.emr_hpo' in cmd and 'python' in cmd:
+          if p.pid != curr_pid:
+            logging.info('will kill: [%d] %s' % (p.pid, cmd))
+            p.terminate()
+        if 'client/experiment_main.py' in cmd and 'python' in cmd:
+          if p.pid != curr_pid:
+            logging.info('will kill: [%d] %s' % (p.pid, cmd))
+            p.terminate()
+        if 'el_submit' in cmd and 'easy_rec_hpo' in cmd:
+          if p.pid != curr_pid:
+            logging.info('will kill: [%d] %s' % (p.pid, cmd))
+            p.terminate()
+      except Exception:
+        pass
 
   if platform == 'emr':
     # clear easy_rec_hpo yarn jobs

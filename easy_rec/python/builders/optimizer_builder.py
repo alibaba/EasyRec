@@ -14,8 +14,11 @@
 # limitations under the License.
 # ==============================================================================
 """Functions to build training optimizers."""
+import logging
+
 import tensorflow as tf
 
+from easy_rec.python.compat import weight_decay_optimizers
 from easy_rec.python.core import learning_schedules
 
 if tf.__version__ >= '2.0':
@@ -62,6 +65,40 @@ def build(optimizer_config):
     optimizer = tf.train.AdamOptimizer(
         learning_rate, beta1=config.beta1, beta2=config.beta2)
 
+  if optimizer_type == 'adamw_optimizer':
+    config = optimizer_config.adamw_optimizer
+    learning_rate = _create_learning_rate(config.learning_rate)
+    summary_vars.append(learning_rate)
+    logging.info('adamw_optimizer weight_decay = %.8f' % config.weight_decay)
+    optimizer = weight_decay_optimizers.AdamWOptimizer(
+        weight_decay=config.weight_decay,
+        learning_rate=learning_rate,
+        beta1=config.beta1,
+        beta2=config.beta2)
+
+  if optimizer_type == 'adam_asyncw_optimizer':
+    config = optimizer_config.adam_asyncw_optimizer
+    learning_rate = _create_learning_rate(config.learning_rate)
+    summary_vars.append(learning_rate)
+    logging.info('adam_asyncw_optimizer weight_decay = %.8f' %
+                 config.weight_decay)
+    optimizer = weight_decay_optimizers.AdamAsyncWOptimizer(
+        weight_decay=config.weight_decay,
+        learning_rate=learning_rate,
+        beta1=config.beta1,
+        beta2=config.beta2)
+
+  if optimizer_type == 'momentumw_optimizer':
+    config = optimizer_config.momentumw_optimizer
+    learning_rate = _create_learning_rate(config.learning_rate)
+    summary_vars.append(learning_rate)
+    logging.info('momentumw_optimizer weight_decay = %.8f' %
+                 config.weight_decay)
+    optimizer = weight_decay_optimizers.MomentumWOptimizer(
+        weight_decay=config.weight_decay,
+        learning_rate=learning_rate,
+        momentum=config.momentum_optimizer_value)
+
   if optimizer_type == 'adagrad_optimizer':
     config = optimizer_config.adagrad_optimizer
     learning_rate = _create_learning_rate(config.learning_rate)
@@ -77,6 +114,10 @@ def build(optimizer_config):
 
   if optimizer is None:
     raise ValueError('Optimizer %s not supported.' % optimizer_type)
+
+  if optimizer_config.use_moving_average:
+    optimizer = tf.contrib.opt.MovingAverageOptimizer(
+        optimizer, average_decay=optimizer_config.moving_average_decay)
 
   return optimizer, summary_vars
 

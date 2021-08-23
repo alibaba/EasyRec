@@ -158,3 +158,10 @@ def oss_has_t_mode(target_file):
     return True
   except:  # noqa: E722
     return False
+
+
+def fix_oss_dir(path):
+  """Make sure that oss dir endswith /."""
+  if path.startswith('oss://') and not path.endswith('/'):
+    return path + '/'
+  return path

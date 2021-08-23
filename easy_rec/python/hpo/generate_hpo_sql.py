@@ -13,6 +13,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--tables', type=str, help='train_table and test_table', default=None)
   parser.add_argument(
+      '--train_tables', type=str, help='train_tables', default=None)
+  parser.add_argument(
+      '--eval_tables', type=str, help='eval_tables', default=None)
+  parser.add_argument(
       '--cluster',
       type=str,
       help='specify tensorflow train jobs cluster parameter',
@@ -33,15 +37,28 @@ if __name__ == '__main__':
       type=str,
       help='algorithm project name',
       default='algo_public')
+  parser.add_argument(
+      '--algo_res_proj', type=str, help='algo resource project', default=None)
+  parser.add_argument(
+      '--algo_version', type=str, help='algo version', default=None)
 
   args = parser.parse_args()
 
   with open(args.sql_path, 'w') as fout:
     fout.write('pai -name easy_rec_ext -project %s\n' % args.algo_proj_name)
-    fout.write('  -Dres_project=%s\n' % args.algo_proj_name)
+    if args.algo_res_proj:
+      fout.write('  -Dres_project=%s\n' % args.algo_res_proj)
+    else:
+      fout.write('  -Dres_project=%s\n' % args.algo_proj_name)
+    if args.algo_version:
+      fout.write('  -Dversion=%s\n' % args.algo_version)
     fout.write('  -Dconfig=%s\n' % args.config_path)
     fout.write('  -Dcmd=train\n')
-    fout.write('  -Dtables=%s\n' % args.tables)
+    if args.tables:
+      fout.write('  -Dtables=%s\n' % args.tables)
+    else:
+      fout.write('  -Dtrain_tables=%s\n' % args.train_tables)
+      fout.write('  -Deval_tables=%s\n' % args.eval_tables)
     fout.write('  -Dcluster=\'%s\'\n' % args.cluster)
     fout.write('  -Darn=%s\n' % args.role_arn)
     fout.write('  -Dbuckets=%s\n' % args.bucket)

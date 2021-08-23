@@ -1,6 +1,10 @@
 syntax = "proto2";
 package protos;
 
+message MultiValueFields {
+    repeated string input_name = 1;
+}
+
 // Message for configuring exporting models.
 message ExportConfig {
     // batch size used for exported model, -1 indicates batch_size is None
@@ -30,4 +34,12 @@ message ExportConfig {
 
     // each feature has a placeholder
     optional bool multi_placeholder = 6 [default = true];
+
+    // export to keep, only for exporter_type in [best, latest]
+    optional int32 exports_to_keep = 7 [default = 1];
+
+    // multi value field list
+    optional MultiValueFields multi_value_fields = 8;
+    // is placeholder named by input
+    optional bool placeholder_named_by_input = 9 [default = false];
 }

@@ -70,13 +70,10 @@ def get_tuner(data, max_parallel, max_trial_num):
   return tuner
 
 
-def hpo_config(config_path, hyperparams, environment, exp_dir, tables, cluster,
-               algo_proj_name, metric_name, odps_config_path):
-  earlystop = {
-      'type': 'large_is_better',
-      'threshold': 0.99,
-      'max_runtime': 2400
-  }
+def hpo_config(config_path, hyperparams, environment, exp_dir, tables,
+               train_tables, eval_tables, cluster, algo_proj_name,
+               algo_res_proj, algo_version, metric_name, odps_config_path):
+  earlystop = {'type': 'large_is_better', 'max_runtime': 3600 * 12}
   algorithm = {
       'type': 'gp',
       'initial_trials_num': 4,
@@ -109,25 +106,39 @@ def hpo_config(config_path, hyperparams, environment, exp_dir, tables, cluster,
     else:
       return table_name
 
-  tables = [_add_prefix(x) for x in tables.split(',') if x != '']
-  tables = ','.join(tables)
-  logging.info('will tune on data: %s' % tables)
+  if tables:
+    tables = [_add_prefix(x) for x in tables.split(',') if x != '']
+    tables = ','.join(tables)
+    logging.info('will tune on data: %s' % tables)
+  else:
+    train_tables = [_add_prefix(x) for x in train_tables.split(',') if x != '']
+    train_tables = ','.join(train_tables)
+    eval_tables = [_add_prefix(x) for x in eval_tables.split(',') if x != '']
+    eval_tables = ','.join(eval_tables)
 
   sql_path = '%s/train_ext_hpo_{{ trial.id }}.sql' % tmp_dir
-  prepare_sql_task = {
-      'type':
-          'BashTask',
-      'cmd': [
-          'python', '-m', 'easy_rec.python.hpo.generate_hpo_sql', '--sql_path',
-          sql_path, '--config_path', config_path, '--tables', tables,
-          '--cluster', cluster, '--bucket', bucket, '--hpo_param_path',
-          os.path.join(bucket, param_path), '--hpo_metric_save_path',
-          os.path.join(bucket, metric_path), '--model_dir',
-          os.path.join(bucket, model_path), '--oss_host',
-          environment['oss_endpoint'], '--role_arn', environment['role_arn'],
-          '--algo_proj_name', algo_proj_name
-      ]
-  }
+  cmd_args = [
+      'python', '-m', 'easy_rec.python.hpo.generate_hpo_sql', '--sql_path',
+      sql_path, '--config_path', config_path, '--cluster', cluster, '--bucket',
+      bucket, '--hpo_param_path',
+      os.path.join(bucket, param_path), '--hpo_metric_save_path',
+      os.path.join(bucket, metric_path), '--model_dir',
+      os.path.join(bucket,
+                   model_path), '--oss_host', environment['oss_endpoint'],
+      '--role_arn', environment['role_arn'], '--algo_proj_name', algo_proj_name
+  ]
+
+  if tables:
+    cmd_args.extend(['--tables', tables])
+  if train_tables and eval_tables:
+    cmd_args.extend(
+        ['--train_tables', train_tables, '--eval_tables', eval_tables])
+
+  if algo_res_proj:
+    cmd_args.extend(['--algo_res_proj', algo_res_proj])
+  if algo_version:
+    cmd_args.extend(['--algo_version', algo_version])
+  prepare_sql_task = {'type': 'BashTask', 'cmd': cmd_args}
 
   train_task = {
       'type': 'BashTask',
@@ -168,6 +179,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--tables', type=str, help='train table and test table', default=None)
   parser.add_argument(
+      '--train_tables', type=str, help='train tables', default=None)
+  parser.add_argument(
+      '--eval_tables', type=str, help='eval tables', default=None)
+  parser.add_argument(
       '--exp_dir', type=str, help='hpo experiment directory', default=None)
   parser.add_argument(
       '--cluster',
@@ -180,6 +195,10 @@ if __name__ == '__main__':
       type=str,
       help='algo project name',
       default='algo_public')
+  parser.add_argument(
+      '--algo_version', type=str, help='algo version', default=None)
+  parser.add_argument(
+      '--algo_res_proj', type=str, help='algo resource project', default=None)
   parser.add_argument(
       '--metric_name', type=str, help='evaluate metric name', default='auc')
   parser.add_argument(
@@ -236,6 +255,7 @@ if __name__ == '__main__':
 
   if args.bucket.startswith('oss://'):
     args.bucket = args.bucket[len('oss://'):]
+  args.bucket = args.bucket.strip('/')
 
   environment = {
       'access_id': odps_config['access_id'],
@@ -256,11 +276,14 @@ if __name__ == '__main__':
 
   assert args.config_path is not None
   assert args.exp_dir is not None
-  assert args.tables is not None
+  assert args.tables is not None or (args.train_tables is not None and
+                                     args.eval_tables is not None)
 
   data, tmp_dir = hpo_config(args.config_path, hyperparams, environment,
-                             args.exp_dir, args.tables, args.cluster,
-                             args.algo_proj_name, args.metric_name,
+                             args.exp_dir, args.tables, args.train_tables,
+                             args.eval_tables, args.cluster,
+                             args.algo_proj_name, args.algo_res_proj,
+                             args.algo_version, args.metric_name,
                              args.odps_config)
   hpo_util.kill_old_proc(tmp_dir, platform='pai')
 

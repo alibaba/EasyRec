@@ -11,10 +11,32 @@ import "easy_rec/python/protos/mmoe.proto";
 import "easy_rec/python/protos/esmm.proto";
 import "easy_rec/python/protos/dbmtl.proto";
 import "easy_rec/python/protos/simple_multi_task.proto";
+import "easy_rec/python/protos/dcn.proto";
+import "easy_rec/python/protos/autoint.proto";
+import "easy_rec/python/protos/mind.proto";
 import "easy_rec/python/protos/loss.proto";
-
+import "easy_rec/python/protos/rocket_launching.proto";
+import "easy_rec/python/protos/variational_dropout.proto";
 // for input performance test
 message DummyModel {
+
+}
+
+// for knowledge distillation
+message KD {
+  optional string loss_name = 10;
+  required string pred_name = 11;
+  // default to be logits
+  optional bool pred_is_logits = 12 [default=true];
+  // for CROSS_ENTROPY_LOSS, soft_label must be logits instead of probs
+  required string soft_label_name = 21;
+  // default to be logits
+  optional bool label_is_logits = 22 [default=true];
+  // currently only support CROSS_ENTROPY_LOSS and L2_LOSS
+  required LossType loss_type = 3;
+  optional float loss_weight = 4 [default=1.0];
+  // only for loss_type == CROSS_ENTROPY_LOSS
+  optional float temperature = 5 [default=1.0];
 
 }
 
@@ -31,11 +53,18 @@ message EasyRecModel {
         DeepFM deepfm = 103;
         MultiTower multi_tower = 104;
         FM fm = 105;
+        DCN dcn = 106;
+        AutoInt autoint = 107;
+
         DSSM dssm = 201;
+        MIND mind = 202;
+
         MMoE mmoe = 301;
         ESMM esmm = 302;
         DBMTL dbmtl = 303;
         SimpleMultiTask simple_multi_task = 304;
+        RocketLaunching rocket_launching = 305;
+
     }
     repeated SeqAttGroupConfig seq_att_groups = 7;
     // implemented in easy_rec/python/model/easy_rec_estimator
@@ -48,4 +77,12 @@ message EasyRecModel {
     optional uint32 num_class = 10 [default = 1];
 
     optional bool use_embedding_variable = 11 [default=false];
+
+    repeated KD kd = 12;
+
+    // filter variables matching any pattern in restore_filters
+    // common filters are Adam, Momentum, etc.
+    repeated string restore_filters = 13;
+
+    optional VariationalDropoutLayer variational_dropout = 14;
 }

@@ -44,17 +44,20 @@ message TrainConfig {
     /* The following fields are for distributed training */
     // Whether to synchronize replicas during training.
     // In case so, build a SyncReplicateOptimizer
-    optional bool sync_replicas = 9 [default = false];
+    optional bool sync_replicas = 9 [default = true];
 
     // Number of training steps between replica startup.
     // This flag must be set to 0 if sync_replicas is set to true.
     optional float startup_delay_steps = 10 [default = 15];
 
     // Step interval for saving checkpoint
-    optional uint32 save_checkpoints_steps = 14 [default = 5000];
+    optional uint32 save_checkpoints_steps = 141 [default = 1000];
 
     // Seconds interval for saving checkpoint
-    optional uint32 save_checkpoints_secs = 15;
+    optional uint32 save_checkpoints_secs = 142;
+
+    // Max checkpoints to keep
+    optional uint32 keep_checkpoint_max = 143 [default = 10];
 
     // Save summaries every this many steps.
     optional uint32 save_summary_steps = 16 [default = 1000];

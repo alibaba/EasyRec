@@ -34,5 +34,8 @@ def build(train_config):
         num_gpus_per_worker=train_config.num_gpus_per_worker)
   # works under tf1.15 and tf2.x
   elif train_config.train_distribute == DistributionStrategy.PSStrategy:
-    distribution = tf.distribute.experimental.ParameterServerStrategy()
+    if tf.__version__ <= '1.15':
+      distribution = tf.contrib.distribute.ParameterServerStrategy()
+    else:
+      distribution = tf.distribute.experimental.ParameterServerStrategy()
   return distribution

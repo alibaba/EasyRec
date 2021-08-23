@@ -1,7 +1,7 @@
 [
   {
     "type": "Categorical",
-    "name": "feature_configs[input_names[0]=field1].embedding_dim;feature_configs[input_names[0]=field20].embedding_dim",
-    "candidates": ["16;16", "32;32", "48;48", "64;64", "80;80"]
+    "name": "feature_configs[:].embedding_dim",
+    "candidates": ["16", "32", "48", "64", "80"]
   }
 ]

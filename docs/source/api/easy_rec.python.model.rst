@@ -25,6 +25,14 @@ easy\_rec.python.model.fm
    :undoc-members:
    :show-inheritance:
 
+easy\_rec.python.model.wide_and_deep
+--------------------------------
+
+.. automodule:: easy_rec.python.model.wide_and_deep
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 easy\_rec.python.model.deepfm
 ------------------------------------
 
@@ -37,6 +45,30 @@ easy\_rec.python.model.multi\_tower
 ------------------------------------------
 
 .. automodule:: easy_rec.python.model.multi_tower
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+easy\_rec.python.model.dcn
+------------------------------------------
+
+.. automodule:: easy_rec.python.model.dcn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+easy\_rec.python.model.autoint
+------------------------------------------
+
+.. automodule:: easy_rec.python.model.autoint
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+easy\_rec.python.model.dbmtl
+------------------------------------------
+
+.. automodule:: easy_rec.python.model.dbmtl
    :members:
    :undoc-members:
    :show-inheritance:
@@ -61,6 +93,14 @@ easy\_rec.python.model.dssm
 ----------------------------------
 
 .. automodule:: easy_rec.python.model.dssm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+easy\_rec.python.model.mind
+----------------------------------
+
+.. automodule:: easy_rec.python.model.mind
    :members:
    :undoc-members:
    :show-inheritance:

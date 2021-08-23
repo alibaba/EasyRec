@@ -55,7 +55,8 @@ def process_config(configs, task_index=0, worker_num=1):
   configs = configs.split(',')
   if len(configs) > 1:
     assert len(configs) == worker_num, \
-        'number of configs must be equal to number of workers, when number of configs > 1'
+        'number of configs must be equal to number of workers,' + \
+        ' when number of configs > 1'
     config = configs[task_index]
   else:
     config = configs[0]
@@ -63,6 +64,10 @@ def process_config(configs, task_index=0, worker_num=1):
   if config[:4] == 'http':
     return download(config)
   elif config[:3] == 'oss':
+    if '/##/' in config:
+      config = config.replace('/##/', '\x02')
+    if '/#/' in config:
+      config = config.replace('/#/', '\x01')
     return config
   else:
     # allow to use this entry file to run experiments from local env

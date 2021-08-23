@@ -1,6 +1,6 @@
 # EasyRec简介
 
-## What is&#160;EasyRec?
+## What is EasyRec?
 
 ![intro.png](../images/intro.png)
 

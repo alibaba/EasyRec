@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xflow xmlns="odps:xflow:0.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="easy_rec_ext" category="deep_learning" ref_resource="xxxxxxxx/resources/xxxxxxxx" comments="easy-rec" catalog="String" xsi:schemaLocation="">
+  <parameters>
+    <parameter name="config" use="optional" default=""/>
+    <parameter name="script" use="optional" default=""/>
+    <parameter name="entryFile" use="optional" default="run.py"/>
+    <parameter name="volumes" use="optional" default=""/>
+    <parameter name="buckets" use="required" default=""/>
+    <parameter name="ossHost" use="optional" default=""/>
+    <parameter name="arn" use="required"/>
+    <parameter name="tables" use="optional" default=""/>
+    <parameter name="outputs" use="optional" default=""/>
+    <parameter name="cmd" use="optional" default="train"/>
+    <parameter name="train_tables" use="optional" default=""/>
+    <parameter name="eval_tables" use="optional" default=""/>
+    <parameter name="boundary_table" use="optional" default=""/>
+    <parameter name="continue_train" use="optional" default="true"/>
+    <parameter name="export_dir" use="optional" default=""/>
+    <parameter name="cluster" use="optional"/>
+    <parameter name="gpuRequired" use="optional" default=""/>
+    <parameter name="cpuRequired" use="optional" default="1200"/>
+    <parameter name="memRequired" use="optional" default="30000"/>
+    <parameter name="with_evaluator" use="optional" default=""/>
+    <parameter name="eval_method" use="optional" default="separate"/>
+    <parameter name="distribute_strategy" use="optional" default=""/>
+    <!-- for train only -->
+    <parameter name="edit_config_json" use="optional" default=""/>
+    <!-- for evaluate only -->
+    <parameter name="checkpoint_path" use="optional" default=""/>
+    <parameter name="eval_result_path" use="optional" default="eval_result.txt"/>
+    <!--for cmd=predict only-->
+    <parameter name="saved_model_dir" use="optional" default="" />
+    <parameter name="input_table" use="optional" default=""/>
+    <parameter name="output_table" use="optional" default=""/>
+    <parameter name="selected_cols" use="optional" default=""/>
+    <parameter name="excluded_cols" use="optional" default=""/>
+    <!-- specify ALL_COLUMNS to include all columns to the final set -->
+    <parameter name="reserved_cols" use="optional" default=""/>
+    <parameter name="lifecycle" use="optional" default="10"/>
+    <parameter name="output_cols" use="optional" default="probs double"/>
+    <parameter name="model_outputs" use="optional" default=""/>
+    <parameter name="batch_size" use="optional" default="32"/>
+    <!-- for hyperparameter tuning -->
+    <parameter name="model_dir" use="optional" default=""/>
+    <parameter name="hpo_param_path" use="optional" default=""/>
+    <parameter name="hpo_metric_save_path" use="optional" default=""/>
+    <parameter name="profiling_file" use="optional" default=""/>
+    <!-- for resources and version control -->
+    <parameter name="version" use="optional" default="20201030"/>
+    <parameter name="res_project" use="optional" default="algo_public"/>
+    <!-- for mask feature for eval -->
+    <parameter name="mask_feature_name" use="optional" default=""/>
+    <!-- for train/evaluate/export/predict -->
+    <parameter name="extra_params" use="optional" default=""/>
+    <parameter name="vpcRegion" use="optional" default=""/>
+    <parameter name="vpcId" use="optional" default=""/>
+  </parameters>
+
+  <workflow>
+    <start to="getEntry" />
+    <action name="getEntry">
+      <script>
+        <input_vars>
+          <var name="script_in" value="${parameters.script}" />
+          <var name="entryFile_in" value="${parameters.entryFile}" />
+          <var name="config" value="${parameters.config}" />
+          <var name="cluster" value="${parameters.cluster}" />
+          <var name="res_project" value="${parameters.res_project}" />
+          <var name="version" value="${parameters.version}" />
+        </input_vars>
+        <output_vars>
+          <var name="script"/>
+          <var name="entryFile"/>
+        </output_vars>
+        <function>getEntry</function>
+      </script>
+      <ok to="parseTable" />
+      <error to="failed" />
+    </action>
+
+    <action name="parseTable">
+      <script>
+        <input_vars>
+          <var name="cmd" value="${parameters.cmd}"/>
+          <var name="inputTable" value="${parameters.input_table}" />
+          <var name="outputTable" value="${parameters.output_table}" />
+          <var name="selectedCols" value="${parameters.selected_cols}" />
+          <var name="excludedCols" value="${parameters.excluded_cols}" />
+          <var name="reservedCols" value="${parameters.reserved_cols}" />
+          <var name="lifecycle" value="${parameters.lifecycle}" />
+          <var name="outputCol" value="${parameters.output_cols}" />
+          <var name="tables" value="${parameters.tables}" />
+          <var name="trainTables" value="${parameters.train_tables}" />
+          <var name="evalTables" value="${parameters.eval_tables}" />
+          <var name="boundaryTable" value="${parameters.boundary_table}" />
+        </input_vars>
+        <output_vars>
+          <var name="all_cols"/>
+          <var name="all_col_types"/>
+          <var name="selected_cols"/>
+          <var name="reserved_cols"/>
+          <var name="create_table_sql"/>
+          <var name="add_partition_sql"/>
+          <var name="tables"/>
+        </output_vars>
+        <function>parseTable</function>
+      </script>
+      <ok to="createPredictTable" />
+      <error to="failed" />
+    </action>
+
+    <action name="createPredictTable">
+       <SQL>
+         <sql>${workflow.parseTable.create_table_sql}</sql>
+       </SQL>
+       <ok to="addPartition" />
+       <error to="failed" />
+    </action>
+    <action name="addPartition">
+      <SQL>
+        <sql>${workflow.parseTable.add_partition_sql}</sql>
+      </SQL>
+      <ok to="getHyperParams" />
+      <error to="failed" />
+    </action>
+
+    <action name="getHyperParams">
+      <script>
+        <input_vars>
+          <var name="config" value="${parameters.config}" />
+          <var name="cmd" value="${parameters.cmd}" />
+          <var name="checkpoint_path" value="${parameters.checkpoint_path}" />
+          <var name="eval_result_path" value="${parameters.eval_result_path}" />
+          <var name="export_dir" value="${parameters.export_dir}" />
+          <var name="gpuRequired" value="${parameters.gpuRequired}" />
+          <var name="cpuRequired" value="${parameters.cpuRequired}" />
+          <var name="memRequired" value="${parameters.memRequired}" />
+          <var name="cluster" value="${parameters.cluster}" />
+          <var name="continue_train" value="${parameters.continue_train}" />
+          <var name="distribute_strategy" value="${parameters.distribute_strategy}" />
+          <var name="with_evaluator" value="${parameters.with_evaluator}"/>
+          <var name="eval_method" value="${parameters.eval_method}"/>
+
+          <!-- edit pipeline_config from cmd line -->
+          <var name="edit_config_json" value="${parameters.edit_config_json}"/>
+
+          <!-- for both train/evaluate/predict -->
+          <var name="selected_cols" value="${workflow.parseTable.selected_cols}"/>
+
+          <!-- for hyperparameter tuning -->
+          <var name="model_dir" value="${parameters.model_dir}"/>
+          <var name="hpo_param_path" value="${parameters.hpo_param_path}"/>
+          <var name="hpo_metric_save_path" value="${parameters.hpo_metric_save_path}"/>
+          <!-- for cmd = predict only -->
+          <var name="saved_model_dir" value="${parameters.saved_model_dir}"/>
+          <var name="all_cols" value="${workflow.parseTable.all_cols}"/>
+          <var name="all_col_types" value="${workflow.parseTable.all_col_types}"/>
+          <var name="reserved_cols" value="${workflow.parseTable.reserved_cols}"/>
+          <var name="output_cols" value="${parameters.output_cols}"/>
+          <var name="model_outputs" value="${parameters.model_outputs}"/>
+          <var name="input_table" value="${parameters.input_table}"/>
+          <var name="output_table" value="${parameters.output_table}"/>
+          <var name="tables" value="${workflow.parseTable.tables}"/>
+          <!-- separate train and test -->
+          <var name="train_tables" value="${parameters.train_tables}"/>
+          <var name="eval_tables" value="${parameters.eval_tables}"/>
+          <var name="boundary_table" value="${parameters.boundary_table}"/>
+          <var name="batch_size" value="${parameters.batch_size}"/>
+          <!-- for save predict timeline stats -->
+          <var name="profiling_file" value="${parameters.profiling_file}"/>
+          <!-- for mask feature for eval -->
+          <var name="mask_feature_name" value="${parameters.mask_feature_name}"/>
+          <!-- for extra parameters -->
+          <var name="extra_params" value="${parameters.extra_params}"/>
+        </input_vars>
+        <output_vars>
+          <var name="hyperParameters"/>
+          <var name="cluster"/>
+          <var name="tables"/>
+          <var name="outputs"/>
+        </output_vars>
+        <function>getHyperParams</function>
+      </script>
+      <ok to="runTF" />
+      <error to="failed" />
+    </action>
+
+    <action name="runTF">
+      <sub-workflow>
+        <parameters>
+          <p name="script" value="${workflow.getEntry.script}"/>
+          <p name="entryFile" value="${workflow.getEntry.entryFile}"/>
+          <p name="volumes" value="${parameters.volumes}"/>
+          <p name="buckets" value="${parameters.buckets}"/>
+          <p name="ossHost" value="${parameters.ossHost}"/>
+          <p name="arn" value="${parameters.arn}"/>
+          <p name="tables" value="${workflow.getHyperParams.tables}"/>
+          <p name="outputs" value="${workflow.getHyperParams.outputs}"/>
+          <p name="cluster" value="${workflow.getHyperParams.cluster}"/>
+          <p name="gpuRequired" value="${parameters.gpuRequired}"/>
+          <p name="vpcRegion" value="${parameters.vpcRegion}"/>
+          <p name="vpcId" value="${parameters.vpcId}"/>
+          <p name="userDefinedParameters" value="${workflow.getHyperParams.hyperParameters}"/>
+        </parameters>
+        <name>tensorflow1120_ext</name>
+        <project>algo_public</project>
+      </sub-workflow>
+      <ok to="end" />
+      <error to="failed" />
+    </action>
+    <fail name="failed">
+      <code>1</code>
+      <message>job failed</message>
+    </fail>
+    <end name="end"/>
+  </workflow>
+
+</xflow>

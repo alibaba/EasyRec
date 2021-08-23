@@ -98,6 +98,15 @@ class HPOTest(tf.test.TestCase):
       else:
         assert tmp_fea.embedding_dim == 16
 
+  def test_edit_config_v51(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v51.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if i == 5:
+        assert tmp_fea.embedding_dim == 37
+
   def test_edit_config_v6(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
     tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
@@ -141,6 +150,15 @@ class HPOTest(tf.test.TestCase):
                                                        4.0) < 1e-5
         assert tmp_fea.embedding_dim == 32
 
+  def test_edit_config_v81(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v81.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if tmp_fea.feature_type == tmp_fea.RawFeature:
+        assert tmp_fea.embedding_dim == 24
+
   def test_edit_config_v9(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
     tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
@@ -148,6 +166,37 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     assert tmp_config.train_config.fine_tune_checkpoint == \
            'oss://easy-rec/test/experiment/ctr_v93/model.ckpt-1000'
+
+  def test_edit_config_v10(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v10.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if tmp_fea.input_names[0] == 'c21':
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       4.0) < 1e-5
+        assert tmp_fea.embedding_dim == 32
+
+  def test_edit_config_v11(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v11.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if tmp_fea.input_names[0] == 'c21':
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       10.0) < 1e-5
+
+  def test_edit_config_v12(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v12.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if tmp_fea.input_names[0] == 'c21':
+        assert len(tmp_fea.boundaries) == 25
+        assert np.abs(tmp_fea.boundaries[1] - 21.0) < 1e-5
 
   def test_save_eval_metrics_with_env(self):
     os.environ['TF_CONFIG'] = """

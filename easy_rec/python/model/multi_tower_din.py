@@ -37,8 +37,6 @@ class MultiTowerDIN(RankModel):
     for tower_id in range(self._tower_num):
       tower = self._model_config.towers[tower_id]
       tower_feature, _ = self._input_layer(self._feature_dict, tower.input)
-      regularizers.apply_regularization(
-          self._emb_reg, weights_list=[tower_feature])
       self._tower_features.append(tower_feature)
 
     self._din_tower_features = []
@@ -56,9 +54,6 @@ class MultiTowerDIN(RankModel):
       regularizers.apply_regularization(
           self._emb_reg, weights_list=[tower_feature['hist_seq_emb']])
       self._din_tower_features.append(tower_feature)
-
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def din(self, dnn_config, deep_fea, name):
     cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[

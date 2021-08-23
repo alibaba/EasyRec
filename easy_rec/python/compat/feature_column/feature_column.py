@@ -896,7 +896,7 @@ def _embedding_column(categorical_column,
                          categorical_column.name))
   if initializer is None:
     initializer = init_ops.truncated_normal_initializer(
-        mean=0.0, stddev=1 / math.sqrt(dimension))
+        mean=0.0, stddev=0.01 / math.sqrt(dimension))
 
   embedding_shape = categorical_column._num_buckets, dimension  # pylint: disable=protected-access
 
@@ -2583,10 +2583,19 @@ class _SharedEmbeddingColumn(
               partitioner=self.partitioner,
               collections=weight_collections)
         else:
+          # at eval or inference time, it is necessary to set
+          # the initializers to zeros, so that new key will
+          # get zero embedding
+          import os
+          if os.environ.get('tf.estimator.mode', '') != \
+             os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
+            initializer = init_ops.zeros_initializer()
+          else:
+            initializer = self.initializer
           embedding_weights = variable_scope.get_embedding_variable(
               name='embedding_weights',
               embedding_dim=self.dimension,
-              initializer=self.initializer,
+              initializer=initializer,
               trainable=self.trainable and trainable,
               partitioner=self.partitioner,
               collections=weight_collections)

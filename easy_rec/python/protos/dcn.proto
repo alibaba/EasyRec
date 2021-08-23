@@ -1,0 +1,18 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/tower.proto";
+
+message CrossTower {
+    required string input = 1;
+    // The number of cross layers
+    required uint32 cross_num = 2 [default = 3];
+};
+
+message DCN {
+    required Tower deep_tower = 1;
+    required CrossTower cross_tower = 2;
+    required DNN final_dnn = 3;
+    required float l2_regularization = 5 [default = 1e-4];
+}

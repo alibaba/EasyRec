@@ -1,9 +1,9 @@
 # 多分类模型
 
-多分类模型和CTR模型基本一致，只是num\_class > 1。
+多分类模型和CTR模型基本一致，只是num_class > 1。
 
 如下图所示, 和CTR模型相比增加了:
-num\_class: 2
+num_class: 2
 
 ```protobuf
 model_config:{

@@ -1,12 +1,14 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import codecs
+import os
 from setuptools import find_packages
 from setuptools import setup
 
 
 def readme():
-  with open('README.md') as f:
+  with codecs.open('README.md', encoding='utf-8') as f:
     content = f.read()
   return content
 
@@ -15,7 +17,9 @@ version_file = 'easy_rec/version.py'
 
 
 def get_version():
-  with open(version_file, 'r') as f:
+  if 'BUILD_EASYREC_DOC' in os.environ:
+    os.system("bash -x scripts/build_read_the_docs.sh") 
+  with codecs.open(version_file, 'r') as f:
     exec(compile(f.read(), version_file, 'exec'))
   return locals()['__version__']
 
@@ -34,7 +38,7 @@ def parse_requirements(fname='requirements.txt'):
       yield line
 
   def parse_require_file(fpath):
-    with open(fpath, 'r') as f:
+    with codecs.open(fpath, 'r') as f:
       for line in f.readlines():
         line = line.strip()
         if line and not line.startswith('#'):

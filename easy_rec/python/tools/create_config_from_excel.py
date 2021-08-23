@@ -187,7 +187,7 @@ class ModelConfigConverter:
     fout.write('train_input_path: "%s"\n' % self._train_input_path)
     fout.write('eval_input_path: "%s"\n' % self._eval_input_path)
     fout.write("""
-    model_dir: "experiment/"
+    model_dir: "%s"
 
     train_config {
       log_step_count_steps: 200
@@ -212,7 +212,7 @@ class ModelConfigConverter:
       metrics_set: {
            auc {}
       }
-    }""")
+    }""" % self._model_dir)
 
   def _write_deepfm_config(self, fout):
     # write model_config

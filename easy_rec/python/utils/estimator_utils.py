@@ -14,9 +14,10 @@ from distutils.version import LooseVersion
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
+from tensorflow.python.training.summary_io import SummaryWriterCache
 
-from easy_rec.python.protos.eas_serving_pb2 import EmbeddingPartData
 from easy_rec.python.utils import shape_utils
 
 if tf.__version__ >= '2.0':
@@ -165,60 +166,6 @@ class ProgressHook(SessionRunHook):
       self._progress_file.close()
 
 
-class EmbeddingPartSaver:
-  """Large Embedding Saver.
-
-  For large embedding serving on eas, large embeddings are partitioned and saved separately.
-  """
-
-  def __init__(self, var):
-    self._var = var
-    # normalize var names
-    var_name = var.name.split('/')
-    if var_name[-2] == 'embedding_weights' and 'part_' in var_name[-1]:
-      # input_layer uid embedding_weights part_0:0
-      part_name = var_name[-1].split(':')[0]
-      var_name = var_name[-3]
-      if var_name.endswith('_embedding'):
-        var_name = var_name[:-len('_embedding')]
-      var_name = var_name + '.' + part_name
-    else:
-      # input_layer tag embedding_weights:0
-      var_name = var_name[-2]
-      if var_name.endswith('_embedding'):
-        var_name = var_name[:-len('_embedding')]
-    logging.info('embedding variable name: %s normalize_name: %s' %
-                 (var.name, var_name))
-    self._var_name = var_name
-
-  @property
-  def name(self):
-    return self._var_name
-
-  def save(self, session, save_path, global_step):
-    """Save embedding data as EmbeddingPartData as .pb files.
-
-    Args:
-      session: tf.Session instance
-      save_path: data save path
-      global_step: train step
-    """
-    var_data = session.run(self._var)
-    embed_part_data = EmbeddingPartData()
-
-    for x in var_data.shape:
-      embed_part_data.shape.append(x)
-
-    for r in range(var_data.shape[0]):
-      for c in range(var_data.shape[1]):
-        embed_part_data.data.append(var_data[r, c])
-
-    save_path = save_path + '.pb.' + str(global_step)
-    with tf.gfile.GFile(save_path, 'wb') as fout:
-      fout.write(embed_part_data.SerializeToString())
-    logging.info('save embedding %s to %s done' % (self._var_name, save_path))
-
-
 class CheckpointSaverHook(CheckpointSaverHook):
   """Saves checkpoints every N steps or seconds."""
 
@@ -296,9 +243,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
         global_step=step,
         write_meta_graph=self._write_graph)
     save_dir, save_name = os.path.split(self._save_path)
-    save_dir = os.path.join(save_dir, 'embeddings')
-    if not tf.gfile.Exists(save_dir):
-      tf.gfile.MakeDirs(save_dir)
 
     self._summary_writer.add_session_log(
         tf.SessionLog(
@@ -449,6 +393,38 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
       saver.restore(session, ckpt_path)
 
 
+class OnlineEvaluationHook(SessionRunHook):
+
+  def __init__(self, metric_dict, output_dir):
+    self._metric_dict = metric_dict
+    self._output_dir = output_dir
+    self._summary_writer = SummaryWriterCache.get(self._output_dir)
+
+  def end(self, session):
+    metric_tensor_dict = {k: v[0] for k, v in self._metric_dict.items()}
+    metric_value_dict = session.run(metric_tensor_dict)
+    tf.logging.info('Eval metric: %s' % metric_value_dict)
+
+    global_step_tensor = tf.train.get_or_create_global_step()
+    global_step = session.run(global_step_tensor)
+
+    summary = Summary()
+    for k, v in metric_value_dict.items():
+      summary.value.add(tag=k, simple_value=v)
+    self._summary_writer.add_summary(summary, global_step=global_step)
+    self._summary_writer.flush()
+
+    eval_result_file = os.path.join(self._output_dir,
+                                    'online_eval_result.txt-%s' % global_step)
+    logging.info('Saving online eval result to file %s' % eval_result_file)
+    with tf.gfile.GFile(eval_result_file, 'w') as ofile:
+      result_to_write = {}
+      for key in sorted(metric_value_dict):
+        # convert numpy float to python float
+        result_to_write[key] = metric_value_dict[key].item()
+      ofile.write(json.dumps(result_to_write, indent=2))
+
+
 def parse_tf_config():
   tf_config_str = os.environ.get('TF_CONFIG', '')
   if 'TF_CONFIG' in os.environ:
@@ -477,3 +453,77 @@ def get_task_index_and_num():
     if task_type not in ['chief', 'master']:
       task_index += 1
   return task_index, task_num
+
+
+def get_ckpt_version(ckpt_path):
+  """Get checkpoint version from ckpt_path.
+
+  Args:
+    ckpt_path: such as xx/model.ckpt-2000 or xx/model.ckpt-2000.meta
+
+  Return:
+    ckpt_version: such as 2000
+  """
+  _, ckpt_name = os.path.split(ckpt_path)
+  ckpt_name, ext = os.path.splitext(ckpt_name)
+  if ext.startswith('.ckpt-'):
+    ckpt_name = ext
+  toks = ckpt_name.split('-')
+  return int(toks[-1])
+
+
+def latest_checkpoint(model_dir):
+  """Find lastest checkpoint under a directory.
+
+  Args:
+    model_dir: model directory
+
+  Return:
+    model_path: xx/model.ckpt-2000
+  """
+  ckpt_metas = tf.gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+  if len(ckpt_metas) == 0:
+    return None
+
+  if len(ckpt_metas) > 1:
+    ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
+  ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
+  return ckpt_path
+
+
+def master_to_chief():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    # change chief to master
+    if 'master' in tf_config['cluster']:
+      tf_config['cluster']['chief'] = tf_config['cluster']['master']
+      del tf_config['cluster']['chief']
+      if tf_config['task']['type'] == 'master':
+        tf_config['task']['type'] = 'chief'
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    return tf_config
+  else:
+    return None
+
+
+def chief_to_master():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    # change chief to master
+    if 'chief' in tf_config['cluster']:
+      tf_config['cluster']['master'] = tf_config['cluster']['chief']
+      del tf_config['cluster']['chief']
+      if tf_config['task']['type'] == 'chief':
+        tf_config['task']['type'] = 'master'
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    return tf_config
+  else:
+    return None
+
+
+def is_chief():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'task' in tf_config:
+      return tf_config['task']['type'] in ['chief', 'master']
+  return True

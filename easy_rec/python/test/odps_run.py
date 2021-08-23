@@ -3,9 +3,11 @@
 
 import argparse
 import logging
+import os
 import shutil
 import sys
 
+import oss2
 import tensorflow as tf
 
 from easy_rec.python.test.odps_test import OdpsTest
@@ -13,6 +15,7 @@ from easy_rec.python.test.odps_test_prepare import prepare
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig
 from easy_rec.python.test.odps_test_util import delete_oss_path
 from easy_rec.python.test.odps_test_util import get_oss_bucket
+from easy_rec.python.utils import config_util
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -100,8 +103,10 @@ class TestPipelineOnOdps(tf.test.TestCase):
         'other_test/test_train_hpo_with_evaluator.sql',
         'other_test/test_train_version.sql',
         'other_test/test_train_distribute_strategy_ess.sql',
+        'other_test/test_train_before_export.sql',
         'other_test/test_eval_checkpoint_path.sql',
         'other_test/test_export_checkpoint_path.sql',
+        'other_test/test_export_update_model_dir.sql',
         'other_test/test_predict_selected_cols.sql',
     ]
     end_file = ['other_test/drop_table.sql']
@@ -109,14 +114,81 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.start_test()
     tot.drop_table()
 
+  def test_best_exporter(self):
+    start_files = [
+        'deep_fm/create_external_deepfm_table.sql',
+        'deep_fm/create_inner_deepfm_table.sql'
+    ]
+    test_files = [
+        'other_test/test_train_best_export.sql',
+    ]
+    end_file = ['other_test/drop_table.sql']
+    tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
+    tot.start_test()
+    config_path = os.path.join(
+        odps_oss_config.temp_dir,
+        'configs/dwd_avazu_ctr_deepmodel_ext_best_export.config')
+    config = config_util.get_configs_from_pipeline_file(config_path)
+    model_dir = config.model_dir
+    logging.info('raw model_dir = %s' % model_dir)
+    if model_dir.startswith('oss://'):
+      spos = model_dir.index('/', len('oss://') + 1) + 1
+      model_dir = model_dir[spos:]
+    logging.info('stripped model_dir = %s' % model_dir)
+
+    bucket = get_oss_bucket(odps_oss_config.oss_key, odps_oss_config.oss_secret,
+                            odps_oss_config.endpoint,
+                            odps_oss_config.bucket_name)
+    best_ckpt_prefix = os.path.join(model_dir, 'best_ckpt/model.ckpt')
+    best_ckpts = [
+        x.key
+        for x in oss2.ObjectIterator(bucket, prefix=best_ckpt_prefix)
+        if x.key.endswith('.meta')
+    ]
+    logging.info('best ckpts: %s' % str(best_ckpts))
+    assert len(best_ckpts) <= 2, 'too many best ckpts: %s' % str(best_ckpts)
+    best_export_prefix = os.path.join(model_dir, 'export/best/')
+    best_exports = [
+        x.key
+        for x in oss2.ObjectIterator(bucket, prefix=best_export_prefix)
+        if x.key.endswith('/saved_model.pb')
+    ]
+    logging.info('best exports: %s' % str(best_exports))
+    assert len(
+        best_exports) <= 2, 'too many best exports: %s' % str(best_exports)
+    return True
+
   def test_embedding_variable(self):
     start_files = [
         'embedding_variable/create_table.sql',
     ]
     test_files = [
-        'embedding_variable/train.sql', 'embedding_variable/export.sql'
+        'embedding_variable/train.sql', 'embedding_variable/train_work_que.sql',
+        'embedding_variable/export.sql'
     ]
     end_file = ['embedding_variable/drop_table.sql']
+    tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
+    tot.start_test()
+    tot.drop_table()
+
+  def test_multi_value_export(self):
+    start_files = [
+        'multi_value/create_external_multi_value_table.sql',
+        'multi_value/create_inner_multi_value_table.sql',
+    ]
+    test_files = ['multi_value/train_multi_tower_model.sql']
+    end_file = ['multi_value/drop_table.sql']
+    tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
+    tot.start_test()
+    tot.drop_table()
+
+  def test_boundary_test(self):
+    start_files = [
+        'boundary/create_external_boundary_table.sql',
+        'boundary/create_inner_boundary_table.sql',
+    ]
+    test_files = ['boundary/train_multi_tower_model.sql']
+    end_file = ['boundary/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
     tot.start_test()
     tot.drop_table()

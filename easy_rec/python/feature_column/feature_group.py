@@ -30,9 +30,18 @@ class FeatureGroup(object):
     return self._config.feature_names
 
   def select_columns(self, fc):
-    columns = fc.wide_columns if self._config.wide_deep == WideOrDeep.WIDE \
-        else fc.deep_columns
-    return [columns[x] for x in self._config.feature_names]
+    if self._config.wide_deep == WideOrDeep.WIDE:
+      wide_columns = [fc.wide_columns[x] for x in self._config.feature_names]
+      return wide_columns, []
+    else:
+      sequence_columns = []
+      deep_columns = []
+      for x in self._config.feature_names:
+        if x in fc.sequence_columns:
+          sequence_columns.append(fc.sequence_columns[x])
+        else:
+          deep_columns.append(fc.deep_columns[x])
+      return deep_columns, sequence_columns
 
   def _auto_expand_feature_name(self):
     features = [x for x in self._config.feature_names]

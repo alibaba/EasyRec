@@ -15,10 +15,12 @@ message EasyRecConfig {
   oneof train_path {
       string train_input_path = 1;
       KafkaServer kafka_train_input = 2;
+      DatahubServer datahub_train_input = 12;
   }
   oneof eval_path {
       string eval_input_path = 3;
       KafkaServer kafka_eval_input = 4;
+      DatahubServer datahub_eval_input = 13;
   }
   required string model_dir = 5;
 

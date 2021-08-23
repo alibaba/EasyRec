@@ -5,8 +5,8 @@
 输入一般是csv格式的文件。 如下所示，列之间用,分割
 
 - 示例数据（小数据集）:
-  - train: [ctr\_train.csv](https://yuguang-test.oss-cn-beijing.aliyuncs.com/fe/data/ctr_train.csv)
-  - test: [ctr\_test.csv](https://yuguang-test.oss-cn-beijing.aliyuncs.com/fe/data/ctr_test.csv)
+  - train: [ctr_train.csv](https://easyrec.oss-cn-beijing.aliyuncs.com/data/autocross/ctr_train.csv)
+  - test: [ctr_test.csv](https://easyrec.oss-cn-beijing.aliyuncs.com/data/autocross/ctr_test.csv)
   - 数据示例:
 
 ```
@@ -23,10 +23,8 @@ hadoop fs -put ctr_test.csv hdfs:///user/fe/data/
 
 ### AutoCross
 
-AutoCross使用请参考文档 [AutoCross EMR](https://yuque.antfin-inc.com/pai/automl/cicak6)。
-
-- AutoCross yaml配置文件：[ctr\_autocross.yaml](https://yuguang-test.oss-cn-beijing.aliyuncs.com/fe/configs/ctr_autocross.yaml)（[配置文件解析](https://yuque.antfin-inc.com/pai/automl/cicak6)）
-- alink环境配置文件，另存为a[link.env](https://yuguang-test.oss-cn-beijing.aliyuncs.com/fe/configs/alink.env)
+- AutoCross yaml配置文件：[ctr_autocross.yaml](https://easyrec.oss-cn-beijing.aliyuncs.com/data/autocross/ctr_autocross.yaml)
+- alink环境配置文件，另存为a[link.env](https://easyrec.oss-cn-beijing.aliyuncs.com/data/autocross/alink.env)
 
 ```bash
 userId=default
@@ -34,7 +32,6 @@ alinkServerEndpoint=http://localhost:9301
 hadoopHome=/usr/lib/hadoop-current
 hadoopUserName=hadoop
 token=ZSHTIeEkwrtZJJsN1ZZmCJJmr5jaj1wO
-
 ```
 
 - 使用 pai-automl-fe 提交任务
@@ -43,10 +40,10 @@ token=ZSHTIeEkwrtZJJsN1ZZmCJJmr5jaj1wO
 pai-automl-fe run -e configs/alink.env --config configs/ctr_autocross.yaml --mode emr
 ```
 
-### 对接easy\_rec
+### 对接EasyRec
 
-Easy\_rec使用请参考文档 [EMR Tutorial](https://yuque.antfin.com/pai/arch/zucdp3)。
-以下说明AutoCross后的数据对接easy\_rec的配置（[ctr\_deepmodel\_ac.config](https://yuguang-test.oss-cn-beijing.aliyuncs.com/fe/configs/ctr_deepmodel_ac.config)）
+EasyRec使用请参考文档 [EMR Train](../train.md)。
+以下说明AutoCross后的数据对接easy_rec的配置（[ctr_deepmodel_ac.config](https://easyrec.oss-cn-beijing.aliyuncs.com/data/autocross/ctr_deepmodel_ac.config)）
 
 #### 数据据相关
 
@@ -210,7 +207,6 @@ model_config:{
     feature_names: "cross_2"
     wide_deep:DEEP
   }
-
 ```
 
-使用el\_submit提交训练即可，请参照 [EMR Tutorial](https://yuque.antfin.com/pai/arch/zucdp3)。
+使用el_submit提交训练即可，请参照 [EMR Train](../train.md)。

@@ -4,67 +4,71 @@
 
 输入一般是odps表:
 
-- train: pai\_online\_project.dwd\_avazu\_ctr\_deepmodel\_train
-- test: pai\_online\_project.dwd\_avazu\_ctr\_deepmodel\_test
+- train: pai_online_project.dwd_avazu_ctr_deepmodel_train
+- test: pai_online_project.dwd_avazu_ctr_deepmodel_test
 
 说明：原则上这两张表是自己odps的表，为了方便，以上提供case的两张表在任何地方都可以访问。两个表可以带分区，也可以不带分区。
 
 ### 训练:
 
-- 配置文件: [dwd\_avazu\_ctr\_deepmodel\_ext.config](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config), 配置文件采用prototxt格式，内容解析见[配置文件](#Qgqxc)
-  - 修改配置文件里面的**model\_dir**字段为: 自己的实验oss目录
+- 配置文件: [dwd_avazu_ctr_deepmodel_ext.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config), 配置文件采用prototxt格式，内容解析见[配置文件](#Qgqxc)
+  - 修改配置文件里面的**model_dir**字段为: 自己的实验oss目录
 
 ```sql
 pai -name easy_rec_ext -project algo_public
--Dconfig=oss://easy-rec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dcmd=train
+-Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dwith_evaluator=1
+-Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easy-rec/
--DossHost=oss-cn-hangzhou-internal.aliyuncs.com
--Dwith_evaluator=1;
+-Dbuckets=oss://easyrec/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
-- \-Dtables: 定义训练表和测试表，默认最后一个表示测试表。
-- \-Dcluster: 定义PS的数目和worker的数目，如果设置了--with\_evaluator，有一个worker将被用于做评估
-- \-Dconfig: 训练用的配置文件
-- \-Dcmd: train 模型训练
-- \-Dwith\_evaluator: 训练时需要评估
-- \-Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
-- \-Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
-- \-DossHost: ossHost地址
-- \-Dmodel\_dir: 如果指定了model\_dir将会覆盖config里面的model\_dir，一般在周期性调度的时候使用。
+- -Dcmd: train 模型训练
+- -Dconfig: 训练用的配置文件
+- -Dtables: 定义训练表和测试表，默认最后一个表示测试表。
+- -Dcluster: 定义PS的数目和worker的数目。具体见：[PAI-TF任务参数介绍](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
+- -Dwith_evaluator，训练时定义一个worker将被用于做评估
+- -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
+- -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
+- -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
+- -DossHost: ossHost地址
 
 ### 注意：
 
-- dataworks和pai的project 一样，案例都是pai\_online\_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-shanghai\#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-shanghai#/visual)  ，其中regionId可能不一致。
+- dataworks和pai的project 一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual)  ，其中regionId可能不一致。
 
   ![mc_gpu](../../images/quick_start/mc_gpu.png)
 
-- oss的bucket需要提前开通好，案例中bucket名称是easy-rec。参考：[https://help.aliyun.com/document\_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
+- oss的bucket需要提前开通好，案例中bucket名称是easyrec。创建bucket请参考：[创建存储空间](https://help.aliyun.com/document_detail/31885.html)
 
-- arn需要在PAI-studio的project（当前案例中的project是pai\_online\_project）的OSS访问授权设置页面查看和创建，如下图：
+- arn需要在PAI-studio的project（当前案例中的project是pai_online_project）的OSS访问授权设置页面查看和创建，如下图：
 
-![image.png](https://cdn.nlark.com/yuque/0/2020/png/2764402/1603677843509-0e114d07-387e-469e-9b1e-2cbe9421edbf.png#align=left&display=inline&height=287&margin=%5Bobject%20Object%5D&name=image.png&originHeight=862&originWidth=952&size=266204&status=done&style=none&width=317.3333333333333)
+![image.png](../../images/quick_start/image.png)
 
 ### 评估:
 
-```protobuf
+```sql
 pai -name easy_rec_ext -project algo_public
--Dconfig=oss://easy-rec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dcmd=evaluate
+-Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easy-rec/
--DossHost=oss-cn-hangzhou-internal.aliyuncs.com；
+-Dbuckets=oss://easyrec/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com；
 ```
 
-- \-Dconfig: 同训练
-- \-Dcmd: evaluate 模型评估
-- \-Dtables: 只需要指定测试 tables
-- \-Dcheckpoint\_path: 使用指定的checkpoint\_path
+- -Dcmd: evaluate 模型评估
+- -Dconfig: 同训练
+- -Dtables: 只需要指定测试 tables
+- -Dcluster: 评估不需要PS节点，指定一个worker节点即可
+- -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
+- -Dcheckpoint_path: 使用指定的checkpoint_path，如oss://easyrec/ckpt/MultiTower/model.ckpt-1000。不指定的话，默认model_dir中最新的ckpt文件。
 
 ### 导出:
 
@@ -74,19 +78,22 @@ pai -name easy_rec_ext -project algo_public
 
 ```sql
 pai -name easy_rec_ext -project algo_public
--Dconfig=oss://easy-rec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dcmd=export
--Dexport_dir=oss://easy-rec/easy_rec_test/export
+-Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
+-Dmodel_dir=oss://easyrec/ckpt/MultiTower
+-Dexport_dir=oss://easyrec/ckpt/MultiTower/export
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
 -Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easy-rec/
--DossHost=oss-cn-hangzhou-internal.aliyuncs.com
+-Dbuckets=oss://easyrec/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com
 ```
 
-- \-Dconfig: 同训练
-- \-Dcmd: export 模型导出
-- \-Dexport\_dir: 导出的目录
-- \-Dcheckpoint\_path: 使用指定的checkpoint\_path
+- -Dcmd: export 模型导出
+- -Dconfig: 同训练
+- -Dmodel_dir: 同训练
+- -Dexport_dir: 导出的目录
+- -Dcluster: 评估不需要PS节点，指定一个worker节点即可
+- -Dcheckpoint_path: 同评估
 
 ### 配置文件:
 
@@ -97,7 +104,7 @@ pai -name easy_rec_ext -project algo_public
 train_input_path: ""
 eval_input_path: ""
 # 模型保存路径
-model_dir: "oss://easy-rec/easy_rec_test/experiment/dwd_avazu_ctr"
+model_dir: "oss://easyrec/easy_rec_test/experiment/dwd_avazu_ctr"
 ```
 
 #### 数据相关
@@ -279,8 +286,8 @@ model_config:{
 
 ```
 
-配置文件下载：[dwd\_avazu\_ctr\_deepmodel\_ext.config](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config)
+配置文件下载：[dwd_avazu_ctr_deepmodel_ext.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config)
 
 #### 配置参考手册
 
-[EasyRecConfig参考手册](../proto.html)
+[EasyRecConfig参考手册](../reference.md)

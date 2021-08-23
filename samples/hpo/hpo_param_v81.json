@@ -1,0 +1,5 @@
+{
+   "param": {
+      "feature_configs[feature_type=RawFeature].embedding_dim":24
+    }
+}

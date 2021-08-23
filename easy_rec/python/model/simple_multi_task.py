@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 
@@ -29,12 +28,7 @@ class SimpleMultiTask(MultiTaskModel):
     assert isinstance(self._model_config, SimpleMultiTaskConfig)
 
     self._features, _ = self._input_layer(self._feature_dict, 'all')
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._features])
-
     self._init_towers(self._model_config.task_towers)
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def build_predict_graph(self):
     tower_outputs = {}
@@ -48,7 +42,7 @@ class SimpleMultiTask(MultiTaskModel):
       task_fea = task_dnn(self._features)
       task_output = tf.layers.dense(
           inputs=task_fea,
-          units=self._num_class,
+          units=task_tower_cfg.num_class,
           kernel_regularizer=self._l2_reg,
           name='dnn_output_%d' % i)
       tower_outputs[tower_name] = task_output

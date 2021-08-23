@@ -9,11 +9,15 @@ message Optimizer {
     RMSPropOptimizer rms_prop_optimizer = 101;
     MomentumOptimizer momentum_optimizer = 102;
     AdamOptimizer adam_optimizer = 103;
-    AdamAsyncOptimizer adam_async_optimizer = 104;
-    AdagradOptimizer adagrad_optimizer = 105;
+    MomentumWOptimizer momentumw_optimizer = 104;
+    AdamWOptimizer adamw_optimizer = 105;
+    AdamAsyncOptimizer adam_async_optimizer = 106;
+    AdagradOptimizer adagrad_optimizer = 107;
+    AdamAsyncWOptimizer adam_asyncw_optimizer = 108;
   }
   optional bool use_moving_average = 5 [default = false];
   optional float moving_average_decay = 6 [default = 0.9999];
+  optional float embedding_learning_rate_multiplier = 7;
 }
 
 // Configuration message for the RMSPropOptimizer
@@ -40,13 +44,33 @@ message AdamOptimizer {
     optional float beta2 = 4 [default = 0.999];
 }
 
+message MomentumWOptimizer {
+  optional LearningRate learning_rate = 1;
+  optional float weight_decay = 2 [default = 1e-6];
+  optional float momentum_optimizer_value = 3 [default = 0.9];
+}
+
+message AdamWOptimizer {
+  optional LearningRate learning_rate = 1;
+  optional float weight_decay = 2 [default = 1e-6];
+  optional float beta1 = 3 [default = 0.9];
+  optional float beta2 = 4 [default = 0.999];
+}
+
+message AdamAsyncWOptimizer {
+  optional LearningRate learning_rate = 1;
+  optional float weight_decay = 2 [default = 1e-6];
+  optional float beta1 = 3 [default = 0.9];
+  optional float beta2 = 4 [default = 0.999];
+}
+
 // Configuration message for the AdagradOptimizer
 // See: https://www.tensorflow.org/api_docs/python/tf/train/AdagradOptimizer
 message AdagradOptimizer {
     optional LearningRate learning_rate = 1;
 }
 
-// Developed by pai
+// Only available on pai-tf, which has better performance than AdamOptimizer
 message AdamAsyncOptimizer {
   optional LearningRate learning_rate = 1;
   optional float beta1 = 3 [default = 0.9];

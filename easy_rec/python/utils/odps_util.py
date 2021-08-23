@@ -43,7 +43,7 @@ def check_input_field_and_types(data_config):
 
   selected_cols = selected_cols.split(',')
   for x in input_fields:
-    assert x in selected_cols, 'column %s is not in table %s' % x
+    assert x in selected_cols, 'column %s is not in table' % x
   if selected_col_types:
     selected_types = selected_col_types.split(',')
     type_map = {x: y for x, y in zip(selected_cols, selected_types)}

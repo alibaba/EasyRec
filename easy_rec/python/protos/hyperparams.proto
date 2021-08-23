@@ -33,6 +33,7 @@ message Initializer {
         TruncatedNormalInitializer truncated_normal_initializer = 1;
         RandomNormalInitializer random_normal_initializer = 2;
         GlorotNormalInitializer glorot_normal_initializer = 3;
+        ConstantInitializer constant_initializer = 4;
     }
 }
 
@@ -51,4 +52,8 @@ message RandomNormalInitializer {
 }
 
 message GlorotNormalInitializer {
+}
+
+message ConstantInitializer {
+  repeated float consts = 1;
 }

@@ -28,6 +28,20 @@ IdFeature: 离散值特征/ID类特征
       hash_bucket_size: 100000
     }
 
+    feature_configs {
+      input_names: "month"
+      feature_type: IdFeature
+      embedding_dim: 8
+      num_buckets: 12
+    }
+
+    feature_configs {
+      input_names: "weekday"
+      feature_type: IdFeature
+      embedding_dim: 8
+      vocab_list: ["1", "2", "3", "4", "5", "6", "7"]
+    }
+
 -  其中embedding\_dim 的计算方法可以参考：
 
    .. math::
@@ -36,7 +50,7 @@ IdFeature: 离散值特征/ID类特征
         embedding\_dim=8+x^{0.25}
 
 
--  hash\_bucket\_size: hash bucket的大小
+-  hash\_bucket\_size: hash bucket的大小。适用于category_id, user_id等
 
 -  对于user\_id等规模比较大的，hash冲突影响比较小的特征，
 
@@ -69,7 +83,39 @@ IdFeature: 离散值特征/ID类特征
 RawFeature：连续值特征
 ----------------------
 
-连续值类特征可以先在pai-studio中先进行离散化，可以进行等频/等距/自动离散化，变成IdFeature。也可以将离散化的区间配置在config中，如下：
+连续值类特征可以先使用分箱组件+进行离散化，可以进行等频/等距/自动离散化，变成离散值。推荐使用分箱组件得到分箱信息表，在训练时可以通过"-Dboundary\_table odps://project_name/tables/boundary\_info"导入boundary\_info表，省去在config中写入boundaries的操作。
+
+.. code:: protobuf
+
+   DROP table if exists boundary_info;
+   PAI -name binning
+   -project algo_public
+   -DinputTableName=train_data
+   -DoutputTableName=boundary_info
+   -DselectedColNames=col1,col2,col3,col4,col5
+   -DnDivide=20;
+
+   pai -name easy_rec_ext -project algo_public
+    -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
+    -Dcmd=train
+    -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+    -Dboundary_table=odps://pai_online_project/tables/boundary_info
+    -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+    -Darn=acs:ram::xxx:role/xxx
+    -Dbuckets=oss://easyrec/
+    -DossHost=oss-cn-beijing-internal.aliyuncs.com
+    -Dwith_evaluator=1;
+
+.. code:: protobuf
+
+    feature_configs {
+      input_names: "ctr"
+      feature_type: RawFeature
+      embedding_dim: 8
+    }
+
+分箱组件使用方法见： `机器学习组件 <https://help.aliyun.com/document_detail/54352.html>`_
+也可以手动导入分箱信息。如下：
 
 .. code:: protobuf
 
@@ -80,11 +126,23 @@ RawFeature：连续值特征
       embedding_dim: 8
     }
 
--  boundaries: 分桶的值，通过一个数组来设置。
--  如果这个分割点来自pai-studio
-   的分箱模型，需要根据代码读取分割点并设置值。参考：easy\_rec/python/tools/add\_boundaries\_to\_config.py
+-  boundaries: 分桶的值，通过一个数组来设置。如果通过"-Dboundary\_table"导入分箱表，则无需写入，程序会自动导入到pipeline.config中。
 -  embedding\_dim: 如果设置了boundaries，则需要配置embedding dimension。
 -  如果没有设置boundaries，在deepfm算法的wide端会被忽略
+
+
+这里同样支持embedding特征，如"0.233\|0.123\|0.023\|2.123\|0.233\|0.123\|0.023\|2.123"
+
+.. code:: protobuf
+
+    feature_configs {
+      input_names: "pic_emb"
+      feature_type: RawFeature
+      separator: '|'
+      raw_input_dim: 8
+    }
+
+- raw_input_dim: 指定embedding特征的维度
 
 TagFeature
 ----------
@@ -106,24 +164,36 @@ tags字段可以用于描述商品的多个属性
        embedding_dim: 24
     }
 
-结合weights字段，可以描述用户的偏好类目和分数：
-
-.. code:: protobuf
-
-    feature_configs : {
-       input_names: 'categories'
-       input_names: 'scores'
-       feature_type: TagFeature
-       separator: '|'
-       hash_bucket_size: 100000
-       embedding_dim: 24
-    }
-
 -  separator: 分割符，默认为'\|'
 -  hash\_bucket\_size: hash分桶大小，配置策略和IdFeature类似
 -  num\_buckets: 针对输入是整数的情况,
    如6\|20\|32，可以配置num\_buckets，配置为最大值
 -  embedding\_dim: embedding的dimension，和IdFeature类似
+
+我们同样支持有权重的tag特征，如"体育:0.3\|娱乐:0.2\|军事:0.5"：
+
+.. code:: protobuf
+
+    feature_configs : {
+       input_names: 'tag_kvs'
+       feature_type: TagFeature
+       separator: '|'
+       kv_separator: ':'
+       hash_bucket_size: 100000
+       embedding_dim: 24
+    }
+或"体育\|娱乐\|军事"和"0.3\|0.2\|0.5"的输入形式：
+
+.. code:: protobuf
+
+    feature_configs : {
+       input_names: 'tags'
+       input_names: 'tag_scores'
+       feature_type: TagFeature
+       separator: '|'
+       hash_bucket_size: 100000
+       embedding_dim: 24
+    }
 
 NOTE:
 ~~~~~
@@ -170,6 +240,27 @@ ComboFeature：组合特征
    来自data\_config.input\_fields.input\_name
 -  embedding\_dim: embedding的维度，同IdFeature
 -  hash\_bucket\_size: hash bucket的大小
+
+特征选择
+------
+对输入层使用变分dropout计算特征重要性，根据重要性排名进行特征选择。
+
+rank模型中配置相应字段：
+
+.. code:: protobuf
+
+    variational_dropout{
+        regularization_lambda:0.01
+        embedding_wise_variational_dropout:false
+    }
+
+-  regularization\_lambda: 变分dropout层的正则化系数设置
+-  embedding\_wise\_variational\_dropout: 变分dropout层维度是否为embedding维度（true：embedding维度；false：feature维度；默认false）
+
+
+
+
+
 
 分隔符
 ------

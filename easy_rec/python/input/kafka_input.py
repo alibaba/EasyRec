@@ -66,9 +66,12 @@ class KafkaInput(Input):
       train = self._kafka
       topics = []
       i = self._task_index
+      assert len(train.offset) == 1 or len(train.offset) == train.partitions, \
+          'number of train.offset must be 1 or train.partitions'
       while i < train.partitions:
-        topics.append(train.topic + ':' + str(i) + ':' + str(train.offset) +
-                      ':-1')
+        offset_i = train.offset[i] if i < len(
+            train.offset) else train.offset[-1]
+        topics.append(train.topic + ':' + str(i) + ':' + str(offset_i) + ':-1')
         i = i + self._task_num
 
       logging.info(
@@ -86,7 +89,10 @@ class KafkaInput(Input):
       eval = self._kafka
       topics = []
       i = 0
+      assert len(eval.offset) == 1 or len(eval.offset) == eval.partitions, \
+          'number of eval.offset must be 1 or eval.partitions'
       while i < eval.partitions:
+        offset_i = eval.offset[i] if i < len(eval.offset) else eval.offset[-1]
         topics.append(eval.topic + ':' + str(i) + ':' + str(eval.offset) +
                       ':-1')
         i = i + 1

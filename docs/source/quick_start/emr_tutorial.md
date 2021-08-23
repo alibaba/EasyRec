@@ -5,8 +5,8 @@
 输入一般是csv格式的文件。 如下所示，列之间用,分割
 
 - 示例数据:
-  - train: [dwd\_avazu\_ctr\_deepmodel\_train.csv](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
-  - test: [dwd\_avazu\_ctr\_deepmodel\_test.csv](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)
+  - train: [dwd_avazu_ctr_deepmodel_train.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
+  - test: [dwd_avazu_ctr_deepmodel_test.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)
   - 示例:
 
 ```
@@ -17,7 +17,7 @@
 
 ## 创建DataScience集群:
 
-[DataScience集群](https://help.aliyun.com/document_detail/170836.html?spm=a2c4g.11186623.6.867.352e53c5yP1ecR)参考
+[DataScience集群](https://help.aliyun.com/document_detail/170836.html)参考
 
 ## Copy data to HDFS
 
@@ -29,8 +29,8 @@ hadoop fs -put dwd_avazu_ctr_deepmodel_test.csv hdfs://emr-header-1:9000/user/ea
 
 ## 训练:
 
-- 配置文件: [dwd\_avazu\_ctr\_deepmodel.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/emr/dwd_avazu_ctr_deepmodel.config) \*\* \*\*&#160;配置文件采用prototxt格式，内容解析见[配置文件](#Qgqxc)
-- 使用el\_submit提交训练任务，**el\_submit**相关参数请参考[**tf\_on\_yarn**](https://help.aliyun.com/document_detail/93031.html?spm=a2c4g.11186623.6.769.586c73a4PXSmHi)
+- 配置文件: [dwd_avazu_ctr_deepmodel.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/emr/dwd_avazu_ctr_deepmodel.config) \*\* \*\* 配置文件采用prototxt格式，内容解析见[配置文件](#Qgqxc)
+- 使用el_submit提交训练任务，**el_submit**相关参数请参考[**tf_on_yarn**](../tf_on_yarn.md)
 
 ### 开源TF模式
 
@@ -93,11 +93,11 @@ resource:
 
 ```
 
-- [查看任务日志](https://yuque.antfin-inc.com/pai/arch/muywnl)
+- [查看任务日志](../emr_yarn_log.md)
 
 ## 评估:
 
-- 使用el\_submit提交评估任务，**el\_submit**相关参数请参考[**tf\_on\_yarn**](https://help.aliyun.com/document_detail/93031.html?spm=a2c4g.11186623.6.769.586c73a4PXSmHi)
+- 使用el_submit提交评估任务，**el_submit**相关参数请参考[**tf_on_yarn**](../tf_on_yarn.md)
 - **Note: 本示例仅仅展示流程，效果无参考价值。**
 
 ### 开源TF模式
@@ -155,11 +155,11 @@ resource:
 
 ## 导出:
 
-- 使用el\_submit提交导出任务, **el\_submit**相关参数请参考[**tf\_on\_yarn**](https://help.aliyun.com/document_detail/93031.html?spm=a2c4g.11186623.6.769.586c73a4PXSmHi)
+- 使用el_submit提交导出任务, **el_submit**相关参数请参考[**tf_on_yarn**](https://help.aliyun.com/document_detail/93031.html)
 
-\--pipeline\_config\_path: EasyRec配置文件
-\--export\_dir: 导出模型目录&#160;
-\--checkpoint\_path: 指定checkpoint，默认不指定，不指定则使用model\_dir下面最新的checkpoint
+--pipeline_config_path: EasyRec配置文件
+--export_dir: 导出模型目录 
+--checkpoint_path: 指定checkpoint，默认不指定，不指定则使用model_dir下面最新的checkpoint
 
 ### 开源TF模式
 
@@ -265,17 +265,17 @@ pmml.json配置文件内容如下, easyrec是基于tensorflow/paitf的， 因此
 
 ### 5. 构造服务请求
 
-参考 [https://help.aliyun.com/document\_detail/111055.html?spm=a2c4g.11174283.6.772.58971987yxDYC5](https://help.aliyun.com/document_detail/111055.html?spm=a2c4g.11174283.6.772.58971987yxDYC5)
+参考 [https://help.aliyun.com/document_detail/111055.html](https://help.aliyun.com/document_detail/111055.html)
 
 #### 1) 获取模型input output信息
 
 ```
-curl http://pai-eas-vpc.cn-shanghai.aliyuncs.com/api/predict/mnist_saved_model_example | python -mjson.tool
+curl http://pai-eas-vpc.cn-beijing.aliyuncs.com/api/predict/mnist_saved_model_example | python -mjson.tool
 ```
 
 #### 2) python版
 
-参考 [https://github.com/pai-eas/eas-python-sdk?spm=a2c4g.11186623.2.16.29357867eNkrjw](https://github.com/pai-eas/eas-python-sdk?spm=a2c4g.11186623.2.16.29357867eNkrjw)
+参考 [https://github.com/pai-eas/eas-python-sdk](https://github.com/pai-eas/eas-python-sdk)
 
 ```
 #!/usr/bin/env python
@@ -285,7 +285,7 @@ from eas_prediction import StringRequest
 from eas_prediction import TFRequest
 
 if __name__ == '__main__':
-    client = PredictClient('http://1828488879222746.cn-shanghai.pai-eas.aliyuncs.com', 'mnist_saved_model_example')
+    client = PredictClient('http://1828488879222746.cn-beijing.pai-eas.aliyuncs.com', 'mnist_saved_model_example')
     client.set_token('AAAAAAAAAAAAAAABBBBBBBBBBBBBBB==')
     client.init()
 
@@ -300,7 +300,7 @@ if __name__ == '__main__':
 
 #### 3) 其他语言版
 
-参考 [https://help.aliyun.com/document\_detail/111055.html?spm=a2c4g.11186623.6.772.29357867eNkrjw](https://help.aliyun.com/document_detail/111055.html?spm=a2c4g.11186623.6.772.29357867eNkrjw)
+参考 [https://help.aliyun.com/document_detail/111055.html](https://help.aliyun.com/document_detail/111055.html)
 
 ### 配置文件:
 
@@ -499,17 +499,21 @@ model_config:{
 
 #### Config下载
 
-[dwd\_avazu\_ctr\_deepmodel.config](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/emr/dwd_avazu_ctr_deepmodel.config)
+[dwd_avazu_ctr_deepmodel.config](http://easyrec.oss-cn-beijing.aliyuncs.com/config/emr/dwd_avazu_ctr_deepmodel.config)
 
 #### ExcelConfig下载
 
 ExcelConfig比Config更加简明
 
-- [dwd\_avazu\_ctr\_deepmodel.xls](http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/dwd_avazu_ctr_deepmodel.xls)
-- [ExcelConfig 转 Config](https://yuque.antfin-inc.com/pai/arch/ocumlg#BXDJh)
+- [dwd_avazu_ctr_deepmodel.xls](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel.xls)
+- [ExcelConfig 转 Config](../feature/excel_config.md)
 
 ### 参考手册
 
-[EasyRecConfig参考手册](../proto.html)
-[TF on EMR参考手册](https://help.aliyun.com/document_detail/93031.html?spm=a2c4g.11186623.6.769.586c73a4PXSmHi)
-[DataScience集群手册](https://help.aliyun.com/document_detail/170836.html?spm=a2c4g.11186623.6.867.352e53c5yP1ecR)
+- [EasyRecConfig参考手册](../reference.md)
+
+- [TF on EMR参考手册](../tf_on_yarn.md)
+
+- [DataScience集群手册](https://help.aliyun.com/document_detail/170836.html)
+
+- [EMR Tensorboard](../emr_tensorboard.md)

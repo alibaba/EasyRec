@@ -31,6 +31,8 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging
 from tensorflow.python.summary import summary_iterator
 
+from easy_rec.python.utils import io_util
+
 
 def _loss_smaller(best_eval_result, current_eval_result):
   """Compares two evaluation results and returns true if the 2nd one is smaller.
@@ -74,6 +76,13 @@ def _verify_compare_fn_args(compare_fn):
   if non_valid_args:
     raise ValueError('compare_fn (%s) has following not expected args: %s' %
                      (compare_fn, non_valid_args))
+
+
+def _get_ckpt_version(path):
+  _, tmp_name = os.path.split(path)
+  tmp_name, _ = os.path.splitext(tmp_name)
+  ver = tmp_name.split('-')[-1]
+  return int(ver)
 
 
 class BestExporter(Exporter):
@@ -215,17 +224,53 @@ class BestExporter(Exporter):
       self._garbage_collect_exports(export_path)
       # cp best checkpoints to best folder
       model_dir, _ = os.path.split(checkpoint_path)
-      best_dir = os.path.join(model_dir, 'best_ckpt')
+      # add / is to be compatiable with oss
+      best_dir = os.path.join(model_dir, 'best_ckpt/')
       tf_logging.info('Copy best checkpoint %s to %s' %
                       (checkpoint_path, best_dir))
-      if gfile.Exists(best_dir):
-        gfile.DeleteRecursively(best_dir)
-      gfile.MakeDirs(best_dir)
+      if not gfile.Exists(best_dir):
+        gfile.MakeDirs(best_dir)
       for tmp_file in gfile.Glob(checkpoint_path + '.*'):
         _, file_name = os.path.split(tmp_file)
-        gfile.Copy(tmp_file, os.path.join(best_dir, file_name))
+        # skip temporary files
+        if 'tempstate' in file_name:
+          continue
+        dst_path = os.path.join(best_dir, file_name)
+        tf_logging.info('Copy file %s to %s' % (tmp_file, dst_path))
+        try:
+          gfile.Copy(tmp_file, dst_path)
+        except Exception as ex:
+          tf_logging.warn('Copy file %s to %s failed:  %s' %
+                          (tmp_file, dst_path, str(ex)))
+      self._garbage_collect_ckpts(best_dir)
 
     return export_result
+
+  def _garbage_collect_ckpts(self, best_dir):
+    """Deletes older best ckpts, retaining only a given number of the most recent.
+
+    Args:
+      best_dir: the directory where the n best ckpts are saved.
+    """
+    if self._exports_to_keep is None:
+      return
+
+    # delete older checkpoints
+    tmp_files = gfile.Glob(os.path.join(best_dir, 'model.ckpt-*.meta'))
+    if len(tmp_files) <= self._exports_to_keep:
+      return
+
+    tmp_steps = [_get_ckpt_version(x) for x in tmp_files]
+    tmp_steps = sorted(tmp_steps)
+    drop_num = len(tmp_steps) - self._exports_to_keep
+    tf_logging.info(
+        'garbage_collect_ckpts: steps: %s export_to_keep: %d drop num: %d' %
+        (str(tmp_steps), self._exports_to_keep, drop_num))
+    for ver in tmp_steps[:drop_num]:
+      tmp_prefix = os.path.join(best_dir, 'model.ckpt-%d.*' % ver)
+      for tmp_file in gfile.Glob(tmp_prefix):
+        tf_logging.info('Remove ckpt file: ' + tmp_file)
+        gfile.Remove(tmp_file)
 
   def _garbage_collect_exports(self, export_dir_base):
     """Deletes older exports, retaining only a given number of the most recent.
@@ -253,7 +298,7 @@ class BestExporter(Exporter):
     for p in delete_filter(
         gc._get_paths(export_dir_base, parser=_export_version_parser)):
       try:
-        gfile.DeleteRecursively(p.path)
+        gfile.DeleteRecursively(io_util.fix_oss_dir(p.path))
       except errors_impl.NotFoundError as e:
         tf_logging.warn('Can not delete %s recursively: %s', p.path, e)
     # pylint: enable=protected-access
@@ -422,7 +467,7 @@ class LatestExporter(Exporter):
     for p in delete_filter(
         gc._get_paths(export_dir_base, parser=_export_version_parser)):
       try:
-        gfile.DeleteRecursively(p.path)
+        gfile.DeleteRecursively(io_util.fix_oss_dir(p.path))
       except errors_impl.NotFoundError as e:
         tf_logging.warn('Can not delete %s recursively: %s', p.path, e)
     # pylint: enable=protected-access

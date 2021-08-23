@@ -69,4 +69,7 @@ def build_initializer(initializer):
         stddev=initializer.random_normal_initializer.stddev)
   if initializer_oneof == 'glorot_normal_initializer':
     return tf.glorot_normal_initializer()
+  if initializer_oneof == 'constant_initializer':
+    return tf.constant_initializer(
+        [x for x in initializer.constant_initializer.consts])
   raise ValueError('Unknown initializer function: {}'.format(initializer_oneof))

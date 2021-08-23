@@ -82,8 +82,4 @@ build pip package
 python setup.py sdist bdist_wheel
 ```
 
-### Deploy
-
-```bash
-sh pai_jobs/deploy_ext.sh
-```
+### [Deploy](./release.md)

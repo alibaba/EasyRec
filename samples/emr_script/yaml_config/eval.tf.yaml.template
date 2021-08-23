@@ -1,0 +1,17 @@
+app:
+    app_type: standalone
+    app_name: easyrec_tf_eval
+    mode: local
+    exit_mode: true
+    verbose: true
+    files: {TEMP_DIR}/configs/deepfm_eval_pipeline.config,./.odps_config.ini
+    command: python -m easy_rec.python.eval --pipeline_config_path {TEMP_DIR}/configs/deepfm_eval_pipeline.config --odps_config ./.odps_config.ini
+    wait_time: 8
+    hook: /usr/local/dstools/bin/hooks.sh
+
+resource:
+    worker_num: 1
+    worker_cpu: 6
+    worker_gpu:
+    worker_memory: 10g
+    worker_mode_arg:

@@ -5,7 +5,7 @@
 #### 下载安装automl包
 
 ```bash
-wget http://easy-rec.oss-cn-hangzhou.aliyuncs.com/releases/pai_automl-0.0.1rc1-py3-none-any.whl
+wget http://easyrec.oss-cn-beijing.aliyuncs.com/releases/pai_automl-0.0.1rc1-py3-none-any.whl
 pip install pai_automl-0.0.1rc1-py3-none-any.whl
 ```
 
@@ -17,7 +17,7 @@ python -m easy_rec.python.hpo.pai_hpo --odps_config ~/.odps_config.ini --oss_con
 
 ### 参数说明
 
-- \--odps\_config: odps账号信息文件
+- --odps_config: odps账号信息文件
 
 ```
 project_name=easy_rec_test
@@ -33,33 +33,39 @@ https_check=true
 #决定是否开启 HTTPS 访问
 ```
 
-- \--oss\_config : oss配置文件
+- --oss_config : oss配置文件
 
 ```json
 [Credentials]
 language=ch
-endpoint = oss-cn-shanghai.aliyuncs.com
+endpoint = oss-cn-beijing.aliyuncs.com
 accessKeyID = xxx
 accessKeySecret= xxx
 ```
 
-- \--bucket   oss\_bucket
+- --bucket   oss_bucket
 
-- \--role\_arn   acs:ram::xxx:role/xxx
+- --role_arn   acs:ram::xxx:role/xxx
 
-  pai tensorflow 任务访问oss数据的钥匙，获取方式[见附件](https://yuque.antfin.com/pai/arch/icv7x2)。
+  pai tensorflow 任务访问oss数据的钥匙，[获取方式](https://help.aliyun.com/document_detail/190477.html?spm=h2-url-1)。
 
-- \--tables 输入输出表
+- --train_tables 训练表
 
-- \--exp\_dir 调优目录
+- --eval_tables 评估表
 
-- \--config\_path  easy-rec训练配置文件
+- --exp_dir 调优目录, oss上的目录
 
-- \--metric\_name  调优的指标，默认是auc，其它可选指标[参考](https://yuque.antfin.com/pai/arch/moxgm5)
+- --config_path  easyrec训练配置文件
 
-- \--max\_parallel   同一时刻可以并行跑的实验数目
+- --metric_name  调优的指标，默认是auc，其它可选指标[参考](../eval.md)
 
-- \--total\_trial\_num  总共跑多少组实验
+- --max_parallel   同一时刻可以并行跑的实验数目
+
+- --total_trial_num  总共跑多少组实验
+
+- --is_outer 内部pai还是外部pai
+
+- --selected_cols 用于训练和评估的列, 参考
 
 #### hyperparams设置
 
@@ -75,19 +81,17 @@ accessKeySecret= xxx
 ]
 ```
 
-- name:  easy\_rec pipeline\_config里面的参数名称，注意要用全路径
-
+- name:  easy_rec pipeline_config里面的参数名称，注意要用全路径
   ```
-      feature_configs[**input_names[0]=field1**].embedding_dim
-
+      feature_configs[input_names[0]=field1].embedding_dim
+  ```
   - 由于feature_configs是一个数组，所以需要用到选择器，根据**属性值**选择部分特征:
-  ```
 
 ![image.png](../../images/automl/pai_field.png)
 
 ```
      - input_names[0]=field_name1是选择器
-     - 也支持数字作为选择器, 如: feature_configs[**0**], feature_configs[**1**]
+     - 也支持数字作为选择器, 如: feature_configs[0], feature_configs[1]
      - 支持使用:选择所有的特征，如:
         - feature_configs[:]选择全部特征
         - feature_configs[5:]选择index从5开始的特征
@@ -99,9 +103,9 @@ accessKeySecret= xxx
 
 - 关联参数设置
 
-有些参数的值是关联的，比如对于deepfm算法，所有的embedding\_dim必须是一样的
+有些参数的值是关联的，比如对于deepfm算法，所有的embedding_dim必须是一样的
 
-- name里面可以指定多个要调整的参数名称，用";"分割feature\_configs\[input\_names\[0\]=field1\].embedding\_dim;feature\_configs\[input\_names\[0\]=field20\].embedding\_dim
+- name里面可以指定多个要调整的参数名称，用";"分割feature_configs\[input_names\[0\]=field1\].embedding_dim;feature_configs\[input_names\[0\]=field20\].embedding_dim
 - 如果name里面包含了多个参数名称，那么candidates也需要有多个参数值，用";"分割如"32;32"
 - candidates: 候选值
 - type: 候选值类型, 支持Categorical, Integer, Real
@@ -132,10 +136,10 @@ accessKeySecret= xxx
 - LOG信息
 
 ![image.png](../../images/automl/pai_log.png)
-一共做了5组实验，可以看出embedding\_dim=80的这一组实验效果最好。
+一共做了5组实验，可以看出embedding_dim=80的这一组实验效果最好。
 
-- 实验目录信息(exp\_dir): oss://xxx/easy\_rec/experiment/model\_hpo
-  - easy\_rec\_hpo\_\[0-4\]: 每组实验的模型目录
+- 实验目录信息(exp_dir): oss://xxx/easy_rec/experiment/model_hpo
+  - easy_rec_hpo\_\[0-4\]: 每组实验的模型目录
   - \*.json包含了每组实验的参数信息
 
 ```json

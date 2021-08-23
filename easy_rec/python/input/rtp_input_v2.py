@@ -99,7 +99,11 @@ class RTPInputV2(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
-      dataset = dataset.shard(self._task_num, self._task_index)
+      if self._data_config.chief_redundant:
+        dataset = dataset.shard(
+            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
+      else:
+        dataset = dataset.shard(self._task_num, self._task_index)
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,

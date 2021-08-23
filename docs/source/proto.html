@@ -1,0 +1,5605 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Protocol Documentation</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700,400italic"/>
+    <style>
+      body {
+        width: 60em;
+        margin: 1em auto;
+        color: #222;
+        font-family: "Ubuntu", sans-serif;
+        padding-bottom: 4em;
+      }
+
+      h1 {
+        font-weight: normal;
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+      }
+
+      h2 {
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+        margin: 1.5em 0;
+      }
+
+      h3 {
+        font-weight: normal;
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+      }
+
+      a {
+        text-decoration: none;
+        color: #567e25;
+      }
+
+      table {
+        width: 100%;
+        font-size: 80%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        font-weight: 700;
+        background-color: #dcdcdc;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #fbfbfb;
+      }
+
+      td {
+        border: 1px solid #ccc;
+        padding: 0.5ex 2ex;
+      }
+
+      td p {
+        text-indent: 1em;
+        margin: 0;
+      }
+
+      td p:nth-child(1) {
+        text-indent: 0;  
+      }
+
+       
+      .field-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .field-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .field-table td:nth-child(3) {  
+        width: 6em;
+      }
+      .field-table td:nth-child(4) {  
+        width: auto;
+      }
+
+       
+      .extension-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(3) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(4) {  
+        width: 5em;
+      }
+      .extension-table td:nth-child(5) {  
+        width: auto;
+      }
+
+       
+      .enum-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .enum-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .enum-table td:nth-child(3) {  
+        width: auto;
+      }
+
+       
+      .scalar-value-types-table tr {
+        height: 3em;
+      }
+
+       
+      #toc-container ul {
+        list-style-type: none;
+        padding-left: 1em;
+        line-height: 180%;
+        margin: 0;
+      }
+      #toc > li > a {
+        font-weight: bold;
+      }
+
+       
+      .file-heading {
+        width: 100%;
+        display: table;
+        border-bottom: 1px solid #aaa;
+        margin: 4em 0 1.5em 0;
+      }
+      .file-heading h2 {
+        border: none;
+        display: table-cell;
+      }
+      .file-heading a {
+        text-align: right;
+        display: table-cell;
+      }
+
+       
+      .badge {
+        width: 1.6em;
+        height: 1.6em;
+        display: inline-block;
+
+        line-height: 1.6em;
+        text-align: center;
+        font-weight: bold;
+        font-size: 60%;
+
+        color: #89ba48;
+        background-color: #dff0c8;
+
+        margin: 0.5ex 1em 0.5ex -1em;
+        border: 1px solid #fbfbfb;
+        border-radius: 1ex;
+      }
+    </style>
+
+    
+    <link rel="stylesheet" type="text/css" href="stylesheet.css"/>
+  </head>
+
+  <body>
+
+    <h1 id="title">Protocol Documentation</h1>
+
+    <h2>Table of Contents</h2>
+
+    <div id="toc-container">
+      <ul id="toc">
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fautoint.proto">easy_rec/python/protos/autoint.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.AutoInt"><span class="badge">M</span>AutoInt</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdataset.proto">easy_rec/python/protos/dataset.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DatasetConfig"><span class="badge">M</span>DatasetConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.DatasetConfig.Field"><span class="badge">M</span>DatasetConfig.Field</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#protos.DatasetConfig.FieldType"><span class="badge">E</span>DatasetConfig.FieldType</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.DatasetConfig.InputType"><span class="badge">E</span>DatasetConfig.InputType</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdata_source.proto">easy_rec/python/protos/data_source.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.KafkaServer"><span class="badge">M</span>KafkaServer</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdbmtl.proto">easy_rec/python/protos/dbmtl.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DBMTL"><span class="badge">M</span>DBMTL</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdcn.proto">easy_rec/python/protos/dcn.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.CrossTower"><span class="badge">M</span>CrossTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.DCN"><span class="badge">M</span>DCN</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdeepfm.proto">easy_rec/python/protos/deepfm.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DeepFM"><span class="badge">M</span>DeepFM</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdnn.proto">easy_rec/python/protos/dnn.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DNN"><span class="badge">M</span>DNN</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdssm.proto">easy_rec/python/protos/dssm.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DSSM"><span class="badge">M</span>DSSM</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.DSSMTower"><span class="badge">M</span>DSSMTower</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2feas_serving.proto">easy_rec/python/protos/eas_serving.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.Config"><span class="badge">M</span>Config</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Config.EmbeddingCombinerEntry"><span class="badge">M</span>Config.EmbeddingCombinerEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Config.EmbeddingMaxNormEntry"><span class="badge">M</span>Config.EmbeddingMaxNormEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Config.EmbeddingsEntry"><span class="badge">M</span>Config.EmbeddingsEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Embedding"><span class="badge">M</span>Embedding</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.EmbeddingPart"><span class="badge">M</span>EmbeddingPart</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.EmbeddingPartData"><span class="badge">M</span>EmbeddingPartData</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Model"><span class="badge">M</span>Model</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.ModelInput"><span class="badge">M</span>ModelInput</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2feasy_rec_model.proto">easy_rec/python/protos/easy_rec_model.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DummyModel"><span class="badge">M</span>DummyModel</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.EasyRecModel"><span class="badge">M</span>EasyRecModel</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.KD"><span class="badge">M</span>KD</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fesmm.proto">easy_rec/python/protos/esmm.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.ESMM"><span class="badge">M</span>ESMM</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2feval.proto">easy_rec/python/protos/eval.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.AUC"><span class="badge">M</span>AUC</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Accuracy"><span class="badge">M</span>Accuracy</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.EvalConfig"><span class="badge">M</span>EvalConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.EvalMetrics"><span class="badge">M</span>EvalMetrics</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.GAUC"><span class="badge">M</span>GAUC</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Max_F1"><span class="badge">M</span>Max_F1</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MeanAbsoluteError"><span class="badge">M</span>MeanAbsoluteError</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MeanSquaredError"><span class="badge">M</span>MeanSquaredError</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.RecallAtTopK"><span class="badge">M</span>RecallAtTopK</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.RootMeanSquaredError"><span class="badge">M</span>RootMeanSquaredError</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.SessionAUC"><span class="badge">M</span>SessionAUC</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fexport.proto">easy_rec/python/protos/export.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.ExportConfig"><span class="badge">M</span>ExportConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MultiValueFields"><span class="badge">M</span>MultiValueFields</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2ffeature_config.proto">easy_rec/python/protos/feature_config.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.AttentionCombiner"><span class="badge">M</span>AttentionCombiner</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.FeatureConfig"><span class="badge">M</span>FeatureConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.FeatureGroupConfig"><span class="badge">M</span>FeatureGroupConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MultiHeadAttentionCombiner"><span class="badge">M</span>MultiHeadAttentionCombiner</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.SeqAttGroupConfig"><span class="badge">M</span>SeqAttGroupConfig</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.SeqAttMap"><span class="badge">M</span>SeqAttMap</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.SequenceCombiner"><span class="badge">M</span>SequenceCombiner</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#protos.FeatureConfig.FeatureType"><span class="badge">E</span>FeatureConfig.FeatureType</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.WideOrDeep"><span class="badge">E</span>WideOrDeep</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2ffm.proto">easy_rec/python/protos/fm.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.FM"><span class="badge">M</span>FM</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fhyperparams.proto">easy_rec/python/protos/hyperparams.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.ConstantInitializer"><span class="badge">M</span>ConstantInitializer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.GlorotNormalInitializer"><span class="badge">M</span>GlorotNormalInitializer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Initializer"><span class="badge">M</span>Initializer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.L1L2Regularizer"><span class="badge">M</span>L1L2Regularizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.L1Regularizer"><span class="badge">M</span>L1Regularizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.L2Regularizer"><span class="badge">M</span>L2Regularizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.RandomNormalInitializer"><span class="badge">M</span>RandomNormalInitializer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Regularizer"><span class="badge">M</span>Regularizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.TruncatedNormalInitializer"><span class="badge">M</span>TruncatedNormalInitializer</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2floss.proto">easy_rec/python/protos/loss.proto</a>
+            <ul>
+              
+              
+                <li>
+                  <a href="#protos.LossType"><span class="badge">E</span>LossType</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fmind.proto">easy_rec/python/protos/mind.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.Capsule"><span class="badge">M</span>Capsule</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MIND"><span class="badge">M</span>MIND</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#protos.MIND.UserSeqCombineMethod"><span class="badge">E</span>MIND.UserSeqCombineMethod</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fmmoe.proto">easy_rec/python/protos/mmoe.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.ExpertTower"><span class="badge">M</span>ExpertTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MMoE"><span class="badge">M</span>MMoE</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fmulti_tower.proto">easy_rec/python/protos/multi_tower.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.BSTTower"><span class="badge">M</span>BSTTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.DINTower"><span class="badge">M</span>DINTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MultiTower"><span class="badge">M</span>MultiTower</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2foptimizer.proto">easy_rec/python/protos/optimizer.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.AdagradOptimizer"><span class="badge">M</span>AdagradOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.AdamAsyncOptimizer"><span class="badge">M</span>AdamAsyncOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.AdamAsyncWOptimizer"><span class="badge">M</span>AdamAsyncWOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.AdamOptimizer"><span class="badge">M</span>AdamOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.AdamWOptimizer"><span class="badge">M</span>AdamWOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.ConstantLearningRate"><span class="badge">M</span>ConstantLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.CosineDecayLearningRate"><span class="badge">M</span>CosineDecayLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.ExponentialDecayLearningRate"><span class="badge">M</span>ExponentialDecayLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.LearningRate"><span class="badge">M</span>LearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.ManualStepLearningRate"><span class="badge">M</span>ManualStepLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.ManualStepLearningRate.LearningRateSchedule"><span class="badge">M</span>ManualStepLearningRate.LearningRateSchedule</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MomentumOptimizer"><span class="badge">M</span>MomentumOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MomentumWOptimizer"><span class="badge">M</span>MomentumWOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Optimizer"><span class="badge">M</span>Optimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.PolyDecayLearningRate"><span class="badge">M</span>PolyDecayLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.RMSPropOptimizer"><span class="badge">M</span>RMSPropOptimizer</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.TransformerLearningRate"><span class="badge">M</span>TransformerLearningRate</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fpipeline.proto">easy_rec/python/protos/pipeline.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.EasyRecConfig"><span class="badge">M</span>EasyRecConfig</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fsimi.proto">easy_rec/python/protos/simi.proto</a>
+            <ul>
+              
+              
+                <li>
+                  <a href="#protos.Similarity"><span class="badge">E</span>Similarity</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fsimple_multi_task.proto">easy_rec/python/protos/simple_multi_task.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.SimpleMultiTask"><span class="badge">M</span>SimpleMultiTask</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2ftower.proto">easy_rec/python/protos/tower.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.BayesTaskTower"><span class="badge">M</span>BayesTaskTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.TaskTower"><span class="badge">M</span>TaskTower</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Tower"><span class="badge">M</span>Tower</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2ftrain.proto">easy_rec/python/protos/train.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.TrainConfig"><span class="badge">M</span>TrainConfig</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#protos.DistributionStrategy"><span class="badge">E</span>DistributionStrategy</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fwide_and_deep.proto">easy_rec/python/protos/wide_and_deep.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.WideAndDeep"><span class="badge">M</span>WideAndDeep</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+        <li><a href="#scalar-value-types">Scalar Value Types</a></li>
+      </ul>
+    </div>
+
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/autoint.proto">easy_rec/python/protos/autoint.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.AutoInt">AutoInt</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>multi_head_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of heads Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The dimension of heads </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>interacting_layer_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of interacting layers Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dataset.proto">easy_rec/python/protos/dataset.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DatasetConfig">DatasetConfig</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>batch_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>mini batch size to use for training and evaluation. Default: 32</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>auto_expand_input_fields</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>set auto_expand_input_fields to true to
+auto_expand field[1-21] to field1, field2, ..., field21 Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_fields</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>label fields, normally only one field is used.
+For multiple target models such as MMOE
+multiple label_fields will be set. </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_sep</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>label separator </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>repeated</td>
+                  <td><pre>label dimensions which need to be set when there
+are labels have dimension &gt; 1 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>shuffle</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>whether to shuffle data Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>shuffle_buffer_size</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>shufffle buffer for better performance, even shuffle buffer is set,
+it is suggested to do full data shuffle before training
+especially when the performance of models is not good. Default: 32</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_epochs</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>The number of times a data source is read. If set to zero, the data source
+will be reused indefinitely. Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>prefetch_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Number of decoded records to prefetch before batching. Default: 512</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>shard</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>shard dataset to 1/num_workers in distribute mode Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input_type</td>
+                  <td><a href="#protos.DatasetConfig.InputType">DatasetConfig.InputType</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>separator</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>separator of column features, only used for CSVInput*
+not used in OdpsInput*
+binary separators are supported:
+  CTRL&#43;A could be set as &#39;\001&#39;
+  CTRL&#43;B could be set as &#39;\002&#39;
+  CTRL&#43;C could be set as &#39;\003&#39;
+for RTPInput and OdpsRTPInput it is usually set
+to &#39;\002&#39; Default: ,</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_parallel_calls</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>parallel preproces of raw data, avoid using too small
+or too large numbers(suggested be to small than
+number of the cores) Default: 8</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>selected_cols</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>only used for OdpsInput/OdpsInputV2/OdpsRTPInput, comma separated
+for RTPInput, selected_cols use indices as column names
+ such as &#39;1,2,4&#39;, where 1,2 are label columns, and
+ 4 is the feature column, column 0,3 are not used, </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>selected_col_types</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>selected col types, only used for OdpsInput/OdpsInputV2
+to avoid error setting of data types </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input_fields</td>
+                  <td><a href="#protos.DatasetConfig.Field">DatasetConfig.Field</a></td>
+                  <td>repeated</td>
+                  <td><pre>the input fields must be the same number and in the
+same order as data in csv files or odps tables </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>rtp_separator</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>for RTPInput only Default: ;</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.DatasetConfig.Field">DatasetConfig.Field</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input_type</td>
+                  <td><a href="#protos.DatasetConfig.FieldType">DatasetConfig.FieldType</a></td>
+                  <td>required</td>
+                  <td><pre> Default: STRING</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>default_val</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="protos.DatasetConfig.FieldType">DatasetConfig.FieldType</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>INT32</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>INT64</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>STRING</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>FLOAT</td>
+                <td>4</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>DOUBLE</td>
+                <td>5</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>BOOL</td>
+                <td>6</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="protos.DatasetConfig.InputType">DatasetConfig.InputType</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>CSVInput</td>
+                <td>0</td>
+                <td><pre>csv format input, could be used in local or hdfs</pre></td>
+              </tr>
+            
+              <tr>
+                <td>CSVInputV2</td>
+                <td>1</td>
+                <td><pre>@Depreciated</pre></td>
+              </tr>
+            
+              <tr>
+                <td>OdpsInput</td>
+                <td>2</td>
+                <td><pre>@Depreciated, has memory leak problem</pre></td>
+              </tr>
+            
+              <tr>
+                <td>OdpsInputV2</td>
+                <td>3</td>
+                <td><pre>odps input, used on pai</pre></td>
+              </tr>
+            
+              <tr>
+                <td>OdpsInputV3</td>
+                <td>9</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>RTPInput</td>
+                <td>4</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>RTPInputV2</td>
+                <td>5</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>OdpsRTPInput</td>
+                <td>6</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>DummyInput</td>
+                <td>7</td>
+                <td><pre>for the purpose to debug performance bottleneck of
+input pipelines</pre></td>
+              </tr>
+            
+              <tr>
+                <td>KafkaInput</td>
+                <td>8</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/data_source.proto">easy_rec/python/protos/data_source.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.KafkaServer">KafkaServer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>server</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>topic</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>group</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>partitions</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>offset</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dbmtl.proto">easy_rec/python/protos/dbmtl.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DBMTL">DBMTL</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>bottom_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>shared bottom dnn layer </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>expert_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>mmoe expert dnn layer definition </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_expert</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>number of mmoe experts Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>task_towers</td>
+                  <td><a href="#protos.BayesTaskTower">BayesTaskTower</a></td>
+                  <td>repeated</td>
+                  <td><pre>bayes task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>l2 regularization Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dcn.proto">easy_rec/python/protos/dcn.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.CrossTower">CrossTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>cross_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of cross layers Default: 3</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.DCN">DCN</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>deep_tower</td>
+                  <td><a href="#protos.Tower">Tower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>cross_tower</td>
+                  <td><a href="#protos.CrossTower">CrossTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/deepfm.proto">easy_rec/python/protos/deepfm.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DeepFM">DeepFM</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>wide_output_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>wide_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>deprecated Default: 0.0001</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dense_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>deprecated Default: 0.0001</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dnn.proto">easy_rec/python/protos/dnn.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DNN">DNN</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>hidden_units</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>repeated</td>
+                  <td><pre>hidden units for each layer </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dropout_ratio</td>
+                  <td><a href="#float">float</a></td>
+                  <td>repeated</td>
+                  <td><pre>ratio of dropout </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>activation</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>activation function Default: tf.nn.relu</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>use_bn</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>use batch normalization Default: true</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dssm.proto">easy_rec/python/protos/dssm.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DSSM">DSSM</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>user_tower</td>
+                  <td><a href="#protos.DSSMTower">DSSMTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_tower</td>
+                  <td><a href="#protos.DSSMTower">DSSMTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>simi_func</td>
+                  <td><a href="#protos.Similarity">Similarity</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: COSINE</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.DSSMTower">DSSMTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/eas_serving.proto">easy_rec/python/protos/eas_serving.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.Config">Config</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>column_delim</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>例如输入特征为&#34;1005,109;0;93eaba74&#34;,此时分号分割的为column，
+逗号分割的为每个column的多个feature, 下划线分割为feature名字和对应的value。 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>feature_delim</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>hash</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>指定字符串hash分桶的算法，支持HarmHash（对应于tf.strings.to_hash_bucket_fast()）
+和SipHash(对应于tf.strings.to_hash_bucket_strong())两种字符串hash分桶算法 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embeddings</td>
+                  <td><a href="#protos.Config.EmbeddingsEntry">Config.EmbeddingsEntry</a></td>
+                  <td>repeated</td>
+                  <td><pre>embedding_name to embedding </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_max_norm</td>
+                  <td><a href="#protos.Config.EmbeddingMaxNormEntry">Config.EmbeddingMaxNormEntry</a></td>
+                  <td>repeated</td>
+                  <td><pre>指定embedding lookup的结果的最大L2-norm </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_combiner</td>
+                  <td><a href="#protos.Config.EmbeddingCombinerEntry">Config.EmbeddingCombinerEntry</a></td>
+                  <td>repeated</td>
+                  <td><pre>指定embedding的combiner策略，支持sum, mean和sqrtn </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>model</td>
+                  <td><a href="#protos.Model">Model</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Config.EmbeddingCombinerEntry">Config.EmbeddingCombinerEntry</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Config.EmbeddingMaxNormEntry">Config.EmbeddingMaxNormEntry</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#float">float</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Config.EmbeddingsEntry">Config.EmbeddingsEntry</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#protos.Embedding">Embedding</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Embedding">Embedding</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>partition_num</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><pre>指定该embedding切分的总数 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>parts</td>
+                  <td><a href="#protos.EmbeddingPart">EmbeddingPart</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.EmbeddingPart">EmbeddingPart</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>embedding_part_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>指定EmbeddingPartData(*.pb)所在的路径 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>partition_id</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><pre>指定该embedding part所属第几个part </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>shape</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td>repeated</td>
+                  <td><pre>指定该embedding part的shape(可以从EmbeddingPartData中读取) </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>deploy_strategy</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>embedding part的部署策略, 支持本地部署（local）和远程部署(remote) </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.EmbeddingPartData">EmbeddingPartData</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>shape</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td>repeated</td>
+                  <td><pre>Shape of the embedding </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>data</td>
+                  <td><a href="#float">float</a></td>
+                  <td>repeated</td>
+                  <td><pre>Data </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Model">Model</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>model_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>指定模型所在路径，便于加载模型 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>model_signature_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre>指定模型的sinature的名字 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>model_inputs</td>
+                  <td><a href="#protos.ModelInput">ModelInput</a></td>
+                  <td>repeated</td>
+                  <td><pre>model input description </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.ModelInput">ModelInput</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>feature_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>placeholder_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/easy_rec_model.proto">easy_rec/python/protos/easy_rec_model.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DummyModel">DummyModel</h3>
+        <pre>for input performance test</pre>
+
+        
+
+        
+      
+        <h3 id="protos.EasyRecModel">EasyRecModel</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>model_class</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>feature_groups</td>
+                  <td><a href="#protos.FeatureGroupConfig">FeatureGroupConfig</a></td>
+                  <td>repeated</td>
+                  <td><pre>actually input layers, each layer produce a group of feature </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dummy</td>
+                  <td><a href="#protos.DummyModel">DummyModel</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>wide_and_deep</td>
+                  <td><a href="#protos.WideAndDeep">WideAndDeep</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>deepfm</td>
+                  <td><a href="#protos.DeepFM">DeepFM</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_tower</td>
+                  <td><a href="#protos.MultiTower">MultiTower</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>fm</td>
+                  <td><a href="#protos.FM">FM</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dcn</td>
+                  <td><a href="#protos.DCN">DCN</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>autoint</td>
+                  <td><a href="#protos.AutoInt">AutoInt</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dssm</td>
+                  <td><a href="#protos.DSSM">DSSM</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>mind</td>
+                  <td><a href="#protos.MIND">MIND</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>mmoe</td>
+                  <td><a href="#protos.MMoE">MMoE</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>esmm</td>
+                  <td><a href="#protos.ESMM">ESMM</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dbmtl</td>
+                  <td><a href="#protos.DBMTL">DBMTL</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>simple_multi_task</td>
+                  <td><a href="#protos.SimpleMultiTask">SimpleMultiTask</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>seq_att_groups</td>
+                  <td><a href="#protos.SeqAttGroupConfig">SeqAttGroupConfig</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>implemented in easy_rec/python/model/easy_rec_estimator
+add regularization to all variables with &#34;embedding_weights:&#34;
+in name Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>loss_type</td>
+                  <td><a href="#protos.LossType">LossType</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: CLASSIFICATION</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_class</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>use_embedding_variable</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>kd</td>
+                  <td><a href="#protos.KD">KD</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.KD">KD</h3>
+        <pre>for knowledge distillation</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>loss_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>pred_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>pred_is_logits</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>default to be logits Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>soft_label_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>for CROSS_ENTROPY_LOSS, soft_label must be logits instead of probs </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_is_logits</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>default to be logits Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>loss_type</td>
+                  <td><a href="#protos.LossType">LossType</a></td>
+                  <td>required</td>
+                  <td><pre>currently only support CROSS_ENTROPY_LOSS and L2_LOSS </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>loss_weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>temperature</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>only for loss_type == CROSS_ENTROPY_LOSS Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/esmm.proto">easy_rec/python/protos/esmm.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.ESMM">ESMM</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>groups</td>
+                  <td><a href="#protos.Tower">Tower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>ctr_tower</td>
+                  <td><a href="#protos.TaskTower">TaskTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>cvr_tower</td>
+                  <td><a href="#protos.TaskTower">TaskTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/eval.proto">easy_rec/python/protos/eval.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.AUC">AUC</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.Accuracy">Accuracy</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.EvalConfig">EvalConfig</h3>
+        <pre>Message for configuring DetectionModel evaluation jobs (eval.py).</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>num_examples</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Number of examples to process of evaluation. Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>eval_interval_secs</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>How often to run evaluation. Default: 300</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>max_evals</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Maximum number of times to run evaluation. If set to 0, will run forever. Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>save_graph</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>Whether the TensorFlow graph used for evaluation should be saved to disk. Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>metrics_set</td>
+                  <td><a href="#protos.EvalMetrics">EvalMetrics</a></td>
+                  <td>repeated</td>
+                  <td><pre>Type of metrics to use for evaluation.
+possible values: </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>eval_online</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>Evaluation online with batch forward data of training Default: false</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.EvalMetrics">EvalMetrics</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>auc</td>
+                  <td><a href="#protos.AUC">AUC</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>recall_at_topk</td>
+                  <td><a href="#protos.RecallAtTopK">RecallAtTopK</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>mean_absolute_error</td>
+                  <td><a href="#protos.MeanAbsoluteError">MeanAbsoluteError</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>mean_squared_error</td>
+                  <td><a href="#protos.MeanSquaredError">MeanSquaredError</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>accuracy</td>
+                  <td><a href="#protos.Accuracy">Accuracy</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>max_f1</td>
+                  <td><a href="#protos.Max_F1">Max_F1</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>root_mean_squared_error</td>
+                  <td><a href="#protos.RootMeanSquaredError">RootMeanSquaredError</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>gauc</td>
+                  <td><a href="#protos.GAUC">GAUC</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>session_auc</td>
+                  <td><a href="#protos.SessionAUC">SessionAUC</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.GAUC">GAUC</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>uid_field</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>uid field name </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>reduction</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>reduction method for auc of different users
+* &#34;mean&#34;: simple mean of different users
+* &#34;mean_by_sample_num&#34;: weighted mean with sample num of different users
+* &#34;mean_by_positive_num&#34;: weighted mean with positive sample num of different users Default: mean</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Max_F1">Max_F1</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.MeanAbsoluteError">MeanAbsoluteError</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.MeanSquaredError">MeanSquaredError</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.RecallAtTopK">RecallAtTopK</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>topk</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 5</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.RootMeanSquaredError">RootMeanSquaredError</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.SessionAUC">SessionAUC</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>session_id_field</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>session id field name </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>reduction</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>reduction: reduction method for auc of different sessions
+* &#34;mean&#34;: simple mean of different sessions
+* &#34;mean_by_sample_num&#34;: weighted mean with sample num of different sessions
+* &#34;mean_by_positive_num&#34;: weighted mean with positive sample num of different sessions Default: mean</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/export.proto">easy_rec/python/protos/export.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.ExportConfig">ExportConfig</h3>
+        <pre>Message for configuring exporting models.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>batch_size</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>batch size used for exported model, -1 indicates batch_size is None
+which is only supported by classification model right now, while
+other models support static batch_size Default: -1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>exporter_type</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>type of exporter [final | latest | best | none] when train_and_evaluation
+final: performs a single export in the end of training
+latest: regularly exports the serving graph and checkpoints
+latest: export the best model according to best_exporter_metric
+none: do not perform export Default: final</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dump_embedding_shape</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>for large embedding models to serve on eas
+embedding lookup is done outside of tensorflow graph;
+so the tensorflow graph contains only the dnn graphs(the attention part included);
+the lookuped results are passed to dnn graphs via embedding placeholders;
+we dump embedding placeholder shapes, so that embedding
+placeholders could be built. Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>best_exporter_metric</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>the metric used to determine the best checkpoint Default: auc</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>metric_bigger</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>metric value the bigger the best Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_placeholder</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>each feature has a placeholder Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>exports_to_keep</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>export to keep, only for exporter_type in [best, latest] Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_value_fields</td>
+                  <td><a href="#protos.MultiValueFields">MultiValueFields</a></td>
+                  <td>optional</td>
+                  <td><pre>multi value field list </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>placeholder_named_by_input</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>is placeholder named by input Default: false</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MultiValueFields">MultiValueFields</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/feature_config.proto">easy_rec/python/protos/feature_config.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.AttentionCombiner">AttentionCombiner</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.FeatureConfig">FeatureConfig</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>feature_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input_names</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>input field names: must be included in DatasetConfig.input_fields </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>feature_type</td>
+                  <td><a href="#protos.FeatureConfig.FeatureType">FeatureConfig.FeatureType</a></td>
+                  <td>required</td>
+                  <td><pre> Default: IdFeature</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>hash_bucket_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_buckets</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>for categorical_column_with_identity Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>boundaries</td>
+                  <td><a href="#float">float</a></td>
+                  <td>repeated</td>
+                  <td><pre>only for raw features </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>separator</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>separator with in features Default: |</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>kv_separator</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>delimeter to separator key from value </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>seq_multi_sep</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>delimeter to separate sequence multi-values </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>vocab_file</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>vocab_list</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>shared_names</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>many other field share this config </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>lookup_max_sel_elem_num</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>lookup max select element number, default 10 Default: 10</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>max_partitions</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>max_partitions Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>combiner</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>combiner Default: mean</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>initializer</td>
+                  <td><a href="#protos.Initializer">Initializer</a></td>
+                  <td>optional</td>
+                  <td><pre>embedding initializer </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>precision</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>number of digits kept after dot in format float/double to string
+scientific format is not used.
+in default it is not allowed to convert float/double to string Default: -1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>min_val</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>normalize raw feature to [0-1] Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>max_val</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>raw_input_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>raw feature of multiple dimensions Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>sequence_combiner</td>
+                  <td><a href="#protos.SequenceCombiner">SequenceCombiner</a></td>
+                  <td>optional</td>
+                  <td><pre>sequence feature combiner </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.FeatureGroupConfig">FeatureGroupConfig</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>group_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>feature_names</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>wide_deep</td>
+                  <td><a href="#protos.WideOrDeep">WideOrDeep</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: DEEP</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MultiHeadAttentionCombiner">MultiHeadAttentionCombiner</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.SeqAttGroupConfig">SeqAttGroupConfig</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>group_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>seq_att_map</td>
+                  <td><a href="#protos.SeqAttMap">SeqAttMap</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.SeqAttMap">SeqAttMap</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>hist_seq</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.SequenceCombiner">SequenceCombiner</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>attention</td>
+                  <td><a href="#protos.AttentionCombiner">AttentionCombiner</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_head_attention</td>
+                  <td><a href="#protos.MultiHeadAttentionCombiner">MultiHeadAttentionCombiner</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="protos.FeatureConfig.FeatureType">FeatureConfig.FeatureType</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>IdFeature</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>RawFeature</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>TagFeature</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>ComboFeature</td>
+                <td>3</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>LookupFeature</td>
+                <td>4</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>SequenceFeature</td>
+                <td>5</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="protos.WideOrDeep">WideOrDeep</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>DEEP</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>WIDE</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>WIDE_AND_DEEP</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/fm.proto">easy_rec/python/protos/fm.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.FM">FM</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/hyperparams.proto">easy_rec/python/protos/hyperparams.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.ConstantInitializer">ConstantInitializer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>consts</td>
+                  <td><a href="#float">float</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.GlorotNormalInitializer">GlorotNormalInitializer</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.Initializer">Initializer</h3>
+        <pre>Proto with one-of field for initializers.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>truncated_normal_initializer</td>
+                  <td><a href="#protos.TruncatedNormalInitializer">TruncatedNormalInitializer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>random_normal_initializer</td>
+                  <td><a href="#protos.RandomNormalInitializer">RandomNormalInitializer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>glorot_normal_initializer</td>
+                  <td><a href="#protos.GlorotNormalInitializer">GlorotNormalInitializer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>constant_initializer</td>
+                  <td><a href="#protos.ConstantInitializer">ConstantInitializer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.L1L2Regularizer">L1L2Regularizer</h3>
+        <pre>Configuration proto for L2 Regularizer.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>scale_l1</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>scale_l2</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.L1Regularizer">L1Regularizer</h3>
+        <pre>Configuration proto for L1 Regularizer.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>scale</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.L2Regularizer">L2Regularizer</h3>
+        <pre>Configuration proto for L2 Regularizer.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>scale</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.RandomNormalInitializer">RandomNormalInitializer</h3>
+        <pre>Configuration proto for random normal initializer. See</pre><pre>https://www.tensorflow.org/api_docs/python/tf/random_normal_initializer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>mean</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>stddev</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Regularizer">Regularizer</h3>
+        <pre>Proto with one-of field for regularizers.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>l1_regularizer</td>
+                  <td><a href="#protos.L1Regularizer">L1Regularizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularizer</td>
+                  <td><a href="#protos.L2Regularizer">L2Regularizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l1_l2_regularizer</td>
+                  <td><a href="#protos.L1L2Regularizer">L1L2Regularizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.TruncatedNormalInitializer">TruncatedNormalInitializer</h3>
+        <pre>Configuration proto for truncated normal initializer. See</pre><pre>https://www.tensorflow.org/api_docs/python/tf/truncated_normal_initializer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>mean</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>stddev</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/loss.proto">easy_rec/python/protos/loss.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+
+      
+        <h3 id="protos.LossType">LossType</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>CLASSIFICATION</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>L2_LOSS</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>SIGMOID_L2_LOSS</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>CROSS_ENTROPY_LOSS</td>
+                <td>3</td>
+                <td><pre>crossentropy loss/log loss</pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/mind.proto">easy_rec/python/protos/mind.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.Capsule">Capsule</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>max_k</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>max number of high capsules Default: 5</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>max_seq_len</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>max behaviour sequence length </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>high_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>high capsule embedding vector dimension </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_iters</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>number EM iterations Default: 3</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>routing_logits_scale</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>routing logits scale Default: 20</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>routing_logits_stddev</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>routing logits initial stddev Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MIND">MIND</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>pre_capsule_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>preprocessing dnn before entering capsule layer </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>user_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre>dnn layers applied on concated results of
+capsule output and user_context(none sequence features) </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>user_seq_combine</td>
+                  <td><a href="#protos.MIND.UserSeqCombineMethod">MIND.UserSeqCombineMethod</a></td>
+                  <td>optional</td>
+                  <td><pre>method to combine several user sequences
+such as item_ids, category_ids Default: SUM</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre>dnn layers applied on item features </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>capsule_config</td>
+                  <td><a href="#protos.Capsule">Capsule</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>simi_pow</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>similarity power, the paper says that the big
+the better Default: 10</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>simi_func</td>
+                  <td><a href="#protos.Similarity">Similarity</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: COSINE</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="protos.MIND.UserSeqCombineMethod">MIND.UserSeqCombineMethod</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>CONCAT</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>SUM</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/mmoe.proto">easy_rec/python/protos/mmoe.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.ExpertTower">ExpertTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>expert_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MMoE">MMoE</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>experts</td>
+                  <td><a href="#protos.ExpertTower">ExpertTower</a></td>
+                  <td>repeated</td>
+                  <td><pre>deprecated: original mmoe experts config </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>expert_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>mmoe expert dnn layer definition </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_expert</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>number of mmoe experts Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>task_towers</td>
+                  <td><a href="#protos.TaskTower">TaskTower</a></td>
+                  <td>repeated</td>
+                  <td><pre>task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>l2 regularization Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/multi_tower.proto">easy_rec/python/protos/multi_tower.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.BSTTower">BSTTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>seq_len</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 5</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 4</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.DINTower">DINTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MultiTower">MultiTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>towers</td>
+                  <td><a href="#protos.Tower">Tower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>din_towers</td>
+                  <td><a href="#protos.DINTower">DINTower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>bst_towers</td>
+                  <td><a href="#protos.BSTTower">BSTTower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/optimizer.proto">easy_rec/python/protos/optimizer.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.AdagradOptimizer">AdagradOptimizer</h3>
+        <pre>Configuration message for the AdagradOptimizer</pre><pre>See: https://www.tensorflow.org/api_docs/python/tf/train/AdagradOptimizer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.AdamAsyncOptimizer">AdamAsyncOptimizer</h3>
+        <pre>Only available on pai-tf, which has better performance than AdamOptimizer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta1</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta2</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.999</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.AdamAsyncWOptimizer">AdamAsyncWOptimizer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight_decay</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1e-06</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta1</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta2</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.999</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.AdamOptimizer">AdamOptimizer</h3>
+        <pre>Configuration message for the AdamOptimizer</pre><pre>See: https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta1</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta2</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.999</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.AdamWOptimizer">AdamWOptimizer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight_decay</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1e-06</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta1</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta2</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.999</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.ConstantLearningRate">ConstantLearningRate</h3>
+        <pre>Configuration message for a constant learning rate.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.002</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.CosineDecayLearningRate">CosineDecayLearningRate</h3>
+        <pre>Configuration message for a cosine decaying learning rate as defined in</pre><pre>utils/learning_schedules.py</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate_base</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.002</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>total_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 4000000</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>warmup_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.0002</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>warmup_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 10000</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>hold_base_rate_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.ExponentialDecayLearningRate">ExponentialDecayLearningRate</h3>
+        <pre>Configuration message for an exponentially decaying learning rate.</pre><pre>See https://www.tensorflow.org/versions/master/api_docs/python/train/ \</pre><pre>decaying_the_learning_rate#exponential_decay</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>initial_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.002</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>decay_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 4000000</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>decay_factor</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.95</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>staircase</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>burnin_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>burnin_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>min_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.LearningRate">LearningRate</h3>
+        <pre>Configuration message for optimizer learning rate.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>constant_learning_rate</td>
+                  <td><a href="#protos.ConstantLearningRate">ConstantLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>exponential_decay_learning_rate</td>
+                  <td><a href="#protos.ExponentialDecayLearningRate">ExponentialDecayLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>manual_step_learning_rate</td>
+                  <td><a href="#protos.ManualStepLearningRate">ManualStepLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>cosine_decay_learning_rate</td>
+                  <td><a href="#protos.CosineDecayLearningRate">CosineDecayLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>poly_decay_learning_rate</td>
+                  <td><a href="#protos.PolyDecayLearningRate">PolyDecayLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>transformer_learning_rate</td>
+                  <td><a href="#protos.TransformerLearningRate">TransformerLearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.ManualStepLearningRate">ManualStepLearningRate</h3>
+        <pre>Configuration message for a manually defined learning rate schedule.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>initial_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.002</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>schedule</td>
+                  <td><a href="#protos.ManualStepLearningRate.LearningRateSchedule">ManualStepLearningRate.LearningRateSchedule</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>warmup</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>Whether to linearly interpolate learning rates for steps in
+[0, schedule[0].step]. Default: false</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.ManualStepLearningRate.LearningRateSchedule">ManualStepLearningRate.LearningRateSchedule</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>step</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.002</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MomentumOptimizer">MomentumOptimizer</h3>
+        <pre>Configuration message for the MomentumOptimizer</pre><pre>See: https://www.tensorflow.org/api_docs/python/tf/train/MomentumOptimizer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>momentum_optimizer_value</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MomentumWOptimizer">MomentumWOptimizer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight_decay</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1e-06</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>momentum_optimizer_value</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Optimizer">Optimizer</h3>
+        <pre>Top level optimizer message.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>rms_prop_optimizer</td>
+                  <td><a href="#protos.RMSPropOptimizer">RMSPropOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>momentum_optimizer</td>
+                  <td><a href="#protos.MomentumOptimizer">MomentumOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>adam_optimizer</td>
+                  <td><a href="#protos.AdamOptimizer">AdamOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>momentumw_optimizer</td>
+                  <td><a href="#protos.MomentumWOptimizer">MomentumWOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>adamw_optimizer</td>
+                  <td><a href="#protos.AdamWOptimizer">AdamWOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>adam_async_optimizer</td>
+                  <td><a href="#protos.AdamAsyncOptimizer">AdamAsyncOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>adagrad_optimizer</td>
+                  <td><a href="#protos.AdagradOptimizer">AdagradOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>adam_asyncw_optimizer</td>
+                  <td><a href="#protos.AdamAsyncWOptimizer">AdamAsyncWOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>use_moving_average</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>moving_average_decay</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9999</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>embedding_learning_rate_multiplier</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.PolyDecayLearningRate">PolyDecayLearningRate</h3>
+        <pre>Configuration message for a poly decaying learning rate.</pre><pre>See https://www.tensorflow.org/api_docs/python/tf/train/polynomial_decay.</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate_base</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>total_steps</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>power</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>end_learning_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.RMSPropOptimizer">RMSPropOptimizer</h3>
+        <pre>Configuration message for the RMSPropOptimizer</pre><pre>See: https://www.tensorflow.org/api_docs/python/tf/train/RMSPropOptimizer</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>momentum_optimizer_value</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>decay</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.9</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>epsilon</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.TransformerLearningRate">TransformerLearningRate</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate_base</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>hidden_size</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>warmup_steps</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>step_scaling_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/pipeline.proto">easy_rec/python/protos/pipeline.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.EasyRecConfig">EasyRecConfig</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>train_input_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>kafka_train_input</td>
+                  <td><a href="#protos.KafkaServer">KafkaServer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>eval_input_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>kafka_eval_input</td>
+                  <td><a href="#protos.KafkaServer">KafkaServer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>model_dir</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>train_config</td>
+                  <td><a href="#protos.TrainConfig">TrainConfig</a></td>
+                  <td>optional</td>
+                  <td><pre>train config, including optimizer, weight decay, num_steps and so on </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>eval_config</td>
+                  <td><a href="#protos.EvalConfig">EvalConfig</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>data_config</td>
+                  <td><a href="#protos.DatasetConfig">DatasetConfig</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>feature_configs</td>
+                  <td><a href="#protos.FeatureConfig">FeatureConfig</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>model_config</td>
+                  <td><a href="#protos.EasyRecModel">EasyRecModel</a></td>
+                  <td>required</td>
+                  <td><pre>recommendation model config </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>export_config</td>
+                  <td><a href="#protos.ExportConfig">ExportConfig</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/simi.proto">easy_rec/python/protos/simi.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+
+      
+        <h3 id="protos.Similarity">Similarity</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>COSINE</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>INNER_PRODUCT</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>EUCLID</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/simple_multi_task.proto">easy_rec/python/protos/simple_multi_task.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.SimpleMultiTask">SimpleMultiTask</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>task_towers</td>
+                  <td><a href="#protos.TaskTower">TaskTower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/tower.proto">easy_rec/python/protos/tower.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.BayesTaskTower">BayesTaskTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>tower_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>task name for the task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>label for the task, default is label_fields by order </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>metrics_set</td>
+                  <td><a href="#protos.EvalMetrics">EvalMetrics</a></td>
+                  <td>repeated</td>
+                  <td><pre>metrics for the task </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>loss_type</td>
+                  <td><a href="#protos.LossType">LossType</a></td>
+                  <td>optional</td>
+                  <td><pre>loss for the task Default: CLASSIFICATION</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_class</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>num_class for multi-class classification loss Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>task specific dnn </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>relation_tower_names</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>related tower names </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>relation_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>relation dnn </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>training loss weights Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>task_space_indicator_label</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>label name for indcating the sample space for the task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>in_task_space_weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>the loss weight for sample in the task space Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>out_task_space_weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>the loss weight for sample out the task space
+
+level for prediction
+required uint32 prediction_level = 13;
+prediction weights
+optional float prediction_weight = 14 [default = 1.0]; Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.TaskTower">TaskTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>tower_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>task name for the task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>label_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>label for the task, default is label_fields by order </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>metrics_set</td>
+                  <td><a href="#protos.EvalMetrics">EvalMetrics</a></td>
+                  <td>repeated</td>
+                  <td><pre>metrics for the task </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>loss_type</td>
+                  <td><a href="#protos.LossType">LossType</a></td>
+                  <td>optional</td>
+                  <td><pre>loss for the task Default: CLASSIFICATION</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_class</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>num_class for multi-class classification loss Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>task specific dnn </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>training loss weights Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>task_space_indicator_label</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>label name for indcating the sample space for the task tower </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>in_task_space_weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>the loss weight for sample in the task space Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>out_task_space_weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>the loss weight for sample out the task space Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Tower">Tower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/train.proto">easy_rec/python/protos/train.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.TrainConfig">TrainConfig</h3>
+        <pre>Message for configuring DetectionModel training jobs (train.py).</pre><pre>Next id: 25</pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>optimizer_config</td>
+                  <td><a href="#protos.Optimizer">Optimizer</a></td>
+                  <td>optional</td>
+                  <td><pre>optimizer options </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>gradient_clipping_by_norm</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>If greater than 0, clips gradients by this value. Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Number of steps to train the models: if 0, will train the model
+indefinitely. Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>fine_tune_checkpoint</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>Checkpoint to restore variables from. </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>fine_tune_ckpt_var_map</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>sync_replicas</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>Whether to synchronize replicas during training.
+In case so, build a SyncReplicateOptimizer Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>startup_delay_steps</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>Number of training steps between replica startup.
+This flag must be set to 0 if sync_replicas is set to true. Default: 15</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>save_checkpoints_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Step interval for saving checkpoint Default: 1000</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>save_checkpoints_secs</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Seconds interval for saving checkpoint </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>keep_checkpoint_max</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Max checkpoints to keep Default: 10</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>save_summary_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>Save summaries every this many steps. Default: 1000</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>log_step_count_steps</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>The frequency global step/sec and the loss will be logged during training. Default: 10</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>is_profiling</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>profiling or not Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>force_restore_shape_compatible</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>if variable shape is incompatible, clip or pad variables in checkpoint Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>train_distribute</td>
+                  <td><a href="#protos.DistributionStrategy">DistributionStrategy</a></td>
+                  <td>optional</td>
+                  <td><pre>DistributionStrategy, available values are &#39;mirrored&#39; and &#39;collective&#39; and &#39;ess&#39;
+- mirrored: MirroredStrategy, single machine and multiple devices;
+- collective: CollectiveAllReduceStrategy, multiple machines and multiple devices. Default: NoStrategy</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_gpus_per_worker</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>Number of gpus per machine Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>separate_save</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>summary_model_vars</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>summary model variables or not Default: false</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>protocol</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>distribute training protocol [grpc&#43;&#43; | star_server]
+grpc&#43;&#43;: https://help.aliyun.com/document_detail/173157.html?spm=5176.10695662.1996646101.searchclickresult.3ebf450evuaPT3
+star_server: https://help.aliyun.com/document_detail/173154.html?spm=a2c4g.11186623.6.627.39ad7e3342KOX4 </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>inter_op_parallelism_threads</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>inter_op_parallelism_threads Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>intra_op_parallelism_threads</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td>optional</td>
+                  <td><pre>intra_op_parallelism_threads Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>tensor_fuse</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>tensor fusion on PAI-TF Default: false</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="protos.DistributionStrategy">DistributionStrategy</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>NoStrategy</td>
+                <td>0</td>
+                <td><pre>use old SyncReplicasOptimizer for ParameterServer training</pre></td>
+              </tr>
+            
+              <tr>
+                <td>PSStrategy</td>
+                <td>1</td>
+                <td><pre>PSStrategy with multiple gpus on one node could not work
+on pai-tf, could only work on TF &gt;=1.15</pre></td>
+              </tr>
+            
+              <tr>
+                <td>MirroredStrategy</td>
+                <td>2</td>
+                <td><pre>could only work on PaiTF or TF &gt;=1.15
+single worker multiple gpu mode</pre></td>
+              </tr>
+            
+              <tr>
+                <td>CollectiveAllReduceStrategy</td>
+                <td>3</td>
+                <td><pre>Depreciated</pre></td>
+              </tr>
+            
+              <tr>
+                <td>ExascaleStrategy</td>
+                <td>4</td>
+                <td><pre>currently not working good</pre></td>
+              </tr>
+            
+              <tr>
+                <td>MultiWorkerMirroredStrategy</td>
+                <td>5</td>
+                <td><pre>multi worker multi gpu mode
+see tf.distribute.experimental.MultiWorkerMirroredStrategy</pre></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/wide_and_deep.proto">easy_rec/python/protos/wide_and_deep.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.WideAndDeep">WideAndDeep</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>wide_output_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>if set, the output of dnn and wide part are concatenated and
+passed to the final_dnn; otherwise, they are summarized </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+
+    <h2 id="scalar-value-types">Scalar Value Types</h2>
+    <table class="scalar-value-types-table">
+      <thead>
+        <tr><td>.proto Type</td><td>Notes</td><td>C++ Type</td><td>Java Type</td><td>Python Type</td></tr>
+      </thead>
+      <tbody>
+        
+          <tr id="double">
+            <td>double</td>
+            <td></td>
+            <td>double</td>
+            <td>double</td>
+            <td>float</td>
+          </tr>
+        
+          <tr id="float">
+            <td>float</td>
+            <td></td>
+            <td>float</td>
+            <td>float</td>
+            <td>float</td>
+          </tr>
+        
+          <tr id="int32">
+            <td>int32</td>
+            <td>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint32 instead.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+          </tr>
+        
+          <tr id="int64">
+            <td>int64</td>
+            <td>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint64 instead.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="uint32">
+            <td>uint32</td>
+            <td>Uses variable-length encoding.</td>
+            <td>uint32</td>
+            <td>int</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="uint64">
+            <td>uint64</td>
+            <td>Uses variable-length encoding.</td>
+            <td>uint64</td>
+            <td>long</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="sint32">
+            <td>sint32</td>
+            <td>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int32s.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+          </tr>
+        
+          <tr id="sint64">
+            <td>sint64</td>
+            <td>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int64s.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="fixed32">
+            <td>fixed32</td>
+            <td>Always four bytes. More efficient than uint32 if values are often greater than 2^28.</td>
+            <td>uint32</td>
+            <td>int</td>
+            <td>int</td>
+          </tr>
+        
+          <tr id="fixed64">
+            <td>fixed64</td>
+            <td>Always eight bytes. More efficient than uint64 if values are often greater than 2^56.</td>
+            <td>uint64</td>
+            <td>long</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="sfixed32">
+            <td>sfixed32</td>
+            <td>Always four bytes.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+          </tr>
+        
+          <tr id="sfixed64">
+            <td>sfixed64</td>
+            <td>Always eight bytes.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+          </tr>
+        
+          <tr id="bool">
+            <td>bool</td>
+            <td></td>
+            <td>bool</td>
+            <td>boolean</td>
+            <td>boolean</td>
+          </tr>
+        
+          <tr id="string">
+            <td>string</td>
+            <td>A string must always contain UTF-8 encoded or 7-bit ASCII text.</td>
+            <td>string</td>
+            <td>String</td>
+            <td>str/unicode</td>
+          </tr>
+        
+          <tr id="bytes">
+            <td>bytes</td>
+            <td>May contain any arbitrary sequence of bytes.</td>
+            <td>string</td>
+            <td>ByteString</td>
+            <td>str</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  </body>
+</html>
+

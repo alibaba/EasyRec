@@ -64,21 +64,21 @@ model_config: {
 }
 ```
 
-- feature\_groups: 不同的特征组，如user feature为一组，item feature为一组, combo feature为一组
-  - group\_name: 可以根据实际情况取
-  - wide\_deep: 必须是DEEP
+- feature_groups: 不同的特征组，如user feature为一组，item feature为一组, combo feature为一组
+  - group_name: 可以根据实际情况取
+  - wide_deep: 必须是DEEP
 - towers:
-  - 每个feature\_group对应了一个tower, tower的input必须和feature\_groups的group\_name对应
+  - 每个feature_group对应了一个tower, tower的input必须和feature_groups的group_name对应
   - dnn: 深度网络
-    - hidden\_units: 定义不同层的channel数目，即神经元数目
-- final\_dnn 整合towers和din\_towers的输入
-  - hidden\_units: dnn每一层的channel数目，即神经元的数目
-- l2\_regularization: L2正则，防止overfit
-- embedding\_regularization: embedding的L2正则
+    - hidden_units: 定义不同层的channel数目，即神经元数目
+- final_dnn 整合towers和din_towers的输入
+  - hidden_units: dnn每一层的channel数目，即神经元的数目
+- l2_regularization: L2正则，防止overfit
+- embedding_regularization: embedding的L2正则
 
 ### 示例config
 
-[multi\_tower\_demo.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/multi-tower.config)
+[multi_tower_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/multi-tower.config)
 
 ### 参考论文
 

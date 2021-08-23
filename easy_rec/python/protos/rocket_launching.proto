@@ -1,0 +1,15 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+message RocketLaunching {
+    required DNN share_dnn = 1;
+    required DNN booster_dnn =2;
+    required DNN light_dnn = 3;
+    optional float l2_regularization = 4 [default = 1e-4];
+    optional bool feature_based_distillation = 5 [default = false];
+    // COSINE = 0; EUCLID = 1;
+    optional Similarity feature_distillation_function = 6 [default=COSINE];
+}

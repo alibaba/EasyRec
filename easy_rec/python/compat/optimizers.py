@@ -74,6 +74,7 @@ def optimize_loss(loss,
                   name=None,
                   summaries=None,
                   colocate_gradients_with_ops=False,
+                  not_apply_grad_after_first_step=False,
                   increment_global_step=True):
   """Given loss and parameters for optimizer, returns a training op.
 
@@ -139,6 +140,8 @@ def optimize_loss(loss,
       OPTIMIZER_SUMMARIES.
     colocate_gradients_with_ops: If True, try colocating gradients with the
       corresponding op.
+    not_apply_grad_after_first_step: If true, do not apply gradient apply gradient
+      after first step, for chief_redundant.
     increment_global_step: Whether to increment `global_step`. If your model
       calls `optimize_loss` multiple times per training step (e.g. to optimize
       different parts of the model), use this arg to avoid incrementing
@@ -296,13 +299,19 @@ def optimize_loss(loss,
                      clip_ops.global_norm(list(zip(*gradients))[0]))
 
     # Create gradient updates.
-    grad_updates = opt.apply_gradients(
-        gradients,
-        global_step=global_step if increment_global_step else None,
-        name='train')
+    def _apply_grad():
+      grad_updates = opt.apply_gradients(
+          gradients,
+          global_step=global_step if increment_global_step else None,
+          name='train')
+      return control_flow_ops.with_dependencies([grad_updates], loss)
 
-    # Ensure the train_tensor computes grad_updates.
-    train_tensor = control_flow_ops.with_dependencies([grad_updates], loss)
+    if not_apply_grad_after_first_step:
+      train_tensor = control_flow_ops.cond(global_step > 0, lambda: loss,
+                                           _apply_grad)
+    else:
+      # Ensure the train_tensor computes grad_updates.
+      train_tensor = _apply_grad()
 
     return train_tensor
 

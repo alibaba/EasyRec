@@ -5,7 +5,10 @@
    :maxdepth: 2
 
    deepfm
-   din
    multi_tower
+   dcn
+   autoint
+   din
+   bst
    regression
    multi_cls

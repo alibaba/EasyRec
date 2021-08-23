@@ -13,6 +13,7 @@ from easy_rec.python.compat.feature_column import feature_column_v2 as feature_c
 
 if tf.__version__ >= '2.0':
   min_max_variable_partitioner = tf.compat.v1.min_max_variable_partitioner
+  tf = tf.compat.v1
 else:
   min_max_variable_partitioner = tf.min_max_variable_partitioner
 
@@ -47,6 +48,7 @@ class FeatureColumnParser(object):
     self._wide_deep_dict = wide_deep_dict
     self._deep_columns = {}
     self._wide_columns = {}
+    self._sequence_columns = {}
 
     self._share_embed_names = {}
     self._share_embed_infos = {}
@@ -166,6 +168,10 @@ class FeatureColumnParser(object):
   def deep_columns(self):
     return self._deep_columns
 
+  @property
+  def sequence_columns(self):
+    return self._sequence_columns
+
   def is_wide(self, config):
     if config.HasField('feature_name'):
       feature_name = config.feature_name
@@ -245,6 +251,17 @@ class FeatureColumnParser(object):
     if config.HasField('hash_bucket_size'):
       tag_fc = feature_column.categorical_column_with_hash_bucket(
           config.input_names[0], hash_bucket_size, dtype=tf.string)
+    elif config.vocab_list:
+      tag_fc = feature_column.categorical_column_with_vocabulary_list(
+          config.input_names[0],
+          default_value=0,
+          vocabulary_list=config.vocab_list)
+    elif config.vocab_file:
+      tag_fc = feature_column.categorical_column_with_vocabulary_file(
+          config.input_names[0],
+          default_value=0,
+          vocabulary_file=config.vocab_file,
+          vocabulary_size=self._get_vocab_size(config.vocab_file))
     else:
       tag_fc = feature_column.categorical_column_with_identity(
           config.input_names[0], config.num_buckets, default_value=0)
@@ -252,6 +269,10 @@ class FeatureColumnParser(object):
     if len(config.input_names) > 1:
       tag_fc = feature_column.weighted_categorical_column(
           tag_fc, weight_feature_key=config.input_names[1], dtype=tf.float32)
+    elif config.HasField('kv_separator'):
+      wgt_name = config.input_names[0] + '_WEIGHT'
+      tag_fc = feature_column.weighted_categorical_column(
+          tag_fc, weight_feature_key=wgt_name, dtype=tf.float32)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(tag_fc, config)
@@ -268,7 +289,8 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    fc = feature_column.numeric_column(config.input_names[0])
+    fc = feature_column.numeric_column(
+        config.input_names[0], shape=(config.raw_input_dim,))
 
     bounds = None
     if config.boundaries:
@@ -290,7 +312,9 @@ class FeatureColumnParser(object):
         self._add_deep_embedding_column(fc, config)
     else:
       tmp_id_col = feature_column.categorical_column_with_identity(
-          config.input_names[0] + '_raw_proj_id', 1, default_value=0)
+          config.input_names[0] + '_raw_proj_id',
+          config.raw_input_dim,
+          default_value=0)
       wgt_fc = feature_column.weighted_categorical_column(
           tmp_id_col,
           weight_feature_key=config.input_names[0] + '_raw_proj_val',
@@ -344,10 +368,24 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    assert config.HasField('hash_bucket_size')
-    hash_bucket_size = config.hash_bucket_size
-    fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-        feature_name, hash_bucket_size, dtype=tf.string)
+    if config.HasField('hash_bucket_size'):
+      hash_bucket_size = config.hash_bucket_size
+      fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
+          config.input_names[0], hash_bucket_size, dtype=tf.string)
+    elif config.vocab_list:
+      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
+          config.input_names[0],
+          default_value=0,
+          vocabulary_list=config.vocab_list)
+    elif config.vocab_file:
+      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
+          config.input_names[0],
+          default_value=0,
+          vocabulary_file=config.vocab_file,
+          vocabulary_size=self._get_vocab_size(config.vocab_file))
+    else:
+      fc = sequence_feature_column.sequence_categorical_column_with_identity(
+          config.input_names[0], config.num_buckets, default_value=0)
 
     assert config.embedding_dim > 0
     initializer = None
@@ -359,11 +397,18 @@ class FeatureColumnParser(object):
         combiner=config.combiner,
         initializer=initializer,
         partitioner=self._build_partitioner(config.max_partitions))
+    fc.sequence_combiner = config.sequence_combiner if config.HasField(
+        'sequence_combiner') else None
     self._deep_columns[feature_name] = fc
+    self._sequence_columns[feature_name] = fc
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:
-      return min_max_variable_partitioner(max_partitions=max_partitions)
+      if self._use_embedding_variable:
+        # pai embedding_variable should use fixed_size_partitioner
+        return tf.fixed_size_partitioner(num_shards=max_partitions)
+      else:
+        return min_max_variable_partitioner(max_partitions=max_partitions)
     else:
       return None
 

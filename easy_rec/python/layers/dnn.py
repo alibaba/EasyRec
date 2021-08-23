@@ -36,7 +36,9 @@ class DNN:
   def dropout_ratio(self):
     return self._config.dropout_ratio
 
-  def __call__(self, deep_fea):
+  def __call__(self, deep_fea, hidden_layer_feature_output=False):
+    hidden_units_len = len(self.hidden_units)
+    hidden_feature_dict = {}
     for i, unit in enumerate(self.hidden_units):
       deep_fea = tf.layers.dense(
           inputs=deep_fea,
@@ -59,4 +61,11 @@ class DNN:
             deep_fea,
             keep_prob=1 - self.dropout_ratio[i],
             name='%s/%d/dropout' % (self._name, i))
-    return deep_fea
+
+      if hidden_layer_feature_output:
+        hidden_feature_dict['hidden_layer' + str(i)] = deep_fea
+        if (i + 1 == hidden_units_len):
+          hidden_feature_dict['hidden_layer_end'] = deep_fea
+          return hidden_feature_dict
+    else:
+      return deep_fea

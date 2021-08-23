@@ -1,8 +1,16 @@
-syntax = "proto2";
+syntax="proto2";
 package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 
 message WideAndDeep {
-    required DNN dnn = 1;
+  required uint32 wide_output_dim = 1 [default=1];
+
+  required DNN dnn = 2;
+
+  // if set, the output of dnn and wide part are concatenated and
+  // passed to the final_dnn; otherwise, they are summarized
+  optional DNN final_dnn = 3;
+
+  optional float l2_regularization = 4 [default=1e-4];
 }

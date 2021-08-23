@@ -76,6 +76,10 @@ def change_files(odps_oss_config, file_path):
 
       line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
       line = line.replace('{TIME_STAMP}', str(odps_oss_config.time_stamp))
+
+      # for emr odps test only
+      line = line.replace('{TEMP_DIR}', str(odps_oss_config.temp_dir))
+
       line = line.replace('{ROLEARN}', odps_oss_config.arn)
       line = line.replace('{OSS_ENDPOINT_INTERNAL}', endpoint_internal)
       line = line.replace('{OSS_ENDPOINT}', endpoint)
@@ -121,6 +125,11 @@ def prepare(odps_oss_config):
   for root, dirs, files in os.walk(odps_oss_config.temp_dir):
     for file in files:
       file_path = os.path.join(root, file)
+      # drop .template
+      if file_path.endswith('.template'):
+        tmp_path = file_path[:-len('.template')]
+        os.rename(file_path, tmp_path)
+        file_path = tmp_path
       if 'data' not in file_path:
         logging.info('modify %s' % file_path)
         change_files(odps_oss_config, file_path)

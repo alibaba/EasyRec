@@ -7,7 +7,10 @@ import tensorflow as tf
 from easy_rec.python.input.input import Input
 
 if tf.__version__ >= '2.0':
+  ignore_errors = tf.data.experimental.ignore_errors()
   tf = tf.compat.v1
+else:
+  ignore_errors = tf.contrib.data.ignore_errors()
 
 
 class CSVInput(Input):
@@ -52,7 +55,9 @@ class CSVInput(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    file_paths = []
+    for x in self._input_path.split(','):
+      file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     num_parallel_calls = self._data_config.num_parallel_calls
@@ -70,7 +75,12 @@ class CSVInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
-      dataset = dataset.shard(self._task_num, self._task_index)
+
+      if self._data_config.chief_redundant:
+        dataset = dataset.shard(
+            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
+      else:
+        dataset = dataset.shard(self._task_num, self._task_index)
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
@@ -86,6 +96,8 @@ class CSVInput(Input):
     dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(
         self._parse_csv, num_parallel_calls=num_parallel_calls)
+    if self._data_config.ignore_error:
+      dataset = dataset.apply(ignore_errors)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     dataset = dataset.map(
         map_func=self._preprocess, num_parallel_calls=num_parallel_calls)

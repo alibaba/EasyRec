@@ -1,0 +1,17 @@
+app:
+    app_type: standalone
+    app_name: easyrec_tf_export
+    mode: local
+    exit_mode: true
+    verbose: true
+    files: {TEMP_DIR}/configs/deepfm_eval_pipeline.config
+    command: python -m easy_rec.python.export --pipeline_config_path {TEMP_DIR}/configs/deepfm_eval_pipeline.config --export_dir {EXPOERT_DIR}
+    wait_time: 8
+    hook: /usr/local/dstools/bin/hooks.sh
+
+resource:
+    worker_num: 1
+    worker_cpu: 6
+    worker_gpu:
+    worker_memory: 10g
+    worker_mode_arg:

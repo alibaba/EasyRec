@@ -17,6 +17,32 @@ message MeanSquaredError {
 message Accuracy {
 }
 
+message Max_F1 {
+}
+
+message RootMeanSquaredError {
+}
+
+message GAUC {
+    // uid field name
+    required string uid_field = 1;
+    // reduction method for auc of different users
+    // * "mean": simple mean of different users
+    // * "mean_by_sample_num": weighted mean with sample num of different users
+    // * "mean_by_positive_num": weighted mean with positive sample num of different users
+    optional string reduction = 2 [default='mean'];
+}
+
+message SessionAUC {
+    // session id field name
+    required string session_id_field = 1;
+    // reduction: reduction method for auc of different sessions
+    // * "mean": simple mean of different sessions
+    // * "mean_by_sample_num": weighted mean with sample num of different sessions
+    // * "mean_by_positive_num": weighted mean with positive sample num of different sessions
+    optional string reduction = 2 [default='mean'];
+}
+
 message EvalMetrics {
     oneof metric {
         AUC auc = 1;
@@ -24,6 +50,10 @@ message EvalMetrics {
         MeanAbsoluteError mean_absolute_error = 3;
         MeanSquaredError mean_squared_error = 4;
         Accuracy accuracy = 5;
+        Max_F1 max_f1 = 6;
+        RootMeanSquaredError root_mean_squared_error = 7;
+        GAUC gauc = 8;
+        SessionAUC session_auc = 9;
     }
 }
 
@@ -44,4 +74,7 @@ message EvalConfig {
     // Type of metrics to use for evaluation.
     // possible values:
     repeated EvalMetrics metrics_set = 5;
+
+    // Evaluation online with batch forward data of training
+    optional bool eval_online = 6 [default = false];
 }

@@ -3,7 +3,6 @@
 
 import tensorflow as tf
 
-from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 
@@ -34,11 +33,6 @@ class MultiTower(RankModel):
       tower = self._model_config.towers[tower_id]
       tower_feature, _ = self._input_layer(self._feature_dict, tower.input)
       self._tower_features.append(tower_feature)
-      regularizers.apply_regularization(
-          self._emb_reg, weights_list=[tower_feature])
-
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def build_predict_graph(self):
     tower_fea_arr = []

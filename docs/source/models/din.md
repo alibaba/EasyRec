@@ -2,7 +2,7 @@
 
 ### 简介
 
-利用DIN算法建模用户点击序列。支持多组序列共同embedding，如hist\_item\_id, hist\_category\_id。目前结合multitower共同使用，din部分作为multitower的一个塔。
+利用DIN算法建模用户点击序列。支持多组序列共同embedding，如hist_item_id, hist_category_id。目前结合multitower共同使用，din部分作为multitower的一个塔。
 ![din.png](../../images/models/din.png)
 
 ### 模型配置
@@ -67,27 +67,27 @@ model_config: {
 
 ```
 
-- model\_class: 'MultiTowerDIN', 不需要修改。
-- feature\_groups: 可配置多个feature\_group，group name可以变。
-- seq\_att\_groups: 可配置多个seq\_att\_groups。
+- model_class: 'MultiTowerDIN', 不需要修改。
+- feature_groups: 可配置多个feature_group，group name可以变。
+- seq_att_groups: 可配置多个seq_att_groups。
   - group name
-  - seq\_att\_map: 需配置key和hist\_seq，一一对应。
-- multi\_tower: multi\_tower相关的参数
-  - towers: 每个feature\_group对应了一个tower。
-    - input必须和feature\_groups的group\_name对应。
+  - seq_att_map: 需配置key和hist_seq，一一对应。
+- multi_tower: multi_tower相关的参数
+  - towers: 每个feature_group对应了一个tower。
+    - input必须和feature_groups的group_name对应。
     - dnn: deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-  - din\_towers: 每个seq\_att\_groups对应了一个din\_tower
-    - input必须和seq\_att\_groups的group\_name对应。
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+  - din_towers: 每个seq_att_groups对应了一个din_tower
+    - input必须和seq_att_groups的group_name对应。
     - dnn: deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-  - final\_dnn 整合towers和din\_towers的输入
-    - hidden\_units: dnn每一层的channel数目，即神经元的数目
-- embedding\_regularization: 对embedding部分加regularization，防止overfit
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+  - final_dnn 整合towers和din_towers的输入
+    - hidden_units: dnn每一层的channel数目，即神经元的数目
+- embedding_regularization: 对embedding部分加regularization，防止overfit
 
 ### 示例config
 
-[DIN\_demo.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/din.config)
+[DIN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/din.config)
 
 ### 参考论文
 

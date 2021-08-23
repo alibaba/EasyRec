@@ -5,6 +5,11 @@ import tensorflow as tf
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 
+try:
+  import pai
+except Exception:
+  pass
+
 
 class OdpsInput(Input):
 
@@ -22,19 +27,38 @@ class OdpsInput(Input):
     odps_util.check_input_field_and_types(self._data_config)
 
     selected_cols = ','.join(self._input_fields)
-    reader = tf.TableRecordReader(
-        csv_delimiter=self._data_config.separator,
-        selected_cols=selected_cols,
-        slice_count=self._task_num,
-        slice_id=self._task_index)
+    if self._data_config.chief_redundant and \
+        mode == tf.estimator.ModeKeys.TRAIN:
+      reader = tf.TableRecordReader(
+          csv_delimiter=self._data_config.separator,
+          selected_cols=selected_cols,
+          slice_count=max(self._task_num - 1, 1),
+          slice_id=max(self._task_index - 1, 0))
+    else:
+      reader = tf.TableRecordReader(
+          csv_delimiter=self._data_config.separator,
+          selected_cols=selected_cols,
+          slice_count=self._task_num,
+          slice_id=self._task_index)
+
     if type(self._input_path) != list:
       self._input_path = [x for x in self._input_path.split(',')]
     if mode == tf.estimator.ModeKeys.TRAIN:
-      file_queue = tf.train.string_input_producer(
-          self._input_path,
-          num_epochs=self.num_epochs,
-          capacity=1000,
-          shuffle=self._data_config.shuffle)
+      if self._data_config.pai_worker_queue:
+        work_queue = pai.data.WorkQueue(
+            self._input_path,
+            num_epochs=self.num_epochs,
+            shuffle=self._data_config.shuffle,
+            num_slices=self._data_config.pai_worker_slice_num * self._task_num)
+        work_queue.add_summary()
+        file_queue = work_queue.input_producer()
+        reader = tf.TableRecordReader()
+      else:
+        file_queue = tf.train.string_input_producer(
+            self._input_path,
+            num_epochs=self.num_epochs,
+            capacity=1000,
+            shuffle=self._data_config.shuffle)
     else:
       file_queue = tf.train.string_input_producer(
           self._input_path, num_epochs=1, capacity=1000, shuffle=False)

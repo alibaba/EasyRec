@@ -48,3 +48,19 @@ easy\_rec.python.layers.seq\_input\_layer
    :members:
    :undoc-members:
    :show-inheritance:
+
+easy\_rec.python.layers.multihead\_attention\_layer
+------------------------------------------------
+
+.. automodule:: easy_rec.python.layers.multihead_attention
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+easy\_rec.python.layers.mmoe
+------------------------------------------------
+
+.. automodule:: easy_rec.python.layers.mmoe
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-# Date: 2018-09-13
-"""Binary to run train and evaluation on recommendation model."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -21,9 +20,11 @@ from easy_rec.python.compat import exporter
 from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import load_class
+from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.pai_util import is_on_pai
 
 if tf.__version__ >= '2.0':
@@ -66,18 +67,7 @@ def _get_input_fn(data_config,
   Returns:
     subclass of Input
   """
-  input_class_map = {
-      data_config.CSVInput: 'CSVInput',
-      data_config.CSVInputV2: 'CSVInputV2',
-      data_config.OdpsInput: 'OdpsInput',
-      data_config.OdpsInputV2: 'OdpsInputV2',
-      data_config.RTPInput: 'RTPInput',
-      data_config.RTPInputV2: 'RTPInputV2',
-      data_config.OdpsRTPInput: 'OdpsRTPInput',
-      data_config.DummyInput: 'DummyInput',
-      data_config.KafkaInput: 'KafkaInput'
-  }
-
+  input_class_map = {y: x for x, y in data_config.InputType.items()}
   input_cls_name = input_class_map[data_config.input_type]
   input_class = Input.create_class(input_cls_name)
 
@@ -99,7 +89,9 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   session_config = ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
-      log_device_placement=False)
+      log_device_placement=params.get('log_device_placement', False),
+      inter_op_parallelism_threads=train_config.inter_op_parallelism_threads,
+      intra_op_parallelism_threads=train_config.intra_op_parallelism_threads)
   session_config.device_filters.append('/job:ps')
   model_cls = EasyRecModel.create_class(model_config.model_class)
 
@@ -120,6 +112,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
       save_summary_steps=train_config.save_summary_steps,
       save_checkpoints_steps=save_checkpoints_steps,
       save_checkpoints_secs=save_checkpoints_secs,
+      keep_checkpoint_max=train_config.keep_checkpoint_max,
       train_distribute=distribution,
       eval_distribute=distribution,
       session_config=session_config)
@@ -152,7 +145,7 @@ def _create_eval_export_spec(pipeline_config, eval_data):
         LatestExporter(
             name='latest',
             serving_input_receiver_fn=export_input_fn,
-            exports_to_keep=1)
+            exports_to_keep=export_config.exports_to_keep)
     ]
   elif export_config.exporter_type == 'best':
     logging.info(
@@ -173,7 +166,8 @@ def _create_eval_export_spec(pipeline_config, eval_data):
         BestExporter(
             name='best',
             serving_input_receiver_fn=export_input_fn,
-            compare_fn=_metric_cmp_fn)
+            compare_fn=_metric_cmp_fn,
+            exports_to_keep=export_config.exports_to_keep)
     ]
   elif export_config.exporter_type == 'none':
     exporters = []
@@ -265,13 +259,24 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   data_config = pipeline_config.data_config
   feature_configs = pipeline_config.feature_configs
 
+  if train_config.train_distribute != DistributionStrategy.NoStrategy\
+      and train_config.sync_replicas:
+    logging.warning(
+        'will set sync_replicas to False, because train_distribute[%s] != NoStrategy'
+        % pipeline_config.train_config.train_distribute)
+    pipeline_config.train_config.sync_replicas = False
+
   if pipeline_config.WhichOneof('train_path') == 'kafka_train_input':
     train_data = pipeline_config.kafka_train_input
+  elif pipeline_config.WhichOneof('train_path') == 'datahub_train_input':
+    train_data = pipeline_config.datahub_train_input
   else:
     train_data = pipeline_config.train_input_path
 
   if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     eval_data = pipeline_config.kafka_eval_input
+  elif pipeline_config.WhichOneof('eval_path') == 'datahub_eval_input':
+    eval_data = pipeline_config.datahub_eval_input
   else:
     eval_data = pipeline_config.eval_input_path
 
@@ -290,7 +295,7 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
 
   master_stat_file = os.path.join(pipeline_config.model_dir, 'master.stat')
   version_file = os.path.join(pipeline_config.model_dir, 'version')
-  if run_config.is_chief:
+  if estimator_utils.is_chief():
     _check_model_dir(pipeline_config.model_dir, continue_train)
     config_util.save_pipeline_config(pipeline_config, pipeline_config.model_dir)
     with gfile.GFile(version_file, 'w') as f:
@@ -342,12 +347,13 @@ def evaluate(pipeline_config,
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
     if isinstance(eval_data_path, list):
-      pipeline_config.eval_data.input_path[:] = eval_data_path
+      pipeline_config.eval_input_path = ','.join(eval_data_path)
     else:
-      pipeline_config.eval_data.input_path[:] = [eval_data_path]
+      pipeline_config.eval_input_path = eval_data_path
   train_config = pipeline_config.train_config
 
   if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
@@ -355,14 +361,71 @@ def evaluate(pipeline_config,
   else:
     eval_data = pipeline_config.eval_input_path
 
+  server_target = None
+  if 'TF_CONFIG' in os.environ:
+    tf_config = estimator_utils.chief_to_master()
+    from tensorflow.python.training import server_lib
+    if tf_config['task']['type'] == 'ps':
+      cluster = tf.train.ClusterSpec(tf_config['cluster'])
+      server = server_lib.Server(
+          cluster, job_name='ps', task_index=tf_config['task']['index'])
+      server.join()
+    elif tf_config['task']['type'] == 'master':
+      if 'ps' in tf_config['cluster']:
+        cluster = tf.train.ClusterSpec(tf_config['cluster'])
+        server = server_lib.Server(cluster, job_name='master', task_index=0)
+        server_target = server.target
+        print('server_target = %s' % server_target)
+
   distribution = strategy_builder.build(train_config)
-  estimator, _ = _create_estimator(pipeline_config, distribution)
+  estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
 
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
 
-  eval_result = estimator.evaluate(
-      eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+  if server_target:
+    # evaluate with parameter server
+    input_iter = eval_spec.input_fn(
+        mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
+    input_feas, input_lbls = input_iter.get_next()
+    from tensorflow.python.training.device_setter import replica_device_setter
+    from tensorflow.python.framework.ops import device
+    from tensorflow.python.training.monitored_session import MonitoredSession
+    from tensorflow.python.training.monitored_session import ChiefSessionCreator
+    with device(
+        replica_device_setter(
+            worker_device='/job:master/task:0', cluster=cluster)):
+      estimator_spec = estimator._eval_model_fn(input_feas, input_lbls,
+                                                run_config)
+
+    session_config = ConfigProto(
+        allow_soft_placement=True, log_device_placement=True)
+    chief_sess_creator = ChiefSessionCreator(
+        master=server_target,
+        checkpoint_filename_with_path=ckpt_path,
+        config=session_config)
+    eval_metric_ops = estimator_spec.eval_metric_ops
+    update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
+    metric_ops = {x: eval_metric_ops[x][0] for x in eval_metric_ops.keys()}
+    update_op = tf.group(update_ops)
+    with MonitoredSession(
+        session_creator=chief_sess_creator,
+        hooks=None,
+        stop_grace_period_secs=120) as sess:
+      while True:
+        try:
+          sess.run(update_op)
+        except tf.errors.OutOfRangeError:
+          break
+      eval_result = sess.run(metric_ops)
+  else:
+    # this way does not work, wait to be debugged
+    # the variables are not placed to parameter server
+    # with tf.device(
+    #    replica_device_setter(
+    #        worker_device='/job:master/task:0', cluster=cluster)):
+    eval_result = estimator.evaluate(
+        eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
   logging.info('Evaluate finish')
 
   # write eval result to file
@@ -378,7 +441,7 @@ def evaluate(pipeline_config,
       # convert numpy float to python float
       result_to_write[key] = eval_result[key].item()
 
-    ofile.write(json.dumps(result_to_write, indent=2))
+    ofile.write(json.dumps(result_to_write))
 
   return eval_result
 
@@ -423,15 +486,28 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
   return pred_result
 
 
-def export(export_dir, pipeline_config_path, checkpoint_path=''):
+def export(export_dir,
+           pipeline_config,
+           checkpoint_path='',
+           asset_files=None,
+           verbose=False,
+           **redis_params):
   """Export model defined in pipeline_config_path.
 
   Args:
     export_dir: base directory where the model should be exported
-    pipeline_config_path: file specify proto.EasyRecConfig, including
-       model_config, eval_data, eval_config
+    pipeline_config: proto.EasyRecConfig instance or file path
+       specify proto.EasyRecConfig
     checkpoint_path: if specified, will use this model instead of
        model in model_dir in pipeline_config_path
+    asset_files: extra files to add to assets, comma separated
+    version: if version is defined, then will skip writing embedding to redis,
+       assume that embedding is already write into redis
+    verbose: dumps debug information
+    redis_params: keys related to write embedding to redis
+       redis_url, redis_passwd, redis_threads, redis_batch_size,
+       redis_timeout, redis_expire if export embedding to redis;
+       redis_embedding_version: if specified, will kill export to redis
 
   Returns:
     the directory where model is exported
@@ -440,20 +516,28 @@ def export(export_dir, pipeline_config_path, checkpoint_path=''):
     AssertionError, if:
       * pipeline_config_path does not exist
   """
-  assert gfile.Exists(pipeline_config_path), 'pipeline_config_path is empty'
   if not gfile.Exists(export_dir):
     gfile.MakeDirs(export_dir)
 
-  pipeline_config = config_util.get_configs_from_pipeline_file(
-      pipeline_config_path)
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
   feature_configs = pipeline_config.feature_configs
 
-  estimator, _ = _create_estimator(pipeline_config)
+  # create estimator
+  params = {'log_device_placement': verbose}
+  if asset_files:
+    logging.info('will add asset files: %s' % asset_files)
+    params['asset_files'] = asset_files
+  estimator, _ = _create_estimator(pipeline_config, params=params)
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config)
+
+  if 'redis_url' in redis_params:
+    return export_big_model(export_dir, pipeline_config, redis_params,
+                            serving_input_fn, estimator, checkpoint_path,
+                            verbose)
 
   # pack embedding.pb into asset_extras
   assets_extra = None

@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import fm
 from easy_rec.python.layers import input_layer
@@ -32,26 +31,12 @@ class DeepFM(RankModel):
     if self._model_config.HasField('wide_regularization'):
       tf.logging.warn(
           'wide_regularization is deprecated, please use l2_regularization')
-    if self._model_config.HasField('dense_regularization'):
-      tf.logging.warn(
-          'dense_regularization is deprecated, please use l2_regularization')
-      if not self._model_config.HasField('l2_regularization'):
-        self._model_config.l2_regularization = self._model_config.dense_regularization
 
     self._wide_features, _ = self._input_layer(self._feature_dict, 'wide')
     self._deep_features, self._fm_features = self._input_layer(
         self._feature_dict, 'deep')
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._wide_features])
-    regularizers.apply_regularization(
-        self._emb_reg, weights_list=[self._deep_features])
     if 'fm' in self._input_layer._feature_groups:
       _, self._fm_features = self._input_layer(self._feature_dict, 'fm')
-      regularizers.apply_regularization(
-          self._emb_reg, weights_list=self._fm_features)
-
-    self._l2_reg = regularizers.l2_regularizer(
-        self._model_config.l2_regularization)
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
@@ -62,7 +47,9 @@ class DeepFM(RankModel):
         feature_configs,
         model_config.feature_groups,
         model_config.deepfm.wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable)
+        use_embedding_variable=model_config.use_embedding_variable,
+        embedding_regularizer=self._emb_reg,
+        kernel_regularizer=self._l2_reg)
 
   def build_predict_graph(self):
     # Wide

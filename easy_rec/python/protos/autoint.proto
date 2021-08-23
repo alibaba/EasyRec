@@ -1,0 +1,13 @@
+syntax = "proto2";
+package protos;
+
+
+message AutoInt {
+    // The number of heads
+    required uint32 multi_head_num = 1 [default = 1];
+    // The dimension of heads
+    required uint32 multi_head_size = 2;
+    // The number of interacting layers
+    required uint32 interacting_layer_num = 3 [default = 1];
+    required float l2_regularization = 4 [default = 1e-4];
+}

@@ -4,6 +4,7 @@ import logging
 
 import tensorflow as tf
 
+from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 
@@ -76,7 +77,7 @@ class MultiTaskModel(RankModel):
     """Build loss graph for multi task model."""
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      loss_weight = task_tower_cfg.weight
+      loss_weight = task_tower_cfg.weight * self._sample_weight
 
       if hasattr(task_tower_cfg, 'task_space_indicator_label') and \
           task_tower_cfg.HasField('task_space_indicator_label'):
@@ -93,6 +94,11 @@ class MultiTaskModel(RankModel):
               loss_weight=loss_weight,
               num_class=task_tower_cfg.num_class,
               suffix='_%s' % tower_name))
+
+    kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
+                                              self._labels)
+    self._loss_dict.update(kd_loss_dict)
+
     return self._loss_dict
 
   def get_outputs(self):

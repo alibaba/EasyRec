@@ -90,30 +90,42 @@ model_config: {
 }
 ```
 
-- model\_class: 'ESMM', 不需要修改
-- feature\_groups: 支持多组feature\_group
+- model_class: 'ESMM', 不需要修改
+- feature_groups: 支持多组feature_group
 - esmm: esmm相关的参数
   - groups
-    - input  tower的input必须和feature\_groups的group\_name对应
+    - input  tower的input必须和feature_groups的group_name对应
     - dnn deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-  - cvr\_tower
-    - tower\_name：'cvr'，不需要修改
-    - label\_name: tower对应的label名，若不设置，label\_fields需与task\_towers一一对齐
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+  - cvr_tower
+    - tower_name：'cvr'，不需要修改
+    - label_name: tower对应的label名，若不设置，label_fields需与task_towers一一对齐
     - dnn deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-    - 默认为二分类任务，即num\_class默认为1，weight默认为1.0，loss\_type默认为CLASSIFICATION，metrics\_set为auc
-  - ctr\_tower
-    - tower\_name：'ctr'，不需要修改
-    - label\_name: tower对应的label名，若不设置，label\_fields需与task\_towers一一对齐
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+    - 默认为二分类任务，即num_class默认为1，weight默认为1.0，loss_type默认为CLASSIFICATION，metrics_set为auc
+  - ctr_tower
+    - tower_name：'ctr'，不需要修改
+    - label_name: tower对应的label名，若不设置，label_fields需与task_towers一一对齐
     - dnn deep part的参数配置
-      - hidden\_units: dnn每一层的channel数目，即神经元的数目
-    - 默认为二分类任务，即num\_class默认为1，weight默认为1.0，loss\_type默认为CLASSIFICATION，metrics\_set为auc
-- embedding\_regularization: 对embedding部分加regularization，防止overfit
+      - hidden_units: dnn每一层的channel数目，即神经元的数目
+    - 默认为二分类任务，即num_class默认为1，weight默认为1.0，loss_type默认为CLASSIFICATION，metrics_set为auc
+- embedding_regularization: 对embedding部分加regularization，防止overfit
+
+ESMM模型输出的值有以下几项：
+
+- "logits\_" / "probs\_" + ctr_tower的tower_name
+- "logits\_" / "probs\_" /  "y\_" + cvr_tower的tower_name
+- "probs_ctcvr" / "y_ctcvr"
+
+ESMM模型的指标有以下几项：
+
+- 指标名 + "\_" + ctr_tower 的 tower_name
+- 指标名 + "\_" + cvr_tower 的 tower_name + "\_masked"
+- 指标名 + "\_ctcvr"
 
 ### 示例Config
 
-[ESMM\_demo.config](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/esmm.config)
+[ESMM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/esmm.config)
 
 ### 参考论文
 

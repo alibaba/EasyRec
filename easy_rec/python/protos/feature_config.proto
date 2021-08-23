@@ -9,6 +9,19 @@ enum WideOrDeep {
     WIDE_AND_DEEP = 2;
 }
 
+message AttentionCombiner {
+}
+
+message MultiHeadAttentionCombiner {
+}
+
+message SequenceCombiner {
+    oneof combiner {
+        AttentionCombiner attention = 1;
+        MultiHeadAttentionCombiner multi_head_attention = 2;
+    }
+}
+
 message FeatureConfig {
     enum FeatureType {
         IdFeature = 0;
@@ -19,25 +32,29 @@ message FeatureConfig {
         SequenceFeature = 5;
     }
 
-    // input field names: must be included in DatasetConfig.input_fields
-    repeated string input_names = 1;
-    required FeatureType feature_type = 2 [default = IdFeature];
-    optional string embedding_name = 3 [default = ''];
-    optional uint32 embedding_dim = 4 [default = 0];
+    optional string feature_name = 1;
 
-    optional uint32 hash_bucket_size = 5 [default = 0];
+    // input field names: must be included in DatasetConfig.input_fields
+    repeated string input_names = 2;
+    required FeatureType feature_type = 3 [default = IdFeature];
+    optional string embedding_name = 4 [default = ''];
+    optional uint32 embedding_dim = 5 [default = 0];
+
+    optional uint32 hash_bucket_size = 6 [default = 0];
     // for categorical_column_with_identity
-    optional uint32 num_buckets = 15 [default = 0];
+    optional uint32 num_buckets = 7 [default = 0];
 
     // only for raw features
-    repeated float boundaries = 6;
+    repeated float boundaries = 8;
 
-    optional string separator = 7 [default = '|'];
+    // separator with in features
+    optional string separator = 9 [default = '|'];
 
     // delimeter to separator key from value
-    optional string kv_separator = 8 [default = ':'];
+    optional string kv_separator = 10;
 
-    optional string feature_name = 9;
+    // delimeter to separate sequence multi-values
+    optional string seq_multi_sep = 101;
 
     optional string vocab_file = 11;
     repeated string vocab_list = 12;
@@ -65,6 +82,12 @@ message FeatureConfig {
     // normalize raw feature to [0-1]
     optional float min_val = 22 [default=0.0];
     optional float max_val = 23 [default=0.0];
+
+    // raw feature of multiple dimensions
+    optional uint32 raw_input_dim = 24 [default=1];
+
+    // sequence feature combiner
+    optional SequenceCombiner sequence_combiner = 25;
 }
 
 message FeatureGroupConfig {

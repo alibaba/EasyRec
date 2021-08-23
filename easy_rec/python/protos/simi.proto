@@ -1,0 +1,8 @@
+syntax = "proto2";
+package protos;
+
+enum Similarity {
+  COSINE = 0;
+  INNER_PRODUCT = 1;
+  EUCLID = 2;
+}

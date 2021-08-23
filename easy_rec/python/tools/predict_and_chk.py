@@ -24,7 +24,15 @@ if __name__ == '__main__':
   parser.add_argument(
       '--cmp_key', type=str, default='probs', help='compare key')
   parser.add_argument('--tol', type=float, default=1e-5, help='tolerance')
-  parser.add_argument('--separator', type=str, default='', help='separator')
+  parser.add_argument(
+      '--label_id',
+      nargs='*',
+      type=int,
+      help='the label column, which is to be excluded')
+  parser.add_argument(
+      '--separator', type=str, default='', help='separator between features')
+  parser.add_argument(
+      '--rtp_separator', type=str, default='', help='separator')
   args = parser.parse_args()
 
   if not args.saved_model_dir:
@@ -35,6 +43,9 @@ if __name__ == '__main__':
     logging.error('input_path is not set')
     sys.exit(1)
 
+  if args.label_id is None:
+    args.label_id = []
+
   logging.info('input_path: ' + args.input_path)
   logging.info('save_path: ' + args.save_path)
   logging.info('separator: ' + args.separator)
@@ -44,8 +55,14 @@ if __name__ == '__main__':
     batch_input = []
     for line_str in fin:
       line_str = line_str.strip()
-      line_tok = line_str.split(args.separator)
+      line_tok = line_str.split(args.rtp_separator)
       feature = line_tok[-1]
+      feature = [
+          x for fid, x in enumerate(feature.split(args.separator))
+          if fid not in args.label_id
+      ]
+      if len(predictor.input_names) == 1:
+        feature = args.separator.join(feature)
       batch_input.append(feature)
     output = predictor.predict(batch_input)
 

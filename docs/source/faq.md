@@ -23,7 +23,7 @@ Traceback (most recent call last):
 AssertionError: sep[b','] maybe invalid: field_num=7, required_num=131
 ```
 
-数据的列数和data\_configs里面的input\_fields数目不一致
+数据的列数和data_configs里面的input_fields数目不一致
 
 ```bash
 #查看数据列数
@@ -32,9 +32,9 @@ head -5 train.csv | awk -v FS=',' '{ print NF }'
 grep input_fields easy_rec.config | wc -l
 ```
 
-#### 多余的feature\_configs
+#### 多余的feature_configs
 
-如下所示, device\_make在feature\_groups里面没有出现，所以报下面的错误:
+如下所示, device_make在feature_groups里面没有出现，所以报下面的错误:
 
 ```bash
   File "/usr/lib/python3.7/site-packages/easy_rec/python/feature_column/feature_column.py", line 46, in __init__
@@ -52,19 +52,29 @@ KeyError: 'device_make'
 InvalidArgumentError (see above for traceback): Column size of the record to be saved: '588' does not match the default record column size: '17'.
 ```
 
-config中每个input\_fields需要与数据表一一对齐。上图错误为数据表588列数据，input\_fields只配置了17列。如有大量字段在训练中用不到，建议把使用的列从全量表里select出来，形成单独的表，也较少了io消耗，提高训练速度。
-其它未知的string\_to\_number错误，或者field number不一致，或者TagFeature的Id数和Weight数不一致，都有可能是odps table column和config的不一致导致的。
+config中每个input_fields需要与数据表一一对齐。上图错误为数据表588列数据，input_fields只配置了17列。如有大量字段在训练中用不到，建议把使用的列从全量表里select出来，形成单独的表，也较少了io消耗，提高训练速度。
+其它未知的string_to_number错误，或者field number不一致，或者TagFeature的Id数和Weight数不一致，都有可能是odps table column和config的不一致导致的。
 
 #### PAI上数据类型配置错误
 
+**1**
 ```
 [2020-08-10 11:37:14.903966] [FATAL] [70#292] [tensorflow/core/framework/tensor.cc:626] Check failed: dtype() == expected_dtype (1 vs. 2) double expected, got float
 xargs: ../python_bin: terminated by signal 6
 ```
 
-比如实际是bigint类型，data\_config里面的input\_type写成了FLOAT类型。
+比如实际是bigint类型，data_config里面的input_type写成了FLOAT类型。
 建议: describe table; 看一下字段类型。
 ![image.png](../images/faq/field_type.png)
+**2**
+```
+tensorflow.python.framework.errors_impl.InternalError: Unable to get element as bytes.
+terminate called after throwing an instance of 'apsara::odps::algo::BaseException'
+what():  build/release64/algo/data_io/table_writer/cluster/sql_record_writer.cpp(103): BaseException: |Commit to master failed
+```
+场景:在执行predict命令的时候报错如上
+问题：模型导出的配置文件的某数据类型和预测表的数据类型不一致
+![image2.png](../images/faq/field_type2.png)
 
 #### 模型导出错误
 
@@ -81,7 +91,7 @@ pai -name easy_rec_ext
   -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
   -Darn=acs:ram::1730760139076263:role/aliyunodpspaidefaultrole
   -Dbuckets=oss://yanzhen1/
-  -DossHost=oss-cn-shanghai-internal.aliyuncs.com;
+  -DossHost=oss-cn-beijing-internal.aliyuncs.com;
  错误
  Traceback (most recent call last):
   File "run.py", line 252, in <module>
@@ -102,7 +112,7 @@ pai -name easy_rec_ext
     compat.as_bytes(oldname), compat.as_bytes(newname), overwrite, status)
   File "/usr/lib/python2.7/site-packages/tensorflow/python/framework/errors_impl.py", line 528, in __exit__
     c_api.TF_GetCode(self.status.status))
-tensorflow.python.framework.errors_impl.UnavailableError: req_id: 5F225E6AD0E798313135AFAF, http status code: 400, error code: InvalidRequest, message: It is forbidden to copy appendable object in versioning state, oss host:oss-cn-shanghai-internal.aliyuncs.com, path:/yanzhen1/easy_rec_test/export_tmp/temp-1596087897/assets/pipeline.config.
+tensorflow.python.framework.errors_impl.UnavailableError: req_id: 5F225E6AD0E798313135AFAF, http status code: 400, error code: InvalidRequest, message: It is forbidden to copy appendable object in versioning state, oss host:oss-cn-beijing-internal.aliyuncs.com, path:/yanzhen1/easy_rec_test/export_tmp/temp-1596087897/assets/pipeline.config.
 ```
 
 #### 提交任务后卡死，无法查看log
@@ -217,7 +227,7 @@ Failed to execute system command. (exit code: 123.)
 可能是模型路径写错了，如下忘记写冒号了: oss://
 
 ```protobuf
-oss//easy-rec/test/din/model/model.ckpt.
+oss//easyrec/test/din/model/model.ckpt.
 ```
 
 #### 其它错误:
