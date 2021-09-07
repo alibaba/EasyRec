@@ -58,6 +58,7 @@ config中每个input_fields需要与数据表一一对齐。上图错误为数�
 #### PAI上数据类型配置错误
 
 **1**
+
 ```
 [2020-08-10 11:37:14.903966] [FATAL] [70#292] [tensorflow/core/framework/tensor.cc:626] Check failed: dtype() == expected_dtype (1 vs. 2) double expected, got float
 xargs: ../python_bin: terminated by signal 6
@@ -67,11 +68,13 @@ xargs: ../python_bin: terminated by signal 6
 建议: describe table; 看一下字段类型。
 ![image.png](../images/faq/field_type.png)
 **2**
+
 ```
 tensorflow.python.framework.errors_impl.InternalError: Unable to get element as bytes.
 terminate called after throwing an instance of 'apsara::odps::algo::BaseException'
 what():  build/release64/algo/data_io/table_writer/cluster/sql_record_writer.cpp(103): BaseException: |Commit to master failed
 ```
+
 场景:在执行predict命令的时候报错如上
 问题：模型导出的配置文件的某数据类型和预测表的数据类型不一致
 ![image2.png](../images/faq/field_type2.png)

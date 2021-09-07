@@ -36,8 +36,9 @@ repos:
       - id: docformatter
         args: ["--in-place", "--wrap-descriptions", "0", "--wrap-summaries", "0"]
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.5.1
+    rev: 0.7.1
     hooks:
     - id: mdformat
-      additional_dependencies:
-      - mdformat-tables
+      additional_dependencies: [
+        'mdformat-tables==0.4.0'
+      ]

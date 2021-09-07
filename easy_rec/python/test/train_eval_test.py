@@ -388,6 +388,18 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dbmtl_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_early_stop(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_early_stop_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_early_stop_dis(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/multi_tower_early_stop_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dbmtl_variational_dropout(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_variational_dropout.config', self._test_dir)

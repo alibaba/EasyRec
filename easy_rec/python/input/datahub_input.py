@@ -1,10 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-import pdb
-import sys
 import time
-import traceback
 
 import numpy as np
 import tensorflow as tf
@@ -19,9 +16,10 @@ except Exception:
 try:
   from datahub import DataHub
   from datahub.exceptions import DatahubException
-  from datahub.models import FieldType, RecordSchema, TupleRecord, BlobRecord, CursorType, RecordType
+  from datahub.models import RecordType
+  from datahub.models import CursorType
 except Exception:
-  data_hub = None
+  DataHub = None
 
 
 class DataHubInput(Input):
@@ -42,10 +40,12 @@ class DataHubInput(Input):
       self._datahub_config = datahub_config
       if self._datahub_config is None:
         pass
-      self._datahub = DataHub(self._datahub_config.akId, \
-      self._datahub_config.akSecret, self._datahub_config.region)
+      self._datahub = DataHub(self._datahub_config.akId,
+                              self._datahub_config.akSecret,
+                              self._datahub_config.region)
       self._num_epoch = 0
-    except:
+    except Exception as ex:
+      logging.info('exception in init datahub:', str(ex))
       pass
 
   def _parse_record(self, *fields):
@@ -85,8 +85,9 @@ class DataHubInput(Input):
         cursor = cursor_result.cursor
         limit = self._data_config.batch_size
         while True:
-          get_result = self._datahub.get_tuple_records(self._datahub_config.project \
-  , self._datahub_config.topic, shard_id, record_schema, cursor, limit)
+          get_result = self._datahub.get_tuple_records(
+              self._datahub_config.project, self._datahub_config.topic,
+              shard_id, record_schema, cursor, limit)
           batch_data_np = [x.copy() for x in batch_defaults]
           for row_id, record in enumerate(get_result.records):
             for col_id in range(len(record_defaults)):

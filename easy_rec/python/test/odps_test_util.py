@@ -9,19 +9,18 @@ import traceback
 
 import oss2
 from datahub import DataHub
+# from datahub.exceptions import LimitExceededException
 from datahub.exceptions import InvalidOperationException
-from datahub.exceptions import LimitExceededException
 from datahub.exceptions import ResourceExistException
-from datahub.exceptions import ResourceNotFoundException
-from datahub.models import BlobRecord
-from datahub.models import CursorType
+# from datahub.exceptions import ResourceNotFoundException
+# from datahub.models import BlobRecord
+# from datahub.models import CursorType
 from datahub.models import FieldType
 from datahub.models import RecordSchema
 from datahub.models import RecordType
 from datahub.models import TupleRecord
 from odps import ODPS
 from odps.df import DataFrame
-from six.moves import configparser
 
 
 class OdpsOSSConfig:
@@ -149,8 +148,8 @@ class OdpsOSSConfig:
       logging.info('create project success!')
     except ResourceExistException:
       logging.info('project %s already exist!' % self.dhproject)
-    except Exception as e:
-      logging.info(traceback.format_exc(e))
+    except Exception as ex:
+      logging.info(traceback.format_exc(ex))
     record_schema = RecordSchema.from_lists(col, col_type)
     try:
       self.dh.create_tuple_topic(self.dhproject, self.dhtopic, 7, 3,
@@ -158,7 +157,8 @@ class OdpsOSSConfig:
       logging.info('create tuple topic success!')
     except ResourceExistException:
       logging.info('topic %s already exist!' % self.dhtopic)
-    except Exception as e:
+    except Exception as ex:
+      logging.error('exception:', ex)
       logging.error(traceback.format_exc())
     try:
       self.dh.wait_shards_ready(self.dhproject, self.dhtopic)
@@ -175,8 +175,7 @@ class OdpsOSSConfig:
           record = TupleRecord(values=data.values, schema=record_schema)
           record_list.append(record)
           if size % 1000:
-            put_result = self.dh.put_records(self.dhproject, self.dhtopic,
-                                             record_list)
+            self.dh.put_records(self.dhproject, self.dhtopic, record_list)
             record_list = []
           size += 1
 

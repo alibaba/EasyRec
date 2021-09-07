@@ -3,7 +3,7 @@
 target_dir=$1
 
 if [ ! -d "$target_dir" ]
-then 
+then
   echo "$target_dir does not exist"
   exit 1
 fi
@@ -17,7 +17,7 @@ fi
 
 CP=/usr/bin/cp
 if [ ! -e "$CP" ]
-then 
+then
   echo "$CP does not exist"
   exit 1
 fi
@@ -48,10 +48,10 @@ git add requirements.txt
 git add setup.cfg setup.py
 
 
-find easy_rec -name "*.pyc" | xargs rm -rf 
-find easy_rec  -name "*_pb2.py" | xargs rm -rf 
-find . -name "*.swp" | xargs rm -rf 
-find . -name "*.swo" | xargs rm -rf 
+find easy_rec -name "*.pyc" | xargs rm -rf
+find easy_rec  -name "*_pb2.py" | xargs rm -rf
+find . -name "*.swp" | xargs rm -rf
+find . -name "*.swo" | xargs rm -rf
 
 version=`date +%Y%m%d`
 data_name=easy_rec_data_${version}.tar.gz

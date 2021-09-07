@@ -1,6 +1,6 @@
 # EasyRec简介
 
-## What is&#160;EasyRec?
+## What is EasyRec?
 
 ![intro.png](docs/images/intro.png)
 
@@ -12,7 +12,7 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 
 ### Run everywhere
 
--  Local / [MaxCompute](https://help.aliyun.com/product/27797.html) / [DataScience](https://help.aliyun.com/document_detail/170836.html) / [DLC](https://www.alibabacloud.com/help/zh/doc-detail/165137.htm?spm=a2c63.p38356.b99.79.4c0734a4bVav8D)
+- Local / [MaxCompute](https://help.aliyun.com/product/27797.html) / [DataScience](https://help.aliyun.com/document_detail/170836.html) / [DLC](https://www.alibabacloud.com/help/zh/doc-detail/165137.htm?spm=a2c63.p38356.b99.79.4c0734a4bVav8D)
 - TF1.12-1.15 / TF2.x / PAI-TF
 
 ### Diversified input data
@@ -55,6 +55,7 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 ### Get Started
 
 - Download
+
 ```
     git clone https://github.com/AlibabaPAI/EasyRec.git
     wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
@@ -65,7 +66,7 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 - [Run](docs/source/quick_start/local_tutorial.md)
 
 - [PAI-DSW DEMO](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
-(Rember to select Python 3 kernel)
+  (Rember to select Python 3 kernel)
 
 - [Develop](docs/source/develop.md)
 

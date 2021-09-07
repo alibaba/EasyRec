@@ -6,7 +6,7 @@ import sys
 
 import tensorflow as tf
 
-from easy_rec.python.test.dh_test_util import datahub_test_util
+# from easy_rec.python.test.dh_test_util import datahub_test_util
 from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import prepare
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig
