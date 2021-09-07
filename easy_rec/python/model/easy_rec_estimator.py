@@ -246,7 +246,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
-      if early_stop_var:
+      if early_stop_var is not None:
         var_list = [x for x in var_list if x != early_stop_var]
         local_init_op = tf.group([
             tf.initializers.local_variables(),
