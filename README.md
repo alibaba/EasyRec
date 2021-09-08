@@ -66,7 +66,7 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 - [Run](docs/source/quick_start/local_tutorial.md)
 
 - [PAI-DSW DEMO](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
-  (Rember to select Python 3 kernel)
+  (Remember to select Python 3 kernel)
 
 - [Develop](docs/source/develop.md)
 
