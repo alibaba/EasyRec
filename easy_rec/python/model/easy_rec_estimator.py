@@ -8,11 +8,14 @@ import time
 from collections import OrderedDict
 
 import tensorflow as tf
-from tensorflow.python.lib.io import file_io
 from tensorflow.python.saved_model import signature_constants
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
+from easy_rec.python.compat.early_stopping import custom_early_stop_hook
+from easy_rec.python.compat.early_stopping import find_early_stop_var
+from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
+from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
@@ -118,6 +121,31 @@ class EasyRecEstimator(tf.estimator.Estimator):
           estimator_utils.ExitBarrierHook(run_config.num_worker_replicas,
                                           run_config.is_chief, self.model_dir))
 
+    if self.export_config.enable_early_stop:
+      eval_dir = os.path.join(self._model_dir, 'eval_val')
+      logging.info('will use early stop, eval_events_dir=%s' % eval_dir)
+      if self.export_config.HasField('early_stop_func'):
+        hooks.append(
+            custom_early_stop_hook(
+                self,
+                eval_dir=eval_dir,
+                custom_stop_func=self.export_config.early_stop_func,
+                custom_stop_func_params=self.export_config.early_stop_params))
+      elif self.export_config.metric_bigger:
+        hooks.append(
+            stop_if_no_increase_hook(
+                self,
+                self.export_config.best_exporter_metric,
+                self.export_config.max_check_steps,
+                eval_dir=eval_dir))
+      else:
+        hooks.append(
+            stop_if_no_decrease_hook(
+                self,
+                self.export_config.best_exporter_metric,
+                self.export_config.max_check_steps,
+                eval_dir=eval_dir))
+
     summaries = ['global_gradient_norm']
     if self.train_config.summary_model_vars:
       summaries.extend(['gradient_norm', 'gradients'])
@@ -212,9 +240,28 @@ class EasyRecEstimator(tf.estimator.Estimator):
       scaffold = tf.train.Scaffold()
       chief_hooks = []
     else:
+      var_list = (
+          tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
+          tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+      # early_stop flag will not be saved in checkpoint
+      # and could not be restored from checkpoint
+      early_stop_var = find_early_stop_var(var_list)
+      if early_stop_var is not None:
+        var_list = [x for x in var_list if x != early_stop_var]
+        local_init_op = tf.group([
+            tf.initializers.local_variables(),
+            tf.initializers.variables([early_stop_var])
+        ])
+      else:
+        local_init_op = None
       scaffold = tf.train.Scaffold(
           saver=tf.train.Saver(
-              sharded=True, max_to_keep=self.train_config.keep_checkpoint_max))
+              var_list=var_list,
+              sharded=True,
+              max_to_keep=self.train_config.keep_checkpoint_max),
+          local_init_op=local_init_op,
+          ready_for_local_init_op=tf.report_uninitialized_variables(
+              var_list=var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,

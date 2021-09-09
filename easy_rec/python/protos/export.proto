@@ -31,15 +31,25 @@ message ExportConfig {
     optional string best_exporter_metric = 4 [default = 'auc'];
     // metric value the bigger the best
     optional bool metric_bigger = 5 [default = true];
+    // enable early stop
+    optional bool enable_early_stop = 6 [default=false];
+    // custom early stop function, format:
+    //    early_stop_func(eval_results, early_stop_params)
+    // return True if should stop
+    optional string early_stop_func = 601;
+    // custom early stop parameters
+    optional string early_stop_params = 602;
+    // early stop max check steps
+    optional int32 max_check_steps = 7 [default=10000];
 
     // each feature has a placeholder
-    optional bool multi_placeholder = 6 [default = true];
+    optional bool multi_placeholder = 8 [default = true];
 
     // export to keep, only for exporter_type in [best, latest]
-    optional int32 exports_to_keep = 7 [default = 1];
+    optional int32 exports_to_keep = 9 [default = 1];
 
     // multi value field list
-    optional MultiValueFields multi_value_fields = 8;
+    optional MultiValueFields multi_value_fields = 10;
     // is placeholder named by input
-    optional bool placeholder_named_by_input = 9 [default = false];
+    optional bool placeholder_named_by_input = 11 [default = false];
 }

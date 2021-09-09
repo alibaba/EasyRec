@@ -18,7 +18,7 @@ version_file = 'easy_rec/version.py'
 
 def get_version():
   if 'BUILD_EASYREC_DOC' in os.environ:
-    os.system("bash -x scripts/build_read_the_docs.sh") 
+    os.system('bash -x scripts/build_read_the_docs.sh')
   with codecs.open(version_file, 'r') as f:
     exec(compile(f.read(), version_file, 'exec'))
   return locals()['__version__']
