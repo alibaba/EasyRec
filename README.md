@@ -59,6 +59,7 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 ```
     git clone https://github.com/AlibabaPAI/EasyRec.git
     wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
+    sh scripts/gen_proto.sh
 ```
 
 - [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)
