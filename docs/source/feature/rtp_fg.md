@@ -431,8 +431,6 @@ EOF
 /home/admin/usertools/tools/eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e pai-eas.us-west-1.aliyuncs.com update easyrec_processor -s echo.json
 
 
-
-
 ```
 
 训练导出的时候需要修改fg.config ，保证导出的模型是支持多个place_holder 的输入
