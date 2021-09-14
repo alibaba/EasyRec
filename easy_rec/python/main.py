@@ -316,7 +316,8 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
       input_fn=train_input_fn, max_steps=train_steps)
   # create eval spec
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
-  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+  from easy_rec.python.compat import estimator_train
+  estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
 
 
@@ -380,7 +381,6 @@ def evaluate(pipeline_config,
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
-
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
 
   if server_target:
@@ -440,9 +440,7 @@ def evaluate(pipeline_config,
         continue
       # convert numpy float to python float
       result_to_write[key] = eval_result[key].item()
-
-    ofile.write(json.dumps(result_to_write))
-
+    ofile.write(json.dumps(result_to_write, indent=2))
   return eval_result
 
 
