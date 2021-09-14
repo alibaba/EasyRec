@@ -66,6 +66,6 @@ if __name__ == '__main__':
     fout.write('  -Dhpo_metric_save_path=%s\n' % args.hpo_metric_save_path)
     fout.write('  -Dmodel_dir=%s\n' % args.model_dir)
     fout.write('  -DossHost=%s\n' % args.oss_host)
-    fout.write('  -Dwith_evaluator=1;\n')
+    fout.write('  -Deval_method=separate;\n')
 
   print('write to %s' % args.sql_path)
