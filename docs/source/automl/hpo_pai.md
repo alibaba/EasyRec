@@ -12,7 +12,7 @@ pip install pai_automl-0.0.1rc1-py3-none-any.whl
 #### 启动调优
 
 ```bash
-python -m easy_rec.python.hpo.pai_hpo --odps_config ~/.odps_config.ini --oss_config ~/.ossutilconfig --bucket oss://xxx --role_arn acs:ram::xxx:role/xxx --hyperparams samples/hpo/hyperparams.json  --exp_dir easy_rec_test/experiment/model_hpo  --tables train_longonehot_4deepfm_20,test_longonehot_4deepfm_20 --config_path oss://xxx/easy_rec_test/dwd_avazu_hpo.config
+python -m easy_rec.python.hpo.pai_hpo --odps_config ~/.odps_config.ini --oss_config ~/.ossutilconfig --bucket oss://xxx --role_arn acs:ram::xxx:role/xxx --hyperparams samples/hpo/hyperparams.json  --exp_dir easy_rec_test/experiment/model_hpo  --train_tables train_longonehot_4deepfm_20 --eval_tables test_longonehot_4deepfm_20 --config_path oss://xxx/easy_rec_test/dwd_avazu_hpo.config
 ```
 
 ### 参数说明
@@ -65,7 +65,13 @@ accessKeySecret= xxx
 
 - --is_outer 内部pai还是外部pai
 
-- --selected_cols 用于训练和评估的列, 参考
+- --selected_cols 表里面用于训练和评估的列, 有助于提高训练速度
+
+- --cluster 定义PS的数目和worker的数目，有一个worker将被用于评估, 其它的worker用于训练. 
+
+```python
+   --cluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+```  
 
 #### hyperparams设置
 

@@ -96,12 +96,13 @@ python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmo
 pai -name easy_rec_ext -project algo_public
 -Dconfig=oss://easyrec/easy_rec_test/dwd_avazu_ctr_deepmodel_ext.config
 -Dcmd=train
--Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Dtrain_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train
+-Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Darn=acs:ram::xxx:role/ev-ext-test-oss
 -Dbuckets=oss://easyrec/
 -DossHost=oss-cn-beijing-internal.aliyuncs.com
--Dwith_evaluator=1;
+-Deval_method=separate;
 ```
 
 - -Dtrain_tables: 训练表，可以指定多个，逗号分隔
@@ -116,6 +117,7 @@ pai -name easy_rec_ext -project algo_public
 - -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
 - -DossHost: ossHost地址
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
+- -Dselected_cols 表里面用于训练和评估的列, 有助于提高训练速度
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
 - -Dedit_config_json: 使用json的方式对config的一些字段进行修改，如:
   ```sql
