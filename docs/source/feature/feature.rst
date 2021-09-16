@@ -9,9 +9,28 @@ ComboFeature。
 各种特征共用字段
 ----------------
 
--  input\_names: 输入的字段，根据特征需要，可以设置1个或者多个
--  feature\_name: 特征名称，如果没有设置，默认使用input\_names[0] 。
--  shared\_names:
+-  **input\_names**: 输入的字段，根据特征需要，可以设置1个或者多个
+-  **feature\_name**: 特征名称，如果没有设置，默认使用input\_names[0]作为feature\_name
+  - 如果有多个特征使用同一个input\_name，则需要设置不同的feature\_name, 否则会导致命名冲突
+  .. code:: protobuf
+    
+     feature_configs {
+       input_names: "uid"
+       feature_type: IdFeature
+       embedding_dim: 32
+       hash_bucket_size: 100000
+     }
+ 
+     feature_configs {
+       feature_name: "combo_uid_category"
+       input_names: "uid"
+       input_names: "category"
+       feature_type: ComboFeature
+       embedding_dim: 32
+       hash_bucket_size: 1000000
+     }
+
+-  **shared\_names**:
    其它输入的数据列，复用这个config，仅仅适用于只有一个input\_names的特征，不适用于有多个input\_names的特征，如ComboFeature。
 
 IdFeature: 离散值特征/ID类特征
@@ -231,6 +250,7 @@ ComboFeature：组合特征
 
     feature_configs {
         input_names: ["age", "sex"]
+        feature_name: "combo_age_sex"
         feature_type: ComboFeature
         embedding_dim: 16
         hash_bucket_size: 1000
