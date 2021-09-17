@@ -40,7 +40,7 @@ then
    exit 1
 fi
 
-if [ ! -e $odps_config ]
+if [ ! -e "$odps_config" ]
 then
   echo "$odps_config does not exist"
   exit 1
