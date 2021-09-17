@@ -27,14 +27,6 @@ sh upgrade_easy_rec.sh https://easyrec.oss-cn-beijing.aliyuncs.com/releases/easy
 
 ### PAI(Max Compute) EasyRec升级
 
-如果有xflow的部署权限
-
-```bash
-sh pai_jobs/deploy_ext.sh -V ${VERSION}
-```
-
-如果没有xflow的部署权限
-
 ```bash
 sh pai_jobs/deploy_ext.sh -V ${VERSION} -O
 ```
@@ -43,7 +35,7 @@ sh pai_jobs/deploy_ext.sh -V ${VERSION} -O
 
 ```
 pai -name easy_rec_ext
--Dres_project=my_project
+-Dres_project=${YOUR_PROJECT_NAME}
 -Dversion=${VERSION}
 ...
 ;
