@@ -8,6 +8,8 @@
 
 EasyRec implements state of the art machine learning models used in common recommedation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
 
+[EasyRec视频介绍](https://cloud.video.taobao.com/play/u/2248819/p/1/e/6/t/1/325898294308.mp4)
+
 ## Why EasyRec?
 
 ### Run everywhere
@@ -51,3 +53,6 @@ EasyRec implements state of the art machine learning models used in common recom
 
 - Easy to implement customized models
 - Not need to care about data pipelines
+
+
+欢迎加入【EasyRec推荐算法交流群】，群号 : 32260796

@@ -63,11 +63,10 @@ CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path dwd
 CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config --export_dir dwd_avazu_ctr_export
 ```
 
-#### CPU训练/评估/导出:
-
+#### CPU训练/评估/导出
+不指定CUDA_VISIBLE_DEVICES即可，例如：
 ```bash
- 不指定CUDA_VISIBLE_DEVICES即可，例如：
- python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/.config
+ python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config
 ```
 
 ### 配置文件:

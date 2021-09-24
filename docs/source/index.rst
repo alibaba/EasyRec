@@ -45,8 +45,9 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: PREDICT
 
-   predict/MaxCompute离线预测
-   predict/OnlinePrediction
+   predict/MaxCompute 离线预测
+   predict/local 离线预测
+   predict/在线预测
 
 .. toctree::
    :maxdepth: 2
