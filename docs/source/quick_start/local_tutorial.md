@@ -83,6 +83,8 @@ model_dir: "experiments/easy_rec/"
 
 #### 数据相关
 
+数据配置具体见：[数据](../feature/data.md)
+
 ```protobuf
 # 数据相关的描述
 data_config {
@@ -109,6 +111,7 @@ data_config {
 ```
 
 #### 特征相关
+特征配置具体见：[特征](../feature/feature.md)
 
 ```protobuf
 feature_configs: {
@@ -168,6 +171,7 @@ feature_configs: {
 ```
 
 #### 训练相关
+训练配置具体见：[训练](../train.md)
 
 ```protobuf
 # 训练相关的参数
@@ -196,6 +200,7 @@ train_config {
 ```
 
 #### 评估相关
+评估配置具体见：[评估](../eval.md)
 
 ```protobuf
 eval_config {
