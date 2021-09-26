@@ -1,4 +1,4 @@
-# EasyRecConfig参考手册
+# EasyRecConfig 参考手册
 
 <p>
     <div style="width:100%; border:none;text-align:center">

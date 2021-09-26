@@ -63,11 +63,10 @@ CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path dwd
 CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config --export_dir dwd_avazu_ctr_export
 ```
 
-#### CPU训练/评估/导出:
-
+#### CPU训练/评估/导出
+不指定CUDA_VISIBLE_DEVICES即可，例如：
 ```bash
- 不指定CUDA_VISIBLE_DEVICES即可，例如：
- python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/.config
+ python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config
 ```
 
 ### 配置文件:
@@ -83,6 +82,8 @@ model_dir: "experiments/easy_rec/"
 ```
 
 #### 数据相关
+
+数据配置具体见：[数据](../feature/data.md)
 
 ```protobuf
 # 数据相关的描述
@@ -110,6 +111,7 @@ data_config {
 ```
 
 #### 特征相关
+特征配置具体见：[特征](../feature/feature.md)
 
 ```protobuf
 feature_configs: {
@@ -169,6 +171,7 @@ feature_configs: {
 ```
 
 #### 训练相关
+训练配置具体见：[训练](../train.md)
 
 ```protobuf
 # 训练相关的参数
@@ -197,6 +200,7 @@ train_config {
 ```
 
 #### 评估相关
+评估配置具体见：[评估](../eval.md)
 
 ```protobuf
 eval_config {
