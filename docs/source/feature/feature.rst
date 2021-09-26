@@ -13,14 +13,14 @@ ComboFeature。
 -  **feature\_name**: 特征名称，如果没有设置，默认使用input\_names[0]作为feature\_name
   - 如果有多个特征使用同一个input\_name，则需要设置不同的feature\_name, 否则会导致命名冲突
   .. code:: protobuf
-    
+
      feature_configs {
        input_names: "uid"
        feature_type: IdFeature
        embedding_dim: 32
        hash_bucket_size: 100000
      }
- 
+
      feature_configs {
        feature_name: "combo_uid_category"
        input_names: "uid"

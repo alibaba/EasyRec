@@ -67,11 +67,11 @@ accessKeySecret= xxx
 
 - --selected_cols 表里面用于训练和评估的列, 有助于提高训练速度
 
-- --cluster 定义PS的数目和worker的数目，有一个worker将被用于评估, 其它的worker用于训练. 
+- --cluster 定义PS的数目和worker的数目，有一个worker将被用于评估, 其它的worker用于训练.
 
 ```python
    --cluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
-```  
+```
 
 #### hyperparams设置
 
