@@ -10,6 +10,7 @@ import "easy_rec/python/protos/dssm.proto";
 import "easy_rec/python/protos/mmoe.proto";
 import "easy_rec/python/protos/esmm.proto";
 import "easy_rec/python/protos/dbmtl.proto";
+import "easy_rec/python/protos/ple.proto";
 import "easy_rec/python/protos/simple_multi_task.proto";
 import "easy_rec/python/protos/dcn.proto";
 import "easy_rec/python/protos/autoint.proto";
@@ -63,7 +64,9 @@ message EasyRecModel {
         ESMM esmm = 302;
         DBMTL dbmtl = 303;
         SimpleMultiTask simple_multi_task = 304;
-        RocketLaunching rocket_launching = 305;
+        PLE ple = 305;
+
+        RocketLaunching rocket_launching = 401;
 
     }
     repeated SeqAttGroupConfig seq_att_groups = 7;

@@ -46,7 +46,7 @@ Welcome to easy_rec's documentation!
    :caption: PREDICT
 
    predict/MaxCompute 离线预测
-   predict/local 离线预测
+   predict/Local 离线预测
    predict/在线预测
 
 .. toctree::

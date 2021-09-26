@@ -1,0 +1,28 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/tower.proto";
+
+message ExtractionNetwork {
+    required string network_name = 1;
+    // number of experts per task
+    required uint32 expert_num_per_task = 2;
+    // number of experts for share
+    // For the last extraction_network, no need to configure this
+    optional uint32 share_num = 3;
+    // dnn network of experts per task
+    required DNN task_expert_net = 4;
+    // dnn network of experts for share
+    // For the last extraction_network, no need to configure this
+    optional DNN share_expert_net = 5;
+}
+
+message PLE {
+    // extraction network
+    repeated ExtractionNetwork extraction_networks = 1;
+    // task tower
+    repeated TaskTower task_towers = 2;
+    // l2 regularization
+    optional float l2_regularization = 3 [default = 1e-4];
+}
