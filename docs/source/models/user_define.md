@@ -13,6 +13,8 @@ sh scripts/ci_test.sh
 
 ### 编写模型proto文件
 
+EasyRec使用 [Protocol Buffer](https://developers.google.com/protocol-buffers/docs/pythontutorial) 定义配置文件格式。
+
 ```protobuf
 # easy_rec/python/protos/custom_model.proto
 syntax="proto2";

@@ -124,7 +124,8 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
 
 def _create_eval_export_spec(pipeline_config, eval_data):
   data_config = pipeline_config.data_config
-  feature_configs = pipeline_config.feature_configs
+  # feature_configs = pipeline_config.feature_configs
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   eval_config = pipeline_config.eval_config
   export_config = pipeline_config.export_config
   if eval_config.num_examples > 0:
@@ -257,7 +258,8 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
 
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
-  feature_configs = pipeline_config.feature_configs
+  # feature_configs = pipeline_config.feature_configs
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
 
   if train_config.train_distribute != DistributionStrategy.NoStrategy\
       and train_config.sync_replicas:
@@ -518,8 +520,8 @@ def export(export_dir,
     gfile.MakeDirs(export_dir)
 
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
-  feature_configs = pipeline_config.feature_configs
-
+  # feature_configs = pipeline_config.feature_configs
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   # create estimator
   params = {'log_device_placement': verbose}
   if asset_files:
