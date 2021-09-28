@@ -195,7 +195,11 @@ def convert_rtp_fg(rtp_fg,
         assert 'unknown feature type %s, currently not supported' % feature_type
       if 'shared_name' in feature:
         feature_config.embedding_name = feature['shared_name']
-      pipeline_config.feature_configs.append(feature_config)
+      # pipeline_config.feature_configs.append(feature_config)
+      if pipeline_config.feature_configs:
+        pipeline_config.feature_configs.append(feature_config)
+      else:
+        pipeline_config.feature_config.features.append(feature_config)
       pipeline_config.data_config.input_fields.append(input_field)
     except Exception as ex:
       print('Exception: %s %s' % (type(ex), str(ex)))

@@ -1,5 +1,9 @@
 # FAQ
 
+#### 如何查看tensorboard?
+
+具体请参考[优化](./optimize.md)。
+
 #### 能否支持zip或者tar.gz压缩的csv文件?
 
 暂时不支持

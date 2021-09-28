@@ -37,6 +37,7 @@ class FeatureColumnParser(object):
     Args:
       feature_configs: collections of
             easy_rec.python.protos.feature_config_pb2.FeatureConfig
+            or easy_rec.python.protos.feature_config_pb2.FeatureConfigV2.features
       wide_deep_dict: dict of {feature_name:WideOrDeep}, passed by
         easy_rec.python.layers.input_layer.InputLayer, it is defined in
         easy_rec.python.protos.easy_rec_model_pb2.EasyRecModel.feature_groups

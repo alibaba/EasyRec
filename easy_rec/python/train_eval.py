@@ -41,7 +41,7 @@ tf.app.flags.DEFINE_string(
     'edit_config_json',
     None,
     help='edit pipeline config str, example: {"model_dir":"experiments/",'
-    '"feature_config[0].boundaries":[4,5,6,7]}')
+    '"feature_config.feature[0].boundaries":[4,5,6,7]}')
 tf.app.flags.DEFINE_bool(
     'ignore_finetune_ckpt_error', False,
     'During incremental training, ignore the problem of missing fine_tune_checkpoint files'

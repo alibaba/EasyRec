@@ -25,7 +25,7 @@ class InputLayer(object):
   def __init__(self,
                feature_configs,
                feature_groups_config,
-               variational_dropout_config,
+               variational_dropout_config=None,
                wide_output_dim=-1,
                use_embedding_variable=False,
                embedding_regularizer=None,
@@ -70,7 +70,6 @@ class InputLayer(object):
     feature_group = self._feature_groups[group_name]
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
-
     if is_combine:  # return sequence features in combined format
       cols_to_output_tensors = {}
       output_features = feature_column.input_layer(

@@ -31,7 +31,9 @@ message EasyRecConfig {
 
   optional DatasetConfig data_config = 8;
 
-  repeated FeatureConfig feature_configs = 9;
+  //for compatibility
+  repeated FeatureConfig feature_configs = 90;
+  optional FeatureConfigV2 feature_config = 91;
 
   // recommendation model config
   required EasyRecModel model_config = 10;

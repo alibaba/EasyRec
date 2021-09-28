@@ -39,8 +39,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
   @property
   def feature_configs(self):
-    assert len(self._pipeline_config.feature_configs) > 0
-    return self._pipeline_config.feature_configs
+    if len(self._pipeline_config.feature_configs) > 0:
+      return self._pipeline_config.feature_configs
+    elif self._pipeline_config.feature_config and len(
+        self._pipeline_config.feature_config.features) > 0:
+      return self._pipeline_config.feature_config.features
+    else:
+      assert False, 'One of feature_configs and feature_config.features must be configured.'
 
   @property
   def model_config(self):
