@@ -51,19 +51,19 @@
 
     - num_buckets: 当输入是unsigned int类型的时候，并且输入有界的时候，可以指定num_bucket为输入的最大值.
 
-    - hash_bucket_size: 对应EasyRec feature_configs的hash_bucket_size.
+    - hash_bucket_size: 对应EasyRec feature_config.features的hash_bucket_size.
 
       - 和vocab_file, vocab_list相比，优势是不需要词典，词典可以是不固定的.
 
       - 劣势是需要设置的容量比较大，容易导致hash冲突.
 
-    - embedding_dimension/embedding_dim: 对应EasyRec feature_configs里面的embedding_dim.
+    - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
   - [RawFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
-    - 设置feature_configs.num_buckets = len(boundaries) + 1
+    - 设置feature_config.features.num_buckets = len(boundaries) + 1
 
     - value_dimension > 1时, feature_type = TagFeature
 
@@ -73,11 +73,13 @@
 
     ```
     会配置离散化的bucket, 如:
-    feature_configs: {
-      input_names: "hour"
-      feature_type: RawFeature
-      boundaries: [1,5,9,15,19,23]
-      embedding_dim: 16
+    feature_config: {
+      features: {
+        input_names: "hour"
+        feature_type: RawFeature
+        boundaries: [1,5,9,15,19,23]
+        embedding_dim: 16
+      }
     }
     ```
 
@@ -121,7 +123,7 @@
 
     - combiner: 默认是mean, 也可以是sum.
 
-      - 影响数据生成和EasyRec feature_configs生成, 主要是多值Feature.
+      - 影响数据生成和 EasyRec feature_config 生成, 主要是多值Feature.
 
     - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
 

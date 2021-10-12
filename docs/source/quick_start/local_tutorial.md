@@ -117,59 +117,61 @@ data_config {
 特征配置具体见：[特征](../feature/feature.md)
 
 ```protobuf
-feature_configs: {
-  input_names: "hour"
-  # 特征类型
-  feature_type: IdFeature
-  # embedding向量的dimension
-  embedding_dim: 16
-  # hash_bucket大小，通过tf.strings.to_hash_bucket将hour字符串映射到0-49的Id
-  hash_bucket_size: 50
-}
-feature_configs: {
-  input_names: "c1"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 10
-}
-...
-feature_configs: {
-  input_names: "site_category"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 100
-}
-feature_configs: {
-  input_names: "app_id"
-  feature_type: IdFeature
-  embedding_dim: 32
-  hash_bucket_size: 10000
-}
-...
-feature_configs: {
-  input_names: "c15"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "c16"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-...
-feature_configs: {
-  input_names: "c20"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "c21"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
+feature_config: {
+  features: {
+    input_names: "hour"
+    # 特征类型
+    feature_type: IdFeature
+    # embedding向量的dimension
+    embedding_dim: 16
+    # hash_bucket大小，通过tf.strings.to_hash_bucket将hour字符串映射到0-49的Id
+    hash_bucket_size: 50
+  }
+  features: {
+    input_names: "c1"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 10
+  }
+  ...
+  features: {
+    input_names: "site_category"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 100
+  }
+  features: {
+    input_names: "app_id"
+    feature_type: IdFeature
+    embedding_dim: 32
+    hash_bucket_size: 10000
+  }
+  ...
+  features: {
+    input_names: "c15"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "c16"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  ...
+  features: {
+    input_names: "c20"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "c21"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
 }
 ```
 
