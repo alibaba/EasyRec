@@ -244,18 +244,26 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   # Tempoary for EMR
   if (not is_on_pai()) and 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
-    # for ps on emr currently evaluator is not supported
-    # the cluster has one chief instead of master
-    # evaluation will not be done, so we replace chief with master
-    if 'cluster' in tf_config and 'chief' in tf_config[
-        'cluster'] and 'ps' in tf_config['cluster'] and (
+    if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
             'evaluator' not in tf_config['cluster']):
-      chief = tf_config['cluster']['chief']
-      del tf_config['cluster']['chief']
-      tf_config['cluster']['master'] = chief
-      if tf_config['task']['type'] == 'chief':
-        tf_config['task']['type'] = 'master'
-      os.environ['TF_CONFIG'] = json.dumps(tf_config)
+      easyrec_tf_config=dict()
+      easyrec_tf_config['cluster']={}
+      easyrec_tf_config['task']={}
+      easyrec_tf_config['cluster']['ps']=tf_config['cluster']['ps']
+      easyrec_tf_config['cluster']['master']=[]
+      size=len(tf_config['cluster']['worker'])
+      easyrec_tf_config['cluster']['master'].append(tf_config['cluster']['worker'].pop())
+      #del tf_config['cluster']['worker'][0]
+      easyrec_tf_config['cluster']['worker']=tf_config['cluster']['worker']
+      if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (size-1):
+        easyrec_tf_config['task']['type'] = 'master'
+        easyrec_tf_config['task']['index'] = 0
+      else:
+        easyrec_tf_config['task']['type']=tf_config['task']['type']
+        easyrec_tf_config['task']['index']=tf_config['task']['index']
+      print('print easyrec_tf_config')
+      print(easyrec_tf_config)
+      os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
 
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
@@ -368,6 +376,26 @@ def evaluate(pipeline_config,
 
   server_target = None
   if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    easyrec_tf_config=dict()
+    easyrec_tf_config['cluster']={}
+    easyrec_tf_config['task']={}
+    easyrec_tf_config['cluster']['ps']=tf_config['cluster']['ps']
+    easyrec_tf_config['cluster']['master']=[]
+    size=len(tf_config['cluster']['worker'])
+    easyrec_tf_config['cluster']['master'].append(tf_config['cluster']['worker'].pop())
+    #del tf_config['cluster']['worker'][0]
+    easyrec_tf_config['cluster']['worker']=tf_config['cluster']['worker']
+    if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (size-1):
+      easyrec_tf_config['task']['type'] = 'master'
+      easyrec_tf_config['task']['index'] = 0
+    else:
+      easyrec_tf_config['task']['type']=tf_config['task']['type']
+      easyrec_tf_config['task']['index']=tf_config['task']['index']
+    print('print easyrec_tf_config')
+    print(easyrec_tf_config)
+    os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
+
     tf_config = estimator_utils.chief_to_master()
     from tensorflow.python.training import server_lib
     if tf_config['task']['type'] == 'ps':
