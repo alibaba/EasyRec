@@ -134,9 +134,15 @@ def convert_rtp_fg(rtp_fg,
         logging.info('will cache %s' % feature_name)
         feature_config.is_cache = True
       is_multi = feature.get('is_multi', False)
+      is_seq = feature.get('is_seq', False)
       if feature_type == 'id_feature':
         if is_multi:
           feature_config.feature_type = feature_config.TagFeature
+          kv_separator = feature.get('kv_separator', None)
+          if kv_separator:
+            feature_config.feature_type = kv_separator
+        elif is_seq:
+          feature_config.feature_type = feature_config.SequenceFeature
         else:
           feature_config.feature_type = feature_config.IdFeature
         feature_config.embedding_dim = curr_embed_dim
@@ -201,6 +207,34 @@ def convert_rtp_fg(rtp_fg,
       else:
         pipeline_config.feature_config.features.append(feature_config)
       pipeline_config.data_config.input_fields.append(input_field)
+
+      if 'extra_combo_info' in feature:
+        extra_combo_info = feature['extra_combo_info']
+        feature_names = extra_combo_info.get('feature_names', [])
+        assert len(feature_names) >= 1, 'The feature number for ComboFeature must be greater than 2.'
+        combo_feature_config = FeatureConfig()
+        combo_feature_config.input_names.append(feature_name)
+
+        for fea_name in feature_names:
+          combo_feature_config.input_names.append(fea_name)
+
+        final_feature_name = 'combo__' + '_'.join(combo_feature_config.input_names)
+        final_feature_name = extra_combo_info.get('final_feature_name', final_feature_name)
+        combo_feature_config.feature_name = final_feature_name
+        combo_feature_config.feature_type = combo_feature_config.ComboFeature
+        curr_embed_dim = extra_combo_info.get('embedding_dimension',
+                                              extra_combo_info.get('embedding_dim', embedding_dim))
+        curr_combiner = extra_combo_info.get('combiner', 'mean')
+        combo_feature_config.embedding_dim = curr_embed_dim
+        combo_feature_config.combiner = curr_combiner
+        assert 'hash_bucket_size' in extra_combo_info, 'hash_bucket_size must be set in ComboFeature.'
+        _set_hash_bucket(extra_combo_info, combo_feature_config, None)
+
+        if pipeline_config.feature_configs:
+          pipeline_config.feature_configs.append(combo_feature_config)
+        else:
+          pipeline_config.feature_config.features.append(combo_feature_config)
+
     except Exception as ex:
       print('Exception: %s %s' % (type(ex), str(ex)))
       print(feature)
