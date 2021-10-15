@@ -596,6 +596,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
                   tf.estimator.ModeKeys.PREDICT):
         # build dataset from self._config.input_path
+        tf.get_default_graph().set_shape_optimize(False)
         self._mode = mode
         dataset = self._build(mode, params)
         return dataset
