@@ -1,6 +1,9 @@
-curr_path=`readlink -f $0`
+#/bin/bash
+
+curr_path=`greadlink -f $0`
 curr_dir=`dirname $curr_path`
 root_dir=`dirname $curr_dir`
+build_dir="$root_dir/build"
 
 VERSION=""
 ODPSCMD=odpscmd
@@ -40,12 +43,19 @@ then
    exit 1
 fi
 
+if [ -z $odps_config ]
+then
+  odpscmd_path=`greadlink -f $ODPSCMD`
+  odpscmd_dir=`dirname $odpscmd_path`
+  odpscmd_dir=`dirname $odpscmd_dir`
+  odps_config=$odpscmd_dir/conf/odps_config.ini
+fi
 if [ ! -e $odps_config ]
 then
   echo "$odps_config does not exist"
   exit 1
 fi
-odps_config=`readlink -f $odps_config`
+odps_config=`greadlink -f $odps_config`
 
 cd $root_dir
 bash scripts/gen_proto.sh
@@ -55,14 +65,25 @@ then
   exit 1
 fi
 
-cd $curr_dir
+if [ ! -d $build_dir ]
+then
+  mkdir $build_dir
+fi
+cd $build_dir
+if [ $? -ne 0 ]
+then
+  echo "cannot get to $build_dir"
+  exit 1
+fi
 
 RES_PATH=easy_rec_ext_${VERSION}_res.tar.gz
-ln -s $root_dir/easy_rec ./
+rm -rf ./easy_rec
+cp -R $root_dir/easy_rec ./easy_rec
 cp easy_rec/__init__.py easy_rec/__init__.py.bak
 sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
-ln -s ../requirements.txt ./
+cp ../requirements.txt ./requirements.txt
+cp $curr_dir/run.py ./run.py
 tar -cvzhf $RES_PATH easy_rec run.py requirements.txt
 mv easy_rec/__init__.py.bak easy_rec/__init__.py
 ${ODPSCMD} --config=$odps_config -e "add file $RES_PATH -f;"
@@ -80,17 +101,17 @@ then
 fi
 #rm -rf $RES_PATH
 
-cd easy_rec_flow_ex
-sed -i -e "s/parameter name=\"version\" use=\"optional\" default=\"[0-9A-Za-z_-]\+\"/parameter name=\"version\" use=\"optional\" default=\"$VERSION\"/g" easy_rec_ext.xml
-tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
-cd ../xflow-deploy
-package=../easy_rec_flow_ex/easy_rec_flow_ex.tar.gz
-python xflow_deploy.py conf=${odps_config} package=$package
-if [ $? -ne 0 ]
-then
-   echo "deploy $package failed"
-   exit 1
-else
-   echo "deploy $package succeed"
-fi
-rm -rf ../easy_rec_flow_ex/easy_rec_flow_ex ../easy_rec_flow_ex/easy_rec_flow_ex.tar.gz
+# cd easy_rec_flow_ex
+# sed -i -e "s/parameter name=\"version\" use=\"optional\" default=\"[0-9A-Za-z_-]\+\"/parameter name=\"version\" use=\"optional\" default=\"$VERSION\"/g" easy_rec_ext.xml
+# tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
+# cd ../xflow-deploy
+# package=../easy_rec_flow_ex/easy_rec_flow_ex.tar.gz
+# python xflow_deploy.py conf=${odps_config} package=$package
+# if [ $? -ne 0 ]
+# then
+#    echo "deploy $package failed"
+#    exit 1
+# else
+#    echo "deploy $package succeed"
+# fi
+# rm -rf ../easy_rec_flow_ex/easy_rec_flow_ex ../easy_rec_flow_ex/easy_rec_flow_ex.tar.gz

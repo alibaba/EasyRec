@@ -270,13 +270,19 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     train_data = pipeline_config.kafka_train_input
   elif pipeline_config.WhichOneof('train_path') == 'datahub_train_input':
     train_data = pipeline_config.datahub_train_input
+  elif data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    logging.info('use OdpsRTPInputV2 input data. pipline_config.fg_config = {}'.format(pipeline_config.fg_config))
+    train_data = (pipeline_config.train_input_path, pipeline_config.fg_config)
   else:
+    logging.info('use default input data')
     train_data = pipeline_config.train_input_path
 
   if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     eval_data = pipeline_config.kafka_eval_input
   elif pipeline_config.WhichOneof('eval_path') == 'datahub_eval_input':
     eval_data = pipeline_config.datahub_eval_input
+  elif data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    eval_data = (pipeline_config.eval_input_path, pipeline_config.fg_config)
   else:
     eval_data = pipeline_config.eval_input_path
 

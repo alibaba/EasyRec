@@ -37,4 +37,7 @@ message EasyRecConfig {
   required EasyRecModel model_config = 10;
 
   optional ExportConfig export_config = 11;
+
+  // rtp fg config file path
+  optional string fg_config = 101;
 }

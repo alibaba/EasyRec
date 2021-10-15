@@ -118,6 +118,9 @@ tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 
+# for RTP FG
+tf.app.flags.DEFINE_string('fg_config', '', 'rtp fg config file path')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -368,6 +371,10 @@ def main(argv):
     print('[run.py] update model_dir to %s' % pipeline_config.model_dir)
     assert pipeline_config.model_dir.startswith(
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
+
+  if FLAGS.fg_config:
+    pipeline_config.fg_config = FLAGS.fg_config
+    print('[run.py] update fg_config to %s' % pipeline_config.fg_config)
 
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
