@@ -66,56 +66,21 @@ def _set_hash_bucket(feature, feature_config, input_field):
     assert False, 'one of hash_bucket_size,vocab_file,vocab_list,num_buckets must be set'
 
 
-def convert_rtp_fg(rtp_fg,
-                   embedding_dim=16,
-                   batch_size=1024,
-                   label_fields=[],
-                   num_steps=10,
-                   model_type='',
-                   separator='\002',
-                   incol_separator='\003',
-                   train_input_path=None,
-                   eval_input_path=None,
-                   selected_cols='',
-                   input_type='OdpsRTPInput',
-                   is_async=False):
-  with tf.gfile.GFile(rtp_fg, 'r') as fin:
-    rtp_fg = json.load(fin)
-
-  model_dir = rtp_fg.get('model_dir', 'experiments/rtp_fg_demo')
-  num_steps = rtp_fg.get('num_steps', num_steps)
-  model_type = rtp_fg.get('model_type', model_type)
+def load_input_field_and_feature_config(rtp_fg,
+                                        label_fields,
+                                        embedding_dim=16,
+                                        incol_separator='\003'):
   embedding_dim = rtp_fg.get('embedding_dim', embedding_dim)
-  label_fields = rtp_fg.get('label_fields', label_fields)
-  model_path = rtp_fg.get('model_path', '')
-  edit_config_json = rtp_fg.get('edit_config_json', None)
-
-  logging.info('model_dir = %s' % model_dir)
-  logging.info('num_steps = %d' % num_steps)
-  logging.info('model_type = %s' % model_type)
   logging.info('embedding_dim = %s' % embedding_dim)
   logging.info('label_fields = %s' % ','.join(label_fields))
-  logging.info('model_path = %s' % model_path)
-  logging.info('edit_config_json = %s' % edit_config_json)
 
   pipeline_config = EasyRecConfig()
-
   for tmp_lbl in label_fields:
     input_field = DatasetConfig.Field()
     input_field.input_name = tmp_lbl
     input_field.input_type = DatasetConfig.INT32
     input_field.default_val = '0'
     pipeline_config.data_config.input_fields.append(input_field)
-
-  pipeline_config.data_config.separator = separator
-  if selected_cols:
-    pipeline_config.data_config.selected_cols = selected_cols
-  if train_input_path is not None:
-    pipeline_config.train_input_path = train_input_path
-  if eval_input_path is not None:
-    pipeline_config.eval_input_path = eval_input_path
-
-  pipeline_config.model_dir = model_dir
 
   rtp_features = rtp_fg['features']
   for feature in rtp_features:
@@ -134,15 +99,15 @@ def convert_rtp_fg(rtp_fg,
         logging.info('will cache %s' % feature_name)
         feature_config.is_cache = True
       is_multi = feature.get('is_multi', False)
-      is_seq = feature.get('is_seq', False)
+      # is_seq = feature.get('is_seq', False)
       if feature_type == 'id_feature':
         if is_multi:
           feature_config.feature_type = feature_config.TagFeature
           kv_separator = feature.get('kv_separator', None)
           if kv_separator:
             feature_config.feature_type = kv_separator
-        elif is_seq:
-          feature_config.feature_type = feature_config.SequenceFeature
+        # elif is_seq:
+        #   feature_config.feature_type = feature_config.SequenceFeature
         else:
           feature_config.feature_type = feature_config.IdFeature
         feature_config.embedding_dim = curr_embed_dim
@@ -211,19 +176,24 @@ def convert_rtp_fg(rtp_fg,
       if 'extra_combo_info' in feature:
         extra_combo_info = feature['extra_combo_info']
         feature_names = extra_combo_info.get('feature_names', [])
-        assert len(feature_names) >= 1, 'The feature number for ComboFeature must be greater than 2.'
+        assert len(
+            feature_names
+        ) >= 1, 'The feature number for ComboFeature must be greater than 2.'
         combo_feature_config = FeatureConfig()
         combo_feature_config.input_names.append(feature_name)
 
         for fea_name in feature_names:
           combo_feature_config.input_names.append(fea_name)
 
-        final_feature_name = 'combo__' + '_'.join(combo_feature_config.input_names)
-        final_feature_name = extra_combo_info.get('final_feature_name', final_feature_name)
+        final_feature_name = 'combo__' + '_'.join(
+            combo_feature_config.input_names)
+        final_feature_name = extra_combo_info.get('final_feature_name',
+                                                  final_feature_name)
         combo_feature_config.feature_name = final_feature_name
         combo_feature_config.feature_type = combo_feature_config.ComboFeature
-        curr_embed_dim = extra_combo_info.get('embedding_dimension',
-                                              extra_combo_info.get('embedding_dim', embedding_dim))
+        curr_embed_dim = extra_combo_info.get(
+            'embedding_dimension',
+            extra_combo_info.get('embedding_dim', embedding_dim))
         curr_combiner = extra_combo_info.get('combiner', 'mean')
         combo_feature_config.embedding_dim = curr_embed_dim
         combo_feature_config.combiner = curr_combiner
@@ -239,6 +209,52 @@ def convert_rtp_fg(rtp_fg,
       print('Exception: %s %s' % (type(ex), str(ex)))
       print(feature)
       sys.exit(1)
+  return pipeline_config
+
+
+def convert_rtp_fg(rtp_fg,
+                   embedding_dim=16,
+                   batch_size=1024,
+                   label_fields=[],
+                   num_steps=10,
+                   model_type='',
+                   separator='\002',
+                   incol_separator='\003',
+                   train_input_path=None,
+                   eval_input_path=None,
+                   selected_cols='',
+                   input_type='OdpsRTPInput',
+                   is_async=False):
+  with tf.gfile.GFile(rtp_fg, 'r') as fin:
+    rtp_fg = json.load(fin)
+
+  model_dir = rtp_fg.get('model_dir', 'experiments/rtp_fg_demo')
+  num_steps = rtp_fg.get('num_steps', num_steps)
+  model_type = rtp_fg.get('model_type', model_type)
+  label_fields = rtp_fg.get('label_fields', label_fields)
+  model_path = rtp_fg.get('model_path', '')
+  edit_config_json = rtp_fg.get('edit_config_json', None)
+  rtp_features = rtp_fg['features']
+
+  logging.info('model_dir = %s' % model_dir)
+  logging.info('num_steps = %d' % num_steps)
+  logging.info('model_type = %s' % model_type)
+  logging.info('model_path = %s' % model_path)
+  logging.info('edit_config_json = %s' % edit_config_json)
+
+  pipeline_config = load_input_field_and_feature_config(rtp_fg, label_fields,
+                                                        embedding_dim,
+                                                        incol_separator)
+
+  pipeline_config.model_dir = model_dir
+  pipeline_config.data_config.separator = separator
+  if selected_cols:
+    pipeline_config.data_config.selected_cols = selected_cols
+  if train_input_path is not None:
+    pipeline_config.train_input_path = train_input_path
+  if eval_input_path is not None:
+    pipeline_config.eval_input_path = eval_input_path
+
   pipeline_config.data_config.batch_size = batch_size
   pipeline_config.data_config.rtp_separator = ';'
   pipeline_config.data_config.label_fields.extend(label_fields)

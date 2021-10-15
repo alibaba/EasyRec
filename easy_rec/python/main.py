@@ -21,8 +21,9 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
-from easy_rec.python.utils import config_util, fg_util
+from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.pai_util import is_on_pai

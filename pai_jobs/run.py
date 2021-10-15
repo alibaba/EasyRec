@@ -11,8 +11,9 @@ import tensorflow as tf
 import easy_rec
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
-from easy_rec.python.utils import config_util, fg_util
+from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.estimator_utils import chief_to_master
@@ -367,7 +368,6 @@ def main(argv):
     print('[run.py] update model_dir to %s' % pipeline_config.model_dir)
     assert pipeline_config.model_dir.startswith(
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
-
 
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
