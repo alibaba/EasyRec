@@ -92,6 +92,34 @@
   - [ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
 
     - 需要设置embedding_dimension和hash_bucket_size.
+      方法一：在fg中生成combo特征，见[ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+
+    ```
+    {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
+    {"expression": "user:occupation", "feature_name": "occupation", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16, "group":"user"},
+    {"expression" : ["user:user_id", "user:occupation"], "feature_name" : "combo__occupation_age_level", "feature_type" : "combo_feature", "hash_bucket_size": 10, "embedding_dim": 16}
+
+    ```
+
+    - fg.json需进行三项配置，生成三列数据
+
+    方法二：在参与combo的特征配置中加入extra_combo_info配置，fg会生成两列数据，在easyrec层面进行combo.
+
+    ```
+     {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
+     {"expression": "user:occupation", "feature_name": "occupation", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16, "group":"user",
+       "extra_combo_info": {
+         "final_feature_name": "combo__occupation_age_level",
+         "feature_names": ["user_id"],
+         "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16
+       }
+     }
+    ```
+
+    - 最终会生成两列数据（user_id和occupation），config中生成三个特征配置，分别是user_id，occupation，combo\_\_occupation_age_level.
+    - final_feature_name: 该combo特征的名字.
+    - feature_names: 除当前特征外，参与combo的特征，至少一项.
+    - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
   - [LookupFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
 
@@ -141,6 +169,8 @@
     ```
 
   - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"\\u001D"
+
+  - kv_separator: 多值有权重特征的分隔符，如”体育:0.3|娱乐:0.2|军事:0.5”，不指定默认None，即没有权重
 
   - model_dir: 模型目录，仅仅影响EasyRec config生成.
 
