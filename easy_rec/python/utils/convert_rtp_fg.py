@@ -105,7 +105,7 @@ def load_input_field_and_feature_config(rtp_fg,
           feature_config.feature_type = feature_config.TagFeature
           kv_separator = feature.get('kv_separator', None)
           if kv_separator:
-            feature_config.feature_type = kv_separator
+            feature_config.kv_separator = kv_separator
         # elif is_seq:
         #   feature_config.feature_type = feature_config.SequenceFeature
         else:
