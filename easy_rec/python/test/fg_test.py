@@ -27,10 +27,6 @@ class FGTest(tf.test.TestCase):
         self._final_pipeline_config_path)
     final_pipeline_config_str = text_format.MessageToString(
         final_pipeline_config, as_utf8=True)
-    with tf.gfile.Open('./final_pipeline_config_str', 'wb') as f:
-      f.write(final_pipeline_config_str)
-    with tf.gfile.Open('./pipeline_config_str', 'wb') as f:
-      f.write(pipeline_config_str)
     self.assertEqual(pipeline_config_str, final_pipeline_config_str)
 
 
