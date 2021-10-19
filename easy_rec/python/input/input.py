@@ -6,6 +6,7 @@ import os
 from abc import abstractmethod
 from collections import OrderedDict
 
+import cv2
 import numpy as np
 import six
 import tensorflow as tf
@@ -477,6 +478,20 @@ class Input(six.with_metaclass(_meta_type, object)):
           if parsed_dict[input_0].dtype == tf.string:
             parsed_dict[input_0] = tf.string_to_number(
                 parsed_dict[input_0], tf.int32, name='%s_str_2_int' % input_0)
+      elif feature_type == fc.PicFeature:
+
+        def _load_pic(pic_paths):
+          pic_feas = []
+          for pic_path in pic_paths:
+            pic_path = pic_path.decode("utf-8")
+            pic_fea = cv2.imread(pic_path).astype(np.float32)
+            pic_feas.append(pic_fea)
+          pic_feas = np.array(pic_feas)
+          return pic_feas
+
+        pic_fea = tf.py_func(_load_pic, [field_dict[input_0]], Tout=tf.float32)
+        parsed_dict[input_0] = pic_fea
+
       else:
         for input_name in fc.input_names:
           parsed_dict[input_name] = field_dict[input_name]

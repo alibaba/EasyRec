@@ -44,6 +44,7 @@ class CSVInput(Input):
     with tf.control_dependencies([check_op]):
       fields = tf.decode_csv(
           line,
+          use_quote_delim=False,
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
           name='decode_csv')
@@ -52,6 +53,7 @@ class CSVInput(Input):
 
     for x in self._label_fids:
       inputs[self._input_fields[x]] = fields[x]
+
     return inputs
 
   def _build(self, mode, params):

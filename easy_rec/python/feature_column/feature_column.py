@@ -115,6 +115,8 @@ class FeatureColumnParser(object):
           self.parse_lookup_feature(config)
         elif config.feature_type == config.SequenceFeature:
           self.parse_sequence_feature(config)
+        elif config.feature_type == config.PicFeature:
+          self.parse_pic_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -203,6 +205,12 @@ class FeatureColumnParser(object):
       vocabulary_size = sum(1 for _ in fin)
       self._vocab_size[vocab_path] = vocabulary_size
       return vocabulary_size
+
+  def parse_pic_feature(self, config):
+    feature_name = config.input_names[0]
+    fc = feature_column.numeric_column(
+        feature_name, shape=(config.width, config.height, config.channel,))
+    self._deep_columns[feature_name] = fc
 
   def parse_id_feature(self, config):
     """Generate id feature columns.

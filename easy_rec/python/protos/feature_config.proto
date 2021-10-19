@@ -30,6 +30,7 @@ message FeatureConfig {
         ComboFeature = 3;
         LookupFeature = 4;
         SequenceFeature = 5;
+        PicFeature = 6;
     }
 
     optional string feature_name = 1;
@@ -88,6 +89,10 @@ message FeatureConfig {
 
     // sequence feature combiner
     optional SequenceCombiner sequence_combiner = 25;
+
+    optional uint32 width = 31 [default = 224];
+    optional uint32 height = 32 [default = 224];
+    optional uint32 channel = 33 [default = 3];
 }
 
 message FeatureConfigV2 {
