@@ -54,4 +54,4 @@ EasyRec implements state of the art machine learning models used in common recom
 - Easy to implement customized models
 - Not need to care about data pipelines
 
-欢迎加入【EasyRec推荐算法交流群】，群号 : 32260796
+欢迎加入【EasyRec推荐算法交流群】，钉钉群号 : 32260796

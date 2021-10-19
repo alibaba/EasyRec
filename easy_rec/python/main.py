@@ -23,6 +23,7 @@ from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.pai_util import is_on_pai
@@ -350,7 +351,8 @@ def evaluate(pipeline_config,
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
-
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
     if isinstance(eval_data_path, list):
@@ -466,6 +468,8 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   if data_path is not None:
     logging.info('Predict on data: %s' % data_path)
     pipeline_config.eval_input_path = data_path
@@ -520,6 +524,8 @@ def export(export_dir,
     gfile.MakeDirs(export_dir)
 
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   # create estimator
