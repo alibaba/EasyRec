@@ -280,10 +280,10 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
 
 #### 从配置文件\[fg.json\]生成EasyRec的config
 
-本地安装wheel包
+从Git克隆EasyRec
 
-```
-pip install http://easyrec.oss-cn-beijing.aliyuncs.com/release/whls/easy_rec-0.1.3-py2.py3-none-any.whl
+```bash
+git clone https://github.com/alibaba/EasyRec.git
 ```
 
 ```python
