@@ -5,6 +5,7 @@
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
+python setup.py install
 bash scripts/gen_proto.sh # 根据proto文件生成 配置解析.py文件
 ```
 
