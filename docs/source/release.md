@@ -22,8 +22,6 @@ pai -name easy_rec_ext
 ;
 ```
 
-
-
 ### EMR EasyRec升级
 
 ```bash

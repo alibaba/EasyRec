@@ -24,7 +24,6 @@ bash scripts/gen_proto.sh # 根据proto文件生成 配置解析.py文件
 
 - **Note: csv文件不需要有header!!!**
 
-
 ### 启动命令:
 
 #### 配置文件:

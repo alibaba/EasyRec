@@ -40,8 +40,6 @@ pre-commit run -a
 
 #### 单元测试
 
-TEST_DEVICES=0,1 sh scripts/ci_test.sh
-
 ```bash
 TEST_DEVICES=0,1 sh scripts/ci_test.sh
 ```
@@ -51,9 +49,11 @@ TEST_DEVICES=0,1 sh scripts/ci_test.sh
 ```bash
 TEMPDIR=/tmp python -m easy_rec.python.test.odps_run --oss_config ~/.ossutilconfig [--odps_config {ODPS_CONFIG} --algo_project {ALOG_PROJ}  --arn acs:ram::xxx:role/yyy TestPipelineOnOdps.*]
 ```
+
 #### 测试数据
 
 下载测试数据
+
 ```bash
 wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
 tar -xvzf easyrec_data_20210818.tar.gz
@@ -87,4 +87,4 @@ bash scripts/build_docs.sh
 python setup.py sdist bdist_wheel
 ```
 
-### [部署](./release.md) 
+### [部署](./release.md)

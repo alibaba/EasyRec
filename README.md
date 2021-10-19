@@ -1,19 +1,22 @@
 # EasyRec Introduction
 
-&nbsp;
+&#160;
+
 ## What is EasyRec?
----
+
+______________________________________________________________________
 
 ![intro.png](docs/images/intro.png)
 
 ### EasyRec is an easy to use framework for Recommendation
 
-EasyRec implements state of the art machine learning models used in common recommedation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
+EasyRec implements state of the art deep learning models used in common recommedation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
 
-&nbsp;
+&#160;
+
 ## Why EasyRec?
 
----
+______________________________________________________________________
 
 ### Run everywhere
 
@@ -49,9 +52,9 @@ EasyRec implements state of the art machine learning models used in common recom
 
 ### A variety of models
 
-- [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) 
-- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)  
-- [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md) 
+- [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md)
+- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)
+- [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
 - More models in development
 
 ### Easy to customize
@@ -59,48 +62,61 @@ EasyRec implements state of the art machine learning models used in common recom
 - Easy to implement [customized models](docs/source/models/user_define.md)
 - Not need to care about data pipelines
 
-&nbsp;
-## Get Started
----
+&#160;
 
-Running Platform: 
+## Get Started
+
+______________________________________________________________________
+
+Running Platform:
+
 - ### [Local](docs/source/quick_start/local_tutorial.md)
 - ### [MaxCompute](docs/source/quick_start/mc_tutorial.md)
 - ### [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
 - ### [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
 
-&nbsp;
+&#160;
+
 ## Document
 
----
+______________________________________________________________________
 
 - [Home](https://easyrec.readthedocs.io/en/latest/)
 - [FAQ](https://easyrec.readthedocs.io/en/latest/faq.html)
 - [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)(PPT)
 
-&nbsp;
+&#160;
+
 ## Contribute
----
+
+______________________________________________________________________
 
 Any contributions you make are greatly appreciated!
-  - Please report bugs by submitting a GitHub issue.
-  - Please submit contributions using pull requests.
-  - please refer to the [Development](docs/source/develop.md) document for more details.
 
-&nbsp;
-## Contact 
----
+- Please report bugs by submitting a GitHub issue.
+- Please submit contributions using pull requests.
+- please refer to the [Development](docs/source/develop.md) document for more details.
+
+&#160;
+
+## Contact
+
+______________________________________________________________________
 
 ### Join Us
 
-- DingDing Group: 32260796. (Easy_Rec usage general discussion.)
+- DingDing Group: 32260796. (EasyRec usage general discussion.)
 
 - Email Group: easy_rec@service.aliyun.com.
 
 ### Enterprise Service
-- If you need Easy_Rec enterprise service support, or purchase cloud product services, you can contact us by DingDing Group. 
 
-&nbsp;
+- If you need EasyRec enterprise service support, or purchase cloud product services, you can contact us by DingDing Group.
+
+&#160;
+
 ## License
----
+
+______________________________________________________________________
+
 EasyRec is released under Apache License 2.0. Please note that third-party libraries may not have the same license as EasyRec.
