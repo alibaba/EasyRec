@@ -4,8 +4,6 @@
 
 ## What is EasyRec?
 
-______________________________________________________________________
-
 ![intro.png](docs/images/intro.png)
 
 ### EasyRec is an easy to use framework for Recommendation
@@ -15,8 +13,6 @@ EasyRec implements state of the art deep learning models used in common recommed
 &#160;
 
 ## Why EasyRec?
-
-______________________________________________________________________
 
 ### Run everywhere
 
@@ -66,20 +62,16 @@ ______________________________________________________________________
 
 ## Get Started
 
-______________________________________________________________________
-
 Running Platform:
 
-- ### [Local](docs/source/quick_start/local_tutorial.md)
-- ### [MaxCompute](docs/source/quick_start/mc_tutorial.md)
-- ### [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
-- ### [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
+- [Local](docs/source/quick_start/local_tutorial.md)
+- [MaxCompute](docs/source/quick_start/mc_tutorial.md)
+- [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
+- [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
 
 &#160;
 
 ## Document
-
-______________________________________________________________________
 
 - [Home](https://easyrec.readthedocs.io/en/latest/)
 - [FAQ](https://easyrec.readthedocs.io/en/latest/faq.html)
@@ -88,8 +80,6 @@ ______________________________________________________________________
 &#160;
 
 ## Contribute
-
-______________________________________________________________________
 
 Any contributions you make are greatly appreciated!
 
@@ -100,8 +90,6 @@ Any contributions you make are greatly appreciated!
 &#160;
 
 ## Contact
-
-______________________________________________________________________
 
 ### Join Us
 
@@ -116,7 +104,5 @@ ______________________________________________________________________
 &#160;
 
 ## License
-
-______________________________________________________________________
 
 EasyRec is released under Apache License 2.0. Please note that third-party libraries may not have the same license as EasyRec.
