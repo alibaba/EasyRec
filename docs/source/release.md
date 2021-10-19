@@ -6,7 +6,13 @@
 sh pai_jobs/deploy_ext.sh -V ${VERSION} -O
 ```
 
-将资源包上传至ODPS，执行的时候只需加上下述命令参数，即可调用该版本EasyRec:
+将资源包上传至ODPS
+
+![newresource.png](../images/release/newresource.png)
+
+![resourceinformation.png](../images/release/resourceinformation.png)
+
+执行的时候只需加上下述命令参数，即可调用该版本EasyRec:
 
 ```
 pai -name easy_rec_ext
