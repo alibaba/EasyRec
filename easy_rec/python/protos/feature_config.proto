@@ -102,11 +102,11 @@ message FeatureGroupConfig {
 }
 
 message SeqAttMap {
-    required string key = 1;
-    required string hist_seq = 2;
+    repeated string key = 1;
+    repeated string hist_seq = 2;
 }
 
 message SeqAttGroupConfig {
     optional string group_name = 1;
-    repeated SeqAttMap seq_att_map = 2;
+    required SeqAttMap seq_att_map = 2;
 }
