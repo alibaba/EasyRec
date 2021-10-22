@@ -5,6 +5,8 @@ import logging
 import re
 from abc import abstractmethod
 
+import os
+import time
 import six
 import tensorflow as tf
 from tensorflow.python.framework import tensor_shape
@@ -135,6 +137,18 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       print('ckpt_path is model_dir,  will use the latest checkpoint: %s' %
             ckpt_path)
 
+    ######### edit by zixiao.
+    if ckpt_path.startswith('hdfs://'):
+      tmpdir="/tmp/experiment/"
+      tf.gfile.MkDir(tmpdir)
+      ckpt_filename = os.path.basename(ckpt_path)
+      for f in tf.gfile.Glob(ckpt_path+"*"):
+        logging.info(f)
+        tf.gfile.Copy(f, tmpdir+os.path.basename(f), overwrite=True)
+      ckpt_path = tmpdir+ckpt_filename+".index"
+      logging.info("sleeping 30s.")
+      time.sleep(30)
+    #########################
     ckpt_reader = tf.train.NewCheckpointReader(ckpt_path)
     ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
     if not include_global_step:
