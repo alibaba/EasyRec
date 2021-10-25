@@ -9,6 +9,7 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 
 if tf.__version__ >= '2.0':
@@ -72,6 +73,9 @@ def main(argv):
                      pipeline_config.train_config.fine_tune_checkpoint)
       else:
         assert FLAGS.ignore_finetune_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % FLAGS.fine_tune_checkpoint
+
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
 
     if FLAGS.odps_config:
       os.environ['ODPS_CONFIG_FILE_PATH'] = FLAGS.odps_config

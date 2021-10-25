@@ -46,7 +46,7 @@ class DeepFM(RankModel):
     self._input_layer = input_layer.InputLayer(
         feature_configs,
         model_config.feature_groups,
-        model_config.deepfm.wide_output_dim,
+        wide_output_dim=model_config.deepfm.wide_output_dim,
         use_embedding_variable=model_config.use_embedding_variable,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg)

@@ -13,6 +13,7 @@ from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.estimator_utils import chief_to_master
@@ -117,7 +118,6 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
-
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -391,6 +391,9 @@ def main(argv):
 
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
+
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
 
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
