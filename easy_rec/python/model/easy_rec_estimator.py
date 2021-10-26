@@ -273,7 +273,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
           save_secs=self._config.save_checkpoints_secs,
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
-          write_graph=True)
+          write_graph=self.train_config.write_graph)
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
