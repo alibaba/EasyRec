@@ -17,6 +17,8 @@ from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
+from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -135,6 +137,18 @@ class PredictorImpl(object):
 
     return dir_list[0]
 
+  def get_input_fields_from_pipeline_config(self, model_path):
+    pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
+    assert tf.gfile.Exists(pipeline_path), '%s not exists.' % pipeline_path
+    pipeline_config = get_configs_from_pipeline_file(pipeline_path)
+    input_fields = pipeline_config.data_config.input_fields
+    input_fields_info = {
+        input_field.input_name:
+        (input_field.input_type, input_field.default_val)
+        for input_field in input_fields
+    }
+    return input_fields_info
+
   def _build_model(self):
     """Load graph from model_path and create session for this graph."""
     model_path = self._model_path
@@ -153,6 +167,8 @@ class PredictorImpl(object):
         tf.logging.info('loading model from %s' % model_path)
         if tf.gfile.IsDirectory(model_path):
           model_path = self.search_pb(model_path)
+          self._input_fields_info = self.get_input_fields_from_pipeline_config(
+              model_path)
           logging.info('model find in %s' % model_path)
           assert tf.saved_model.loader.maybe_saved_model_directory(model_path), \
               'saved model does not exists in %s' % model_path
@@ -247,6 +263,7 @@ class PredictorImpl(object):
           'input %s  batchsize %d is not the same as the exported batch_size %d' % \
           (input_name, input_shape[0], tensor_shape[0])
       feed_dict[tensor] = input_data_dict[input_name]
+
     fetch_dict = {}
     if output_names is not None:
       for output_name in output_names:
@@ -293,6 +310,7 @@ class Predictor(PredictorInterface):
     self._outputs_map = self._predictor_impl._outputs_map
     self._profiling_file = profiling_file
     self._export_config = self._predictor_impl._export_config
+    self._input_fields_info = self._predictor_impl._input_fields_info
 
   @property
   def input_names(self):
@@ -330,26 +348,31 @@ class Predictor(PredictorInterface):
       output_table: table to write
       all_cols: union of columns
       all_col_types: data types of the columns
-      selected_cols: columns need by the model, must be the same as pipeline.config
-      reserved_cols: columns to be copied to output_table
-      batch_size: predict batch size
-      slice_id: when multiple workers write the same table, each worker should
-                be assigned different slice_id, which is usually slice_id
-      slice_num: table slice number
       selected_cols: included column names, comma separated, such as "a,b,c"
       reserved_cols: columns to be copy to output_table, comma separated, such as "a,b"
       output_cols: output columns, comma separated, such as "y float, embedding string",
                 the output names[y, embedding] must be in saved_model output_names
+      batch_size: predict batch size
+      slice_id: when multiple workers write the same table, each worker should
+                be assigned different slice_id, which is usually slice_id
+      slice_num: table slice number
     """
 
-    def _get_defaults(col_type):
-      defaults = {'string': '', 'double': 0.0, 'bigint': 0}
-      assert col_type in defaults, 'invalid col_type: %s' % col_type
-      return defaults[col_type]
+    def _get_defaults(col_name, col_type):
+      if col_name in self._input_fields_info:
+        col_type, default_val = self._input_fields_info[col_name]
+        default_val = get_type_defaults(col_type, default_val)
+        logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
+      else:
+        logging.info('col_name: %s is not used in predict.' % col_name)
+        defaults = {'string': '', 'double': 0.0, 'bigint': 0}
+        assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
+            col_name, col_type)
+        default_val = defaults[col_type]
+      return default_val
 
     all_cols = [x.strip() for x in all_cols.split(',') if x != '']
     all_col_types = [x.strip() for x in all_col_types.split(',') if x != '']
-    selected_cols = [x.strip() for x in selected_cols.split(',') if x != '']
     reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     if output_cols is None:
       output_cols = self._predictor_impl.output_names
@@ -363,7 +386,10 @@ class Predictor(PredictorInterface):
         tmp_cols.append(tmp_keys[0].strip())
       output_cols = tmp_cols
 
-    record_defaults = [_get_defaults(x) for x in all_col_types]
+    record_defaults = [
+        _get_defaults(col_name, col_type)
+        for col_name, col_type in zip(all_cols, all_col_types)
+    ]
     with tf.Graph().as_default(), tf.Session() as sess:
       input_table = input_table.split(',')
       dataset = tf.data.TableRecordDataset([input_table],
@@ -450,6 +476,7 @@ class Predictor(PredictorInterface):
                                              batch_size:(batch_idx + 1) *
                                              batch_size]
       feed_dict = self.batch(batch_data_list)
+
       outputs = self._predictor_impl.predict(feed_dict, output_names)
       for idx in range(len(batch_data_list)):
         single_result = {}
@@ -461,6 +488,7 @@ class Predictor(PredictorInterface):
   def batch(self, data_list):
     """Batching the data."""
     batch_input = {key: [] for key in self._predictor_impl.input_names}
+
     for data in data_list:
       if isinstance(data, dict):
         for key in data:

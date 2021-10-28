@@ -2,10 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 
-import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.input_utils import string_to_number
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -84,23 +84,8 @@ class RTPInput(Input):
     tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     fields = []
     for i in range(len(record_defaults)):
-      if type(record_defaults[i]) == int:
-        fields.append(
-            tf.string_to_number(
-                tmp_fields[:, i], tf.int64, name='field_as_int_%d' % i))
-      elif type(record_defaults[i]) in [float, np.float32, np.float64]:
-        fields.append(
-            tf.string_to_number(
-                tmp_fields[:, i], tf.float32, name='field_as_flt_%d' % i))
-      elif type(record_defaults[i]) in [str, type(u''), bytes]:
-        fields.append(tmp_fields[:, i])
-      elif type(record_defaults[i]) == bool:
-        fields.append(
-            tf.logical_or(
-                tf.equal(tmp_fields[:, i], 'True'),
-                tf.equal(tmp_fields[:, i], 'true')))
-      else:
-        assert 'invalid types: %s' % str(type(record_defaults[i]))
+      field = string_to_number(record_defaults[i], tmp_fields[:, i], i)
+      fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     effective_fids = [field_keys.index(x) for x in self._effective_fields]
