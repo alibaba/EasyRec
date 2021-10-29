@@ -261,11 +261,33 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
       else:
         easyrec_tf_config['task']['type']=tf_config['task']['type']
         easyrec_tf_config['task']['index']=tf_config['task']['index']
-      print('print easyrec_tf_config')
-      print(easyrec_tf_config)
       os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
 
+
   train_config = pipeline_config.train_config
+  if train_config.fine_tune_checkpoint:
+    fine_tune_ckpt_path = train_config.fine_tune_checkpoint
+    if fine_tune_ckpt_path.endswith('/') or tf.gfile.IsDirectory(fine_tune_ckpt_path + '/'):
+      fine_tune_ckpt_path = estimator_utils.latest_checkpoint(fine_tune_ckpt_path)
+      logging.info('ckpt_path is model_dir,  will use the latest checkpoint: %s' % fine_tune_ckpt_path)
+
+    if fine_tune_ckpt_path.startswith('hdfs://'):
+      tmpdir = os.path.dirname(fine_tune_ckpt_path.replace("hdfs://", ""))
+      tmpdir = os.path.join("/tmp/experiments", tmpdir)
+      logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
+      if tf.gfile.IsDirectory(tmpdir):
+        tf.gfile.DeleteRecursively(tmpdir)
+      tf.gfile.MakeDirs(tmpdir)
+      for src_path in tf.gfile.Glob(fine_tune_ckpt_path+"*"):
+        dst_path = os.path.join(tmpdir, os.path.basename(src_path))
+        logging.info('will copy %s to local path %s' % (src_path, dst_path))
+        tf.gfile.Copy(src_path, dst_path, overwrite=True)
+      ckpt_filename = os.path.basename(fine_tune_ckpt_path)
+      fine_tune_ckpt_path = os.path.join(tmpdir, ckpt_filename)
+    train_config.fine_tune_checkpoint = fine_tune_ckpt_path
+    logging.info('will restore from %s' % fine_tune_ckpt_path)
+
+
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)

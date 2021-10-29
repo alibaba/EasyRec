@@ -3,4 +3,4 @@ pandas
 psutil
 pydatahub
 scikit-learn
-xlrd >= 0.9.0
+pystack-debugger >= 0.9.0
