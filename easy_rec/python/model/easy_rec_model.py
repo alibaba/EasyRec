@@ -143,12 +143,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       tf.gfile.MkDir(tmpdir)
       ckpt_filename = os.path.basename(ckpt_path)
       for f in tf.gfile.Glob(ckpt_path+"*"):
-        logging.info(f)
+        logging.info('will copy %s to local path %s' % (f, tmpdir))
         tf.gfile.Copy(f, tmpdir+os.path.basename(f), overwrite=True)
-      ckpt_path = tmpdir+ckpt_filename+".index"
-      logging.info("sleeping 30s.")
-      time.sleep(30)
+      ckpt_path = os.path.join(tmpdir, ckpt_filename)
+      logging.info('will restore from %s' % ckpt_path)
     #########################
+
     ckpt_reader = tf.train.NewCheckpointReader(ckpt_path)
     ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
     if not include_global_step:
