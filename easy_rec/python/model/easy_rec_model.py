@@ -132,23 +132,6 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     name2var_map = self._get_restore_vars(ckpt_var_map_path)
     logging.info('start to restore from %s' % ckpt_path)
 
-    if ckpt_path.endswith('/') or tf.gfile.IsDirectory(ckpt_path + '/'):
-      ckpt_path = estimator_utils.latest_checkpoint(ckpt_path)
-      print('ckpt_path is model_dir,  will use the latest checkpoint: %s' %
-            ckpt_path)
-
-    ######### edit by zixiao.
-    if ckpt_path.startswith('hdfs://'):
-      tmpdir="/tmp/experiment/"
-      tf.gfile.MkDir(tmpdir)
-      ckpt_filename = os.path.basename(ckpt_path)
-      for f in tf.gfile.Glob(ckpt_path+"*"):
-        logging.info('will copy %s to local path %s' % (f, tmpdir))
-        tf.gfile.Copy(f, tmpdir+os.path.basename(f), overwrite=True)
-      ckpt_path = os.path.join(tmpdir, ckpt_filename)
-      logging.info('will restore from %s' % ckpt_path)
-    #########################
-
     ckpt_reader = tf.train.NewCheckpointReader(ckpt_path)
     ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
     if not include_global_step:
