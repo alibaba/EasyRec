@@ -312,7 +312,12 @@ class FeatureColumnParser(object):
                    (feature_name, config.num_buckets))
 
     if bounds:
-      fc = feature_column.bucketized_column(fc, bounds)
+      try:
+        fc = feature_column.bucketized_column(fc, bounds)
+      except Exception as e:
+        tf.logging.error('bucketized_column [%s] with bounds %s error' %
+                         (fc.name, str(bounds)))
+        raise e
       if self.is_wide(config):
         self._add_wide_embedding_column(fc, config)
       if self.is_deep(config):

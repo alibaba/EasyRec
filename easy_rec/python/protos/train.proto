@@ -97,4 +97,7 @@ message TrainConfig {
 
     // tensor fusion on PAI-TF
     optional bool tensor_fuse = 28 [default = false];
+
+    // write graph into graph.pbtxt and summary or not
+    optional bool write_graph = 29 [default = true];
 }
