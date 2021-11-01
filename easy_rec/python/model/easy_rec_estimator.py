@@ -248,6 +248,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+      initialize_var_list = [x for x in var_list if "WorkQueue" not in str(type(x))]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
@@ -266,7 +267,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
               max_to_keep=self.train_config.keep_checkpoint_max),
           local_init_op=local_init_op,
           ready_for_local_init_op=tf.report_uninitialized_variables(
-              var_list=var_list))
+              var_list=initialize_var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
