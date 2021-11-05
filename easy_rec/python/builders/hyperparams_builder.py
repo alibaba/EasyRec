@@ -21,6 +21,7 @@ from easy_rec.python.compat import regularizers
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+
 def build_regularizer(regularizer):
   """Builds a tensorflow regularizer from config.
 

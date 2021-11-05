@@ -42,7 +42,8 @@ class ESMM(MultiTaskModel):
       for group_id in range(self._group_num):
         group = self._model_config.groups[group_id]
         if group.input == 'user':
-          group_feature, _ = self._input_layer(self._feature_dict, exclude_group_names=exclude_group_names)
+          group_feature, _ = self._input_layer(
+              self._feature_dict, exclude_group_names=exclude_group_names)
         else:
           group_feature, _ = self._input_layer(self._feature_dict, group.input)
         self._group_features.append(group_feature)

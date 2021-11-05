@@ -31,7 +31,8 @@ class WideAndDeep(RankModel):
     assert self._input_layer.has_group('wide')
     _, self._wide_features = self._input_layer(self._feature_dict, 'wide')
     assert self._input_layer.has_group('deep')
-    _, self._deep_features = self._input_layer(self._feature_dict, exclude_group_names=['wide'])
+    _, self._deep_features = self._input_layer(
+        self._feature_dict, exclude_group_names=['wide'])
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim

@@ -65,14 +65,22 @@ def _set_hash_bucket(feature, feature_config, input_field):
   else:
     assert False, 'one of hash_bucket_size,vocab_file,vocab_list,num_buckets must be set'
 
-def process_features(feature_type, feature_name, feature, pipeline_config, embedding_dim, incol_separator, sub_value_type=None, is_sequence=False):
+
+def process_features(feature_type,
+                     feature_name,
+                     feature,
+                     pipeline_config,
+                     embedding_dim,
+                     incol_separator,
+                     sub_value_type=None,
+                     is_sequence=False):
   feature_config = FeatureConfig()
   feature_config.input_names.append(feature_name)
   feature_config.separator = incol_separator
   input_field = DatasetConfig.Field()
   input_field.input_name = feature_name
   curr_embed_dim = feature.get('embedding_dimension',
-                              feature.get('embedding_dim', embedding_dim))
+                               feature.get('embedding_dim', embedding_dim))
   curr_combiner = feature.get('combiner', 'mean')
   if feature.get('is_cache', False):
     logging.info('will cache %s' % feature_name)
@@ -166,8 +174,7 @@ def process_features(feature_type, feature_name, feature, pipeline_config, embed
     for fea_name in feature_names:
       combo_feature_config.input_names.append(fea_name)
 
-    final_feature_name = 'combo__' + '_'.join(
-        combo_feature_config.input_names)
+    final_feature_name = 'combo__' + '_'.join(combo_feature_config.input_names)
     final_feature_name = extra_combo_info.get('final_feature_name',
                                               final_feature_name)
     combo_feature_config.feature_name = final_feature_name
@@ -187,6 +194,7 @@ def process_features(feature_type, feature_name, feature, pipeline_config, embed
       pipeline_config.feature_config.features.append(combo_feature_config)
   return pipeline_config
 
+
 def load_input_field_and_feature_config(rtp_fg,
                                         label_fields,
                                         embedding_dim=16,
@@ -205,24 +213,34 @@ def load_input_field_and_feature_config(rtp_fg,
 
   rtp_features = rtp_fg['features']
   for feature in rtp_features:
-    logging.info("feature type = %s" % type(feature))
-    logging.info("feature = %s" % feature)
-    logging.info("feature_type in feature %s" % ("feature_name" in feature))
+    logging.info('feature type = %s' % type(feature))
+    logging.info('feature = %s' % feature)
+    logging.info('feature_type in feature %s' % ('feature_name' in feature))
     try:
-      if "feature_name" in feature:
+      if 'feature_name' in feature:
         feature_type = feature['feature_type']
         feature_name = feature['feature_name']
-        pipeline_config = process_features(feature_type, feature_name, feature, pipeline_config, embedding_dim, incol_separator)
-      elif "sequence_name" in feature:
+        pipeline_config = process_features(feature_type, feature_name, feature,
+                                           pipeline_config, embedding_dim,
+                                           incol_separator)
+      elif 'sequence_name' in feature:
         sequence_name = feature['sequence_name']
         for sub_feature in feature['features']:
           sub_feature_type = sub_feature['feature_type']
           sub_feature_name = sub_feature['feature_name']
           sub_value_type = None
-          if "value_type" in sub_feature:
+          if 'value_type' in sub_feature:
             sub_value_type = sub_feature['value_type']
-          all_sub_feature_name = sequence_name + "_" + sub_feature_name
-          pipeline_config = process_features(sub_feature_type, all_sub_feature_name, sub_feature, pipeline_config, embedding_dim, incol_separator, sub_value_type, is_sequence=True)
+          all_sub_feature_name = sequence_name + '_' + sub_feature_name
+          pipeline_config = process_features(
+              sub_feature_type,
+              all_sub_feature_name,
+              sub_feature,
+              pipeline_config,
+              embedding_dim,
+              incol_separator,
+              sub_value_type,
+              is_sequence=True)
     except Exception as ex:
       print('Exception: %s %s' % (type(ex), str(ex)))
       print(feature)
@@ -266,17 +284,18 @@ def convert_rtp_fg(rtp_fg,
 
   new_rtp_features = []
   for feature in rtp_features:
-    if "feature_name" in feature:
+    if 'feature_name' in feature:
       new_rtp_features.append(feature)
-    elif "sequence_name" in feature:
-      print("hello feature = ", feature)
+    elif 'sequence_name' in feature:
+      print('hello feature = ', feature)
       sequence_name = feature['sequence_name']
-      for sub_feature in feature["features"]:
-        print("sub_feature = ", sub_feature)
-        sub_feature["feature_name"] = sequence_name + "_" + sub_feature["feature_name"]
+      for sub_feature in feature['features']:
+        print('sub_feature = ', sub_feature)
+        sub_feature[
+            'feature_name'] = sequence_name + '_' + sub_feature['feature_name']
         new_rtp_features.append(sub_feature)
     else:
-      logging.info("Invalid fg feature format!")
+      logging.info('Invalid fg feature format!')
       sys.exit(1)
   rtp_features = new_rtp_features
   pipeline_config.model_dir = model_dir

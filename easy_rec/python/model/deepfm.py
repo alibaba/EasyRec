@@ -34,7 +34,7 @@ class DeepFM(RankModel):
 
     self._wide_features, _ = self._input_layer(self._feature_dict, 'wide')
     self._deep_features, self._fm_features = self._input_layer(
-        self._feature_dict, exclude_group_names=['wide','fm'])
+        self._feature_dict, exclude_group_names=['wide', 'fm'])
     if 'fm' in self._input_layer._feature_groups:
       _, self._fm_features = self._input_layer(self._feature_dict, 'fm')
 

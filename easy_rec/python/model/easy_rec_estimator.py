@@ -248,7 +248,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
-      initialize_var_list = [x for x in var_list if "WorkQueue" not in str(type(x))]
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x))
+      ]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
