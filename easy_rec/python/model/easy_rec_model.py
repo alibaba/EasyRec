@@ -78,6 +78,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._input_layer = input_layer.InputLayer(
         feature_configs,
         model_config.feature_groups,
+        seq_feature_groups_config=model_config.seq_att_groups,
         use_embedding_variable=model_config.use_embedding_variable,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,

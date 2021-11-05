@@ -30,13 +30,14 @@ class FM(RankModel):
 
     self._wide_features, _ = self._input_layer(self._feature_dict, 'wide')
     self._deep_features, self._fm_features = self._input_layer(
-        self._feature_dict, 'deep')
+        self._feature_dict, exclude_group_names=['wide'])
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
     self._input_layer = input_layer.InputLayer(
         feature_configs,
         model_config.feature_groups,
+        seq_feature_groups_config=model_config.seq_att_groups,
         wide_output_dim=model_config.num_class,
         use_embedding_variable=model_config.use_embedding_variable,
         embedding_regularizer=self._emb_reg,

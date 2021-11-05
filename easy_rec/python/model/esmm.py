@@ -34,12 +34,20 @@ class ESMM(MultiTaskModel):
     self._group_features = []
     if self._group_num > 0:
       logging.info('group_num: {0}'.format(self._group_num))
+      exclude_group_names = []
       for group_id in range(self._group_num):
         group = self._model_config.groups[group_id]
-        group_feature, _ = self._input_layer(self._feature_dict, group.input)
+        if group.input != 'user':
+          exclude_group_names.append(group.input)
+      for group_id in range(self._group_num):
+        group = self._model_config.groups[group_id]
+        if group.input == 'user':
+          group_feature, _ = self._input_layer(self._feature_dict, exclude_group_names=exclude_group_names)
+        else:
+          group_feature, _ = self._input_layer(self._feature_dict, group.input)
         self._group_features.append(group_feature)
     else:
-      group_feature, _ = self._input_layer(self._feature_dict, 'all')
+      group_feature, _ = self._input_layer(self._feature_dict)
       self._group_features.append(group_feature)
 
     # This model only supports two tasks (cvr+ctr or playtime+ctr).

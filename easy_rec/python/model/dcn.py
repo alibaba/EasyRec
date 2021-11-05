@@ -27,7 +27,7 @@ class DCN(RankModel):
     self._model_config = self._model_config.dcn
     assert isinstance(self._model_config, DCNConfig)
 
-    self._features, _ = self._input_layer(self._feature_dict, 'all')
+    self._features, _ = self._input_layer(self._feature_dict)
 
   def _cross_net(self, tensor, num_cross_layers):
     x = x0 = tensor

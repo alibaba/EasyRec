@@ -30,38 +30,42 @@ class SeqInputLayer(object):
     seq_att_map = feature_dict.seq_att_map
     keys = seq_att_map.key
     hist_seqs = seq_att_map.hist_seq
+    tf_summary = feature_dict.tf_summary
+    if tf_summary:
+      logging.info("Write sequence feature to tensorflow summary.")
 
-    def _seq_embed_name(input_name):
+    def _seq_embed_summary_name(input_name):
       input_name = input_name.split(':')[0]
       input_name = input_name.split('/')[:2]
       return 'sequence_feature/' + '/'.join(input_name)
 
-    with tf.variable_scope(group_name, reuse=tf.AUTO_REUSE):
-      key_tensors = []
-      for key in keys:
-        qfc = feature_column_dict[key]
-        with tf.variable_scope(qfc._var_scope_name):
-          key_tensors.append(
-              feature_column_dict[key]._get_dense_tensor(builder))
+    key_tensors = []
+    for key in keys:
+      qfc = feature_column_dict[key]
+      with tf.variable_scope(qfc._var_scope_name):
+        key_tensors.append(
+            feature_column_dict[key]._get_dense_tensor(builder))
+    if tf_summary:
       for key_tensor in key_tensors:
-        tf.summary.histogram(_seq_embed_name(key_tensor.name), key_tensor)
+        tf.summary.histogram(_seq_embed_summary_name(key_tensor.name), key_tensor)
 
-      hist_tensors = []
-      for hist_seq in hist_seqs:
-        seq_fc = feature_column_dict[hist_seq]
-        with tf.variable_scope(seq_fc._var_scope_name):
-          hist_tensors.append(
-              feature_column_dict[hist_seq]._get_sequence_dense_tensor(builder))
-      
+    hist_tensors = []
+    for hist_seq in hist_seqs:
+      seq_fc = feature_column_dict[hist_seq]
+      with tf.variable_scope(seq_fc._var_scope_name):
+        hist_tensors.append(
+            feature_column_dict[hist_seq]._get_sequence_dense_tensor(builder))
+    
+    if tf_summary:
       for hist_embed, hist_seq_len in hist_tensors:
-        tf.summary.histogram(_seq_embed_name(hist_embed.name), hist_embed)
-        tf.summary.histogram(_seq_embed_name(hist_seq_len.name), hist_seq_len)
+        tf.summary.histogram(_seq_embed_summary_name(hist_embed.name), hist_embed)
+        tf.summary.histogram(_seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
 
-      features = {
-        'key': tf.concat(key_tensors, axis=-1),
-        'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
-        'hist_seq_len': hist_tensors[0][1]
-      }
+    features = {
+      'key': tf.concat(key_tensors, axis=-1),
+      'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
+      'hist_seq_len': hist_tensors[0][1]
+    }
     return features
 
   def get_wide_deep_dict(self):

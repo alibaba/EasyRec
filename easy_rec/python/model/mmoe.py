@@ -26,7 +26,7 @@ class MMoE(MultiTaskModel):
     self._model_config = self._model_config.mmoe
     assert isinstance(self._model_config, MMoEConfig)
 
-    self._features, _ = self._input_layer(self._feature_dict, 'all')
+    self._features, _ = self._input_layer(self._feature_dict)
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
