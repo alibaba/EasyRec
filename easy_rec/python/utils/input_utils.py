@@ -59,5 +59,4 @@ def string_to_number(record_default, cur_field, name=''):
         tf.equal(cur_field, 'True'), tf.equal(cur_field, 'true'))
   else:
     assert 'invalid types: %s' % str(type(record_default))
-  print('tmp_field: ', tmp_field)
   return tmp_field

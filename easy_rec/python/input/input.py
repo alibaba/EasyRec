@@ -15,6 +15,7 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.input_utils import get_type_defaults
+from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -186,15 +187,15 @@ class Input(six.with_metaclass(_meta_type, object)):
     features = {}
     for tmp_id, fid in enumerate(effective_fids):
       ftype = self._input_field_types[fid]
-      tf_type = self.get_tf_type(ftype)
+      f_default = self._input_field_defaults[fid]
       input_name = self._input_fields[fid]
-      if tf_type in [tf.float32, tf.double, tf.int32, tf.int64]:
-        features[input_name] = tf.string_to_number(
-            input_vals[:, tmp_id],
-            tf_type,
-            name='input_str_to_%s' % tf_type.name)
-      else:
+      tf_type = self.get_tf_type(ftype)
+
+      if tf_type in [tf.string]:
         features[input_name] = input_vals[:, tmp_id]
+      else:
+        features[input_name] = string_to_number(f_default,
+                                                input_vals[:, tmp_id], tmp_id)
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
 
