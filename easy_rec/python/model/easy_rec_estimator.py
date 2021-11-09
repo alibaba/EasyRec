@@ -252,12 +252,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
+      # incompatiable shape restore will not be saved in checkpoint
+      # but must be able to restore from checkpoint
+      incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
       if early_stop_var is not None:
         var_list = [x for x in var_list if x != early_stop_var]
         local_init_op = tf.group([
             tf.initializers.local_variables(),
-            tf.initializers.variables([early_stop_var])
+            tf.initializers.variables([early_stop_var] + incompatiable_shape_restore)
         ])
+      elif len(incompatiable_shape_restore) > 0:
+        local_init_op = tf.group([
+            tf.initializers.local_variables(),
+            tf.initializers.variables(incompatiable_shape_restore)])
       else:
         local_init_op = None
       scaffold = tf.train.Scaffold(
