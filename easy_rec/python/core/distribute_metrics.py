@@ -5,7 +5,6 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
-from easy_rec.python.utils import pai_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
