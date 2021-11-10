@@ -7,6 +7,8 @@ from abc import abstractmethod
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import tensor_shape
+from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
@@ -14,8 +16,6 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
 from easy_rec.python.utils.load_class import get_register_class_meta
-from tensorflow.python.ops.variables import PartitionedVariable
-from tensorflow.python.framework import tensor_shape
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -148,13 +148,16 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         print('restore %s' % variable_name)
         ckpt_var_shape = ckpt_var2shape_map[variable_name]
         if type(variable) == list:
-          shape_arr = [ x.get_shape() for x in variable ]
+          shape_arr = [x.get_shape() for x in variable]
           var_shape = list(shape_arr[0])
           for x in shape_arr[1:]:
             var_shape[0] += x[0]
           var_shape = tensor_shape.TensorShape(var_shape)
-          variable = PartitionedVariable(variable_name, var_shape,
-              variable[0].dtype, variable,
+          variable = PartitionedVariable(
+              variable_name,
+              var_shape,
+              variable[0].dtype,
+              variable,
               partitions=[len(variable)] + [1] * (len(var_shape) - 1))
         else:
           var_shape = variable.shape.as_list()
@@ -163,19 +166,21 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
-            dtype = variable[0].dtype if isinstance(variable, list) else variable.dtype
+            dtype = variable[0].dtype if isinstance(variable,
+                                                    list) else variable.dtype
             with tf.variable_scope('incompatible_shape_restore'):
               tmp_var = tf.get_variable(
                   name=variable_name + '_T_E_M_P',
-                  shape=ckpt_var_shape, trainable=False,
+                  shape=ckpt_var_shape,
+                  trainable=False,
                   # add to a special collection for easy reference
                   # by tf.get_collection('T_E_M_P_RESTROE')
-                  collections=['T_E_M_P_RESTROE'], 
+                  collections=['T_E_M_P_RESTROE'],
                   dtype=dtype)
             vars_in_ckpt[variable_name] = tmp_var
             incompatible_shape_var_map[variable] = tmp_var
-            print('incompatible restore %s[%s, %s]' % (variable_name, str(var_shape),
-                str(ckpt_var_shape)))
+            print('incompatible restore %s[%s, %s]' %
+                  (variable_name, str(var_shape), str(ckpt_var_shape)))
           else:
             logging.warning(
                 'Variable [%s] is available in checkpoint, but '

@@ -60,7 +60,7 @@ fi
 if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
 then
   if [ -z "$odps_config" ]
-  then 
+  then
       echo "odps_config is not set"
   else
       echo "odps_config[$odps_config] does not exist"
