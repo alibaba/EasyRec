@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import ResNet50
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
@@ -24,55 +23,22 @@ class DBMTL(MultiTaskModel):
                                 is_training)
     assert self._model_config.WhichOneof('model') == 'dbmtl', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
-
-    self._features, _ = self._input_layer(self._feature_dict, 'all')
-
-    if 'pic' in self._input_layer._feature_groups:
-      self._pic_features, _ = self._input_layer(self._feature_dict, 'pic')
-      assert self._model_config.dbmtl.pic_dnn, 'pic_dnn must exist when feature group pic exists.'
-      pic_fea_flag = False
-      for feature_config in feature_configs:
-        if feature_config.feature_type == feature_config.PicFeature:
-          self.pic_width = feature_config.width
-          self.pic_height = feature_config.height
-          self.pic_channel = feature_config.channel
-          pic_fea_flag = True
-          break
-      assert pic_fea_flag, 'Type PicFeature must exist when feature group pic exists.'
     self._model_config = self._model_config.dbmtl
     assert isinstance(self._model_config, DBMTLConfig)
+
+    self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
-    # all_features = self._features
-    if 'pic' in self._input_layer._feature_groups:
-      pic_feature = tf.reshape(self._pic_features, (-1, 224, 224, 3))
-      img_model = ResNet50(include_top=False,
-                         pooling='max',
-                         weights='imagenet' if self._is_training else None)
-      img_emb = img_model(pic_feature) # (?, 2048)
-
-      pic_dnn = dnn.DNN(
-          self._model_config.pic_dnn,
-          self._l2_reg,
-          name='pic_dnn',
-          is_training=self._is_training)
-      img_emb = pic_dnn(img_emb)
-      all_features = tf.concat([img_emb, self._features], axis=-1)
-    else:
-      all_features = self._features
-
     if self._model_config.HasField('bottom_dnn'):
       bottom_dnn = dnn.DNN(
           self._model_config.bottom_dnn,
           self._l2_reg,
           name='bottom_dnn',
           is_training=self._is_training)
-      # bottom_fea = bottom_dnn(self._features)
-      bottom_fea = bottom_dnn(all_features)
+      bottom_fea = bottom_dnn(self._features)
     else:
-      # bottom_fea = self._features
-      bottom_fea = all_features
+      bottom_fea = self._features
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

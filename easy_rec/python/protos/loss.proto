@@ -1,5 +1,5 @@
 syntax = "proto2";
-package protos;
+package easy_rec.protos;
 
 enum LossType {
     CLASSIFICATION = 0;

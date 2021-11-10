@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package protos;
+package easy_rec.protos;
 
 // Proto with one-of field for regularizers.
 message Regularizer {

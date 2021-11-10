@@ -1,5 +1,5 @@
 syntax = "proto2";
-package protos;
+package easy_rec.protos;
 
 // Weighted Random Sampling ItemID not in Batch
 message NegativeSampler {
@@ -169,6 +169,9 @@ message DatasetConfig {
         DataHubInput = 15;
         OdpsInputV3 = 9;
         RTPInput = 4;
+        GroupRTPInput = 40;
+        OdpsGroupRTPInput = 41;
+
         RTPInputV2 = 5;
         OdpsRTPInput = 6;
         TFRecordInput = 7;
@@ -211,6 +214,8 @@ message DatasetConfig {
 
     // for RTPInput only
     optional string rtp_separator = 17 [default = ';'];
+    // for GroupRTPInput only
+    optional string group_sample_separator = 26 [default = ''];
 
     // ignore some data errors
     // it is not suggested to set this parameter

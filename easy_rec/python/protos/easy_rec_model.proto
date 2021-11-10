@@ -1,5 +1,5 @@
 syntax = "proto2";
-package protos;
+package easy_rec.protos;
 
 import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
@@ -65,6 +65,7 @@ message EasyRecModel {
         DBMTL dbmtl = 303;
         SimpleMultiTask simple_multi_task = 304;
         PLE ple = 305;
+        E2E_DBMTL e2e_dbmtl = 306;
 
         RocketLaunching rocket_launching = 401;
 

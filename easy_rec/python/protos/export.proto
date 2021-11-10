@@ -1,5 +1,5 @@
 syntax = "proto2";
-package protos;
+package easy_rec.protos;
 
 message MultiValueFields {
     repeated string input_name = 1;
@@ -52,4 +52,11 @@ message ExportConfig {
     optional MultiValueFields multi_value_fields = 10;
     // is placeholder named by input
     optional bool placeholder_named_by_input = 11 [default = false];
+
+    // only for e2e mm model
+    // enum ExportPartModel {
+    //    all_model = 1;
+    //    rec_model = 2;
+    //}
+    // optional ExportPartModel export_part_model = 12;
 }

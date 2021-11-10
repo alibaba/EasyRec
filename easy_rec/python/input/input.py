@@ -38,7 +38,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
-
+    self._exclude_cols = []
     if self._data_config.auto_expand_input_fields:
       input_fields = [x for x in self._data_config.input_fields]
       while len(self._data_config.input_fields) > 0:
@@ -176,6 +176,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     inputs = {}
+
     for fid in effective_fids:
       input_name = self._input_fields[fid]
       if placeholder_named_by_input:
@@ -187,11 +188,16 @@ class Input(six.with_metaclass(_meta_type, object)):
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+      elif input_name == 'img_path':
+        finput = tf.placeholder(
+            tf.float32, [None, 224, 224, 3], name='img_path')
       else:
         ftype = self._input_field_types[fid]
         tf_type = self.get_tf_type(ftype)
         finput = tf.placeholder(tf_type, [None], name=placeholder_name)
+
       inputs[input_name] = finput
+
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
     return inputs, features
@@ -309,6 +315,9 @@ class Input(six.with_metaclass(_meta_type, object)):
       feature_name = fc.feature_name
       feature_type = fc.feature_type
       input_0 = fc.input_names[0]
+      if input_0 in self._exclude_cols:
+        print('exculde %s in preprocess' % input_0)
+        continue
       if feature_type == fc.TagFeature:
         input_0 = fc.input_names[0]
         field = field_dict[input_0]
@@ -478,19 +487,43 @@ class Input(six.with_metaclass(_meta_type, object)):
           if parsed_dict[input_0].dtype == tf.string:
             parsed_dict[input_0] = tf.string_to_number(
                 parsed_dict[input_0], tf.int32, name='%s_str_2_int' % input_0)
-      elif feature_type == fc.PicFeature:
+      elif feature_type == fc.ImgFeature:
 
-        def _load_pic(pic_paths):
-          pic_feas = []
-          for pic_path in pic_paths:
-            pic_path = pic_path.decode("utf-8")
-            pic_fea = cv2.imread(pic_path).astype(np.float32)
-            pic_feas.append(pic_fea)
-          pic_feas = np.array(pic_feas)
-          return pic_feas
+        def _load_img(img_paths):
+          img_feas = []
+          for img_path in img_paths:
+            img_path = img_path.decode('utf-8')
+            if tf.gfile.Exists(img_path):
+              img_fea = np.asarray(
+                  bytearray(tf.gfile.FastGFile(img_path, 'rb').read()))
+              img_fea = cv2.imdecode(img_fea, cv2.IMREAD_COLOR)
+            else:
+              img_fea = np.zeros(shape=(224, 224, 3))
+            img_fea = img_fea.astype(np.float32)
+            img_feas.append(img_fea)
+          img_feas = np.array(img_feas)
+          return img_feas
 
-        pic_fea = tf.py_func(_load_pic, [field_dict[input_0]], Tout=tf.float32)
-        parsed_dict[input_0] = pic_fea
+        field = field_dict[input_0]
+        if (len(field.get_shape()) == 1):
+          img_fea = tf.py_func(_load_img, [field], Tout=tf.float32)
+          parsed_dict[input_0] = img_fea
+        else:
+          parsed_dict[input_0] = field
+      elif feature_type == fc.SampleNumFeature:
+
+        def _repeat_sample(sample_nums):
+          sample_num_feas = []
+          idx = 0
+          for sample_num in sample_nums:
+            sample_num_feas.extend([idx] * sample_num)
+            idx += 1
+          sample_num_feas = np.array(sample_num_feas)
+          return sample_num_feas
+
+        sample_num_fea = tf.py_func(
+            _repeat_sample, [field_dict[input_0]], Tout=tf.int64)
+        parsed_dict[input_0] = sample_num_fea
 
       else:
         for input_name in fc.input_names:

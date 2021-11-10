@@ -1,5 +1,5 @@
 syntax = "proto3";
-package protos;
+package easy_rec.protos;
 
 message EmbeddingPartData {
     // Shape of the embedding

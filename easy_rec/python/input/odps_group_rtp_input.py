@@ -6,24 +6,26 @@ import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+try:
+  import pai
+except Exception:
+  pass
 
 
-class RTPInput(Input):
-  """RTPInput for parsing rtp fg new input format.
+class OdpsGroupRTPInput(Input):
+  """RTPInput for parsing rtp fg new input format on odps.
 
-  Our new format(csv in csv) of rtp output:
+  Our new format(csv in table) of rtp output:
      label0, item_id, ..., user_id, features
-  here the separator(,) could be specified by data_config.rtp_separator
   For the feature column, features are separated by ,
      multiple values of one feature are separated by , such as:
      ...20beautysmartParis...
   The features column and labels are specified by data_config.selected_cols,
-     columns are selected by indices as our csv file has no header,
-     such as: 0,1,4, means the 4th column is features, the 1st and 2nd
-     columns are labels
+     columns are selected by names in the table
+     such as: clk,features, the last selected column is features, the first
+     selected columns are labels
   """
 
   def __init__(self,
@@ -32,56 +34,55 @@ class RTPInput(Input):
                input_path,
                task_index=0,
                task_num=1):
-    super(RTPInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num)
+    super(OdpsGroupRTPInput, self).__init__(data_config, feature_config, input_path,
+                                       task_index, task_num)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
-    self._rtp_separator = self._data_config.rtp_separator
-    if not isinstance(self._rtp_separator, str):
-      self._rtp_separator = self._rtp_separator.encode('utf-8')
-    self._selected_cols = [
-        int(x) for x in self._data_config.selected_cols.split(',')
-    ]
-    self._num_cols = -1
-    self._feature_col_id = self._selected_cols[-1]
-    logging.info('rtp separator = %s' % self._rtp_separator)
-    print('self._selected_cols: ', self._selected_cols)
 
-  def _parse_csv(self, line):
-    record_defaults = ['' for i in range(self._num_cols)]
-    lbl_id = 0
-    for x, t, v in zip(self._input_fields, self._input_field_types,
-                       self._input_field_defaults):
-      if x not in self._label_fields:
-        continue
-      record_defaults[self._selected_cols[lbl_id]] = self.get_type_defaults(
-          t, v)
-
-    # the actual features are in one single column
-    record_defaults[self._feature_col_id] = self._data_config.separator.join([
-        str(self.get_type_defaults(t, v))
+  def _parse_table(self, *fields):
+    fields = list(fields)
+    # group => sample
+    label_record_defaults = [
+        t
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
-        if x not in self._label_fields
-    ])
+        if x in self._label_fields
+    ]
+    sample_fields = []
+    # label
+    for idx in range(len(label_record_defaults)):
+      field = tf.string_split(fields[idx], self._data_config.group_sample_separator, skip_empty=False)
+      if label_record_defaults[idx] in [DatasetConfig.INT32]:
+          field = tf.string_to_number(field.values, tf.int32)
+      elif label_record_defaults[idx] in [DatasetConfig.INT64]:
+          field = tf.string_to_number(field.values, tf.int64)
+      elif label_record_defaults[idx] in [DatasetConfig.FLOAT]:
+          field = tf.string_to_number(field.values, tf.float32)
+      elif field.values.dtype in [DatasetConfig.DOUBLE]:
+          field = tf.string_to_number(field.values, tf.float64)
+      else:
+          field = field.values
+      sample_fields.append(field)
+    # features
+    field = tf.string_split(fields[-3], self._data_config.group_sample_separator, skip_empty=False).values
+    sample_fields.append(field)
+    # pic_path
+    sample_fields.append(fields[-2])
+    # group_size
+    sample_fields.append(fields[-1])
 
-    fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
-    fields = tf.reshape(fields.values, [-1, len(record_defaults)])
-    labels = [fields[:, x] for x in self._selected_cols[:-1]]
-
+    labels = sample_fields[:-3]
     # only for features, labels excluded
     record_defaults = [
         self.get_type_defaults(t, v)
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
         if x not in self._label_fields
-    ]
+    ][:-2] # drop pic_path and group_size
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
     fields = tf.string_split(
-        fields[:, self._feature_col_id],
-        self._data_config.separator,
-        skip_empty=False)
+        sample_fields[-3], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     fields = []
     for i in range(len(record_defaults)):
@@ -105,37 +106,33 @@ class RTPInput(Input):
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     effective_fids = [field_keys.index(x) for x in self._effective_fields]
-    inputs = {field_keys[x]: fields[x] for x in effective_fids}
+    inputs = {field_keys[x]: fields[x] for x in effective_fids[:-2]}
 
     for x in range(len(self._label_fields)):
       inputs[self._label_fields[x]] = labels[x]
+
+    inputs[self._input_fields[-2]] = sample_fields[-2]
+    inputs[self._input_fields[-1]] = sample_fields[-1]
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
-    assert len(file_paths) > 0, 'match no files with %s' % self._input_path
+    if type(self._input_path) != list:
+      self._input_path = [x for x in self._input_path.split(',')]
 
-    # try to figure out number of fields from one file
-    with tf.gfile.GFile(file_paths[0], 'r') as fin:
-      num_lines = 0
-      for line_str in fin:
-        line_tok = line_str.strip().split(self._rtp_separator)
-        if self._num_cols != -1:
-          assert self._num_cols == len(line_tok)
-        self._num_cols = len(line_tok)
-        num_lines += 1
-        if num_lines > 10:
-          break
-    logging.info('num selected cols = %d' % self._num_cols)
-
+    # record_defaults = [
+    #     self.get_type_defaults(t, v)
+    #     for x, t, v in zip(self._input_fields, self._input_field_types,
+    #                        self._input_field_defaults)
+    #     if x in self._label_fields
+    # ]
     record_defaults = [
-        self.get_type_defaults(t, v)
+        ''
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
         if x in self._label_fields
     ]
 
-    # the features are in one single column
+    # the actual features are in one single column
     record_defaults.append(
         self._data_config.separator.join([
             str(self.get_type_defaults(t, v))
@@ -143,28 +140,37 @@ class RTPInput(Input):
                                self._input_field_defaults)
             if x not in self._label_fields
         ]))
-    print('record_defaults: ', record_defaults)
+    # pic_path
+    record_defaults.append('')
+    # group_size
+    record_defaults.append(np.int32(0))
 
-    num_parallel_calls = self._data_config.num_parallel_calls
+    selected_cols = self._data_config.selected_cols \
+        if self._data_config.selected_cols else None
+
+    if self._data_config.pai_worker_queue and \
+        mode == tf.estimator.ModeKeys.TRAIN:
+      logging.info('pai_worker_slice_num = %d' %
+                   self._data_config.pai_worker_slice_num)
+      work_queue = pai.data.WorkQueue(
+          self._input_path,
+          num_epochs=self.num_epochs,
+          shuffle=self._data_config.shuffle,
+          num_slices=self._data_config.pai_worker_slice_num * self._task_num)
+      que_paths = work_queue.input_dataset()
+      dataset = tf.data.TableRecordDataset(
+          que_paths,
+          record_defaults=record_defaults,
+          selected_cols=selected_cols)
+    else:
+      dataset = tf.data.TableRecordDataset(
+          self._input_path,
+          record_defaults=record_defaults,
+          selected_cols=selected_cols,
+          slice_id=self._task_index,
+          slice_count=self._task_num)
+
     if mode == tf.estimator.ModeKeys.TRAIN:
-      logging.info('train files[%d]: %s' %
-                   (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.Dataset.from_tensor_slices(file_paths)
-      if self._data_config.shuffle:
-        # shuffle input files
-        dataset = dataset.shuffle(len(file_paths))
-      # too many readers read the same file will cause performance issues
-      # as the same data will be read multiple times
-      parallel_num = min(num_parallel_calls, len(file_paths))
-      dataset = dataset.interleave(
-          tf.data.TextLineDataset,
-          cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
@@ -172,15 +178,12 @@ class RTPInput(Input):
             reshuffle_each_iteration=True)
       dataset = dataset.repeat(self.num_epochs)
     else:
-      logging.info('eval files[%d]: %s' %
-                   (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(file_paths)
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(batch_size=self._data_config.batch_size)
 
     dataset = dataset.map(
-        self._parse_csv,
+        self._parse_table,
         num_parallel_calls=self._data_config.num_parallel_calls)
 
     # preprocess is necessary to transform data
