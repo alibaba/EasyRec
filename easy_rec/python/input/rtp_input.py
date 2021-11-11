@@ -69,10 +69,8 @@ class RTPInput(Input):
     labels = [fields[:, x] for x in self._selected_cols[:-1]]
 
     # only for features, labels excluded
-    record_defaults = [
-        self.get_type_defaults(t, v)
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
+    record_types = [
+        t for x, t in zip(self._input_fields, self._input_field_types)
         if x not in self._label_fields
     ]
     # assume that the last field is the generated feature column
@@ -81,10 +79,10 @@ class RTPInput(Input):
         fields[:, self._feature_col_id],
         self._data_config.separator,
         skip_empty=False)
-    tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
+    tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
     fields = []
-    for i in range(len(record_defaults)):
-      field = string_to_number(record_defaults[i], tmp_fields[:, i], i)
+    for i in range(len(record_types)):
+      field = string_to_number(tmp_fields[:, i], record_types[i], i)
       fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]

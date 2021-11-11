@@ -358,22 +358,17 @@ class Predictor(PredictorInterface):
       slice_num: table slice number
     """
 
-    def _get_defaults(col_name, col_type):
-      if col_name in self._input_fields_info:
-        col_type, default_val = self._input_fields_info[col_name]
-        default_val = get_type_defaults(col_type, default_val)
-        logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
-      else:
-        logging.info('col_name: %s is not used in predict.' % col_name)
-        defaults = {'string': '', 'double': 0.0, 'bigint': 0}
-        assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
-            col_name, col_type)
-        default_val = defaults[col_type]
+    def _get_defaults(col_name):
+      col_type, default_val = self._input_fields_info[col_name]
+      default_val = get_type_defaults(col_type, default_val)
+      logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
       return default_val
 
     all_cols = [x.strip() for x in all_cols.split(',') if x != '']
+    selected_cols = [x.strip() for x in selected_cols.split(',') if x != '']
     all_col_types = [x.strip() for x in all_col_types.split(',') if x != '']
     reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+
     if output_cols is None:
       output_cols = self._predictor_impl.output_names
     else:
@@ -386,17 +381,19 @@ class Predictor(PredictorInterface):
         tmp_cols.append(tmp_keys[0].strip())
       output_cols = tmp_cols
 
-    record_defaults = [
-        _get_defaults(col_name, col_type)
-        for col_name, col_type in zip(all_cols, all_col_types)
-    ]
-    with tf.Graph().as_default(), tf.Session() as sess:
-      input_table = input_table.split(',')
-      dataset = tf.data.TableRecordDataset([input_table],
-                                           record_defaults=record_defaults,
-                                           slice_id=slice_id,
-                                           slice_count=slice_num,
-                                           selected_cols=','.join(all_cols))
+      record_defaults = [
+          _get_defaults(col_name) for col_name in zip(selected_cols)
+      ]
+
+      with tf.Graph().as_default(), tf.Session() as sess:
+        input_table = input_table.split(',')
+        dataset = tf.data.TableRecordDataset(
+            [input_table],
+            record_defaults=record_defaults,
+            slice_id=slice_id,
+            slice_count=slice_num,
+            selected_cols=','.join(selected_cols))
+
       logging.info('batch_size = %d' % batch_size)
       dataset = dataset.batch(batch_size)
       dataset = dataset.prefetch(buffer_size=64)

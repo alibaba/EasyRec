@@ -47,11 +47,6 @@ class FGTest(tf.test.TestCase):
         final_pipeline_config, as_utf8=True)
     self.assertEqual(pipeline_config_str, final_pipeline_config_str)
 
-  def test_fg_dtype(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
-    self.assertTrue(self._success)
-
 
 if __name__ == '__main__':
   tf.test.main()

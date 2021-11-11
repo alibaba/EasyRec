@@ -37,26 +37,33 @@ def get_type_defaults(field_type, default_val=''):
   return type_defaults[field_type]
 
 
-def string_to_number(record_default, cur_field, name=''):
-  tmp_field = cur_field
-  if type(record_default) in [int, np.int32, np.int64]:
+def string_to_number(field, ftype, name=''):
+  """Type conversion for parsing rtp fg input format.
+
+  Args:
+    field: field to be converted.
+    ftype: field dtype set in DatasetConfig.
+    name: field name for
+  Returns: A name for the operation (optional).
+  """
+  tmp_field = field
+  if ftype in [DatasetConfig.INT32, DatasetConfig.INT64]:
+    # Int type is not supported in fg.
+    # If you specify INT32, INT64 in DatasetConfig, you need to perform a cast at here.
     tmp_field = tf.string_to_number(
-        cur_field, tf.double, name='field_as_int_%s' % name)
-    if type(record_default) in [np.int64]:
+        field, tf.double, name='field_as_int_%s' % name)
+    if ftype in [DatasetConfig.INT64]:
       tmp_field = tf.cast(tmp_field, tf.int64)
     else:
       tmp_field = tf.cast(tmp_field, tf.int32)
-  elif type(record_default) in [float, np.float32]:
+  elif ftype in [DatasetConfig.FLOAT]:
     tmp_field = tf.string_to_number(
-        cur_field, tf.float32, name='field_as_flt_%s' % name)
-  elif type(record_default) in [np.float64]:
+        field, tf.float32, name='field_as_flt_%s' % name)
+  elif ftype in [DatasetConfig.DOUBLE]:
     tmp_field = tf.string_to_number(
-        cur_field, tf.float64, name='field_as_flt_%s' % name)
-  elif type(record_default) in [str, type(u''), bytes]:
-    pass
-  elif type(record_default) == bool:
-    tmp_field = tf.logical_or(
-        tf.equal(cur_field, 'True'), tf.equal(cur_field, 'true'))
+        field, tf.float64, name='field_as_flt_%s' % name)
+  elif ftype in [DatasetConfig.BOOL]:
+    tmp_field = tf.logical_or(tf.equal(field, 'True'), tf.equal(field, 'true'))
   else:
-    assert 'invalid types: %s' % str(type(record_default))
+    assert 'invalid types: %s' % str(ftype)
   return tmp_field
