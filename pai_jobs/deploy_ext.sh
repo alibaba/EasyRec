@@ -13,7 +13,8 @@ fi
 curr_dir=`dirname $curr_path`
 root_dir=`dirname $curr_dir`
 
-VERSION=""
+VERSION=`grep -o "[0-9]\.[0-9]\.[0-9]" easy_rec/version.py`
+
 ODPSCMD=odpscmd
 # 0: deploy resources and xflow
 # 1: deploy resources only
@@ -39,7 +40,7 @@ while getopts 'V:C:OGc:' OPT; do
             echo " -G: generate resource file and xflow, but not deploy"
             echo " -c: odps_config file path"
             echo " -C: odpscmd file path, default to: odpscmd, so in default odpscmd must be in PATH"
-            echo " -V: algorithm version, chars must be in [0-9A-Za-z_-]"
+            echo " -V: algorithm version, chars must be in [0-9A-Za-z_-], default: version info in easy_rec/version.py"
             exit 1
     esac
 done
