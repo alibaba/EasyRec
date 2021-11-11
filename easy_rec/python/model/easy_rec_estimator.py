@@ -248,14 +248,26 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x))
+      ]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
+      # incompatiable shape restore will not be saved in checkpoint
+      # but must be able to restore from checkpoint
+      incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
       if early_stop_var is not None:
         var_list = [x for x in var_list if x != early_stop_var]
         local_init_op = tf.group([
             tf.initializers.local_variables(),
-            tf.initializers.variables([early_stop_var])
+            tf.initializers.variables([early_stop_var] +
+                                      incompatiable_shape_restore)
+        ])
+      elif len(incompatiable_shape_restore) > 0:
+        local_init_op = tf.group([
+            tf.initializers.local_variables(),
+            tf.initializers.variables(incompatiable_shape_restore)
         ])
       else:
         local_init_op = None
@@ -266,14 +278,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
               max_to_keep=self.train_config.keep_checkpoint_max),
           local_init_op=local_init_op,
           ready_for_local_init_op=tf.report_uninitialized_variables(
-              var_list=var_list))
+              var_list=initialize_var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
           save_secs=self._config.save_checkpoints_secs,
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
-          write_graph=True)
+          write_graph=self.train_config.write_graph)
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
