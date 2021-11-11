@@ -157,6 +157,10 @@ class DSSM(EasyRecModel):
     else:
       self._prediction_dict['y'] = y_pred
 
+    self._prediction_dict['rank_predict_user_embedding'] = \
+      tf.identity(user_tower_emb, name='rank_predict_user_embedding')
+    self._prediction_dict['rank_predict_item_embedding'] = \
+      tf.identity(item_tower_emb, name='rank_predict_item_embedding')
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(
