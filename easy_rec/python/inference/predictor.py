@@ -49,7 +49,6 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
       input_data:  a list of numpy array, each array is a sample to be predicted
       batch_size: batch_size passed by the caller, you can also ignore this param and
         use a fixed number if you do not want to adjust batch_size in runtime
-
     Returns:
       result: a list of dict, each dict is the prediction result of one sample
         eg, {"output1": value1, "output2": value2}, the value type can be
@@ -58,19 +57,14 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
     pass
 
   def get_output_type(self):
-    """Get output types of prediction.
+    """Get output types of prediction. in this function user should return a type dict, which indicates which type of data should the output of predictor be converted to.
 
-    in this function user should return a type dict, which indicates
-    which type of data should the output of predictor be converted to
     * type json, data will be serialized to json str
-
     * type image, data will be converted to encode image binary and write to oss file,
       whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
       is extracted from url, key corresponds to the key in the dict of output_type,
       if the type of data indexed by key is a list, idx is the index of element in list, otherwhile ${idx} will be empty
-
     * type video, data will be converted to encode video binary and write to oss file,
-
     eg:  return  {
       'image': 'image',
       'feature': 'json'
@@ -117,10 +111,8 @@ class PredictorImpl(object):
     """Search pb file recursively in model directory.
 
     if multiple pb files exist, exception will be raised.
-
     Args:
       directory: model directory.
-
     Returns:
       directory contain pb file
     """
@@ -167,9 +159,9 @@ class PredictorImpl(object):
         tf.logging.info('loading model from %s' % model_path)
         if tf.gfile.IsDirectory(model_path):
           model_path = self.search_pb(model_path)
+          logging.info('model find in %s' % model_path)
           self._input_fields_info = self.get_input_fields_from_pipeline_config(
               model_path)
-          logging.info('model find in %s' % model_path)
           assert tf.saved_model.loader.maybe_saved_model_directory(model_path), \
               'saved model does not exists in %s' % model_path
           self._is_saved_model = True
@@ -250,7 +242,6 @@ class PredictorImpl(object):
         value is the corresponding value
       output_names:  if not None, will fetch certain outputs, if set None, will
         return all the output info according to the output info in model signature
-
     Return:
       a dict of outputs, key is the output name, value is the corresponding value
     """
@@ -263,7 +254,6 @@ class PredictorImpl(object):
           'input %s  batchsize %d is not the same as the exported batch_size %d' % \
           (input_name, input_shape[0], tensor_shape[0])
       feed_dict[tensor] = input_data_dict[input_name]
-
     fetch_dict = {}
     if output_names is not None:
       for output_name in output_names:
@@ -358,17 +348,22 @@ class Predictor(PredictorInterface):
       slice_num: table slice number
     """
 
-    def _get_defaults(col_name):
-      col_type, default_val = self._input_fields_info[col_name]
-      default_val = get_type_defaults(col_type, default_val)
-      logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
+    def _get_defaults(col_name, col_type):
+      if col_name in self._input_fields_info:
+        col_type, default_val = self._input_fields_info[col_name]
+        default_val = get_type_defaults(col_type, default_val)
+        logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
+      else:
+        logging.info('col_name: %s is not used in predict.' % col_name)
+        defaults = {'string': '', 'double': 0.0, 'bigint': 0}
+        assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
+            col_name, col_type)
+        default_val = defaults[col_type]
       return default_val
 
     all_cols = [x.strip() for x in all_cols.split(',') if x != '']
-    selected_cols = [x.strip() for x in selected_cols.split(',') if x != '']
     all_col_types = [x.strip() for x in all_col_types.split(',') if x != '']
     reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
-
     if output_cols is None:
       output_cols = self._predictor_impl.output_names
     else:
@@ -381,19 +376,18 @@ class Predictor(PredictorInterface):
         tmp_cols.append(tmp_keys[0].strip())
       output_cols = tmp_cols
 
-      record_defaults = [
-          _get_defaults(col_name) for col_name in zip(selected_cols)
-      ]
+    record_defaults = [
+        _get_defaults(col_name, col_type)
+        for col_name, col_type in zip(all_cols, all_col_types)
+    ]
 
-      with tf.Graph().as_default(), tf.Session() as sess:
-        input_table = input_table.split(',')
-        dataset = tf.data.TableRecordDataset(
-            [input_table],
-            record_defaults=record_defaults,
-            slice_id=slice_id,
-            slice_count=slice_num,
-            selected_cols=','.join(selected_cols))
-
+    with tf.Graph().as_default(), tf.Session() as sess:
+      input_table = input_table.split(',')
+      dataset = tf.data.TableRecordDataset([input_table],
+                                           record_defaults=record_defaults,
+                                           slice_id=slice_id,
+                                           slice_count=slice_num,
+                                           selected_cols=','.join(all_cols))
       logging.info('batch_size = %d' % batch_size)
       dataset = dataset.batch(batch_size)
       dataset = dataset.prefetch(buffer_size=64)
@@ -452,7 +446,6 @@ class Predictor(PredictorInterface):
       input_data_dict_list: list of dict
       output_names:  if not None, will fetch certain outputs, if set None, will
       batch_size: batch_size used to predict, -1 indicates to use the real batch_size
-
     Return:
       a list of dict, each dict contain a key-value pair for output_name, output_value
     """
@@ -473,7 +466,6 @@ class Predictor(PredictorInterface):
                                              batch_size:(batch_idx + 1) *
                                              batch_size]
       feed_dict = self.batch(batch_data_list)
-
       outputs = self._predictor_impl.predict(feed_dict, output_names)
       for idx in range(len(batch_data_list)):
         single_result = {}
@@ -485,7 +477,6 @@ class Predictor(PredictorInterface):
   def batch(self, data_list):
     """Batching the data."""
     batch_input = {key: [] for key in self._predictor_impl.input_names}
-
     for data in data_list:
       if isinstance(data, dict):
         for key in data:
