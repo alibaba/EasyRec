@@ -492,7 +492,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         def _load_img(img_paths):
           img_feas = []
           for img_path in img_paths:
-            img_path = img_path.decode('utf-8')
+            if isinstance(img_path, bytes):
+              img_path = img_path.decode('utf-8')
             if tf.gfile.Exists(img_path):
               img_fea = np.asarray(
                   bytearray(tf.gfile.FastGFile(img_path, 'rb').read()))
@@ -516,6 +517,10 @@ class Input(six.with_metaclass(_meta_type, object)):
           sample_num_feas = []
           idx = 0
           for sample_num in sample_nums:
+            if isinstance(sample_num, bytes):
+              sample_num = sample_num.decode('utf-8')
+            if isinstance(sample_num, str):
+              sample_num = int(sample_num)
             sample_num_feas.extend([idx] * sample_num)
             idx += 1
           sample_num_feas = np.array(sample_num_feas)

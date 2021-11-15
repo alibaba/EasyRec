@@ -34,8 +34,8 @@ class OdpsGroupRTPInput(Input):
                input_path,
                task_index=0,
                task_num=1):
-    super(OdpsGroupRTPInput, self).__init__(data_config, feature_config, input_path,
-                                       task_index, task_num)
+    super(OdpsGroupRTPInput, self).__init__(data_config, feature_config,
+                                            input_path, task_index, task_num)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
 
@@ -43,28 +43,32 @@ class OdpsGroupRTPInput(Input):
     fields = list(fields)
     # group => sample
     label_record_defaults = [
-        t
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
+        t for x, t, v in zip(self._input_fields, self._input_field_types,
+                             self._input_field_defaults)
         if x in self._label_fields
     ]
     sample_fields = []
     # label
     for idx in range(len(label_record_defaults)):
-      field = tf.string_split(fields[idx], self._data_config.group_sample_separator, skip_empty=False)
+      field = tf.string_split(
+          fields[idx],
+          self._data_config.group_sample_separator,
+          skip_empty=False)
       if label_record_defaults[idx] in [DatasetConfig.INT32]:
-          field = tf.string_to_number(field.values, tf.int32)
+        field = tf.string_to_number(field.values, tf.int32)
       elif label_record_defaults[idx] in [DatasetConfig.INT64]:
-          field = tf.string_to_number(field.values, tf.int64)
+        field = tf.string_to_number(field.values, tf.int64)
       elif label_record_defaults[idx] in [DatasetConfig.FLOAT]:
-          field = tf.string_to_number(field.values, tf.float32)
+        field = tf.string_to_number(field.values, tf.float32)
       elif field.values.dtype in [DatasetConfig.DOUBLE]:
-          field = tf.string_to_number(field.values, tf.float64)
+        field = tf.string_to_number(field.values, tf.float64)
       else:
-          field = field.values
+        field = field.values
       sample_fields.append(field)
     # features
-    field = tf.string_split(fields[-3], self._data_config.group_sample_separator, skip_empty=False).values
+    field = tf.string_split(
+        fields[-3], self._data_config.group_sample_separator,
+        skip_empty=False).values
     sample_fields.append(field)
     # pic_path
     sample_fields.append(fields[-2])
@@ -78,7 +82,7 @@ class OdpsGroupRTPInput(Input):
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
         if x not in self._label_fields
-    ][:-2] # drop pic_path and group_size
+    ][:-2]  # drop pic_path and group_size
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
     fields = tf.string_split(
@@ -126,9 +130,8 @@ class OdpsGroupRTPInput(Input):
     #     if x in self._label_fields
     # ]
     record_defaults = [
-        ''
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
+        '' for x, t, v in zip(self._input_fields, self._input_field_types,
+                              self._input_field_defaults)
         if x in self._label_fields
     ]
 

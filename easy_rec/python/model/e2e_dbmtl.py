@@ -21,8 +21,8 @@ class E2E_DBMTL(MultiTaskModel):
                features,
                labels=None,
                is_training=False):
-    super(E2E_DBMTL, self).__init__(model_config, feature_configs, features, labels,
-                                is_training)
+    super(E2E_DBMTL, self).__init__(model_config, feature_configs, features,
+                                    labels, is_training)
     assert self._model_config.WhichOneof('model') == 'e2e_dbmtl', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
 
@@ -42,12 +42,13 @@ class E2E_DBMTL(MultiTaskModel):
       assert img_fea_flag, 'Type ImgFeature must exist when feature group img exists.'
 
     if 'sample_num' in self._input_layer._feature_groups:
-      self._sample_idx_fea, _ = self._input_layer(self._feature_dict, 'sample_num')
+      self._sample_idx_fea, _ = self._input_layer(self._feature_dict,
+                                                  'sample_num')
 
     if 'img_emb' in self._input_layer._feature_groups:
       self._img_emb, _ = self._input_layer(self._feature_dict, 'img_emb')
 
-    self._model_config = self._model_config.dbmtl
+    self._model_config = self._model_config.e2e_dbmtl
     assert isinstance(self._model_config, E2E_DBMTL_Config)
     self._init_towers(self._model_config.task_towers)
 
@@ -80,29 +81,28 @@ class E2E_DBMTL(MultiTaskModel):
           name='img_emb_bn')
 
       if self._model_config.HasField('highway_dnn'):
-          logging.info('highway_dnn used in img_emb')
-          emb_size = self._model_config.highway_dnn.emb_size
-          logging.info('highway_dnn.emb_size is %s' % emb_size)
-          img_emb = self.highway_layer(img_emb, emb_size, name='highway_dnn')
+        logging.info('highway_dnn used in img_emb')
+        emb_size = self._model_config.highway_dnn.emb_size
+        logging.info('highway_dnn.emb_size is %s' % emb_size)
+        img_emb = self.highway_layer(img_emb, emb_size, name='highway_dnn')
 
       elif self._model_config.HasField('img_dnn'):
-          logging.info('img_dnn used in img_emb')
-          img_dnn = dnn.DNN(
-              self._model_config.img_dnn,
-              self._l2_reg,
-              name='img_dnn',
-              is_training=self._is_training)
-          img_emb = img_dnn(img_emb)
+        logging.info('img_dnn used in img_emb')
+        img_dnn = dnn.DNN(
+            self._model_config.img_dnn,
+            self._l2_reg,
+            name='img_dnn',
+            is_training=self._is_training)
+        img_emb = img_dnn(img_emb)
       else:
-          logging.info('not using img_dnn and highway_dnn in img_emb')
+        logging.info('not using img_dnn and highway_dnn in img_emb')
       return img_emb
 
   def img_net(self, img_feature):
     logging.info('run img net')
     with tf.device('/GPU:0'):
       img_feature = tf.reshape(
-          img_feature,
-          (-1, self.img_width, self.img_height, self.img_channel))
+          img_feature, (-1, self.img_width, self.img_height, self.img_channel))
 
       from easy_vision.python.core.backbones.nets.resnet_v1 import resnet_v1a_18
       img_emb = resnet_v1a_18(
@@ -117,7 +117,6 @@ class E2E_DBMTL(MultiTaskModel):
         return img_emb_expanded
       else:
         return img_emb
-
 
   def build_predict_graph(self):
     with tf.device('/CPU:0'):
@@ -147,7 +146,7 @@ class E2E_DBMTL(MultiTaskModel):
           tf.as_string(img_emb), axis=-1, separator=',')
 
     elif 'img_emb' in self._input_layer._feature_groups:
-      print("self._img_emb: ", self._img_emb)
+      print('self._img_emb: ', self._img_emb)
       bottom_fea = tf.concat([self._img_emb, bottom_fea], axis=-1)
 
     with tf.device('/CPU:0'):

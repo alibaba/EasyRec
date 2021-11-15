@@ -33,7 +33,7 @@ class GroupRTPInput(Input):
                task_index=0,
                task_num=1):
     super(GroupRTPInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num)
+                                        task_index, task_num)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
     self._rtp_separator = self._data_config.rtp_separator
@@ -41,12 +41,15 @@ class GroupRTPInput(Input):
     if not isinstance(self._rtp_separator, str):
       self._rtp_separator = self._rtp_separator.encode('utf-8')
     if not isinstance(self._group_sample_separator, str):
-      self._group_sample_separator = self._group_sample_separator.encode('utf-8')
+      self._group_sample_separator = self._group_sample_separator.encode(
+          'utf-8')
     self._selected_cols = [
         int(x) for x in self._data_config.selected_cols.split(',')
     ]
     self._num_cols = -1
-    self._feature_col_id = self._selected_cols[-2]
+    self._feature_col_id = self._selected_cols[-3]
+    self._img_col_id = self._selected_cols[-2]
+    self._group_size_col_id = self._selected_cols[-1]
 
     logging.info('rtp separator = %s' % self._rtp_separator)
     logging.info('group sample separator = %s' % self._group_sample_separator)
@@ -68,19 +71,20 @@ class GroupRTPInput(Input):
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
         if x not in self._label_fields
-    ][:-1])
+    ][:-2])
 
     fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
     fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     # group => sample
     sample_fields = []
-    for idx in range(len(record_defaults)-1):
-      field = tf.string_split(fields[:, idx], self._group_sample_separator, skip_empty=False)
+    for idx in range(len(record_defaults)):
+      field = tf.string_split(
+          fields[:, idx], self._group_sample_separator, skip_empty=False)
       sample_fields.append(field.values)
+    sample_fields.append(fields[:, -2])
     sample_fields.append(fields[:, -1])
-    print("sample_fields: ", sample_fields)
 
-    labels = [sample_fields[x] for x in self._selected_cols[:-2]]
+    labels = [sample_fields[x] for x in self._selected_cols[:-3]]
 
     # only for features, labels excluded
     record_defaults = [
@@ -89,16 +93,15 @@ class GroupRTPInput(Input):
                            self._input_field_defaults)
         if x not in self._label_fields
     ]
-    print("record_defaults: ", record_defaults)
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
     fields = tf.string_split(
         sample_fields[self._feature_col_id],
         self._data_config.separator,
         skip_empty=False)
-    tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)-1])
+    tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults) - 2])
     fields = []
-    for i in range(len(record_defaults)-1):
+    for i in range(len(record_defaults) - 2):
       if type(record_defaults[i]) == int:
         fields.append(
             tf.string_to_number(
@@ -119,12 +122,12 @@ class GroupRTPInput(Input):
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     effective_fids = [field_keys.index(x) for x in self._effective_fields]
-    inputs = {field_keys[x]: fields[x] for x in effective_fids[:-1]}
+    inputs = {field_keys[x]: fields[x] for x in effective_fids[:-2]}
 
     for x in range(len(self._label_fields)):
       inputs[self._label_fields[x]] = labels[x]
-    inputs['img_path'] = sample_fields[-1]
-    print("inputs: ", inputs)
+    inputs['img_path'] = sample_fields[-2]
+    inputs['group_size'] = sample_fields[-1]
     return inputs
 
   def _build(self, mode, params):
@@ -143,23 +146,6 @@ class GroupRTPInput(Input):
         if num_lines > 10:
           break
     logging.info('num selected cols = %d' % self._num_cols)
-
-    # record_defaults = [
-    #     self.get_type_defaults(t, v)
-    #     for x, t, v in zip(self._input_fields, self._input_field_types,
-    #                        self._input_field_defaults)
-    #     if x in self._label_fields
-    # ]
-    #
-    # # the features are in one single column
-    # record_defaults.append(
-    #     self._data_config.separator.join([
-    #         str(self.get_type_defaults(t, v))
-    #         for x, t, v in zip(self._input_fields, self._input_field_types,
-    #                            self._input_field_defaults)
-    #         if x not in self._label_fields
-    #     ]))
-    # print("record_defaults: ", record_defaults)
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
