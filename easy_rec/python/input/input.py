@@ -187,15 +187,13 @@ class Input(six.with_metaclass(_meta_type, object)):
     features = {}
     for tmp_id, fid in enumerate(effective_fids):
       ftype = self._input_field_types[fid]
-      f_default = self._input_field_defaults[fid]
       input_name = self._input_fields[fid]
-      tf_type = self.get_tf_type(ftype)
 
-      if tf_type in [tf.string]:
+      if ftype in [DatasetConfig.STRING]:
         features[input_name] = input_vals[:, tmp_id]
       else:
-        features[input_name] = string_to_number(f_default,
-                                                input_vals[:, tmp_id], tmp_id)
+        features[input_name] = string_to_number(input_vals[:, tmp_id], ftype,
+                                                tmp_id)
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
 

@@ -167,9 +167,9 @@ class PredictorImpl(object):
         tf.logging.info('loading model from %s' % model_path)
         if tf.gfile.IsDirectory(model_path):
           model_path = self.search_pb(model_path)
+          logging.info('model find in %s' % model_path)
           self._input_fields_info = self.get_input_fields_from_pipeline_config(
               model_path)
-          logging.info('model find in %s' % model_path)
           assert tf.saved_model.loader.maybe_saved_model_directory(model_path), \
               'saved model does not exists in %s' % model_path
           self._is_saved_model = True
@@ -263,7 +263,6 @@ class PredictorImpl(object):
           'input %s  batchsize %d is not the same as the exported batch_size %d' % \
           (input_name, input_shape[0], tensor_shape[0])
       feed_dict[tensor] = input_data_dict[input_name]
-
     fetch_dict = {}
     if output_names is not None:
       for output_name in output_names:
@@ -390,6 +389,7 @@ class Predictor(PredictorInterface):
         _get_defaults(col_name, col_type)
         for col_name, col_type in zip(all_cols, all_col_types)
     ]
+
     with tf.Graph().as_default(), tf.Session() as sess:
       input_table = input_table.split(',')
       dataset = tf.data.TableRecordDataset([input_table],
@@ -476,7 +476,6 @@ class Predictor(PredictorInterface):
                                              batch_size:(batch_idx + 1) *
                                              batch_size]
       feed_dict = self.batch(batch_data_list)
-
       outputs = self._predictor_impl.predict(feed_dict, output_names)
       for idx in range(len(batch_data_list)):
         single_result = {}
@@ -488,7 +487,6 @@ class Predictor(PredictorInterface):
   def batch(self, data_list):
     """Batching the data."""
     batch_input = {key: [] for key in self._predictor_impl.input_names}
-
     for data in data_list:
       if isinstance(data, dict):
         for key in data:
