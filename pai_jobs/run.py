@@ -19,6 +19,10 @@ from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.estimator_utils import chief_to_master
 from easy_rec.python.utils.estimator_utils import master_to_chief
 
+# use few threads to avoid oss error
+os.environ['OENV_MultiWriteThreadsNum'] = '4'
+os.environ['OENV_MultiCopyThreadsNum'] = '4'
+
 if not tf.__version__.startswith('1.12'):
   tf = tf.compat.v1
   try:
@@ -111,6 +115,21 @@ tf.app.flags.DEFINE_integer('redis_expire', 24,
 tf.app.flags.DEFINE_string('redis_embedding_version', '',
                            'redis embedding version')
 tf.app.flags.DEFINE_integer('redis_write_kv', 1, 'whether write kv ')
+
+tf.app.flags.DEFINE_string(
+    'oss_path', None, 'write embed objects to oss folder, oss://bucket/folder')
+tf.app.flags.DEFINE_string('oss_endpoint', None, 'oss endpoint')
+tf.app.flags.DEFINE_string('oss_ak', None, 'oss ak')
+tf.app.flags.DEFINE_string('oss_sk', None, 'oss sk')
+tf.app.flags.DEFINE_integer('oss_threads', 10,
+                            '# threads access oss at the same time')
+tf.app.flags.DEFINE_integer('oss_timeout', 10,
+                            'connect to oss, time_out in seconds')
+tf.app.flags.DEFINE_integer('oss_expire', 24, 'oss expire time in hours')
+tf.app.flags.DEFINE_integer('oss_write_kv', 1,
+                            'whether to write embedding to oss')
+tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
+
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
@@ -120,6 +139,7 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -347,6 +367,14 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
 
 def main(argv):
   pai_util.set_on_pai()
+
+  # load lookup op
+  try:
+    lookup_op_path = os.path.join(easy_rec.ops_dir, 'libembed_op.so')
+    tf.load_op_library(lookup_op_path)
+  except Exception as ex:
+    print('Error: exception: %s' % str(ex))
+
   num_gpus_per_worker = FLAGS.num_gpus_per_worker
   worker_hosts = FLAGS.worker_hosts.split(',')
   num_worker = len(worker_hosts)
@@ -443,7 +471,8 @@ def main(argv):
     check_param('config')
     # TODO: support multi-worker evaluation
     if not FLAGS.distribute_eval:
-      assert len(FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+      assert len(
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     pipeline_config.eval_input_path = FLAGS.tables
 
@@ -457,10 +486,10 @@ def main(argv):
                       FLAGS.all_col_types)
     if FLAGS.distribute_eval:
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                  FLAGS.eval_result_path)
+                                   FLAGS.eval_result_path)
     else:
       easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                      FLAGS.eval_result_path)
+                        FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')
@@ -481,11 +510,34 @@ def main(argv):
     if FLAGS.redis_write_kv:
       redis_params['redis_write_kv'] = FLAGS.redis_write_kv
 
+    oss_params = {}
+    if FLAGS.oss_path:
+      oss_params['oss_path'] = FLAGS.oss_path
+    if FLAGS.oss_endpoint:
+      oss_params['oss_endpoint'] = FLAGS.oss_endpoint
+    if FLAGS.oss_ak:
+      oss_params['oss_ak'] = FLAGS.oss_ak
+    if FLAGS.oss_sk:
+      oss_params['oss_sk'] = FLAGS.oss_sk
+    if FLAGS.oss_timeout > 0:
+      oss_params['oss_timeout'] = FLAGS.oss_timeout
+    if FLAGS.oss_expire > 0:
+      oss_params['oss_expire'] = FLAGS.oss_expire
+    if FLAGS.oss_threads > 0:
+      oss_params['oss_threads'] = FLAGS.oss_threads
+    if FLAGS.oss_embedding_version:
+      redis_params['oss_embedding_version'] = FLAGS.oss_embedding_version
+    if FLAGS.oss_write_kv:
+      oss_params['oss_write_kv'] = True if FLAGS.oss_write_kv == 1 else False
+
     set_tf_config_and_get_train_worker_num(eval_method='none')
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
+
+    extra_params = redis_params
+    extra_params.update(oss_params)
     easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
-                    FLAGS.asset_files, FLAGS.verbose, **redis_params)
+                    FLAGS.asset_files, FLAGS.verbose, **extra_params)
   elif FLAGS.cmd == 'predict':
     check_param('tables')
     check_param('saved_model_dir')

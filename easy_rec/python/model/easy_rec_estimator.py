@@ -8,8 +8,9 @@ import time
 from collections import OrderedDict
 
 import tensorflow as tf
-from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.ops import variables
+from tensorflow.python.saved_model import signature_constants
+
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
 from easy_rec.python.compat.early_stopping import custom_early_stop_hook
@@ -331,7 +332,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         loss=loss,
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
-  
+
   def _distribute_eval_model_fn(self, features, labels, run_config):
     start = time.time()
     model = self._model_cls(
@@ -372,10 +373,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
     global_variables = tf.global_variables()
     metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
-    remain_variables = list(set(global_variables).difference(set(metric_variables)))
-    cur_saver = tf.train.Saver(var_list = remain_variables)
-    scaffold = tf.train.Scaffold(saver=cur_saver,
-                                ready_for_local_init_op=model_ready_for_local_init_op)
+    remain_variables = list(
+        set(global_variables).difference(set(metric_variables)))
+    cur_saver = tf.train.Saver(var_list=remain_variables)
+    scaffold = tf.train.Scaffold(
+        saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.EVAL,
         loss=loss,
@@ -418,8 +420,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # add more asset files
     if 'asset_files' in params:
-      for asset_file in params['asset_files'].split(','):
-        _, asset_name = os.path.split(asset_file)
+      for asset_name in params['asset_files']:
+        asset_file = params['asset_files'][asset_name]
         tf.add_to_collection(
             tf.GraphKeys.ASSET_FILEPATHS,
             tf.constant(asset_file, dtype=tf.string, name=asset_name))

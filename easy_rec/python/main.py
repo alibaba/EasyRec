@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
+from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 from easy_rec.python.utils.pai_util import is_on_pai
 
 if tf.__version__ >= '2.0':
@@ -432,8 +433,8 @@ def evaluate(pipeline_config,
         eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
   logging.info('Evaluate finish')
 
-  print("eval_result = ", eval_result)
-  logging.info("eval_result = {0}".format(eval_result))
+  print('eval_result = ', eval_result)
+  logging.info('eval_result = {0}'.format(eval_result))
   # write eval result to file
   model_dir = pipeline_config.model_dir
   eval_result_file = os.path.join(model_dir, eval_result_filename)
@@ -448,6 +449,7 @@ def evaluate(pipeline_config,
       result_to_write[key] = eval_result[key].item()
     ofile.write(json.dumps(result_to_write, indent=2))
   return eval_result
+
 
 def distribute_evaluate(pipeline_config,
                         eval_checkpoint_path='',
@@ -492,7 +494,6 @@ def distribute_evaluate(pipeline_config,
   server_target = None
   cur_job_name = None
   if 'TF_CONFIG' in os.environ:
-    tf_config_pre = json.loads(os.environ['TF_CONFIG'])
     tf_config = estimator_utils.chief_to_master()
 
     from tensorflow.python.training import server_lib
@@ -521,8 +522,7 @@ def distribute_evaluate(pipeline_config,
         print('server_target = %s' % server_target)
 
   distribution = strategy_builder.build(train_config)
-  estimator, run_config = _create_estimator(
-      pipeline_config, distribution)
+  estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
 
@@ -540,19 +540,21 @@ def distribute_evaluate(pipeline_config,
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
     with device(
         replica_device_setter(worker_device=cur_work_device, cluster=cluster)):
-      estimator_spec = estimator._distribute_eval_model_fn(input_feas, input_lbls,
-                                                run_config)
+      estimator_spec = estimator._distribute_eval_model_fn(
+          input_feas, input_lbls, run_config)
 
     session_config = ConfigProto(
         allow_soft_placement=True, log_device_placement=True)
     if cur_job_name == 'master':
       metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
       model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
-      global_variables = tf.global_variables() 
-      remain_variables = list(set(global_variables).difference(set(metric_variables)))
-      cur_saver = tf.train.Saver(var_list = remain_variables)
-      cur_scaffold = tf.train.Scaffold(saver=cur_saver,
-                                ready_for_local_init_op=model_ready_for_local_init_op)
+      global_variables = tf.global_variables()
+      remain_variables = list(
+          set(global_variables).difference(set(metric_variables)))
+      cur_saver = tf.train.Saver(var_list=remain_variables)
+      cur_scaffold = tf.train.Scaffold(
+          saver=cur_saver,
+          ready_for_local_init_op=model_ready_for_local_init_op)
       cur_sess_creator = ChiefSessionCreator(
           scaffold=cur_scaffold,
           master=server_target,
@@ -561,7 +563,7 @@ def distribute_evaluate(pipeline_config,
     else:
       cur_sess_creator = WorkerSessionCreator(
           master=server_target,
-          #checkpoint_filename_with_path=ckpt_path,
+          # checkpoint_filename_with_path=ckpt_path,
           config=session_config)
     eval_metric_ops = estimator_spec.eval_metric_ops
     update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
@@ -571,10 +573,12 @@ def distribute_evaluate(pipeline_config,
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path, metric_ops)
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+                                          metric_ops)
     else:
       cur_stop_grace_period_sesc = 10
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path, metric_ops)
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+                                          metric_ops)
     with MonitoredSession(
         session_creator=cur_sess_creator,
         hooks=[cur_hooks],
@@ -601,8 +605,8 @@ def distribute_evaluate(pipeline_config,
   eval_result_file = os.path.join(model_dir, eval_result_filename)
   logging.info('save eval result to file %s' % eval_result_file)
   if cur_job_name == 'master':
-    print("eval_result = ", eval_result)
-    logging.info("eval_result = {0}".format(eval_result))
+    print('eval_result = ', eval_result)
+    logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
       for key in sorted(eval_result):
@@ -614,6 +618,7 @@ def distribute_evaluate(pipeline_config,
 
       ofile.write(json.dumps(result_to_write))
   return eval_result
+
 
 def predict(pipeline_config, checkpoint_path='', data_path=None):
   """Predict a EasyRec model defined in pipeline_config_path.
@@ -662,7 +667,7 @@ def export(export_dir,
            checkpoint_path='',
            asset_files=None,
            verbose=False,
-           **redis_params):
+           **extra_params):
   """Export model defined in pipeline_config_path.
 
   Args:
@@ -671,14 +676,19 @@ def export(export_dir,
        specify proto.EasyRecConfig
     checkpoint_path: if specified, will use this model instead of
        model in model_dir in pipeline_config_path
-    asset_files: extra files to add to assets, comma separated
+    asset_files: extra files to add to assets, comma separated;
+       if asset file variable in graph need to be renamed,
+       specify by new_file_name:file_path
     version: if version is defined, then will skip writing embedding to redis,
        assume that embedding is already write into redis
     verbose: dumps debug information
-    redis_params: keys related to write embedding to redis
+    extra_params: keys related to write embedding to redis/oss
        redis_url, redis_passwd, redis_threads, redis_batch_size,
        redis_timeout, redis_expire if export embedding to redis;
        redis_embedding_version: if specified, will kill export to redis
+       --
+       oss_path, oss_endpoint, oss_ak, oss_sk, oss_timeout,
+       oss_expire, oss_write_kv, oss_embedding_version
 
   Returns:
     the directory where model is exported
@@ -699,53 +709,40 @@ def export(export_dir,
   params = {'log_device_placement': verbose}
   if asset_files:
     logging.info('will add asset files: %s' % asset_files)
-    params['asset_files'] = asset_files
+    asset_file_dict = {}
+    for asset_file in asset_files.split(','):
+      asset_file = asset_file.strip()
+      if ':' not in asset_file or asset_file.startswith('oss:'):
+        _, asset_name = os.path.split(asset_file)
+      else:
+        asset_name, asset_file = asset_file.split(':', 1)
+      asset_file_dict[asset_name] = asset_file
+    params['asset_files'] = asset_file_dict
   estimator, _ = _create_estimator(pipeline_config, params=params)
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config)
+  if 'oss_path' in extra_params:
+    return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
+                                   serving_input_fn, estimator, checkpoint_path,
+                                   verbose)
 
-  if 'redis_url' in redis_params:
-    return export_big_model(export_dir, pipeline_config, redis_params,
+  if 'redis_url' in extra_params:
+    return export_big_model(export_dir, pipeline_config, extra_params,
                             serving_input_fn, estimator, checkpoint_path,
                             verbose)
 
-  # pack embedding.pb into asset_extras
-  assets_extra = None
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    # determine model version
-    if checkpoint_path == '':
-      tmp_ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
-    else:
-      tmp_ckpt_path = checkpoint_path
-    ckpt_ver = tmp_ckpt_path.split('-')[-1]
+  if not checkpoint_path:
+    checkpoint_path = estimator_utils.latest_checkpoint(
+        pipeline_config.model_dir)
 
-    embed_files = gfile.Glob(
-        os.path.join(pipeline_config.model_dir, 'embeddings',
-                     '*.pb.' + ckpt_ver))
-    assets_extra = {}
-    for one_file in embed_files:
-      _, one_file_name = os.path.split(one_file)
-      assets_extra[one_file_name] = one_file
-
-  if checkpoint_path != '':
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        checkpoint_path=checkpoint_path,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
-  else:
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
+  final_export_dir = estimator.export_savedmodel(
+      export_dir_base=export_dir,
+      serving_input_receiver_fn=serving_input_fn,
+      checkpoint_path=checkpoint_path,
+      strip_default_attrs=True)
 
   # add export ts as version info
   saved_model = saved_model_pb2.SavedModel()
