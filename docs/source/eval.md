@@ -73,4 +73,20 @@ pai -name easy_rec_ext -project algo_public
 - 如果是pai内部版,则不需要指定arn和ossHost, arn和ossHost放在-Dbuckets里面
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
 
+#### 分布式评估
+```sql
+pai -name easy_rec_ext -project algo_public
+-Dcmd=evaluate
+-Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
+-Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dmodel_dir=oss://easyrec/ckpt/MultiTower
+-Dextra_params=" --distribute_eval True"
+-Darn=acs:ram::xxx:role/xxx
+-Dbuckets=oss://easyrec/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com；
+```
+
+- -distribute_eval: 分布式 evaluate
+
 评估的结果会写到model_dir目录下的文件"eval_result.txt"中。

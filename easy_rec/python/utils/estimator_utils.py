@@ -122,6 +122,102 @@ class ExitBarrierHook(SessionRunHook):
         _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     logging.info('ExitBarrier passed')
 
+class EvaluateExitBarrierHook(SessionRunHook):
+  """ExitBarrier to make sure master and workers exit at the same time.
+
+  After training finish, master has to do evaluation and model export, so master exits a little late
+  than workers.
+  """
+
+  def __init__(self, num_worker, is_chief, model_dir, metric_ops=None):
+    self._num_worker = num_worker
+    self._is_chief = is_chief
+    self._queue = None
+    self._signal_que = None
+    self._que_size = None
+    self._queue = None
+    self._enque = None
+    self._deque = None
+    self._model_dir = model_dir
+    self._send = None
+    self._recv = None
+    self.metric_ops = metric_ops
+    self.eval_result=None
+
+  def begin(self):
+    """Count the number of workers and masters, and setup barrier queue."""
+    tf.logging.info('number workers(including master) = %d' % self._num_worker)
+    with tf.device(
+        tf.DeviceSpec(job='ps', task=0, device_type='CPU', device_index=0)):
+      self._queue = tf.FIFOQueue(
+          capacity=self._num_worker,
+          dtypes=[tf.float32],
+          shapes=[()],
+          name='exit_counter',
+          shared_name='exit_counter')
+      self._signal_que = tf.FIFOQueue(
+          capacity=self._num_worker,
+          dtypes=[tf.string],
+          shapes=[()],
+          name='exit_counter_signal',
+          shared_name='exit_counter_signal')
+    self._enque = self._queue.enqueue(1.0)
+    self._que_size = self._queue.size()
+    self._deque = self._queue.dequeue()
+    if self._is_chief:
+      self._flag_file = os.path.join(self._model_dir,
+                                     'atexit_sync_' + str(int(time.time())))
+      self._send = self._signal_que.enqueue([self._flag_file])
+    else:
+      self._recv = self._signal_que.dequeue()
+      self._flag_file = None
+
+  def after_create_session(self, session, coord):
+    """Clean up the queue after create session.
+
+    Sometimes ps is not exit, the last run enqueued elements will remain in the queue
+    """
+    if self._is_chief:
+      # clear the queue
+      que_size = session.run(self._que_size)
+      while que_size > 0:
+        session.run(self._deque)
+        que_size = session.run(self._que_size)
+      logging.info('exit counter cleared: %d' % que_size)
+
+  def end(self, session):
+    """Ensure when all workers and master enqueue an element, then exit."""
+    session.run(self._enque)
+    que_size = session.run(self._que_size)
+    while que_size < self._num_worker:
+      que_size = session.run(self._que_size)
+      time.sleep(5)
+      tf.logging.info(
+          'waiting for other worker to exit, finished %d, total %d' %
+          (que_size, self._num_worker))
+    # prepare on_exit synchronize base on self._flag_file
+    if self._is_chief:
+      self.eval_result = session.run(self.metric_ops)
+      for i in range(self._num_worker - 1):
+        session.run(self._send)
+    else:
+      self._flag_file = session.run(self._recv)
+
+    def _check_flag_file(is_chief, flag_file):
+      logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
+                   (is_chief, flag_file))
+      if is_chief:
+        with tf.gfile.GFile(flag_file, 'w') as fout:
+          fout.write('atexit time: %d' % int(time.time()))
+      else:
+        while not tf.gfile.Exists(flag_file):
+          time.sleep(1)
+
+    from atexit import register
+    register(
+        _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
+    last_end_eval_result = session.run(self.metric_ops)
+    logging.info('ExitBarrier passed')
 
 class ProgressHook(SessionRunHook):
 
