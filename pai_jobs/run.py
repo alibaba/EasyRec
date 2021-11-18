@@ -443,7 +443,8 @@ def main(argv):
     check_param('config')
     # TODO: support multi-worker evaluation
     if not FLAGS.distribute_eval:
-      assert len(FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+      assert len(
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     pipeline_config.eval_input_path = FLAGS.tables
 
@@ -457,10 +458,10 @@ def main(argv):
                       FLAGS.all_col_types)
     if FLAGS.distribute_eval:
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                  FLAGS.eval_result_path)
+                                   FLAGS.eval_result_path)
     else:
       easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                      FLAGS.eval_result_path)
+                        FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')

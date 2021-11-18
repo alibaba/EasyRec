@@ -122,6 +122,7 @@ class ExitBarrierHook(SessionRunHook):
         _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     logging.info('ExitBarrier passed')
 
+
 class EvaluateExitBarrierHook(SessionRunHook):
   """ExitBarrier to make sure master and workers exit at the same time.
 
@@ -142,7 +143,7 @@ class EvaluateExitBarrierHook(SessionRunHook):
     self._send = None
     self._recv = None
     self.metric_ops = metric_ops
-    self.eval_result=None
+    self.eval_result = None
 
   def begin(self):
     """Count the number of workers and masters, and setup barrier queue."""
@@ -218,6 +219,7 @@ class EvaluateExitBarrierHook(SessionRunHook):
         _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     last_end_eval_result = session.run(self.metric_ops)
     logging.info('ExitBarrier passed')
+
 
 class ProgressHook(SessionRunHook):
 
