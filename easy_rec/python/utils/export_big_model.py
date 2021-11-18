@@ -359,16 +359,17 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   embedding_vars = {}
   norm_name_to_ids = {}
   for x in global_variables():
+    tf.logging.info('global var: %s %s %s' % (x.name, str(type(x)), x.device))
     if 'EmbeddingVariable' in str(type(x)):
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
       norm_name_to_ids[norm_name] = 1
       tmp_export = x.export()
       if x.device not in embedding_vars:
         embedding_vars[x.device] = [(norm_name, tmp_export.keys,
-                                     tmp_export.values)]
+                                     tmp_export.values, part_id)]
       else:
         embedding_vars[x.device].append(
-            (norm_name, tmp_export.keys, tmp_export.values))
+            (norm_name, tmp_export.keys, tmp_export.values, part_id))
     elif '/embedding_weights:' in x.name or '/embedding_weights/part_' in x.name:
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
       norm_name_to_ids[norm_name] = 1
@@ -425,11 +426,32 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
             endpoint=oss_endpoint,
             ak=oss_ak,
             sk=oss_sk,
-            timeout=oss_params.get('oss_timeout', 1500),
             threads=oss_params.get('oss_threads', 5),
-            expire=oss_params.get('oss_expire', 24),
+            timeout=5,
+            expire=5,
             verbose=verbose)
         all_write_res.append(write_kv_res)
+
+    for tmp_dev in embedding_vars:
+      with tf.device(tmp_dev):
+        tmp_vs = embedding_vars[tmp_dev]
+        tmp_sparse_names = [norm_name_to_ids[x[0]] for x in tmp_vs]
+        tmp_sparse_keys = [x[1] for x in tmp_vs]
+        tmp_sparse_vals = [x[2] for x in tmp_vs]
+        tmp_part_ids = [x[3] for x in tmp_vs]
+        write_sparse_kv_res = kv_module.oss_write_sparse_kv(
+            tmp_sparse_names,
+            tmp_sparse_vals,
+            tmp_sparse_keys,
+            tmp_part_ids,
+            osspath=oss_path,
+            endpoint=oss_endpoint,
+            ak=oss_ak,
+            sk=oss_sk,
+            version=meta_graph_def.meta_info_def.meta_graph_version,
+            threads=oss_params.get('oss_threads', 5),
+            verbose=verbose)
+        all_write_res.append(write_sparse_kv_res)
 
     session_config = ConfigProto(
         allow_soft_placement=True, log_device_placement=False)

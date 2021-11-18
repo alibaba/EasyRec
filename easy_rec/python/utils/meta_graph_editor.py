@@ -235,6 +235,7 @@ class MetaGraphEditor:
     # get embedding dimensions from Variables
     embed_dims = {}
     embed_sizes = {}
+    embed_is_kv = {}
     for node in self._meta_graph_def.graph_def.node:
       if 'embedding_weights' in node.name and node.op in [
           'VariableV2', 'KvVarHandleOp'
@@ -248,6 +249,7 @@ class MetaGraphEditor:
             'fail to get_norm_embed_name(%s)' % node.name
         embed_dims[embed_name] = tmp
         embed_sizes[embed_name] = tmp2
+        embed_is_kv[embed_name] = 1 if node.op == 'KvVarHandleOp' else 0
 
     # get all embedding dimensions, note that some embeddings
     # are shared by multiple inputs, so the names should be
@@ -255,17 +257,20 @@ class MetaGraphEditor:
     all_embed_dims = []
     all_embed_names = []
     all_embed_sizes = []
+    all_embed_is_kv = []
     for x in norm_embed_names:
       if x in embed_dims:
         all_embed_names.append(x)
         all_embed_dims.append(embed_dims[x])
         all_embed_sizes.append(embed_sizes[x])
+        all_embed_is_kv.append(embed_is_kv[x])
       elif x.endswith('_shared_embedding'):
         tmp_embed_name = self._get_share_embed_name(x, embed_dims.keys())
         all_embed_names.append(tmp_embed_name)
         all_embed_dims.append(embed_dims[tmp_embed_name])
         all_embed_sizes.append(embed_sizes[tmp_embed_name])
-    return all_embed_names, all_embed_dims, all_embed_sizes
+        all_embed_is_kv.append(embed_is_kv[tmp_embed_name])
+    return all_embed_names, all_embed_dims, all_embed_sizes, all_embed_is_kv
 
   def find_lookup_inputs(self):
     logging.info('Extract embedding_lookup inputs')
@@ -303,8 +308,8 @@ class MetaGraphEditor:
     self._embed_combiners = self._find_embed_combiners(values.keys())
 
     # get embedding dimensions
-    self._embed_names, self._embed_dims, self._embed_sizes = self._find_embed_names_and_dims(
-        values.keys())
+    self._embed_names, self._embed_dims, self._embed_sizes, self._embed_is_kv\
+        = self._find_embed_names_and_dims(values.keys())
 
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
@@ -372,7 +377,8 @@ class MetaGraphEditor:
         timeout=self._oss_timeout,
         combiners=self._embed_combiners,
         embedding_dims=self._embed_dims,
-        embedding_names=self._embed_ids)
+        embedding_names=self._embed_ids,
+        embedding_is_kv=self._embed_is_kv)
 
     meta_graph_def = tf.train.export_meta_graph()
 
@@ -558,9 +564,12 @@ class MetaGraphEditor:
       elif 'KvResourceImportV2' in node.name:
         self._all_graph_node_flags[tid] = False
       elif 'save/Const' in node.name and node.op == 'Const':
-        if '_class' in node.attr and 'embedding_weights' in node.attr[
-            '_class'].list.s[0]:
-          self._all_graph_node_flags[tid] = False
+        if '_class' in node.attr and len(node.attr['_class'].list.s) > 0:
+          const_name = node.attr['_class'].list.s[0]
+          if not isinstance(const_name, str):
+            const_name = const_name.decode('utf-8')
+          if 'embedding_weights' in const_name:
+            self._all_graph_node_flags[tid] = False
       elif 'ReadKvVariableOp' in node.name and node.op == 'ReadKvVariableOp':
         all_kv_drop.append(node.name)
         self._all_graph_node_flags[tid] = False
@@ -568,25 +577,10 @@ class MetaGraphEditor:
         # update node(save/Assign_[0-N])'s input[1] by the position of
         #     node.input[0] in save/RestoreV2/tensor_names
         # the outputs of save/RestoreV2 is connected to save/Assign
-        tmp_restores = [
+        tmp_id = [
             self.bytes2str(x)
             for x in self._restore_tensor_node.attr['value'].tensor.string_val
-        ]
-        if node.input[0] not in tmp_restores:
-          tmp_toks = node.input[0].split('/')
-          if len(tmp_toks) > 2 and tmp_toks[-1].startswith('part_'):
-            tmp_name = '/'.join(tmp_toks[:-1])
-            part_id = int(tmp_toks[-1].split('_')[-1])
-            tmp_id = tmp_restores.index(tmp_name) + part_id
-            assert tmp_restores[tmp_id] == tmp_name, '%s != %s' % (
-                tmp_restores[tmp_id], tmp_name)
-          else:
-            print(node)
-            assert False, 'failed to find restore for %s[%s]' % (node.name,
-                                                                 node.op)
-        else:
-          tmp_id = tmp_restores.index(node.input[0])
-        assert tmp_id >= 0
+        ].index(node.input[0])
         if tmp_id != 0:
           tmp_input2 = 'save/RestoreV2:%d' % tmp_id
         else:
