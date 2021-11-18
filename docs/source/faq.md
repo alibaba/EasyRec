@@ -237,6 +237,11 @@ Failed to execute system command. (exit code: 123.)
 oss//easyrec/test/din/model/model.ckpt.
 ```
 
+#### 运行 predict 时报错
+
+有时报错为：currently only savedmodel is supported.
+先检查路径：saved_model_dir; 路径正确的情况下，可能是 oss_bucket 写错了，要保证 oss_bucket 和路径一致。
+
 #### 其它错误:
 
 ```bash
