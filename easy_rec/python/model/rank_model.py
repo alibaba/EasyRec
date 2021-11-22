@@ -108,13 +108,13 @@ class RankModel(EasyRecModel):
         metric_dict['auc' + suffix] = tf.metrics.auc(
             label,
             self._prediction_dict['probs' + suffix],
-            num_thresholds=metric.num_thresholds)
+            num_thresholds=metric.auc.num_thresholds)
       elif num_class == 2:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['auc' + suffix] = tf.metrics.auc(
             label,
             self._prediction_dict['probs' + suffix][:, 1],
-            num_thresholds=metric.num_thresholds)
+            num_thresholds=metric.auc.num_thresholds)
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'gauc':
