@@ -27,7 +27,7 @@ class PLE(MultiTaskModel):
 
     self._layer_nums = len(self._model_config.extraction_networks)
     self._task_nums = len(self._model_config.task_towers)
-    self._features, _ = self._input_layer(self._feature_dict)
+    self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def gate(self, selector_fea, vec_feas, name):

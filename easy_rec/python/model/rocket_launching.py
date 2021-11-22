@@ -31,7 +31,7 @@ class RocketLaunching(RankModel):
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
 
-    self._features, _ = self._input_layer(self._feature_dict)
+    self._features, _ = self._input_layer(self._feature_dict, 'all')
 
   def sim(self, feature_emb1, feature_emb2):
     emb1_emb2_sim = tf.reduce_sum(

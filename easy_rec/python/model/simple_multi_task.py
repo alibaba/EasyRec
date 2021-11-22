@@ -27,7 +27,7 @@ class SimpleMultiTask(MultiTaskModel):
     self._model_config = self._model_config.simple_multi_task
     assert isinstance(self._model_config, SimpleMultiTaskConfig)
 
-    self._features, _ = self._input_layer(self._feature_dict)
+    self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
