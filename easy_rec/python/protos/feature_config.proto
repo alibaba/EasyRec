@@ -15,10 +15,16 @@ message AttentionCombiner {
 message MultiHeadAttentionCombiner {
 }
 
+message TextCnnCombiner {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+}
+
 message SequenceCombiner {
     oneof combiner {
         AttentionCombiner attention = 1;
         MultiHeadAttentionCombiner multi_head_attention = 2;
+        TextCnnCombiner text_cnn = 3;
     }
 }
 

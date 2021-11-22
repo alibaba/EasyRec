@@ -1,0 +1,33 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/layer.proto";
+
+
+message CircleLoss {
+  required float margin = 1 [default = 0.25];
+  required float gamma = 2 [default = 32];
+};
+
+message MultiSimilarityLoss {
+  required float alpha = 1 [default = 2];
+  required float beta = 2 [default = 50];
+  required float lamb = 3 [default = 1];
+  required float eps = 4 [default = 0.1];
+}
+
+
+message MetricLearning {
+  optional string session_id = 1;
+  repeated HighWayTower highway = 2;
+  optional string input = 4;
+  required DNN dnn = 5;
+  required float l2_regularization = 6 [default = 1e-4];
+  required bool output_l2_normalized_emb = 7 [default = false];
+  optional string sample_id = 8;
+  oneof loss {
+    CircleLoss circle_loss = 101;
+    MultiSimilarityLoss multi_similarity_loss = 102;
+  }
+}

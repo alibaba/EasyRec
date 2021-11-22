@@ -51,27 +51,27 @@ then
   exit 1
 fi
 
-ODPSCMD=`which $ODPSCMD`
-if [ $? -ne 0 ] && [ $mode -ne 2 ]
-then
-   echo "$ODPSCMD is not in PATH"
-   exit 1
-fi
-
-if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
-then
-  if [ -z "$odps_config" ]
-  then
-      echo "odps_config is not set"
-  else
-      echo "odps_config[$odps_config] does not exist"
-  fi
-  exit 1
-fi
-if [ -e "$odps_config" ]
-then
-  odps_config=`readlink -f $odps_config`
-fi
+#ODPSCMD=`which $ODPSCMD`
+#if [ $? -ne 0 ] && [ $mode -ne 2 ]
+#then
+#   echo "$ODPSCMD is not in PATH"
+#   exit 1
+#fi
+#
+#if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
+#then
+#  if [ -z "$odps_config" ]
+#  then
+#      echo "odps_config is not set"
+#  else
+#      echo "odps_config[$odps_config] does not exist"
+#  fi
+#  exit 1
+#fi
+#if [ -e "$odps_config" ]
+#then
+#  odps_config=`readlink -f $odps_config`
+#fi
 
 cd $root_dir
 sh scripts/gen_proto.sh
@@ -94,7 +94,7 @@ sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
 tar -cvzhf $RES_PATH easy_rec run.py
 mv easy_rec/__init__.py.bak easy_rec/__init__.py
-
+exit 0
 # 2 means generate only
 if [ $mode -ne 2 ]
 then
