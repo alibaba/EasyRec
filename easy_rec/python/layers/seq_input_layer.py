@@ -41,29 +41,31 @@ class SeqInputLayer(object):
       input_name = input_name.split('/')[:2]
       return 'sequence_feature/' + '/'.join(input_name)
 
-    key_tensors = []
-    for key in keys:
-      qfc = feature_column_dict[key]
-      with tf.variable_scope(qfc._var_scope_name):
-        key_tensors.append(feature_column_dict[key]._get_dense_tensor(builder))
-    if tf_summary:
-      for key_tensor in key_tensors:
-        tf.summary.histogram(
-            _seq_embed_summary_name(key_tensor.name), key_tensor)
+    with tf.variable_scope(group_name, reuse=tf.AUTO_REUSE):
+      key_tensors = []
+      for key in keys:
+        qfc = feature_column_dict[key]
+        with tf.variable_scope(qfc._var_scope_name):
+          key_tensors.append(
+              feature_column_dict[key]._get_dense_tensor(builder))
+      if tf_summary:
+        for key_tensor in key_tensors:
+          tf.summary.histogram(
+              _seq_embed_summary_name(key_tensor.name), key_tensor)
 
-    hist_tensors = []
-    for hist_seq in hist_seqs:
-      seq_fc = feature_column_dict[hist_seq]
-      with tf.variable_scope(seq_fc._var_scope_name):
-        hist_tensors.append(
-            feature_column_dict[hist_seq]._get_sequence_dense_tensor(builder))
+      hist_tensors = []
+      for hist_seq in hist_seqs:
+        seq_fc = feature_column_dict[hist_seq]
+        with tf.variable_scope(seq_fc._var_scope_name):
+          hist_tensors.append(
+              feature_column_dict[hist_seq]._get_sequence_dense_tensor(builder))
 
-    if tf_summary:
-      for hist_embed, hist_seq_len in hist_tensors:
-        tf.summary.histogram(
-            _seq_embed_summary_name(hist_embed.name), hist_embed)
-        tf.summary.histogram(
-            _seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
+      if tf_summary:
+        for hist_embed, hist_seq_len in hist_tensors:
+          tf.summary.histogram(
+              _seq_embed_summary_name(hist_embed.name), hist_embed)
+          tf.summary.histogram(
+              _seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
 
     features = {
         'key': tf.concat(key_tensors, axis=-1),

@@ -25,14 +25,8 @@ class AutoInt(RankModel):
                                   labels, is_training)
     assert self._model_config.WhichOneof('model') == 'autoint', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
-    self._features, _ = self._input_layer(self._feature_dict)
+    self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._feature_num = len(self._model_config.feature_groups[0].feature_names)
-    self._seq_key_num = 0
-    if len(self._model_config.seq_att_groups) > 0:
-      self._feature_num += len(
-          self._model_config.seq_att_groups[0].seq_att_map.hist_seq)
-      self._seq_key_num = len(
-          self._model_config.seq_att_groups[0].seq_att_map.key)
     self._model_config = self._model_config.autoint
     assert isinstance(self._model_config, AutoIntConfig)
 
@@ -50,8 +44,7 @@ class AutoInt(RankModel):
     logging.info('feature_num: {0}'.format(self._feature_num))
 
     attention_fea = tf.reshape(
-        self._features,
-        shape=[-1, self._feature_num + self._seq_key_num, self._d_model])
+        self._features, shape=[-1, self._feature_num, self._d_model])
 
     for i in range(self._model_config.interacting_layer_num):
       attention_layer = multihead_attention.MultiHeadAttention(

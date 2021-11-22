@@ -484,6 +484,78 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_sequence_autoint(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/autoint_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dcn(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dcn_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dssm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_essm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/essm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_fm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_mind(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mind_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_mmoe(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_ple(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/ple_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_rocket_launching(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/rocket_launching_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_simple_multi_task(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/simple_multi_task_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_wide_and_deep(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/wide_and_deep_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
