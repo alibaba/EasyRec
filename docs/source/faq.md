@@ -244,6 +244,11 @@ oss//easyrec/test/din/model/model.ckpt.
 
 #### StringToNumberOp could not correctly convert string 
 检查特征配置是否正确，说明这里的特征不是一个数值型的RawFeature，可以配置成IdFeature
+也有可能配置的是IdFeature，但是还是报这个错，可以看下具体配置里面的bucket类型，不能是num_buckets
+```
+num_buckets: buckets number, 仅仅当输入是integer类型时，可以使用num_buckets
+```
+需要修改成hash_buckets
 
 #### 其它错误:
 
