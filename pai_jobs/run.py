@@ -13,6 +13,7 @@ from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.estimator_utils import chief_to_master
@@ -67,6 +68,8 @@ tf.app.flags.DEFINE_string(
 # flags used for evaluate
 tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
                            'eval result metric file')
+tf.app.flags.DEFINE_bool('distribute_eval', False,
+                         'use distribute parameter server for train and eval.')
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
@@ -117,7 +120,6 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
-
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -392,6 +394,9 @@ def main(argv):
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
 
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
+
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
       config_util.add_boundaries_to_config(pipeline_config,
@@ -437,7 +442,9 @@ def main(argv):
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
     # TODO: support multi-worker evaluation
-    assert len(FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+    if not FLAGS.distribute_eval:
+      assert len(
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     pipeline_config.eval_input_path = FLAGS.tables
 
@@ -449,9 +456,12 @@ def main(argv):
     # parse selected_cols
     set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                       FLAGS.all_col_types)
-
-    easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                      FLAGS.eval_result_path)
+    if FLAGS.distribute_eval:
+      easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                                   FLAGS.eval_result_path)
+    else:
+      easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                        FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')

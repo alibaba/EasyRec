@@ -2,10 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 
-import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.input_utils import string_to_number
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -69,10 +69,8 @@ class RTPInput(Input):
     labels = [fields[:, x] for x in self._selected_cols[:-1]]
 
     # only for features, labels excluded
-    record_defaults = [
-        self.get_type_defaults(t, v)
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
+    record_types = [
+        t for x, t in zip(self._input_fields, self._input_field_types)
         if x not in self._label_fields
     ]
     # assume that the last field is the generated feature column
@@ -81,26 +79,11 @@ class RTPInput(Input):
         fields[:, self._feature_col_id],
         self._data_config.separator,
         skip_empty=False)
-    tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
+    tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
     fields = []
-    for i in range(len(record_defaults)):
-      if type(record_defaults[i]) == int:
-        fields.append(
-            tf.string_to_number(
-                tmp_fields[:, i], tf.int64, name='field_as_int_%d' % i))
-      elif type(record_defaults[i]) in [float, np.float32, np.float64]:
-        fields.append(
-            tf.string_to_number(
-                tmp_fields[:, i], tf.float32, name='field_as_flt_%d' % i))
-      elif type(record_defaults[i]) in [str, type(u''), bytes]:
-        fields.append(tmp_fields[:, i])
-      elif type(record_defaults[i]) == bool:
-        fields.append(
-            tf.logical_or(
-                tf.equal(tmp_fields[:, i], 'True'),
-                tf.equal(tmp_fields[:, i], 'true')))
-      else:
-        assert 'invalid types: %s' % str(type(record_defaults[i]))
+    for i in range(len(record_types)):
+      field = string_to_number(tmp_fields[:, i], record_types[i], i)
+      fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     effective_fids = [field_keys.index(x) for x in self._effective_fields]

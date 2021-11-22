@@ -39,4 +39,6 @@ message EasyRecConfig {
   required EasyRecModel model_config = 10;
 
   optional ExportConfig export_config = 11;
+
+  optional string fg_json_path = 14;
 }
