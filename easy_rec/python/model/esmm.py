@@ -65,11 +65,9 @@ class ESMM(MultiTaskModel):
     cvr_label_name = self._label_name_dict[cvr_tower_name]
     ctr_label_name = self._label_name_dict[ctr_tower_name]
     if self._cvr_tower_cfg.loss_type == LossType.CLASSIFICATION:
-      ctcvr_label = self._labels[cvr_label_name] * self._labels[ctr_label_name]
-      cvr_loss = losses.log_loss(
-          ctcvr_label,
-          self._prediction_dict['probs_ctcvr'],
-          weights=self._sample_weight)
+      ctcvr_label = tf.cast(self._labels[cvr_label_name] * self._labels[ctr_label_name], tf.float32)
+      cvr_losses = tf.keras.backend.binary_crossentropy(ctcvr_label, self._prediction_dict['probs_ctcvr'])
+      cvr_loss = tf.reduce_sum(cvr_losses, name="ctcvr_loss")
       # The weight defaults to 1.
       self._loss_dict['weighted_cross_entropy_loss_%s' %
                       cvr_tower_name] = self._cvr_tower_cfg.weight * cvr_loss
@@ -86,10 +84,10 @@ class ESMM(MultiTaskModel):
       self._loss_dict['weighted_l2_loss_%s' %
                       cvr_tower_name] = self._cvr_tower_cfg.weight * cvr_loss
 
-    ctr_loss = losses.sigmoid_cross_entropy(
-        self._labels[ctr_label_name],
-        self._prediction_dict['logits_%s' % ctr_tower_name],
-        weights=self._sample_weight)
+    ctr_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.cast(self._labels[ctr_label_name], tf.float32),
+                                                                     logits=self._prediction_dict['logits_%s' % ctr_tower_name]),
+                             name="cvr_loss")
+
     self._loss_dict['weighted_cross_entropy_loss_%s' %
                     ctr_tower_name] = self._ctr_tower_cfg.weight * ctr_loss
     return self._loss_dict
@@ -111,7 +109,7 @@ class ESMM(MultiTaskModel):
     ctr_label_name = self._label_name_dict[ctr_tower_name]
     for metric in self._cvr_tower_cfg.metrics_set:
       # CTCVR metric
-      ctcvr_label_name = cvr_label_name + '_ctcvr'
+      ctcvr_label_name = cvr_label_name + '_ctcvrsqrt'
       cvr_dtype = self._labels[cvr_label_name].dtype
       self._labels[ctcvr_label_name] = self._labels[cvr_label_name] * tf.cast(
           self._labels[ctr_label_name], cvr_dtype)
@@ -121,7 +119,7 @@ class ESMM(MultiTaskModel):
               loss_type=self._cvr_tower_cfg.loss_type,
               label_name=ctcvr_label_name,
               num_class=self._cvr_tower_cfg.num_class,
-              suffix='_ctcvr'))
+              suffix='_ctcvrsqrt'))
 
       # CVR metric
       cvr_label_masked_name = cvr_label_name + '_masked'
@@ -159,6 +157,8 @@ class ESMM(MultiTaskModel):
           self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name])
       # pctcvr = pctr * pcvr
       self._prediction_dict['probs_ctcvr'] = prob
+      self._prediction_dict['probs_ctcvrsqrt'] = tf.sqrt(prob)
+
     else:
       prob = tf.multiply(
           self._prediction_dict['y_%s' % self._cvr_tower_cfg.tower_name],
