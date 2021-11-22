@@ -248,7 +248,7 @@ oss//easyrec/test/din/model/model.ckpt.
 ```
 num_buckets: buckets number, 仅仅当输入是integer类型时，可以使用num_buckets
 ```
-需要修改成hash_bucket_size,参考 [EasyRec 特征配置](https://easyrec.readthedocs.io/en/latest/feature/feature.html)
+需要修改成hash_bucket_size,参考 [EasyRec 特征配置-IdFeature:离散值特征/ID类特征](https://easyrec.readthedocs.io/en/latest/feature/feature.html#idfeature-id)
 
 #### 其它错误:
 
