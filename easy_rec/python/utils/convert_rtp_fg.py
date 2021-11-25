@@ -224,6 +224,7 @@ def load_input_field_and_feature_config(rtp_fg,
                                            pipeline_config, embedding_dim,
                                            incol_separator)
       elif 'sequence_name' in feature:
+        logging.info('Set sequence_features group later.')
         sequence_name = feature['sequence_name']
         for sub_feature in feature['features']:
           sub_feature_type = sub_feature['feature_type']
@@ -281,23 +282,6 @@ def convert_rtp_fg(rtp_fg,
   pipeline_config = load_input_field_and_feature_config(rtp_fg, label_fields,
                                                         embedding_dim,
                                                         incol_separator)
-
-  new_rtp_features = []
-  for feature in rtp_features:
-    if 'feature_name' in feature:
-      new_rtp_features.append(feature)
-    elif 'sequence_name' in feature:
-      print('hello feature = ', feature)
-      sequence_name = feature['sequence_name']
-      for sub_feature in feature['features']:
-        print('sub_feature = ', sub_feature)
-        sub_feature[
-            'feature_name'] = sequence_name + '_' + sub_feature['feature_name']
-        new_rtp_features.append(sub_feature)
-    else:
-      logging.info('Invalid fg feature format!')
-      sys.exit(1)
-  rtp_features = new_rtp_features
   pipeline_config.model_dir = model_dir
   pipeline_config.data_config.separator = separator
   if selected_cols:
