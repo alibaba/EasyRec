@@ -99,6 +99,7 @@ message FeatureGroupConfig {
     repeated string feature_names = 2;
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
+    optional SeqAttGroupConfig sequence_features = 4;
 }
 
 message SeqAttMap {
@@ -108,7 +109,8 @@ message SeqAttMap {
 
 message SeqAttGroupConfig {
     optional string group_name = 1;
-    required SeqAttMap seq_att_map = 2;
+    repeated SeqAttMap seq_att_map = 2;
     optional bool tf_summary = 3 [default = false];
     optional DNN seq_dnn = 4;
+    optional bool allow_key_search = 5 [default = false];
 }
