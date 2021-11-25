@@ -8,6 +8,7 @@ import time
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
 
 from easy_rec.python.builders import optimizer_builder
@@ -254,11 +255,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
+      # incompatiable shape restore will not be saved in checkpoint
+      # but must be able to restore from checkpoint
+      incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
       if early_stop_var is not None:
         var_list = [x for x in var_list if x != early_stop_var]
         local_init_op = tf.group([
             tf.initializers.local_variables(),
-            tf.initializers.variables([early_stop_var])
+            tf.initializers.variables([early_stop_var] +
+                                      incompatiable_shape_restore)
+        ])
+      elif len(incompatiable_shape_restore) > 0:
+        local_init_op = tf.group([
+            tf.initializers.local_variables(),
+            tf.initializers.variables(incompatiable_shape_restore)
         ])
       else:
         local_init_op = None
@@ -322,6 +332,58 @@ class EasyRecEstimator(tf.estimator.Estimator):
         loss=loss,
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
+
+  def _distribute_eval_model_fn(self, features, labels, run_config):
+    start = time.time()
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels,
+        is_training=False)
+    predict_dict = model.build_predict_graph()
+    loss_dict = model.build_loss_graph()
+    loss = tf.add_n(list(loss_dict.values()))
+    loss_dict['total_loss'] = loss
+    metric_dict = model.build_distribute_metric_graph(self.eval_config)
+    for loss_key in loss_dict.keys():
+      loss_tensor = loss_dict[loss_key]
+      # add key-prefix to make loss metric key in the same family of train loss
+      metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
+    tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
+
+    end = time.time()
+    tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
+    metric_name_list = []
+    for metric_i in self.eval_config.metrics_set:
+      metric_name_list.append(metric_i.WhichOneof('metric'))
+    all_var_list = []
+    metric_var_list = []
+    for var in variables._all_saveable_objects():
+      var_name = var.name
+      flag = True
+      for metric_i in metric_name_list:
+        if metric_i in var_name:
+          flag = False
+          break
+      if flag:
+        all_var_list.append(var)
+      else:
+        metric_var_list.append(var)
+    global_variables = tf.global_variables()
+    metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
+    model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
+    remain_variables = list(
+        set(global_variables).difference(set(metric_variables)))
+    cur_saver = tf.train.Saver(var_list=remain_variables)
+    scaffold = tf.train.Scaffold(
+        saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
+    return tf.estimator.EstimatorSpec(
+        mode=tf.estimator.ModeKeys.EVAL,
+        loss=loss,
+        predictions=predict_dict,
+        eval_metric_ops=metric_dict,
+        scaffold=scaffold)
 
   def _export_model_fn(self, features, labels, run_config, params):
     model = self._model_cls(

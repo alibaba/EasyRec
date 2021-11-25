@@ -6,7 +6,6 @@ import os
 from abc import abstractmethod
 from collections import OrderedDict
 
-import numpy as np
 import six
 import tensorflow as tf
 
@@ -15,6 +14,8 @@ from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
+from easy_rec.python.utils.input_utils import get_type_defaults
+from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -113,6 +114,8 @@ class Input(six.with_metaclass(_meta_type, object)):
       # build sampler only when train and eval
       self._sampler = sampler_lib.build(data_config)
 
+    self.get_type_defaults = get_type_defaults
+
   @property
   def num_epochs(self):
     if self._data_config.num_epochs > 0:
@@ -132,33 +135,6 @@ class Input(six.with_metaclass(_meta_type, object)):
     assert field_type in type_map, 'invalid type: %s' % field_type
     return type_map[field_type]
 
-  def get_type_defaults(self, field_type, default_val=''):
-    type_defaults = {
-        DatasetConfig.INT32: 0,
-        DatasetConfig.INT64: 0,
-        DatasetConfig.STRING: '',
-        DatasetConfig.BOOL: False,
-        DatasetConfig.FLOAT: 0.0,
-        DatasetConfig.DOUBLE: 0.0
-    }
-    assert field_type in type_defaults, 'invalid type: %s' % field_type
-    if default_val == '':
-      default_val = type_defaults[field_type]
-    if field_type == DatasetConfig.INT32:
-      return int(default_val)
-    elif field_type == DatasetConfig.INT64:
-      return np.int64(default_val)
-    elif field_type == DatasetConfig.STRING:
-      return default_val
-    elif field_type == DatasetConfig.BOOL:
-      return default_val.lower() == 'true'
-    elif field_type in [DatasetConfig.FLOAT]:
-      return float(default_val)
-    elif field_type in [DatasetConfig.DOUBLE]:
-      return np.float64(default_val)
-
-    return type_defaults[field_type]
-
   def create_multi_placeholders(self,
                                 placeholder_named_by_input,
                                 export_fields_name=None):
@@ -175,6 +151,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     inputs = {}
+
     for fid in effective_fids:
       input_name = self._input_fields[fid]
       if placeholder_named_by_input:
@@ -189,6 +166,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         ftype = self._input_field_types[fid]
         tf_type = self.get_tf_type(ftype)
+        logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
@@ -209,15 +187,13 @@ class Input(six.with_metaclass(_meta_type, object)):
     features = {}
     for tmp_id, fid in enumerate(effective_fids):
       ftype = self._input_field_types[fid]
-      tf_type = self.get_tf_type(ftype)
       input_name = self._input_fields[fid]
-      if tf_type in [tf.float32, tf.double, tf.int32, tf.int64]:
-        features[input_name] = tf.string_to_number(
-            input_vals[:, tmp_id],
-            tf_type,
-            name='input_str_to_%s' % tf_type.name)
-      else:
+
+      if ftype in [DatasetConfig.STRING]:
         features[input_name] = input_vals[:, tmp_id]
+      else:
+        features[input_name] = string_to_number(input_vals[:, tmp_id], ftype,
+                                                tmp_id)
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
 

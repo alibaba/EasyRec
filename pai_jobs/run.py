@@ -68,6 +68,8 @@ tf.app.flags.DEFINE_string(
 # flags used for evaluate
 tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
                            'eval result metric file')
+tf.app.flags.DEFINE_bool('distribute_eval', False,
+                         'use distribute parameter server for train and eval.')
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
@@ -440,7 +442,9 @@ def main(argv):
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
     # TODO: support multi-worker evaluation
-    assert len(FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+    if not FLAGS.distribute_eval:
+      assert len(
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     pipeline_config.eval_input_path = FLAGS.tables
 
@@ -452,9 +456,12 @@ def main(argv):
     # parse selected_cols
     set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                       FLAGS.all_col_types)
-
-    easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                      FLAGS.eval_result_path)
+    if FLAGS.distribute_eval:
+      easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                                   FLAGS.eval_result_path)
+    else:
+      easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                        FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')
