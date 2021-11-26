@@ -247,20 +247,24 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
             'evaluator' not in tf_config['cluster']):
       easyrec_tf_config=dict()
-      easyrec_tf_config['cluster']={}
-      easyrec_tf_config['task']={}
-      easyrec_tf_config['cluster']['ps']=tf_config['cluster']['ps']
-      easyrec_tf_config['cluster']['master']=[]
-      size=len(tf_config['cluster']['worker'])
-      easyrec_tf_config['cluster']['master'].append(tf_config['cluster']['worker'].pop())
-      #del tf_config['cluster']['worker'][0]
-      easyrec_tf_config['cluster']['worker']=tf_config['cluster']['worker']
-      if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (size-1):
-        easyrec_tf_config['task']['type'] = 'master'
+      easyrec_tf_config['cluster'] = {}
+      easyrec_tf_config['task'] = {}
+      easyrec_tf_config['cluster']['ps'] = tf_config['cluster']['ps']
+      easyrec_tf_config['cluster']['chief'] = [tf_config['cluster']['worker'][0]]
+      easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker'][2:]
+
+      if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 0:
+        easyrec_tf_config['task']['type'] = 'chief'
         easyrec_tf_config['task']['index'] = 0
+      elif tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 1:
+        easyrec_tf_config['task']['type'] = 'evaluator'
+        easyrec_tf_config['task']['index'] = 0
+      elif tf_config['task']['type'] == 'worker':
+        easyrec_tf_config['task']['type'] = tf_config['task']['type']
+        easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 2
       else:
-        easyrec_tf_config['task']['type']=tf_config['task']['type']
-        easyrec_tf_config['task']['index']=tf_config['task']['index']
+        easyrec_tf_config['task']['type'] = tf_config['task']['type']
+        easyrec_tf_config['task']['index'] = tf_config['task']['index']
       os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
 
 
