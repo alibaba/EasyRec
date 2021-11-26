@@ -74,6 +74,7 @@ pai -name easy_rec_ext -project algo_public
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
 
 #### 分布式评估
+
 ```sql
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate

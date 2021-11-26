@@ -161,8 +161,9 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               partitions=[len(variable)] + [1] * (len(var_shape) - 1))
         else:
           var_shape = variable.shape.as_list()
-        if ckpt_var_shape == var_shape or var_shape is None:
-          vars_in_ckpt[variable_name] = variable
+        if ckpt_var_shape == var_shape:
+          vars_in_ckpt[variable_name] = list(variable) if isinstance(
+              variable, PartitionedVariable) else variable
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
