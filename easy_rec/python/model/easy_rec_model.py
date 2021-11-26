@@ -2,11 +2,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+import os
 import re
+import time
 from abc import abstractmethod
 
-import os
-import time
 import six
 import tensorflow as tf
 from tensorflow.python.framework import tensor_shape

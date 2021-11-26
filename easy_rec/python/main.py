@@ -245,40 +245,54 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   if (not is_on_pai()) and 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
-            'evaluator' not in tf_config['cluster']):
-      easyrec_tf_config=dict()
-      easyrec_tf_config['cluster']={}
-      easyrec_tf_config['task']={}
-      easyrec_tf_config['cluster']['ps']=tf_config['cluster']['ps']
-      easyrec_tf_config['cluster']['master']=[]
-      size=len(tf_config['cluster']['worker'])
-      easyrec_tf_config['cluster']['master'].append(tf_config['cluster']['worker'].pop())
-      #del tf_config['cluster']['worker'][0]
-      easyrec_tf_config['cluster']['worker']=tf_config['cluster']['worker']
-      if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (size-1):
-        easyrec_tf_config['task']['type'] = 'master'
-        easyrec_tf_config['task']['index'] = 0
-      else:
-        easyrec_tf_config['task']['type']=tf_config['task']['type']
-        easyrec_tf_config['task']['index']=tf_config['task']['index']
-      os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
+        'evaluator' not in tf_config['cluster']):
+      easyrec_tf_config = dict()
+      easyrec_tf_config['cluster'] = {}
+      easyrec_tf_config['task'] = {}
+      easyrec_tf_config['cluster']['ps'] = tf_config['cluster']['ps']
+      size = len(tf_config['cluster']['worker'])
 
+      easyrec_tf_config['cluster']['chief'] = [
+          tf_config['cluster']['worker'][0]
+      ]
+      easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker'][
+          2:]
+
+      if tf_config['task']['type'] == 'worker' and tf_config['task'][
+          'index'] == 0:
+        easyrec_tf_config['task']['type'] = 'chief'
+        easyrec_tf_config['task']['index'] = 0
+      elif tf_config['task']['type'] == 'worker' and tf_config['task'][
+          'index'] == 1:
+        easyrec_tf_config['task']['type'] = 'evaluator'
+        easyrec_tf_config['task']['index'] = 0
+      elif tf_config['task']['type'] == 'worker':
+        easyrec_tf_config['task']['type'] = tf_config['task']['type']
+        easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 2
+      else:
+        easyrec_tf_config['task']['type'] = tf_config['task']['type']
+        easyrec_tf_config['task']['index'] = tf_config['task']['index']
+      os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
 
   train_config = pipeline_config.train_config
   if train_config.fine_tune_checkpoint:
     fine_tune_ckpt_path = train_config.fine_tune_checkpoint
-    if fine_tune_ckpt_path.endswith('/') or tf.gfile.IsDirectory(fine_tune_ckpt_path + '/'):
-      fine_tune_ckpt_path = estimator_utils.latest_checkpoint(fine_tune_ckpt_path)
-      logging.info('ckpt_path is model_dir,  will use the latest checkpoint: %s' % fine_tune_ckpt_path)
+    if fine_tune_ckpt_path.endswith('/') or tf.gfile.IsDirectory(
+        fine_tune_ckpt_path + '/'):
+      fine_tune_ckpt_path = estimator_utils.latest_checkpoint(
+          fine_tune_ckpt_path)
+      logging.info(
+          'ckpt_path is model_dir,  will use the latest checkpoint: %s' %
+          fine_tune_ckpt_path)
 
     if fine_tune_ckpt_path.startswith('hdfs://'):
-      tmpdir = os.path.dirname(fine_tune_ckpt_path.replace("hdfs://", ""))
-      tmpdir = os.path.join("/tmp/experiments", tmpdir)
+      tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
+      tmpdir = os.path.join('/tmp/experiments', tmpdir)
       logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
       if tf.gfile.IsDirectory(tmpdir):
         tf.gfile.DeleteRecursively(tmpdir)
       tf.gfile.MakeDirs(tmpdir)
-      for src_path in tf.gfile.Glob(fine_tune_ckpt_path+"*"):
+      for src_path in tf.gfile.Glob(fine_tune_ckpt_path + '*'):
         dst_path = os.path.join(tmpdir, os.path.basename(src_path))
         logging.info('will copy %s to local path %s' % (src_path, dst_path))
         tf.gfile.Copy(src_path, dst_path, overwrite=True)
@@ -286,7 +300,6 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
       fine_tune_ckpt_path = os.path.join(tmpdir, ckpt_filename)
     train_config.fine_tune_checkpoint = fine_tune_ckpt_path
     logging.info('will restore from %s' % fine_tune_ckpt_path)
-
 
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs
@@ -399,21 +412,23 @@ def evaluate(pipeline_config,
   server_target = None
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
-    easyrec_tf_config=dict()
-    easyrec_tf_config['cluster']={}
-    easyrec_tf_config['task']={}
-    easyrec_tf_config['cluster']['ps']=tf_config['cluster']['ps']
-    easyrec_tf_config['cluster']['master']=[]
-    size=len(tf_config['cluster']['worker'])
-    easyrec_tf_config['cluster']['master'].append(tf_config['cluster']['worker'].pop())
+    easyrec_tf_config = dict()
+    easyrec_tf_config['cluster'] = {}
+    easyrec_tf_config['task'] = {}
+    easyrec_tf_config['cluster']['ps'] = tf_config['cluster']['ps']
+    easyrec_tf_config['cluster']['master'] = []
+    size = len(tf_config['cluster']['worker'])
+    easyrec_tf_config['cluster']['master'].append(
+        tf_config['cluster']['worker'].pop())
     #del tf_config['cluster']['worker'][0]
-    easyrec_tf_config['cluster']['worker']=tf_config['cluster']['worker']
-    if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (size-1):
+    easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker']
+    if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == (
+        size - 1):
       easyrec_tf_config['task']['type'] = 'master'
       easyrec_tf_config['task']['index'] = 0
     else:
-      easyrec_tf_config['task']['type']=tf_config['task']['type']
-      easyrec_tf_config['task']['index']=tf_config['task']['index']
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index']
     print('print easyrec_tf_config')
     print(easyrec_tf_config)
     os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
@@ -482,8 +497,8 @@ def evaluate(pipeline_config,
         eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
   logging.info('Evaluate finish')
 
-  print("eval_result = ", eval_result)
-  logging.info("eval_result = {0}".format(eval_result))
+  print('eval_result = ', eval_result)
+  logging.info('eval_result = {0}'.format(eval_result))
   # write eval result to file
   model_dir = pipeline_config.model_dir
   eval_result_file = os.path.join(model_dir, eval_result_filename)
@@ -498,6 +513,7 @@ def evaluate(pipeline_config,
       result_to_write[key] = eval_result[key].item()
     ofile.write(json.dumps(result_to_write, indent=2))
   return eval_result
+
 
 def distribute_evaluate(pipeline_config,
                         eval_checkpoint_path='',
@@ -571,8 +587,7 @@ def distribute_evaluate(pipeline_config,
         print('server_target = %s' % server_target)
 
   distribution = strategy_builder.build(train_config)
-  estimator, run_config = _create_estimator(
-      pipeline_config, distribution)
+  estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
 
@@ -590,19 +605,21 @@ def distribute_evaluate(pipeline_config,
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
     with device(
         replica_device_setter(worker_device=cur_work_device, cluster=cluster)):
-      estimator_spec = estimator._distribute_eval_model_fn(input_feas, input_lbls,
-                                                run_config)
+      estimator_spec = estimator._distribute_eval_model_fn(
+          input_feas, input_lbls, run_config)
 
     session_config = ConfigProto(
         allow_soft_placement=True, log_device_placement=True)
     if cur_job_name == 'master':
       metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
       model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
-      global_variables = tf.global_variables() 
-      remain_variables = list(set(global_variables).difference(set(metric_variables)))
-      cur_saver = tf.train.Saver(var_list = remain_variables)
-      cur_scaffold = tf.train.Scaffold(saver=cur_saver,
-                                ready_for_local_init_op=model_ready_for_local_init_op)
+      global_variables = tf.global_variables()
+      remain_variables = list(
+          set(global_variables).difference(set(metric_variables)))
+      cur_saver = tf.train.Saver(var_list=remain_variables)
+      cur_scaffold = tf.train.Scaffold(
+          saver=cur_saver,
+          ready_for_local_init_op=model_ready_for_local_init_op)
       cur_sess_creator = ChiefSessionCreator(
           scaffold=cur_scaffold,
           master=server_target,
@@ -621,10 +638,12 @@ def distribute_evaluate(pipeline_config,
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path, metric_ops)
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+                                          metric_ops)
     else:
       cur_stop_grace_period_sesc = 10
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path, metric_ops)
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+                                          metric_ops)
     with MonitoredSession(
         session_creator=cur_sess_creator,
         hooks=[cur_hooks],
@@ -651,8 +670,8 @@ def distribute_evaluate(pipeline_config,
   eval_result_file = os.path.join(model_dir, eval_result_filename)
   logging.info('save eval result to file %s' % eval_result_file)
   if cur_job_name == 'master':
-    print("eval_result = ", eval_result)
-    logging.info("eval_result = {0}".format(eval_result))
+    print('eval_result = ', eval_result)
+    logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
       for key in sorted(eval_result):
@@ -664,6 +683,7 @@ def distribute_evaluate(pipeline_config,
 
       ofile.write(json.dumps(result_to_write))
   return eval_result
+
 
 def predict(pipeline_config, checkpoint_path='', data_path=None):
   """Predict a EasyRec model defined in pipeline_config_path.
