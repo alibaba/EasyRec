@@ -37,6 +37,13 @@ class DropoutNet(EasyRecModel):
     self._model_config = self._model_config.dropoutnet
     assert isinstance(self._model_config, DropoutNetConfig)
 
+    if self._model_config.HasField('sample_weight_field'):
+      field = self._model_config.sample_weight_field
+      assert field in self._feature_dict, "`sample_weight_field: %s` not in features" % field
+      self._sample_weights = self._feature_dict[field]
+    else:
+      self._sample_weights = 1.0
+
     # copy_obj so that any modification will not affect original config
     self.user_content = copy_obj(self._model_config.user_content)
     self.user_preference = copy_obj(self._model_config.user_preference)
@@ -51,7 +58,6 @@ class DropoutNet(EasyRecModel):
     # copy_obj so that any modification will not affect original config
     self.item_content = copy_obj(self._model_config.item_content)
     self.item_preference = copy_obj(self._model_config.item_preference)
-    self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_content_feature, self.item_preference_feature = None, None
     if self._input_layer.has_group('item_content'):
@@ -143,7 +149,8 @@ class DropoutNet(EasyRecModel):
     user_emb = self._prediction_dict['float_user_emb']
     item_emb = self._prediction_dict['float_item_emb']
     num = self._model_config.num_negative_mining
-    loss, probs = softmax_loss_with_negative_mining(user_emb, item_emb, label, num, embed_normed=True)
+    loss, probs = softmax_loss_with_negative_mining(user_emb, item_emb, label, num,
+                                                    embed_normed=True, weights=self._sample_weights)
     self._prediction_dict['probs'] = probs
     self._loss_dict["loss"] = loss
     return self._loss_dict

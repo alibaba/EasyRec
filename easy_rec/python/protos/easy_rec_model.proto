@@ -8,7 +8,7 @@ import "easy_rec/python/protos/multi_tower.proto";
 import "easy_rec/python/protos/feature_config.proto";
 import "easy_rec/python/protos/dropoutnet.proto";
 import "easy_rec/python/protos/dssm.proto";
-import "easy_rec/python/protos/metric_learning.proto";
+import "easy_rec/python/protos/collaborative_metric_learning.proto";
 import "easy_rec/python/protos/mmoe.proto";
 import "easy_rec/python/protos/esmm.proto";
 import "easy_rec/python/protos/dbmtl.proto";
@@ -62,7 +62,7 @@ message EasyRecModel {
         DSSM dssm = 201;
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
-        MetricLearning metric_learning = 204;
+        CoMetricLearningI2I metric_learning = 204;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
@@ -71,7 +71,6 @@ message EasyRecModel {
         PLE ple = 305;
 
         RocketLaunching rocket_launching = 401;
-
     }
     repeated SeqAttGroupConfig seq_att_groups = 7;
     // implemented in easy_rec/python/model/easy_rec_estimator

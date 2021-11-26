@@ -18,7 +18,7 @@ message MultiSimilarityLoss {
 }
 
 
-message MetricLearning {
+message CoMetricLearningI2I {
   optional string session_id = 1;
   repeated HighWayTower highway = 2;
   optional string input = 4;

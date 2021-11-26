@@ -11,8 +11,9 @@ def softmax_loss_with_negative_mining(user_emb,
                                       item_emb,
                                       labels,
                                       num_negative_samples=4,
-                                      gamma=1.0,
-                                      embed_normed=False):
+                                      embed_normed=False,
+                                      weights=1.0,
+                                      gamma=1.0):
   """
     Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb` the
     cosine distance between it and the corresponding `item_emb` and additionally the cosine distance between `user_emb`
@@ -24,8 +25,11 @@ def softmax_loss_with_negative_mining(user_emb,
     item_emb: A `Tensor` with shape [batch_size, embedding_size]. The embedding of item.
     labels: a `Tensor` with shape [batch_size]. e.g. click or not click in the session. It's values must be 0 or 1.
     num_negative_samples: the num of negative samples, should be in range [1, batch_size).
-    gamma: parameter of softmax
     embed_normed: bool, whether input embeddings l2 normalized
+    weights: `weights` acts as a coefficient for the loss. If a scalar is provided,
+      then the loss is simply scaled by the given value. If `weights` is a
+      tensor of shape `[batch_size]`, then the loss weights apply to each corresponding sample.
+    gamma: parameter of softmax
   Return:
     A tuple of (log loss, the probability of positive sample)
   """
@@ -44,12 +48,11 @@ def softmax_loss_with_negative_mining(user_emb,
 
   # sim_scores's shape: (batch_size, num_negative_samples + 1)
   sim_scores = tf.keras.backend.batch_dot(user_emb, all_embeddings, axes=(1, 2))
-
   probs = tf.nn.softmax(sim_scores * gamma)
-  pos_prob = tf.slice(probs, [0, 0], [-1, 1])
   # fetch the first column, the probability of positive sample
-  log_prob = tf.log(pos_prob)
+  pos_prob = tf.slice(probs, [0, 0], [-1, 1])
+
   labels = tf.to_float(labels)
-  loss = -tf.reduce_sum(log_prob * labels) / tf.reduce_sum(labels)
+  loss = tf.losses.compute_weighted_loss(-tf.log(pos_prob) * labels, weights * labels)
   return loss, pos_prob
 
