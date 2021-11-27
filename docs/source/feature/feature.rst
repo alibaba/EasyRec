@@ -241,8 +241,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 -  hash\_bucket\_size: 同离散值特征
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
-现在，已经在所有模型中均支持上了序列特征。具体原理是先将序列特征过 Target Attention 模型 (DIN), 然后再
-与其它的模型 concat 在一起后通过后续流程。具体配置如下：
+在模型中可支持对序列特征使用Target Attention（DIN)，方法如下：
 
 .. code:: protobuf
 
@@ -258,15 +257,15 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     feature_names: 'new_user_class_level'
     wide_deep:DEEP
     sequence_features: {
-    group_name: "seq_fea"
-    allow_key_search: true
-    seq_att_map: {
-       key: "brand"
-       key: "cate_id"
-       hist_seq: "tag_brand_list"
-       hist_seq: "tag_category_list"
+      group_name: "seq_fea"
+      allow_key_search: true
+      seq_att_map: {
+        key: "brand"
+        key: "cate_id"
+        hist_seq: "tag_brand_list"
+        hist_seq: "tag_category_list"
+      }
     }
-  }
   }
 
 -  sequence_features: 序列特征组的名称

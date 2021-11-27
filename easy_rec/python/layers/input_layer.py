@@ -66,7 +66,7 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
-  def din(self, dnn_config, deep_fea, name):
+  def target_attention(self, dnn_config, deep_fea, name):
     cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len']
 
@@ -103,8 +103,9 @@ class InputLayer(object):
                            feature_name_to_output_tensors=None):
     group_name = seq_att_map_config.group_name
     allow_key_search = seq_att_map_config.allow_key_search
-    seq_features = self._seq_input_layer.pure_sequence_feature_call(
-        features, group_name, feature_name_to_output_tensors, allow_key_search)
+    seq_features = self._seq_input_layer(features, group_name,
+                                         feature_name_to_output_tensors,
+                                         allow_key_search)
     regularizers.apply_regularization(
         self._embedding_regularizer, weights_list=[seq_features['key']])
     regularizers.apply_regularization(
@@ -119,7 +120,8 @@ class InputLayer(object):
       from easy_rec.python.protos.dnn_pb2 import DNN
       seq_dnn_config = DNN()
       seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
-    seq_fea = self.din(seq_dnn_config, seq_features, name='seq_dnn')
+    seq_fea = self.target_attention(
+        seq_dnn_config, seq_features, name='seq_dnn')
     return seq_fea
 
   def __call__(self, features, group_name, is_combine=True):
