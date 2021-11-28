@@ -31,7 +31,7 @@ def softmax_loss_with_negative_mining(user_emb,
       tensor of shape `[batch_size]`, then the loss weights apply to each corresponding sample.
     gamma: parameter of softmax
   Return:
-    A tuple of (log loss, the probability of positive sample)
+    A tuple of (log loss, the probability of the similarity between anchor and the other samples, similarities)
   """
   if not embed_normed:
     user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
@@ -41,7 +41,7 @@ def softmax_loss_with_negative_mining(user_emb,
   vectors = [item_emb]
   for i in range(num_negative_samples):
     shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32)
-    neg_item_emb = tf.roll(item_emb, shift, axis=-1)
+    neg_item_emb = tf.roll(item_emb, shift, axis=0)
     vectors.append(neg_item_emb)
   # all_embeddings's shape: (batch_size, num_negative_samples + 1, vec_dim)
   all_embeddings = tf.stack(vectors, axis=1)
@@ -50,9 +50,9 @@ def softmax_loss_with_negative_mining(user_emb,
   sim_scores = tf.keras.backend.batch_dot(user_emb, all_embeddings, axes=(1, 2))
   probs = tf.nn.softmax(sim_scores * gamma)
   # fetch the first column, the probability of positive sample
-  pos_prob = tf.slice(probs, [0, 0], [-1, 1])
+  pos_prob = tf.squeeze(tf.slice(probs, [0, 0], [-1, 1]))
 
   labels = tf.to_float(labels)
   loss = tf.losses.compute_weighted_loss(-tf.log(pos_prob) * labels, weights * labels)
-  return loss, pos_prob
+  return loss, probs, sim_scores
 

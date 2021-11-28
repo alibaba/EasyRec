@@ -149,27 +149,31 @@ class DropoutNet(EasyRecModel):
     user_emb = self._prediction_dict['float_user_emb']
     item_emb = self._prediction_dict['float_item_emb']
     num = self._model_config.num_negative_mining
-    loss, probs = softmax_loss_with_negative_mining(user_emb, item_emb, label, num,
-                                                    embed_normed=True, weights=self._sample_weights)
-    self._prediction_dict['probs'] = probs
+    loss, probs, similarities = softmax_loss_with_negative_mining(user_emb, item_emb, label, num,
+                                                                  embed_normed=True, weights=self._sample_weights)
+    self._prediction_dict['probabilities'] = probs
+    self._prediction_dict['similarities'] = similarities
     self._loss_dict["loss"] = loss
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
     metric_dict = {}
     label = list(self._labels.values())[0]
+    probabilities = self._prediction_dict['probabilities']
+    predict = tf.argmax(probabilities, axis=-1)
+    sim_scores = self._prediction_dict['similarities']
+    pos_sim_score = tf.squeeze(tf.slice(sim_scores, [0, 0], [-1, 1]))
+    is_correct = tf.equal(predict, 0)
+    tf_false = tf.zeros_like(is_correct, dtype=tf.bool)
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'auc':
-        metric_dict['auc'] = metrics.auc(label, self._prediction_dict['probs'])
+        metric_dict['auc'] = metrics.auc(label, pos_sim_score)
       elif metric.WhichOneof('metric') == 'accuracy':
-        metric_dict['accuracy'] = metrics.accuracy(
-          tf.cast(label, tf.bool), tf.greater_equal(self._prediction_dict['probs'], 0.5))
+        metric_dict['accuracy'] = metrics.accuracy(tf.cast(label, tf.bool), tf.greater_equal(pos_sim_score, 0.5))
       elif metric.WhichOneof('metric') == 'precision':
-        metric_dict['precision'] = metrics.precision(
-          label, tf.greater_equal(self._prediction_dict['probs'], 0.5))
+        metric_dict['precision'] = metrics.precision(label, tf.where(tf.equal(label, 1), is_correct, tf_false))
       elif metric.WhichOneof('metric') == 'recall':
-        metric_dict['recall'] = metrics.precision(
-          label, tf.greater_equal(self._prediction_dict['probs'], 0.5))
+        metric_dict['recall'] = metrics.recall(label, is_correct)
       else:
         ValueError('invalid metric type: %s' % str(metric))
     return metric_dict
