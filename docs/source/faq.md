@@ -257,7 +257,9 @@ Please ensure that you have not alterred the graph expected based on the checkpo
 Original error:
     xxxxxx
 ```
-在已经存在输出的checkpoint目录上训练，需要清空checkpoint，如果是增量训练，需要使用export工具导出模型
+模型保存目录下已经存在checkpoint
+  如果重新训练，请清空此目录
+  如果增量训练，请参考https://easyrec.readthedocs.io/en/latest/incremental_train.html
 
 #### 输出user塔的embedding时，输出为空
 用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是[]，空的数组
