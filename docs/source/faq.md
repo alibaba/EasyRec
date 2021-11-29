@@ -250,6 +250,19 @@ num_buckets: buckets number, 仅仅当输入是integer类型时，可以使用nu
 ```
 需要修改成hash_bucket_size,参考 [EasyRec 特征配置-IdFeature:离散值特征/ID类特征](https://easyrec.readthedocs.io/en/latest/feature/feature.html#idfeature-id)
 
+#### Restoring from checkpoint failed
+```
+Restoring from checkpoint failed,this is most likely due to a Variable name or other graph key that is missing from checkpoint.
+Please ensure that you have not alterred the graph expected based on the checkpoint.
+Original error:
+    xxxxxx
+```
+在已经存在输出的checkpoint目录上训练，需要清空checkpoint，如果是增量训练，需要使用export工具导出模型
+
+#### 输出user塔的embedding时，输出为空
+用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是[]，空的数组
+需要使用 tfResponse.getStringVals("user_emb")
+
 #### 其它错误:
 
 ```bash
