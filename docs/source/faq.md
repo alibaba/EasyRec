@@ -242,12 +242,15 @@ oss//easyrec/test/din/model/model.ckpt.
 有时报错为：currently only savedmodel is supported.
 先检查路径：saved_model_dir; 路径正确的情况下，可能是 oss_bucket 写错了，要保证 oss_bucket 和路径一致。
 
-#### StringToNumberOp could not correctly convert string 
+#### StringToNumberOp could not correctly convert string
+
 检查特征配置是否正确，说明这里的特征不是一个数值型的RawFeature，可以配置成IdFeature
 也有可能配置的是IdFeature，但是还是报这个错，可以看下具体配置里面的bucket类型，不能是num_buckets
+
 ```
 num_buckets: buckets number, 仅仅当输入是integer类型时，可以使用num_buckets
 ```
+
 需要修改成hash_bucket_size,参考 [EasyRec 特征配置-IdFeature:离散值特征/ID类特征](https://easyrec.readthedocs.io/en/latest/feature/feature.html#idfeature-id)
 
 #### 其它错误:

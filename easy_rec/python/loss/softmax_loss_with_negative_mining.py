@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
+
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -14,11 +15,9 @@ def softmax_loss_with_negative_mining(user_emb,
                                       embed_normed=False,
                                       weights=1.0,
                                       gamma=1.0):
-  """
-    Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb` the
-    cosine distance between it and the corresponding `item_emb` and additionally the cosine distance between `user_emb`
-    and some other elements of `item_emb` (referred to a negative samples).
-    The negative samples are formed on the fly by shifting the right side (`item_emb`).
+  """Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb` the cosine distance between it and the corresponding `item_emb` and additionally the cosine distance between `user_emb` and some other elements of `item_emb` (referred to a negative samples).
+
+  The negative samples are formed on the fly by shifting the right side (`item_emb`).
     Then the softmax loss will be computed based on these cosine distance.
   Args:
     user_emb: A `Tensor` with shape [batch_size, embedding_size]. The embedding of user.
@@ -53,6 +52,6 @@ def softmax_loss_with_negative_mining(user_emb,
   pos_prob = tf.squeeze(tf.slice(probs, [0, 0], [-1, 1]))
 
   labels = tf.to_float(labels)
-  loss = tf.losses.compute_weighted_loss(-tf.log(pos_prob) * labels, weights * labels)
+  loss = tf.losses.compute_weighted_loss(-tf.log(pos_prob) * labels,
+                                         weights * labels)
   return loss, probs, sim_scores
-

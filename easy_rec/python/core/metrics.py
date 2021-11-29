@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
+
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -136,6 +137,7 @@ def metric_learning_recall_at_k(k,
                                 session_ids=None,
                                 embed_normed=False):
   """Computes the recall_at_k metric for metric learning.
+
   Args:
     embeddings: the output of last hidden layer, a tf.float32 `Tensor` with shape [batch_size, embedding_size]
     session_ids: session ids, a `Tensor` with shape [batch_size]

@@ -7,7 +7,7 @@ TextCNN网络是2014年提出的用来做文本分类的卷积神经网络，由
 从直观上理解，TextCNN通过一维卷积来获取句子中n-gram的特征表示。
 TextCNN对文本浅层特征的抽取能力很强，在短文本领域专注于意图分类时效果很好，应用广泛，且速度较快。
 
-Yoon Kim在论文[EMNLP 2014][Convolutional neural networks for sentence classication](https://www.aclweb.org/anthology/D14-1181.pdf)
+Yoon Kim在论文\[EMNLP 2014\][Convolutional neural networks for sentence classication](https://www.aclweb.org/anthology/D14-1181.pdf)
 提出了TextCNN并给出基本的结构。
 将卷积神经网络CNN应用到文本分类任务，利用多个不同size的kernel来提取句子中的关键信息（类似于多窗口大小的ngram），从而能够更好地捕捉局部相关性。
 模型的主体结构如图所示：

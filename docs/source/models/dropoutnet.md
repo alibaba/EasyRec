@@ -80,7 +80,7 @@ model_config {
   其中，user_content和user_preference两者至少要有1个；item_content和item_preference两者至少要有1个。
 - dropoutnet: dropoutnet相关的参数，必须配置user_tower和item_tower
 - user_content/user_content/user_preference/item_preference/user_tower/item_tower: dnn的参数配置
-    - hidden_units: dnn每一层的channel数目，即神经元的数目
+  - hidden_units: dnn每一层的channel数目，即神经元的数目
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 ### 示例Config

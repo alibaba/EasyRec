@@ -7,8 +7,9 @@ from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import variational_dropout_layer
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.layers.common_layers import text_cnn
+from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
 

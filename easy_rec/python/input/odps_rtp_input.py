@@ -48,7 +48,8 @@ class OdpsRTPInput(Input):
         if x not in self._label_fields
     ]
     # assume that the last field is the generated feature column
-    print('field_delim = %s, input_field_name = %d' % (self._data_config.separator, len(record_types)))
+    print('field_delim = %s, input_field_name = %d' %
+          (self._data_config.separator, len(record_types)))
     fields = tf.string_split(
         fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])

@@ -2,12 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.utils.shape_utils import get_shape_list
 from easy_rec.python.layers import dnn
+from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 from easy_rec.python.model.easy_rec_model import EasyRecModel
-from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig
+from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
 from easy_rec.python.utils.proto_util import copy_obj
-from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining
+from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -17,7 +17,7 @@ metrics = tf.metrics
 
 def cosine_similarity(user_emb, item_emb):
   user_item_sim = tf.reduce_sum(
-    tf.multiply(user_emb, item_emb), axis=1, keep_dims=True)
+      tf.multiply(user_emb, item_emb), axis=1, keep_dims=True)
   return user_item_sim
 
 
@@ -29,7 +29,8 @@ class DropoutNet(EasyRecModel):
                features,
                labels=None,
                is_training=False):
-    super(DropoutNet, self).__init__(model_config, feature_configs, features, labels, is_training)
+    super(DropoutNet, self).__init__(model_config, feature_configs, features,
+                                     labels, is_training)
     self._loss_type = self._model_config.loss_type
     self._num_class = self._model_config.num_class
     assert self._model_config.WhichOneof('model') == 'dropoutnet', \
@@ -39,7 +40,7 @@ class DropoutNet(EasyRecModel):
 
     if self._model_config.HasField('sample_weight_field'):
       field = self._model_config.sample_weight_field
-      assert field in self._feature_dict, "`sample_weight_field: %s` not in features" % field
+      assert field in self._feature_dict, '`sample_weight_field: %s` not in features' % field
       self._sample_weights = self._feature_dict[field]
     else:
       self._sample_weights = 1.0
@@ -50,9 +51,11 @@ class DropoutNet(EasyRecModel):
     self.user_tower = copy_obj(self._model_config.user_tower)
     self.user_content_feature, self.user_preference_feature = None, None
     if self._input_layer.has_group('user_content'):
-      self.user_content_feature, _ = self._input_layer(self._feature_dict, 'user_content')
+      self.user_content_feature, _ = self._input_layer(self._feature_dict,
+                                                       'user_content')
     if self._input_layer.has_group('user_preference'):
-      self.user_preference_feature, _ = self._input_layer(self._feature_dict, 'user_preference')
+      self.user_preference_feature, _ = self._input_layer(
+          self._feature_dict, 'user_preference')
     assert self.user_content_feature is not None or self.user_preference_feature is not None, 'no user feature'
 
     # copy_obj so that any modification will not affect original config
@@ -61,9 +64,11 @@ class DropoutNet(EasyRecModel):
     self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_content_feature, self.item_preference_feature = None, None
     if self._input_layer.has_group('item_content'):
-      self.item_content_feature, _ = self._input_layer(self._feature_dict, 'item_content')
+      self.item_content_feature, _ = self._input_layer(self._feature_dict,
+                                                       'item_content')
     if self._input_layer.has_group('item_preference'):
-      self.item_preference_feature, _ = self._input_layer(self._feature_dict, 'item_preference')
+      self.item_preference_feature, _ = self._input_layer(
+          self._feature_dict, 'item_preference')
     assert self.item_content_feature is not None or self.item_preference_feature is not None, 'no item feature'
 
   def build_predict_graph(self):
@@ -79,58 +84,68 @@ class DropoutNet(EasyRecModel):
     # --------------------------build user tower-----------------------------------
     user_features = []
     if self.user_content_feature is not None:
-      user_content_dnn = dnn.DNN(self.user_content, self._l2_reg, 'user_content', self._is_training)
+      user_content_dnn = dnn.DNN(self.user_content, self._l2_reg,
+                                 'user_content', self._is_training)
       content_feature = user_content_dnn(self.user_content_feature)
       user_features.append(content_feature)
     if self.user_preference_feature is not None:
       if self._is_training:
         prob = tf.random.uniform([batch_size])
-        user_prefer_feature = tf.where(tf.less(prob, self._model_config.user_dropout_rate),
-                                       tf.zeros_like(self.user_preference_feature), self.user_preference_feature)
+        user_prefer_feature = tf.where(
+            tf.less(prob, self._model_config.user_dropout_rate),
+            tf.zeros_like(self.user_preference_feature),
+            self.user_preference_feature)
       else:
         user_prefer_feature = self.user_preference_feature
 
-      user_prefer_dnn = dnn.DNN(self.user_preference, self._l2_reg, 'user_preference', self._is_training)
+      user_prefer_dnn = dnn.DNN(self.user_preference, self._l2_reg,
+                                'user_preference', self._is_training)
       prefer_feature = user_prefer_dnn(user_prefer_feature)
       user_features.append(prefer_feature)
 
     user_tower_feature = tf.concat(user_features, axis=-1)
 
-    user_dnn = dnn.DNN(self.user_tower, self._l2_reg, 'user_dnn', self._is_training)
+    user_dnn = dnn.DNN(self.user_tower, self._l2_reg, 'user_dnn',
+                       self._is_training)
     user_tower_emb = user_dnn(user_tower_feature)
     user_tower_emb = tf.layers.dense(
-      inputs=user_tower_emb,
-      units=last_user_hidden,
-      kernel_regularizer=self._l2_reg,
-      name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
+        inputs=user_tower_emb,
+        units=last_user_hidden,
+        kernel_regularizer=self._l2_reg,
+        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
 
     # --------------------------build item tower-----------------------------------
     item_features = []
     if self.item_content_feature is not None:
-      item_content_dnn = dnn.DNN(self.item_content, self._l2_reg, 'item_content', self._is_training)
+      item_content_dnn = dnn.DNN(self.item_content, self._l2_reg,
+                                 'item_content', self._is_training)
       content_feature = item_content_dnn(self.item_content_feature)
       item_features.append(content_feature)
     if self.item_preference_feature is not None:
       if self._is_training:
         prob = tf.random.uniform([batch_size])
-        item_prefer_feature = tf.where(tf.less(prob, self._model_config.item_dropout_rate),
-                                       tf.zeros_like(self.item_preference_feature), self.item_preference_feature)
+        item_prefer_feature = tf.where(
+            tf.less(prob, self._model_config.item_dropout_rate),
+            tf.zeros_like(self.item_preference_feature),
+            self.item_preference_feature)
       else:
         item_prefer_feature = self.item_preference_feature
 
-      item_prefer_dnn = dnn.DNN(self.item_preference, self._l2_reg, 'item_preference', self._is_training)
+      item_prefer_dnn = dnn.DNN(self.item_preference, self._l2_reg,
+                                'item_preference', self._is_training)
       prefer_feature = item_prefer_dnn(item_prefer_feature)
       item_features.append(prefer_feature)
 
     item_tower_feature = tf.concat(item_features, axis=-1)
 
-    item_dnn = dnn.DNN(self.item_tower, self._l2_reg, 'item_dnn', self._is_training)
+    item_dnn = dnn.DNN(self.item_tower, self._l2_reg, 'item_dnn',
+                       self._is_training)
     item_tower_emb = item_dnn(item_tower_feature)
     item_tower_emb = tf.layers.dense(
-      inputs=item_tower_emb,
-      units=last_item_hidden,
-      kernel_regularizer=self._l2_reg,
-      name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
+        inputs=item_tower_emb,
+        units=last_item_hidden,
+        kernel_regularizer=self._l2_reg,
+        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
 
     user_emb = tf.nn.l2_normalize(user_tower_emb, axis=-1)
     item_emb = tf.nn.l2_normalize(item_tower_emb, axis=-1)
@@ -139,9 +154,9 @@ class DropoutNet(EasyRecModel):
     self._prediction_dict['float_user_emb'] = user_emb
     self._prediction_dict['float_item_emb'] = item_emb
     self._prediction_dict['user_emb'] = tf.reduce_join(
-      tf.as_string(user_emb), axis=-1, separator=',')
+        tf.as_string(user_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(
-      tf.as_string(item_emb), axis=-1, separator=',')
+        tf.as_string(item_emb), axis=-1, separator=',')
     return self._prediction_dict
 
   def build_loss_graph(self):
@@ -149,11 +164,16 @@ class DropoutNet(EasyRecModel):
     user_emb = self._prediction_dict['float_user_emb']
     item_emb = self._prediction_dict['float_item_emb']
     num = self._model_config.num_negative_mining
-    loss, probs, similarities = softmax_loss_with_negative_mining(user_emb, item_emb, label, num,
-                                                                  embed_normed=True, weights=self._sample_weights)
+    loss, probs, similarities = softmax_loss_with_negative_mining(
+        user_emb,
+        item_emb,
+        label,
+        num,
+        embed_normed=True,
+        weights=self._sample_weights)
     self._prediction_dict['probabilities'] = probs
     self._prediction_dict['similarities'] = similarities
-    self._loss_dict["loss"] = loss
+    self._loss_dict['loss'] = loss
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
@@ -163,15 +183,18 @@ class DropoutNet(EasyRecModel):
     predict = tf.argmax(probabilities, axis=-1)
     sim_scores = self._prediction_dict['similarities']
     pos_sim_score = tf.squeeze(tf.slice(sim_scores, [0, 0], [-1, 1]))
+    pos_prob = tf.nn.sigmoid(pos_sim_score)
     is_correct = tf.equal(predict, 0)
     tf_false = tf.zeros_like(is_correct, dtype=tf.bool)
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'auc':
-        metric_dict['auc'] = metrics.auc(label, pos_sim_score)
+        metric_dict['auc'] = metrics.auc(label, pos_prob)
       elif metric.WhichOneof('metric') == 'accuracy':
-        metric_dict['accuracy'] = metrics.accuracy(tf.cast(label, tf.bool), tf.greater_equal(pos_sim_score, 0.5))
+        metric_dict['accuracy'] = metrics.accuracy(
+            tf.cast(label, tf.bool), tf.greater_equal(pos_sim_score, 0.5))
       elif metric.WhichOneof('metric') == 'precision':
-        metric_dict['precision'] = metrics.precision(label, tf.where(tf.equal(label, 1), is_correct, tf_false))
+        metric_dict['precision'] = metrics.precision(
+            label, tf.where(tf.equal(label, 1), is_correct, tf_false))
       elif metric.WhichOneof('metric') == 'recall':
         metric_dict['recall'] = metrics.recall(label, is_correct)
       else:

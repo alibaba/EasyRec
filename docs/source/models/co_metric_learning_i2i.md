@@ -3,8 +3,8 @@
 ### 简介
 
 Collaborative Metric Learning I2I 召回模型，基于session点击数据计算item与item的相似度。
-在同一session内任意两个被点击的item pair彼此构成正样本对<anchor item, positive item>；
-anchor item与一个未必点击的negative item构成负样本对<anchor item, negative item>。
+在同一session内任意两个被点击的item pair彼此构成正样本对\<anchor item, positive item>；
+anchor item与一个未必点击的negative item构成负样本对\<anchor item, negative item>。
 
 Metric Learning需要保证 `anchor item` 与 `negative item` 的语义向量之间的距离
 相比 `anchor item` 与 `positive item` 的语义向量之间的距离大，且至少间隔距离为margin（超参数）。
@@ -12,13 +12,16 @@ Metric Learning需要保证 `anchor item` 与 `negative item` 的语义向量之
 ![mind](../../images/models/CML.png)
 
 目前可选的损失函数（loss function）包括：
+
 - circle loss
 - multi-similarity loss
 
 Collaborative Metric Learning I2I 模型接受的训练样本的格式如下：
+
 ```angular2html
   < session_id, item_features, label(is_click) >
 ```
+
 在训练过程中，同一`mini batch`内同一个`session_id`下`label=1`的所有item彼此之间互相构成
 `<anchor item, positive item>`, 而`mini batch`内的其他所有item(不管session_id的值)则
 与该pair对构成`negative item`。
@@ -69,7 +72,6 @@ model_config: {
     - hidden_units: dnn每一层的channel数目，即神经元的数目
   - circle_loss: circle loss 损失函数的超参数
 - embedding_regularization: 对embedding部分加regularization，防止overfit
-
 
 ### 示例Config
 

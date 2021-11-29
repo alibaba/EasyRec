@@ -243,7 +243,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_metric_learning(self):
     self._success = test_utils.test_single_train_eval(
-      'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
+        'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dssm_neg_sampler(self):

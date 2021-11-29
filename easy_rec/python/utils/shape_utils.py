@@ -332,6 +332,7 @@ def assert_box_normalized(boxes, maximum_normalized_coordinate=1.1):
 
 def get_shape_list(tensor, expected_rank=None, name=None):
   """Returns a list of the shape of tensor, preferring static dimensions.
+
   Args:
     tensor: A tf.Tensor object to find the shape of.
     expected_rank: (optional) int. The expected rank of `tensor`. If this is
@@ -362,6 +363,7 @@ def get_shape_list(tensor, expected_rank=None, name=None):
 
 def assert_rank(tensor, expected_rank, name=None):
   """Raises an exception if the tensor rank is not of the expected rank.
+
   Args:
     tensor: A tf.Tensor to check the rank of.
     expected_rank: Python integer or list of integers, expected rank.
