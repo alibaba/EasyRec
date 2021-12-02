@@ -8,9 +8,10 @@ from easy_rec.python.layers.common_layers import highway
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.multi_similarity import ms_loss
 from easy_rec.python.model.easy_rec_model import EasyRecModel
-from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
+
+from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

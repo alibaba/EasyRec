@@ -50,7 +50,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
     # add sample weight from inputs
     self._sample_weight = 1.0
-    if constant.SAMPLE_WEIGHT in features:
+    if self._model_config.HasField('sample_weight_field'):
+      field = self._model_config.sample_weight_field
+      assert field in self._feature_dict, '`sample_weight_field: %s` not in features' % field
+      self._sample_weight = self._feature_dict[field]
+    elif constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
 
   @property

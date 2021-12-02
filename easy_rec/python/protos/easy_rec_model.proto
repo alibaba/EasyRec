@@ -91,4 +91,9 @@ message EasyRecModel {
     repeated string restore_filters = 13;
 
     optional VariationalDropoutLayer variational_dropout = 14;
+
+    repeated Loss losses = 15;
+
+    // sample weight feature name
+    optional string sample_weight_field = 16 [default="SAMPLE_WEIGHT"];
 }

@@ -3,8 +3,8 @@
 ### 简介
 
 Collaborative Metric Learning I2I 召回模型，基于session点击数据计算item与item的相似度。
-在同一session内任意两个被点击的item pair彼此构成正样本对\<anchor item, positive item>；
-anchor item与一个未必点击的negative item构成负样本对\<anchor item, negative item>。
+在同一session内任意两个被点击的item pair彼此构成正样本对`<anchor item, positive item>`；
+`anchor item`与任意一个未被点击的negative item构成负样本对`<anchor item, negative item>`。
 
 Metric Learning需要保证 `anchor item` 与 `negative item` 的语义向量之间的距离
 相比 `anchor item` 与 `positive item` 的语义向量之间的距离大，且至少间隔距离为margin（超参数）。
