@@ -41,7 +41,9 @@ def softmax_loss_with_negative_mining(user_emb,
                                       gamma=1.0,
                                       margin=0,
                                       t=1):
-  """Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb` the cosine distance between it and the corresponding `item_emb` and additionally the cosine distance between `user_emb` and some other elements of `item_emb` (referred to a negative samples).
+  """Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb`
+  the cosine distance between it and the corresponding `item_emb`,
+  and additionally the cosine distance between `user_emb` and some other elements of `item_emb` (referred to a negative samples).
 
   The negative samples are formed on the fly by shifting the right side (`item_emb`).
     Then the softmax loss will be computed based on these cosine distance.
@@ -60,11 +62,13 @@ def softmax_loss_with_negative_mining(user_emb,
   Return:
     support vector guided softmax loss of positive labels
   """
+  batch_size = get_shape_list(item_emb)[0]
+  assert 0 < num_negative_samples < batch_size, "`num_negative_samples` should be in range [1, batch_size)"
+
   if not embed_normed:
     user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
     item_emb = tf.nn.l2_normalize(item_emb, axis=-1)
 
-  batch_size = get_shape_list(item_emb)[0]
   vectors = [item_emb]
   for i in range(num_negative_samples):
     shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32)
@@ -87,10 +91,4 @@ def softmax_loss_with_negative_mining(user_emb,
 
   loss = support_vector_guided_softmax_loss(
       pos_score, neg_scores, margin=margin, t=t, smooth=gamma, weights=weights)
-  # probs = tf.nn.softmax(sim_scores * gamma)
-  # # fetch the first column, the probability of positive sample
-  # pos_prob = tf.squeeze(tf.slice(probs, [0, 0], [-1, 1]))
-  #
-  # labels = tf.to_float(labels)
-  # loss = tf.losses.compute_weighted_loss(-tf.log(pos_prob) * labels, weights * labels)
   return loss

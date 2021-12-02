@@ -19,11 +19,6 @@ message Loss {
   required float weight = 2 [default = 1.0];
 };
 
-message PairwiseLoss {
-  required float margin = 1 [default = 0];
-  required float label_smoothing = 2 [default = 0];
-}
-
 message SoftmaxCrossEntropyWithNegativeMining {
   required uint32 num_negative_samples = 1;
   required float margin = 2 [default = 0];

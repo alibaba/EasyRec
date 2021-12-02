@@ -178,14 +178,7 @@ class DropoutNet(EasyRecModel):
             t=self._model_config.softmax_loss.coefficient_of_support_vector)
         self._loss_dict['softmax_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.PAIR_WISE_LOSS:
-        if self._model_config.HasField('pairwise_loss'):
-          loss_value = pairwise_loss(
-            logits,
-            labels,
-            margin=self._model_config.pairwise_loss.margin,
-            label_smoothing=self._model_config.pairwise_loss.label_smoothing)
-        else:
-          loss_value = pairwise_loss(logits, labels)
+        loss_value = pairwise_loss(logits, labels)
         self._loss_dict['pairwise_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.CLASSIFICATION:
         loss_value = tf.losses.sigmoid_cross_entropy(

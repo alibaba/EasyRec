@@ -26,7 +26,7 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.PAIR_WISE_LOSS:
-    return pairwise_loss(pred, label, **kwargs)
+    return pairwise_loss(pred, label)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

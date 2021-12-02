@@ -8,13 +8,11 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def pairwise_loss(logits, labels, margin=0, label_smoothing=0):
-  # pairwise_logits = logits - tf.transpose(logits) # for logits' shape is [batch_size, 1]
-  pairwise_logits = tf.expand_dims(logits - margin, -1) - tf.expand_dims(
+def pairwise_loss(logits, labels):
+  pairwise_logits = tf.expand_dims(logits, -1) - tf.expand_dims(
       logits, 0)
   logging.info('[pairwise_loss] pairwise logits: {}'.format(pairwise_logits))
 
-  # pairwise_mask = tf.greater(labels - tf.transpose(labels), 0)
   pairwise_mask = tf.greater(
       tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
   logging.info('[pairwise_loss] mask: {}'.format(pairwise_mask))
@@ -24,7 +22,7 @@ def pairwise_loss(logits, labels, margin=0, label_smoothing=0):
 
   pairwise_pseudo_labels = tf.ones_like(pairwise_logits)
   loss = tf.losses.sigmoid_cross_entropy(
-      pairwise_pseudo_labels, pairwise_logits, label_smoothing=label_smoothing)
+      pairwise_pseudo_labels, pairwise_logits)
   # set rank loss to zero if a batch has no positive sample.
   loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
   return loss

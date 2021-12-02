@@ -344,7 +344,7 @@ def get_shape_list(tensor, expected_rank=None, name=None):
     be returned as python integers, and dynamic dimensions will be returned
     as tf.Tensor scalars.
   """
-  if name is None:
+  if name is None and not tf.executing_eagerly():
     name = tensor.name
   if expected_rank is not None:
     assert_rank(tensor, expected_rank, name)
@@ -371,7 +371,7 @@ def assert_rank(tensor, expected_rank, name=None):
   Raises:
     ValueError: If the expected shape doesn't match the actual shape.
   """
-  if name is None:
+  if name is None and not tf.executing_eagerly():
     name = tensor.name
   expected_rank_dict = {}
   if isinstance(expected_rank, six.integer_types):

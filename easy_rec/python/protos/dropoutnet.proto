@@ -16,5 +16,4 @@ message DropoutNet {
   required float user_dropout_rate = 8 [default = 0];
   required float item_dropout_rate = 9 [default = 0.5];
   optional SoftmaxCrossEntropyWithNegativeMining softmax_loss = 10;
-  optional PairwiseLoss pairwise_loss = 11;
 }

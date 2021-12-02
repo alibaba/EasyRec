@@ -55,7 +55,7 @@ model_config {
     weight: 1.0
   }
   losses {
-    loss_type: SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
+    loss_type: PAIR_WISE_LOSS
     weight: 1.0
   }
   dropoutnet {
@@ -82,12 +82,6 @@ model_config {
     l2_regularization: 1e-06
     user_dropout_rate: 0
     item_dropout_rate: 0.5
-    softmax_loss {
-      num_negative_mining: 1000
-      margin: 0.25
-      gamma: 1.8
-      coefficient_of_support_vector: 2
-    }
   }
   sample_weight_field: "weight"
   embedding_regularization: 5e-5
@@ -99,10 +93,9 @@ model_config {
   其中，user_content和user_preference两者至少要有1个；item_content和item_preference两者至少要有1个。
 - losses: 配置模型使用的loss function的类型和权重；DropoutNet支持三种类型的loss函数，可以单独使用，也可以搭配在一起使用。
   - loss_type=CLASSIFICATION: 常规的二分类sigmoid cross entropy loss
+  - loss_type=PAIR_WISE_LOSS: pairwise rank loss，也就AUC loss，以优化全局AUC为目标；
   - loss_type=SoftmaxCrossEntropyWithNegativeMining: 自带负采样功能的support vector guided softmax loss，使用该 loss 类型时，
     需要在`dropoutnet`模型参数中配置`softmax_loss`对应的参数。
-  - loss_type=PAIR_WISE_LOSS: pairwise rank loss，也就AUC loss，以优化全局AUC为目标；使用该 loss 类型时，
-    可以在`dropoutnet`模型参数中配置`pairwise_loss`对应的参数。
 - dropoutnet: dropoutnet相关的参数，必须配置user_tower和item_tower
   - user_content/user_content/user_preference/item_preference/user_tower/item_tower: dnn的参数配置
     - hidden_units: dnn每一层的channel数目，即神经元的数目
