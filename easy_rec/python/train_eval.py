@@ -9,8 +9,11 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
+
+from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -47,7 +50,10 @@ tf.app.flags.DEFINE_bool(
     'ignore_finetune_ckpt_error', False,
     'During incremental training, ignore the problem of missing fine_tune_checkpoint files'
 )
+tf.app.flags.DEFINE_integer('num_gpus_per_worker', 1,
+                            'number of gpu to use in training')
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
+tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -79,6 +85,35 @@ def main(argv):
 
     if FLAGS.odps_config:
       os.environ['ODPS_CONFIG_FILE_PATH'] = FLAGS.odps_config
+
+    if FLAGS.is_on_ds:
+      set_tf_config_and_get_train_worker_num_on_ds()
+      if pipeline_config.train_config.fine_tune_checkpoint:
+        fine_tune_ckpt_path = pipeline_config.train_config.fine_tune_checkpoint
+        if fine_tune_ckpt_path.endswith('/') or tf.gfile.IsDirectory(
+            fine_tune_ckpt_path + '/'):
+          fine_tune_ckpt_path = estimator_utils.latest_checkpoint(
+              fine_tune_ckpt_path)
+          logging.info(
+              'ckpt_path is model_dir,  will use the latest checkpoint: %s' %
+              fine_tune_ckpt_path)
+
+        if fine_tune_ckpt_path.startswith('hdfs://'):
+          tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
+          tmpdir = os.path.join('/tmp/experiments', tmpdir)
+          logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
+          if tf.gfile.IsDirectory(tmpdir):
+            tf.gfile.DeleteRecursively(tmpdir)
+          tf.gfile.MakeDirs(tmpdir)
+          for src_path in tf.gfile.Glob(fine_tune_ckpt_path + '*'):
+            dst_path = os.path.join(tmpdir, os.path.basename(src_path))
+            logging.info('will copy %s to local path %s' % (src_path, dst_path))
+            tf.gfile.Copy(src_path, dst_path, overwrite=True)
+          ckpt_filename = os.path.basename(fine_tune_ckpt_path)
+          fine_tune_ckpt_path = os.path.join(tmpdir, ckpt_filename)
+        pipeline_config.train_config.fine_tune_checkpoint = fine_tune_ckpt_path
+        logging.info('will restore from %s' % fine_tune_ckpt_path)
+
     if FLAGS.hpo_param_path:
       with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
         hpo_config = json.load(fin)

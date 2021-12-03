@@ -26,7 +26,6 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
-from easy_rec.python.utils.pai_util import is_on_pai
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -241,22 +240,6 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
 
 
 def _train_and_evaluate_impl(pipeline_config, continue_train=False):
-  # Tempoary for EMR
-  if (not is_on_pai()) and 'TF_CONFIG' in os.environ:
-    tf_config = json.loads(os.environ['TF_CONFIG'])
-    # for ps on emr currently evaluator is not supported
-    # the cluster has one chief instead of master
-    # evaluation will not be done, so we replace chief with master
-    if 'cluster' in tf_config and 'chief' in tf_config[
-        'cluster'] and 'ps' in tf_config['cluster'] and (
-            'evaluator' not in tf_config['cluster']):
-      chief = tf_config['cluster']['chief']
-      del tf_config['cluster']['chief']
-      tf_config['cluster']['master'] = chief
-      if tf_config['task']['type'] == 'chief':
-        tf_config['task']['type'] = 'master'
-      os.environ['TF_CONFIG'] = json.dumps(tf_config)
-
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs

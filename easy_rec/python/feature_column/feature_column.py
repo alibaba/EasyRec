@@ -164,8 +164,7 @@ class FeatureColumnParser(object):
     for fc_name in self._sequence_columns:
       fc = self._sequence_columns[fc_name]
       if type(fc) == tuple:
-        self._sequence_columns[fc_name] = self._get_shared_embedding_column(
-            fc)
+        self._sequence_columns[fc_name] = self._get_shared_embedding_column(fc)
 
   @property
   def wide_columns(self):
@@ -400,7 +399,7 @@ class FeatureColumnParser(object):
           config.input_names[0], config.num_buckets, default_value=0)
 
     assert config.embedding_dim > 0
-    
+
     if config.HasField('sequence_combiner'):
       fc.sequence_combiner = config.sequence_combiner
       self._deep_columns[feature_name] = fc
