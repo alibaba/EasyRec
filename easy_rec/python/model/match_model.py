@@ -42,7 +42,7 @@ class MatchModel(EasyRecModel):
     hard_neg_indices = self._feature_dict.get('hard_neg_indices', None)
 
     if hard_neg_indices is not None:
-      tf.logging.info('With hard negative examples')
+      logging.info('With hard negative examples')
       noclk_size = tf.shape(hard_neg_indices)[0]
       pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
           item_emb, [batch_size, -1, noclk_size], axis=0)
@@ -177,10 +177,5 @@ class MatchModel(EasyRecModel):
     return metric_dict
 
   def get_outputs(self):
-    if self._loss_type in (LossType.CLASSIFICATION,
-                           LossType.SOFTMAX_CROSS_ENTROPY):
-      return ['logits', 'probs', 'user_emb', 'item_emb']
-    elif self._loss_type == LossType.L2_LOSS:
-      return ['y', 'user_emb', 'item_emb']
-    else:
-      raise ValueError('invalid loss type: %s' % str(self._loss_type))
+    raise NotImplementedError(
+        'could not call get_outputs on abstract class MatchModel')

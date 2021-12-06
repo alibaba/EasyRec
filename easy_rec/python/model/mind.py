@@ -6,8 +6,8 @@ import tensorflow as tf
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers.capsule_layer import CapsuleLayer
 from easy_rec.python.model.match_model import MatchModel
+from easy_rec.python.layers.capsule_layer import CapsuleLayer
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.mind_pb2 import MIND as MINDConfig
 from easy_rec.python.protos.simi_pb2 import Similarity
@@ -146,23 +146,30 @@ class MIND(MatchModel):
     # calculate similarity between user_tower_emb and item_tower_emb
     item_tower_emb = item_feature
     user_item_sim = self.sim(user_tower_emb, item_tower_emb)
-    sim_w = tf.get_variable(
-        'sim_w', dtype=tf.float32, shape=(1), initializer=tf.ones_initializer())
-    sim_b = tf.get_variable(
-        'sim_b',
-        dtype=tf.float32,
-        shape=(1),
-        initializer=tf.zeros_initializer())
-    y_pred = user_item_sim * tf.abs(sim_w) + sim_b
+    if self._model_config.scale_simi:
+      sim_w = tf.get_variable(
+          'sim_w',
+          dtype=tf.float32,
+          shape=(1),
+          initializer=tf.ones_initializer())
+      sim_b = tf.get_variable(
+          'sim_b',
+          dtype=tf.float32,
+          shape=(1),
+          initializer=tf.zeros_initializer())
+      y_pred = user_item_sim * tf.abs(sim_w) + sim_b
+    else:
+      y_pred = user_item_sim
 
     if self._is_point_wise:
       y_pred = tf.reshape(y_pred, [-1])
 
-    if self._loss_type in [
-        LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY
-    ]:
+    if self._loss_type == LossType.CLASSIFICATION:
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
+    elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
+      self._prediction_dict['logits'] = y_pred
+      self._prediction_dict['probs'] = tf.nn.softmax(y_pred)
     else:
       self._prediction_dict['y'] = y_pred
 
@@ -271,8 +278,9 @@ class MIND(MatchModel):
     return metric_dict
 
   def get_outputs(self):
-    if self._loss_type == LossType.CLASSIFICATION:
-      return ['logits', 'user_emb', 'item_emb']
+    if self._loss_type in (LossType.CLASSIFICATION,
+                           LossType.SOFTMAX_CROSS_ENTROPY):
+      return ['logits', 'probs', 'user_emb', 'item_emb']
     elif self._loss_type == LossType.L2_LOSS:
       return ['y', 'user_emb', 'item_emb']
     else:

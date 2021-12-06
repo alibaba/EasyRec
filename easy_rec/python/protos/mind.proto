@@ -44,7 +44,10 @@ message MIND {
   // the better
   optional float simi_pow = 4 [default=10];
 
-  optional Similarity simi_func = 6 [default=COSINE];
+  optional Similarity simi_func = 5 [default=COSINE];
+
+  // add a layer for scaling the similarity
+  optional bool scale_simi = 6 [default=true];
 
   required float l2_regularization = 7 [default = 1e-4];
 }
