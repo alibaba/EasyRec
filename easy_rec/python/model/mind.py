@@ -8,6 +8,7 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.capsule_layer import CapsuleLayer
 from easy_rec.python.model.easy_rec_model import EasyRecModel
+from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.mind_pb2 import MIND as MINDConfig
 from easy_rec.python.protos.simi_pb2 import Similarity
@@ -19,7 +20,7 @@ losses = tf.losses
 metrics = tf.metrics
 
 
-class MIND(EasyRecModel):
+class MIND(MatchModel):
 
   def __init__(self,
                model_config,
@@ -29,8 +30,6 @@ class MIND(EasyRecModel):
                is_training=False):
     super(MIND, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    self._loss_type = self._model_config.loss_type
-    self._num_class = self._model_config.num_class
     assert self._model_config.WhichOneof('model') == 'mind', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.mind
@@ -47,25 +46,6 @@ class MIND(EasyRecModel):
 
     self._l2_reg = regularizers.l2_regularizer(
         self._model_config.l2_regularization)
-
-    if self._labels is not None:
-      self._labels = list(self._labels.values())
-      if self._loss_type == LossType.CLASSIFICATION:
-        self._labels[0] = tf.cast(self._labels[0], tf.int64)
-      elif self._loss_type == LossType.L2_LOSS:
-        self._labels[0] = tf.cast(self._labels[0], tf.float32)
-
-    if self._loss_type == LossType.CLASSIFICATION:
-      assert self._num_class == 1
-
-  def sim(self, user_emb, item_emb):
-    user_item_sim = tf.reduce_sum(
-        tf.multiply(user_emb, item_emb), axis=1, keep_dims=True)
-    return user_item_sim
-
-  def norm(self, fea):
-    fea_norm = tf.norm(fea, axis=-1, keepdims=True)
-    return tf.div(fea, tf.maximum(fea_norm, 1e-12))
 
   def build_predict_graph(self):
     capsule_layer = CapsuleLayer(self._model_config.capsule_config,
@@ -147,7 +127,9 @@ class MIND(EasyRecModel):
 
     # label guided attention
     # attention item features on high capsules vector
-    simi = tf.einsum('bhe,be->bh', user_features, item_feature)
+    batch_size = tf.shape(user_features)[0]
+    pos_item_fea = item_feature[:batch_size]
+    simi = tf.einsum('bhe,be->bh', user_features, pos_item_fea)
     simi = tf.pow(simi, self._model_config.simi_pow)
     simi_mask = tf.sequence_mask(num_high_capsules,
                                  self._model_config.capsule_config.max_k)
@@ -158,6 +140,7 @@ class MIND(EasyRecModel):
     max_thresh = (tf.cast(simi_mask, tf.float32) * 2 - 1) * 1e32
     simi = tf.minimum(simi, max_thresh)
     simi = tf.nn.softmax(simi, axis=1)
+    # important, but why ?
     simi = tf.stop_gradient(simi)
     user_tower_emb = tf.einsum('bhe,bh->be', user_features, simi)
 
@@ -167,21 +150,26 @@ class MIND(EasyRecModel):
     sim_w = tf.get_variable(
         'sim_w',
         dtype=tf.float32,
-        shape=(1, 1),
+        shape=(1),
         initializer=tf.ones_initializer())
     sim_b = tf.get_variable(
         'sim_b',
         dtype=tf.float32,
         shape=(1),
         initializer=tf.zeros_initializer())
-    y_pred = tf.matmul(user_item_sim, tf.abs(sim_w)) + sim_b
-    y_pred = tf.reshape(y_pred, [-1])
+    y_pred = user_item_sim * tf.abs(sim_w) + sim_b
 
-    if self._loss_type == LossType.CLASSIFICATION:
-      self._prediction_dict['logits'] = tf.nn.sigmoid(y_pred)
+    if self._is_point_wise:
+      y_pred = tf.reshape(y_pred, [-1])
+
+    if self._loss_type in [LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY]:
+      self._prediction_dict['logits'] = y_pred
+      self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
     else:
       self._prediction_dict['y'] = y_pred
 
+    self._prediction_dict['user_features'] = user_features
+    self._prediction_dict['item_features'] = item_feature
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.reduce_join(tf.as_string(user_features), axis=-1, separator=','),
         axis=-1,
@@ -192,18 +180,8 @@ class MIND(EasyRecModel):
     return self._prediction_dict
 
   def build_loss_graph(self):
-    if self._loss_type == LossType.CLASSIFICATION:
-      logging.info('log loss is used')
-      loss = losses.log_loss(self._labels[0], self._prediction_dict['logits'])
-      self._loss_dict['cross_entropy_loss'] = loss
-    elif self._loss_type == LossType.L2_LOSS:
-      logging.info('l2 loss is used')
-      loss = tf.reduce_mean(
-          tf.square(self._labels[0] - self._prediction_dict['y']))
-      self._loss_dict['l2_loss'] = loss
-    else:
-      raise ValueError('invalid loss type: %s' % str(self._loss_type))
-    return self._loss_dict
+    loss_dict = super(MIND, self).build_loss_graph()
+    return loss_dict
 
   def _build_interest_metric(self):
     user_features = self._prediction_dict['user_features']
@@ -214,24 +192,79 @@ class MIND(EasyRecModel):
     user_feature_sqr_sum = tf.reduce_sum(tf.square(user_features), axis=1)
     simi = user_feature_sum_sqr - user_feature_sqr_sum
 
+    # normalize by interest number
     simi = tf.reduce_sum(
         simi, axis=1) / tf.maximum(
             tf.to_float(user_feature_num * (user_feature_num - 1)), 1.0)
-    user_feature_num = tf.reduce_sum(tf.to_float(user_feature_num > 1))
-    return metrics.mean(tf.reduce_sum(simi) / tf.maximum(user_feature_num, 1.0))
+    
+    # normalize by batch_size
+    has_interest = tf.to_float(user_feature_num > 1)
+    simi = (simi + 1) * has_interest / 2.0
+    return metrics.mean(tf.reduce_sum(simi) / tf.maximum(tf.reduce_sum(has_interest), 1.0))
 
   def build_metric_graph(self, eval_config):
-    metric_dict = {}
+    # build interest metric
+    metric_dict = { 'interest_similarity' : self._build_interest_metric() }
+    if self._is_point_wise:
+      metric_dict.update(self._build_point_wise_metric_graph(eval_config))
+      return metric_dict
+
+    recall_at_topk = []
     for metric in eval_config.metrics_set:
-      if metric.WhichOneof('metric') == 'auc':
+      if metric.WhichOneof('metric') == 'recall_at_topk':
         assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['auc'] = metrics.auc(self._labels[0],
-                                         self._prediction_dict['logits'])
-      elif metric.WhichOneof('metric') == 'mean_absolute_error':
-        assert self._loss_type == LossType.L2_LOSS
-        metric_dict['mean_absolute_error'] = metrics.mean_absolute_error(
-            self._labels[0], self._prediction_dict['y'])
-    metric_dict['interest_similarity'] = self._build_interest_metric()
+        if metric.topk not in recall_at_topk:
+          recall_at_topk.append(metric.topk)
+
+    # compute interest recall
+    # [batch_size, num_interests, embed_dim]
+    user_features = self._prediction_dict['user_features']
+    # [?, embed_dim]
+    item_feature = self._prediction_dict['item_features']
+    batch_size = tf.shape(user_features)[0]
+    hard_neg_indices = self._feature_dict.get('hard_neg_indices', None)
+
+    if hard_neg_indices is not None:
+      tf.logging.info('With hard negative examples')
+      noclk_size = tf.shape(hard_neg_indices)[0]
+      pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
+          item_feature, [batch_size, -1, noclk_size], axis=0)
+    else:
+      pos_item_emb = item_feature[:batch_size]
+      neg_item_emb = item_feature[batch_size:]
+      hard_neg_item_emb = None
+
+    # batch_size num_interest sample_neg_num
+    pos_item_emb = tf.Print(pos_item_emb, [tf.shape(pos_item_emb),
+        tf.shape(neg_item_emb), tf.shape(hard_neg_item_emb)], message='item_emb_shape')
+    sample_item_sim = tf.einsum('bhe,ne->bhn', user_features, neg_item_emb)
+    # batch_size sample_neg_num
+    sample_item_sim = tf.reduce_max(sample_item_sim, axis=1)
+    # batch_size num_interest
+    pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb) 
+    pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True) 
+    
+    sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
+    sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
+    for topk in enumerate(recall_at_topk):
+      metric_dict['interests_recall@%d' % topk] = \
+            metrics.recall_at_k(labels=sampled_labels,
+              predictions=sampled_logits, k=topk,
+              name="interests_recall@%d" % topk)
+    metric_dict['sampled_neg_acc'] = metrics.accuracy(sampled_lbls, sampled_logits)
+
+    # batch_size num_interest
+    if hard_neg_indices is not None:
+      hard_neg_user_emb = tf.gather(user_features, hard_neg_indices[:, 0])
+      hard_neg_sim = tf.einsum('nhe,ne->nh', hard_neg_user_emb, hard_neg_item_emb)
+      hard_neg_sim = tf.reduce_max(hard_neg_sim, axis=1)
+      max_num_neg = tf.reduce_max(hard_neg_indices[:, 1]) + 1 
+      hard_neg_shape = tf.stack([tf.to_int64(batch_size), max_num_neg])
+      hard_neg_sim = tf.scatter_nd(hard_neg_indices, tf.exp(hard_neg_sim), hard_neg_shape)
+      hard_logits = tf.concat([pos_item_sim, hard_neg_sim], axis=1) 
+      hard_lbls = tf.zeros_like(hard_logits[:, :1], dtype=tf.int64)
+      metric_dict['hard_neg_acc'] = metrics.accuracy(hard_lbls, hard_logits)
+
     return metric_dict
 
   def get_outputs(self):

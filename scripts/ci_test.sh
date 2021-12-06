@@ -17,6 +17,7 @@ python git-lfs/git_lfs.py pull
 bash scripts/gen_proto.sh
 
 export CUDA_VISIBLE_DEVICES=""
+export TEST_DEVICES=''
 
 if [[ $# -eq 1 ]]; then
   export TEST_DIR=$1

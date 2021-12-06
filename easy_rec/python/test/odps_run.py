@@ -10,7 +10,7 @@ import sys
 import oss2
 import tensorflow as tf
 
-from easy_rec.python.test.odps_test import OdpsTest
+from easy_rec.python.test.odps_test_cls import OdpsTest
 from easy_rec.python.test.odps_test_prepare import prepare
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig
 from easy_rec.python.test.odps_test_util import delete_oss_path

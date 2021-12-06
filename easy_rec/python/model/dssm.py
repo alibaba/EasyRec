@@ -45,7 +45,6 @@ class DSSM(EasyRecModel):
     # copy_obj so that any modification will not affect original config
     self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_tower_feature, _ = self._input_layer(self._feature_dict, 'item')
-    self.item_id = self.item_tower.id
 
     if self._loss_type in [LossType.CLASSIFICATION, LossType.L2_LOSS]:
       self._is_point_wise = True
@@ -79,15 +78,19 @@ class DSSM(EasyRecModel):
       neg_sim_shape = tf.shape(neg_user_item_sim, out_type=tf.int64)
       hard_neg_mask = tf.scatter_nd(
           hard_neg_indices,
-          tf.ones_like(hard_neg_user_item_sim, dtype=tf.bool),
+          tf.ones_like(hard_neg_user_item_sim, dtype=tf.float32),
           shape=neg_sim_shape)
+      # set tail positions to -1e32, so that after exp, will be zero
+      hard_neg_mask = (1 - hard_neg_mask) * (-1e32)
       hard_neg_user_item_sim = tf.scatter_nd(
-          hard_neg_indices, hard_neg_user_item_sim, shape=neg_sim_shape)
-      neg_user_item_sim = tf.where(
-          hard_neg_mask, x=hard_neg_user_item_sim, y=neg_user_item_sim)
+          hard_neg_indices, hard_neg_user_item_sim, shape=neg_sim_shape) * hard_neg_mask
+      # neg_user_item_sim = tf.where(
+      #     hard_neg_mask, x=hard_neg_user_item_sim, y=neg_user_item_sim)
 
-    user_item_sim = tf.concat([pos_user_item_sim, neg_user_item_sim], axis=1)
-    return user_item_sim
+    user_item_sim = [pos_user_item_sim, neg_user_item_sim]
+    if hard_neg_indices is not None:
+      user_item_sim.append(hard_neg_user_item_sim)
+    return tf.concat(user_item_sim, axis=1)
 
   def _point_wise_sim(self, user_emb, item_emb):
     user_item_sim = tf.reduce_sum(
