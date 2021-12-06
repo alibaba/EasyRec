@@ -7,7 +7,7 @@ from easy_rec.python.core import metrics as metrics_lib
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils import pai_util
-from easy_rec.python.core import distribute_metrics as distribute_metrics_lib
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -213,11 +213,11 @@ class RankModel(EasyRecModel):
     return metric_dict
 
   def _build_distribute_metric_impl(self,
-                         metric,
-                         loss_type,
-                         label_name,
-                         num_class=1,
-                         suffix=''):
+                                    metric,
+                                    loss_type,
+                                    label_name,
+                                    num_class=1,
+                                    suffix=''):
     if pai_util.is_on_pai():
       from easy_rec.python.core import metrics_impl_pai as distribute_metrics_tf
     else:
@@ -287,9 +287,10 @@ class RankModel(EasyRecModel):
       assert loss_type == LossType.CLASSIFICATION
       assert num_class > 1
       label = tf.to_int64(self._labels[label_name])
-      metric_dict['recall_at_topk' + suffix] = distribute_metrics_tf.recall_at_k(
-          label, self._prediction_dict['logits' + suffix],
-          metric.recall_at_topk.topk)
+      metric_dict['recall_at_topk' +
+                  suffix] = distribute_metrics_tf.recall_at_k(
+                      label, self._prediction_dict['logits' + suffix],
+                      metric.recall_at_topk.topk)
     elif metric.WhichOneof('metric') == 'mean_absolute_error':
       label = tf.to_float(self._labels[label_name])
       if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:

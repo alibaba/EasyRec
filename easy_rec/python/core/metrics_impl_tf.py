@@ -79,7 +79,9 @@ def metric_variable(shape, dtype, validate_shape=True, name=None):
   return variable_scope.variable(
       lambda: array_ops.zeros(shape, dtype),
       trainable=False,
-      collections=[ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.METRIC_VARIABLES],
+      collections=[
+          ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.METRIC_VARIABLES
+      ],
       validate_shape=validate_shape,
       synchronization=variable_scope.VariableSynchronization.ON_READ,
       aggregation=variable_scope.VariableAggregation.SUM,
@@ -379,9 +381,11 @@ def mean(values,
       values = math_ops.multiply(values, weights)
       num_values = math_ops.reduce_sum(weights)
 
-    update_total_op = state_ops.assign_add(total, math_ops.reduce_sum(values), use_locking=True)
+    update_total_op = state_ops.assign_add(
+        total, math_ops.reduce_sum(values), use_locking=True)
     with ops.control_dependencies([values]):
-      update_count_op = state_ops.assign_add(count, num_values, use_locking=True)
+      update_count_op = state_ops.assign_add(
+          count, num_values, use_locking=True)
 
     def compute_mean(_, t, c):
       return math_ops.div_no_nan(t, math_ops.maximum(c, 0), name='value')
@@ -719,7 +723,7 @@ def auc(labels,
       tuple.
     RuntimeError: If eager execution is enabled.
   """
-  print("use_tf_auc")
+  print('use_tf_auc')
   if context.executing_eagerly():
     raise RuntimeError('tf.metrics.auc is not supported when eager execution '
                        'is enabled.')
@@ -1403,7 +1407,8 @@ def mean_tensor(values,
 
     update_total_op = state_ops.assign_add(total, values, use_locking=True)
     with ops.control_dependencies([values]):
-      update_count_op = state_ops.assign_add(count, num_values, use_locking=True)
+      update_count_op = state_ops.assign_add(
+          count, num_values, use_locking=True)
 
     compute_mean = lambda _, t, c: math_ops.div_no_nan(  # noqa: E731
         t, math_ops.maximum(c, 0), name='value')
@@ -1513,7 +1518,8 @@ def _count_condition(values,
 
   value_tensor = _aggregate_variable(count, metrics_collections)
 
-  update_op = state_ops.assign_add(count, math_ops.reduce_sum(values), use_locking=True)
+  update_op = state_ops.assign_add(
+      count, math_ops.reduce_sum(values), use_locking=True)
   if updates_collections:
     ops.add_to_collections(updates_collections, update_op)
 
@@ -2383,7 +2389,8 @@ def _streaming_sparse_true_positive_at_k(labels,
     batch_total_tp = math_ops.cast(math_ops.reduce_sum(tp), dtypes.float64)
 
     var = metric_variable([], dtypes.float64, name=scope)
-    return var, state_ops.assign_add(var, batch_total_tp, name='update', use_locking=True)
+    return var, state_ops.assign_add(
+        var, batch_total_tp, name='update', use_locking=True)
 
 
 def _sparse_false_negative_at_k(labels,
@@ -2478,7 +2485,8 @@ def _streaming_sparse_false_negative_at_k(labels,
     batch_total_fn = math_ops.cast(math_ops.reduce_sum(fn), dtypes.float64)
 
     var = metric_variable([], dtypes.float64, name=scope)
-    return var, state_ops.assign_add(var, batch_total_fn, name='update', use_locking=True)
+    return var, state_ops.assign_add(
+        var, batch_total_fn, name='update', use_locking=True)
 
 
 @tf_export(v1=['metrics.recall_at_k'])
@@ -3168,11 +3176,13 @@ def _streaming_sparse_average_precision_at_top_k(labels,
             array_ops.size(average_precision, name='batch_max'), dtypes.float64)
       else:
         batch_max = math_ops.reduce_sum(weights, name='batch_max')
-      max_update = state_ops.assign_add(max_var, batch_max, name='update', use_locking=True)
+      max_update = state_ops.assign_add(
+          max_var, batch_max, name='update', use_locking=True)
     with ops.name_scope(None, 'total', (average_precision,)) as total_scope:
       total_var = metric_variable([], dtypes.float64, name=total_scope)
       batch_total = math_ops.reduce_sum(average_precision, name='batch_total')
-      total_update = state_ops.assign_add(total_var, batch_total, name='update', use_locking=True)
+      total_update = state_ops.assign_add(
+          total_var, batch_total, name='update', use_locking=True)
 
     # Divide total by max to get mean, for both vars and the update ops.
     def precision_across_replicas(_, total_var, max_var):
@@ -3428,7 +3438,8 @@ def _streaming_sparse_false_positive_at_k(labels,
     batch_total_fp = math_ops.cast(math_ops.reduce_sum(fp), dtypes.float64)
 
     var = metric_variable([], dtypes.float64, name=scope)
-    return var, state_ops.assign_add(var, batch_total_fp, name='update', use_locking=True)
+    return var, state_ops.assign_add(
+        var, batch_total_fp, name='update', use_locking=True)
 
 
 @tf_export(v1=['metrics.precision_at_top_k'])

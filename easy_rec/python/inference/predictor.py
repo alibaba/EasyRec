@@ -56,24 +56,6 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
     """
     pass
 
-  def get_output_type(self):
-    """Get output types of prediction. in this function user should return a type dict, which indicates which type of data should the output of predictor be converted to.
-
-    * type json, data will be serialized to json str
-    * type image, data will be converted to encode image binary and write to oss file,
-      whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
-      is extracted from url, key corresponds to the key in the dict of output_type,
-      if the type of data indexed by key is a list, idx is the index of element in list, otherwhile ${idx} will be empty
-    * type video, data will be converted to encode video binary and write to oss file,
-    eg:  return  {
-      'image': 'image',
-      'feature': 'json'
-    }
-    indicating that the image data in the output dict will be save to image
-    file and feature in output dict will be converted to json
-    """
-    return {}
-
 
 class PredictorImpl(object):
 
@@ -110,9 +92,9 @@ class PredictorImpl(object):
   def search_pb(self, directory):
     """Search pb file recursively in model directory.
 
-    if multiple pb files exist, exception will be raised.
+    If multiple pb files exist, exception will be raised
     Args:
-      directory: model directory.
+      directory: model directory
     Returns:
       directory contain pb file
     """

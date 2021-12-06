@@ -7,7 +7,6 @@ import tensorflow as tf
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.capsule_layer import CapsuleLayer
-from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.mind_pb2 import MIND as MINDConfig
@@ -148,10 +147,7 @@ class MIND(MatchModel):
     item_tower_emb = item_feature
     user_item_sim = self.sim(user_tower_emb, item_tower_emb)
     sim_w = tf.get_variable(
-        'sim_w',
-        dtype=tf.float32,
-        shape=(1),
-        initializer=tf.ones_initializer())
+        'sim_w', dtype=tf.float32, shape=(1), initializer=tf.ones_initializer())
     sim_b = tf.get_variable(
         'sim_b',
         dtype=tf.float32,
@@ -162,7 +158,9 @@ class MIND(MatchModel):
     if self._is_point_wise:
       y_pred = tf.reshape(y_pred, [-1])
 
-    if self._loss_type in [LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY]:
+    if self._loss_type in [
+        LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY
+    ]:
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
     else:
@@ -196,15 +194,16 @@ class MIND(MatchModel):
     simi = tf.reduce_sum(
         simi, axis=1) / tf.maximum(
             tf.to_float(user_feature_num * (user_feature_num - 1)), 1.0)
-    
+
     # normalize by batch_size
     has_interest = tf.to_float(user_feature_num > 1)
     simi = (simi + 1) * has_interest / 2.0
-    return metrics.mean(tf.reduce_sum(simi) / tf.maximum(tf.reduce_sum(has_interest), 1.0))
+    return metrics.mean(
+        tf.reduce_sum(simi) / tf.maximum(tf.reduce_sum(has_interest), 1.0))
 
   def build_metric_graph(self, eval_config):
     # build interest metric
-    metric_dict = { 'interest_similarity' : self._build_interest_metric() }
+    metric_dict = {'interest_similarity': self._build_interest_metric()}
     if self._is_point_wise:
       metric_dict.update(self._build_point_wise_metric_graph(eval_config))
       return metric_dict
@@ -222,10 +221,12 @@ class MIND(MatchModel):
     # [?, embed_dim]
     item_feature = self._prediction_dict['item_features']
     batch_size = tf.shape(user_features)[0]
+    # [?, 2] first dimension is the sample_id in batch
+    # second dimension is the neg_id with respect to the sample
     hard_neg_indices = self._feature_dict.get('hard_neg_indices', None)
 
     if hard_neg_indices is not None:
-      tf.logging.info('With hard negative examples')
+      logging.info('With hard negative examples')
       noclk_size = tf.shape(hard_neg_indices)[0]
       pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
           item_feature, [batch_size, -1, noclk_size], axis=0)
@@ -235,33 +236,35 @@ class MIND(MatchModel):
       hard_neg_item_emb = None
 
     # batch_size num_interest sample_neg_num
-    pos_item_emb = tf.Print(pos_item_emb, [tf.shape(pos_item_emb),
-        tf.shape(neg_item_emb), tf.shape(hard_neg_item_emb)], message='item_emb_shape')
     sample_item_sim = tf.einsum('bhe,ne->bhn', user_features, neg_item_emb)
     # batch_size sample_neg_num
     sample_item_sim = tf.reduce_max(sample_item_sim, axis=1)
     # batch_size num_interest
-    pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb) 
-    pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True) 
-    
+    pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb)
+    pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True)
+
     sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
     sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
     for topk in enumerate(recall_at_topk):
-      metric_dict['interests_recall@%d' % topk] = \
-            metrics.recall_at_k(labels=sampled_labels,
-              predictions=sampled_logits, k=topk,
-              name="interests_recall@%d" % topk)
-    metric_dict['sampled_neg_acc'] = metrics.accuracy(sampled_lbls, sampled_logits)
+      metric_dict['interests_recall@%d' % topk] = metrics.recall_at_k(
+          labels=sampled_lbls,
+          predictions=sampled_logits,
+          k=topk,
+          name='interests_recall@%d' % topk)
+    metric_dict['sampled_neg_acc'] = metrics.accuracy(sampled_lbls,
+                                                      sampled_logits)
 
     # batch_size num_interest
     if hard_neg_indices is not None:
       hard_neg_user_emb = tf.gather(user_features, hard_neg_indices[:, 0])
-      hard_neg_sim = tf.einsum('nhe,ne->nh', hard_neg_user_emb, hard_neg_item_emb)
+      hard_neg_sim = tf.einsum('nhe,ne->nh', hard_neg_user_emb,
+                               hard_neg_item_emb)
       hard_neg_sim = tf.reduce_max(hard_neg_sim, axis=1)
-      max_num_neg = tf.reduce_max(hard_neg_indices[:, 1]) + 1 
+      max_num_neg = tf.reduce_max(hard_neg_indices[:, 1]) + 1
       hard_neg_shape = tf.stack([tf.to_int64(batch_size), max_num_neg])
-      hard_neg_sim = tf.scatter_nd(hard_neg_indices, tf.exp(hard_neg_sim), hard_neg_shape)
-      hard_logits = tf.concat([pos_item_sim, hard_neg_sim], axis=1) 
+      hard_neg_sim = tf.scatter_nd(hard_neg_indices, tf.exp(hard_neg_sim),
+                                   hard_neg_shape)
+      hard_logits = tf.concat([pos_item_sim, hard_neg_sim], axis=1)
       hard_lbls = tf.zeros_like(hard_logits[:, :1], dtype=tf.int64)
       metric_dict['hard_neg_acc'] = metrics.accuracy(hard_lbls, hard_logits)
 

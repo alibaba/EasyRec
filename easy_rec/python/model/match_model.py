@@ -5,12 +5,8 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
-from easy_rec.python.layers import dnn
 from easy_rec.python.model.easy_rec_model import EasyRecModel
-from easy_rec.python.protos.dssm_pb2 import DSSM as DSSMConfig
 from easy_rec.python.protos.loss_pb2 import LossType
-from easy_rec.python.protos.simi_pb2 import Similarity
-from easy_rec.python.utils.proto_util import copy_obj
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -26,8 +22,8 @@ class MatchModel(EasyRecModel):
                features,
                labels=None,
                is_training=False):
-    super(MatchModel, self).__init__(model_config, feature_configs, features, labels,
-                               is_training)
+    super(MatchModel, self).__init__(model_config, feature_configs, features,
+                                     labels, is_training)
     self._loss_type = self._model_config.loss_type
     self._num_class = self._model_config.num_class
 
@@ -66,15 +62,18 @@ class MatchModel(EasyRecModel):
       neg_sim_shape = tf.shape(neg_user_item_sim, out_type=tf.int64)
       hard_neg_mask = tf.scatter_nd(
           hard_neg_indices,
-          tf.ones_like(hard_neg_user_item_sim, dtype=tf.bool),
+          tf.ones_like(hard_neg_user_item_sim, dtype=tf.float32),
           shape=neg_sim_shape)
+      # set tail positions to -1e32, so that after exp(x), will be zero
+      hard_neg_mask = (1 - hard_neg_mask) * (-1e32)
       hard_neg_user_item_sim = tf.scatter_nd(
-          hard_neg_indices, hard_neg_user_item_sim, shape=neg_sim_shape)
-      neg_user_item_sim = tf.where(
-          hard_neg_mask, x=hard_neg_user_item_sim, y=neg_user_item_sim)
+          hard_neg_indices, hard_neg_user_item_sim,
+          shape=neg_sim_shape) * hard_neg_mask
 
-    user_item_sim = tf.concat([pos_user_item_sim, neg_user_item_sim], axis=1)
-    return user_item_sim
+    user_item_sim = [pos_user_item_sim, neg_user_item_sim]
+    if hard_neg_indices is not None:
+      user_item_sim.append(hard_neg_user_item_sim)
+    return tf.concat(user_item_sim, axis=1)
 
   def _point_wise_sim(self, user_emb, item_emb):
     user_item_sim = tf.reduce_sum(
@@ -92,7 +91,7 @@ class MatchModel(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
-    raise NotImplementedError("MatchModel could not be instantiated")
+    raise NotImplementedError('MatchModel could not be instantiated')
 
   def build_loss_graph(self):
     if self._is_point_wise:

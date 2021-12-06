@@ -80,12 +80,11 @@ class DSSM(EasyRecModel):
           hard_neg_indices,
           tf.ones_like(hard_neg_user_item_sim, dtype=tf.float32),
           shape=neg_sim_shape)
-      # set tail positions to -1e32, so that after exp, will be zero
+      # set tail positions to -1e32, so that after exp(x), will be zero
       hard_neg_mask = (1 - hard_neg_mask) * (-1e32)
       hard_neg_user_item_sim = tf.scatter_nd(
-          hard_neg_indices, hard_neg_user_item_sim, shape=neg_sim_shape) * hard_neg_mask
-      # neg_user_item_sim = tf.where(
-      #     hard_neg_mask, x=hard_neg_user_item_sim, y=neg_user_item_sim)
+          hard_neg_indices, hard_neg_user_item_sim,
+          shape=neg_sim_shape) * hard_neg_mask
 
     user_item_sim = [pos_user_item_sim, neg_user_item_sim]
     if hard_neg_indices is not None:
@@ -104,7 +103,7 @@ class DSSM(EasyRecModel):
       return self._list_wise_sim(user_emb, item_emb)
 
   def norm(self, fea):
-    fea_norm = tf.nn.l2_normalize(fea, axis=1)
+    fea_norm = tf.nn.l2_normalize(fea, axis=-1)
     return fea_norm
 
   def build_predict_graph(self):
