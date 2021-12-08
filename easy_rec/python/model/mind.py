@@ -50,9 +50,14 @@ class MIND(MatchModel):
     capsule_layer = CapsuleLayer(self._model_config.capsule_config,
                                  self._is_training)
 
-    time_id_fea = [
-        x[0] for x in self._hist_seq_features if 'time_id/' in x[0].name
-    ]
+    if self._model_config.time_id_fea:
+      time_id_fea = [
+          x[0] for x in self._hist_seq_features if self._model_config.time_id_fea in x[0].name
+      ]
+      logging.info('time_id_fea is set(%s), find num: %d' % (self._model_config.time_id_fea,
+          len(time_id_fea)))
+    else:
+      time_id_fea = []
     time_id_fea = time_id_fea[0] if len(time_id_fea) > 0 else None
 
     hist_seq_feas = [
@@ -215,12 +220,12 @@ class MIND(MatchModel):
       metric_dict.update(self._build_point_wise_metric_graph(eval_config))
       return metric_dict
 
-    recall_at_topk = []
+    recall_at_topks = []
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
-        assert self._loss_type == LossType.CLASSIFICATION
-        if metric.topk not in recall_at_topk:
-          recall_at_topk.append(metric.topk)
+        assert self._loss_type in [LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY]
+        if metric.recall_at_topk.topk not in recall_at_topks:
+          recall_at_topks.append(metric.recall_at_topk.topk)
 
     # compute interest recall
     # [batch_size, num_interests, embed_dim]
@@ -252,12 +257,12 @@ class MIND(MatchModel):
 
     sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
     sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
-    for topk in enumerate(recall_at_topk):
+    for topk in recall_at_topks:
       metric_dict['interests_recall@%d' % topk] = metrics.recall_at_k(
           labels=sampled_lbls,
           predictions=sampled_logits,
           k=topk,
-          name='interests_recall@%d' % topk)
+          name='interests_recall_at_%d' % topk)
     metric_dict['sampled_neg_acc'] = metrics.accuracy(sampled_lbls,
                                                       sampled_logits)
 

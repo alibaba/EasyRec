@@ -50,4 +50,6 @@ message MIND {
   optional bool scale_simi = 6 [default=true];
 
   required float l2_regularization = 7 [default = 1e-4];
+
+  optional string time_id_fea = 8;
 }

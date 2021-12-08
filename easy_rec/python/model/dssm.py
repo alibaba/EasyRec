@@ -33,7 +33,6 @@ class DSSM(MatchModel):
     # copy_obj so that any modification will not affect original config
     self.user_tower = copy_obj(self._model_config.user_tower)
     self.user_tower_feature, _ = self._input_layer(self._feature_dict, 'user')
-    self.user_id = self.user_tower.id
     # copy_obj so that any modification will not affect original config
     self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_tower_feature, _ = self._input_layer(self._feature_dict, 'item')
