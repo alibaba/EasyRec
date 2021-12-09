@@ -2,6 +2,7 @@ syntax = "proto2";
 package protos;
 
 message AUC {
+    optional uint32 num_thresholds = 1 [default = 200];
 }
 
 message RecallAtTopK {
@@ -57,7 +58,7 @@ message EvalMetrics {
     }
 }
 
-// Message for configuring DetectionModel evaluation jobs (eval.py).
+// Message for configuring EasyRecModel evaluation jobs (eval.py).
 message EvalConfig {
     // Number of examples to process of evaluation.
     optional uint32 num_examples = 1 [default = 0];

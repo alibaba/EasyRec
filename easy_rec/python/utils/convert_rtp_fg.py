@@ -66,6 +66,189 @@ def _set_hash_bucket(feature, feature_config, input_field):
     assert False, 'one of hash_bucket_size,vocab_file,vocab_list,num_buckets must be set'
 
 
+def process_features(feature_type,
+                     feature_name,
+                     feature,
+                     pipeline_config,
+                     embedding_dim,
+                     incol_separator,
+                     sub_value_type=None,
+                     is_sequence=False):
+  feature_config = FeatureConfig()
+  feature_config.input_names.append(feature_name)
+  feature_config.separator = incol_separator
+  input_field = DatasetConfig.Field()
+  input_field.input_name = feature_name
+  curr_embed_dim = feature.get('embedding_dimension',
+                               feature.get('embedding_dim', embedding_dim))
+  curr_combiner = feature.get('combiner', 'mean')
+  if feature.get('is_cache', False):
+    logging.info('will cache %s' % feature_name)
+    feature_config.is_cache = True
+  is_multi = feature.get('is_multi', False)
+  # is_seq = feature.get('is_seq', False)
+  if feature_type == 'id_feature':
+    if is_multi:
+      feature_config.feature_type = feature_config.TagFeature
+      kv_separator = feature.get('kv_separator', None)
+      if kv_separator:
+        feature_config.kv_separator = kv_separator
+    # elif is_seq:
+    #   feature_config.feature_type = feature_config.SequenceFeature
+    else:
+      feature_config.feature_type = feature_config.IdFeature
+    feature_config.embedding_dim = curr_embed_dim
+    _set_hash_bucket(feature, feature_config, input_field)
+    feature_config.combiner = curr_combiner
+  elif feature_type == 'lookup_feature':
+    need_discrete = feature.get('needDiscrete', True)
+    if not need_discrete:
+      _gen_raw_config(feature, input_field, feature_config, is_multi,
+                      curr_embed_dim)
+    else:
+      if is_multi:
+        feature_config.feature_type = feature_config.TagFeature
+        if feature_config.get('needWeighting', False):
+          feature_config.kv_separator = ''
+      else:
+        feature_config.feature_type = feature_config.IdFeature
+      feature_config.embedding_dim = curr_embed_dim
+      _set_hash_bucket(feature, feature_config, input_field)
+      feature_config.combiner = curr_combiner
+  elif feature_type == 'raw_feature':
+    _gen_raw_config(feature, input_field, feature_config, is_multi,
+                    curr_embed_dim)
+  elif feature_type == 'match_feature':
+    need_discrete = feature.get('needDiscrete', True)
+    if feature.get('matchType', '') == 'multihit':
+      is_multi = True
+    if need_discrete:
+      if is_multi:
+        feature_config.feature_type = feature_config.TagFeature
+        if feature_config.get('needWeighting', False):
+          feature_config.kv_separator = ''
+      else:
+        feature_config.feature_type = feature_config.IdFeature
+      feature_config.embedding_dim = curr_embed_dim
+      _set_hash_bucket(feature, feature_config, input_field)
+      feature_config.combiner = curr_combiner
+    else:
+      assert 'bucketize_boundaries' not in feature
+      _gen_raw_config(feature, input_field, feature_config, is_multi,
+                      curr_embed_dim)
+  elif feature_type == 'combo_feature':
+    feature_config.feature_type = feature_config.TagFeature
+    _set_hash_bucket(feature, feature_config, input_field)
+    feature_config.embedding_dim = curr_embed_dim
+    feature_config.combiner = curr_combiner
+  elif feature_type == 'overlap_feature':
+    if feature['method'] in ['common_word_divided', 'diff_word_divided']:
+      feature_config.feature_type = feature_config.TagFeature
+    else:
+      feature_config.feature_type = feature_config.IdFeature
+    _set_hash_bucket(feature, feature_config, input_field)
+    feature_config.embedding_dim = curr_embed_dim
+    feature_config.combiner = curr_combiner
+  else:
+    assert 'unknown feature type %s, currently not supported' % feature_type
+  if 'shared_name' in feature:
+    feature_config.embedding_name = feature['shared_name']
+  # pipeline_config.feature_configs.append(feature_config)
+  if is_sequence:
+    feature_config.feature_type = feature_config.SequenceFeature
+  if pipeline_config.feature_configs:
+    pipeline_config.feature_configs.append(feature_config)
+  else:
+    pipeline_config.feature_config.features.append(feature_config)
+  pipeline_config.data_config.input_fields.append(input_field)
+
+  if 'extra_combo_info' in feature:
+    extra_combo_info = feature['extra_combo_info']
+    feature_names = extra_combo_info.get('feature_names', [])
+    assert len(
+        feature_names
+    ) >= 1, 'The feature number for ComboFeature must be greater than 2.'
+    combo_feature_config = FeatureConfig()
+    combo_feature_config.input_names.append(feature_name)
+
+    for fea_name in feature_names:
+      combo_feature_config.input_names.append(fea_name)
+
+    final_feature_name = 'combo__' + '_'.join(combo_feature_config.input_names)
+    final_feature_name = extra_combo_info.get('final_feature_name',
+                                              final_feature_name)
+    combo_feature_config.feature_name = final_feature_name
+    combo_feature_config.feature_type = combo_feature_config.ComboFeature
+    curr_embed_dim = extra_combo_info.get(
+        'embedding_dimension',
+        extra_combo_info.get('embedding_dim', embedding_dim))
+    curr_combiner = extra_combo_info.get('combiner', 'mean')
+    combo_feature_config.embedding_dim = curr_embed_dim
+    combo_feature_config.combiner = curr_combiner
+    assert 'hash_bucket_size' in extra_combo_info, 'hash_bucket_size must be set in ComboFeature.'
+    _set_hash_bucket(extra_combo_info, combo_feature_config, None)
+
+    if pipeline_config.feature_configs:
+      pipeline_config.feature_configs.append(combo_feature_config)
+    else:
+      pipeline_config.feature_config.features.append(combo_feature_config)
+  return pipeline_config
+
+
+def load_input_field_and_feature_config(rtp_fg,
+                                        label_fields,
+                                        embedding_dim=16,
+                                        incol_separator='\003'):
+  embedding_dim = rtp_fg.get('embedding_dim', embedding_dim)
+  logging.info('embedding_dim = %s' % embedding_dim)
+  logging.info('label_fields = %s' % ','.join(label_fields))
+
+  pipeline_config = EasyRecConfig()
+  for tmp_lbl in label_fields:
+    input_field = DatasetConfig.Field()
+    input_field.input_name = tmp_lbl
+    input_field.input_type = DatasetConfig.INT32
+    input_field.default_val = '0'
+    pipeline_config.data_config.input_fields.append(input_field)
+
+  rtp_features = rtp_fg['features']
+  for feature in rtp_features:
+    logging.info('feature type = %s' % type(feature))
+    logging.info('feature = %s' % feature)
+    logging.info('feature_type in feature %s' % ('feature_name' in feature))
+    try:
+      if 'feature_name' in feature:
+        feature_type = feature['feature_type']
+        feature_name = feature['feature_name']
+        pipeline_config = process_features(feature_type, feature_name, feature,
+                                           pipeline_config, embedding_dim,
+                                           incol_separator)
+      elif 'sequence_name' in feature:
+        logging.info('Set sequence_features group later.')
+        sequence_name = feature['sequence_name']
+        for sub_feature in feature['features']:
+          sub_feature_type = sub_feature['feature_type']
+          sub_feature_name = sub_feature['feature_name']
+          sub_value_type = None
+          if 'value_type' in sub_feature:
+            sub_value_type = sub_feature['value_type']
+          all_sub_feature_name = sequence_name + '_' + sub_feature_name
+          pipeline_config = process_features(
+              sub_feature_type,
+              all_sub_feature_name,
+              sub_feature,
+              pipeline_config,
+              embedding_dim,
+              incol_separator,
+              sub_value_type,
+              is_sequence=True)
+    except Exception as ex:
+      print('Exception: %s %s' % (type(ex), str(ex)))
+      print(feature)
+      sys.exit(1)
+  return pipeline_config
+
+
 def convert_rtp_fg(rtp_fg,
                    embedding_dim=16,
                    batch_size=1024,
@@ -85,28 +268,21 @@ def convert_rtp_fg(rtp_fg,
   model_dir = rtp_fg.get('model_dir', 'experiments/rtp_fg_demo')
   num_steps = rtp_fg.get('num_steps', num_steps)
   model_type = rtp_fg.get('model_type', model_type)
-  embedding_dim = rtp_fg.get('embedding_dim', embedding_dim)
   label_fields = rtp_fg.get('label_fields', label_fields)
   model_path = rtp_fg.get('model_path', '')
   edit_config_json = rtp_fg.get('edit_config_json', None)
+  rtp_features = rtp_fg['features']
 
   logging.info('model_dir = %s' % model_dir)
   logging.info('num_steps = %d' % num_steps)
   logging.info('model_type = %s' % model_type)
-  logging.info('embedding_dim = %s' % embedding_dim)
-  logging.info('label_fields = %s' % ','.join(label_fields))
   logging.info('model_path = %s' % model_path)
   logging.info('edit_config_json = %s' % edit_config_json)
 
-  pipeline_config = EasyRecConfig()
-
-  for tmp_lbl in label_fields:
-    input_field = DatasetConfig.Field()
-    input_field.input_name = tmp_lbl
-    input_field.input_type = DatasetConfig.INT32
-    input_field.default_val = '0'
-    pipeline_config.data_config.input_fields.append(input_field)
-
+  pipeline_config = load_input_field_and_feature_config(rtp_fg, label_fields,
+                                                        embedding_dim,
+                                                        incol_separator)
+  pipeline_config.model_dir = model_dir
   pipeline_config.data_config.separator = separator
   if selected_cols:
     pipeline_config.data_config.selected_cols = selected_cols
@@ -115,96 +291,6 @@ def convert_rtp_fg(rtp_fg,
   if eval_input_path is not None:
     pipeline_config.eval_input_path = eval_input_path
 
-  pipeline_config.model_dir = model_dir
-
-  rtp_features = rtp_fg['features']
-  for feature in rtp_features:
-    try:
-      feature_type = feature['feature_type']
-      feature_name = feature['feature_name']
-      feature_config = FeatureConfig()
-      feature_config.input_names.append(feature_name)
-      feature_config.separator = incol_separator
-      input_field = DatasetConfig.Field()
-      input_field.input_name = feature_name
-      curr_embed_dim = feature.get('embedding_dimension',
-                                   feature.get('embedding_dim', embedding_dim))
-      curr_combiner = feature.get('combiner', 'mean')
-      if feature.get('is_cache', False):
-        logging.info('will cache %s' % feature_name)
-        feature_config.is_cache = True
-      is_multi = feature.get('is_multi', False)
-      if feature_type == 'id_feature':
-        if is_multi:
-          feature_config.feature_type = feature_config.TagFeature
-        else:
-          feature_config.feature_type = feature_config.IdFeature
-        feature_config.embedding_dim = curr_embed_dim
-        _set_hash_bucket(feature, feature_config, input_field)
-        feature_config.combiner = curr_combiner
-      elif feature_type == 'lookup_feature':
-        need_discrete = feature.get('needDiscrete', True)
-        if not need_discrete:
-          _gen_raw_config(feature, input_field, feature_config, is_multi,
-                          curr_embed_dim)
-        else:
-          if is_multi:
-            feature_config.feature_type = feature_config.TagFeature
-            if feature_config.get('needWeighting', False):
-              feature_config.kv_separator = ''
-          else:
-            feature_config.feature_type = feature_config.IdFeature
-          feature_config.embedding_dim = curr_embed_dim
-          _set_hash_bucket(feature, feature_config, input_field)
-          feature_config.combiner = curr_combiner
-      elif feature_type == 'raw_feature':
-        _gen_raw_config(feature, input_field, feature_config, is_multi,
-                        curr_embed_dim)
-      elif feature_type == 'match_feature':
-        need_discrete = feature.get('needDiscrete', True)
-        if feature.get('matchType', '') == 'multihit':
-          is_multi = True
-        if need_discrete:
-          if is_multi:
-            feature_config.feature_type = feature_config.TagFeature
-            if feature_config.get('needWeighting', False):
-              feature_config.kv_separator = ''
-          else:
-            feature_config.feature_type = feature_config.IdFeature
-          feature_config.embedding_dim = curr_embed_dim
-          _set_hash_bucket(feature, feature_config, input_field)
-          feature_config.combiner = curr_combiner
-        else:
-          assert 'bucketize_boundaries' not in feature
-          _gen_raw_config(feature, input_field, feature_config, is_multi,
-                          curr_embed_dim)
-      elif feature_type == 'combo_feature':
-        feature_config.feature_type = feature_config.TagFeature
-        _set_hash_bucket(feature, feature_config, input_field)
-        feature_config.embedding_dim = curr_embed_dim
-        feature_config.combiner = curr_combiner
-      elif feature_type == 'overlap_feature':
-        if feature['method'] in ['common_word_divided', 'diff_word_divided']:
-          feature_config.feature_type = feature_config.TagFeature
-        else:
-          feature_config.feature_type = feature_config.IdFeature
-        _set_hash_bucket(feature, feature_config, input_field)
-        feature_config.embedding_dim = curr_embed_dim
-        feature_config.combiner = curr_combiner
-      else:
-        assert 'unknown feature type %s, currently not supported' % feature_type
-      if 'shared_name' in feature:
-        feature_config.embedding_name = feature['shared_name']
-      # pipeline_config.feature_configs.append(feature_config)
-      if pipeline_config.feature_configs:
-        pipeline_config.feature_configs.append(feature_config)
-      else:
-        pipeline_config.feature_config.features.append(feature_config)
-      pipeline_config.data_config.input_fields.append(input_field)
-    except Exception as ex:
-      print('Exception: %s %s' % (type(ex), str(ex)))
-      print(feature)
-      sys.exit(1)
   pipeline_config.data_config.batch_size = batch_size
   pipeline_config.data_config.rtp_separator = ';'
   pipeline_config.data_config.label_fields.extend(label_fields)

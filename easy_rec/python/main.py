@@ -23,6 +23,7 @@ from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.pai_util import is_on_pai
@@ -350,7 +351,8 @@ def evaluate(pipeline_config,
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
-
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
     if isinstance(eval_data_path, list):
@@ -430,6 +432,8 @@ def evaluate(pipeline_config,
         eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
   logging.info('Evaluate finish')
 
+  print('eval_result = ', eval_result)
+  logging.info('eval_result = {0}'.format(eval_result))
   # write eval result to file
   model_dir = pipeline_config.model_dir
   eval_result_file = os.path.join(model_dir, eval_result_filename)
@@ -443,6 +447,176 @@ def evaluate(pipeline_config,
       # convert numpy float to python float
       result_to_write[key] = eval_result[key].item()
     ofile.write(json.dumps(result_to_write, indent=2))
+  return eval_result
+
+
+def distribute_evaluate(pipeline_config,
+                        eval_checkpoint_path='',
+                        eval_data_path=None,
+                        eval_result_filename='eval_result.txt'):
+  """Evaluate a EasyRec model defined in pipeline_config_path.
+
+  Evaluate the model defined in pipeline_config_path on the eval data,
+  the metrics will be displayed on tensorboard and saved into eval_result.txt.
+
+  Args:
+    pipeline_config: either EasyRecConfig path or its instance
+    eval_checkpoint_path: if specified, will use this model instead of
+        model specified by model_dir in pipeline_config_path
+    eval_data_path: eval data path, default use eval data in pipeline_config
+        could be a path or a list of paths
+    eval_result_filename: evaluation result metrics save path.
+
+  Returns:
+    A dict of evaluation metrics: the metrics are specified in
+        pipeline_config_path
+    global_step: the global step for which this evaluation was performed.
+
+  Raises:
+    AssertionError, if:
+      * pipeline_config_path does not exist
+  """
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if eval_data_path is not None:
+    logging.info('Evaluating on data: %s' % eval_data_path)
+    if isinstance(eval_data_path, list):
+      pipeline_config.eval_input_path = ','.join(eval_data_path)
+    else:
+      pipeline_config.eval_input_path = eval_data_path
+  train_config = pipeline_config.train_config
+
+  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
+    eval_data = pipeline_config.kafka_eval_input
+  else:
+    eval_data = pipeline_config.eval_input_path
+
+  server_target = None
+  cur_job_name = None
+  if 'TF_CONFIG' in os.environ:
+    tf_config_pre = json.loads(os.environ['TF_CONFIG'])
+    tf_config = estimator_utils.chief_to_master()
+
+    from tensorflow.python.training import server_lib
+    if tf_config['task']['type'] == 'ps':
+      cluster = tf.train.ClusterSpec(tf_config['cluster'])
+      server = server_lib.Server(
+          cluster, job_name='ps', task_index=tf_config['task']['index'])
+      server.join()
+    elif tf_config['task']['type'] == 'master':
+      if 'ps' in tf_config['cluster']:
+        cur_job_name = tf_config['task']['type']
+        cur_task_index = tf_config['task']['index']
+        cluster = tf.train.ClusterSpec(tf_config['cluster'])
+        server = server_lib.Server(
+            cluster, job_name=cur_job_name, task_index=cur_task_index)
+        server_target = server.target
+        print('server_target = %s' % server_target)
+    elif tf_config['task']['type'] == 'worker':
+      if 'ps' in tf_config['cluster']:
+        cur_job_name = tf_config['task']['type']
+        cur_task_index = tf_config['task']['index']
+        cluster = tf.train.ClusterSpec(tf_config['cluster'])
+        server = server_lib.Server(
+            cluster, job_name=cur_job_name, task_index=cur_task_index)
+        server_target = server.target
+        print('server_target = %s' % server_target)
+
+  distribution = strategy_builder.build(train_config)
+  estimator, run_config = _create_estimator(pipeline_config, distribution)
+  eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
+  ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+
+  if server_target:
+    # evaluate with parameter server
+    input_iter = eval_spec.input_fn(
+        mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
+    input_feas, input_lbls = input_iter.get_next()
+    from tensorflow.python.training.device_setter import replica_device_setter
+    from tensorflow.python.framework.ops import device
+    from tensorflow.python.training.monitored_session import MonitoredSession
+    from tensorflow.python.training.monitored_session import ChiefSessionCreator
+    from tensorflow.python.training.monitored_session import WorkerSessionCreator
+    from easy_rec.python.utils.estimator_utils import EvaluateExitBarrierHook
+    cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
+    with device(
+        replica_device_setter(worker_device=cur_work_device, cluster=cluster)):
+      estimator_spec = estimator._distribute_eval_model_fn(
+          input_feas, input_lbls, run_config)
+
+    session_config = ConfigProto(
+        allow_soft_placement=True, log_device_placement=True)
+    if cur_job_name == 'master':
+      metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
+      model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
+      global_variables = tf.global_variables()
+      remain_variables = list(
+          set(global_variables).difference(set(metric_variables)))
+      cur_saver = tf.train.Saver(var_list=remain_variables)
+      cur_scaffold = tf.train.Scaffold(
+          saver=cur_saver,
+          ready_for_local_init_op=model_ready_for_local_init_op)
+      cur_sess_creator = ChiefSessionCreator(
+          scaffold=cur_scaffold,
+          master=server_target,
+          checkpoint_filename_with_path=ckpt_path,
+          config=session_config)
+    else:
+      cur_sess_creator = WorkerSessionCreator(
+          master=server_target,
+          #checkpoint_filename_with_path=ckpt_path,
+          config=session_config)
+    eval_metric_ops = estimator_spec.eval_metric_ops
+    update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
+    metric_ops = {x: eval_metric_ops[x][0] for x in eval_metric_ops.keys()}
+    update_op = tf.group(update_ops)
+    count = 0
+    cur_worker_num = len(tf_config['cluster']['worker']) + 1
+    if cur_job_name == 'master':
+      cur_stop_grace_period_sesc = 120
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+                                          metric_ops)
+    else:
+      cur_stop_grace_period_sesc = 10
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+                                          metric_ops)
+    with MonitoredSession(
+        session_creator=cur_sess_creator,
+        hooks=[cur_hooks],
+        stop_grace_period_secs=cur_stop_grace_period_sesc) as sess:
+      while True:
+        try:
+          count += 1
+          sess.run(update_op)
+        except tf.errors.OutOfRangeError:
+          break
+    eval_result = cur_hooks.eval_result
+  else:
+    # this way does not work, wait to be debugged
+    # the variables are not placed to parameter server
+    # with tf.device(
+    #    replica_device_setter(
+    #        worker_device='/job:master/task:0', cluster=cluster)):
+    eval_result = estimator.evaluate(
+        eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+  logging.info('Evaluate finish')
+
+  # write eval result to file
+  model_dir = pipeline_config.model_dir
+  eval_result_file = os.path.join(model_dir, eval_result_filename)
+  logging.info('save eval result to file %s' % eval_result_file)
+  if cur_job_name == 'master':
+    print('eval_result = ', eval_result)
+    logging.info('eval_result = {0}'.format(eval_result))
+    with gfile.GFile(eval_result_file, 'w') as ofile:
+      result_to_write = {}
+      for key in sorted(eval_result):
+        # skip logging binary data
+        if isinstance(eval_result[key], six.binary_type):
+          continue
+        # convert numpy float to python float
+        result_to_write[key] = eval_result[key].item()
+
+      ofile.write(json.dumps(result_to_write))
   return eval_result
 
 
@@ -466,6 +640,8 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   if data_path is not None:
     logging.info('Predict on data: %s' % data_path)
     pipeline_config.eval_input_path = data_path
@@ -520,6 +696,8 @@ def export(export_dir,
     gfile.MakeDirs(export_dir)
 
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
   # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   # create estimator

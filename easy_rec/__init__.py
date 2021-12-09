@@ -17,6 +17,7 @@ logging.basicConfig(
 
 from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
 from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
+from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
 from easy_rec.python.main import export  # isort:skip  # noqa: E402
 from easy_rec.python.main import train_and_evaluate  # isort:skip  # noqa: E402
 
