@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
+
 import json
 import logging
 import os
@@ -12,7 +13,6 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils.estimator_utils import chief_to_master
 from easy_rec.python.utils.estimator_utils import master_to_chief
 
-
 DistributionStrategyMap = {
     '': DistributionStrategy.NoStrategy,
     'ps': DistributionStrategy.PSStrategy,
@@ -20,6 +20,7 @@ DistributionStrategyMap = {
     'mirrored': DistributionStrategy.MirroredStrategy,
     'collective': DistributionStrategy.CollectiveAllReduceStrategy
 }
+
 
 def set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy):
@@ -36,12 +37,12 @@ def set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
 
 
 def set_tf_config_and_get_train_worker_num(
-		ps_hosts,
-		worker_hosts,
-		task_index,
-		job_name,
-		distribute_strategy=DistributionStrategy.NoStrategy,
-		eval_method='none'):
+    ps_hosts,
+    worker_hosts,
+    task_index,
+    job_name,
+    distribute_strategy=DistributionStrategy.NoStrategy,
+    eval_method='none'):
   logging.info(
       'set_tf_config_and_get_train_worker_num: distribute_strategy = %d' %
       distribute_strategy)
@@ -217,7 +218,8 @@ def set_tf_config_and_get_train_worker_num(
 def set_tf_config_and_get_train_worker_num_on_ds():
   assert 'TF_CONFIG' in os.environ, "'TF_CONFIG' must in os.environ"
   tf_config = json.loads(os.environ['TF_CONFIG'])
-  if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and ('evaluator' not in tf_config['cluster']):
+  if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
+      'evaluator' not in tf_config['cluster']):
     easyrec_tf_config = dict()
     easyrec_tf_config['cluster'] = {}
     easyrec_tf_config['task'] = {}
@@ -226,15 +228,16 @@ def set_tf_config_and_get_train_worker_num_on_ds():
     easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker'][2:]
 
     if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 0:
-        easyrec_tf_config['task']['type'] = 'chief'
-        easyrec_tf_config['task']['index'] = 0
-    elif tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 1:
-        easyrec_tf_config['task']['type'] = 'evaluator'
-        easyrec_tf_config['task']['index'] = 0
+      easyrec_tf_config['task']['type'] = 'chief'
+      easyrec_tf_config['task']['index'] = 0
+    elif tf_config['task']['type'] == 'worker' and tf_config['task'][
+        'index'] == 1:
+      easyrec_tf_config['task']['type'] = 'evaluator'
+      easyrec_tf_config['task']['index'] = 0
     elif tf_config['task']['type'] == 'worker':
-        easyrec_tf_config['task']['type'] = tf_config['task']['type']
-        easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 2
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 2
     else:
-        easyrec_tf_config['task']['type'] = tf_config['task']['type']
-        easyrec_tf_config['task']['index'] = tf_config['task']['index']
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index']
     os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)

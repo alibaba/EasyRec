@@ -50,8 +50,6 @@ tf.app.flags.DEFINE_bool(
     'ignore_finetune_ckpt_error', False,
     'During incremental training, ignore the problem of missing fine_tune_checkpoint files'
 )
-tf.app.flags.DEFINE_integer('num_gpus_per_worker', 1,
-                            'number of gpu to use in training')
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
 FLAGS = tf.app.flags.FLAGS
