@@ -100,7 +100,7 @@
     ],
     "rtp_separator": ";"
   },
-  "feature_configs": [
+  "feature_config": [
     {
       "input_names": [
         "user_id"

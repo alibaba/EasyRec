@@ -36,7 +36,7 @@ head -5 train.csv | awk -v FS=',' '{ print NF }'
 grep input_fields easy_rec.config | wc -l
 ```
 
-#### 多余的feature_configs
+#### 多余的 feature_config
 
 如下所示, device_make在feature_groups里面没有出现，所以报下面的错误:
 

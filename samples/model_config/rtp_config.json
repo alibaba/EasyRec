@@ -1609,7 +1609,7 @@
   },
   "eval_input_path": "data/test/rtp/xys_cxr_fg_sample_test2_with_lbl.txt",
   "model_dir": "experiments/rtp_fg_json_format/",
-  "feature_configs": [
+  "feature_config": [
     {
       "input_names": [
         "q_query_id"
