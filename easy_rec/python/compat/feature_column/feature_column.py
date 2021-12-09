@@ -176,7 +176,8 @@ def _internal_input_layer(features,
                           cols_to_vars=None,
                           scope=None,
                           cols_to_output_tensors=None,
-                          from_template=False):
+                          from_template=False,
+                          feature_name_to_output_tensors=None):
   """See input_layer, `scope` is a name or variable scope to use."""
   feature_columns = _normalize_feature_columns(feature_columns)
   for column in feature_columns:
@@ -216,6 +217,8 @@ def _internal_input_layer(features,
               scope=variable_scope.get_variable_scope().name)
         if cols_to_output_tensors is not None:
           cols_to_output_tensors[column] = output_tensor
+        if column.raw_name in feature_name_to_output_tensors:
+          feature_name_to_output_tensors[column.raw_name] = output_tensor
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
 
@@ -235,7 +238,8 @@ def input_layer(features,
                 weight_collections=None,
                 trainable=True,
                 cols_to_vars=None,
-                cols_to_output_tensors=None):
+                cols_to_output_tensors=None,
+                feature_name_to_output_tensors=None):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -298,7 +302,8 @@ def input_layer(features,
       weight_collections=weight_collections,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
-      cols_to_output_tensors=cols_to_output_tensors)
+      cols_to_output_tensors=cols_to_output_tensors,
+      feature_name_to_output_tensors=feature_name_to_output_tensors)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it
@@ -2333,6 +2338,10 @@ class _BucketizedColumn(_DenseColumn, _CategoricalColumn,
     return '{}_bucketized'.format(self.source_column.name)
 
   @property
+  def raw_name(self):
+    return self.source_column.raw_name
+
+  @property
   def _parse_example_spec(self):
     return self.source_column._parse_example_spec  # pylint: disable=protected-access
 
@@ -2690,6 +2699,10 @@ class _HashedCategoricalColumn(_CategoricalColumn,
 
   @property
   def name(self):
+    return self.key
+
+  @property
+  def raw_name(self):
     return self.key
 
   @property

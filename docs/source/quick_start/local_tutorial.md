@@ -1,5 +1,15 @@
 # Local Tutorial
 
+### 下载安装EasyRec
+
+```bash
+git clone https://github.com/alibaba/EasyRec.git
+cd EasyRec
+wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
+bash scripts/gen_proto.sh # 根据proto文件生成 配置解析.py文件
+python setup.py install
+```
+
 ### 输入数据:
 
 输入一般是csv格式的文件。
@@ -15,12 +25,6 @@
 ```
 
 - **Note: csv文件不需要有header!!!**
-
-### 安装包
-
-```bash
-pip install -U https://easyrec.oss-cn-beijing.aliyuncs.com/releases/easy_rec-0.1.0-py2.py3-none-any.whl
-```
 
 ### 启动命令:
 

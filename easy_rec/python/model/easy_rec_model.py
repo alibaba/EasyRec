@@ -7,6 +7,8 @@ from abc import abstractmethod
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import tensor_shape
+from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
@@ -146,21 +148,40 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         print('restore %s' % variable_name)
         ckpt_var_shape = ckpt_var2shape_map[variable_name]
         if type(variable) == list:
-          var_shape = None
+          shape_arr = [x.get_shape() for x in variable]
+          var_shape = list(shape_arr[0])
+          for x in shape_arr[1:]:
+            var_shape[0] += x[0]
+          var_shape = tensor_shape.TensorShape(var_shape)
+          variable = PartitionedVariable(
+              variable_name,
+              var_shape,
+              variable[0].dtype,
+              variable,
+              partitions=[len(variable)] + [1] * (len(var_shape) - 1))
         else:
           var_shape = variable.shape.as_list()
-        if ckpt_var_shape == var_shape or var_shape is None:
-          vars_in_ckpt[variable_name] = variable
+        if ckpt_var_shape == var_shape:
+          vars_in_ckpt[variable_name] = list(variable) if isinstance(
+              variable, PartitionedVariable) else variable
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
-            with tf.variable_scope(''):
+            dtype = variable[0].dtype if isinstance(variable,
+                                                    list) else variable.dtype
+            with tf.variable_scope('incompatible_shape_restore'):
               tmp_var = tf.get_variable(
                   name=variable_name + '_T_E_M_P',
                   shape=ckpt_var_shape,
-                  dtype=variable.dtype)
+                  trainable=False,
+                  # add to a special collection for easy reference
+                  # by tf.get_collection('T_E_M_P_RESTROE')
+                  collections=['T_E_M_P_RESTROE'],
+                  dtype=dtype)
             vars_in_ckpt[variable_name] = tmp_var
             incompatible_shape_var_map[variable] = tmp_var
+            print('incompatible restore %s[%s, %s]' %
+                  (variable_name, str(var_shape), str(ckpt_var_shape)))
           else:
             logging.warning(
                 'Variable [%s] is available in checkpoint, but '

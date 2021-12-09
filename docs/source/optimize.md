@@ -2,7 +2,7 @@
 
 ### 1.利用tensorboard看模型效果。
 
-利用tensorboard，可以看到eval worker对于评估集上，各个save_checkpoints_steps上的表现。
+利用tensorboard，可以看到eval worker(默认 worker1)对于评估集上，各个save_checkpoints_steps上的表现。
 方法：
 
 1. 将events文件下载到本地（events文件在model_dir/eval_val/ 路径下）
@@ -22,7 +22,8 @@
 
 ### 3.shuffle
 
-训练shuffle后的数据表，往往能得到更高的指标，训练过程也更稳定。（注：只需shuffle训练表，无需shuffle评估表）
+在训练模型前, 对训练数据先进行打散(shuffle)，往往能得到更高的指标，训练过程也更稳定。
+（注：只需shuffle训练表，无需shuffle评估表）
 
 ```sql
 create table train_table_shuffled
@@ -63,7 +64,7 @@ DISTRIBUTE by rand();
 
 做法：
 
-1. 加大学习率，同时调整衰减
+1. 加大学习率(initial_learning_rate)，同时调整学习率衰减(decay_steps/decay_factor)
    ![lr](../images/optimize/lr.png)
 
 ### 6.hpo调参
