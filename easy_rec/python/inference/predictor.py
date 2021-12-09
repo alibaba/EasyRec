@@ -57,8 +57,10 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
     pass
 
   def get_output_type(self):
-    """Get output types of prediction. in this function user should return a type dict, which indicates which type of data should the output of predictor be converted to.
+    """Get output types of prediction.
 
+    in this function user should return a type dict, which indicates
+    which type of data should the output of predictor be converted to.
     * type json, data will be serialized to json str
     * type image, data will be converted to encode image binary and write to oss file,
       whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
@@ -92,6 +94,7 @@ class PredictorImpl(object):
     self._profiling_file = profiling_file
     self._model_path = model_path
     self._input_names = []
+    self._is_multi_placeholder = True
 
     self._build_model()
 
@@ -110,9 +113,9 @@ class PredictorImpl(object):
   def search_pb(self, directory):
     """Search pb file recursively in model directory.
 
-    if multiple pb files exist, exception will be raised.
+    if multiple pb files exist, exception will be raised
     Args:
-      directory: model directory.
+      directory: model directory
     Returns:
       directory contain pb file
     """
@@ -173,7 +176,8 @@ class PredictorImpl(object):
           inputs = signature_def.inputs
           # each input_info is a tuple of input_id, name, data_type
           input_info = []
-          if len(inputs.items()) > 1:
+          self._is_multi_placeholder = len(inputs.items()) > 1
+          if self._is_multi_placeholder:
             for gid, item in enumerate(inputs.items()):
               name, tensor = item
               logging.info('Load input binding: %s -> %s' % (name, tensor.name))
@@ -301,6 +305,7 @@ class Predictor(PredictorInterface):
     self._profiling_file = profiling_file
     self._export_config = self._predictor_impl._export_config
     self._input_fields_info = self._predictor_impl._input_fields_info
+    self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
 
   @property
   def input_names(self):
@@ -405,6 +410,23 @@ class Predictor(PredictorInterface):
       table_writer = common_io.table.TableWriter(
           output_table, slice_id=slice_id)
       input_names = self._predictor_impl.input_names
+
+      def _parse_value(all_vals):
+        if self._is_multi_placeholder:
+          if 'features' in all_vals:
+            feature_vals = all_vals['features']
+            split_index = []
+            split_vals = {}
+            for i, k in enumerate(input_names):
+              split_index.append(k)
+              split_vals[k] = []
+            for record in feature_vals:
+              split_records = record.split('\002')
+              for i, r in enumerate(split_records):
+                split_vals[split_index[i]].append(r)
+            return {k: np.array(split_vals[k]) for k in input_names}
+        return {k: all_vals[k] for k in input_names}
+
       progress = 0
       sum_t0, sum_t1, sum_t2 = 0, 0, 0
       while True:
@@ -412,7 +434,9 @@ class Predictor(PredictorInterface):
           ts0 = time.time()
           all_vals = sess.run(all_dict)
           ts1 = time.time()
-          input_vals = {k: all_vals[k] for k in input_names}
+          input_vals = _parse_value(all_vals)
+          # logging.info('input names = %s' % input_names)
+          # logging.info('input vals = %s' % input_vals)
           outputs = self._predictor_impl.predict(input_vals, output_cols)
           ts2 = time.time()
           reserve_vals = [all_vals[k] for k in reserved_cols
