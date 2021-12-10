@@ -493,7 +493,7 @@ def distribute_evaluate(pipeline_config,
   server_target = None
   cur_job_name = None
   if 'TF_CONFIG' in os.environ:
-    tf_config_pre = json.loads(os.environ['TF_CONFIG'])
+    # tf_config_pre = json.loads(os.environ['TF_CONFIG'])
     tf_config = estimator_utils.chief_to_master()
 
     from tensorflow.python.training import server_lib
@@ -563,7 +563,7 @@ def distribute_evaluate(pipeline_config,
     else:
       cur_sess_creator = WorkerSessionCreator(
           master=server_target,
-          #checkpoint_filename_with_path=ckpt_path,
+          # checkpoint_filename_with_path=ckpt_path,
           config=session_config)
     eval_metric_ops = estimator_spec.eval_metric_ops
     update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
