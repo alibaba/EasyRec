@@ -33,9 +33,7 @@ class DropoutNet(EasyRecModel):
                is_training=False):
     super(DropoutNet, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
-    self._loss_type = self._model_config.loss_type
     self._losses = self._model_config.losses
-    self._num_class = self._model_config.num_class
     assert self._model_config.WhichOneof('model') == 'dropoutnet', \
       'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.dropoutnet
@@ -178,7 +176,7 @@ class DropoutNet(EasyRecModel):
             t=self._model_config.softmax_loss.coefficient_of_support_vector)
         self._loss_dict['softmax_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.PAIR_WISE_LOSS:
-        loss_value = pairwise_loss(logits, labels)
+        loss_value = pairwise_loss(labels, logits)
         self._loss_dict['pairwise_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.CLASSIFICATION:
         loss_value = tf.losses.sigmoid_cross_entropy(
@@ -190,23 +188,23 @@ class DropoutNet(EasyRecModel):
 
   def build_metric_graph(self, eval_config):
     metric_dict = {}
-    label = list(self._labels.values())[0]
+    labels = list(self._labels.values())[0]
     sim_score = self._prediction_dict['similarity']
     prob = tf.nn.sigmoid(sim_score)
     predict = tf.greater(prob, 0.5)
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'auc':
         metric_dict['auc'] = metrics.auc(
-            label, prob, weights=self._sample_weight)
+            labels, prob, weights=self._sample_weight)
       elif metric.WhichOneof('metric') == 'accuracy':
         metric_dict['accuracy'] = metrics.accuracy(
-            tf.cast(label, tf.bool), predict, weights=self._sample_weight)
+            tf.cast(labels, tf.bool), predict, weights=self._sample_weight)
       elif metric.WhichOneof('metric') == 'precision':
         metric_dict['precision'] = metrics.precision(
-            label, predict, weights=self._sample_weight)
+            labels, predict, weights=self._sample_weight)
       elif metric.WhichOneof('metric') == 'recall':
         metric_dict['recall'] = metrics.recall(
-            label, predict, weights=self._sample_weight)
+            labels, predict, weights=self._sample_weight)
       else:
         ValueError('invalid metric type: %s' % str(metric))
     return metric_dict

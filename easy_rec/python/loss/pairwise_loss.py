@@ -8,7 +8,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def pairwise_loss(logits, labels):
+def pairwise_loss(labels, logits):
   pairwise_logits = tf.expand_dims(logits, -1) - tf.expand_dims(
       logits, 0)
   logging.info('[pairwise_loss] pairwise logits: {}'.format(pairwise_logits))

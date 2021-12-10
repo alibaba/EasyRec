@@ -139,10 +139,10 @@ def metric_learning_recall_at_k(k,
   """Computes the recall_at_k metric for metric learning.
 
   Args:
-    embeddings: the output of last hidden layer, a tf.float32 `Tensor` with shape [batch_size, embedding_size]
-    session_ids: session ids, a `Tensor` with shape [batch_size]
-    labels: a `Tensor` with shape [batch_size]
     k: a scalar of int, or a tuple of ints
+    embeddings: the output of last hidden layer, a tf.float32 `Tensor` with shape [batch_size, embedding_size]
+    labels: a `Tensor` with shape [batch_size]
+    session_ids: session ids, a `Tensor` with shape [batch_size]
     embed_normed: indicator of whether the input embeddings are l2_normalized
   """
   # make sure embedding should be l2-normalized

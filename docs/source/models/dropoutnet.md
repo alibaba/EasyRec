@@ -11,6 +11,9 @@ EasyRec的实现对原始DropoutNet模型进行了改造，直接使用用户与
 
 EasyRec的实现使用了Negative Mining的负采样技术，在训练过程中从当前mini batch中采样负样本，扩大了样本空间，使得学习更加高效，同时适用于训练数据量比较少的场景。
 
+同时还提供了常规的二分类`sigmoid cross entropy loss`，以及适用于优化全局AUC指标的`pairwise rank loss` 可供选择。
+用户可以从三种损失函数中任意选择一个或多个，并为每种损失函数配置不同的权重。
+
 ![dropoutnet](../../images/models/dropoutnet.png)
 
 ### 配置说明
@@ -83,7 +86,6 @@ model_config {
     user_dropout_rate: 0
     item_dropout_rate: 0.5
   }
-  sample_weight_field: "weight"
   embedding_regularization: 5e-5
 }
 ```
@@ -92,9 +94,9 @@ model_config {
 - feature_groups: 需要四个feature_group: user_content、user_preference和item_content、item_preference, **group name不能变**。
   其中，user_content和user_preference两者至少要有1个；item_content和item_preference两者至少要有1个。
 - losses: 配置模型使用的loss function的类型和权重；DropoutNet支持三种类型的loss函数，可以单独使用，也可以搭配在一起使用。
-  - loss_type=CLASSIFICATION: 常规的二分类sigmoid cross entropy loss
-  - loss_type=PAIR_WISE_LOSS: pairwise rank loss，也就AUC loss，以优化全局AUC为目标；
-  - loss_type=SoftmaxCrossEntropyWithNegativeMining: 自带负采样功能的support vector guided softmax loss，使用该 loss 类型时，
+  - loss_type=CLASSIFICATION: 常规的二分类`sigmoid cross entropy loss`
+  - loss_type=PAIR_WISE_LOSS: `pairwise rank loss`，也就是`AUC loss`，以优化全局AUC为目标；
+  - loss_type=SoftmaxCrossEntropyWithNegativeMining: 自带负采样功能的`support vector guided softmax loss`，使用该 loss 类型时，
     需要在`dropoutnet`模型参数中配置`softmax_loss`对应的参数。
 - dropoutnet: dropoutnet相关的参数，必须配置user_tower和item_tower
   - user_content/user_content/user_preference/item_preference/user_tower/item_tower: dnn的参数配置
@@ -108,7 +110,6 @@ model_config {
     - margin: 正样本对的语义向量直接的距离必须小于负样本点语义向量之间的距离减去`margin`
     - gamma: softmax函数的平滑系数；建议配置为大于1的值
     - coefficient_of_support_vector: 支持向量softmax loss的参数，一般设置为大于1的值
-- sample_weight_field: 【可选】样本权重的输入field name；没有样本权重时可以不配
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 ### 示例Config
