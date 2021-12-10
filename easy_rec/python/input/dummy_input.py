@@ -44,23 +44,23 @@ class DummyInput(Input):
       tf_type = self.get_tf_type(field_type)
       def_val = self.get_type_defaults(field_type, default_val=def_val)
 
-      if field in ["opt_content_long_seq__event",        \
-                   "time_id",                            \
-                   "opt_content_long_seq__primary_type", \
-                   "opt_content_long_seq__source_type",  \
-                   "opt_content_long_seq__pub_time"]:
+      if field in [
+          'opt_content_long_seq__event', 'time_id',
+          'opt_content_long_seq__primary_type',
+          'opt_content_long_seq__source_type', 'opt_content_long_seq__pub_time'
+      ]:
         def_val = '123'
 
       if field in self._input_vals:
         tensor = self._input_vals[field]
       else:
         tensor = tf.constant([def_val] * self._batch_size, dtype=tf_type)
-      
-      if field in ["opt_content_long_seq__event",        \
-                   "time_id",                            \
-                   "opt_content_long_seq__primary_type", \
-                   "opt_content_long_seq__source_type",  \
-                   "opt_content_long_seq__pub_time"]:
+
+      if field in [
+          'opt_content_long_seq__event', 'time_id',
+          'opt_content_long_seq__primary_type',
+          'opt_content_long_seq__source_type', 'opt_content_long_seq__pub_time'
+      ]:
         tensor = tf.Print(tensor, [tensor[:1]], message=field)
       features[field] = tensor
     parse_dict = self._preprocess(features)

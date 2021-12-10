@@ -6,8 +6,8 @@ import tensorflow as tf
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
-from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.layers.capsule_layer import CapsuleLayer
+from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.mind_pb2 import MIND as MINDConfig
 from easy_rec.python.protos.simi_pb2 import Similarity
@@ -52,10 +52,12 @@ class MIND(MatchModel):
 
     if self._model_config.time_id_fea:
       time_id_fea = [
-          x[0] for x in self._hist_seq_features if self._model_config.time_id_fea in x[0].name
+          x[0]
+          for x in self._hist_seq_features
+          if self._model_config.time_id_fea in x[0].name
       ]
-      logging.info('time_id_fea is set(%s), find num: %d' % (self._model_config.time_id_fea,
-          len(time_id_fea)))
+      logging.info('time_id_fea is set(%s), find num: %d' %
+                   (self._model_config.time_id_fea, len(time_id_fea)))
     else:
       time_id_fea = []
     time_id_fea = time_id_fea[0] if len(time_id_fea) > 0 else None
@@ -223,7 +225,9 @@ class MIND(MatchModel):
     recall_at_topks = []
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
-        assert self._loss_type in [LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY]
+        assert self._loss_type in [
+            LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY
+        ]
         if metric.recall_at_topk.topk not in recall_at_topks:
           recall_at_topks.append(metric.recall_at_topk.topk)
 
@@ -263,8 +267,8 @@ class MIND(MatchModel):
           predictions=sampled_logits,
           k=topk,
           name='interests_recall_at_%d' % topk)
-    metric_dict['sampled_neg_acc'] = metrics.accuracy(sampled_lbls,
-                                                      sampled_logits)
+    metric_dict['sampled_neg_acc'] = metrics.accuracy(
+        sampled_lbls, tf.argmax(sampled_logits, axis=1))
 
     # batch_size num_interest
     if hard_neg_indices is not None:
@@ -278,7 +282,8 @@ class MIND(MatchModel):
                                    hard_neg_shape)
       hard_logits = tf.concat([pos_item_sim, hard_neg_sim], axis=1)
       hard_lbls = tf.zeros_like(hard_logits[:, :1], dtype=tf.int64)
-      metric_dict['hard_neg_acc'] = metrics.accuracy(hard_lbls, hard_logits)
+      metric_dict['hard_neg_acc'] = metrics.accuracy(
+          hard_lbls, tf.argmax(hard_logits, axis=1))
 
     return metric_dict
 

@@ -171,7 +171,7 @@ class MatchModel(EasyRecModel):
       elif metric.WhichOneof('metric') == 'accuracy':
         assert self._loss_type == LossType.CLASSIFICATION
         metric_dict['accuracy'] = metrics.accuracy(
-            label, self._prediction_dict['probs'])
+            label, tf.argmax(self._prediction_dict['probs'], axis=1))
       else:
         ValueError('invalid metric type: %s' % str(metric))
     return metric_dict
