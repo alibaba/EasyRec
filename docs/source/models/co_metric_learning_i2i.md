@@ -9,7 +9,7 @@ Collaborative Metric Learning I2I 召回模型，基于session点击数据计算
 Metric Learning需要保证 `anchor item` 与 `negative item` 的语义向量之间的距离
 相比 `anchor item` 与 `positive item` 的语义向量之间的距离大，且至少间隔距离为margin（超参数）。
 
-![mind](../../images/models/CML.png)
+![CML](../../images/models/CML.png)
 
 目前可选的损失函数（loss function）包括：
 
