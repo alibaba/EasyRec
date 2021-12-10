@@ -299,7 +299,7 @@ def main(argv):
         FLAGS.ps_hosts,
         FLAGS.worker_hosts,
         FLAGS.task_index,
-        FLAGS.job_name,  
+        FLAGS.job_name,
         eval_method='none')
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
