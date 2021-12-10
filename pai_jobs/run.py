@@ -257,7 +257,12 @@ def main(argv):
     pipeline_config.eval_input_path = FLAGS.tables
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
-    set_tf_config_and_get_train_worker_num(eval_method='none')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
@@ -290,7 +295,12 @@ def main(argv):
     if FLAGS.redis_write_kv:
       redis_params['redis_write_kv'] = FLAGS.redis_write_kv
 
-    set_tf_config_and_get_train_worker_num(eval_method='none')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,  
+        eval_method='none')
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
