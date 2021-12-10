@@ -26,7 +26,6 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
-from easy_rec.python.utils.pai_util import is_on_pai
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -241,22 +240,6 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
 
 
 def _train_and_evaluate_impl(pipeline_config, continue_train=False):
-  # Tempoary for EMR
-  if (not is_on_pai()) and 'TF_CONFIG' in os.environ:
-    tf_config = json.loads(os.environ['TF_CONFIG'])
-    # for ps on emr currently evaluator is not supported
-    # the cluster has one chief instead of master
-    # evaluation will not be done, so we replace chief with master
-    if 'cluster' in tf_config and 'chief' in tf_config[
-        'cluster'] and 'ps' in tf_config['cluster'] and (
-            'evaluator' not in tf_config['cluster']):
-      chief = tf_config['cluster']['chief']
-      del tf_config['cluster']['chief']
-      tf_config['cluster']['master'] = chief
-      if tf_config['task']['type'] == 'chief':
-        tf_config['task']['type'] = 'master'
-      os.environ['TF_CONFIG'] = json.dumps(tf_config)
-
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs
@@ -493,7 +476,6 @@ def distribute_evaluate(pipeline_config,
   server_target = None
   cur_job_name = None
   if 'TF_CONFIG' in os.environ:
-    # tf_config_pre = json.loads(os.environ['TF_CONFIG'])
     tf_config = estimator_utils.chief_to_master()
 
     from tensorflow.python.training import server_lib
@@ -562,9 +544,7 @@ def distribute_evaluate(pipeline_config,
           config=session_config)
     else:
       cur_sess_creator = WorkerSessionCreator(
-          master=server_target,
-          # checkpoint_filename_with_path=ckpt_path,
-          config=session_config)
+          master=server_target, config=session_config)
     eval_metric_ops = estimator_spec.eval_metric_ops
     update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
     metric_ops = {x: eval_metric_ops[x][0] for x in eval_metric_ops.keys()}

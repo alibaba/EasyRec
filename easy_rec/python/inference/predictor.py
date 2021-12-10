@@ -71,6 +71,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
       'image': 'image',
       'feature': 'json'
     }
+
     indicating that the image data in the output dict will be save to image
     file and feature in output dict will be converted to json
     """
