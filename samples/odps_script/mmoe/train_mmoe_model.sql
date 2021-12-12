@@ -6,5 +6,5 @@ pai -name easy_rec_ext
 -Darn={ROLEARN}
 -Dbuckets=oss://{OSS_BUCKET_NAME}/
 -DossHost={OSS_ENDPOINT}
--Dwith_evaluator=1
+-Deval_method=separate
 ;
