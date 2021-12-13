@@ -9,6 +9,10 @@ message RecallAtTopK {
     optional uint32 topk = 1 [default = 5];
 }
 
+message AvgPrecisionAtTopK {
+    optional uint32 topk = 1 [default = 5];
+}
+
 message MeanAbsoluteError {
 }
 
@@ -16,6 +20,12 @@ message MeanSquaredError {
 }
 
 message Accuracy {
+}
+
+message Precision {
+}
+
+message Recall {
 }
 
 message Max_F1 {
@@ -55,6 +65,9 @@ message EvalMetrics {
         RootMeanSquaredError root_mean_squared_error = 7;
         GAUC gauc = 8;
         SessionAUC session_auc = 9;
+        Recall recall = 10;
+        Precision precision = 11;
+        AvgPrecisionAtTopK precision_at_topk = 12;
     }
 }
 
