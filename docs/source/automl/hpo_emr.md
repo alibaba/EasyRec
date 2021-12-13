@@ -37,7 +37,7 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 [
   {
     "type": "Categorical",
-    "name": "feature_configs[input_names[0]=field1].embedding_dim",
+    "name": "feature_config.features[input_names[0]=field1].embedding_dim",
     "candidates": ["16", "32", "48", "64", "80"]
   }
 ]
@@ -45,22 +45,22 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 
 - name:  easy_rec pipeline_config里面的参数名称，注意要用全路径
 
-  feature_configs\[**input_names\[0\]=field_name1**\].embedding_dim
+  feature_config.features\[**input_names\[0\]=field_name1**\].embedding_dim
 
-  - 由于feature_configs是一个数组，所以需要用到选择器，根据**属性值**选择部分特征:
+  - 由于feature_config.features是一个数组，所以需要用到选择器，根据**属性值**选择部分特征:
 
 ![image.png](../../images/automl/pai_field.png)
 
 ```
   - input_names[0]=field_name1是选择器
-  - 也支持数字作为选择器, 如: feature_configs[**0**], feature_configs[**1**]
+  - 也支持数字作为选择器, 如: feature_config.features[**0**], feature_config.features[**1**]
   - 支持使用:选择所有的特征，如:
-     - feature_configs[:]选择全部特征
-     - feature_configs[5:]选择index从5开始的特征
-     - feature_configs[:13]选择index从0到12的特征
-     - feature_configs[3:12]选择index从3到11的特征
+     - feature_config.features[:]选择全部特征
+     - feature_config.features[5:]选择index从5开始的特征
+     - feature_config.features[:13]选择index从0到12的特征
+     - feature_config.features[3:12]选择index从3到11的特征
   - 支持使用>=, <=, >, <选择特征，如:
-     - feature_configs[inputs_names[0]>=click_]选择名称排在"click_"后面的特征
+     - feature_config.features[inputs_names[0]>=click_]选择名称排在"click_"后面的特征
   - 注意: 属性值里面不能有="'等操作符.
 ```
 
@@ -68,7 +68,7 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 
 有些参数的值是关联的，比如对于deepfm算法，所有的embedding_dim必须是一样的
 
-- name里面可以指定多个要调整的参数名称，用";"分割feature_configs\[input_names\[0\]=field1\].embedding_dim;feature_configs\[input_names\[0\]=field20\].embedding_dim
+- name里面可以指定多个要调整的参数名称，用";"分割feature_config.features\[input_names\[0\]=field1\].embedding_dim;feature_config.features\[input_names\[0\]=field20\].embedding_dim
 - 如果name里面包含了多个参数名称，那么candidates也需要有多个参数值，用";"分割如"32;32"
 - candidates: 候选值
 - type: 候选值类型, 支持Categorical, Integer, Real

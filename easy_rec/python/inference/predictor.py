@@ -57,7 +57,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
     pass
 
   def get_output_type(self):
-    """Get output types of prediction. in this function user should return a type dict, which indicates which type of data should the output of predictor be converted to.
+    """Get output types of prediction.
 
     * type json, data will be serialized to json str
     * type image, data will be converted to encode image binary and write to oss file,
@@ -69,6 +69,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
       'image': 'image',
       'feature': 'json'
     }
+
     indicating that the image data in the output dict will be save to image
     file and feature in output dict will be converted to json
     """
@@ -113,6 +114,7 @@ class PredictorImpl(object):
     if multiple pb files exist, exception will be raised.
     Args:
       directory: model directory.
+
     Returns:
       directory contain pb file
     """

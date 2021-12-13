@@ -150,32 +150,34 @@ data_config {
 特征配置具体见：[特征](../feature/feature.md)
 
 ```protobuf
-feature_configs: {
-  input_names: "hour"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 50
-}
-feature_configs: {
-  input_names: "c1"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 10
-}
+feature_config: {
+  features: {
+    input_names: "hour"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 50
+  }
+  features: {
+    input_names: "c1"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 10
+  }
 
-...
+  ...
 
-feature_configs: {
-  input_names: "c20"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "c21"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
+  features: {
+    input_names: "c20"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "c21"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
 }
 ```
 
