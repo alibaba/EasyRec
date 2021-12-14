@@ -7,3 +7,5 @@
    dssm
    dssm_neg_sampler
    mind
+   dropoutnet
+   co_metric_learning_i2i
