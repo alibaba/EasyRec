@@ -68,7 +68,6 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-
         embedding\_dim=8+x^{0.25}
 
 
@@ -78,14 +77,12 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-
           hash\_bucket\_size  = \frac{number\_user\_ids}{ratio},      建议：ratio \in [10,100];
 
 
 -  对于星座等规模比较小的，hash冲突影响比较大的
 
    .. math::
-
 
           hash\_bucket\_size = number\_xingzuo\_ids * ratio,    建议 ratio \in [5,10]
 
@@ -239,6 +236,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 其中\|为分隔符，如:
 
 .. code:: protobuf
+
   feature_config:{
     features {
       input_names: "play_sequence"
@@ -287,6 +285,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 在模型中可支持对序列特征使用TextCNN算子进行embedding聚合，示例如下：
 
 .. code:: protobuf
+
   feature_configs: {
     input_names: 'title'
     feature_type: SequenceFeature
@@ -297,6 +296,10 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
       text_cnn: {
         filter_sizes: [2, 3, 4]
         num_filters: [16, 8, 8]
+      }
+    }
+  }
+
 - num_filters: 卷积核个数列表
 - filter_sizes: 卷积核步长列表
 

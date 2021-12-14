@@ -11,10 +11,10 @@ EasyRec的实现对原始DropoutNet模型进行了改造，直接使用用户与
 
 EasyRec的实现使用了Negative Mining的负采样技术，在训练过程中从当前mini batch中采样负样本，扩大了样本空间，使得学习更加高效，同时适用于训练数据量比较少的场景。
 
+![dropoutnet](../../images/models/dropoutnet.jpg)
+
 同时还提供了常规的二分类`sigmoid cross entropy loss`，以及适用于优化全局AUC指标的`pairwise rank loss` 可供选择。
 用户可以从三种损失函数中任意选择一个或多个，并为每种损失函数配置不同的权重。
-
-![dropoutnet](../../images/models/dropoutnet.png)
 
 ### 配置说明
 
