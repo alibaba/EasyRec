@@ -32,12 +32,15 @@ eval_config {
 | ----------------- | ---------------------- | ------------------------------------------- |
 | Accuracy          | accuracy {}            | 多分类模型LossType=CLASSIFICATION, num_class > 1 |
 | MeanAbsoluteError | mean_absolute_error {} | 回归模型LossType=L2_LOSS                        |
-| RecallAtTopK      | recall_at_topk {}      | 多分类模型LossType=CLASSIFICATION, num_class > 1 |
+| RecallAtTopK      | recall_at_topk {}      | 多分类模型LossType=CLASSIFICATION, num_class > 1; CoMetricLearningI2I模型 |
 | Max_F1            | max_f1 {}              | 分类模型LossType=CLASSIFICATION                 |
 | MeanSquaredError  | mean_squared_error{}   | 回归模型LossType=L2_LOSS                        |
 | AUC               | auc{}                  | 二分类模型LossType=CLASSIFICATION, num_class = 1 |
 | GAUC              | gauc{}                 | 二分类模型LossType=CLASSIFICATION, num_class = 1 |
 | SessionAUC        | session_auc{}          | 二分类模型LossType=CLASSIFICATION, num_class = 1 |
+| Precision         | precision{}            | 二分类模型LossType=CLASSIFICATION, num_class = 1 |
+| Recall            | recall{}               | 二分类模型LossType=CLASSIFICATION, num_class = 1 |
+| AvgPrecisionAtTopK| precision_at_topk{topk=5}| CoMetricLearningI2I模型专用, LossType=CIRCLE_LOSS / MULTI_SIMILARITY_LOSS |
 
 ### 评估命令
 
