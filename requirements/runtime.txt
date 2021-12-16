@@ -1,4 +1,5 @@
 future
+matplotlib
 pandas
 psutil
 pydatahub
