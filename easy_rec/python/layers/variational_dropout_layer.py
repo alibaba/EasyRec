@@ -75,16 +75,13 @@ class VariationalDropoutLayer(object):
       expanded_dims_logit_p = tf.expand_dims(self.logit_p, 0)
       expanded_logit_p = tf.tile(expanded_dims_logit_p, [batch_size, 1])
       p = tf.sigmoid(expanded_logit_p)
-      tf.logging.info('p: %s' % p)
       if self.variational_dropout_wise():
         scaled_input = input * (1 - p)
       else:
         # expand dropout layer
         expanded_index = self.build_expand_index(batch_size)
         expanded_p = tf.gather_nd(p, expanded_index)
-        # tf.logging.info('expanded_p1: %s' % expanded_p)
         expanded_p = tf.reshape(expanded_p, [-1, self.features_embedding_size])
-        # tf.logging.info('expanded_p2: %s' % expanded_p)
         scaled_input = input * (1 - expanded_p)
 
       return scaled_input
