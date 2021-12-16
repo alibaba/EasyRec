@@ -11,6 +11,7 @@ from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import seq_input_layer
 from easy_rec.python.layers import variational_dropout_layer
+from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
@@ -223,6 +224,12 @@ class InputLayer(object):
                 attn_score[:, :, tf.newaxis] * seq_feature, axis=1)
             seq_features.append(seq_feature)
             cols_to_output_tensors[column] = seq_feature
+          elif sequence_combiner.WhichOneof('combiner') == 'text_cnn':
+            num_filters = sequence_combiner.text_cnn.num_filters
+            filter_sizes = sequence_combiner.text_cnn.filter_sizes
+            cnn_feature = text_cnn(seq_feature, filter_sizes, num_filters)
+            seq_features.append(cnn_feature)
+            cols_to_output_tensors[column] = cnn_feature
           else:
             raise NotImplementedError
       if self._variational_dropout_config is not None:

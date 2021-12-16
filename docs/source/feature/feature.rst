@@ -68,7 +68,6 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-
         embedding\_dim=8+x^{0.25}
 
 
@@ -78,14 +77,12 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-
           hash\_bucket\_size  = \frac{number\_user\_ids}{ratio},      建议：ratio \in [10,100];
 
 
 -  对于星座等规模比较小的，hash冲突影响比较大的
 
    .. math::
-
 
           hash\_bucket\_size = number\_xingzuo\_ids * ratio,    建议 ratio \in [5,10]
 
@@ -239,6 +236,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 其中\|为分隔符，如:
 
 .. code:: protobuf
+
   feature_config:{
     features {
       input_names: "play_sequence"
@@ -278,11 +276,37 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
       }
     }
   }
-
+  
 -  sequence_features: 序列特征组的名称
 -  allow_key_search: 当 key 对应的特征没有在 feature_groups 里面时，需要设置为 true, 将会复用对应特征的 embedding.
 -  seq_att_map: 具体细节可以参考排序里的 DIN 模型。
 -  NOTE：SequenceFeature一般放在 user 组里面。
+
+在模型中可支持对序列特征使用TextCNN算子进行embedding聚合，示例如下：
+
+.. code:: protobuf
+
+  feature_configs: {
+    input_names: 'title'
+    feature_type: SequenceFeature
+    separator: ' '
+    embedding_dim: 32
+    hash_bucket_size: 10000
+    sequence_combiner: {
+      text_cnn: {
+        filter_sizes: [2, 3, 4]
+        num_filters: [16, 8, 8]
+      }
+    }
+  }
+
+- num_filters: 卷积核个数列表
+- filter_sizes: 卷积核步长列表
+
+TextCNN网络是2014年提出的用来做文本分类的卷积神经网络，由于其结构简单、效果好，在文本分类、推荐等NLP领域应用广泛。
+从直观上理解，TextCNN通过一维卷积来获取句子中`N gram`的特征表示。
+在推荐模型中，可以用TextCNN网络来提取文本类型的特征。
+
 
 ComboFeature：组合特征
 ----------------------
