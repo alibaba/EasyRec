@@ -106,6 +106,7 @@ function getHyperParams(config, cmd, checkpoint_path,
                         input_table, output_table, tables, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
+  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')

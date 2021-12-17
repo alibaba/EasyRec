@@ -233,8 +233,12 @@ class InputLayer(object):
           else:
             raise NotImplementedError
       if self._variational_dropout_config is not None:
+        features_dimension = [
+            cols_to_output_tensors[x].get_shape()[-1] for x in group_columns
+        ]
         variational_dropout = variational_dropout_layer.VariationalDropoutLayer(
-            self._variational_dropout_config, group_columns, self._is_training)
+            self._variational_dropout_config, features_dimension,
+            self._is_training)
         noisy_features = variational_dropout(output_features)
         concat_features = tf.concat([noisy_features] + seq_features, axis=-1)
       else:

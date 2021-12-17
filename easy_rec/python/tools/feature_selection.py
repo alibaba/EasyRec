@@ -72,9 +72,12 @@ class VariationalDropoutFS:
   def _feature_dim_dropout_ratio(self):
     """Get dropout ratio of embedding-wise or feature-wise."""
     config = config_util.get_configs_from_pipeline_file(self._config_path)
+    assert config.model_config.HasField(
+        'variational_dropout'), 'variational_dropout must be in model_config'
     embedding_wise_variational_dropout = config.model_config.variational_dropout.embedding_wise_variational_dropout
     features_dim = {
         cfg.input_names[0]: cfg.embedding_dim
+        if cfg.HasField('embedding_dim') else cfg.raw_input_dim
         for cfg in config_util.get_compatible_feature_configs(config)
     }
     features = list(config.model_config.feature_groups[0].feature_names)

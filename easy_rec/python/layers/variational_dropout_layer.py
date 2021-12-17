@@ -20,24 +20,17 @@ class VariationalDropoutLayer(object):
 
   def __init__(self,
                variational_dropout_config,
-               group_columns,
+               features_dimension,
                is_training=False):
     self._config = variational_dropout_config
-    self.features_dim_used = []
-    self.features_embedding_size = 0
-    for item in range(0, len(group_columns)):
-      if (hasattr(group_columns[item], 'dimension')):
-        self.features_dim_used.append(group_columns[item].dimension)
-        self.features_embedding_size += group_columns[item].dimension
-      else:
-        self.features_dim_used.append(1)
-        self.features_embedding_size += 1
+    self.features_dimension = features_dimension
+    self.features_total_dimension = sum(self.features_dimension)
 
     if self.variational_dropout_wise():
-      self._dropout_param_size = self.features_embedding_size
+      self._dropout_param_size = self.features_total_dimension
       self.drop_param_shape = [self._dropout_param_size]
     else:
-      self._dropout_param_size = len(self.features_dim_used)
+      self._dropout_param_size = len(self.features_dimension)
       self.drop_param_shape = [self._dropout_param_size]
     self.evaluate = not is_training
 
@@ -56,15 +49,15 @@ class VariationalDropoutLayer(object):
   def build_expand_index(self, batch_size):
     # Build index_list--->[[0,0],[0,0],[0,0],[0,0],[0,1]......]
     expanded_index = []
-    for i in range(len(self.features_dim_used)):
-      index_loop_count = self.features_dim_used[i]
+    for i in range(len(self.features_dimension)):
+      index_loop_count = self.features_dimension[i]
       for m in range(index_loop_count):
         expanded_index.append([i])
     expanded_index = tf.tile(expanded_index, [batch_size, 1])
     batch_size_range = tf.range(batch_size)
     expand_range_axis = tf.expand_dims(batch_size_range, 1)
-    batch_size_range_expand_dim_len = tf.tile(expand_range_axis,
-                                              [1, self.features_embedding_size])
+    batch_size_range_expand_dim_len = tf.tile(
+        expand_range_axis, [1, self.features_total_dimension])
     index_i = tf.reshape(batch_size_range_expand_dim_len, [-1, 1])
     expanded_index = tf.concat([index_i, expanded_index], 1)
     return expanded_index
@@ -81,13 +74,13 @@ class VariationalDropoutLayer(object):
         # expand dropout layer
         expanded_index = self.build_expand_index(batch_size)
         expanded_p = tf.gather_nd(p, expanded_index)
-        expanded_p = tf.reshape(expanded_p, [-1, self.features_embedding_size])
+        expanded_p = tf.reshape(expanded_p, [-1, self.features_total_dimension])
         scaled_input = input * (1 - expanded_p)
 
       return scaled_input
     else:
       bern_val = self.sampled_from_logit_p(batch_size)
-      bern_val = tf.reshape(bern_val, [-1, self.features_embedding_size])
+      bern_val = tf.reshape(bern_val, [-1, self.features_total_dimension])
       noisy_input = input * bern_val
       return noisy_input
 
