@@ -6,3 +6,4 @@ scikit-learn
 xlrd >= 0.9.0
 PyYaml
 configparser
+cprotobuf==0.1.9
