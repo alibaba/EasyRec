@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source activate tf12_py2
-
 # pip install
 pip install oss2
 pip install -r requirements.txt
