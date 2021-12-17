@@ -322,12 +322,12 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
                      trainTables, evalTables, boundaryTable)
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
   end
 
   -- for export, no table need to be parsed
-  if cmd == 'export' then
+  if cmd == 'export' or cmd == 'custom' then
     return "", "", "", "", "select 1;", "select 1;", ''
   end
 
