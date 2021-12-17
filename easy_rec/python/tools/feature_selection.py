@@ -5,15 +5,15 @@ import json
 import os
 from collections import OrderedDict
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util
 
-matplotlib.use('Agg')
+import matplotlib  # NOQA
+matplotlib.use('Agg')  # NOQA
+import matplotlib.pyplot as plt  # NOQA
 
 tf.app.flags.DEFINE_string('model_type', 'variational_dropout',
                            'feature selection model tyoe')
