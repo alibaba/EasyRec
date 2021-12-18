@@ -75,6 +75,9 @@ class BaseSampler(object):
     self._num_eval_sample = num_eval_sample if num_eval_sample else num_sample
     self._build_field_types(fields)
 
+  def reset_num_sample(self):
+    self._num_sample = self._num_eval_sample
+
   def _init_graph(self):
     if 'TF_CONFIG' in os.environ:
       tf_config = json.loads(os.environ['TF_CONFIG'])
@@ -141,6 +144,7 @@ class BaseSampler(object):
     self._g.close()
 
   def _parse_nodes(self, nodes):
+    print('num_example=%d num_eval_example=%d node_num=%d' % (self._num_sample, self._num_eval_sample, len(nodes.ids)))
     features = []
     int_idx = 0
     float_idx = 0
@@ -160,6 +164,8 @@ class BaseSampler(object):
         raise ValueError('Unknown attr type %s' % attr_gl_type)
       feature = np.reshape(feature,
                            [-1])[:self._num_sample].astype(attr_np_type)
+      if attr_gl_type == 'string':
+        feature = feature.tolist()
       features.append(feature)
     return features
 
@@ -242,9 +248,9 @@ class NegativeSampler(BaseSampler):
     sampled_values = tf.py_func(self._get_impl, [ids], self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      if t == tf.string:
-        # string convert from np array to tensor will be padded with \000, we need remove it
-        v = tf.regex_replace(v, '\000', '')
+      # if t == tf.string:
+      #   # string convert from np array to tensor will be padded with \000, we need remove it
+      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([self._num_sample])
       result_dict[k] = v
     return result_dict
@@ -317,9 +323,9 @@ class NegativeSamplerV2(BaseSampler):
                                 self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      if t == tf.string:
-        # string convert from np array to tensor will be padded with \000, we need remove it
-        v = tf.regex_replace(v, '\000', '')
+      # if t == tf.string:
+      #   # string convert from np array to tensor will be padded with \000, we need remove it
+      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([self._num_sample])
       result_dict[k] = v
     return result_dict
@@ -407,9 +413,9 @@ class HardNegativeSampler(BaseSampler):
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types,
                        output_values[:-1]):
-      if t == tf.string:
-        # string convert from np array to tensor will be padded with \000, we need remove it
-        v = tf.regex_replace(v, '\000', '')
+      # if t == tf.string:
+      #   # string convert from np array to tensor will be padded with \000, we need remove it
+      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([None])
       result_dict[k] = v
 
@@ -506,9 +512,9 @@ class HardNegativeSamplerV2(BaseSampler):
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types,
                        output_values[:-1]):
-      if t == tf.string:
-        # string convert from np array to tensor will be padded with \000, we need remove it
-        v = tf.regex_replace(v, '\000', '')
+      # if t == tf.string:
+      #   # string convert from np array to tensor will be padded with \000, we need remove it
+      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([None])
       result_dict[k] = v
 
@@ -541,6 +547,7 @@ def build(data_config):
         item_data_path=sampler_config.item_input_path,
         edge_data_path=sampler_config.pos_edge_input_path,
         fields=attr_fields,
+        # num_sample=sampler_config.num_sample,
         num_sample=sampler_config.num_sample,
         batch_size=data_config.batch_size,
         attr_delimiter=sampler_config.attr_delimiter,
@@ -553,6 +560,7 @@ def build(data_config):
         item_data_path=sampler_config.item_input_path,
         hard_neg_edge_data_path=sampler_config.hard_neg_edge_input_path,
         fields=attr_fields,
+        # num_sample=sampler_config.num_sample,
         num_sample=sampler_config.num_sample,
         num_hard_sample=sampler_config.num_hard_sample,
         batch_size=data_config.batch_size,
@@ -567,6 +575,7 @@ def build(data_config):
         edge_data_path=sampler_config.pos_edge_input_path,
         hard_neg_edge_data_path=sampler_config.hard_neg_edge_input_path,
         fields=attr_fields,
+        # num_sample=sampler_config.num_sample,
         num_sample=sampler_config.num_sample,
         num_hard_sample=sampler_config.num_hard_sample,
         batch_size=data_config.batch_size,

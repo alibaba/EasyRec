@@ -3081,7 +3081,7 @@ class EmbeddingColumn(
       embedding_weights = variable_scope.get_variable(
           name='embedding_weights',
           shape=embedding_shape,
-          dtype=dtypes.float32,
+          dtype=dtypes.float32, # bfloat16,
           initializer=self.initializer,
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,

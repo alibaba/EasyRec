@@ -12,6 +12,7 @@ from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.mind_pb2 import MIND as MINDConfig
 from easy_rec.python.protos.simi_pb2 import Similarity
 from easy_rec.python.utils.proto_util import copy_obj
+import numpy as np
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -45,6 +46,7 @@ class MIND(MatchModel):
 
     self._l2_reg = regularizers.l2_regularizer(
         self._model_config.l2_regularization)
+
 
   def build_predict_graph(self):
     capsule_layer = CapsuleLayer(self._model_config.capsule_config,
@@ -94,8 +96,21 @@ class MIND(MatchModel):
       hist_seq_feas = hist_seq_feas * tf.nn.softmax(time_id_fea, axis=1)
 
     # batch_size x max_k x high_capsule_dim
-    high_capsules, num_high_capsules = capsule_layer(hist_seq_feas,
-                                                     hist_seq_len)
+    high_capsules, num_high_capsules, _ = capsule_layer(hist_seq_feas,
+        hist_seq_len, None) # self._feature_dict['pid'])
+
+    self._user_features = tf.layers.batch_normalization(
+        self._user_features, training=self._is_training,
+        trainable=True, name='user_fea_bn')
+
+    high_capsules = tf.layers.batch_normalization(
+        high_capsules, training=self._is_training,
+        trainable=True, name='capsule_bn')
+
+    tf.summary.scalar('high_capsules_norm', tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
+    tf.summary.scalar('user_features_norm', tf.reduce_mean(tf.norm(self._user_features, axis=-1)))
+    tf.summary.scalar('num_high_capsules', tf.reduce_mean(tf.to_float(num_high_capsules)))
+
     # concatenate with user features
     user_features = tf.tile(
         tf.expand_dims(self._user_features, axis=1),
@@ -136,7 +151,12 @@ class MIND(MatchModel):
     batch_size = tf.shape(user_features)[0]
     pos_item_fea = item_feature[:batch_size]
     simi = tf.einsum('bhe,be->bh', user_features, pos_item_fea)
-    simi = tf.pow(simi, self._model_config.simi_pow)
+    tf.summary.histogram('max_simi', tf.reduce_max(simi, axis=1))
+    simi = tf.Print(simi, [tf.reduce_max(simi, axis=1), tf.reduce_min(simi, axis=1)], message='simi_max_0')
+    # simi = tf.pow(simi, self._model_config.simi_pow)
+    simi = simi * self._model_config.simi_pow
+    tf.summary.histogram('scaled_simi', tf.reduce_max(simi, axis=1))
+    simi = tf.Print(simi, [tf.reduce_max(simi, axis=1), tf.reduce_min(simi, axis=1)], message='simi_max')
     simi_mask = tf.sequence_mask(num_high_capsules,
                                  self._model_config.capsule_config.max_k)
 
@@ -146,8 +166,8 @@ class MIND(MatchModel):
     max_thresh = (tf.cast(simi_mask, tf.float32) * 2 - 1) * 1e32
     simi = tf.minimum(simi, max_thresh)
     simi = tf.nn.softmax(simi, axis=1)
-    # important, but why ?
-    simi = tf.stop_gradient(simi)
+    # # important, but why ?
+    # simi = tf.stop_gradient(simi)
     user_tower_emb = tf.einsum('bhe,bh->be', user_features, simi)
 
     # calculate similarity between user_tower_emb and item_tower_emb
@@ -180,6 +200,7 @@ class MIND(MatchModel):
     else:
       self._prediction_dict['y'] = y_pred
 
+    self._prediction_dict['high_capsules'] = high_capsules
     self._prediction_dict['user_features'] = user_features
     self._prediction_dict['item_features'] = item_feature
     self._prediction_dict['user_emb'] = tf.reduce_join(
@@ -189,35 +210,114 @@ class MIND(MatchModel):
     self._prediction_dict['user_emb_num'] = num_high_capsules
     self._prediction_dict['item_emb'] = tf.reduce_join(
         tf.as_string(item_tower_emb), axis=-1, separator=',')
+
+    if self._is_training:
+      # for summary purpose
+      batch_simi, batch_capsule_simi = self._build_interest_simi()
+      self._prediction_dict['probs'] = tf.Print(self._prediction_dict['probs'],
+          [batch_simi, batch_capsule_simi], message='batch_simi')
     return self._prediction_dict
 
   def build_loss_graph(self):
     loss_dict = super(MIND, self).build_loss_graph()
     return loss_dict
 
-  def _build_interest_metric(self):
-    user_features = self._prediction_dict['user_features']
-    user_features = self.norm(user_features)
+  def _build_interest_simi(self):
     user_feature_num = self._prediction_dict['user_emb_num']
+    high_capsule_mask = tf.sequence_mask(user_feature_num, 
+        self._model_config.capsule_config.max_k)
+
+    user_features = self._prediction_dict['user_features']
+    high_capsule_mask = tf.to_float(high_capsule_mask[:, :, None])
+    user_features = self.norm(user_features) * high_capsule_mask
 
     user_feature_sum_sqr = tf.square(tf.reduce_sum(user_features, axis=1))
     user_feature_sqr_sum = tf.reduce_sum(tf.square(user_features), axis=1)
-    simi = user_feature_sum_sqr - user_feature_sqr_sum
+    interest_simi = user_feature_sum_sqr - user_feature_sqr_sum
+
+    high_capsules = self._prediction_dict['high_capsules']
+    high_capsules = self.norm(high_capsules) * high_capsule_mask
+    high_capsule_sum_sqr = tf.square(tf.reduce_sum(high_capsules, axis=1))
+    high_capsule_sqr_sum = tf.reduce_sum(tf.square(high_capsules), axis=1)
+    high_capsule_simi = high_capsule_sum_sqr - high_capsule_sqr_sum
+
+    # def _get_debug_simi(user_features, tmp_seq_lens):
+    #   simi_arr = []
+    #   simi_arr_v2 = []
+    #   for tid in range(len(tmp_seq_lens)):
+    #     one_user = user_features[tid]
+    #     tmp_seq_len = tmp_seq_lens[tid]
+    #     simi = 0
+    #     for i in range(tmp_seq_len):
+    #       for j in range(i+1, tmp_seq_len):
+    #         tmp_a = np.sum(one_user[i] * one_user[j])
+    #         simi += tmp_a
+    #         simi_arr_v2.append(tmp_a)
+    #     simi_arr.append(simi * 2) 
+    #   simi_arr.append(np.mean(simi_arr_v2))
+    #   simi_arr.append(np.min(simi_arr_v2))
+    #   simi_arr.append(simi_arr_v2[0])
+    #   return np.array(simi_arr, dtype=np.float32)
+
+    # tmp_num_highs = tf.gather(user_feature_num, self._tmp_ids)
+    # py_debug_simi = tf.py_func(_get_debug_simi, [tf.gather(user_features, self._tmp_ids),
+    #     tmp_num_highs], Tout=tf.float32)
+
+    # high_capsules = tf.gather(self._prediction_dict['high_capsules'], self._tmp_ids)
+    # norm_high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
+    # py_debug_simi1 = tf.py_func(_get_debug_simi, [norm_high_capsules, tmp_num_highs], Tout=tf.float32)
+
+    # debug_simi = tf.reduce_sum(simi, axis=1)
+    # debug_simi_1 = tf.gather(debug_simi, self._tmp_ids)
+
+    # def _get_simi(tmp_high_capsules, tmp_num_high):
+    #   simi_arr = []
+    #   for i in range(len(tmp_num_high)):
+    #     tmp_fea = tmp_high_capsules[i]
+    #     tmp_fea_len = np.sqrt(np.sum(tmp_fea * tmp_fea, axis=1)) + 1e-10
+    #     tmp_fea = tmp_fea / tmp_fea_len[:, None]
+    #     tmp_len = tmp_num_high[i]
+    #     for m in range(tmp_len):
+    #       for n in range(m+1, tmp_len):
+    #         simi_arr.append(np.sum(tmp_fea[m]*tmp_fea[n]))    
+    #   return np.array([np.mean(simi_arr), np.min(simi_arr), simi_arr[0]], dtype=np.float32)
+    # tmp_debug_simi2 = tf.py_func(_get_simi, [norm_high_capsules, tmp_num_highs], Tout=tf.float32) 
+
+    # simi = tf.Print(simi, [debug_simi, user_feature_num,
+    #                 tf.reduce_max(debug_simi), tf.reduce_min(debug_simi), 
+    #                 'debug_simi_1=', debug_simi_1, 'py_debug_simi=', py_debug_simi,
+    #                 'py_capsule_simi=', py_debug_simi1,
+    #                 'tmp_simi=', tmp_debug_simi2], 
+    #                 message='debug_simi', summarize=20)
 
     # normalize by interest number
-    simi = tf.reduce_sum(
-        simi, axis=1) / tf.maximum(
-            tf.to_float(user_feature_num * (user_feature_num - 1)), 1.0)
+    interest_div = tf.maximum(tf.to_float(user_feature_num * (user_feature_num - 1)), 1.0)
+    interest_simi = tf.reduce_sum(interest_simi, axis=1) / interest_div
+
+    high_capsule_simi = tf.reduce_sum(high_capsule_simi, axis=1) / interest_div
 
     # normalize by batch_size
-    has_interest = tf.to_float(user_feature_num > 1)
-    simi = (simi + 1) * has_interest / 2.0
-    return metrics.mean(
-        tf.reduce_sum(simi) / tf.maximum(tf.reduce_sum(has_interest), 1.0))
+    multi_interest = tf.to_float(user_feature_num > 1)
+    sum_interest_simi = tf.reduce_sum((interest_simi + 1) * multi_interest) / 2.0
+    sum_div = tf.maximum(tf.reduce_sum(multi_interest), 1.0)
+    avg_interest_simi = sum_interest_simi / sum_div 
+
+    sum_capsule_simi = tf.reduce_sum((high_capsule_simi + 1) * multi_interest) / 2.0
+    avg_capsule_simi = sum_capsule_simi / sum_div
+
+    # batch_simi = tf.Print(batch_simi, [batch_simi, tf.shape(user_features),
+    #            tf.reduce_max(user_feature_num),
+    #            tf.reduce_min(user_feature_num)], message='batch_simi')
+
+    tf.summary.scalar('interest_similarity', avg_interest_simi)
+    tf.summary.scalar('capsule_similarity', avg_capsule_simi)
+    return avg_interest_simi, avg_capsule_simi
 
   def build_metric_graph(self, eval_config):
     # build interest metric
-    metric_dict = {'interest_similarity': self._build_interest_metric()}
+    interest_simi, capsule_simi = self._build_interest_simi()
+    metric_dict = {'interest_similarity': metrics.mean(interest_simi),
+                   'capsule_similarity': metrics.mean(capsule_simi) }
     if self._is_point_wise:
       metric_dict.update(self._build_point_wise_metric_graph(eval_config))
       return metric_dict
@@ -257,9 +357,12 @@ class MIND(MatchModel):
     sample_item_sim = tf.reduce_max(sample_item_sim, axis=1)
     # batch_size num_interest
     pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb)
+    pos_item_sim1 = tf.reduce_max(pos_item_sim, axis=1, keepdims=True)
     pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True)
 
     sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
+    sampled_logits_1 = tf.concat([pos_item_sim1, sample_item_sim], axis=1)
+
     sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
     for topk in recall_at_topks:
       metric_dict['interests_recall@%d' % topk] = metrics.recall_at_k(
@@ -267,8 +370,19 @@ class MIND(MatchModel):
           predictions=sampled_logits,
           k=topk,
           name='interests_recall_at_%d' % topk)
-    metric_dict['sampled_neg_acc'] = metrics.accuracy(
-        sampled_lbls, tf.argmax(sampled_logits, axis=1))
+      metric_dict['interests_recall_1@%d' % topk] = metrics.recall_at_k(
+          labels=sampled_lbls,
+          predictions=sampled_logits_1,
+          k=topk,
+          name='interests_recall_1_at_%d' % topk)
+
+
+    logits = self._prediction_dict['logits']
+    labels = tf.zeros_like(logits[:, :1], dtype=tf.int64)
+    for topk in recall_at_topks:
+      metric_dict['recall@%d' % topk] = metrics.recall_at_k(
+        labels=labels, predictions=logits, k=topk,
+        name='recall_at_%d' % topk)
 
     # batch_size num_interest
     if hard_neg_indices is not None:

@@ -446,7 +446,8 @@ def main(argv):
       assert len(
           FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
-    pipeline_config.eval_input_path = FLAGS.tables
+    # only take the first one as eval tables
+    pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
     set_tf_config_and_get_train_worker_num(eval_method='none')
