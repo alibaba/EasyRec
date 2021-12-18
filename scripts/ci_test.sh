@@ -18,7 +18,9 @@ fi
 
 # run test
 PYTHONPATH=. python easy_rec/python/test/run.py --pattern hpo_test.*
-if [ $? -ne 0 ]
-then 
-  exit 1
+if [ $? -eq 0 ]
+then
+    echo "::set-output name=ci_test_passed::1"
+else
+    echo "::set-output name=ci_test_passed::0"
 fi
