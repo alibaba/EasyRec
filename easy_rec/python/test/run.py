@@ -3,6 +3,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import os
+import sys
 import unittest
 
 import tensorflow as tf
@@ -39,7 +40,10 @@ def main(argv):
   runner = unittest.TextTestRunner()
   test_suite = gather_test_cases(os.path.abspath(FLAGS.test_dir), FLAGS.pattern)
   if not FLAGS.list_tests:
-    runner.run(test_suite)
+    result = runner.run(test_suite)
+    if not result.wasSuccessful():
+      print('FailNum: %d ErrorNum: %d' % (len(result.failures), len(result.errors)))
+      sys.exit(1)
 
 
 if __name__ == '__main__':
