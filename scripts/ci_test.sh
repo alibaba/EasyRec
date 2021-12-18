@@ -26,4 +26,4 @@ else
 fi
 
 # run test
-PYTHONPATH=. python easy_rec/python/test/run.py ExportTest.*
+PYTHONPATH=. python easy_rec/python/test/run.py --pattern hpo_test.*
