@@ -25,5 +25,7 @@ else
   export TEST_DIR="/tmp/easy_rec_test_${USER}_`date +%s`"
 fi
 
+git checkout samples
+
 # run test
 PYTHONPATH=. python easy_rec/python/test/run.py --pattern hpo_test.*
