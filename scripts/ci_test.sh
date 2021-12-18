@@ -16,9 +16,12 @@ else
   export TEST_DIR="/tmp/easy_rec_test_${USER}_`date +%s`"
 fi
 
+export UnitTestSucceedFlag=EasyRecUnitSucceed
+rm -rf $UnitTestSucceedFlag
 # run test
 PYTHONPATH=. python easy_rec/python/test/run.py --pattern hpo_test.*
-if [ $? -eq 0 ]
+# for github
+if [ -e "$UnitTestSucceedFlag" ]
 then
     echo "::set-output name=ci_test_passed::1"
 else

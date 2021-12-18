@@ -43,8 +43,13 @@ def main(argv):
     result = runner.run(test_suite)
     if not result.wasSuccessful():
       print('FailNum: %d ErrorNum: %d' % (len(result.failures), len(result.errors)))
-      sys.exit(1)
-
+    else:
+      if 'UnitTestSucceedFlag' in os.environ:
+        flag_file = os.environ['UnitTestSucceedFlag']
+        with open(flag_file, 'w') as fout:
+          fout.write('unit succeed.')
+        print('create flag file: %s' % flag_file)
+      
 
 if __name__ == '__main__':
   tf.app.run()
