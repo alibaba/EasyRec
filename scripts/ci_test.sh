@@ -21,7 +21,6 @@ rm -rf $UnitTestSucceedFlag
 # run test
 PYTHONPATH=. python easy_rec/python/test/run.py --pattern hpo_test.*
 
-
 # for github
 if [ -e "$UnitTestSucceedFlag" ]
 then
