@@ -18,6 +18,7 @@ fi
 
 export UnitTestSucceedFlag=EasyRecUnitSucceed
 rm -rf $UnitTestSucceedFlag
+
 # run test
 PYTHONPATH=. python easy_rec/python/test/run.py 
 
