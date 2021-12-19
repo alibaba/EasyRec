@@ -14,10 +14,6 @@ repos:
     rev: 4.3.21
     hooks:
       - id: isort
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.30.0
-    hooks:
-      - id: yapf
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.1.0
     hooks:
@@ -42,3 +38,13 @@ repos:
       additional_dependencies: [
         'mdformat-tables==0.4.0'
       ]
+  - repo: https://github.com/psf/black
+    rev: 21.12b0
+    hooks:
+      - id: black
+        name: black
+        entry: black
+        minimum_pre_commit_version: 2.9.2
+        require_serial: true
+        types_or: [ python, pyi ]
+
