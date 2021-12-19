@@ -24,8 +24,8 @@ from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 
-TEST_DIR = '/tmp/easy_rec_test'
 
+TEST_DIR = '/tmp/easy_rec_test'
 
 def get_hdfs_tmp_dir(test_dir):
   """Create a randomly of directory  in HDFS."""
