@@ -25,6 +25,8 @@ def gather_test_cases(test_dir, pattern):
   for suite_discovered in discover:
 
     for test_case in suite_discovered:
+      if 'train_eval_test.TrainEvalTest' in str(test_case):
+        continue
       test_suite.addTest(test_case)
       if hasattr(test_case, '__iter__'):
         for subcase in test_case:
