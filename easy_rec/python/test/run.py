@@ -29,6 +29,8 @@ def gather_test_cases(test_dir, pattern):
         continue
       if 'predictor_test.' in str(test_case):
         continue
+      if 'export_test.' in str(test_case):
+        continue
       test_suite.addTest(test_case)
       if hasattr(test_case, '__iter__'):
         for subcase in test_case:
