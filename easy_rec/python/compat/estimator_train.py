@@ -2,86 +2,83 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-
 import tensorflow as tf
+from tensorflow.python.distribute import (  # NOQA
+    estimator_training as distribute_coordinator_training,
+)
 from tensorflow.python.estimator import run_config as run_config_lib
-from tensorflow.python.estimator.training import _assert_eval_spec
-from tensorflow.python.estimator.training import _ContinuousEvalListener
-from tensorflow.python.estimator.training import _TrainingExecutor
+from tensorflow.python.estimator.training import (  # NOQA
+    _assert_eval_spec,
+    _ContinuousEvalListener,
+    _TrainingExecutor,
+)
 
 from easy_rec.python.utils import estimator_utils
 
-from tensorflow.python.distribute import estimator_training as distribute_coordinator_training  # NOQA
-
 if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+    tf = tf.compat.v1
 gfile = tf.gfile
 
 
 class TrainDoneListener(_ContinuousEvalListener):
-  """Interface for listeners that take action before or after evaluation."""
+    """Interface for listeners that take action before or after evaluation."""
 
-  def __init__(self, estimator):
-    self._model_dir = estimator.model_dir
-    self._train_done_file = os.path.join(self._model_dir,
-                                         'ESTIMATOR_TRAIN_DONE')
+    def __init__(self, estimator):
+        self._model_dir = estimator.model_dir
+        self._train_done_file = os.path.join(self._model_dir, 'ESTIMATOR_TRAIN_DONE')
 
-  @property
-  def train_done_file(self):
-    return self._train_done_file
+    @property
+    def train_done_file(self):
+        return self._train_done_file
 
-  def after_eval(self, eval_result):
-    """Called after the evaluation is executed.
+    def after_eval(self, eval_result):
+        """Called after the evaluation is executed.
 
-    Args:
-      eval_result: An `_EvalResult` instance.
+        Args:
+          eval_result: An `_EvalResult` instance.
 
-    Returns:
-      False if you want to early stop continuous evaluation; `True` otherwise.
-    """
-    last_ckpt_path = eval_result.checkpoint_path
-    if last_ckpt_path is not None:
-      model_dir = os.path.dirname(last_ckpt_path).rstrip('/') + '/'
-      latest_ckpt_path = estimator_utils.latest_checkpoint(model_dir)
-      if latest_ckpt_path != last_ckpt_path:
-        logging.info(
-            'TrainDoneListener: latest_ckpt_path[%s] != last_ckpt_path[%s]' %
-            (latest_ckpt_path, last_ckpt_path))
-        # there are more checkpoints wait to be evaluated
-        return True
-    return not gfile.Exists(self._train_done_file)
+        Returns:
+          False if you want to early stop continuous evaluation; `True` otherwise.
+        """
+        last_ckpt_path = eval_result.checkpoint_path
+        if last_ckpt_path is not None:
+            model_dir = os.path.dirname(last_ckpt_path).rstrip('/') + '/'
+            latest_ckpt_path = estimator_utils.latest_checkpoint(model_dir)
+            if latest_ckpt_path != last_ckpt_path:
+                logging.info(
+                    'TrainDoneListener: latest_ckpt_path[%s] != last_ckpt_path[%s]' % (latest_ckpt_path, last_ckpt_path)
+                )
+                # there are more checkpoints wait to be evaluated
+                return True
+        return not gfile.Exists(self._train_done_file)
 
 
 def train_and_evaluate(estimator, train_spec, eval_spec):
-  _assert_eval_spec(eval_spec)  # fail fast if eval_spec is invalid.
+    _assert_eval_spec(eval_spec)  # fail fast if eval_spec is invalid.
 
-  train_done_listener = TrainDoneListener(estimator)
+    train_done_listener = TrainDoneListener(estimator)
 
-  executor = _TrainingExecutor(
-      estimator=estimator,
-      train_spec=train_spec,
-      eval_spec=eval_spec,
-      continuous_eval_listener=train_done_listener)
-  config = estimator.config
+    executor = _TrainingExecutor(
+        estimator=estimator, train_spec=train_spec, eval_spec=eval_spec, continuous_eval_listener=train_done_listener
+    )
+    config = estimator.config
 
-  # If `distribute_coordinator_mode` is set and running in distributed
-  # environment, we run `train_and_evaluate` via distribute coordinator.
-  if distribute_coordinator_training.should_run_distribute_coordinator(config):
-    logging.info('Running `train_and_evaluate` with Distribute Coordinator.')
-    distribute_coordinator_training.train_and_evaluate(estimator, train_spec,
-                                                       eval_spec,
-                                                       _TrainingExecutor)
-    return
+    # If `distribute_coordinator_mode` is set and running in distributed
+    # environment, we run `train_and_evaluate` via distribute coordinator.
+    if distribute_coordinator_training.should_run_distribute_coordinator(config):
+        logging.info('Running `train_and_evaluate` with Distribute Coordinator.')
+        distribute_coordinator_training.train_and_evaluate(estimator, train_spec, eval_spec, _TrainingExecutor)
+        return
 
-  if (config.task_type == run_config_lib.TaskType.EVALUATOR and
-      config.task_id > 0):
-    raise ValueError(
-        'For distributed training, there can only be one `evaluator` task '
-        '(with task id 0).  Given task id {}'.format(config.task_id))
+    if config.task_type == run_config_lib.TaskType.EVALUATOR and config.task_id > 0:
+        raise ValueError(
+            'For distributed training, there can only be one `evaluator` task '
+            '(with task id 0).  Given task id {}'.format(config.task_id)
+        )
 
-  result = executor.run()
-  if estimator_utils.is_chief():
-    with gfile.GFile(train_done_listener.train_done_file, 'w') as fout:
-      fout.write('Train Done.')
+    result = executor.run()
+    if estimator_utils.is_chief():
+        with gfile.GFile(train_done_listener.train_done_file, 'w') as fout:
+            fout.write('Train Done.')
 
-  return result
+    return result

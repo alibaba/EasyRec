@@ -19,60 +19,58 @@ import tensorflow as tf
 from easy_rec.python.compat import regularizers
 
 if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+    tf = tf.compat.v1
 
 
 def build_regularizer(regularizer):
-  """Builds a tensorflow regularizer from config.
+    """Builds a tensorflow regularizer from config.
 
-  Args:
-    regularizer: hyperparams_pb2.Hyperparams.regularizer proto.
+    Args:
+      regularizer: hyperparams_pb2.Hyperparams.regularizer proto.
 
-  Returns:
-    tensorflow regularizer.
+    Returns:
+      tensorflow regularizer.
 
-  Raises:
-    ValueError: On unknown regularizer.
-  """
-  regularizer_oneof = regularizer.WhichOneof('regularizer_oneof')
-  if regularizer_oneof == 'l1_regularizer':
-    return regularizers.l1_regularizer(
-        scale=float(regularizer.l1_regularizer.scale))
-  if regularizer_oneof == 'l2_regularizer':
-    return regularizers.l2_regularizer(
-        scale=float(regularizer.l2_regularizer.scale))
-  if regularizer_oneof == 'l1_l2_regularizer':
-    return regularizers.l1_l2_regularizer(
-        scale_l1=float(regularizer.l1_l2_regularizer.scale_l1),
-        scale_l2=float(regularizer.l1_l2_regularizer.scale_l2))
+    Raises:
+      ValueError: On unknown regularizer.
+    """
+    regularizer_oneof = regularizer.WhichOneof('regularizer_oneof')
+    if regularizer_oneof == 'l1_regularizer':
+        return regularizers.l1_regularizer(scale=float(regularizer.l1_regularizer.scale))
+    if regularizer_oneof == 'l2_regularizer':
+        return regularizers.l2_regularizer(scale=float(regularizer.l2_regularizer.scale))
+    if regularizer_oneof == 'l1_l2_regularizer':
+        return regularizers.l1_l2_regularizer(
+            scale_l1=float(regularizer.l1_l2_regularizer.scale_l1),
+            scale_l2=float(regularizer.l1_l2_regularizer.scale_l2),
+        )
 
-  raise ValueError('Unknown regularizer function: {}'.format(regularizer_oneof))
+    raise ValueError('Unknown regularizer function: {}'.format(regularizer_oneof))
 
 
 def build_initializer(initializer):
-  """Build a tf initializer from config.
+    """Build a tf initializer from config.
 
-  Args:
-    initializer: hyperparams_pb2.Hyperparams.regularizer proto.
+    Args:
+      initializer: hyperparams_pb2.Hyperparams.regularizer proto.
 
-  Returns:
-    tf initializer.
+    Returns:
+      tf initializer.
 
-  Raises:
-    ValueError: On unknown initializer.
-  """
-  initializer_oneof = initializer.WhichOneof('initializer_oneof')
-  if initializer_oneof == 'truncated_normal_initializer':
-    return tf.truncated_normal_initializer(
-        mean=initializer.truncated_normal_initializer.mean,
-        stddev=initializer.truncated_normal_initializer.stddev)
-  if initializer_oneof == 'random_normal_initializer':
-    return tf.random_normal_initializer(
-        mean=initializer.random_normal_initializer.mean,
-        stddev=initializer.random_normal_initializer.stddev)
-  if initializer_oneof == 'glorot_normal_initializer':
-    return tf.glorot_normal_initializer()
-  if initializer_oneof == 'constant_initializer':
-    return tf.constant_initializer(
-        [x for x in initializer.constant_initializer.consts])
-  raise ValueError('Unknown initializer function: {}'.format(initializer_oneof))
+    Raises:
+      ValueError: On unknown initializer.
+    """
+    initializer_oneof = initializer.WhichOneof('initializer_oneof')
+    if initializer_oneof == 'truncated_normal_initializer':
+        return tf.truncated_normal_initializer(
+            mean=initializer.truncated_normal_initializer.mean, stddev=initializer.truncated_normal_initializer.stddev
+        )
+    if initializer_oneof == 'random_normal_initializer':
+        return tf.random_normal_initializer(
+            mean=initializer.random_normal_initializer.mean, stddev=initializer.random_normal_initializer.stddev
+        )
+    if initializer_oneof == 'glorot_normal_initializer':
+        return tf.glorot_normal_initializer()
+    if initializer_oneof == 'constant_initializer':
+        return tf.constant_initializer([x for x in initializer.constant_initializer.consts])
+    raise ValueError('Unknown initializer function: {}'.format(initializer_oneof))

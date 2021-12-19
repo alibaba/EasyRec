@@ -6,14 +6,14 @@ repos:
         additional_dependencies: [
           'flake8-docstrings==1.5.0'
         ]
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v2.2.0
-    hooks:
-      - id: seed-isort-config
   - repo: https://github.com/timothycrosley/isort
-    rev: 4.3.21
+    rev: 5.9.3
     hooks:
       - id: isort
+        name: Run isort to sort imports in Python files
+        files: \.py$
+        # To keep consistent with the global isort skip config defined in setup.cfg
+        exclude: ^build/.*$|^.tox/.*$|^venv/.*$|^airflow/_vendor/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.1.0
     hooks:

@@ -7,8 +7,8 @@ import sys
 
 
 def in_python2():
-  return sys.version_info[0] == 2
+    return sys.version_info[0] == 2
 
 
 def in_python3():
-  return sys.version_info[0] == 3
+    return sys.version_info[0] == 3

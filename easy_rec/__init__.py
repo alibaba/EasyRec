@@ -3,7 +3,6 @@
 import logging
 import os
 import sys
-
 import tensorflow as tf
 
 from easy_rec.version import __version__
@@ -12,8 +11,7 @@ curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
-logging.basicConfig(
-    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
 from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
@@ -22,9 +20,9 @@ from easy_rec.python.main import export  # isort:skip  # noqa: E402
 from easy_rec.python.main import train_and_evaluate  # isort:skip  # noqa: E402
 
 try:
-  import tensorflow_io.oss
+    import tensorflow_io.oss
 except Exception:
-  pass
+    pass
 
 print('easy_rec version: %s' % __version__)
 print('Usage: easy_rec.help()')
@@ -33,13 +31,14 @@ _global_config = {}
 
 ops_dir = os.path.join(curr_dir, 'python/ops')
 if tf.__version__.startswith('1.12'):
-  ops_dir = os.path.join(ops_dir, '1.12')
+    ops_dir = os.path.join(ops_dir, '1.12')
 elif tf.__version__.startswith('1.15'):
-  ops_dir = os.path.join(ops_dir, '1.15')
+    ops_dir = os.path.join(ops_dir, '1.15')
 
 
 def help():
-  print("""
+    print(
+        """
 1 Train
 1.1 Train 1gpu
   CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval
@@ -84,4 +83,5 @@ def help():
     for row in reader:
       inputs.append({ f : row[fid+1] for fid, f in enumerate(field_keys) })
     output_res = self._predictor.predict(inputs, batch_size=32)
-""")
+"""
+    )
