@@ -22,3 +22,11 @@ log
 # pai job
 pai_jobs/easy_rec
 pai_jobs/easy_rec.tar.gz
+
+
+# virtual env
+venv
+
+
+## idea project files
+.idea
