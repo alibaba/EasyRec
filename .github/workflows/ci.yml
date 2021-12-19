@@ -10,11 +10,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: FetchCommit ${{ github.sha }}
+      - name: FetchCommit ${{ github.event.pull_request.head.sha }}
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.sha }}
-          submodules: recursive      
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: recursive
       - name: RunCiTest
         id: run_ci_test
         env:
@@ -27,8 +27,8 @@ jobs:
            fi
            tar -zvxf /tmp/easyrec_data_20210818.tar.gz
            source scripts/ci_test.sh
-      - name: LabelAndComment 
-        env: 
+      - name: LabelAndComment
+        env:
           CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
         uses: actions/github-script@v5
         with:
@@ -105,9 +105,9 @@ jobs:
                   body: "CI Test Failed"
                })
              }
-      - name: SignalFail 
-        env: 
-          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}  
+      - name: SignalFail
+        env:
+          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
         run: |
           echo "CI_TEST_PASSED=${CI_TEST_PASSED}"
           if [ $CI_TEST_PASSED -ne 1 ]
@@ -115,5 +115,3 @@ jobs:
             echo "ci_test_failed, will exit"
             exit 1
           fi
-
-     
