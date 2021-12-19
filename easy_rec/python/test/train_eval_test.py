@@ -266,10 +266,10 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_inner_prod_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_dssm_with_regression(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_reg_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
+  # def test_dssm_with_regression(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/dssm_reg_on_taobao.config', self._test_dir)
+  #   self.assertTrue(self._success)
 
   def _test_kd(self, config0, config1):
     self._success = test_utils.test_single_train_eval(config0, self._test_dir)
