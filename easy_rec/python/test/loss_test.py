@@ -27,7 +27,9 @@ class LossTest(tf.test.TestCase):
 
     label = tf.constant([1, 1, 0, 0, 1, 1])
     loss = softmax_loss_with_negative_mining(user_emb, item_emb, label, num_negative_samples=1)
-    self.assertAlmostEqual(loss, 0.4015421, delta=1e-5)
+    with self.test_session() as sess:
+      loss_val = sess.run(loss)
+      self.assertAlmostEqual(loss_val, 0.5240243, delta=1e-5)
 
   def test_circle_loss(self):
     print("test_circle_loss")
@@ -36,9 +38,10 @@ class LossTest(tf.test.TestCase):
                        [0.3, 0.6, 0.5, 0.13], [0.08, 0.43, 0.21, 0.6]],
                       dtype=tf.float32)
     label = tf.constant([1, 1, 2, 2, 3, 3])
-    with self.test_session():
-      loss = circle_loss(emb, label, label, margin=0.25, gamma=64)
-      self.assertAlmostEqual(loss, 52.75707, delta=1e-5)
+    loss = circle_loss(emb, label, label, margin=0.25, gamma=64)
+    with self.test_session() as sess:
+      loss_val = sess.run(loss)
+      self.assertAlmostEqual(loss_val, 52.75707, delta=1e-5)
 
   def test_triplet_mask(self):
     print("test_triplet_mask")
