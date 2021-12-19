@@ -9,17 +9,18 @@ import math
 import os
 import threading
 
+try:
+  import graphlearn as gl
+except Exception:
+  logging.info(
+      'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"'  # noqa: E501
+  )
+
 import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
-try:
-  import graphlearn as gl
-except Exception:
-  logging.info(
-      'GraphLearn is not installed. You can install it by "pip install http://odps-release.cn-hangzhou.oss-cdn.aliyun-inc.com/graphlearn/tunnel/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl."'  # noqa: E501
-  )
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
