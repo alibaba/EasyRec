@@ -30,28 +30,6 @@ function CheckOssValid(host, bucket)
     return true
 end
 
-function ParseOssUri(oss_uri, default_host)
-    if string.len(oss_uri) > 6 and string.find(oss_uri, "oss://") == 1 then
-        _,_,_path,file = string.find(oss_uri,"oss://(.*/)(.*)")
-        if _path == nil or string.len(_path) == 0 then
-            error("invalid oss uri: "..oss_uri..", should end with '/'")
-        end
-        _,_,bucket_host,dir = string.find(_path, "(.-)(/.*)")
-        if (string.find(bucket_host, "%.")) then
-            _,_,bucket,host = string.find(bucket_host, "(.-)%.(.*)")
-        else
-            bucket = bucket_host
-            host = default_host
-        end
-        if not CheckOssValid(host, bucket) then
-            error("invalid oss uri: "..oss_uri..", oss host or bucket not found")
-        end
-        root_dir = bucket..dir
-        return host, root_dir, file
-    end
-    error("invalid oss uri: "..oss_uri)
-end
-
 function getEntry(script_in, entryFile_in, config, cluster, res_project, version)
   if script_in ~= nil and string.len(script_in) > 0
     and entryFile_in ~= nil and string.len(entryFile_in) > 0 then
