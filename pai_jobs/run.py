@@ -321,7 +321,7 @@ def main(argv):
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
     worker_num = len(FLAGS.worker_hosts.split(','))
-    predictor.predict_table(
+    predictor.predict_impl(
         input_table,
         output_table,
         all_cols=FLAGS.all_cols,
