@@ -379,14 +379,25 @@ class Predictor(PredictorInterface):
           slice_num=slice_num,
           sep=sep)
 
-  def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
-                  batch_size, slice_id, slice_num, sep):
+  def predict_csv(self,
+                  input_path,
+                  output_path,
+                  reserved_cols,
+                  output_cols,
+                  batch_size,
+                  slice_id,
+                  slice_num,
+                  sep):
     record_defaults = [
         self._input_fields_info[col_name][1] for col_name in self._input_fields
     ]
-    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
-    if output_cols is None:
-      output_cols = self._predictor_impl.output_names
+    if reserved_cols == 'ALL_COLUMNS':
+      reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    if output_cols is None or output_cols == 'ALL_COLUMNS':
+      output_cols = sorted(self._predictor_impl.output_names)
+      print("predict output cols: ", output_cols)
     else:
       # specified as score float,embedding string
       tmp_cols = []
@@ -451,7 +462,7 @@ class Predictor(PredictorInterface):
       progress = 0
       sum_t0, sum_t1, sum_t2 = 0, 0, 0
       pred_cnt = 0
-
+      table_writer.write(sep.join(output_cols+reserved_cols) + '\n')
       while True:
         try:
           ts0 = time.time()
@@ -461,13 +472,16 @@ class Predictor(PredictorInterface):
           input_vals = {k: all_vals[k] for k in input_names}
           outputs = self._predictor_impl.predict(input_vals, output_cols)
 
+          for x in output_cols:
+            if outputs[x].dtype == np.object:
+              outputs[x] = [val.decode('utf-8') for val in outputs[x]]
           for k in reserved_cols:
             if all_vals[k].dtype == np.object:
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
 
           ts2 = time.time()
-          reserve_vals = [all_vals[k] for k in reserved_cols
-                          ] + [outputs[x] for x in output_cols]
+          reserve_vals = [outputs[x] for x in output_cols] + \
+                         [all_vals[k] for k in reserved_cols]
           outputs = [x for x in zip(*reserve_vals)]
           pred_cnt += len(outputs)
           outputs = '\n'.join(
