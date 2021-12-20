@@ -6,3 +6,5 @@ mdformat;python_version>"3"
 mdformat-tables;python_version>"3"
 pre-commit
 yapf
+PyYAML
+configparser
