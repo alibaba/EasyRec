@@ -31,9 +31,12 @@ message MIND {
   // capsule output and user_context(none sequence features)
   required DNN user_dnn = 102;
 
+  // concat user and capsule dnn
+  required DNN concat_dnn = 103;
+
   // method to combine several user sequences
   // such as item_ids, category_ids
-  optional UserSeqCombineMethod user_seq_combine = 103 [default=SUM];
+  optional UserSeqCombineMethod user_seq_combine = 104 [default=SUM];
 
   // dnn layers applied on item features
   required DNN item_dnn = 2;

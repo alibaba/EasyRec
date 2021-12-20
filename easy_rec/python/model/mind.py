@@ -43,6 +43,8 @@ class MIND(MatchModel):
     self.user_dnn = copy_obj(self._model_config.user_dnn)
     # copy_obj so that any modification will not affect original config
     self.item_dnn = copy_obj(self._model_config.item_dnn)
+    # copy obj so that any modification will not affect original config
+    self.concat_dnn = copy_obj(self._model_config.concat_dnn)
 
     self._l2_reg = regularizers.l2_regularizer(
         self._model_config.l2_regularization)
@@ -64,9 +66,14 @@ class MIND(MatchModel):
       time_id_fea = []
     time_id_fea = time_id_fea[0] if len(time_id_fea) > 0 else None
 
-    hist_seq_feas = [
-        x[0] for x in self._hist_seq_features if 'time_id/' not in x[0].name
-    ]
+    if time_id_fea is not None:
+      hist_seq_feas = [
+          x[0] for x in self._hist_seq_features \
+          if self._model_config.time_id_fea not in x[0].name
+      ]
+    else:
+      hist_seq_feas = [x[0] for x in self._hist_seq_features]
+
     # it is assumed that all hist have the same length
     hist_seq_len = self._hist_seq_features[0][1]
 
@@ -99,33 +106,37 @@ class MIND(MatchModel):
     high_capsules, num_high_capsules, _ = capsule_layer(hist_seq_feas,
         hist_seq_len, None) # self._feature_dict['pid'])
 
-    self._user_features = tf.layers.batch_normalization(
-        self._user_features, training=self._is_training,
-        trainable=True, name='user_fea_bn')
-
     high_capsules = tf.layers.batch_normalization(
         high_capsules, training=self._is_training,
         trainable=True, name='capsule_bn')
 
     tf.summary.scalar('high_capsules_norm', tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
-    tf.summary.scalar('user_features_norm', tf.reduce_mean(tf.norm(self._user_features, axis=-1)))
     tf.summary.scalar('num_high_capsules', tf.reduce_mean(tf.to_float(num_high_capsules)))
 
-    # concatenate with user features
-    user_features = tf.tile(
-        tf.expand_dims(self._user_features, axis=1),
-        [1, tf.shape(high_capsules)[1], 1])
-    user_features = tf.concat([high_capsules, user_features], axis=2)
-    num_user_dnn_layer = len(self.user_dnn.hidden_units)
-    last_user_hidden = self.user_dnn.hidden_units.pop()
+    user_features = tf.layers.batch_normalization(
+        self._user_features, training=self._is_training,
+        trainable=True, name='user_fea_bn')
     user_dnn = dnn.DNN(self.user_dnn, self._l2_reg, 'user_dnn',
                        self._is_training)
     user_features = user_dnn(user_features)
+
+    tf.summary.scalar('user_features_norm', tf.reduce_mean(tf.norm(self._user_features, axis=-1)))
+
+    # concatenate with user features
+    user_features = tf.tile(user_features[:, None, :],
+        [1, tf.shape(high_capsules)[1], 1])
+    user_features = tf.concat([high_capsules, user_features], axis=2)
+
+    num_concat_dnn_layer = len(self.concat_dnn.hidden_units)
+    last_hidden = self.concat_dnn.hidden_units.pop()
+    concat_dnn = dnn.DNN(self.concat_dnn, self._l2_reg, 'concat_dnn',
+                       self._is_training)
+    user_features = concat_dnn(user_features)
     user_features = tf.layers.dense(
         inputs=user_features,
-        units=last_user_hidden,
+        units=last_hidden,
         kernel_regularizer=self._l2_reg,
-        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
+        name='concat_dnn/dnn_%d' % (num_concat_dnn_layer - 1))
 
     num_item_dnn_layer = len(self.item_dnn.hidden_units)
     last_item_hidden = self.item_dnn.hidden_units.pop()
