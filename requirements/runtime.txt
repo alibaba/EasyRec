@@ -1,7 +1,8 @@
+cprotobuf==0.1.9
 future
+matplotlib
 pandas
 psutil
 pydatahub
 scikit-learn
 xlrd >= 0.9.0
-cprotobuf==0.1.9

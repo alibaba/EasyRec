@@ -110,6 +110,7 @@ function getHyperParams(config, cmd, checkpoint_path,
                         input_table, output_table, tables, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
+  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')
@@ -149,7 +150,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     return hyperParameters, cluster, tables, output_table
   end
 
-  checkConfig(config)
+  if cmd ~= "custom" then
+    checkConfig(config)
+  end
 
   hyperParameters = "--config='" .. config .. "'"
 
@@ -324,15 +327,15 @@ end
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
                      trainTables, evalTables, boundaryTable)
-  -- all_cols, all_col_types, selected_cols, reserved_cols, 
+  -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
   end
 
   -- for export
-  if cmd == 'export' then
+  if cmd == 'export' or cmd == 'custom' then
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 
@@ -380,7 +383,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   if cmd == 'evaluate' then
-    -- merge evalTables into tables if evalTables is set 
+    -- merge evalTables into tables if evalTables is set
     if evalTables ~= nil and evalTables ~= ''
     then
       tmpTables = split(evalTables, ',')
@@ -405,7 +408,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           all_tables[v] = table_id
           table_id = table_id + 1
         end
-      end 
+      end
     else
       -- if inputTable is not set but tables is set
       -- set inputTable to tables

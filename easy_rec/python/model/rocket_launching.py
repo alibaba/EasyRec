@@ -6,6 +6,7 @@ from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.loss_pb2 import LossType
+from easy_rec.python.protos.simi_pb2 import Similarity
 
 from easy_rec.python.protos.rocket_launching_pb2 import RocketLaunching as RocketLaunchingConfig  # NOQA
 
@@ -45,7 +46,7 @@ class RocketLaunching(RankModel):
   def feature_based_sim(self, feature_based_distillation, i, j):
     booster_feature_no_gradient = tf.stop_gradient(
         self.booster_feature['hidden_layer' + str(j)])
-    if feature_based_distillation == 'COSION':
+    if feature_based_distillation == Similarity.COSINE:
       booster_feature_no_gradient_norm = self.norm(booster_feature_no_gradient)
       light_feature_norm = self.norm(self.light_feature['hidden_layer' +
                                                         str(i)])
@@ -106,16 +107,18 @@ class RocketLaunching(RankModel):
           kernel_regularizer=self._l2_reg,
           name='light_output')
 
-    if self._loss_type == LossType.CLASSIFICATION:
-      probs_booster = tf.nn.softmax(booster_out, axis=1)
-      self._prediction_dict['logits_booster'] = booster_out
-      self._prediction_dict['probs_booster'] = probs_booster
-      self._prediction_dict['y_booster'] = tf.argmax(probs_booster, axis=1)
-
-      probs_light = tf.nn.softmax(light_out, axis=1)
-      self._prediction_dict['logits_light'] = light_out
-      self._prediction_dict['probs_light'] = probs_light
-      self._prediction_dict['y_light'] = tf.argmax(probs_light, axis=1)
+    self._prediction_dict.update(
+        self._output_to_prediction_impl(
+            booster_out,
+            self._loss_type,
+            num_class=self._num_class,
+            suffix='_booster'))
+    self._prediction_dict.update(
+        self._output_to_prediction_impl(
+            light_out,
+            self._loss_type,
+            num_class=self._num_class,
+            suffix='_light'))
 
     return self._prediction_dict
 
@@ -191,7 +194,11 @@ class RocketLaunching(RankModel):
     return metric_dict
 
   def get_outputs(self):
-    return [
-        'logits_booster', 'probs_booster', 'y_booster', 'logits_light',
-        'probs_light', 'y_light'
-    ]
+    outputs = []
+    outputs.extend(
+        self._get_outputs_impl(
+            self._loss_type, self._num_class, suffix='_light'))
+    outputs.extend(
+        self._get_outputs_impl(
+            self._loss_type, self._num_class, suffix='_booster'))
+    return outputs
