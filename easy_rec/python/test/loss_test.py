@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.circle_loss import get_anchor_positive_triplet_mask
+
 from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 
 if tf.__version__ >= '2.0':
