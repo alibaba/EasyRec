@@ -1,4 +1,6 @@
+cprotobuf==0.1.9
 future
+matplotlib
 pandas
 psutil
 pydatahub

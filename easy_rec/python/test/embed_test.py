@@ -137,7 +137,7 @@ class EmbedTest(tf.test.TestCase):
     fc_parser = FeatureColumnParser(feature_configs, wide_and_deep_dict)
     builder = feature_column._LazyBuilder(field_dict)
     hist_embedding, hist_seq_len = \
-        fc_parser.deep_columns['field1']._get_sequence_dense_tensor(builder)
+        fc_parser.sequence_columns['field1']._get_sequence_dense_tensor(builder)
 
     init = tf.initialize_all_variables()
     with tf.Session() as sess:

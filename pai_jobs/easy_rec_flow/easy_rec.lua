@@ -30,28 +30,6 @@ function CheckOssValid(host, bucket)
     return true
 end
 
-function ParseOssUri(oss_uri, default_host)
-    if string.len(oss_uri) > 6 and string.find(oss_uri, "oss://") == 1 then
-        _,_,_path,file = string.find(oss_uri,"oss://(.*/)(.*)")
-        if _path == nil or string.len(_path) == 0 then
-            error("invalid oss uri: "..oss_uri..", should end with '/'")
-        end
-        _,_,bucket_host,dir = string.find(_path, "(.-)(/.*)")
-        if (string.find(bucket_host, "%.")) then
-            _,_,bucket,host = string.find(bucket_host, "(.-)%.(.*)")
-        else
-            bucket = bucket_host
-            host = default_host
-        end
-        if not CheckOssValid(host, bucket) then
-            error("invalid oss uri: "..oss_uri..", oss host or bucket not found")
-        end
-        root_dir = bucket..dir
-        return host, root_dir, file
-    end
-    error("invalid oss uri: "..oss_uri)
-end
-
 function getEntry(script_in, entryFile_in, config, cluster, res_project, version)
   if script_in ~= nil and string.len(script_in) > 0
     and entryFile_in ~= nil and string.len(entryFile_in) > 0 then
@@ -110,7 +88,6 @@ function getHyperParams(config, cmd, checkpoint_path,
                         input_table, output_table, tables, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
-  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')
@@ -150,9 +127,7 @@ function getHyperParams(config, cmd, checkpoint_path,
     return hyperParameters, cluster, tables, output_table
   end
 
-  if cmd ~= "custom" then
-    checkConfig(config)
-  end
+  checkConfig(config)
 
   hyperParameters = "--config='" .. config .. "'"
 
@@ -330,12 +305,12 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' and cmd ~= 'custom' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
+     and cmd ~= 'evaluate' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
   end
 
   -- for export
-  if cmd == 'export' or cmd == 'custom' then
+  if cmd == 'export' then
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 

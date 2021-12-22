@@ -8,19 +8,28 @@ import time
 import traceback
 
 import oss2
-from datahub import DataHub
-# from datahub.exceptions import LimitExceededException
-from datahub.exceptions import InvalidOperationException
-from datahub.exceptions import ResourceExistException
-# from datahub.exceptions import ResourceNotFoundException
-# from datahub.models import BlobRecord
-# from datahub.models import CursorType
-from datahub.models import FieldType
-from datahub.models import RecordSchema
-from datahub.models import RecordType
-from datahub.models import TupleRecord
-from odps import ODPS
-from odps.df import DataFrame
+
+try:
+  from datahub import DataHub
+  from datahub.exceptions import InvalidOperationException
+  from datahub.exceptions import ResourceExistException
+  # from datahub.exceptions import LimitExceededException
+  # from datahub.exceptions import ResourceNotFoundException
+  # from datahub.models import BlobRecord
+  # from datahub.models import CursorType
+  from datahub.models import FieldType
+  from datahub.models import RecordSchema
+  from datahub.models import RecordType
+  from datahub.models import TupleRecord
+except Exception:
+  DataHub = None
+
+try:
+  from odps import ODPS
+  from odps.df import DataFrame
+except Exception:
+  ODPS = None
+  DataFrame = None
 
 
 class OdpsOSSConfig:
@@ -53,14 +62,15 @@ class OdpsOSSConfig:
     #    grep ODPS_PROJ_NAME -r samples/odps_script/
     self.project_name = ''
 
-    self.dhid = ''
-    self.dhkey = ''
-    self.dhendpoint = ''
-    self.dhtopic = ''
-    self.dhproject = ''
-    self.dh = ''
-    self.odps = ''
-    self.odpsEnd = ''
+    self.dh_id = ''
+    self.dh_key = ''
+    self.dh_endpoint = ''
+    self.dh_topic = ''
+    self.dh_project = ''
+    self.odps_endpoint = ''
+
+    self.dh = None
+    self.odps = None
 
     # default to algo_public
     self.algo_project = None
@@ -70,11 +80,11 @@ class OdpsOSSConfig:
   def load_dh_config(self, config_path):
     configer = configparser.ConfigParser()
     configer.read(config_path, encoding='utf-8')
-    self.dhid = configer.get('datahub', 'access_id')
-    self.dhkey = configer.get('datahub', 'access_key')
-    self.dhendpoint = configer.get('datahub', 'endpoint')
-    self.dhtopic = configer.get('datahub', 'topic_name')
-    self.dhproject = configer.get('datahub', 'project')
+    self.dh_id = configer.get('datahub', 'access_id')
+    self.dh_key = configer.get('datahub', 'access_key')
+    self.dh_endpoint = configer.get('datahub', 'endpoint')
+    self.dh_topic = configer.get('datahub', 'topic_name')
+    self.dh_project = configer.get('datahub', 'project')
 
   def load_oss_config(self, config_path):
     with open(config_path, 'r') as fin:
@@ -97,31 +107,31 @@ class OdpsOSSConfig:
         if line_str.startswith('project_name='):
           self.project_name = line_str[len('project_name='):]
         if line_str.startswith('end_point='):
-          self.odpsEnd = line_str[len('end_point='):]
+          self.odps_endpoint = line_str[len('end_point='):]
 
-  def clean_topic(self, dhproject):
-    if not dhproject:
+  def clean_topic(self, dh_project):
+    if not dh_project:
       logging.error('project is empty .')
-      topic_names = self.dh.list_topic(dhproject).topic_names
+      topic_names = self.dh.list_topic(dh_project).topic_names
       for topic_name in topic_names:
         self.clean_subscription(topic_name)
-        self.dh.delete_topic(dhproject, topic_name)
+        self.dh.delete_topic(dh_project, topic_name)
 
   def clean_project(self):
     project_names = self.dh.list_project().project_names
-    for dhproject in project_names:
-      if dhproject == self.dhproject:
-        self.clean_topic(dhproject)
+    for dh_project in project_names:
+      if dh_project == self.dh_project:
+        self.clean_topic(dh_project)
         try:
-          self.dh.delete_project(dhproject)
+          self.dh.delete_project(dh_project)
         except InvalidOperationException:
           pass
 
   def clean_subscription(self, topic_name):
-    subscriptions = self.dh.list_subscription(self.dhproject, topic_name, '', 1,
-                                              100).subscriptions
+    subscriptions = self.dh.list_subscription(self.dh_project, topic_name, '',
+                                              1, 100).subscriptions
     for subscription in subscriptions:
-      self.dh.delete_subscription(self.dhproject, topic_name, subscription)
+      self.dh.delete_subscription(self.dh_project, topic_name, subscription)
 
   def get_input_type(self, input_type):
     DhDict = {
@@ -135,35 +145,37 @@ class OdpsOSSConfig:
 
     return DhDict.get(input_type)
 
-  def _subscription(self):
-    self.dh = DataHub(self.dhid, self.dhkey, self.dhendpoint)
-    self.odps = ODPS(self.dhid, self.dhkey, self.project_name, self.odpsEnd)
+  def init_dh_and_odps(self):
+    self.dh = DataHub(self.dh_id, self.dh_key, self.dh_endpoint)
+    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name,
+                     self.odps_endpoint)
     self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
     read_odps = DataFrame(self.odps.get_table(self.odpsTable))
     col = read_odps.schema.names
     col_type = [self.get_input_type(str(i)) for i in read_odps.schema.types]
     try:
-      self.dh.create_project(self.dhproject, 'EasyRecTest')
+      self.dh.create_project(self.dh_project, 'EasyRecTest')
       logging.info('create project success!')
     except ResourceExistException:
-      logging.info('project %s already exist!' % self.dhproject)
+      logging.info('project %s already exist!' % self.dh_project)
     except Exception as ex:
       logging.info(traceback.format_exc(ex))
     record_schema = RecordSchema.from_lists(col, col_type)
     try:
-      self.dh.create_tuple_topic(self.dhproject, self.dhtopic, 7, 3,
+      # project_name, topic_name, shard_count, life_cycle, record_schema, comment
+      self.dh.create_tuple_topic(self.dh_project, self.dh_topic, 7, 3,
                                  record_schema, 'easyrec_datahub')
       logging.info('create tuple topic success!')
     except ResourceExistException:
-      logging.info('topic %s already exist!' % self.dhtopic)
+      logging.info('topic %s already exist!' % self.dh_topic)
     except Exception as ex:
       logging.error('exception:', ex)
       logging.error(traceback.format_exc())
     try:
-      self.dh.wait_shards_ready(self.dhproject, self.dhtopic)
+      self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
       logging.info('shards all ready')
-      topic_result = self.dh.get_topic(self.dhproject, self.dhtopic)
+      topic_result = self.dh.get_topic(self.dh_project, self.dh_topic)
       if topic_result.record_type != RecordType.TUPLE:
         logging.error('topic type illegal! ')
       record_schema = topic_result.record_schema
@@ -175,10 +187,9 @@ class OdpsOSSConfig:
           record = TupleRecord(values=data.values, schema=record_schema)
           record_list.append(record)
           if size % 1000:
-            self.dh.put_records(self.dhproject, self.dhtopic, record_list)
+            self.dh.put_records(self.dh_project, self.dh_topic, record_list)
             record_list = []
           size += 1
-
     except Exception as e:
       logging.error(e)
 
