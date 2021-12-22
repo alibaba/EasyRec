@@ -8,3 +8,5 @@ mdformat-tables;python_version>"3"
 pre-commit
 PyYAML
 yapf
+configparser
+pyodps

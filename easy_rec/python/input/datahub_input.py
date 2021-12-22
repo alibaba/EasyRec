@@ -19,6 +19,7 @@ try:
   from datahub.models import RecordType
   from datahub.models import CursorType
 except Exception:
+  logging.warning('DataHub is not installed. You can install it by: pip install pydatahub')
   DataHub = None
 
 
