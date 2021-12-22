@@ -349,6 +349,10 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
         table_id = table_id + 1
       end
     end
+    if inputTable == nil or inputTable == ''
+    then
+      inputTable = tmpTables[1]
+    end
   end
 
   if cmd == 'train' then
@@ -362,6 +366,8 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
+
       tmpTables = split(evalTables, ',')
       for k=1, table.getn(tmpTables) do
         v = tmpTables[k]
@@ -391,6 +397,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
     end
   end
 
@@ -422,6 +429,11 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   for k,v in pairs(all_tables) do
     table.insert(tables, k)
   end
+
+  if inputTable == nil or inputTable == '' then
+    error('inputTable is not defined') 
+  end
+
   tables = join(tables, ',')
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict

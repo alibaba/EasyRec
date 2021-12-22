@@ -8,3 +8,4 @@ pre-commit
 yapf
 PyYAML
 configparser
+pyodps
