@@ -40,7 +40,7 @@ def gather_test_cases(test_dir, pattern):
           print(test_case.id())
           tid = subcase.id().split('.')[0]
           if tid not in all_tests:
-            all_tests.append(tid) 
+            all_tests.append(tid)
   if FLAGS.list_test_to_file:
     print('save test lists to %s' % FLAGS.list_test_to_file)
     with open(FLAGS.list_test_to_file, 'w') as fout:
@@ -53,18 +53,19 @@ def main(argv):
   runner = unittest.TextTestRunner()
   test_suite = gather_test_cases(os.path.abspath(FLAGS.test_dir), FLAGS.pattern)
   if FLAGS.list_tests or FLAGS.list_test_to_file:
-    return 
+    return
 
   result = runner.run(test_suite)
   if not result.wasSuccessful():
-    print('FailNum: %d ErrorNum: %d' % (len(result.failures), len(result.errors)))
+    print('FailNum: %d ErrorNum: %d' %
+          (len(result.failures), len(result.errors)))
   else:
     if 'UnitTestSucceedFlag' in os.environ:
       flag_file = os.environ['UnitTestSucceedFlag']
       with open(flag_file, 'w') as fout:
         fout.write('unit succeed.')
       print('create flag file: %s' % flag_file)
-    
+
 
 if __name__ == '__main__':
   tf.app.run()

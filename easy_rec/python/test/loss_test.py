@@ -3,36 +3,32 @@ import tensorflow as tf
 
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.circle_loss import get_anchor_positive_triplet_mask
-from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining
+from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class LossTest(tf.test.TestCase):
+
   def test_softmax_loss_with_negative_mining(self):
-    print("test_softmax_loss_with_negative_mining")
-    user_emb = tf.constant([[0.1, 0.5, 0.3],
-                            [0.8, -0.1, 0.3],
-                            [0.28, 0.3, 0.9],
-                            [0.37, 0.45, 0.93],
-                            [-0.7, 0.15, 0.03],
+    print('test_softmax_loss_with_negative_mining')
+    user_emb = tf.constant([[0.1, 0.5, 0.3], [0.8, -0.1, 0.3], [0.28, 0.3, 0.9],
+                            [0.37, 0.45, 0.93], [-0.7, 0.15, 0.03],
                             [0.18, 0.9, -0.3]])
-    item_emb = tf.constant([[0.1, -0.5, 0.3],
-                            [0.8, -0.31, 0.3],
-                            [0.7, -0.45, 0.15],
-                            [0.08, -0.31, -0.9],
-                            [-0.7, 0.85, 0.03],
-                            [0.18, 0.89, -0.3]])
+    item_emb = tf.constant([[0.1, -0.5, 0.3], [0.8, -0.31, 0.3],
+                            [0.7, -0.45, 0.15], [0.08, -0.31, -0.9],
+                            [-0.7, 0.85, 0.03], [0.18, 0.89, -0.3]])
 
     label = tf.constant([1, 1, 0, 0, 1, 1])
-    loss = softmax_loss_with_negative_mining(user_emb, item_emb, label, num_negative_samples=1)
+    loss = softmax_loss_with_negative_mining(
+        user_emb, item_emb, label, num_negative_samples=1)
     with self.test_session() as sess:
       loss_val = sess.run(loss)
       self.assertAlmostEqual(loss_val, 0.5240243, delta=1e-5)
 
   def test_circle_loss(self):
-    print("test_circle_loss")
+    print('test_circle_loss')
     emb = tf.constant([[0.1, 0.2, 0.15, 0.1], [0.3, 0.6, 0.45, 0.3],
                        [0.13, 0.6, 0.45, 0.3], [0.3, 0.26, 0.45, 0.3],
                        [0.3, 0.6, 0.5, 0.13], [0.08, 0.43, 0.21, 0.6]],
@@ -44,7 +40,7 @@ class LossTest(tf.test.TestCase):
       self.assertAlmostEqual(loss_val, 52.75707, delta=1e-5)
 
   def test_triplet_mask(self):
-    print("test_triplet_mask")
+    print('test_triplet_mask')
     label = tf.constant([1, 1, 2, 2, 3, 3, 4, 5])
     positive_mask = tf.constant(
         [[0., 1., 0., 0., 0., 0., 0., 0.], [1., 0., 0., 0., 0., 0., 0., 0.],

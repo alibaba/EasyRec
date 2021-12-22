@@ -21,10 +21,10 @@ export UnitTestSucceedFlag=EasyRecUnitSucceed
 PYTHONPATH=. python -m easy_rec.python.test.run --list_test_to_file UNIT_TEST_CASE_LIST
 
 for test_name in `cat UNIT_TEST_CASE_LIST`
-do 
+do
   rm -rf $UnitTestSucceedFlag
   # run test
-  PYTHONPATH=. python -m easy_rec.python.test.run --pattern ${test_name}.* 
+  PYTHONPATH=. python -m easy_rec.python.test.run --pattern ${test_name}.*
   # for github
   if [ ! -e "$UnitTestSucceedFlag" ]
   then

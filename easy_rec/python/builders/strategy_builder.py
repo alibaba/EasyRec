@@ -13,7 +13,10 @@ def build(train_config):
   # single worker multi-gpu strategy
   # currently only works using pai-tf
   if train_config.train_distribute == DistributionStrategy.MirroredStrategy:
-    distribution = tf.distribute.MirroredStrategy()
+    if tf.__version__ <= '1.15':
+      distribution = tf.contrib.distribute.MirroredStrategy()
+    else:
+      distribution = tf.distribute.MirroredStrategy()
   # multi worker multi-gpu strategy
   # works under tf1.15 and tf2.x
   elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:

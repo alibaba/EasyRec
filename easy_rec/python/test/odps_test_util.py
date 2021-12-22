@@ -8,6 +8,7 @@ import time
 import traceback
 
 import oss2
+
 try:
   from datahub import DataHub
   from datahub.exceptions import InvalidOperationException
@@ -29,6 +30,7 @@ try:
 except Exception:
   ODPS = None
   DataFrame = None
+
 
 class OdpsOSSConfig:
 
@@ -126,8 +128,8 @@ class OdpsOSSConfig:
           pass
 
   def clean_subscription(self, topic_name):
-    subscriptions = self.dh.list_subscription(self.dh_project, topic_name, '', 1,
-                                              100).subscriptions
+    subscriptions = self.dh.list_subscription(self.dh_project, topic_name, '',
+                                              1, 100).subscriptions
     for subscription in subscriptions:
       self.dh.delete_subscription(self.dh_project, topic_name, subscription)
 
@@ -145,7 +147,8 @@ class OdpsOSSConfig:
 
   def init_dh_and_odps(self):
     self.dh = DataHub(self.dh_id, self.dh_key, self.dh_endpoint)
-    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name, self.odps_endpoint)
+    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name,
+                     self.odps_endpoint)
     self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
     read_odps = DataFrame(self.odps.get_table(self.odpsTable))
