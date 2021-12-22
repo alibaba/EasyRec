@@ -302,7 +302,7 @@ end
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
                      trainTables, evalTables, boundaryTable)
-  -- all_cols, all_col_types, selected_cols, reserved_cols, 
+  -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
      and cmd ~= 'evaluate' then
@@ -358,7 +358,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   if cmd == 'evaluate' then
-    -- merge evalTables into tables if evalTables is set 
+    -- merge evalTables into tables if evalTables is set
     if evalTables ~= nil and evalTables ~= ''
     then
       tmpTables = split(evalTables, ',')
@@ -383,7 +383,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           all_tables[v] = table_id
           table_id = table_id + 1
         end
-      end 
+      end
     else
       -- if inputTable is not set but tables is set
       -- set inputTable to tables
