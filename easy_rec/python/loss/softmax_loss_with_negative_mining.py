@@ -15,7 +15,7 @@ def support_vector_guided_softmax_loss(pos_score,
                                        smooth=1.0,
                                        threshold=0,
                                        weights=1.0):
-  """refer paper: Support Vector Guided Softmax Loss for Face Recognition (https://128.84.21.199/abs/1812.11317)"""
+  """Refer paper: Support Vector Guided Softmax Loss for Face Recognition (https://128.84.21.199/abs/1812.11317)"""
   new_pos_score = pos_score - margin
   cond = tf.greater_equal(new_pos_score - neg_scores, threshold)
   mask = tf.where(cond, tf.zeros_like(cond, tf.float32),

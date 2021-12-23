@@ -3,7 +3,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import os
-import sys
 import unittest
 
 import tensorflow as tf
