@@ -12,8 +12,9 @@ def circle_loss(embeddings,
                 margin=0.25,
                 gamma=32,
                 embed_normed=False):
-  """paper: Circle Loss: A Unified Perspective of Pair Similarity Optimization
+  """Paper: Circle Loss: A Unified Perspective of Pair Similarity Optimization
      http://arxiv.org/pdf/2002.10857.pdf
+
   Args:
     embeddings: A `Tensor` with shape [batch_size, embedding_size]. The embedding of each sample.
     labels: a `Tensor` with shape [batch_size]. e.g. click or not click in the session.
