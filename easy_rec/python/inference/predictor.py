@@ -338,7 +338,8 @@ class Predictor(PredictorInterface):
                    batch_size=1024,
                    slice_id=0,
                    slice_num=1,
-                   sep=';'):
+                   input_sep=',',
+                   output_sep=chr(1)):
     """Predict table input with loaded model.
 
     Args:
@@ -354,7 +355,8 @@ class Predictor(PredictorInterface):
       slice_id: when multiple workers write the same table, each worker should
                 be assigned different slice_id, which is usually slice_id
       slice_num: table slice number
-      sep: separator of predict result file.
+      input_sep: separator of input file.
+      output_sep: separator of predict result file.
     """
     if pai_util.is_on_pai():
       self.predict_table(
@@ -377,10 +379,11 @@ class Predictor(PredictorInterface):
           batch_size=batch_size,
           slice_id=slice_id,
           slice_num=slice_num,
-          sep=sep)
+          input_sep=input_sep,
+          output_sep=output_sep)
 
   def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
-                  batch_size, slice_id, slice_num, sep):
+                  batch_size, slice_id, slice_num, input_sep, output_sep):
     record_defaults = [
         self._input_fields_info[col_name][1] for col_name in self._input_fields
     ]
@@ -422,13 +425,12 @@ class Predictor(PredictorInterface):
       def _parse_csv(line):
 
         def _check_data(line):
-          sep = ','
+          sep = input_sep
           if type(sep) != type(str):
             sep = sep.encode('utf-8')
           field_num = len(line[0].split(sep))
-          assert field_num == len(record_defaults), \
-            'sep[%s] maybe invalid: field_num=%d, required_num=%d' % \
-            (sep, field_num, len(record_defaults))
+          assert field_num == len(record_defaults), 'sep[%s] maybe invalid: field_num=%d, required_num=%d' \
+                                                    % (sep, field_num, len(record_defaults))
           return True
 
         check_op = tf.py_func(_check_data, [line], Tout=tf.bool)
@@ -455,7 +457,7 @@ class Predictor(PredictorInterface):
       progress = 0
       sum_t0, sum_t1, sum_t2 = 0, 0, 0
       pred_cnt = 0
-      table_writer.write(sep.join(output_cols + reserved_cols) + '\n')
+      table_writer.write(output_sep.join(output_cols + reserved_cols) + '\n')
       while True:
         try:
           ts0 = time.time()
@@ -478,7 +480,7 @@ class Predictor(PredictorInterface):
           outputs = [x for x in zip(*reserve_vals)]
           pred_cnt += len(outputs)
           outputs = '\n'.join(
-              [sep.join([str(i) for i in output]) for output in outputs])
+              [output_sep.join([str(i) for i in output]) for output in outputs])
           table_writer.write(outputs + '\n')
 
           ts3 = time.time()
