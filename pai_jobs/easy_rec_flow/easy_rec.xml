@@ -52,6 +52,7 @@
     <parameter name="extra_params" use="optional" default=""/>
     <parameter name="useSparseClusterSchema" use="optional" default="false"/>
     <parameter name="autoEnablePsTaskFailover" use="optional" default="false"/>
+    <parameter name="allOrNothing" use="optional" default="false"/>
   </parameters>
 
   <workflow>
@@ -197,6 +198,7 @@
           <p name="userDefinedParameters" value="${workflow.getHyperParams.hyperParameters}"/>
 	  <p name="useSparseClusterSchema" value="${parameters.useSparseClusterSchema}"/>
           <p name="autoEnablePsTaskFailover" value="${parameters.autoEnablePsTaskFailover}"/>
+          <p name="allOrNothing" value="${parameters.allOrNothing}"/>
         </parameters>
         <name>tensorflow1120</name>
         <project>algo_public</project>
