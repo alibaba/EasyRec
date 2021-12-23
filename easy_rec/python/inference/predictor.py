@@ -342,8 +342,8 @@ class Predictor(PredictorInterface):
     """Predict table input with loaded model.
 
     Args:
-      input_table: table/hdfs_dir to read
-      output_table: table/hdfs_dir to write
+      input_table: table/file_path to read
+      output_table: table/file_path to write
       all_cols: union of columns
       all_col_types: data types of the columns
       selected_cols: included column names, comma separated, such as "a,b,c"
@@ -390,7 +390,7 @@ class Predictor(PredictorInterface):
       reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     if output_cols is None or output_cols == 'ALL_COLUMNS':
       output_cols = sorted(self._predictor_impl.output_names)
-      print('predict output cols: ', output_cols)
+      logging.info('predict output cols: %s' % output_cols)
     else:
       # specified as score float,embedding string
       tmp_cols = []
@@ -460,6 +460,7 @@ class Predictor(PredictorInterface):
         try:
           ts0 = time.time()
           all_vals = sess.run(all_dict)
+
           ts1 = time.time()
           input_vals = {k: all_vals[k] for k in input_names}
           outputs = self._predictor_impl.predict(input_vals, output_cols)

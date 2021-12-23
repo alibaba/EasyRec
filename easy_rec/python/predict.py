@@ -16,19 +16,10 @@ logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
     level=logging.INFO)
 
-tf.app.flags.DEFINE_string('pipeline_config_path', None,
-                           'Path to pipeline config '
-                           'file.')
-tf.app.flags.DEFINE_string(
-    'checkpoint_path', None, 'checkpoint to be evaled '
-    ' if not specified, use the latest checkpoint in '
-    'train_config.model_dir')
 tf.app.flags.DEFINE_string(
     'input_path', None, 'predict data path, if specified will '
     'override pipeline_config.eval_input_path')
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
-tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
-
 tf.app.flags.DEFINE_string('saved_model_dir', None, help='save model dir')
 tf.app.flags.DEFINE_integer('batch_size', 1024, help='batch size')
 tf.app.flags.DEFINE_string(
@@ -37,8 +28,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'output_cols', 'ALL_COLUMNS',
     'output columns, such as: score float. multiple columns are separated by ,')
-tf.app.flags.DEFINE_string(
-    'sep', chr(1), 'separator of predict result file')
+tf.app.flags.DEFINE_string('sep', chr(1), 'separator of predict result file')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -61,8 +51,7 @@ def main(argv):
       output_cols=FLAGS.output_cols,
       slice_id=task_index,
       slice_num=worker_num,
-      sep=FLAGS.sep
-  )
+      sep=FLAGS.sep)
 
 
 if __name__ == '__main__':
