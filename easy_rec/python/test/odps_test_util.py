@@ -22,6 +22,7 @@ try:
   from datahub.models import RecordType
   from datahub.models import TupleRecord
 except Exception:
+  logging.error("DataHub is not installed, please installed it by: pip install pydatahub")
   DataHub = None
 
 try:
@@ -46,8 +47,8 @@ class OdpsOSSConfig:
     self.ali_bucket_name = 'easyrec'
     self.script_path = script_path
     # read only access
-    self.ali_oss_key = ''
-    self.ali_oss_secret = ''
+    self.ali_oss_key = os.environ['ALI_OSS_KEY']
+    self.ali_oss_secret = os.environ['ALI_OSS_SEC']
 
     self.oss_key = ''
     self.oss_secret = ''

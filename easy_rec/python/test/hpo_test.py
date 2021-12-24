@@ -52,7 +52,7 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
     tmp_file = 'samples/hpo/hpo_param.json'
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
-    assert tmp_config.feature_configs[0].embedding_dim == 120
+    assert tmp_config.feature_config.features[0].embedding_dim == 120
 
   def test_edit_config_v2(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
