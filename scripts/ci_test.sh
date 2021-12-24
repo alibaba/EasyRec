@@ -29,7 +29,7 @@ do
   if [ ! -e "$UnitTestSucceedFlag" ]
   then
     echo "::set-output name=ci_test_passed::0"
-    break
+    exit
   fi
 done
 
