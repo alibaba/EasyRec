@@ -24,7 +24,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
 tf.app.flags.DEFINE_integer('batch_size', 1024, help='batch size')
 
-# way1: predict by checkpoint
+# predict by checkpoint
 tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'Path to pipeline config '
                            'file.')
@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_string(
     'train_config.model_dir')
 tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
 
-# way2: predict by saved_model
+# predict by saved_model
 tf.app.flags.DEFINE_string('saved_model_dir', None, help='save model dir')
 tf.app.flags.DEFINE_string(
     'reserved_cols', 'ALL_COLUMNS',
