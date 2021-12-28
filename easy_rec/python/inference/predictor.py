@@ -25,6 +25,8 @@ from easy_rec.python.utils.load_class import get_register_class_meta
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+SINGLE_PLACEHOLDER_FEATURE_KEY = 'features'
+
 _PREDICTOR_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
     _PREDICTOR_CLASS_MAP, have_abstract_class=True)
@@ -581,8 +583,8 @@ class Predictor(PredictorInterface):
 
       def _parse_value(all_vals):
         if self._is_multi_placeholder:
-          if 'features' in all_vals:
-            feature_vals = all_vals['features']
+          if SINGLE_PLACEHOLDER_FEATURE_KEY in all_vals:
+            feature_vals = all_vals[SINGLE_PLACEHOLDER_FEATURE_KEY]
             split_index = []
             split_vals = {}
             for i, k in enumerate(input_names):
