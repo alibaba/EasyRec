@@ -36,7 +36,7 @@ head -5 train.csv | awk -v FS=',' '{ print NF }'
 grep input_fields easy_rec.config | wc -l
 ```
 
-#### 多余的feature_configs
+#### 多余的 feature_config
 
 如下所示, device_make在feature_groups里面没有出现，所以报下面的错误:
 
@@ -243,22 +243,27 @@ oss//easyrec/test/din/model/model.ckpt.
 
 先检查路径：saved_model_dir; 路径正确的情况下，可能是 oss_bucket 写错了，要保证 oss_bucket 和路径一致。
 
-#### StringToNumberOp could not correctly convert string 
+#### StringToNumberOp could not correctly convert string
+
 检查特征配置是否正确，说明这里的特征不是一个数值型的RawFeature，可以配置成IdFeature
 
 也有可能配置的是IdFeature，但是还是报这个错，可以看下具体配置里面的bucket类型，不能是num_buckets
+
 ```
 num_buckets: buckets number, 仅仅当输入是integer类型时，可以使用num_buckets
 ```
+
 需要修改成hash_bucket_size,参考 [EasyRec 特征配置-IdFeature:离散值特征/ID类特征](https://easyrec.readthedocs.io/en/latest/feature/feature.html#idfeature-id)
 
 #### Restoring from checkpoint failed
+
 ```
 Restoring from checkpoint failed,this is most likely due to a Variable name or other graph key that is missing from checkpoint.
 Please ensure that you have not alterred the graph expected based on the checkpoint.
 Original error:
     xxxxxx
 ```
+
 模型保存目录下已经存在checkpoint
 
 - 如果重新训练，请清空此目录
@@ -266,7 +271,8 @@ Original error:
 - 如果增量训练，请参考https://easyrec.readthedocs.io/en/latest/incremental_train.html
 
 #### 输出user塔的embedding时，输出为空
-用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是[]，空的数组
+
+用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是\[\]，空的数组
 
 需要使用 tfResponse.getStringVals("user_emb")
 

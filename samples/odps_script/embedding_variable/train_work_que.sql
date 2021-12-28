@@ -8,5 +8,5 @@ pai -name easy_rec_ext
 -Dbuckets=oss://{OSS_BUCKET_NAME}/
 -DossHost={OSS_ENDPOINT}
 -Dselected_cols=clk,features
--Dwith_evaluator=1
+-Deval_method=separate
 ;

@@ -8,4 +8,32 @@ enum LossType {
     // crossentropy loss/log loss
     CROSS_ENTROPY_LOSS = 3;
     SOFTMAX_CROSS_ENTROPY = 4;
+    CIRCLE_LOSS = 5;
+    MULTI_SIMILARITY_LOSS = 6;
+    SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING = 7;
+    PAIR_WISE_LOSS = 8;
+}
+
+message Loss {
+  required LossType loss_type = 1;
+  required float weight = 2 [default = 1.0];
+};
+
+message SoftmaxCrossEntropyWithNegativeMining {
+  required uint32 num_negative_samples = 1;
+  required float margin = 2 [default = 0];
+  required float gamma = 3 [default = 1];
+  required float coefficient_of_support_vector = 4 [default = 1];
+}
+
+message CircleLoss {
+  required float margin = 1 [default = 0.25];
+  required float gamma = 2 [default = 32];
+}
+
+message MultiSimilarityLoss {
+  required float alpha = 1 [default = 2];
+  required float beta = 2 [default = 50];
+  required float lamb = 3 [default = 1];
+  required float eps = 4 [default = 0.1];
 }
