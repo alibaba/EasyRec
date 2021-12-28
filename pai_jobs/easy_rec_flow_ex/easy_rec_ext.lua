@@ -66,6 +66,10 @@ function getEntry(script_in, entryFile_in, config, cluster, res_project, version
 end
 
 function checkConfig(config)
+  if config == nil or config == '' then
+    error('config must be set')
+  end
+
   s1, e1 = string.find(config, 'oss://')
   s2, e2 = string.find(config, 'http')
   if s1 == nil and s2 == nil then
@@ -106,6 +110,7 @@ function getHyperParams(config, cmd, checkpoint_path,
                         input_table, output_table, tables, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
+  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')
@@ -142,13 +147,14 @@ function getHyperParams(config, cmd, checkpoint_path,
     if extra_params ~= nil and extra_params ~= '' then
       hyperParameters = hyperParameters .. extra_params
     end
-    return hyperParameters, cluster, input_table, output_table
+    return hyperParameters, cluster, tables, output_table
   end
 
-  if string.len(config) > 0 then
+  if cmd ~= "custom" then
     checkConfig(config)
-    hyperParameters = "--config='" .. config .. "'"
   end
+
+  hyperParameters = "--config='" .. config .. "'"
 
   if selected_cols ~= nil and selected_cols ~= '' then
     hyperParameters = hyperParameters .. ' --selected_cols=' .. selected_cols
@@ -199,11 +205,11 @@ function getHyperParams(config, cmd, checkpoint_path,
       end
       hyperParameters = hyperParameters .. " --hpo_metric_save_path=" .. hpo_metric_save_path
     end
+  end
 
-    if edit_config_json ~= "" and edit_config_json ~= nil then
-      hyperParameters = hyperParameters ..
-          string.format(" --edit_config_json='%s'", edit_config_json)
-    end
+  if edit_config_json ~= "" and edit_config_json ~= nil then
+    hyperParameters = hyperParameters ..
+        string.format(" --edit_config_json='%s'", edit_config_json)
   end
 
   if model_dir ~= "" and model_dir ~= nil then
@@ -233,7 +239,7 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. extra_params
   end
 
-  return hyperParameters, cluster, tables, nil
+  return hyperParameters, cluster, tables, output_table
 end
 
 function splitTableParam(table_path)
@@ -321,60 +327,117 @@ end
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
                      trainTables, evalTables, boundaryTable)
+  -- all_cols, all_col_types, selected_cols, reserved_cols,
+  -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
   end
 
-  -- for export, no table need to be parsed
-  if cmd == 'export' then
-    return "", "", "", "", "select 1;", "select 1;", ''
+  -- for export
+  if cmd == 'export' or cmd == 'custom' then
+    return "", "", "", "", "select 1;", "select 1;", tables
+  end
+
+  -- merge all tables into all_tables
+  all_tables  = {}
+  table_id = 0
+  if tables ~= nil and tables ~= ''
+  then
+    tmpTables = split(tables, ',')
+    for k=1, table.getn(tmpTables) do
+      v = tmpTables[k]
+      if all_tables[v] == nil then
+        all_tables[v] = table_id
+        table_id = table_id + 1
+      end
+    end
+    if inputTable == nil or inputTable == ''
+    then
+      inputTable = tmpTables[1]
+    end
   end
 
   if cmd == 'train' then
-    -- merge train table and eval table into tables
+    -- merge train table and eval table into all_tables
     if trainTables ~= '' and trainTables ~= nil then
-      all_tables  = {}
-      trainTables = split(trainTables, ',')
-      table_id = 0
-      for k=1, table.getn(trainTables) do
-        v = trainTables[k]
+      tmpTables = split(trainTables, ',')
+      for k=1, table.getn(tmpTables) do
+        v = tmpTables[k]
         if all_tables[v] == nil then
           all_tables[v] = table_id
           table_id = table_id + 1
         end
       end
-      evalTables = split(evalTables, ',')
-      for k=1, table.getn(evalTables) do
-        v = evalTables[k]
+      inputTable = tmpTables[1]
+
+      tmpTables = split(evalTables, ',')
+      for k=1, table.getn(tmpTables) do
+        v = tmpTables[k]
         if all_tables[v] == nil then
           all_tables[v] = table_id
           table_id = table_id + 1
         end
       end
-      tables = {}
-      for k,v in pairs(all_tables) do
-        table.insert(tables, k)
-      end
-      tables = join(tables, ',')
     end
     if boundaryTable ~= nil and boundaryTable ~= '' then
-      tables = tables .. "," .. boundaryTable
-    end
-  end
-  if cmd == 'evaluate' then
-    -- either set tables or evalTables is ok for evaluation
-    if tables == nil or tables == '' then
-      if evalTables == nil or evalTables == '' then
-        error('either tables or eval_tables must be set for evaluation')
+      if all_tables[boundaryTable] == nil then
+        all_tables[boundaryTable] = table_id
+        table_id = table_id + 1
       end
-      tables = evalTables
     end
   end
 
-  if tables ~= '' and tables ~= nil then
-    inputTable = split(tables, ',')[1]
+  if cmd == 'evaluate' then
+    -- merge evalTables into tables if evalTables is set
+    if evalTables ~= nil and evalTables ~= ''
+    then
+      tmpTables = split(evalTables, ',')
+      for k=1, table.getn(tmpTables) do
+        v = tmpTables[k]
+        if all_tables[v] == nil then
+          all_tables[v] = table_id
+          table_id = table_id + 1
+        end
+      end
+      inputTable = tmpTables[1]
+    end
   end
+
+  if cmd == 'predict' then
+    -- merge inputTable into all_tables if inputTable is set
+    if inputTable ~= nil and inputTable ~= ''
+    then
+      tmpTables = split(inputTable, ',')
+      for k=1, table.getn(tmpTables) do
+        v = tmpTables[k]
+        if all_tables[v] == nil then
+          all_tables[v] = table_id
+          table_id = table_id + 1
+        end
+      end
+    else
+      -- if inputTable is not set but tables is set
+      -- set inputTable to tables
+      if tables ~= '' and tables ~= nil then
+        inputTable = split(tables, ',')[1]
+      else
+        error('either inputTable or tables must be set')
+      end
+    end
+  end
+
+  -- merge all_tables into tables
+  tables = {}
+  for k,v in pairs(all_tables) do
+    table.insert(tables, k)
+  end
+
+  if inputTable == nil or inputTable == '' then
+    error('inputTable is not defined') 
+  end
+
+  tables = join(tables, ',')
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict
   proj0, table0, partition0 = splitTableParam(inputTable)
@@ -462,6 +525,10 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   table.insert(sql_col_desc, outputCol)
   sql_col_desc = join(sql_col_desc, ",")
 
+  if outputTable == nil or outputTable == '' then
+    error("outputTable is not set")
+  end
+
   proj1, table1, partition1 = splitTableParam(outputTable)
   out_table_name = proj1 .. "." .. table1
   create_sql = ''
@@ -479,7 +546,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
 
   return join(all_cols, ","), join(all_col_types, ","),
          join(selected_cols, ","), join(reserved_cols, ","),
-         create_sql, add_partition_sql, ""
+         create_sql, add_partition_sql, tables
 end
 
 function test_create_table()

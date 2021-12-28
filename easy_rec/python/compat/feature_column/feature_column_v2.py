@@ -2121,6 +2121,10 @@ class FeatureColumn(object):
     """Returns string, Used for naming."""
     pass
 
+  @property
+  def raw_name(self):
+    return self.name
+
   @abc.abstractmethod
   def transform_feature(self, transformation_cache, state_manager):
     """Returns intermediate representation (usually a `Tensor`).

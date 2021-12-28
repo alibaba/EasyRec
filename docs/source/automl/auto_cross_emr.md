@@ -153,31 +153,33 @@ data_config {
 #### 特征相关
 
 ```protobuf
-feature_configs: {
-  input_names: "hour"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 50
-}
-feature_configs: {
-  input_names: "c1"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 10
-}
-...
-# 以下新增加的交叉列
-feature_configs: {
-  input_names: "cross_1"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "cross_2"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
+feature_config: {
+  features: {
+    input_names: "hour"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 50
+  }
+  features: {
+    input_names: "c1"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 10
+  }
+  ...
+  # 以下新增加的交叉列
+  features: {
+    input_names: "cross_1"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "cross_2"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
 }
 ```
 

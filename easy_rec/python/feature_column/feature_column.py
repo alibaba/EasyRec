@@ -444,6 +444,7 @@ class FeatureColumnParser(object):
           fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
               fc, config.sequence_length)
 
+    assert config.embedding_dim > 0
     if config.HasField('sequence_combiner'):
       fc.sequence_combiner = config.sequence_combiner
       self._deep_columns[feature_name] = fc

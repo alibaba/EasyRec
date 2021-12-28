@@ -3,7 +3,6 @@
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
-from easy_rec.python.core import distribute_metrics as distribute_metrics_lib
 from easy_rec.python.core import metrics as metrics_lib
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
@@ -104,14 +103,19 @@ class RankModel(EasyRecModel):
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
       assert loss_type == LossType.CLASSIFICATION
+
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['auc' + suffix] = tf.metrics.auc(
-            label, self._prediction_dict['probs' + suffix])
+            label,
+            self._prediction_dict['probs' + suffix],
+            num_thresholds=metric.auc.num_thresholds)
       elif num_class == 2:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['auc' + suffix] = tf.metrics.auc(
-            label, self._prediction_dict['probs' + suffix][:, 1])
+            label,
+            self._prediction_dict['probs' + suffix][:, 1],
+            num_thresholds=metric.auc.num_thresholds)
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'gauc':

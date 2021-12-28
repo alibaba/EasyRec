@@ -65,11 +65,12 @@ class ESMM(MultiTaskModel):
     cvr_label_name = self._label_name_dict[cvr_tower_name]
     ctr_label_name = self._label_name_dict[ctr_tower_name]
     if self._cvr_tower_cfg.loss_type == LossType.CLASSIFICATION:
-      ctcvr_label = self._labels[cvr_label_name] * self._labels[ctr_label_name]
-      cvr_loss = losses.log_loss(
-          ctcvr_label,
-          self._prediction_dict['probs_ctcvr'],
-          weights=self._sample_weight)
+      ctcvr_label = tf.cast(
+          self._labels[cvr_label_name] * self._labels[ctr_label_name],
+          tf.float32)
+      cvr_losses = tf.keras.backend.binary_crossentropy(
+          ctcvr_label, self._prediction_dict['probs_ctcvr'])
+      cvr_loss = tf.reduce_sum(cvr_losses, name='ctcvr_loss')
       # The weight defaults to 1.
       self._loss_dict['weighted_cross_entropy_loss_%s' %
                       cvr_tower_name] = self._cvr_tower_cfg.weight * cvr_loss
@@ -85,11 +86,11 @@ class ESMM(MultiTaskModel):
           weights=self._sample_weight)
       self._loss_dict['weighted_l2_loss_%s' %
                       cvr_tower_name] = self._cvr_tower_cfg.weight * cvr_loss
-
-    ctr_loss = losses.sigmoid_cross_entropy(
-        self._labels[ctr_label_name],
-        self._prediction_dict['logits_%s' % ctr_tower_name],
-        weights=self._sample_weight)
+    _labels = tf.cast(self._labels[ctr_label_name], tf.float32)
+    _logits = self._prediction_dict['logits_%s' % ctr_tower_name]
+    cross = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=_labels, logits=_logits, name='ctr_loss')
+    ctr_loss = tf.reduce_sum(cross)
     self._loss_dict['weighted_cross_entropy_loss_%s' %
                     ctr_tower_name] = self._ctr_tower_cfg.weight * ctr_loss
     return self._loss_dict
@@ -159,6 +160,7 @@ class ESMM(MultiTaskModel):
           self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name])
       # pctcvr = pctr * pcvr
       self._prediction_dict['probs_ctcvr'] = prob
+
     else:
       prob = tf.multiply(
           self._prediction_dict['y_%s' % self._cvr_tower_cfg.tower_name],
