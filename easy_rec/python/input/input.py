@@ -385,7 +385,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                 parsed_dict[input_0].dense_shape)
         else:
           parsed_dict[input_0] = field
-        if not fc.boundaries and fc.num_buckets <= 1 and \
+        if not fc.boundaries and fc.num_buckets <= 1 and fc.hash_bucket_size <= 0 and \
             self._data_config.sample_weight != input_0 and sub_value_type != DatasetConfig.STRING:
           # may need by wide model and deep model to project
           # raw values to a vector, it maybe better implemented

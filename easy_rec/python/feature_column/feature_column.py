@@ -429,7 +429,7 @@ class FeatureColumnParser(object):
               'sequence features bucketized_column [%s] with bounds %s error' %
               (config.input_names[0], str(bounds)))
           raise e
-      else:
+      elif not config.HasField('hash_bucket_size'):
         if config.embedding_dim > 0:
           tmp_id_col = sequence_feature_column.sequence_numeric_column_with_categorical_column_with_identity(
               config.input_names[0] + '_raw_proj_id',

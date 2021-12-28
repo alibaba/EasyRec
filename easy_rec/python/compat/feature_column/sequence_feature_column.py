@@ -29,6 +29,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import sparse_ops
 
@@ -565,6 +566,13 @@ class SequenceNumericColumn(
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return {self.key: parsing_ops.VarLenFeature(self.dtype)}
+
+  def _transform_feature(self, inputs):
+    input_tensor = inputs.get(self.key)
+    return self._transform_input_tensor(input_tensor)
+
+  def _transform_input_tensor(self, input_tensor):
+    return math_ops.cast(input_tensor, dtypes.float32)
 
   def transform_feature(self, transformation_cache, state_manager):
     """See `FeatureColumn` base class.
