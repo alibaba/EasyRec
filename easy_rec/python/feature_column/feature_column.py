@@ -1,12 +1,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 import tensorflow as tf
 
 from easy_rec.python.builders import hyperparams_builder
 from easy_rec.python.compat.feature_column import sequence_feature_column
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 
@@ -165,8 +165,7 @@ class FeatureColumnParser(object):
     for fc_name in self._sequence_columns:
       fc = self._sequence_columns[fc_name]
       if type(fc) == tuple:
-        self._sequence_columns[fc_name] = self._get_shared_embedding_column(
-            fc)
+        self._sequence_columns[fc_name] = self._get_shared_embedding_column(fc)
 
   @property
   def wide_columns(self):
@@ -403,10 +402,12 @@ class FeatureColumnParser(object):
             config.input_names[0], config.num_buckets, default_value=0)
     else:
       bounds = None
-      fc = sequence_feature_column.sequence_numeric_column(config.input_names[0], shape = (1,))
+      fc = sequence_feature_column.sequence_numeric_column(
+          config.input_names[0], shape=(1,))
       if config.HasField('hash_bucket_size'):
         hash_bucket_size = config.hash_bucket_size
-        assert sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64], "hash_bucket_size dtype must be integer."
+        assert sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64
+                                  ], 'hash_bucket_size dtype must be integer.'
         fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
             config.input_names[0], hash_bucket_size, dtype=tf.int64)
       elif config.boundaries:
@@ -418,13 +419,15 @@ class FeatureColumnParser(object):
             x / float(config.num_buckets) for x in range(0, config.num_buckets)
         ]
         logging.info('sequence feature discrete %s into %d buckets' %
-                    (feature_name, config.num_buckets))
+                     (feature_name, config.num_buckets))
       if bounds:
         try:
-          fc = sequence_feature_column.sequence_numeric_column_with_bucketized_column(fc, bounds)
+          fc = sequence_feature_column.sequence_numeric_column_with_bucketized_column(
+              fc, bounds)
         except Exception as e:
-          tf.logging.error('sequence features bucketized_column [%s] with bounds %s error' %
-                          (config.input_names[0], str(bounds)))
+          tf.logging.error(
+              'sequence features bucketized_column [%s] with bounds %s error' %
+              (config.input_names[0], str(bounds)))
           raise e
       else:
         if config.embedding_dim > 0:
@@ -438,8 +441,9 @@ class FeatureColumnParser(object):
               dtype=tf.float32)
           fc = wgt_fc
         else:
-          fc = sequence_feature_column.sequence_numeric_column_with_raw_column(fc, config.sequence_length)
-    
+          fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
+              fc, config.sequence_length)
+
     if config.HasField('sequence_combiner'):
       fc.sequence_combiner = config.sequence_combiner
       self._deep_columns[feature_name] = fc

@@ -32,9 +32,10 @@ from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import sparse_ops
 
+from easy_rec.python.compat.feature_column import feature_column as fc_v1
 from easy_rec.python.compat.feature_column import feature_column_v2 as fc
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.compat.feature_column import feature_column as fc_v1
+
 # pylint: disable=protected-access
 
 
@@ -235,6 +236,7 @@ def sequence_categorical_column_with_identity(key,
       fc.categorical_column_with_identity(
           key=key, num_buckets=num_buckets, default_value=default_value))
 
+
 def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
   if not isinstance(source_column, (SequenceNumericColumn,)):  # pylint: disable=protected-access
     raise ValueError(
@@ -252,6 +254,7 @@ def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
       raise ValueError('boundaries must be a sorted list.')
   return fc.SequenceBucketizedColumn(source_column, tuple(boundaries))
 
+
 def sequence_numeric_column_with_raw_column(source_column, sequence_length):
   if not isinstance(source_column, (SequenceNumericColumn,)):  # pylint: disable=protected-access
     raise ValueError(
@@ -260,10 +263,12 @@ def sequence_numeric_column_with_raw_column(source_column, sequence_length):
   if len(source_column.shape) > 1:
     raise ValueError('source_column must be one-dimensional column. '
                      'Given: {}'.format(source_column))
-                    
+
   return fc.SequenceRawColumn(source_column, sequence_length)
 
-def sequence_numeric_column_with_categorical_column_with_identity(key, num_buckets, default_value=None):
+
+def sequence_numeric_column_with_categorical_column_with_identity(
+    key, num_buckets, default_value=None):
   if num_buckets < 1:
     raise ValueError('num_buckets {} < 1, column_name {}'.format(
         num_buckets, key))
@@ -276,13 +281,16 @@ def sequence_numeric_column_with_categorical_column_with_identity(key, num_bucke
   return fc.SequenceIdentityCategoricalColumn(
       key=key, number_buckets=num_buckets, default_value=default_value)
 
-def sequence_numeric_column_with_weighted_categorical_column(categorical_column, weight_feature_key, dtype=dtypes.float32):
+
+def sequence_numeric_column_with_weighted_categorical_column(
+    categorical_column, weight_feature_key, dtype=dtypes.float32):
   if (dtype is None) or not (dtype.is_integer or dtype.is_floating):
     raise ValueError('dtype {} is not convertible to float.'.format(dtype))
   return fc.SequenceWeightedCategoricalColumn(
       categorical_column=categorical_column,
       weight_feature_key=weight_feature_key,
       dtype=dtype)
+
 
 def sequence_categorical_column_with_hash_bucket(key,
                                                  hash_bucket_size,
@@ -533,8 +541,7 @@ def _assert_all_equal_and_return(tensors, name=None):
 
 
 class SequenceNumericColumn(
-    fc.SequenceDenseColumn,
-    fc_v1._FeatureColumn,
+    fc.SequenceDenseColumn, fc_v1._FeatureColumn,
     collections.namedtuple(
         'SequenceNumericColumn',
         ('key', 'shape', 'default_value', 'dtype', 'normalizer_fn'))):

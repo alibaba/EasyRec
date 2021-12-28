@@ -365,7 +365,9 @@ class Input(six.with_metaclass(_meta_type, object)):
                 axis=0)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
-          if fc.num_buckets > 0 or sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64]:
+          if fc.num_buckets > 0 or sub_value_type in [
+              DatasetConfig.INT32, DatasetConfig.INT64
+          ]:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
@@ -380,8 +382,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                     parsed_dict[input_0].values,
                     tf.float32,
                     name='sequence_str_2_float_%s' % input_0),
-                parsed_dict[input_0].dense_shape)   
-            # parsed_dict[input_0] = tf.scatter_nd(parsed_dict[input_0].indices, parsed_dict[input_0], [batch_size, fc.sequence_length])         
+                parsed_dict[input_0].dense_shape)
         else:
           parsed_dict[input_0] = field
         if not fc.boundaries and fc.num_buckets <= 1 and \
@@ -389,7 +390,10 @@ class Input(six.with_metaclass(_meta_type, object)):
           # may need by wide model and deep model to project
           # raw values to a vector, it maybe better implemented
           # by a ProjectionColumn later
-          parsed_dict[input_0] = tf.sparse_to_dense(parsed_dict[input_0].indices, [tf.shape(parsed_dict[input_0])[0], fc.sequence_length], parsed_dict[input_0].values)
+          parsed_dict[input_0] = tf.sparse_to_dense(
+              parsed_dict[input_0].indices,
+              [tf.shape(parsed_dict[input_0])[0], fc.sequence_length],
+              parsed_dict[input_0].values)
           sample_num = tf.to_int64(tf.shape(parsed_dict[input_0])[0])
           indices_0 = tf.range(sample_num, dtype=tf.int64)
           indices_1 = tf.range(fc.sequence_length, dtype=tf.int64)

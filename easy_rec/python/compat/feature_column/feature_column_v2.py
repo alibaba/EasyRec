@@ -134,6 +134,7 @@ import math
 
 import numpy as np
 import six
+import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -167,8 +168,6 @@ from tensorflow.python.util import nest
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.compat.feature_column import sequence_feature_column
-import tensorflow as tf
 
 _FEATURE_COLUMN_DEPRECATION_DATE = None
 _FEATURE_COLUMN_DEPRECATION = ('The old _FeatureColumn APIs are being '
@@ -2979,6 +2978,7 @@ class BucketizedColumn(
         config['source_column'], custom_objects, columns_by_name)
     return cls(**kwargs)
 
+
 class SequenceBucketizedColumn(
     DenseColumn,
     CategoricalColumn,
@@ -3018,12 +3018,13 @@ class SequenceBucketizedColumn(
                           _FEATURE_COLUMN_DEPRECATION)
   def _transform_feature(self, inputs):
     """Returns bucketized categorical `source_column` tensor."""
-    logging.info("transform_feature_type = %s" % type(inputs))
     source_tensor = inputs.get(self.source_column)
-    logging.info("source_tensor = %s" % source_tensor)
-    bucketize_values = math_ops._bucketize(source_tensor.values, boundaries=self.boundaries)
+    bucketize_values = math_ops._bucketize(
+        source_tensor.values, boundaries=self.boundaries)
     bucketize_tensor = sparse_tensor_lib.SparseTensor(
-        indices=source_tensor.indices, values=bucketize_values, dense_shape=source_tensor.dense_shape)
+        indices=source_tensor.indices,
+        values=bucketize_values,
+        dense_shape=source_tensor.dense_shape)
     return bucketize_tensor
 
   def transform_feature(self, transformation_cache, state_manager):
@@ -3084,24 +3085,17 @@ class SequenceBucketizedColumn(
     # By construction, source_column is always one-dimensional.
     source_dimension = self.source_column.shape[0]
 
-    i1 = array_ops.reshape(
-        array_ops.tile(
-            array_ops.expand_dims(math_ops.range(0, batch_size), 1),
-            [1, source_dimension]), (-1,))
     i2 = array_ops.tile(math_ops.range(0, source_dimension), [batch_size])
     # Flatten the bucket indices and unique them across dimensions
     # E.g. 2nd dimension indices will range from k to 2*k-1 with k buckets
     bucket_indices = (
         array_ops.reshape(input_tensor,
                           (-1,)) + (len(self.boundaries) + 1) * i2)
-    bucket_indices = tf.Print(bucket_indices, [input_indices, input_sparse_tensor.dense_shape], message = "print_input_indices")
 
-    indices = math_ops.cast(
-        array_ops.transpose(array_ops.stack((i1, i2))), dtypes.int64)
-    dense_shape = math_ops.cast(
-        array_ops.stack([batch_size, source_dimension]), dtypes.int64)
     sparse_tensor = sparse_tensor_lib.SparseTensor(
-        indices=input_indices, values=bucket_indices, dense_shape=input_sparse_tensor.dense_shape)
+        indices=input_indices,
+        values=bucket_indices,
+        dense_shape=input_sparse_tensor.dense_shape)
     # Compute the third dimension explicitly instead of setting it to -1, as
     # that doesn't work for dynamically shaped tensors with 0-length at runtime.
     # This happens for empty sequences.
@@ -3187,9 +3181,7 @@ class SequenceRawColumn(
                           _FEATURE_COLUMN_DEPRECATION)
   def _transform_feature(self, inputs):
     """Returns bucketized categorical `source_column` tensor."""
-    logging.info("transform_feature_type = %s" % type(inputs))
     source_tensor = inputs.get(self.source_column)
-    logging.info("source_tensor = %s" % source_tensor)
     return source_tensor
 
   def transform_feature(self, transformation_cache, state_manager):
@@ -3228,16 +3220,18 @@ class SequenceRawColumn(
     del trainable
     input_tensor = inputs.get(self)
     return self._get_dense_tensor_for_input_tensor(input_tensor)
-  
+
   def _get_sequence_dense_tensor(self, inputs):
     input_tensor = inputs.get(self)
-    sparse_tensors = self._get_sparse_tensors_for_input_tensor(input_tensor).id_tensor
+    sparse_tensors = self._get_sparse_tensors_for_input_tensor(
+        input_tensor).id_tensor
     sequence_length = fc_utils.sequence_length_from_sparse_tensor(
         sparse_tensors)
     sequence_length = tf.cast(sequence_length, tf.int32)
     shape = array_ops.shape(sparse_tensors)
     target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
-    ret_tensor = tf.sparse_to_dense(sparse_tensors.indices, target_shape, sparse_tensors.values)
+    ret_tensor = tf.sparse_to_dense(sparse_tensors.indices, target_shape,
+                                    sparse_tensors.values)
     return CategoricalColumn.IdWeightPair(ret_tensor, sequence_length)
 
   @property
@@ -3297,6 +3291,7 @@ class SequenceRawColumn(
     kwargs['source_column'] = deserialize_feature_column(
         config['source_column'], custom_objects, columns_by_name)
     return cls(**kwargs)
+
 
 class SequenceIdentityCategoricalColumn(
     CategoricalColumn,
@@ -3421,6 +3416,7 @@ class SequenceIdentityCategoricalColumn(
     """See 'FeatureColumn` base class."""
     _check_config_keys(config, cls._fields)
     return cls(**config)
+
 
 class SequenceWeightedCategoricalColumn(
     CategoricalColumn,
@@ -3551,6 +3547,7 @@ class SequenceWeightedCategoricalColumn(
         config['categorical_column'], custom_objects, columns_by_name)
     kwargs['dtype'] = dtypes.as_dtype(config['dtype'])
     return cls(**kwargs)
+
 
 class EmbeddingColumn(
     DenseColumn,
@@ -3772,7 +3769,9 @@ class EmbeddingColumn(
                                  trainable=None):
     if not isinstance(
         self.categorical_column,
-        (SequenceCategoricalColumn, fc_old._SequenceCategoricalColumn, SequenceBucketizedColumn, SequenceRawColumn, SequenceWeightedCategoricalColumn)):  # pylint: disable=protected-access
+        (SequenceCategoricalColumn, fc_old._SequenceCategoricalColumn,
+         SequenceBucketizedColumn, SequenceRawColumn,
+         SequenceWeightedCategoricalColumn)):  # pylint: disable=protected-access
       raise ValueError(
           'In embedding_column: {}. '
           'categorical_column must be of type SequenceCategoricalColumn '

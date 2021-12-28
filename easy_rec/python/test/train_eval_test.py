@@ -570,6 +570,25 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/wide_and_deep_on_sequence_feature_taobao.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_numeric_boundary_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_boundary_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_numeric_hash_bucket_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_hash_bucket_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_numeric_raw_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_raw_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
 
 
 if __name__ == '__main__':
