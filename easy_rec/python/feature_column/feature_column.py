@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 import tensorflow as tf
 
@@ -380,32 +381,72 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    if config.HasField('hash_bucket_size'):
-      hash_bucket_size = config.hash_bucket_size
-      fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-          config.input_names[0], hash_bucket_size, dtype=tf.string)
-    elif config.vocab_list:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_list=config.vocab_list)
-    elif config.vocab_file:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_file=config.vocab_file,
-          vocabulary_size=self._get_vocab_size(config.vocab_file))
+    sub_value_type = config.sub_value_type
+    if sub_value_type == DatasetConfig.STRING:
+      if config.HasField('hash_bucket_size'):
+        hash_bucket_size = config.hash_bucket_size
+        fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
+            config.input_names[0], hash_bucket_size, dtype=tf.string)
+      elif config.vocab_list:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_list=config.vocab_list)
+      elif config.vocab_file:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_file=config.vocab_file,
+            vocabulary_size=self._get_vocab_size(config.vocab_file))
+      else:
+        fc = sequence_feature_column.sequence_categorical_column_with_identity(
+            config.input_names[0], config.num_buckets, default_value=0)
     else:
-      fc = sequence_feature_column.sequence_categorical_column_with_identity(
-          config.input_names[0], config.num_buckets, default_value=0)
-
-    assert config.embedding_dim > 0
+      bounds = None
+      fc = sequence_feature_column.sequence_numeric_column(config.input_names[0], shape = (1,))
+      if config.HasField('hash_bucket_size'):
+        hash_bucket_size = config.hash_bucket_size
+        assert sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64], "hash_bucket_size dtype must be integer."
+        fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
+            config.input_names[0], hash_bucket_size, dtype=tf.int64)
+      elif config.boundaries:
+        bounds = list(config.boundaries)
+        bounds.sort()
+      elif config.num_buckets > 1 and config.max_val > config.min_val:
+        # the feature values are already normalized into [0, 1]
+        bounds = [
+            x / float(config.num_buckets) for x in range(0, config.num_buckets)
+        ]
+        logging.info('sequence feature discrete %s into %d buckets' %
+                    (feature_name, config.num_buckets))
+      if bounds:
+        try:
+          fc = sequence_feature_column.sequence_numeric_column_with_bucketized_column(fc, bounds)
+        except Exception as e:
+          tf.logging.error('sequence features bucketized_column [%s] with bounds %s error' %
+                          (config.input_names[0], str(bounds)))
+          raise e
+      else:
+        if config.embedding_dim > 0:
+          tmp_id_col = sequence_feature_column.sequence_numeric_column_with_categorical_column_with_identity(
+              config.input_names[0] + '_raw_proj_id',
+              config.sequence_length,
+              default_value=0)
+          wgt_fc = sequence_feature_column.sequence_numeric_column_with_weighted_categorical_column(
+              tmp_id_col,
+              weight_feature_key=config.input_names[0] + '_raw_proj_val',
+              dtype=tf.float32)
+          fc = wgt_fc
+        else:
+          fc = sequence_feature_column.sequence_numeric_column_with_raw_column(fc, config.sequence_length)
     
     if config.HasField('sequence_combiner'):
       fc.sequence_combiner = config.sequence_combiner
       self._deep_columns[feature_name] = fc
-    else:
+    elif config.embedding_dim > 0:
       self._add_deep_embedding_column(fc, config)
+    else:
+      self._deep_columns[feature_name] = fc
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:

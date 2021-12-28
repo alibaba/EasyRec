@@ -347,6 +347,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       elif feature_type == fc.SequenceFeature:
         input_0 = fc.input_names[0]
         field = field_dict[input_0]
+        sub_value_type = fc.sub_value_type
         # Construct the output of SeqFeature according to the dimension of field_dict.
         # When the input field exceeds 2 dimensions, convert SeqFeature to 2D output.
         if len(field.get_shape()) < 2:
@@ -364,7 +365,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                 axis=0)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
-          if fc.num_buckets > 0:
+          if fc.num_buckets > 0 or sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64]:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
@@ -372,8 +373,44 @@ class Input(six.with_metaclass(_meta_type, object)):
                     tf.int64,
                     name='sequence_str_2_int_%s' % input_0),
                 parsed_dict[input_0].dense_shape)
+          elif sub_value_type in [DatasetConfig.FLOAT, DatasetConfig.DOUBLE]:
+            parsed_dict[input_0] = tf.sparse.SparseTensor(
+                parsed_dict[input_0].indices,
+                tf.string_to_number(
+                    parsed_dict[input_0].values,
+                    tf.float32,
+                    name='sequence_str_2_float_%s' % input_0),
+                parsed_dict[input_0].dense_shape)   
+            # parsed_dict[input_0] = tf.scatter_nd(parsed_dict[input_0].indices, parsed_dict[input_0], [batch_size, fc.sequence_length])         
         else:
           parsed_dict[input_0] = field
+        if not fc.boundaries and fc.num_buckets <= 1 and \
+            self._data_config.sample_weight != input_0:
+          # may need by wide model and deep model to project
+          # raw values to a vector, it maybe better implemented
+          # by a ProjectionColumn later
+          parsed_dict[input_0] = tf.sparse_to_dense(parsed_dict[input_0].indices, [tf.shape(parsed_dict[input_0])[0], fc.sequence_length], parsed_dict[input_0].values)
+          sample_num = tf.to_int64(tf.shape(parsed_dict[input_0])[0])
+          indices_0 = tf.range(sample_num, dtype=tf.int64)
+          indices_1 = tf.range(fc.sequence_length, dtype=tf.int64)
+          indices_0 = indices_0[:, None]
+          indices_1 = indices_1[None, :]
+          indices_0 = tf.tile(indices_0, [1, fc.sequence_length])
+          indices_1 = tf.tile(indices_1, [sample_num, 1])
+          indices_0 = tf.reshape(indices_0, [-1, 1])
+          indices_1 = tf.reshape(indices_1, [-1, 1])
+          indices = tf.concat([indices_0, indices_1], axis=1)
+
+          parsed_dict[input_0 + '_raw_proj_id'] = tf.SparseTensor(
+              indices=indices,
+              values=indices_1[:, 0],
+              dense_shape=[sample_num, fc.sequence_length])
+          parsed_dict[input_0 + '_raw_proj_val'] = tf.SparseTensor(
+              indices=indices,
+              values=tf.reshape(parsed_dict[input_0], [-1]),
+              dense_shape=[sample_num, fc.sequence_length])
+          self._appended_fields.append(input_0 + '_raw_proj_id')
+          self._appended_fields.append(input_0 + '_raw_proj_val')
       elif feature_type == fc.RawFeature:
         input_0 = fc.input_names[0]
         if field_dict[input_0].dtype == tf.string:
