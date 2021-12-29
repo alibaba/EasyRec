@@ -25,6 +25,8 @@ from easy_rec.python.utils.load_class import get_register_class_meta
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+SINGLE_PLACEHOLDER_FEATURE_KEY = 'features'
+
 _PREDICTOR_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
     _PREDICTOR_CLASS_MAP, have_abstract_class=True)
@@ -60,6 +62,8 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
   def get_output_type(self):
     """Get output types of prediction.
 
+    in this function user should return a type dict, which indicates
+    which type of data should the output of predictor be converted to.
     * type json, data will be serialized to json str
     * type image, data will be converted to encode image binary and write to oss file,
       whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
@@ -94,6 +98,7 @@ class PredictorImpl(object):
     self._profiling_file = profiling_file
     self._model_path = model_path
     self._input_names = []
+    self._is_multi_placeholder = True
 
     self._build_model()
 
@@ -112,9 +117,9 @@ class PredictorImpl(object):
   def search_pb(self, directory):
     """Search pb file recursively in model directory.
 
-    if multiple pb files exist, exception will be raised.
+    if multiple pb files exist, exception will be raised
     Args:
-      directory: model directory.
+      directory: model directory
 
     Returns:
       directory contain pb file
@@ -178,7 +183,8 @@ class PredictorImpl(object):
           inputs = signature_def.inputs
           # each input_info is a tuple of input_id, name, data_type
           input_info = []
-          if len(inputs.items()) > 1:
+          self._is_multi_placeholder = len(inputs.items()) > 1
+          if self._is_multi_placeholder:
             for gid, item in enumerate(inputs.items()):
               name, tensor = item
               logging.info('Load input binding: %s -> %s' % (name, tensor.name))
@@ -306,6 +312,7 @@ class Predictor(PredictorInterface):
     self._profiling_file = profiling_file
     self._export_config = self._predictor_impl._export_config
     self._input_fields_info = self._predictor_impl._input_fields_info
+    self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
 
     self._input_fields = self._predictor_impl._input_fields_list
 
@@ -573,6 +580,23 @@ class Predictor(PredictorInterface):
           output_table, slice_id=slice_id)
 
       input_names = self._predictor_impl.input_names
+
+      def _parse_value(all_vals):
+        if self._is_multi_placeholder:
+          if SINGLE_PLACEHOLDER_FEATURE_KEY in all_vals:
+            feature_vals = all_vals[SINGLE_PLACEHOLDER_FEATURE_KEY]
+            split_index = []
+            split_vals = {}
+            for i, k in enumerate(input_names):
+              split_index.append(k)
+              split_vals[k] = []
+            for record in feature_vals:
+              split_records = record.split('\002')
+              for i, r in enumerate(split_records):
+                split_vals[split_index[i]].append(r)
+            return {k: np.array(split_vals[k]) for k in input_names}
+        return {k: all_vals[k] for k in input_names}
+
       progress = 0
       sum_t0, sum_t1, sum_t2 = 0, 0, 0
 
@@ -582,7 +606,9 @@ class Predictor(PredictorInterface):
           all_vals = sess.run(all_dict)
 
           ts1 = time.time()
-          input_vals = {k: all_vals[k] for k in input_names}
+          input_vals = _parse_value(all_vals)
+          # logging.info('input names = %s' % input_names)
+          # logging.info('input vals = %s' % input_vals)
           outputs = self._predictor_impl.predict(input_vals, output_cols)
 
           ts2 = time.time()
