@@ -15,7 +15,7 @@ def support_vector_guided_softmax_loss(pos_score,
                                        smooth=1.0,
                                        threshold=0,
                                        weights=1.0):
-  """refer paper: Support Vector Guided Softmax Loss for Face Recognition (https://128.84.21.199/abs/1812.11317)"""
+  """Refer paper: Support Vector Guided Softmax Loss for Face Recognition (https://128.84.21.199/abs/1812.11317)."""
   new_pos_score = pos_score - margin
   cond = tf.greater_equal(new_pos_score - neg_scores, threshold)
   mask = tf.where(cond, tf.zeros_like(cond, tf.float32),
@@ -41,10 +41,15 @@ def softmax_loss_with_negative_mining(user_emb,
                                       gamma=1.0,
                                       margin=0,
                                       t=1):
-  """Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb` the cosine distance between it and the corresponding `item_emb`, and additionally the cosine distance between `user_emb` and some other elements of `item_emb` (referred to a negative samples).
+  """Compute the softmax loss based on the cosine distance explained below.
 
+  Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb`
+  the cosine distance between it and the corresponding `item_emb`,
+  and additionally the cosine distance between `user_emb` and some other elements of `item_emb`
+   (referred to a negative samples).
   The negative samples are formed on the fly by shifting the right side (`item_emb`).
-    Then the softmax loss will be computed based on these cosine distance.
+  Then the softmax loss will be computed based on these cosine distance.
+
   Args:
     user_emb: A `Tensor` with shape [batch_size, embedding_size]. The embedding of user.
     item_emb: A `Tensor` with shape [batch_size, embedding_size]. The embedding of item.

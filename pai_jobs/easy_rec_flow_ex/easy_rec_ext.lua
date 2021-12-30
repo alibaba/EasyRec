@@ -434,7 +434,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   if inputTable == nil or inputTable == '' then
-    error('inputTable is not defined') 
+    error('inputTable is not defined')
   end
 
   tables = join(tables, ',')

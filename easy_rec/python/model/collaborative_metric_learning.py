@@ -28,14 +28,15 @@ class CoMetricLearningI2I(EasyRecModel):
       is_training=False):
     super(CoMetricLearningI2I, self).__init__(model_config, feature_configs,
                                               features, labels, is_training)
-    self._loss_type = self._model_config.loss_type
-    assert self._model_config.WhichOneof('model') == 'metric_learning', \
-      'invalid model config: %s' % self._model_config.WhichOneof('model')
+    model = self._model_config.WhichOneof('model')
+    assert model == 'metric_learning', 'invalid model config: %s' % model
     self._model_config = self._model_config.metric_learning
     assert isinstance(self._model_config, MetricLearningI2IConfig)
 
-    assert self._model_config.WhichOneof('loss').lower() == LossType.Name(self._loss_type).lower(), \
-      'invalid loss type: %s' % self._model_config.WhichOneof('loss')
+    self._loss_type = self._model_config.loss_type
+    loss_type_name = LossType.Name(self._loss_type).lower()
+    model_loss = self._model_config.WhichOneof('loss').lower()
+    assert model_loss == loss_type_name, 'invalid loss type: %s' % model_loss
 
     self.loss = self._model_config.circle_loss
 
