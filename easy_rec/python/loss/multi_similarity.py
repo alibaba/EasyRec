@@ -19,7 +19,8 @@ def ms_loss(embeddings,
             embed_normed=False):
   """Refer paper: Multi-Similarity Loss with General Pair Weighting for Deep Metric Learning.
 
-  ref: http://openaccess.thecvf.com/content_CVPR_2019/papers/Wang_Multi-Similarity_Loss_With_General_Pair_Weighting_for_Deep_Metric_Learning_CVPR_2019_paper.pdf
+  ref: http://openaccess.thecvf.com/content_CVPR_2019/papers/
+    Wang_Multi-Similarity_Loss_With_General_Pair_Weighting_for_Deep_Metric_Learning_CVPR_2019_paper.pdf
   """
   # make sure embedding should be l2-normalized
   if not embed_normed:

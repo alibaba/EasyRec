@@ -339,6 +339,7 @@ def get_shape_list(tensor, expected_rank=None, name=None):
       specified and the `tensor` has a different rank, and exception will be
       thrown.
     name: Optional name of the tensor for the error message.
+
   Returns:
     A list of dimensions of the shape of tensor. All static dimensions will
     be returned as python integers, and dynamic dimensions will be returned
@@ -368,6 +369,7 @@ def assert_rank(tensor, expected_rank, name=None):
     tensor: A tf.Tensor to check the rank of.
     expected_rank: Python integer or list of integers, expected rank.
     name: Optional name of the tensor for the error message.
+
   Raises:
     ValueError: If the expected shape doesn't match the actual shape.
   """

@@ -12,8 +12,9 @@ def circle_loss(embeddings,
                 margin=0.25,
                 gamma=32,
                 embed_normed=False):
-  """Paper: Circle Loss: A Unified Perspective of Pair Similarity Optimization
-     http://arxiv.org/pdf/2002.10857.pdf
+  """Paper: Circle Loss: A Unified Perspective of Pair Similarity Optimization.
+
+  Link: http://arxiv.org/pdf/2002.10857.pdf
 
   Args:
     embeddings: A `Tensor` with shape [batch_size, embedding_size]. The embedding of each sample.
@@ -56,6 +57,7 @@ def get_anchor_positive_triplet_mask(labels, sessions=None):
   Args:
     labels: a `Tensor` with shape [batch_size]
     sessions: a `Tensor` with shape [batch_size]
+
   Returns:
     mask: tf.float32 `Tensor` with shape [batch_size, batch_size]
   """
