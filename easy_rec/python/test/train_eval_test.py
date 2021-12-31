@@ -13,7 +13,7 @@ from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
-from easy_rec.python.utils.test_utils import RunAsSubprocess
+from easy_rec.python.utils.test_utils import RunAsSubprocess  # noqa: F401
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -581,7 +581,7 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/wide_and_deep_on_sequence_feature_taobao.config',
         self._test_dir)
-  
+
   def test_sequence_self_attention_dbmtl(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_sequence_feature_self_attention_taobao.config',

@@ -8,12 +8,12 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
-from easy_rec.python.layers import dnn
 from easy_rec.python.layers import seq_input_layer
+from easy_rec.python.layers import seq_model
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
-from easy_rec.python.layers import seq_model
+
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
 if tf.__version__ >= '2.0':
@@ -90,13 +90,15 @@ class InputLayer(object):
       from easy_rec.python.protos.dnn_pb2 import DNN
       seq_dnn_config = DNN()
       seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
-    
+
     seq_fea = None
     if seq_att_map_config.seq_model == 'self_attention':
-      seq_fea = seq_model.self_attention(
-          seq_features, seq_att_map_config.multi_head_size, seq_att_map_config.multi_head_size)
+      seq_fea = seq_model.self_attention(seq_features,
+                                         seq_att_map_config.seq_len,
+                                         seq_att_map_config.multi_head_size)
     else:
-      seq_fea = seq_model.target_attention(seq_dnn_config, seq_features, 'seq_dnn', self._is_training)
+      seq_fea = seq_model.target_attention(seq_dnn_config, seq_features,
+                                           'seq_dnn', self._is_training)
     return seq_fea
 
   def __call__(self, features, group_name, is_combine=True):
