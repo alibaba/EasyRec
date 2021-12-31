@@ -22,7 +22,8 @@ try:
   from datahub.models import RecordType
   from datahub.models import TupleRecord
 except Exception:
-  logging.error("DataHub is not installed, please installed it by: pip install pydatahub")
+  logging.error(
+      'DataHub is not installed, please installed it by: pip install pydatahub')
   DataHub = None
 
 try:

@@ -73,6 +73,7 @@ def _get_anchor_negative_triplet_mask(labels, sessions):
   Args:
     sessions: a `Tensor` with shape [batch_size]
     labels: a `Tensor` with shape [batch_size]
+
   Returns:
     mask: tf.bool `Tensor` with shape [batch_size, batch_size]
   """
