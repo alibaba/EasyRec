@@ -43,7 +43,7 @@ def target_attention(dnn_config, deep_fea, name, is_training):
 
 
 def attention_net(net, dim, cur_seq_len, seq_size, name):
-  query_net = dnn_net(net, [dim], name + '_query')  # B, seq_len，dim
+  query_net = dnn_net(net, [dim], name + '_query')  # B, seq_len, dim
   key_net = dnn_net(net, [dim], name + '_key')
   value_net = dnn_net(net, [dim], name + '_value')
   scores = tf.matmul(
