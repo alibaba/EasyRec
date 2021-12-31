@@ -13,7 +13,7 @@ from easy_rec.python.layers import seq_input_layer
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
-
+from easy_rec.python.layers import seq_model
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
 if tf.__version__ >= '2.0':
@@ -67,37 +67,6 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
-  def target_attention(self, dnn_config, deep_fea, name):
-    cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[
-        'hist_seq_emb'], deep_fea['hist_seq_len']
-
-    seq_max_len = tf.shape(hist_id_col)[1]
-    emb_dim = hist_id_col.shape[2]
-
-    cur_ids = tf.tile(cur_id, [1, seq_max_len])
-    cur_ids = tf.reshape(cur_ids,
-                         tf.shape(hist_id_col))  # (B, seq_max_len, emb_dim)
-
-    din_net = tf.concat(
-        [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
-        axis=-1)  # (B, seq_max_len, emb_dim*4)
-
-    din_layer = dnn.DNN(dnn_config, None, name, self._is_training)
-    din_net = din_layer(din_net)
-    scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
-
-    seq_len = tf.expand_dims(seq_len, 1)
-    mask = tf.sequence_mask(seq_len)
-    padding = tf.ones_like(scores) * (-2**32 + 1)
-    scores = tf.where(mask, scores, padding)  # [B, 1, seq_max_len]
-
-    # Scale
-    scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
-    hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, emb_dim]
-    hist_din_emb = tf.reshape(hist_din_emb, [-1, emb_dim])  # [B, emb_dim]
-    din_output = tf.concat([hist_din_emb, cur_id], axis=1)
-    return din_output
-
   def call_seq_input_layer(self,
                            features,
                            seq_att_map_config,
@@ -121,8 +90,13 @@ class InputLayer(object):
       from easy_rec.python.protos.dnn_pb2 import DNN
       seq_dnn_config = DNN()
       seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
-    seq_fea = self.target_attention(
-        seq_dnn_config, seq_features, name='seq_dnn')
+    
+    seq_fea = None
+    if seq_att_map_config.seq_model == 'self_attention':
+      seq_fea = seq_model.self_attention(
+          seq_features, seq_att_map_config.multi_head_size, seq_att_map_config.multi_head_size)
+    else:
+      seq_fea = seq_model.target_attention(seq_dnn_config, seq_features, 'seq_dnn', self._is_training)
     return seq_fea
 
   def __call__(self, features, group_name, is_combine=True):
