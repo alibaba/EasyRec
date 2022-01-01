@@ -13,6 +13,7 @@ from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
+from easy_rec.python.utils.test_utils import RunAsSubprocess  # noqa: F401
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
