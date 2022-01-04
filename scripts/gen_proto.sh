@@ -1,6 +1,10 @@
 #!/bin/bash
 ROOT_URL="http://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/tools/"
 
+rm -rf .git/hooks/pre-commit
+cp pre-commit .git/hooks/
+chmod a+rx .git/hooks/pre-commit
+
 if [[ ! -d protoc ]]; then
   if [[ "$(uname)" == "Darwin" ]]; then
     curl ${ROOT_URL}protoc-3.4.0-osx-x86_64.tar.gz -o protoc-3.4.0.tar.gz
