@@ -30,15 +30,22 @@ class CoMetricLearningI2I(EasyRecModel):
                                               features, labels, is_training)
     model = self._model_config.WhichOneof('model')
     assert model == 'metric_learning', 'invalid model config: %s' % model
-    self._model_config = self._model_config.metric_learning
-    assert isinstance(self._model_config, MetricLearningI2IConfig)
 
     self._loss_type = self._model_config.loss_type
     loss_type_name = LossType.Name(self._loss_type).lower()
+
+    self._model_config = self._model_config.metric_learning
+    assert isinstance(self._model_config, MetricLearningI2IConfig)
+
     model_loss = self._model_config.WhichOneof('loss').lower()
     assert model_loss == loss_type_name, 'invalid loss type: %s' % model_loss
 
-    self.loss = self._model_config.circle_loss
+    if self._loss_type == LossType.CIRCLE_LOSS:
+      self.loss = self._model_config.circle_loss
+    elif self._loss_type == LossType.MULTI_SIMILARITY_LOSS:
+      self.loss = self._model_config.multi_similarity_loss
+    else:
+      raise ValueError('unsupported loss type: %s' % LossType.Name(self._loss_type))
 
     self._highway_features = {}
     self._highway_num = len(self._model_config.highway)
