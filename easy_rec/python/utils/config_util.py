@@ -337,7 +337,11 @@ def add_boundaries_to_config(pipeline_config, tables):
   for feature_config in feature_configs:
     feature_name = feature_config.input_names[0]
     if feature_name in feature_boundaries_info:
-      feature_config.feature_type = feature_config.RawFeature
+      if feature_config.feature_type != feature_config.SequenceFeature:
+        logging.info(
+            'feature = {0}, type = {1}, will turn to RawFeature.'.format(
+                feature_name, feature_config.feature_type))
+        feature_config.feature_type = feature_config.RawFeature
       feature_config.hash_bucket_size = 0
       feature_config.ClearField('boundaries')
       feature_config.boundaries.extend(feature_boundaries_info[feature_name])

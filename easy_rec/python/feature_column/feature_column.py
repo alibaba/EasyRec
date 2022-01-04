@@ -404,7 +404,7 @@ class FeatureColumnParser(object):
       bounds = None
       fc = sequence_feature_column.sequence_numeric_column(
           config.input_names[0], shape=(1,))
-      if config.HasField('hash_bucket_size'):
+      if config.hash_bucket_size > 0:
         hash_bucket_size = config.hash_bucket_size
         assert sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64
                                   ], 'hash_bucket_size dtype must be integer.'
@@ -429,7 +429,7 @@ class FeatureColumnParser(object):
               'sequence features bucketized_column [%s] with bounds %s error' %
               (config.input_names[0], str(bounds)))
           raise e
-      elif not config.HasField('hash_bucket_size'):
+      elif config.hash_bucket_size <= 0:
         if config.embedding_dim > 0:
           tmp_id_col = sequence_feature_column.sequence_numeric_column_with_categorical_column_with_identity(
               config.input_names[0] + '_raw_proj_id',
