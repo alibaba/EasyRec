@@ -113,7 +113,10 @@ class PredictorImpl(object):
 
   def get_input_fields_from_pipeline_config(self, model_path):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
-    assert tf.gfile.Exists(pipeline_path), '%s not exists.' % pipeline_path
+    if not tf.gfile.Exists(pipeline_path):
+      logging.warning('%s not exists, default values maybe inconsistent with the values used in training.' % pipeline_path)
+      return {}
+
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     input_fields = pipeline_config.data_config.input_fields
     input_fields_info = {
@@ -152,6 +155,15 @@ class PredictorImpl(object):
           # parse signature
           signature_def = meta_graph_def.signature_def[
               signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+          # try:
+          #   table_init = self._graph.get_operation_by_name('init_all_tables')
+          # except KeyError as ex:
+          #   table_init = tf.tables_initializer()
+          # import pdb
+          # pdb.set_trace()
+          # self._session.run(table_init)
+          # local_init = tf.local_variables_initializer()
+          # self._session.run(local_init)
           inputs = signature_def.inputs
           # each input_info is a tuple of input_id, name, data_type
           input_info = []
@@ -336,11 +348,11 @@ class Predictor(PredictorInterface):
         default_val = get_type_defaults(col_type, default_val)
         logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
       else:
-        logging.info('col_name: %s is not used in predict.' % col_name)
         defaults = {'string': '', 'double': 0.0, 'bigint': 0}
         assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
             col_name, col_type)
         default_val = defaults[col_type]
+        logging.info('col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]' % (col_name, default_val))
       return default_val
 
     all_cols = [x.strip() for x in all_cols.split(',') if x != '']

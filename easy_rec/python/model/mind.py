@@ -39,6 +39,11 @@ class MIND(MatchModel):
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
     self._item_features, _ = self._input_layer(self._feature_dict, 'item')
 
+    if self._model_config.item_id != '':
+      self._item_ids = features[self._model_config.item_id]
+    else:
+      self._item_ids = None
+
     # copy_obj so that any modification will not affect original config
     self.user_dnn = copy_obj(self._model_config.user_dnn)
     # copy_obj so that any modification will not affect original config
@@ -106,9 +111,10 @@ class MIND(MatchModel):
     high_capsules, num_high_capsules, _ = capsule_layer(hist_seq_feas,
         hist_seq_len, None) # self._feature_dict['pid'])
 
-    high_capsules = tf.layers.batch_normalization(
-        high_capsules, training=self._is_training,
-        trainable=True, name='capsule_bn')
+    # high_capsules = tf.layers.batch_normalization(
+    #     high_capsules, training=self._is_training,
+    #     trainable=True, name='capsule_bn')
+    # high_capsules = high_capsules * 0.1
 
     tf.summary.scalar('high_capsules_norm', tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
     tf.summary.scalar('num_high_capsules', tf.reduce_mean(tf.to_float(num_high_capsules)))
@@ -229,9 +235,6 @@ class MIND(MatchModel):
           [batch_simi, batch_capsule_simi], message='batch_simi')
     return self._prediction_dict
 
-  def build_loss_graph(self):
-    loss_dict = super(MIND, self).build_loss_graph()
-    return loss_dict
 
   def _build_interest_simi(self):
     user_feature_num = self._prediction_dict['user_emb_num']
@@ -355,45 +358,63 @@ class MIND(MatchModel):
     if hard_neg_indices is not None:
       logging.info('With hard negative examples')
       noclk_size = tf.shape(hard_neg_indices)[0]
-      pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
-          item_feature, [batch_size, -1, noclk_size], axis=0)
+      simple_item_emb, hard_neg_item_emb = tf.split(
+          item_feature, [-1, noclk_size], axis=0)
     else:
-      pos_item_emb = item_feature[:batch_size]
-      neg_item_emb = item_feature[batch_size:]
+      simple_item_emb = item_feature
       hard_neg_item_emb = None
 
     # batch_size num_interest sample_neg_num
-    sample_item_sim = tf.einsum('bhe,ne->bhn', user_features, neg_item_emb)
+    simple_item_sim = tf.einsum('bhe,ne->bhn', user_features, simple_item_emb)
     # batch_size sample_neg_num
-    sample_item_sim = tf.reduce_max(sample_item_sim, axis=1)
+    simple_item_sim = tf.reduce_max(simple_item_sim, axis=1)
     # batch_size num_interest
-    pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb)
-    pos_item_sim1 = tf.reduce_max(pos_item_sim, axis=1, keepdims=True)
-    pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True)
+    # pos_item_sim = tf.einsum('bhe,be->bh', user_features, pos_item_emb)
+    # pos_item_sim1 = tf.reduce_max(pos_item_sim, axis=1, keepdims=True)
+    # pos_item_sim = tf.reduce_sum(pos_item_sim, axis=1, keepdims=True)
 
-    sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
-    sampled_logits_1 = tf.concat([pos_item_sim1, sample_item_sim], axis=1)
+    # sampled_logits = tf.concat([pos_item_sim, sample_item_sim], axis=1)
+    # sampled_logits_1 = tf.concat([pos_item_sim1, sample_item_sim], axis=1)
 
-    sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
+    # sampled_lbls = tf.zeros_like(sampled_logits[:, :1], dtype=tf.int64)
+    simple_lbls = tf.cast(tf.range(tf.shape(user_features)[0]), tf.int64)
     for topk in recall_at_topks:
       metric_dict['interests_recall@%d' % topk] = metrics.recall_at_k(
-          labels=sampled_lbls,
-          predictions=sampled_logits,
+          labels=simple_lbls,
+          predictions=simple_item_sim,
           k=topk,
           name='interests_recall_at_%d' % topk)
-      metric_dict['interests_recall_1@%d' % topk] = metrics.recall_at_k(
-          labels=sampled_lbls,
-          predictions=sampled_logits_1,
-          k=topk,
-          name='interests_recall_1_at_%d' % topk)
+      # metric_dict['interests_recall_1@%d' % topk] = metrics.recall_at_k(
+      #     labels=sampled_lbls,
+      #     predictions=sampled_logits_1,
+      #     k=topk,
+      #     name='interests_recall_1_at_%d' % topk)
 
 
     logits = self._prediction_dict['logits']
-    labels = tf.zeros_like(logits[:, :1], dtype=tf.int64)
+    # labels = tf.zeros_like(logits[:, :1], dtype=tf.int64)
+    indices = tf.range(batch_size)
+    indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
+    pos_item_sim = tf.gather_nd(simple_item_sim, indices) 
+    logits_v2 = tf.concat([pos_item_sim[:, None], logits[:, batch_size:]], axis=1)
+    labels_v2 = tf.zeros_like(logits_v2[:, :1], dtype=tf.int64)
+
+    if self._item_ids is not None:
+      mask_in_batch_neg = tf.to_float(tf.equal(self._item_ids[None, :batch_size], self._item_ids[:batch_size, None])) - \
+          tf.diag(tf.ones([batch_size], dtype=tf.float32))
+      tf.summary.scalar('in_batch_neg_conflict', tf.reduce_sum(mask_in_batch_neg))
+      logits = tf.concat([logits[:, :batch_size] - mask_in_batch_neg * 1e32, logits[:, batch_size:]], axis=1)
+
     for topk in recall_at_topks:
       metric_dict['recall@%d' % topk] = metrics.recall_at_k(
-        labels=labels, predictions=logits, k=topk,
+        labels=simple_lbls, predictions=logits, k=topk,
         name='recall_at_%d' % topk)
+      metric_dict['recall_v2@%d' % topk] = metrics.recall_at_k(
+        labels=labels_v2, predictions=logits_v2, k=topk,
+        name='recall_v2_at_%d' % topk)
+      metric_dict['recall_v3@%d' % topk] = metrics.recall_at_k(
+        labels=simple_lbls, predictions=logits[:, :batch_size], k=topk,
+        name='recall_v3_at_%d' % topk)
 
     # batch_size num_interest
     if hard_neg_indices is not None:
@@ -403,9 +424,16 @@ class MIND(MatchModel):
       hard_neg_sim = tf.reduce_max(hard_neg_sim, axis=1)
       max_num_neg = tf.reduce_max(hard_neg_indices[:, 1]) + 1
       hard_neg_shape = tf.stack([tf.to_int64(batch_size), max_num_neg])
-      hard_neg_sim = tf.scatter_nd(hard_neg_indices, tf.exp(hard_neg_sim),
+      hard_neg_mask = tf.scatter_nd(hard_neg_indices,
+          tf.ones_like(hard_neg_sim, dtype=tf.float32),
+          shape=hard_neg_shape)
+      hard_neg_sim = tf.scatter_nd(hard_neg_indices, hard_neg_sim,
                                    hard_neg_shape)
-      hard_logits = tf.concat([pos_item_sim, hard_neg_sim], axis=1)
+      hard_neg_sim = hard_neg_sim - (1 - hard_neg_mask) * 1e32 
+
+
+
+      hard_logits = tf.concat([pos_item_sim[:, None], hard_neg_sim], axis=1)
       hard_lbls = tf.zeros_like(hard_logits[:, :1], dtype=tf.int64)
       metric_dict['hard_neg_acc'] = metrics.accuracy(
           hard_lbls, tf.argmax(hard_logits, axis=1))
@@ -415,8 +443,8 @@ class MIND(MatchModel):
   def get_outputs(self):
     if self._loss_type in (LossType.CLASSIFICATION,
                            LossType.SOFTMAX_CROSS_ENTROPY):
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return ['logits', 'probs', 'user_emb', 'item_emb', 'user_emb_num']
     elif self._loss_type == LossType.L2_LOSS:
-      return ['y', 'user_emb', 'item_emb']
+      return ['y', 'user_emb', 'item_emb', 'user_emb_num']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))

@@ -44,36 +44,43 @@ class MatchModel(EasyRecModel):
     if hard_neg_indices is not None:
       logging.info('With hard negative examples')
       noclk_size = tf.shape(hard_neg_indices)[0]
-      pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
-          item_emb, [batch_size, -1, noclk_size], axis=0)
+      # pos_item_emb, neg_item_emb, hard_neg_item_emb = tf.split(
+      #     item_emb, [batch_size, -1, noclk_size], axis=0)
+      simple_item_emb, hard_neg_item_emb = tf.split( 
+            item_emb, [-1, noclk_size], axis=0)
     else:
-      pos_item_emb = item_emb[:batch_size]
-      neg_item_emb = item_emb[batch_size:]
+      # pos_item_emb = item_emb[:batch_size]
+      # neg_item_emb = item_emb[batch_size:]
+      simple_item_emb = item_emb
 
-    pos_user_item_sim = tf.reduce_sum(
-        tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
-    neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
+    # pos_user_item_sim = tf.reduce_sum(
+    #     tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
+    # neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
+    simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
 
-    if hard_neg_indices is not None:
+    if hard_neg_indices is None:
+      return simple_user_item_sim
+    else:
       user_emb_expand = tf.gather(user_emb, hard_neg_indices[:, 0])
       hard_neg_user_item_sim = tf.reduce_sum(
           tf.multiply(user_emb_expand, hard_neg_item_emb), axis=1)
-      # scatter hard negatives sim update neg_user_item_sim
-      neg_sim_shape = tf.shape(neg_user_item_sim, out_type=tf.int64)
+      max_num_neg = tf.reduce_max(hard_neg_indices[:, 1]) + 1
+      hard_neg_shape = tf.stack([tf.to_int64(batch_size), max_num_neg])
+      hard_neg_sim = tf.scatter_nd(hard_neg_indices, hard_neg_user_item_sim,
+                                   hard_neg_shape)
       hard_neg_mask = tf.scatter_nd(
           hard_neg_indices,
           tf.ones_like(hard_neg_user_item_sim, dtype=tf.float32),
-          shape=neg_sim_shape)
+          shape=hard_neg_shape)
       # set tail positions to -1e32, so that after exp(x), will be zero
-      hard_neg_mask = (1 - hard_neg_mask) * (-1e32)
-      hard_neg_user_item_sim = tf.scatter_nd(
-          hard_neg_indices, hard_neg_user_item_sim,
-          shape=neg_sim_shape) * hard_neg_mask
+      hard_neg_user_item_sim = hard_neg_sim - (1 - hard_neg_mask) * 1e32
 
-    user_item_sim = [pos_user_item_sim, neg_user_item_sim]
-    if hard_neg_indices is not None:
-      user_item_sim.append(hard_neg_user_item_sim)
-    return tf.concat(user_item_sim, axis=1)
+    # user_item_sim = [pos_user_item_sim, neg_user_item_sim]
+    # if hard_neg_indices is not None:
+    #   user_item_sim.append(hard_neg_user_item_sim)
+    # return tf.concat(user_item_sim, axis=1)
+   
+      return tf.concat([simple_user_item_sim, hard_neg_user_item_sim], axis=1)
 
   def _point_wise_sim(self, user_emb, item_emb):
     user_item_sim = tf.reduce_sum(
@@ -101,7 +108,12 @@ class MatchModel(EasyRecModel):
 
   def _build_list_wise_loss_graph(self):
     if self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
-      hit_prob = self._prediction_dict['probs'][:, :1]
+      # hit_prob = self._prediction_dict['probs'][:, :1]
+      batch_size = tf.shape(self._prediction_dict['probs'])[0]
+      indices = tf.range(batch_size)
+      indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
+      hit_prob = tf.gather_nd(self._prediction_dict['probs'], indices) 
+      # hit_prob = tf.Print(hit_prob, [tf.shape(hit_prob)], message='hit_prob_shape')
       self._loss_dict['cross_entropy_loss'] = -tf.reduce_mean(
           tf.log(hit_prob + 1e-12))
       logging.info('softmax cross entropy loss is used')
@@ -139,14 +151,31 @@ class MatchModel(EasyRecModel):
       return self._build_list_wise_metric_graph(eval_config)
 
   def _build_list_wise_metric_graph(self, eval_config):
+    logits = self._prediction_dict['logits']
+    # label = tf.zeros_like(logits[:, :1], dtype=tf.int64)
+    batch_size = tf.shape(logits)[0]
+    label = tf.cast(tf.range(batch_size), tf.int64)
+
+    indices = tf.range(batch_size)
+    indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
+    pos_item_sim = tf.gather_nd(logits, indices) 
     metric_dict = {}
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
-        logits = self._prediction_dict['logits']
-        label = tf.zeros_like(logits[:, :1], dtype=tf.int64)
         metric_dict['recall_at_top%d' %
                     metric.recall_at_topk.topk] = metrics.recall_at_k(
                         label, logits, metric.recall_at_topk.topk)
+
+        logits_v2 = tf.concat([pos_item_sim[:, None], logits[:, batch_size:]], axis=1)
+        labels_v2  = tf.zeros_like(logits_v2[:, :1], dtype=tf.int64)
+        metric_dict['recall_at_top%d_v2' %
+                    metric.recall_at_topk.topk] = metrics.recall_at_k(
+                        labels_v2, logits_v2, metric.recall_at_topk.topk)
+
+
+        metric_dict['recall_at_top%d_v3' %
+                    metric.recall_at_topk.topk] = metrics.recall_at_k(
+                        label, logits[:, :batch_size], metric.recall_at_topk.topk)
       else:
         ValueError('invalid metric type: %s' % str(metric))
     return metric_dict

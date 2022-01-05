@@ -24,13 +24,36 @@ class CapsuleLayer:
     self._routing_logits_scale = capsule_config.routing_logits_scale
     # routing_logits_stddev
     self._routing_logits_stddev = capsule_config.routing_logits_stddev
+    # squash power
+    self._squash_pow = capsule_config.squash_pow
+    # scale ratio
+    self._scale_ratio = capsule_config.scale_ratio
     self._is_training = is_training
 
   def squash(self, inputs):
     """Squash inputs over the last dimension."""
-    input_norm = tf.reduce_sum(tf.square(inputs), keep_dims=True, axis=-1)
-    scalar_factor = input_norm / (1 + input_norm) / tf.sqrt(input_norm + 1e-8)
-    return scalar_factor * inputs
+    input_norm = tf.reduce_sum(tf.square(inputs), keep_dims=True, axis=-1) 
+    input_norm_eps = tf.maximum(input_norm, 1e-8)
+    scale_factor = tf.pow(input_norm_eps / (1 + input_norm_eps), self._squash_pow) * \
+        self._scale_ratio / tf.sqrt(input_norm_eps) # tf.sqrt(input_norm + 1e-8) 
+    tf.summary.histogram('capsule/squash_scale_factor', scale_factor)
+    return scale_factor * inputs
+
+  def _build_capsule_simi(self, high_capsules, capsule_num):
+    high_capsule_mask = tf.sequence_mask(capsule_num, tf.shape(high_capsules)[1])
+    high_capsules = high_capsules * tf.to_float(high_capsule_mask[:, :, None])
+    high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
+    sum_sqr = tf.square(tf.reduce_sum(high_capsules, axis=1))
+    sqr_sum = tf.reduce_sum(tf.square(high_capsules), axis=1)
+    simi = sum_sqr - sqr_sum
+  
+    div = tf.maximum(tf.to_float(capsule_num * (capsule_num - 1)), 1.0)   
+    simi = tf.reduce_sum(simi, axis=1) / div
+
+    is_multi = tf.to_float(capsule_num > 1)
+    avg_simi = tf.reduce_sum((simi+1) * is_multi) /\
+        (2.0 * tf.reduce_sum(is_multi))
+    return avg_simi
 
   def __call__(self, seq_feas, seq_lens, debug_feas):
     """Capsule layer.
@@ -93,7 +116,15 @@ class CapsuleLayer:
       # batch_size x max_seq_len x max_k(bsh)
       routing_logits = tf.minimum(routing_logits, max_cap_thresh)
       routing_logits = tf.nn.softmax(routing_logits, axis=2)
+
       routing_logits = routing_logits * mask[:, :, None]
+
+      logits_simi = self._build_capsule_simi(routing_logits, seq_lens)
+      tf.summary.scalar('capsule/rlogits_simi_%d' % iter_id, logits_simi)
+
+      seq_fea_simi = self._build_capsule_simi(seq_feas_high_stop, seq_lens)
+      tf.summary.scalar('capsule/seq_fea_simi_%d' % iter_id, seq_fea_simi)
+
       # batch_size x max_k x high_dim(bse,bsh->bhe)
       high_capsules = tf.einsum(
           'bse, bsh->bhe', seq_feas_high_stop
@@ -156,7 +187,16 @@ class CapsuleLayer:
         #     Tout=tf.string)
         # tmp_high_capsules = tf.gather(high_capsules, tmp_ids)
         # py_simi = tf.py_func(_get_simi, [tmp_high_capsules, tmp_num_high], Tout=tf.float32)
+        capsule_simi = self._build_capsule_simi(high_capsules, num_high_capsules)
+        tf.summary.scalar('caspule/simi_%d' % iter_id, capsule_simi)
+        # high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
+        tf.summary.scalar('capsule/before_squash', tf.reduce_mean(tf.norm(
+            high_capsules, axis=-1)))
         high_capsules = self.squash(high_capsules)
+        tf.summary.scalar('capsule/after_squash', tf.reduce_mean(tf.norm(
+            high_capsules, axis=-1)))
+        capsule_simi_final = self._build_capsule_simi(high_capsules, num_high_capsules)
+        tf.summary.scalar('caspule/simi_final', capsule_simi_final)
         # tmp_high_capsules = tf.gather(high_capsules, tmp_ids)
         # py_simi_squash = tf.py_func(_get_simi, [tmp_high_capsules, tmp_num_high], Tout=tf.float32)
         # high_capsules = tf.Print(high_capsules, [tmp_logits[:, :10, :],
@@ -169,6 +209,8 @@ class CapsuleLayer:
         break
       # batch_size x max_k x high_dim(bhe)
       high_capsules = tf.nn.l2_normalize(high_capsules, -1)
+      capsule_simi = self._build_capsule_simi(high_capsules, num_high_capsules)
+      tf.summary.scalar('caspule/simi_%d' % iter_id, capsule_simi)
       # batch_size x max_seq_len x max_k(bse, bhe->bsh)
       if self._routing_logits_scale > 0:
         if iter_id == 0:

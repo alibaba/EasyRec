@@ -17,6 +17,10 @@ message Capsule {
   optional float routing_logits_scale = 5 [default=20];
   // routing logits initial stddev
   optional float routing_logits_stddev = 6 [default=1.0];
+  // squash power
+  optional float squash_pow = 7 [default=1.0];
+  // output ratio
+  optional float scale_ratio = 8 [default=1.0];
 }
 
 message MIND {
@@ -55,4 +59,6 @@ message MIND {
   required float l2_regularization = 7 [default = 1e-4];
 
   optional string time_id_fea = 8;
+
+  required string item_id = 9;
 }
