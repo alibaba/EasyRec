@@ -540,11 +540,11 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  # def test_sequence_essm(self):
-  #   self._success = test_utils.test_single_train_eval(
-  #       'samples/model_config/essm_on_sequence_feature_taobao.config',
-  #       self._test_dir)
-  #   self.assertTrue(self._success)
+  def test_sequence_essm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/essm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
 
   def test_sequence_fm(self):
     self._success = test_utils.test_single_train_eval(
@@ -597,6 +597,36 @@ class TrainEvalTest(tf.test.TestCase):
   def test_numeric_raw_sequence_dbmtl(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_numeric_raw_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_numeric_num_buckets_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_num_buckets_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_multi_numeric_boundary_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_multi_numeric_hash_bucket_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_hash_bucket_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_multi_numeric_raw_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_raw_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_multi_numeric_num_buckets_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_num_buckets_sequence_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
