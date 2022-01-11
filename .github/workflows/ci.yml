@@ -21,10 +21,7 @@ jobs:
           TEST_DEVICES: ""
         run: |
            source activate /home/admin/tf12_py2/
-           if [ ! -e "/tmp/easyrec_data_20220111.tar.gz" ]
-           then
-             wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20220111.tar.gz -O /tmp/easyrec_data_20220111.tar.gz
-           fi
+           wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20220111.tar.gz -O /tmp/easyrec_data_20220111.tar.gz
            tar -zvxf /tmp/easyrec_data_20220111.tar.gz
            source scripts/ci_test.sh
       - name: LabelAndComment
