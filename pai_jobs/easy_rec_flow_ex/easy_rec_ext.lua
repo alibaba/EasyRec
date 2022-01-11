@@ -53,13 +53,15 @@ function ParseOssUri(oss_uri, default_host)
 end
 
 function getEntry(script_in, entryFile_in, config, cluster, res_project, version)
-  if script_in ~= nil and string.len(script_in) > 0
-    and entryFile_in ~= nil and string.len(entryFile_in) > 0 then
+  if string.len(entryFile_in) == 0 then
+    error('entryFile is not set')
+  end
+  if script_in ~= nil and string.len(script_in) > 0 then
     script = script_in
     entryFile = entryFile_in
   else
-    script= "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
-    entryFile="run.py"
+    script = "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
+    entryFile = entryFile_in
   end
 
   return script, entryFile
@@ -430,7 +432,9 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   -- merge all_tables into tables
   tables = {}
   for k,v in pairs(all_tables) do
-    table.insert(tables, k)
+    -- ensure order to be compatible
+    tables[v+1] = k
+    --table.insert(tables, k)
   end
 
   if inputTable == nil or inputTable == '' then
