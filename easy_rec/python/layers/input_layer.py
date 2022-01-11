@@ -120,6 +120,7 @@ class InputLayer(object):
       else:
         logging.info(
             'seq_dnn not set in seq_att_groups, will use default settings')
+        # If not set seq_dnn, will use default settings
         from easy_rec.python.protos.dnn_pb2 import DNN
         seq_dnn_config = DNN()
         seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
