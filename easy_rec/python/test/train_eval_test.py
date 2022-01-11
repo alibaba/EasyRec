@@ -629,6 +629,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dbmtl_on_multi_numeric_num_buckets_sequence_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
+  def test_multi_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
 
 
 if __name__ == '__main__':

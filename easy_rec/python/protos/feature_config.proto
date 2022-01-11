@@ -120,7 +120,7 @@ message FeatureGroupConfig {
     repeated string feature_names = 2;
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
-    optional SeqAttGroupConfig sequence_features = 4;
+    repeated SeqAttGroupConfig sequence_features = 4;
 }
 
 message SeqAttMap {
