@@ -540,9 +540,9 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_sequence_essm(self):
+  def test_sequence_esmm(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/essm_on_sequence_feature_taobao.config',
+        'samples/model_config/esmm_on_sequence_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
