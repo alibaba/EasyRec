@@ -106,8 +106,8 @@ class InputLayer(object):
       group_name = seq_att_map_config.group_name
       allow_key_search = seq_att_map_config.allow_key_search
       seq_features = self._seq_input_layer(features, group_name,
-                                          feature_name_to_output_tensors,
-                                          allow_key_search)
+                                           feature_name_to_output_tensors,
+                                           allow_key_search)
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=[seq_features['key']])
       regularizers.apply_regularization(
@@ -126,7 +126,8 @@ class InputLayer(object):
       seq_fea = self.target_attention(
           seq_dnn_config, seq_features, name=cur_target_attention_name)
       all_seq_fea.append(seq_fea)
-    all_seq_fea = tf.concat(all_seq_fea, axis = 1)
+    # concat all seq_fea
+    all_seq_fea = tf.concat(all_seq_fea, axis=1)
     return all_seq_fea
 
   def __call__(self, features, group_name, is_combine=True):

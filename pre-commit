@@ -15,7 +15,7 @@ for i in "${!stage_files[@]}"; do
     fi
     for index in "${!keywords[@]}"; do
       grep -E -q ${keywords[index]} ${stage_files[i]}
-      if [ $? -eq 0 ] 
+      if [ $? -eq 0 ]
       then
          echo "Check Failed, ${stage_files[i]} contain sensitive info: pattern=${keywords[index]}, details: "
          grep -E ${keywords[index]} ${stage_files[i]}
@@ -26,8 +26,9 @@ for i in "${!stage_files[@]}"; do
 done
 if [ $result -eq 0 ];then
   echo "Sensitive Information Leak Check Passed."
-else 
+else
   exit 1
 fi
 pwd
-scripts/pre-commit
+
+python scripts/pre-commit
