@@ -366,9 +366,16 @@ class Input(six.with_metaclass(_meta_type, object)):
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
           if fc.num_buckets > 1 or sub_value_type in [
-              DatasetConfig.INT32, DatasetConfig.INT64, DatasetConfig.FLOAT,
-              DatasetConfig.DOUBLE
+              DatasetConfig.INT32, DatasetConfig.INT64
           ]:
+            parsed_dict[input_0] = tf.sparse.SparseTensor(
+                parsed_dict[input_0].indices,
+                tf.string_to_number(
+                    parsed_dict[input_0].values,
+                    tf.int64,
+                    name='sequence_str_2_int_%s' % input_0),
+                parsed_dict[input_0].dense_shape)
+          if sub_value_type in [DatasetConfig.FLOAT, DatasetConfig.DOUBLE]:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
