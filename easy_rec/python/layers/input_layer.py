@@ -102,6 +102,7 @@ class InputLayer(object):
                            all_seq_att_map_config,
                            feature_name_to_output_tensors=None):
     all_seq_fea = []
+    # process all sequence features
     for seq_att_map_config in all_seq_att_map_config:
       group_name = seq_att_map_config.group_name
       allow_key_search = seq_att_map_config.allow_key_search
