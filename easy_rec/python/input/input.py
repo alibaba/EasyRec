@@ -365,9 +365,9 @@ class Input(six.with_metaclass(_meta_type, object)):
                 axis=0)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
-          if fc.num_buckets > 1 and fc.max_val == fc.min_val and sub_value_type in [
-              DatasetConfig.INT32, DatasetConfig.INT64
-          ]:
+          if (fc.num_buckets > 1 and fc.max_val == fc.min_val) or (
+              fc.max_val == fc.min_val and
+              sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64]):
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
