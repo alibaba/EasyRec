@@ -261,7 +261,7 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     if self._sampler is not None and self._mode != tf.estimator.ModeKeys.PREDICT:
       if self._mode != tf.estimator.ModeKeys.TRAIN:
-        self._sampler.set_eval_num_sample() 
+        self._sampler.set_eval_num_sample()
       sampler_type = self._data_config.WhichOneof('sampler')
       sampler_config = getattr(self._data_config, sampler_type)
       item_ids = field_dict[sampler_config.item_id_field]

@@ -140,7 +140,9 @@ class PredictorImpl(object):
   def _get_input_fields_from_pipeline_config(self, model_path):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
     if not tf.gfile.Exists(pipeline_path):
-      logging.warning('%s not exists, default values maybe inconsistent with the values used in training.' % pipeline_path)
+      logging.warning(
+          '%s not exists, default values maybe inconsistent with the values used in training.'
+          % pipeline_path)
       return {}
 
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
@@ -542,7 +544,9 @@ class Predictor(PredictorInterface):
         assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
             col_name, col_type)
         default_val = defaults[col_type]
-        logging.info('col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]' % (col_name, default_val))
+        logging.info(
+            'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
+            % (col_name, default_val))
       return default_val
 
     all_cols = [x.strip() for x in all_cols.split(',') if x != '']

@@ -32,31 +32,32 @@ class CapsuleLayer:
 
   def squash(self, inputs):
     """Squash inputs over the last dimension."""
-    input_norm = tf.reduce_sum(tf.square(inputs), keep_dims=True, axis=-1) 
+    input_norm = tf.reduce_sum(tf.square(inputs), keep_dims=True, axis=-1)
     input_norm_eps = tf.maximum(input_norm, 1e-8)
     scale_factor = tf.pow(input_norm_eps / (1 + input_norm_eps), self._squash_pow) * \
-        self._scale_ratio / tf.sqrt(input_norm_eps) # tf.sqrt(input_norm + 1e-8) 
+        self._scale_ratio / tf.sqrt(input_norm_eps)
     tf.summary.histogram('capsule/squash_scale_factor', scale_factor)
     return scale_factor * inputs
 
   def _build_capsule_simi(self, high_capsules, capsule_num):
-    high_capsule_mask = tf.sequence_mask(capsule_num, tf.shape(high_capsules)[1])
+    high_capsule_mask = tf.sequence_mask(capsule_num,
+                                         tf.shape(high_capsules)[1])
     high_capsules = high_capsules * tf.to_float(high_capsule_mask[:, :, None])
     high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
     sum_sqr = tf.square(tf.reduce_sum(high_capsules, axis=1))
     sqr_sum = tf.reduce_sum(tf.square(high_capsules), axis=1)
     simi = sum_sqr - sqr_sum
-  
-    div = tf.maximum(tf.to_float(capsule_num * (capsule_num - 1)), 1.0)   
+
+    div = tf.maximum(tf.to_float(capsule_num * (capsule_num - 1)), 1.0)
     simi = tf.reduce_sum(simi, axis=1) / div
 
     is_multi = tf.to_float(capsule_num > 1)
-    avg_simi = tf.reduce_sum((simi+1) * is_multi) /\
+    avg_simi = tf.reduce_sum((simi + 1) * is_multi) / \
         (2.0 * tf.reduce_sum(is_multi))
     return avg_simi
 
-  def __call__(self, seq_feas, seq_lens, debug_feas):
-    """Capsule layer.
+  def __call__(self, seq_feas, seq_lens):
+    """Capsule layer implementation.
 
     Args:
       seq_feas: tensor of shape batch_size x self._max_seq_len x low_fea_dim(bsd)
@@ -130,83 +131,19 @@ class CapsuleLayer:
           'bse, bsh->bhe', seq_feas_high_stop
           if iter_id + 1 < self._num_iters else seq_feas_high, routing_logits)
       if iter_id + 1 == self._num_iters:
-        tmp_ids = tf.where(num_high_capsules > 1)
-        tmp_ids = tf.squeeze(tmp_ids, axis=1)
-        tmp_ids = tmp_ids[:3]
-        # tmp_logits = tf.gather(routing_logits, tmp_ids)
-        # tmp_seq_lens = tf.gather(seq_lens, tmp_ids)
-        # tmp_num_high = tf.gather(num_high_capsules, tmp_ids)
-
-        # tmp_debug_feas = tf.gather(debug_feas, tmp_ids)
-
-        # def _get_simi(tmp_high_capsules, tmp_num_high):
-        #   simi_arr = []
-        #   for i in range(len(tmp_num_high)):
-        #     tmp_fea = tmp_high_capsules[i]
-        #     tmp_fea_len = np.sqrt(np.sum(tmp_fea * tmp_fea, axis=1)) + 1e-10
-        #     tmp_fea = tmp_fea / tmp_fea_len[:, None]
-        #     tmp_len = tmp_num_high[i]
-        #     for m in range(tmp_len):
-        #       for n in range(m+1, tmp_len):
-        #         simi_arr.append(np.sum(tmp_fea[m]*tmp_fea[n]))    
-        #   return np.array([np.mean(simi_arr), np.min(simi_arr), simi_arr[0]], dtype=np.float32)
-
-        # def _get_min_max(tmp_logits, tmp_seq_lens):
-        #   min_max = []
-        #   msgs = []
-        #   def _vec2str(x):
-        #     return '[' + ','.join(['%.3f' % k for k in x]) + ']'
-        #   for i in range(len(tmp_seq_lens)):
-        #     tmp_len = tmp_seq_lens[i]
-        #     tmp_logit = tmp_logits[i][:tmp_len]
-        #     min_max.append([np.min(tmp_logit), np.max(tmp_logit), tmp_len])
-        #     tmp_logit = np.unique([_vec2str(x) for x in tmp_logit])
-        #     msgs.append('Find [%d] logit: %s' % (len(tmp_logit), ','.join(tmp_logit)))
-        #   return np.array(min_max, dtype=np.float32), msgs
-
-        # # seq_feas
-        # tmp_seq_feas = tf.gather(seq_feas, tmp_ids)
-        # def _get_seq_diff(tmp_seq_feas, tmp_seq_lens):
-        #   diff_arr = []
-        #   for i in range(len(tmp_seq_lens)):
-        #     tmp_len_i = tmp_seq_lens[i]
-        #     tmp_seq_fea_i = tmp_seq_feas[i]
-        #     for j in range(i+1, len(tmp_seq_lens)):
-        #       tmp_len_j = tmp_seq_lens[j]
-        #       tmp_seq_fea_j = tmp_seq_feas[j]
-        #       if tmp_len_i != tmp_len_j:
-        #         diff_arr.append('%d_%d:%d_%d' % (i,j, tmp_len_i, tmp_len_j))
-        #       else: 
-        #         diff_arr.append('%d_%d:%d_%.3f' % (i,j, tmp_len_i, 
-        #            np.sum(np.abs(tmp_seq_fea_i[:tmp_len_i] - tmp_seq_fea_j[:tmp_len_j]))))
-        #   return [diff_arr]
-        #     
-        # py_min_max, py_msgs = tf.py_func(_get_min_max, [tmp_logits, tmp_seq_lens],
-        #     Tout=[tf.float32, tf.string])
-        # py_seq_diff = tf.py_func(_get_seq_diff, [tmp_seq_feas, tmp_seq_lens],
-        #     Tout=tf.string)
-        # tmp_high_capsules = tf.gather(high_capsules, tmp_ids)
-        # py_simi = tf.py_func(_get_simi, [tmp_high_capsules, tmp_num_high], Tout=tf.float32)
-        capsule_simi = self._build_capsule_simi(high_capsules, num_high_capsules)
+        capsule_simi = self._build_capsule_simi(high_capsules,
+                                                num_high_capsules)
         tf.summary.scalar('caspule/simi_%d' % iter_id, capsule_simi)
-        # high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
-        tf.summary.scalar('capsule/before_squash', tf.reduce_mean(tf.norm(
-            high_capsules, axis=-1)))
+        tf.summary.scalar('capsule/before_squash',
+                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
         high_capsules = self.squash(high_capsules)
-        tf.summary.scalar('capsule/after_squash', tf.reduce_mean(tf.norm(
-            high_capsules, axis=-1)))
-        capsule_simi_final = self._build_capsule_simi(high_capsules, num_high_capsules)
+        tf.summary.scalar('capsule/after_squash',
+                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
+        capsule_simi_final = self._build_capsule_simi(high_capsules,
+                                                      num_high_capsules)
         tf.summary.scalar('caspule/simi_final', capsule_simi_final)
-        # tmp_high_capsules = tf.gather(high_capsules, tmp_ids)
-        # py_simi_squash = tf.py_func(_get_simi, [tmp_high_capsules, tmp_num_high], Tout=tf.float32)
-        # high_capsules = tf.Print(high_capsules, [tmp_logits[:, :10, :],
-        #     tf.shape(routing_logits), 'tmp_high_capsules[bke]=',
-        #     tmp_high_capsules[:,:,:5], tmp_seq_lens, tmp_num_high, 
-        #     'py_min_max=', py_min_max, 'py_msg=', py_msgs, 'py_seq_diff=', py_seq_diff,
-        #     'user_ids=', tmp_debug_feas, 'py_simi=', py_simi, 'py_simi_squash=',
-        #     py_simi_squash, tf.shape(tmp_high_capsules)],
-        #     message='routing_logits', summarize=100)
         break
+
       # batch_size x max_k x high_dim(bhe)
       high_capsules = tf.nn.l2_normalize(high_capsules, -1)
       capsule_simi = self._build_capsule_simi(high_capsules, num_high_capsules)
@@ -225,4 +162,4 @@ class CapsuleLayer:
     # zero paddings
     high_capsule_mask = tf.sequence_mask(num_high_capsules, self._max_k)
     high_capsules = high_capsules * tf.to_float(high_capsule_mask[:, :, None])
-    return high_capsules, num_high_capsules, tmp_ids
+    return high_capsules, num_high_capsules

@@ -38,9 +38,9 @@ class CSVInput(Input):
       for field_name in self._field_names:
         if field_name in self._input_fields:
           tid = self._input_fields.index(field_name)
-          record_defaults.append(self.get_type_defaults(
-              self._input_field_types[tid],
-              self._input_field_defaults[tid]))
+          record_defaults.append(
+              self.get_type_defaults(self._input_field_types[tid],
+                                     self._input_field_defaults[tid]))
         else:
           record_defaults.append('')
 
@@ -62,7 +62,9 @@ class CSVInput(Input):
           record_defaults=record_defaults,
           name='decode_csv')
       if self._field_names is not None:
-        fields = [fields[self._field_names.index(x)] for x in self._input_fields]
+        fields = [
+            fields[self._field_names.index(x)] for x in self._input_fields
+        ]
 
     # filter only valid fields
     inputs = {self._input_fields[x]: fields[x] for x in self._effective_fids}
@@ -98,7 +100,7 @@ class CSVInput(Input):
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(
-          lambda x : tf.data.TextLineDataset(x).skip(int(self._with_header)),
+          lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
 

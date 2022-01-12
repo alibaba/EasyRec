@@ -10,6 +10,7 @@ import os
 import threading
 
 import numpy as np
+import six
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -76,7 +77,8 @@ class BaseSampler(object):
     self._build_field_types(fields)
 
   def set_eval_num_sample(self):
-    print('set_eval_num_sample: %d %d' % (self._num_sample, self._num_eval_sample))
+    print('set_eval_num_sample: %d %d' %
+          (self._num_sample, self._num_eval_sample))
     self._num_sample = self._num_eval_sample
 
   def _init_graph(self):
@@ -146,7 +148,8 @@ class BaseSampler(object):
       self._g.close()
 
   def _parse_nodes(self, nodes):
-    print('num_example=%d num_eval_example=%d node_num=%d' % (self._num_sample, self._num_eval_sample, len(nodes.ids)))
+    print('num_example=%d num_eval_example=%d node_num=%d' %
+          (self._num_sample, self._num_eval_sample, len(nodes.ids)))
     features = []
     int_idx = 0
     float_idx = 0
@@ -279,32 +282,34 @@ class NegativeSamplerInMemory(BaseSampler):
                batch_size,
                attr_delimiter=':',
                num_eval_sample=None):
-    super(NegativeSamplerInMemory, self).__init__(fields, num_sample, num_eval_sample)
+    super(NegativeSamplerInMemory, self).__init__(fields, num_sample,
+                                                  num_eval_sample)
     self._batch_size = batch_size
 
     self._item_ids = []
     self._cols = [[] for x in fields]
 
     # try load from odps table
-    if type(attr_delimiter) != type(''):
+    if six.PY2 and isinstance(attr_delimiter, type(u'')):
       attr_delimiter = attr_delimiter.encode('utf-8')
     if data_path.startswith('odps://'):
       self._load_table(data_path, attr_delimiter)
     else:
       self._load_data(data_path, attr_delimiter)
-    
-    print('NegativeSamplerInMemory: total_row_num = %d' % len(self._cols[0])) 
+
+    print('NegativeSamplerInMemory: total_row_num = %d' % len(self._cols[0]))
     for col_id in range(len(self._attr_np_types)):
       np_type = self._attr_np_types[col_id]
       print('\tcol_id[%d], dtype=%s' % (col_id, self._attr_gl_types[col_id]))
       if np_type != np.str:
         self._cols[col_id] = np.array(self._cols[col_id], dtype=np_type)
       else:
-        self._cols[col_id] = np.asarray(self._cols[col_id], order="C", dtype=object)
+        self._cols[col_id] = np.asarray(
+            self._cols[col_id], order='C', dtype=object)
 
   def _load_table(self, data_path, attr_delimiter):
     import common_io
-    reader = common_io.table.TableReader(data_path) 
+    reader = common_io.table.TableReader(data_path)
     schema = reader.get_schema()
     item_id_col = 0
     fea_id_col = 2
@@ -316,8 +321,8 @@ class NegativeSamplerInMemory(BaseSampler):
       if schema[tid][0].startswith('id'):
         item_id_col = tid
         break
-    print('NegativeSamplerInMemory: feature_id_col = %d, item_id_col = %d' % (fea_id_col,
-        item_id_col)) 
+    print('NegativeSamplerInMemory: feature_id_col = %d, item_id_col = %d' %
+          (fea_id_col, item_id_col))
     while True:
       try:
         row_arr = reader.read(num_records=1024, allow_smaller_final_batch=True)
@@ -325,11 +330,12 @@ class NegativeSamplerInMemory(BaseSampler):
           # item_id, weight, feature
           self._item_ids.append(int(row[item_id_col]))
           col_vals = row[fea_id_col].split(attr_delimiter)
-          assert len(col_vals) == len(self._cols), 'invalid row[%d %d]: %s %s' % (
-             len(col_vals), len(self._cols), row[item_id_col], row[fea_id_col])
+          assert len(col_vals) == len(
+              self._cols), 'invalid row[%d %d]: %s %s' % (len(
+                  col_vals), len(self._cols), row[item_id_col], row[fea_id_col])
           for col_id in range(len(col_vals)):
-            self._cols[col_id].append(col_vals[col_id]) 
-      except common_io.exception.OutOfRangeException: 
+            self._cols[col_id].append(col_vals[col_id])
+      except common_io.exception.OutOfRangeException:
         reader.close()
         break
 
@@ -340,32 +346,37 @@ class NegativeSamplerInMemory(BaseSampler):
     with tf.gfile.GFile(data_path, 'r') as fin:
       for line_id, line_str in enumerate(fin):
         line_str = line_str.strip()
-        cols = line_str.split('\t') 
+        cols = line_str.split('\t')
         if line_id == 0:
-          schema = [ x.split(':') for x in cols ]
+          schema = [x.split(':') for x in cols]
           for tid in range(len(schema)):
             if schema[tid][0].startswith('id'):
               item_id_col = tid
             if schema[tid][0].startswith('feature'):
               fea_id_col = tid
-          print('feature_id_col = %d, item_id_col = %d' % (fea_id_col, item_id_col))
+          print('feature_id_col = %d, item_id_col = %d' %
+                (fea_id_col, item_id_col))
         else:
           self._item_ids.append(int(cols[item_id_col]))
-          fea_vals = cols[fea_id_col].split(attr_delimiter) 
-          assert len(fea_vals) == len(self._cols), 'invalid row[%d][%d %d]:%s %s' % (\
-              line_id, len(fea_vals), len(self._cols), cols[item_id_col], cols[fea_id_col])
+          fea_vals = cols[fea_id_col].split(attr_delimiter)
+          assert len(fea_vals) == len(
+              self._cols), 'invalid row[%d][%d %d]:%s %s' % (
+                  line_id, len(fea_vals), len(
+                      self._cols), cols[item_id_col], cols[fea_id_col])
           for col_id in range(len(fea_vals)):
-            self._cols[col_id].append(fea_vals[col_id]) 
+            self._cols[col_id].append(fea_vals[col_id])
 
   def _get_impl(self, ids):
     features = []
     if type(ids[0]) != int:
-      ids = [ int(x) for x in ids ]
+      ids = [int(x) for x in ids]
     assert self._num_sample > 0, 'invalid num_sample: %d' % self._num_sample
 
-    indices = np.random.choice(len(self._item_ids), size=self._num_sample + self._batch_size,
-          replace=False)
-    
+    indices = np.random.choice(
+        len(self._item_ids),
+        size=self._num_sample + self._batch_size,
+        replace=False)
+
     sel_ids = []
     for tid in indices:
       rid = self._item_ids[tid]
@@ -373,7 +384,7 @@ class NegativeSamplerInMemory(BaseSampler):
         sel_ids.append(tid)
         if len(sel_ids) >= self._num_sample and self._num_sample > 0:
           break
- 
+
     features = []
     for col_id in range(len(self._cols)):
       tmp_col = self._cols[col_id]
@@ -382,7 +393,8 @@ class NegativeSamplerInMemory(BaseSampler):
         sel_feas = tmp_col[sel_ids]
         features.append(sel_feas)
       else:
-        features.append(np.asarray([ tmp_col[x] for x in sel_ids ], order="C", dtype=object))
+        features.append(
+            np.asarray([tmp_col[x] for x in sel_ids], order='C', dtype=object))
     return features
 
   def get(self, ids):
