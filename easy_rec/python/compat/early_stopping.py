@@ -299,7 +299,7 @@ def custom_early_stop_hook(estimator,
   if eval_dir is None:
     eval_dir = estimator.eval_dir()
 
-  if isinstance(custom_stop_func, str):
+  if isinstance(custom_stop_func, str) or isinstance(custom_stop_func, unicode):
     custom_stop_func = load_by_path(custom_stop_func)
 
   def _custom_stop_fn():

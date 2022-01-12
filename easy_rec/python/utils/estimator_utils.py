@@ -217,7 +217,7 @@ class EvaluateExitBarrierHook(SessionRunHook):
     from atexit import register
     register(
         _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
-    # last_end_eval_result = session.run(self.metric_ops)
+    session.run(self.metric_ops)
     logging.info('ExitBarrier passed')
 
 

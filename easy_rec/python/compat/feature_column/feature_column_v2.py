@@ -2120,6 +2120,10 @@ class FeatureColumn(object):
     """Returns string, Used for naming."""
     pass
 
+  @property
+  def raw_name(self):
+    return self.name
+
   @abc.abstractmethod
   def transform_feature(self, transformation_cache, state_manager):
     """Returns intermediate representation (usually a `Tensor`).
@@ -2710,6 +2714,11 @@ class NumericColumn(
     return self.key
 
   @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return {
@@ -2834,6 +2843,11 @@ class BucketizedColumn(
   def name(self):
     """See `FeatureColumn` base class."""
     return '{}_bucketized'.format(self.source_column.name)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.source_column.raw_name
 
   @property
   def parse_example_spec(self):
@@ -2989,6 +3003,11 @@ class EmbeddingColumn(
   def name(self):
     """See `FeatureColumn` base class."""
     return '{}_embedding'.format(self.categorical_column.name)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
 
   @property
   def parse_example_spec(self):
@@ -3303,6 +3322,11 @@ class SharedEmbeddingColumn(
     return '{}_shared_embedding'.format(self.categorical_column.name)
 
   @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.parse_example_spec
@@ -3441,6 +3465,11 @@ class HashedCategoricalColumn(
     return self.key
 
   @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return {self.key: parsing_ops.VarLenFeature(self.dtype)}
@@ -3549,6 +3578,11 @@ class VocabularyFileCategoricalColumn(
 
   @property
   def name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
+  def raw_name(self):
     """See `FeatureColumn` base class."""
     return self.key
 
@@ -3667,6 +3701,11 @@ class VocabularyListCategoricalColumn(
     return self.key
 
   @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return {self.key: parsing_ops.VarLenFeature(self.dtype)}
@@ -3774,6 +3813,11 @@ class IdentityCategoricalColumn(
 
   @property
   def name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
+  def raw_name(self):
     """See `FeatureColumn` base class."""
     return self.key
 
@@ -3896,6 +3940,11 @@ class WeightedCategoricalColumn(
     """See `FeatureColumn` base class."""
     return '{}_weighted_by_{}'.format(self.categorical_column.name,
                                       self.weight_feature_key)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
 
   @property
   def parse_example_spec(self):
@@ -4207,6 +4256,11 @@ class IndicatorColumn(
     """See `FeatureColumn` base class."""
     return '{}_indicator'.format(self.categorical_column.name)
 
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
+
   def _transform_id_weight_pair(self, id_weight_pair):
     id_tensor = id_weight_pair.id_tensor
     weight_tensor = id_weight_pair.weight_tensor
@@ -4454,6 +4508,11 @@ class SequenceCategoricalColumn(
   def name(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.name
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
 
   @property
   def parse_example_spec(self):

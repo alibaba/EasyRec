@@ -1,7 +1,7 @@
 [
   {
     "type": "Categorical",
-    "name": "feature_configs[:].embedding_dim",
+    "name": "feature_config.features[:].embedding_dim",
     "candidates": ["16", "32", "48", "64", "80"]
   }
 ]

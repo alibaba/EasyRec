@@ -2,7 +2,7 @@ syntax = "proto2";
 package protos;
 
 import "easy_rec/python/protos/hyperparams.proto";
-
+import "easy_rec/python/protos/dnn.proto";
 enum WideOrDeep {
     DEEP = 0;
     WIDE = 1;
@@ -15,10 +15,16 @@ message AttentionCombiner {
 message MultiHeadAttentionCombiner {
 }
 
+message TextCnnCombiner {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+}
+
 message SequenceCombiner {
     oneof combiner {
         AttentionCombiner attention = 1;
         MultiHeadAttentionCombiner multi_head_attention = 2;
+        TextCnnCombiner text_cnn = 3;
     }
 }
 
@@ -99,14 +105,18 @@ message FeatureGroupConfig {
     repeated string feature_names = 2;
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
+    optional SeqAttGroupConfig sequence_features = 4;
 }
 
 message SeqAttMap {
-    required string key = 1;
-    required string hist_seq = 2;
+    repeated string key = 1;
+    repeated string hist_seq = 2;
 }
 
 message SeqAttGroupConfig {
     optional string group_name = 1;
     repeated SeqAttMap seq_att_map = 2;
+    optional bool tf_summary = 3 [default = false];
+    optional DNN seq_dnn = 4;
+    optional bool allow_key_search = 5 [default = false];
 }
