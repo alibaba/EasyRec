@@ -103,11 +103,10 @@ class MatchModel(EasyRecModel):
     raise NotImplementedError('MatchModel could not be instantiated')
 
   def build_loss_graph(self):
-    with tf.device('/gpu:0'):
-      if self._is_point_wise:
-        return self._build_point_wise_loss_graph()
-      else:
-        return self._build_list_wise_loss_graph()
+    if self._is_point_wise:
+      return self._build_point_wise_loss_graph()
+    else:
+      return self._build_list_wise_loss_graph()
 
   def _build_list_wise_loss_graph(self):
     if self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
@@ -157,11 +156,10 @@ class MatchModel(EasyRecModel):
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
-    with tf.device('/gpu:0'):
-      if self._is_point_wise:
-        return self._build_point_wise_metric_graph(eval_config)
-      else:
-        return self._build_list_wise_metric_graph(eval_config)
+    if self._is_point_wise:
+      return self._build_point_wise_metric_graph(eval_config)
+    else:
+      return self._build_list_wise_metric_graph(eval_config)
 
   def _build_list_wise_metric_graph(self, eval_config):
     logits = self._prediction_dict['logits']
