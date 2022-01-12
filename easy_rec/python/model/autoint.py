@@ -31,8 +31,8 @@ class AutoInt(RankModel):
     if len(self._model_config.feature_groups[0].sequence_features) > 0:
       for seq_fea in self._model_config.feature_groups[0].sequence_features:
         for seq_att in seq_fea.seq_att_map:
-          self._feature_num += seq_att.hist_seq
-          self._seq_key_num += seq_att.key
+          self._feature_num += len(seq_att.hist_seq)
+          self._seq_key_num += len(seq_att.key)
     self._model_config = self._model_config.autoint
     assert isinstance(self._model_config, AutoIntConfig)
 
