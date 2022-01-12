@@ -259,13 +259,13 @@ class Input(six.with_metaclass(_meta_type, object)):
     """
     parsed_dict = {}
 
-    if self._sampler is not None:
+    if self._sampler is not None and self._mode != tf.estimator.ModeKeys.PREDICT:
       if self._mode != tf.estimator.ModeKeys.TRAIN:
-        self._sampler.reset_num_sample() 
+        self._sampler.set_eval_num_sample() 
       sampler_type = self._data_config.WhichOneof('sampler')
       sampler_config = getattr(self._data_config, sampler_type)
       item_ids = field_dict[sampler_config.item_id_field]
-      if sampler_type == 'negative_sampler':
+      if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
         sampled = self._sampler.get(item_ids)
       elif sampler_type == 'negative_sampler_v2':
         user_ids = field_dict[sampler_config.user_id_field]
@@ -279,6 +279,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         if k in field_dict:
           field_dict[k] = tf.concat([field_dict[k], v], axis=0)
         else:
+          print('appended fields: %s' % k)
           parsed_dict[k] = v
           self._appended_fields.append(k)
 

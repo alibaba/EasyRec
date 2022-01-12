@@ -23,12 +23,26 @@ class CSVInput(Input):
                task_num=1):
     super(CSVInput, self).__init__(data_config, feature_config, input_path,
                                    task_index, task_num)
+    self._with_header = data_config.with_header
+    self._field_names = None
 
   def _parse_csv(self, line):
     record_defaults = [
         self.get_type_defaults(t, v)
         for t, v in zip(self._input_field_types, self._input_field_defaults)
     ]
+
+    if self._field_names:
+      # decode by csv header
+      record_defaults = []
+      for field_name in self._field_names:
+        if field_name in self._input_fields:
+          tid = self._input_fields.index(field_name)
+          record_defaults.append(self.get_type_defaults(
+              self._input_field_types[tid],
+              self._input_field_defaults[tid]))
+        else:
+          record_defaults.append('')
 
     def _check_data(line):
       sep = self._data_config.separator
@@ -47,9 +61,13 @@ class CSVInput(Input):
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
           name='decode_csv')
+      if self._field_names is not None:
+        fields = [fields[self._field_names.index(x)] for x in self._input_fields]
 
+    # filter only valid fields
     inputs = {self._input_fields[x]: fields[x] for x in self._effective_fids}
 
+    # filter only valid labels
     for x in self._label_fids:
       inputs[self._input_fields[x]] = fields[x]
     return inputs
@@ -59,6 +77,14 @@ class CSVInput(Input):
     for x in self._input_path.split(','):
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
+
+    if self._with_header:
+      with tf.gfile.GFile(file_paths[0], 'r') as fin:
+        for line_str in fin:
+          line_str = line_str.strip()
+          self._field_names = line_str.split(self._data_config.separator)
+          break
+        print('field_names: %s' % line_str)
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -72,7 +98,7 @@ class CSVInput(Input):
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(
-          tf.data.TextLineDataset,
+          lambda x : tf.data.TextLineDataset(x).skip(int(self._with_header)),
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
 
@@ -90,7 +116,7 @@ class CSVInput(Input):
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(file_paths)
+      dataset = tf.data.TextLineDataset(file_paths).skip(int(self._with_header))
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)

@@ -38,6 +38,7 @@ class DSSM(MatchModel):
     self.item_tower_feature, _ = self._input_layer(self._feature_dict, 'item')
 
   def build_predict_graph(self):
+   with tf.device('/gpu:0'):
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
     user_dnn = dnn.DNN(self.user_tower.dnn, self._l2_reg, 'user_dnn',
@@ -93,6 +94,8 @@ class DSSM(MatchModel):
     else:
       self._prediction_dict['y'] = y_pred
 
+    self._prediction_dict['user_tower_emb'] = user_tower_emb
+    self._prediction_dict['item_features'] = item_tower_emb
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(

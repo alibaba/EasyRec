@@ -18,6 +18,22 @@ message NegativeSampler {
     optional uint32 num_eval_sample = 6 [default=0];
 }
 
+message NegativeSamplerInMemory {
+    // sample data path
+    // itemid weight attrs
+    required string input_path = 1;
+    // number of negative sample
+    required uint32 num_sample = 2;
+    // field names of attrs in train data or eval data
+    repeated string attr_fields = 3;
+    // field name of item_id in train data or eval data
+    required string item_id_field = 4;
+
+    optional string attr_delimiter = 5 [default=":"];
+
+    optional uint32 num_eval_sample = 6 [default=0];
+}
+
 // Weighted Random Sampling ItemID not with Edge
 message NegativeSamplerV2 {
     // user data path
@@ -233,10 +249,13 @@ message DatasetConfig {
     // n data for one feature in tfrecord
     optional uint32 n_data_batch_tfrecord = 24;
 
+    optional bool with_header = 25 [default = false];
+
     oneof sampler {
         NegativeSampler negative_sampler = 101;
         NegativeSamplerV2 negative_sampler_v2 = 102;
         HardNegativeSampler hard_negative_sampler = 103;
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
+        NegativeSamplerInMemory negative_sampler_in_memory = 105;
     }
 }

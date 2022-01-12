@@ -57,6 +57,8 @@ class MatchModel(EasyRecModel):
     #     tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
     # neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
     simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
+    # simple_user_item_sim = tf.Print(simple_user_item_sim, [tf.shape(simple_user_item_sim)],
+    #     message='simple_user_item_sim')
 
     if hard_neg_indices is None:
       return simple_user_item_sim
@@ -101,6 +103,7 @@ class MatchModel(EasyRecModel):
     raise NotImplementedError('MatchModel could not be instantiated')
 
   def build_loss_graph(self):
+   with tf.device('/gpu:0'):
     if self._is_point_wise:
       return self._build_point_wise_loss_graph()
     else:
@@ -112,11 +115,19 @@ class MatchModel(EasyRecModel):
       batch_size = tf.shape(self._prediction_dict['probs'])[0]
       indices = tf.range(batch_size)
       indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
-      hit_prob = tf.gather_nd(self._prediction_dict['probs'], indices) 
+      hit_prob = tf.gather_nd(self._prediction_dict['probs'][:batch_size, :batch_size], indices)
       # hit_prob = tf.Print(hit_prob, [tf.shape(hit_prob)], message='hit_prob_shape')
       self._loss_dict['cross_entropy_loss'] = -tf.reduce_mean(
           tf.log(hit_prob + 1e-12))
       logging.info('softmax cross entropy loss is used')
+
+      user_features = self._prediction_dict['user_tower_emb']
+      pos_item_features = self._prediction_dict['item_features'][:batch_size]
+      pos_simi = tf.reduce_sum(user_features * pos_item_features, axis=1)
+      print(pos_simi, user_features, pos_item_features)
+      # if pos_simi < 0, produce loss
+      reg_pos_loss = tf.nn.relu(-pos_simi)
+      self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
     return self._loss_dict
@@ -145,6 +156,7 @@ class MatchModel(EasyRecModel):
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
+   with tf.device('/gpu:0'):
     if self._is_point_wise:
       return self._build_point_wise_metric_graph(eval_config)
     else:
@@ -158,22 +170,21 @@ class MatchModel(EasyRecModel):
 
     indices = tf.range(batch_size)
     indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
-    pos_item_sim = tf.gather_nd(logits, indices) 
+    pos_item_sim = tf.gather_nd(logits[:batch_size, :batch_size], indices)
     metric_dict = {}
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
-        metric_dict['recall_at_top%d' %
+        metric_dict['recall@%d' %
                     metric.recall_at_topk.topk] = metrics.recall_at_k(
                         label, logits, metric.recall_at_topk.topk)
 
         logits_v2 = tf.concat([pos_item_sim[:, None], logits[:, batch_size:]], axis=1)
         labels_v2  = tf.zeros_like(logits_v2[:, :1], dtype=tf.int64)
-        metric_dict['recall_at_top%d_v2' %
+        metric_dict['recall_neg_sam@%d' %
                     metric.recall_at_topk.topk] = metrics.recall_at_k(
                         labels_v2, logits_v2, metric.recall_at_topk.topk)
 
-
-        metric_dict['recall_at_top%d_v3' %
+        metric_dict['recall_in_batch@%d' %
                     metric.recall_at_topk.topk] = metrics.recall_at_k(
                         label, logits[:, :batch_size], metric.recall_at_topk.topk)
       else:
