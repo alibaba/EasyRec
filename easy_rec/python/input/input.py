@@ -365,7 +365,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                 axis=0)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
-          if fc.num_buckets > 1 or sub_value_type in [
+          if fc.num_buckets > 1 and fc.max_val == fc.min_val and sub_value_type in [
               DatasetConfig.INT32, DatasetConfig.INT64
           ]:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
@@ -375,7 +375,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                     tf.int64,
                     name='sequence_str_2_int_%s' % input_0),
                 parsed_dict[input_0].dense_shape)
-          if sub_value_type in [DatasetConfig.FLOAT, DatasetConfig.DOUBLE]:
+          elif sub_value_type != DatasetConfig.STRING:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
@@ -383,7 +383,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                     tf.float32,
                     name='sequence_str_2_float_%s' % input_0),
                 parsed_dict[input_0].dense_shape)
-          if fc.max_val > fc.min_val:
+          if fc.num_buckets > 1 and fc.max_val > fc.min_val:
             normalized_values = (parsed_dict[input_0].values - fc.min_val) / (
                 fc.max_val - fc.min_val)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
