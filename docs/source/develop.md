@@ -55,8 +55,8 @@ TEMPDIR=/tmp python -m easy_rec.python.test.odps_run --oss_config ~/.ossutilconf
 下载测试数据
 
 ```bash
-wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20220111.tar.gz
-tar -xvzf easyrec_data_20220111.tar.gz
+wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20220113.tar.gz
+tar -xvzf easyrec_data_20220113.tar.gz
 ```
 
 如果您要添加新数据，请在“git commit”之前执行以下操作,以将其提交到 git-lfs：
