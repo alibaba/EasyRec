@@ -109,7 +109,10 @@ function getHyperParams(config, cmd, checkpoint_path,
                         model_dir, hpo_param_path, hpo_metric_save_path,
                         saved_model_dir, all_cols, all_col_types,
                         reserved_cols, output_cols, model_outputs,
-                        input_table, output_table, tables, train_tables,
+                        input_table, output_table, tables, query_table,
+                        doc_table, knn_distance, knn_num_neighbours,
+                        knn_feature_dims, knn_index_type, knn_feature_delimiter,
+                        knn_nlist, knn_nprobe, knn_compress_dim, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
   hyperParameters = ""
@@ -146,6 +149,39 @@ function getHyperParams(config, cmd, checkpoint_path,
     checkTable(input_table)
     checkTable(output_table)
 
+    if extra_params ~= nil and extra_params ~= '' then
+      hyperParameters = hyperParameters .. extra_params
+    end
+    return hyperParameters, cluster, tables, output_table
+  end
+
+  if cmd == "vector_retrieve" then
+    if cluster == nil or cluster == '' then
+      error('cluster must be set')
+    end
+    checkTable(query_table)
+    checkTable(doc_table)
+    checkTable(output_table)
+    hyperParameters = " --cmd=" .. cmd
+    hyperParameters = hyperParameters .. " --batch_size=" .. batch_size
+    hyperParameters = hyperParameters .. " --knn_distance=" .. knn_distance
+    if knn_num_neighbours ~= nil and knn_num_neighbours ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_num_neighbours=' .. knn_num_neighbours
+    end
+    if knn_feature_dims ~= nil and knn_feature_dims ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_feature_dims=' .. knn_feature_dims
+    end
+    hyperParameters = hyperParameters .. " --knn_index_type=" .. knn_index_type
+    hyperParameters = hyperParameters .. " --knn_feature_delimiter=" .. knn_feature_delimiter
+    if knn_nlist ~= nil and knn_nlist ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nlist=' .. knn_nlist
+    end
+    if knn_nprobe ~= nil and knn_nprobe ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nprobe=' .. knn_nprobe
+    end
+    if knn_compress_dim ~= nil and knn_compress_dim ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_compress_dim=' .. knn_compress_dim
+    end
     if extra_params ~= nil and extra_params ~= '' then
       hyperParameters = hyperParameters .. extra_params
     end
