@@ -62,11 +62,14 @@ class VectorRetrieve(object):
     self.knn_option = knn_option
 
   def __call__(self, top_n, task_index, task_count, *args, **kwargs):
-    g = gl.Graph() \
-      .node(self.doc_table, 'doc',
-            decoder=gl.Decoder(attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter),
-            option=self.knn_option) \
-      .init(task_index=task_index, task_count=task_count)
+    g = gl.Graph()
+    g.node(
+        self.doc_table,
+        'doc',
+        decoder=gl.Decoder(
+            attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter),
+        option=self.knn_option)
+    g.init(task_index=task_index, task_count=task_count)
 
     query_reader = common_io.table.TableReader(
         self.query_table, slice_id=task_index, slice_count=task_count)

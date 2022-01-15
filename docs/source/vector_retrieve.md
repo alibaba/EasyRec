@@ -28,6 +28,6 @@ pai -name easy_rec_ext -project algo_public
 | knn_feature_dims      | 无             | 向量维度                                                                      |
 | knn_feature_delimiter | ,             | 向量字符串分隔符                                                                  |
 | knn_index_type        | ivfflat       | 向量索引类型：'flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg' |
-| knn_nlist             | 5             | number of split part on each worker                                       |
-| knn_nprobe            | 2             | number of probe part on each worker                                       |
-| knn_compress_dim      | 8             | number of dimensions after compress for `ivfpq` and `gpu_ivfpq`           |
+| knn_nlist             | 5             | 聚类的簇个数, number of split cluster on each worker                            |
+| knn_nprobe            | 2             | 检索时只考虑距离与输入向量最近的簇个数, number of probe part on each worker                  |
+| knn_compress_dim      | 8             | 当index_type为`ivfpq` and `gpu_ivfpq`时, 指定压缩的维度，必须为float属性个数的因子             |
