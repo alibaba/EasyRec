@@ -2,7 +2,7 @@
 
 &#160;
 
-## What is EasyRec?
+## What is EasyRec?
 
 ![intro.png](docs/images/intro.png)
 
