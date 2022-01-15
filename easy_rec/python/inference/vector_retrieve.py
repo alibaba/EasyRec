@@ -3,16 +3,20 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensorflow as tf
-import graphlearn as gl
+
 from datetime import datetime
+
 import common_io
+import graphlearn as gl
 import numpy as np
+import tensorflow as tf
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class VectorRetrieve(object):
+
   def __init__(self,
                query_table,
                doc_table,
@@ -25,7 +29,7 @@ class VectorRetrieve(object):
                nprobe=2,
                distance=1,
                m=8):
-    """Retrieve top n neighbours by query vector
+    """Retrieve top n neighbours by query vector.
 
     Args:
       query_table: query vector table
@@ -59,11 +63,13 @@ class VectorRetrieve(object):
 
   def __call__(self, top_n, task_index, task_count, *args, **kwargs):
     g = gl.Graph() \
-      .node(self.doc_table, "doc", decoder=gl.Decoder(attr_types=["float"] * self.ndim, attr_delimiter=self.delimiter),
+      .node(self.doc_table, 'doc',
+            decoder=gl.Decoder(attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter),
             option=self.knn_option) \
       .init(task_index=task_index, task_count=task_count)
 
-    query_reader = common_io.table.TableReader(self.query_table, slice_id=task_index, slice_count=task_count)
+    query_reader = common_io.table.TableReader(
+        self.query_table, slice_id=task_index, slice_count=task_count)
     num_records = query_reader.get_row_count()
     total_batch_num = num_records // self.batch_size + 1.0
     batch_num = 0
@@ -71,33 +77,38 @@ class VectorRetrieve(object):
     print('total_batch_num: {}'.format(total_batch_num))
     print('output_table: {}'.format(self.out_table))
 
-    output_table_writer = common_io.table.TableWriter(self.out_table, task_index)
+    output_table_writer = common_io.table.TableWriter(self.out_table,
+                                                      task_index)
     count = 0
     while True:
       try:
-        batch_query_nodes, batch_query_feats = zip(*query_reader.read(self.batch_size, allow_smaller_final_batch=True))
+        batch_query_nodes, batch_query_feats = zip(
+            *query_reader.read(self.batch_size, allow_smaller_final_batch=True))
         batch_num += 1.0
-        print('{} process: {:.2f}'.format(datetime.now().time(), batch_num / total_batch_num))
+        print('{} process: {:.2f}'.format(datetime.now().time(),
+                                          batch_num / total_batch_num))
         feats = to_np_array(batch_query_feats, self.delimiter)
         rt_ids, rt_dists = g.search('doc', feats, gl.KnnOption(k=top_n))
 
-        for query_node, nodes, dists in zip(batch_query_nodes, rt_ids, rt_dists):
+        for query_node, nodes, dists in zip(batch_query_nodes, rt_ids,
+                                            rt_dists):
           query = np.array([query_node] * len(nodes), dtype='int64')
           output_table_writer.write(
-            zip(query, nodes, dists), (0, 1, 2), allow_type_cast=False
-          )
+              zip(query, nodes, dists), (0, 1, 2), allow_type_cast=False)
           count += 1
           if np.mod(count, 100) == 0:
-            print("write ", count, " query nodes totally")
+            print('write ', count, ' query nodes totally')
       except Exception as e:
         print(e)
         break
 
-    print("==finished==")
+    print('==finished==')
     output_table_writer.close()
     query_reader.close()
     g.close()
 
 
 def to_np_array(batch_query_feats, attr_delimiter):
-  return np.array([map(float, feat.split(attr_delimiter)) for feat in batch_query_feats], dtype='float32')
+  return np.array(
+      [map(float, feat.split(attr_delimiter)) for feat in batch_query_feats],
+      dtype='float32')

@@ -59,17 +59,29 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
-tf.app.flags.DEFINE_string('query_table', '', 'table used for retrieve vector neighbours')
-tf.app.flags.DEFINE_string('doc_table', '', 'table used for be retrieved as indexed vectors')
-tf.app.flags.DEFINE_enum('knn_distance', 'inner_product', ['l2', 'inner_product'], 'type of knn distance')
-tf.app.flags.DEFINE_integer('knn_num_neighbours', None, 'top n neighbours to be retrieved')
-tf.app.flags.DEFINE_integer('knn_feature_dims', None, 'number of feature dimensions')
-tf.app.flags.DEFINE_enum('knn_index_type', 'ivfflat',
-                         ['flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'], 'knn index type')
-tf.app.flags.DEFINE_string('knn_feature_delimiter', ',', 'delimiter for feature vectors')
-tf.app.flags.DEFINE_integer('knn_nlist', 5, 'number of split part on each worker')
-tf.app.flags.DEFINE_integer('knn_nprobe', 2, 'number of probe part on each worker')
-tf.app.flags.DEFINE_integer('knn_compress_dim', 8, 'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`')
+tf.app.flags.DEFINE_string('query_table', '',
+                           'table used for retrieve vector neighbours')
+tf.app.flags.DEFINE_string('doc_table', '',
+                           'table used for be retrieved as indexed vectors')
+tf.app.flags.DEFINE_enum('knn_distance', 'inner_product',
+                         ['l2', 'inner_product'], 'type of knn distance')
+tf.app.flags.DEFINE_integer('knn_num_neighbours', None,
+                            'top n neighbours to be retrieved')
+tf.app.flags.DEFINE_integer('knn_feature_dims', None,
+                            'number of feature dimensions')
+tf.app.flags.DEFINE_enum(
+    'knn_index_type', 'ivfflat',
+    ['flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'],
+    'knn index type')
+tf.app.flags.DEFINE_string('knn_feature_delimiter', ',',
+                           'delimiter for feature vectors')
+tf.app.flags.DEFINE_integer('knn_nlist', 5,
+                            'number of split part on each worker')
+tf.app.flags.DEFINE_integer('knn_nprobe', 2,
+                            'number of probe part on each worker')
+tf.app.flags.DEFINE_integer(
+    'knn_compress_dim', 8,
+    'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`')
 
 # flags used for evaluate & export
 tf.app.flags.DEFINE_string(
@@ -348,27 +360,27 @@ def main(argv):
     check_param('query_table')
     check_param('doc_table')
     check_param('knn_distance')
-    assert FLAGS.knn_feature_dims is not None, "`knn_feature_dims` should not be None"
-    assert FLAGS.knn_num_neighbours is not None, "`knn_num_neighbours` should not be None"
+    assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
+    assert FLAGS.knn_num_neighbours is not None, '`knn_num_neighbours` should not be None'
 
     query_table, doc_table, output_table = FLAGS.query_table, FLAGS.doc_table, FLAGS.outputs
     knn = VectorRetrieve(
-      query_table,
-      doc_table,
-      output_table,
-      ndim=FLAGS.knn_feature_dims,
-      distance=1 if FLAGS.knn_distance == 'inner_product' else 0,
-      delimiter=FLAGS.knn_feature_delimiter,
-      batch_size=FLAGS.batch_size,
-      index_type=FLAGS.knn_index_type,
-      nlist=FLAGS.knn_nlist,
-      nprobe=FLAGS.knn_nprobe,
-      m=FLAGS.knn_compress_dim
-    )
-    worker_hosts = FLAGS.worker_hosts.split(",")
+        query_table,
+        doc_table,
+        output_table,
+        ndim=FLAGS.knn_feature_dims,
+        distance=1 if FLAGS.knn_distance == 'inner_product' else 0,
+        delimiter=FLAGS.knn_feature_delimiter,
+        batch_size=FLAGS.batch_size,
+        index_type=FLAGS.knn_index_type,
+        nlist=FLAGS.knn_nlist,
+        nprobe=FLAGS.knn_nprobe,
+        m=FLAGS.knn_compress_dim)
+    worker_hosts = FLAGS.worker_hosts.split(',')
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
   else:
-    raise ValueError('cmd should be one of train/evaluate/export/predict/vector_retrieve')
+    raise ValueError(
+        'cmd should be one of train/evaluate/export/predict/vector_retrieve')
 
 
 if __name__ == '__main__':
