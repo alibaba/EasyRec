@@ -38,11 +38,6 @@ class MIND(MatchModel):
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
     self._item_features, _ = self._input_layer(self._feature_dict, 'item')
 
-    if self._model_config.item_id != '':
-      self._item_ids = features[self._model_config.item_id]
-    else:
-      self._item_ids = None
-
     # copy_obj so that any modification will not affect original config
     self.user_dnn = copy_obj(self._model_config.user_dnn)
     # copy_obj so that any modification will not affect original config
@@ -106,9 +101,13 @@ class MIND(MatchModel):
       time_id_fea = tf.minimum(time_id_fea, time_id_mask[:, :, None])
       hist_seq_feas = hist_seq_feas * tf.nn.softmax(time_id_fea, axis=1)
 
+    tf.summary.histogram('hist_seq_len', hist_seq_len)
+
     # batch_size x max_k x high_capsule_dim
     high_capsules, num_high_capsules = capsule_layer(hist_seq_feas,
                                                      hist_seq_len)
+
+    tf.summary.histogram('num_high_capsules', num_high_capsules)
 
     # high_capsules = tf.layers.batch_normalization(
     #     high_capsules, training=self._is_training,
@@ -172,11 +171,13 @@ class MIND(MatchModel):
     batch_size = tf.shape(user_features)[0]
     pos_item_fea = item_feature[:batch_size]
     simi = tf.einsum('bhe,be->bh', user_features, pos_item_fea)
-    tf.summary.histogram('max_simi', tf.reduce_max(simi, axis=1))
+    tf.summary.histogram('interest_item_simi/pre_scale',
+                         tf.reduce_max(simi, axis=1))
     # simi = tf.Print(simi, [tf.reduce_max(simi, axis=1), tf.reduce_min(simi, axis=1)], message='simi_max_0')
     # simi = tf.pow(simi, self._model_config.simi_pow)
     simi = simi * self._model_config.simi_pow
-    tf.summary.histogram('scaled_simi', tf.reduce_max(simi, axis=1))
+    tf.summary.histogram('interest_item_simi/scaled',
+                         tf.reduce_max(simi, axis=1))
     # simi = tf.Print(simi, [tf.reduce_max(simi, axis=1), tf.reduce_min(simi, axis=1)], message='simi_max')
     simi_mask = tf.sequence_mask(num_high_capsules,
                                  self._model_config.capsule_config.max_k)
@@ -187,6 +188,16 @@ class MIND(MatchModel):
     max_thresh = (tf.cast(simi_mask, tf.float32) * 2 - 1) * 1e32
     simi = tf.minimum(simi, max_thresh)
     simi = tf.nn.softmax(simi, axis=1)
+    tf.summary.histogram('interest_item_simi/softmax',
+                         tf.reduce_max(simi, axis=1))
+
+    if self._model_config.simi_pow >= 100:
+      logging.info(
+          'simi_pow=%d, will change to argmax, only use the most similar interests for calculate loss.'
+          % self._model_config.simi_pow)
+      simi_max_id = tf.argmax(simi, axis=1)
+      simi = tf.one_hot(simi_max_id, tf.shape(simi)[1], dtype=tf.float32)
+
     user_tower_emb = tf.einsum('bhe,bh->be', user_features, simi)
 
     # calculate similarity between user_tower_emb and item_tower_emb
@@ -214,6 +225,7 @@ class MIND(MatchModel):
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
+      y_pred = self._mask_in_batch(y_pred)
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.softmax(y_pred)
     else:
@@ -353,18 +365,6 @@ class MIND(MatchModel):
     logits_v2 = tf.concat([pos_item_logits[:, None], logits[:, batch_size:]],
                           axis=1)
     labels_v2 = tf.zeros_like(logits_v2[:, :1], dtype=tf.int64)
-
-    if self._item_ids is not None:
-      mask_in_batch_neg = tf.to_float(
-          tf.equal(self._item_ids[None, :batch_size],
-                   self._item_ids[:batch_size, None])) - tf.diag(
-                       tf.ones([batch_size], dtype=tf.float32))
-      tf.summary.scalar('in_batch_neg_conflict',
-                        tf.reduce_sum(mask_in_batch_neg))
-      logits = tf.concat([
-          logits[:, :batch_size] - mask_in_batch_neg * 1e32,
-          logits[:, batch_size:]],
-          axis=1)  # yapf: disable
 
     for topk in recall_at_topks:
       metric_dict['recall@%d' % topk] = metrics.recall_at_k(

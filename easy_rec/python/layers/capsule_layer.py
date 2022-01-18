@@ -28,6 +28,7 @@ class CapsuleLayer:
     self._squash_pow = capsule_config.squash_pow
     # scale ratio
     self._scale_ratio = capsule_config.scale_ratio
+    self._const_caps_num = capsule_config.const_caps_num
     self._is_training = is_training
 
   def squash(self, inputs):
@@ -101,8 +102,18 @@ class CapsuleLayer:
     seq_feas_high = tf.tensordot(seq_feas, bilinear_matrix, axes=1)
     seq_feas_high_stop = tf.stop_gradient(seq_feas_high)
     seq_feas_high_norm = tf.nn.l2_normalize(seq_feas_high_stop, -1)
-    num_high_capsules = tf.maximum(
-        1, tf.minimum(self._max_k, tf.to_int32(tf.log(tf.to_float(seq_lens)))))
+
+    if self._const_caps_num:
+      logging.info('will use constant number of capsules: %d' % self._max_k)
+      num_high_capsules = tf.zeros_like(seq_lens, dtype=tf.int32) + self._max_k
+    else:
+      logging.info(
+          'will use log(seq_len) number of capsules, max_capsules: %d' %
+          self._max_k)
+      num_high_capsules = tf.maximum(
+          1, tf.minimum(self._max_k,
+                        tf.to_int32(tf.log(tf.to_float(seq_lens)))))
+
     # batch_size x max_seq_len(bs)
     mask = tf.sequence_mask(seq_lens, self._max_seq_len)
     mask = tf.cast(mask, tf.float32)

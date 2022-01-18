@@ -37,6 +37,40 @@ class MatchModel(EasyRecModel):
       self._is_point_wise = False
       logging.info('Use list wise dssm.')
 
+    if self._model_config.WhichOneof('model') == 'dssm':
+      sub_model_config = self._model_config.dssm
+    elif self._model_config.WhichOneof('model') == 'mind':
+      sub_model_config = self._model_config.mind
+    else:
+      sub_model_config = None
+
+    self._item_ids = None
+    if sub_model_config is not None:
+      if sub_model_config.item_id != '':
+        logging.info('item_id feature is: %s' % sub_model_config.item_id)
+        self._item_ids = features[sub_model_config.item_id]
+
+  def _mask_in_batch(self, logits):
+    batch_size = tf.shape(logits)[0]
+    if self._model_config.ignore_in_batch_neg_sam:
+      in_batch = logits[:, :batch_size] - (
+          1 - tf.diag(tf.ones([batch_size], dtype=tf.float32))) * 1e32
+      return tf.concat([in_batch, logits[:, batch_size:]], axis=1)
+    else:
+      if self._item_ids is not None:
+        mask_in_batch_neg = tf.to_float(
+            tf.equal(self._item_ids[None, :batch_size],
+                     self._item_ids[:batch_size, None])) - tf.diag(
+                         tf.ones([batch_size], dtype=tf.float32))
+        tf.summary.scalar('in_batch_neg_conflict',
+                          tf.reduce_sum(mask_in_batch_neg))
+        return tf.concat([
+            logits[:, :batch_size] - mask_in_batch_neg * 1e32,
+            logits[:, batch_size:]],
+            axis=1)  # yapf: disable
+      else:
+        return logits
+
   def _list_wise_sim(self, user_emb, item_emb):
     batch_size = tf.shape(user_emb)[0]
     hard_neg_indices = self._feature_dict.get('hard_neg_indices', None)
@@ -124,7 +158,7 @@ class MatchModel(EasyRecModel):
       user_features = self._prediction_dict['user_tower_emb']
       pos_item_features = self._prediction_dict['item_features'][:batch_size]
       pos_simi = tf.reduce_sum(user_features * pos_item_features, axis=1)
-      print(pos_simi, user_features, pos_item_features)
+      # print(pos_simi, user_features, pos_item_features)
       # if pos_simi < 0, produce loss
       reg_pos_loss = tf.nn.relu(-pos_simi)
       self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)

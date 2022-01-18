@@ -21,6 +21,9 @@ message Capsule {
   optional float squash_pow = 7 [default=1.0];
   // output ratio
   optional float scale_ratio = 8 [default=1.0];
+  // constant interest number
+  // in default, use log(seq_len)
+  optional bool const_caps_num = 9 [default=false];
 }
 
 message MIND {
@@ -31,8 +34,7 @@ message MIND {
   // preprocessing dnn before entering capsule layer
   optional DNN pre_capsule_dnn = 101;
 
-  // dnn layers applied on concated results of
-  // capsule output and user_context(none sequence features)
+  // dnn layers applied on user_context(none sequence features)
   required DNN user_dnn = 102;
 
   // concat user and capsule dnn
@@ -60,5 +62,7 @@ message MIND {
 
   optional string time_id_fea = 8;
 
-  required string item_id = 9;
+  optional string item_id = 9;
+
+  required bool ignore_in_batch_neg_sam = 10 [default = false];
 }
