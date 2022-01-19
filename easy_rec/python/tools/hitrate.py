@@ -90,10 +90,9 @@ def batch_hitrate(src_ids, recall_ids, recall_distances, gt_items, mask=None):
     recall_id = recall_ids[idx]
     recall_distance = recall_distances[idx]
 
-    hit_count = 0.0
-    bad_case = []
-    bad_dist = []
+    bad_case = {}
     gt_items_size = len(gt_items[idx])
+    hit_ids = []
     if gt_items_size == 0:  # just skip invalid record.
       print('Id {:d} has no related items sequence, just skip.'.format(src_id))
       continue
@@ -102,15 +101,20 @@ def batch_hitrate(src_ids, recall_ids, recall_distances, gt_items, mask=None):
         continue
       for k, id in enumerate(recall_id[interest_id]):
         if id in gt_items[idx]:
-          hit_count += 1
+          if id not in hit_ids:
+            hit_ids.append(id)
         else:
-          bad_case.append(id)
-          bad_dist.append(recall_distance[interest_id][k])
+          dis = recall_distance[interest_id][k]
+          if id not in bad_case:
+            bad_case[id] = dis
+          elif dis < bad_case[id]:
+            bad_case[id] = dis
+    hit_count = float(len(hit_ids))
     hitrates.append(hit_count / gt_items_size)
     hits += hit_count
     gt_count += gt_items_size
-    bad_cases.append(bad_case)
-    bad_dists.append(bad_dist)
+    bad_cases.append([x for x in bad_case])
+    bad_dists.append([bad_case[x] for x in bad_case])
   return hitrates, bad_cases, bad_dists, hits, gt_count
 
 
