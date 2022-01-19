@@ -26,6 +26,10 @@ eval_config {
 
 - num_examples: 默认为0, 表示评估所有样本；大于0，则每次只评估num_examples样本，一般在调试或者示例的时候使用
 
+**备注**
+在多目标模型里, eval_config 的 metrics_set 无效，请使用 model 里面的 metrics_set 配置
+参见文档 \[MODEL\]->\[多目标模型\] 配置中的 model_config.\[model\].task_towers.metrics_set
+
 ### Metric:
 
 | MetricClass        | Example                   | 适用模型                                                                  |
@@ -41,6 +45,30 @@ eval_config {
 | Precision          | precision{}               | 二分类模型LossType=CLASSIFICATION, num_class = 1                           |
 | Recall             | recall{}                  | 二分类模型LossType=CLASSIFICATION, num_class = 1                           |
 | AvgPrecisionAtTopK | precision_at_topk{topk=5} | CoMetricLearningI2I模型专用, LossType=CIRCLE_LOSS / MULTI_SIMILARITY_LOSS |
+
+**备注**
+GAUC 在使用时，uid 字段需要在 feature_config 里配置，否则 uid 字段会被丢弃
+示例
+
+```sql
+eval_config {
+  metrics_set: {
+    gauc {
+       uid_field: 'user_id'
+    }
+  }
+}
+...
+feature_config: {
+  features: {
+    input_names:"user_id"
+    feature_type:IdFeature
+    embedding_dim:16
+    hash_bucket_size:5000
+  }
+  ...
+}
+```
 
 ### 评估命令
 
