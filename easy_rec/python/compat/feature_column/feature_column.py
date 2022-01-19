@@ -217,7 +217,7 @@ def _internal_input_layer(features,
               scope=variable_scope.get_variable_scope().name)
         if cols_to_output_tensors is not None:
           cols_to_output_tensors[column] = output_tensor
-        if column.raw_name in feature_name_to_output_tensors:
+        if feature_name_to_output_tensors is not None and column.raw_name in feature_name_to_output_tensors:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
@@ -1753,6 +1753,10 @@ class _FeatureColumn(object):
   def name(self):
     """Returns string, Used for naming and for name_scope."""
     pass
+
+  @property
+  def raw_name(self):
+    return self.name
 
   @property
   def _var_scope_name(self):
