@@ -18,4 +18,5 @@ message CoMetricLearningI2I {
     CircleLoss circle_loss = 101;
     MultiSimilarityLoss multi_similarity_loss = 102;
   }
+  optional string item_id = 9;
 }
