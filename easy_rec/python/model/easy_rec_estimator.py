@@ -180,8 +180,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self.train_config.optimizer_config[0].HasField(
         'embedding_learning_rate_multiplier'):
       gradient_multipliers = {
-          var:
-          self.train_config.optimizer_config[0].embedding_learning_rate_multiplier
+          var: self.train_config.optimizer_config[0]
+          .embedding_learning_rate_multiplier
           for var in tf.trainable_variables()
           if 'embedding_weights:' in var.name or
           '/embedding_weights/part_' in var.name

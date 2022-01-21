@@ -591,5 +591,6 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
     self.assertTrue(self._success)
 
+
 if __name__ == '__main__':
   tf.test.main()
