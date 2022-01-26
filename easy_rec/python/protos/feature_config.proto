@@ -119,4 +119,7 @@ message SeqAttGroupConfig {
     optional bool tf_summary = 3 [default = false];
     optional DNN seq_dnn = 4;
     optional bool allow_key_search = 5 [default = false];
+    optional string seq_model = 6 [default = 'target_attention'];
+    optional uint32 multi_head_size = 7 [default = 4];
+    optional uint32 seq_len = 8 [default = 50];
 }
