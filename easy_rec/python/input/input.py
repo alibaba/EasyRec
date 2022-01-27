@@ -9,6 +9,7 @@ from collections import OrderedDict
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
 
 import easy_rec
 from easy_rec.python.core import sampler as sampler_lib

@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 import json
 import rtp_fg
+from tensorflow.python.framework import ops
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
 
@@ -77,7 +78,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
         if x not in self._label_fields
     ]
     # assume that the last field is the generated feature column
-    features = features = rtp_fg.parse_genreated_fg(self._fg_config, fields[-1])
+    features = rtp_fg.parse_genreated_fg(self._fg_config, fields[-1])
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     for feature_key in features:

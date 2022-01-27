@@ -167,6 +167,8 @@ from tensorflow.python.util import nest
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.compat import ops as compat_ops
+from easy_rec.python.layers import utils as layer_utils
 
 _FEATURE_COLUMN_DEPRECATION_DATE = None
 _FEATURE_COLUMN_DEPRECATION = ('The old _FeatureColumn APIs are being '
@@ -3103,8 +3105,19 @@ class EmbeddingColumn(
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
           collections=weight_collections)
-    return self._get_dense_tensor_internal_helper(sparse_tensors,
-                                                  embedding_weights)
+    layer_utils.update_attr_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
+                                          layer_utils.gen_embedding_attrs(
+                                            column=self,
+                                            variable=embedding_weights,
+                                            bucket_size=self.categorical_column._num_buckets,
+                                            combiner=self.combiner,
+                                            is_embedding_var=self.use_embedding_variable))
+    predictions = self._get_dense_tensor_internal_helper(sparse_tensors, embedding_weights)
+    layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
+                                            self.name, 'tensor', predictions)
+    layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
+                                            self.name, 'input', sparse_tensors.id_tensor)
+    return predictions
 
   def get_dense_tensor(self, transformation_cache, state_manager):
     """Returns tensor after doing the embedding lookup.

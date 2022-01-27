@@ -105,6 +105,7 @@ class DSSM(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
+    print("dssm.build_predict_graph run in graph: {}".format(id(tf.get_default_graph())))
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
     user_dnn = dnn.DNN(self.user_tower.dnn, self._l2_reg, 'user_dnn',
@@ -157,10 +158,10 @@ class DSSM(EasyRecModel):
     else:
       self._prediction_dict['y'] = y_pred
 
-    self._prediction_dict['rank_predict_user_embedding'] = \
-      tf.identity(user_tower_emb, name='rank_predict_user_embedding')
-    self._prediction_dict['rank_predict_item_embedding'] = \
-      tf.identity(item_tower_emb, name='rank_predict_item_embedding')
+    self._prediction_dict['user_embedding_output'] = \
+      tf.identity(user_tower_emb, name='user_embedding_output')
+    self._prediction_dict['item_embedding_output'] = \
+      tf.identity(item_tower_emb, name='item_embedding_output')
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(

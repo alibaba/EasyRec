@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
+import collections
 
 import logging
 import os
@@ -8,6 +9,7 @@ import time
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.saved_model import signature_constants
 
 from easy_rec.python.builders import optimizer_builder
@@ -19,6 +21,7 @@ from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
+# from easy_rec.python.input.easy_rec_input_fn_result import EasyRecInputFnResult
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -365,9 +368,42 @@ class EasyRecEstimator(tf.estimator.Estimator):
   def _model_fn(self, features, labels, mode, config, params):
     os.environ['tf.estimator.mode'] = mode
     os.environ['tf.estimator.ModeKeys.TRAIN'] = tf.estimator.ModeKeys.TRAIN
+    if self._pipeline_config.fg_config:
+      EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_config)
+      EasyRecEstimator._write_rtp_inputs_to_col(features)
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:
       return self._eval_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.PREDICT:
       return self._export_model_fn(features, labels, config, params)
+
+  @staticmethod
+  def _write_rtp_fg_config_to_col(fg_config=None, fg_config_path=None):
+    import json
+    from tensorflow.python.framework import ops
+    from easy_rec.python.compat.ops import GraphKeys
+    if fg_config is None:
+      with tf.gfile.GFile(fg_config_path, 'r') as f:
+        fg_config = json.load(f)
+    col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)
+    if len(col) == 0:
+        col.append(json.dumps(fg_config))
+    else:
+        col[0] = json.dumps(fg_config)
+
+  @staticmethod
+  def _write_rtp_inputs_to_col(features):
+    import json
+    from tensorflow.python.framework import ops
+    from easy_rec.python.layers.utils import _tensor_to_tensorinfo
+    from easy_rec.python.compat.ops import GraphKeys
+    feature_info_map = dict()
+    for feature_name, feature_value in features.items():
+      feature_info = _tensor_to_tensorinfo(feature_value)
+      feature_info_map[feature_name] = feature_info
+    col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FEATURE_NODE)
+    if len(col) == 0:
+      col.append(json.dumps(feature_info_map))
+    else:
+      col[0] = json.dumps(feature_info_map)
