@@ -3255,7 +3255,7 @@ class SequenceRawColumn(
     # that doesn't work for dynamically shaped tensors with 0-length at runtime.
     # This happens for empty sequences.
     shape = array_ops.shape(sparse_tensor)
-    target_shape = [shape[0], shape[1], 1]
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
     ret_seq_tensor = sparse_ops.sparse_reshape(sparse_tensor, target_shape)
     return CategoricalColumn.IdWeightPair(ret_seq_tensor, None)
 
