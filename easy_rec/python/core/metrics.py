@@ -169,7 +169,7 @@ def metric_learning_recall_at_k(k,
   if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
     metrics = {}
     for kk in k:
-      if k < 1:
+      if kk < 1:
         continue
       _, pos_top_k_idx = tf.nn.top_k(mask_pos, kk)
       metrics['recall@' + str(kk)] = tf.metrics.recall_at_k(
@@ -202,7 +202,7 @@ def metric_learning_average_precision_at_k(k,
   if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
     metrics = {}
     for kk in k:
-      if k < 1:
+      if kk < 1:
         continue
       metrics['MAP@' + str(kk)] = tf.metrics.average_precision_at_k(
           label_indices, sim_mat, kk)

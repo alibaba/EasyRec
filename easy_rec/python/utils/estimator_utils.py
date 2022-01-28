@@ -218,6 +218,7 @@ class EvaluateExitBarrierHook(SessionRunHook):
     register(
         _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     session.run(self.metric_ops)
+
     logging.info('ExitBarrier passed')
 
 
