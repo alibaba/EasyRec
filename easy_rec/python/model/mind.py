@@ -133,7 +133,7 @@ class MIND(MatchModel):
 
     # concatenate with user features
     user_features_tile = tf.tile(user_features[:, None, :],
-                            [1, tf.shape(high_capsules)[1], 1])
+                                 [1, tf.shape(high_capsules)[1], 1])
     user_interests = tf.concat([high_capsules, user_features_tile], axis=2)
 
     num_concat_dnn_layer = len(self.concat_dnn.hidden_units)
