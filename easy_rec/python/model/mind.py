@@ -132,17 +132,17 @@ class MIND(MatchModel):
                       tf.reduce_mean(tf.norm(self._user_features, axis=-1)))
 
     # concatenate with user features
-    user_features = tf.tile(user_features[:, None, :],
+    user_features_tile = tf.tile(user_features[:, None, :],
                             [1, tf.shape(high_capsules)[1], 1])
-    user_features = tf.concat([high_capsules, user_features], axis=2)
+    user_interests = tf.concat([high_capsules, user_features_tile], axis=2)
 
     num_concat_dnn_layer = len(self.concat_dnn.hidden_units)
     last_hidden = self.concat_dnn.hidden_units.pop()
     concat_dnn = dnn.DNN(self.concat_dnn, self._l2_reg, 'concat_dnn',
                          self._is_training)
-    user_features = concat_dnn(user_features)
-    user_features = tf.layers.dense(
-        inputs=user_features,
+    user_interests = concat_dnn(user_interests)
+    user_interests = tf.layers.dense(
+        inputs=user_interests,
         units=last_hidden,
         kernel_regularizer=self._l2_reg,
         name='concat_dnn/dnn_%d' % (num_concat_dnn_layer - 1))
@@ -151,9 +151,9 @@ class MIND(MatchModel):
     last_item_hidden = self.item_dnn.hidden_units.pop()
     item_dnn = dnn.DNN(self.item_dnn, self._l2_reg, 'item_dnn',
                        self._is_training)
-    item_feature = item_dnn(self._item_features)
-    item_feature = tf.layers.dense(
-        inputs=item_feature,
+    item_tower_emb = item_dnn(self._item_features)
+    item_tower_emb = tf.layers.dense(
+        inputs=item_tower_emb,
         units=last_item_hidden,
         kernel_regularizer=self._l2_reg,
         name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
@@ -163,14 +163,14 @@ class MIND(MatchModel):
     ]
 
     if self._model_config.simi_func == Similarity.COSINE:
-      item_feature = self.norm(item_feature)
-      user_features = self.norm(user_features)
+      item_tower_emb = self.norm(item_tower_emb)
+      user_interests = self.norm(user_interests)
 
     # label guided attention
     # attention item features on high capsules vector
-    batch_size = tf.shape(user_features)[0]
-    pos_item_fea = item_feature[:batch_size]
-    simi = tf.einsum('bhe,be->bh', user_features, pos_item_fea)
+    batch_size = tf.shape(user_interests)[0]
+    pos_item_fea = item_tower_emb[:batch_size]
+    simi = tf.einsum('bhe,be->bh', user_interests, pos_item_fea)
     tf.summary.histogram('interest_item_simi/pre_scale',
                          tf.reduce_max(simi, axis=1))
     # simi = tf.Print(simi, [tf.reduce_max(simi, axis=1), tf.reduce_min(simi, axis=1)], message='simi_max_0')
@@ -182,8 +182,8 @@ class MIND(MatchModel):
     simi_mask = tf.sequence_mask(num_high_capsules,
                                  self._model_config.capsule_config.max_k)
 
-    user_features = user_features * tf.to_float(simi_mask[:, :, None])
-    self._prediction_dict['user_features'] = user_features
+    user_interests = user_interests * tf.to_float(simi_mask[:, :, None])
+    self._prediction_dict['user_interests'] = user_interests
 
     max_thresh = (tf.cast(simi_mask, tf.float32) * 2 - 1) * 1e32
     simi = tf.minimum(simi, max_thresh)
@@ -198,10 +198,9 @@ class MIND(MatchModel):
       simi_max_id = tf.argmax(simi, axis=1)
       simi = tf.one_hot(simi_max_id, tf.shape(simi)[1], dtype=tf.float32)
 
-    user_tower_emb = tf.einsum('bhe,bh->be', user_features, simi)
+    user_tower_emb = tf.einsum('bhe,bh->be', user_interests, simi)
 
     # calculate similarity between user_tower_emb and item_tower_emb
-    item_tower_emb = item_feature
     user_item_sim = self.sim(user_tower_emb, item_tower_emb)
     if self._model_config.scale_simi:
       sim_w = tf.get_variable(
@@ -232,11 +231,11 @@ class MIND(MatchModel):
       self._prediction_dict['y'] = y_pred
 
     self._prediction_dict['high_capsules'] = high_capsules
-    self._prediction_dict['user_features'] = user_features
+    self._prediction_dict['user_interests'] = user_interests
     self._prediction_dict['user_tower_emb'] = user_tower_emb
-    self._prediction_dict['item_features'] = item_feature
+    self._prediction_dict['item_tower_emb'] = item_tower_emb
     self._prediction_dict['user_emb'] = tf.reduce_join(
-        tf.reduce_join(tf.as_string(user_features), axis=-1, separator=','),
+        tf.reduce_join(tf.as_string(user_interests), axis=-1, separator=','),
         axis=-1,
         separator='|')
     self._prediction_dict['user_emb_num'] = num_high_capsules
@@ -251,16 +250,16 @@ class MIND(MatchModel):
     return self._prediction_dict
 
   def _build_interest_simi(self):
-    user_feature_num = self._prediction_dict['user_emb_num']
+    user_emb_num = self._prediction_dict['user_emb_num']
     high_capsule_mask = tf.sequence_mask(
-        user_feature_num, self._model_config.capsule_config.max_k)
+        user_emb_num, self._model_config.capsule_config.max_k)
 
-    user_features = self._prediction_dict['user_features']
+    user_interests = self._prediction_dict['user_interests']
     high_capsule_mask = tf.to_float(high_capsule_mask[:, :, None])
-    user_features = self.norm(user_features) * high_capsule_mask
+    user_interests = self.norm(user_interests) * high_capsule_mask
 
-    user_feature_sum_sqr = tf.square(tf.reduce_sum(user_features, axis=1))
-    user_feature_sqr_sum = tf.reduce_sum(tf.square(user_features), axis=1)
+    user_feature_sum_sqr = tf.square(tf.reduce_sum(user_interests, axis=1))
+    user_feature_sqr_sum = tf.reduce_sum(tf.square(user_interests), axis=1)
     interest_simi = user_feature_sum_sqr - user_feature_sqr_sum
 
     high_capsules = self._prediction_dict['high_capsules']
@@ -271,13 +270,13 @@ class MIND(MatchModel):
 
     # normalize by interest number
     interest_div = tf.maximum(
-        tf.to_float(user_feature_num * (user_feature_num - 1)), 1.0)
+        tf.to_float(user_emb_num * (user_emb_num - 1)), 1.0)
     interest_simi = tf.reduce_sum(interest_simi, axis=1) / interest_div
 
     high_capsule_simi = tf.reduce_sum(high_capsule_simi, axis=1) / interest_div
 
     # normalize by batch_size
-    multi_interest = tf.to_float(user_feature_num > 1)
+    multi_interest = tf.to_float(user_emb_num > 1)
     sum_interest_simi = tf.reduce_sum(
         (interest_simi + 1) * multi_interest) / 2.0
     sum_div = tf.maximum(tf.reduce_sum(multi_interest), 1.0)
@@ -313,10 +312,10 @@ class MIND(MatchModel):
 
     # compute interest recall
     # [batch_size, num_interests, embed_dim]
-    user_features = self._prediction_dict['user_features']
+    user_interests = self._prediction_dict['user_interests']
     # [?, embed_dim]
-    item_feature = self._prediction_dict['item_features']
-    batch_size = tf.shape(user_features)[0]
+    item_feature = self._prediction_dict['item_tower_emb']
+    batch_size = tf.shape(user_interests)[0]
     # [?, 2] first dimension is the sample_id in batch
     # second dimension is the neg_id with respect to the sample
     hard_neg_indices = self._feature_dict.get('hard_neg_indices', None)
@@ -331,10 +330,10 @@ class MIND(MatchModel):
       hard_neg_item_emb = None
 
     # batch_size num_interest sample_neg_num
-    simple_item_sim = tf.einsum('bhe,ne->bhn', user_features, simple_item_emb)
+    simple_item_sim = tf.einsum('bhe,ne->bhn', user_interests, simple_item_emb)
     # batch_size sample_neg_num
     simple_item_sim = tf.reduce_max(simple_item_sim, axis=1)
-    simple_lbls = tf.cast(tf.range(tf.shape(user_features)[0]), tf.int64)
+    simple_lbls = tf.cast(tf.range(tf.shape(user_interests)[0]), tf.int64)
 
     # labels = tf.zeros_like(logits[:, :1], dtype=tf.int64)
     pos_indices = tf.range(batch_size)
@@ -392,7 +391,7 @@ class MIND(MatchModel):
 
     # batch_size num_interest
     if hard_neg_indices is not None:
-      hard_neg_user_emb = tf.gather(user_features, hard_neg_indices[:, 0])
+      hard_neg_user_emb = tf.gather(user_interests, hard_neg_indices[:, 0])
       hard_neg_sim = tf.einsum('nhe,ne->nh', hard_neg_user_emb,
                                hard_neg_item_emb)
       hard_neg_sim = tf.reduce_max(hard_neg_sim, axis=1)

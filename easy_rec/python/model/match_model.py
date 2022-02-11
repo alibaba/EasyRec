@@ -156,9 +156,9 @@ class MatchModel(EasyRecModel):
       logging.info('softmax cross entropy loss is used')
 
       user_features = self._prediction_dict['user_tower_emb']
-      pos_item_features = self._prediction_dict['item_features'][:batch_size]
-      pos_simi = tf.reduce_sum(user_features * pos_item_features, axis=1)
-      # print(pos_simi, user_features, pos_item_features)
+      pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
+      pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
+      # print(pos_simi, user_features, pos_item_emb)
       # if pos_simi < 0, produce loss
       reg_pos_loss = tf.nn.relu(-pos_simi)
       self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
