@@ -190,6 +190,8 @@ def auto_import(user_path=None):
 
 
 def register_class(class_map, class_name, cls):
+  if class_name in class_map:
+    return
   assert class_name not in class_map or class_map[class_name] == cls, \
       'confilict class %s , %s is already register to be %s' % (
           cls, class_name, str(class_map[class_name]))

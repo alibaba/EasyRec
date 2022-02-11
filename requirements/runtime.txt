@@ -4,3 +4,5 @@ psutil
 pydatahub
 scikit-learn
 xlrd >= 0.9.0
+numpy
+pyhive
