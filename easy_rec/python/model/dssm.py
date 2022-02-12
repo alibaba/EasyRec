@@ -95,7 +95,7 @@ class DSSM(MatchModel):
       self._prediction_dict['y'] = y_pred
 
     self._prediction_dict['user_tower_emb'] = user_tower_emb
-    self._prediction_dict['item_features'] = item_tower_emb
+    self._prediction_dict['item_tower_emb'] = item_tower_emb
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(

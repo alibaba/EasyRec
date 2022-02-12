@@ -64,5 +64,7 @@ message MIND {
 
   optional string item_id = 9;
 
-  required bool ignore_in_batch_neg_sam = 10 [default = false];
+  optional bool ignore_in_batch_neg_sam = 10 [default = false];
+
+  optional float max_interests_simi = 11 [default = 1.0];
 }

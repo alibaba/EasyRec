@@ -242,12 +242,20 @@ class MIND(MatchModel):
     self._prediction_dict['item_emb'] = tf.reduce_join(
         tf.as_string(item_tower_emb), axis=-1, separator=',')
 
-    if self._is_training:
+    if self._labels is not None:
       # for summary purpose
       batch_simi, batch_capsule_simi = self._build_interest_simi()
       # self._prediction_dict['probs'] = tf.Print(self._prediction_dict['probs'],
       #     [batch_simi, batch_capsule_simi], message='batch_simi')
+      self._prediction_dict['interests_simi'] = batch_simi
     return self._prediction_dict
+
+  def build_loss_graph(self):
+    loss_dict = super(MIND, self).build_loss_graph()
+    if self._model_config.max_interests_simi < 1.0:
+      loss_dict['reg_interest_simi'] = tf.nn.relu(
+          self._prediction_dict['interests_simi'] - self._model_config.max_interests_simi)
+    return loss_dict
 
   def _build_interest_simi(self):
     user_emb_num = self._prediction_dict['user_emb_num']
