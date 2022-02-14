@@ -190,6 +190,21 @@
         
           
           <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fcollaborative_metric_learning.proto">easy_rec/python/protos/collaborative_metric_learning.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.CoMetricLearningI2I"><span class="badge">M</span>CoMetricLearningI2I</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
             <a href="#easy_rec%2fpython%2fprotos%2fdataset.proto">easy_rec/python/protos/dataset.proto</a>
             <ul>
               
@@ -316,6 +331,21 @@
         
           
           <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdropoutnet.proto">easy_rec/python/protos/dropoutnet.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.DropoutNet"><span class="badge">M</span>DropoutNet</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
             <a href="#easy_rec%2fpython%2fprotos%2fdssm.proto">easy_rec/python/protos/dssm.proto</a>
             <ul>
               
@@ -432,6 +462,10 @@
                 </li>
               
                 <li>
+                  <a href="#protos.AvgPrecisionAtTopK"><span class="badge">M</span>AvgPrecisionAtTopK</a>
+                </li>
+              
+                <li>
                   <a href="#protos.EvalConfig"><span class="badge">M</span>EvalConfig</a>
                 </li>
               
@@ -453,6 +487,14 @@
               
                 <li>
                   <a href="#protos.MeanSquaredError"><span class="badge">M</span>MeanSquaredError</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Precision"><span class="badge">M</span>Precision</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Recall"><span class="badge">M</span>Recall</a>
                 </li>
               
                 <li>
@@ -527,6 +569,10 @@
               
                 <li>
                   <a href="#protos.SequenceCombiner"><span class="badge">M</span>SequenceCombiner</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.TextCnnCombiner"><span class="badge">M</span>TextCnnCombiner</a>
                 </li>
               
               
@@ -607,8 +653,39 @@
         
           
           <li>
+            <a href="#easy_rec%2fpython%2fprotos%2flayer.proto">easy_rec/python/protos/layer.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#protos.HighWayTower"><span class="badge">M</span>HighWayTower</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
             <a href="#easy_rec%2fpython%2fprotos%2floss.proto">easy_rec/python/protos/loss.proto</a>
             <ul>
+              
+                <li>
+                  <a href="#protos.CircleLoss"><span class="badge">M</span>CircleLoss</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.Loss"><span class="badge">M</span>Loss</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.MultiSimilarityLoss"><span class="badge">M</span>MultiSimilarityLoss</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.SoftmaxCrossEntropyWithNegativeMining"><span class="badge">M</span>SoftmaxCrossEntropyWithNegativeMining</a>
+                </li>
               
               
                 <li>
@@ -720,6 +797,10 @@
               
                 <li>
                   <a href="#protos.ExponentialDecayLearningRate"><span class="badge">M</span>ExponentialDecayLearningRate</a>
+                </li>
+              
+                <li>
+                  <a href="#protos.FtrlOptimizer"><span class="badge">M</span>FtrlOptimizer</a>
                 </li>
               
                 <li>
@@ -963,6 +1044,107 @@
                   <td><a href="#float">float</a></td>
                   <td>required</td>
                   <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/collaborative_metric_learning.proto">easy_rec/python/protos/collaborative_metric_learning.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.CoMetricLearningI2I">CoMetricLearningI2I</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>session_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>highway</td>
+                  <td><a href="#protos.HighWayTower">HighWayTower</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>output_l2_normalized_emb</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre> Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>sample_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>circle_loss</td>
+                  <td><a href="#protos.CircleLoss">CircleLoss</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>multi_similarity_loss</td>
+                  <td><a href="#protos.MultiSimilarityLoss">MultiSimilarityLoss</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
                 </tr>
               
             </tbody>
@@ -2178,6 +2360,107 @@ input pipelines</pre></td>
     
       
       <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dropoutnet.proto">easy_rec/python/protos/dropoutnet.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.DropoutNet">DropoutNet</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>user_content</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>user_preference</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_content</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_preference</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>user_tower</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_tower</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>user_dropout_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>item_dropout_rate</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.5</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>softmax_loss</td>
+                  <td><a href="#protos.SoftmaxCrossEntropyWithNegativeMining">SoftmaxCrossEntropyWithNegativeMining</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
         <h2 id="easy_rec/python/protos/dssm.proto">easy_rec/python/protos/dssm.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
@@ -2740,6 +3023,20 @@ input pipelines</pre></td>
                 </tr>
               
                 <tr>
+                  <td>dropoutnet</td>
+                  <td><a href="#protos.DropoutNet">DropoutNet</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>metric_learning</td>
+                  <td><a href="#protos.CoMetricLearningI2I">CoMetricLearningI2I</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
                   <td>mmoe</td>
                   <td><a href="#protos.MMoE">MMoE</a></td>
                   <td>optional</td>
@@ -2837,6 +3134,13 @@ common filters are Adam, Momentum, etc. </pre></td>
                   <td>variational_dropout</td>
                   <td><a href="#protos.VariationalDropoutLayer">VariationalDropoutLayer</a></td>
                   <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>losses</td>
+                  <td><a href="#protos.Loss">Loss</a></td>
+                  <td>repeated</td>
                   <td><pre> </pre></td>
                 </tr>
               
@@ -3024,6 +3328,30 @@ common filters are Adam, Momentum, etc. </pre></td>
 
         
       
+        <h3 id="protos.AvgPrecisionAtTopK">AvgPrecisionAtTopK</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>topk</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 5</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
         <h3 id="protos.EvalConfig">EvalConfig</h3>
         <pre>Message for configuring EasyRecModel evaluation jobs (eval.py).</pre>
 
@@ -3157,6 +3485,27 @@ possible values: </pre></td>
                   <td><pre> </pre></td>
                 </tr>
               
+                <tr>
+                  <td>recall</td>
+                  <td><a href="#protos.Recall">Recall</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>precision</td>
+                  <td><a href="#protos.Precision">Precision</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>precision_at_topk</td>
+                  <td><a href="#protos.AvgPrecisionAtTopK">AvgPrecisionAtTopK</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
             </tbody>
           </table>
 
@@ -3213,6 +3562,20 @@ possible values: </pre></td>
         
       
         <h3 id="protos.MeanSquaredError">MeanSquaredError</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.Precision">Precision</h3>
+        <pre></pre>
+
+        
+
+        
+      
+        <h3 id="protos.Recall">Recall</h3>
         <pre></pre>
 
         
@@ -3827,6 +4190,44 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><pre> </pre></td>
                 </tr>
               
+                <tr>
+                  <td>text_cnn</td>
+                  <td><a href="#protos.TextCnnCombiner">TextCnnCombiner</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.TextCnnCombiner">TextCnnCombiner</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>filter_sizes</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>num_filters</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
             </tbody>
           </table>
 
@@ -4226,10 +4627,207 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
     
       
       <div class="file-heading">
+        <h2 id="easy_rec/python/protos/layer.proto">easy_rec/python/protos/layer.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+      
+        <h3 id="protos.HighWayTower">HighWayTower</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>input</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>emb_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
         <h2 id="easy_rec/python/protos/loss.proto">easy_rec/python/protos/loss.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
 
+      
+        <h3 id="protos.CircleLoss">CircleLoss</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>margin</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.25</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>gamma</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 32</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.Loss">Loss</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>loss_type</td>
+                  <td><a href="#protos.LossType">LossType</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>weight</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.MultiSimilarityLoss">MultiSimilarityLoss</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>alpha</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 2</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>beta</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 50</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>lamb</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>eps</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="protos.SoftmaxCrossEntropyWithNegativeMining">SoftmaxCrossEntropyWithNegativeMining</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>num_negative_samples</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>margin</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>gamma</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>coefficient_of_support_vector</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
       
 
       
@@ -4268,6 +4866,30 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
               <tr>
                 <td>SOFTMAX_CROSS_ENTROPY</td>
                 <td>4</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>CIRCLE_LOSS</td>
+                <td>5</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>MULTI_SIMILARITY_LOSS</td>
+                <td>6</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING</td>
+                <td>7</td>
+                <td><pre></pre></td>
+              </tr>
+            
+              <tr>
+                <td>PAIR_WISE_LOSS</td>
+                <td>8</td>
                 <td><pre></pre></td>
               </tr>
             
@@ -5022,6 +5644,65 @@ the better Default: 10</pre></td>
 
         
       
+        <h3 id="protos.FtrlOptimizer">FtrlOptimizer</h3>
+        <pre></pre>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>learning_rate</td>
+                  <td><a href="#protos.LearningRate">LearningRate</a></td>
+                  <td>optional</td>
+                  <td><pre>optional float learning_rate = 1 [default=1e-4]; </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>learning_rate_power</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: -0.5</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>initial_accumulator_value</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0.1</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l1_reg</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_reg</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>l2_shrinkage_reg</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
         <h3 id="protos.LearningRate">LearningRate</h3>
         <pre>Configuration message for optimizer learning rate.</pre>
 
@@ -5275,6 +5956,13 @@ the better Default: 10</pre></td>
                 <tr>
                   <td>adagrad_optimizer</td>
                   <td><a href="#protos.AdagradOptimizer">AdagradOptimizer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+              
+                <tr>
+                  <td>ftrl_optimizer</td>
+                  <td><a href="#protos.FtrlOptimizer">FtrlOptimizer</a></td>
                   <td>optional</td>
                   <td><pre> </pre></td>
                 </tr>
@@ -6117,7 +6805,7 @@ optional float prediction_weight = 14 [default = 1.0]; Default: 1</pre></td>
                 <tr>
                   <td>optimizer_config</td>
                   <td><a href="#protos.Optimizer">Optimizer</a></td>
-                  <td>optional</td>
+                  <td>repeated</td>
                   <td><pre>optimizer options </pre></td>
                 </tr>
               
@@ -6280,6 +6968,13 @@ star_server: https://help.aliyun.com/document_detail/173154.html?spm=a2c4g.11186
                   <td><a href="#bool">bool</a></td>
                   <td>optional</td>
                   <td><pre>write graph into graph.pbtxt and summary or not Default: true</pre></td>
+                </tr>
+              
+                <tr>
+                  <td>freeze_gradient</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>match variable patterns to freeze </pre></td>
                 </tr>
               
             </tbody>
