@@ -3,7 +3,6 @@
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
-from easy_rec.python.core import distribute_metrics as distribute_metrics_lib
 from easy_rec.python.core import metrics as metrics_lib
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType

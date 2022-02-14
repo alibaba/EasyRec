@@ -1,0 +1,19 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/loss.proto";
+
+
+message DropoutNet {
+  required DNN user_content = 1;
+  required DNN user_preference = 2;
+  required DNN item_content = 3;
+  required DNN item_preference = 4;
+  required DNN user_tower = 5;
+  required DNN item_tower = 6;
+  required float l2_regularization = 7 [default = 0];
+  required float user_dropout_rate = 8 [default = 0];
+  required float item_dropout_rate = 9 [default = 0.5];
+  optional SoftmaxCrossEntropyWithNegativeMining softmax_loss = 10;
+}

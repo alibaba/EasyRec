@@ -1,5 +1,5 @@
 {
    "param": {
-      "feature_configs[input_names[0]=c21]": "{input_names:'c21' feature_type:RawFeature boundaries:[4,5,6,7] embedding_dim:32}"
+      "feature_config.features[input_names[0]=c21]": "{input_names:'c21' feature_type:RawFeature boundaries:[4,5,6,7] embedding_dim:32}"
     }
 }

@@ -4,28 +4,31 @@ import logging
 
 import tensorflow as tf
 
+from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def build(loss_type, label, pred, loss_weight=1.0, num_class=1):
+def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
   if loss_type == LossType.CLASSIFICATION:
     if num_class == 1:
       return tf.losses.sigmoid_cross_entropy(
-          label, logits=pred, weights=loss_weight)
+          label, logits=pred, weights=loss_weight, **kwargs)
     else:
       return tf.losses.sparse_softmax_cross_entropy(
-          labels=label, logits=pred, weights=loss_weight)
+          labels=label, logits=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.CROSS_ENTROPY_LOSS:
-    return tf.losses.log_loss(label, pred, weights=loss_weight)
+    return tf.losses.log_loss(label, pred, weights=loss_weight, **kwargs)
   elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
     logging.info('%s is used' % LossType.Name(loss_type))
     return tf.losses.mean_squared_error(
-        labels=label, predictions=pred, weights=loss_weight)
+        labels=label, predictions=pred, weights=loss_weight, **kwargs)
+  elif loss_type == LossType.PAIR_WISE_LOSS:
+    return pairwise_loss(pred, label)
   else:
-    raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
+    raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 
 
 def build_kd_loss(kds, prediction_dict, label_dict):
