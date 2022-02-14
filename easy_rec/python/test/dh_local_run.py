@@ -6,7 +6,6 @@ import sys
 
 import tensorflow as tf
 
-# from easy_rec.python.test.dh_test_util import datahub_test_util
 from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import prepare
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig
@@ -99,7 +98,7 @@ if __name__ == '__main__':
   end = ['deep_fm/drop_table.sql']
   odps_cmd = OdpsCommand(odps_oss_config)
   odps_cmd.run_list(start)
-  odps_oss_config._subscription()
+  odps_oss_config.init_dh_and_odps()
   tf.test.main()
   # delete oss path
   bucket = get_oss_bucket(odps_oss_config.oss_key, odps_oss_config.oss_secret,

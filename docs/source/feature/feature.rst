@@ -7,21 +7,22 @@
 ComboFeature。
 
 各种特征共用字段
-----------------
+----------------------------------------------------------------
 
 -  **input\_names**: 输入的字段，根据特征需要，可以设置1个或者多个
 -  **feature\_name**: 特征名称，如果没有设置，默认使用input\_names[0]作为feature\_name
   - 如果有多个特征使用同一个input\_name，则需要设置不同的feature\_name, 否则会导致命名冲突
   .. code:: protobuf
 
-     feature_configs {
+    feature_config:{
+     features {
        input_names: "uid"
        feature_type: IdFeature
        embedding_dim: 32
        hash_bucket_size: 100000
      }
 
-     feature_configs {
+     features {
        feature_name: "combo_uid_category"
        input_names: "uid"
        input_names: "category"
@@ -29,42 +30,43 @@ ComboFeature。
        embedding_dim: 32
        hash_bucket_size: 1000000
      }
+    }
 
 -  **shared\_names**:
    其它输入的数据列，复用这个config，仅仅适用于只有一个input\_names的特征，不适用于有多个input\_names的特征，如ComboFeature。
 
 IdFeature: 离散值特征/ID类特征
-------------------------------
+----------------------------------------------------------------
 
 离散型特征，例如手机品牌、item\_id、user\_id、年龄段、星座等，一般在表里面存储的类型一般是string或者bigint。
 
 .. code:: protobuf
-
-    feature_configs {
+  feature_config:{
+    features {
       input_names: "uid"
       feature_type: IdFeature
       embedding_dim: 32
       hash_bucket_size: 100000
     }
 
-    feature_configs {
+    features {
       input_names: "month"
       feature_type: IdFeature
       embedding_dim: 8
       num_buckets: 12
     }
 
-    feature_configs {
+    features {
       input_names: "weekday"
       feature_type: IdFeature
       embedding_dim: 8
       vocab_list: ["1", "2", "3", "4", "5", "6", "7"]
     }
+  }
 
 -  其中embedding\_dim 的计算方法可以参考：
 
    .. math::
-
 
         embedding\_dim=8+x^{0.25}
 
@@ -75,14 +77,12 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-
           hash\_bucket\_size  = \frac{number\_user\_ids}{ratio},      建议：ratio \in [10,100];
 
 
 -  对于星座等规模比较小的，hash冲突影响比较大的
 
    .. math::
-
 
           hash\_bucket\_size = number\_xingzuo\_ids * ratio,    建议 ratio \in [5,10]
 
@@ -100,7 +100,7 @@ IdFeature: 离散值特征/ID类特征
    vocab\_file只能指定其中之一，不能同时指定
 
 RawFeature：连续值特征
-----------------------
+----------------------------------------------------------------
 
 连续值类特征可以先使用分箱组件+进行离散化，可以进行等频/等距/自动离散化，变成离散值。推荐使用分箱组件得到分箱信息表，在训练时可以通过"-Dboundary\_table odps://project_name/tables/boundary\_info"导入boundary\_info表，省去在config中写入boundaries的操作。
 
@@ -127,23 +127,26 @@ RawFeature：连续值特征
 
 .. code:: protobuf
 
-    feature_configs {
+  feature_config:{
+    features {
       input_names: "ctr"
       feature_type: RawFeature
       embedding_dim: 8
     }
+  }
 
 分箱组件使用方法见： `机器学习组件 <https://help.aliyun.com/document_detail/54352.html>`_
 也可以手动导入分箱信息。如下：
 
 .. code:: protobuf
-
-    feature_configs {
+  feature_config:{
+    features {
       input_names: "ctr"
       feature_type: RawFeature
       boundaries: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
       embedding_dim: 8
     }
+  }
 
 -  boundaries: 分桶的值，通过一个数组来设置。如果通过"-Dboundary\_table"导入分箱表，则无需写入，程序会自动导入到pipeline.config中。
 -  embedding\_dim: 如果设置了boundaries，则需要配置embedding dimension。
@@ -153,18 +156,19 @@ RawFeature：连续值特征
 这里同样支持embedding特征，如"0.233\|0.123\|0.023\|2.123\|0.233\|0.123\|0.023\|2.123"
 
 .. code:: protobuf
-
-    feature_configs {
+  feature_config:{
+    features {
       input_names: "pic_emb"
       feature_type: RawFeature
       separator: '|'
       raw_input_dim: 8
     }
+  }
 
 - raw_input_dim: 指定embedding特征的维度
 
 TagFeature
-----------
+----------------------------------------------------------------
 
 标签类型特征,
 在表里面存储的类型一般是string类型。格式一般为“XX\|XX\|XX”，如文章标签特征为“娱乐\|搞笑\|热门”，其中\|为分隔符。
@@ -174,14 +178,15 @@ TagFeature
 tags字段可以用于描述商品的多个属性
 
 .. code:: protobuf
-
-    feature_configs : {
+  feature_config:{
+    features : {
        input_names: 'properties'
        feature_type: TagFeature
        separator: '|'
        hash_bucket_size: 100000
        embedding_dim: 24
     }
+  }
 
 -  separator: 分割符，默认为'\|'
 -  hash\_bucket\_size: hash分桶大小，配置策略和IdFeature类似
@@ -192,8 +197,8 @@ tags字段可以用于描述商品的多个属性
 我们同样支持有权重的tag特征，如"体育:0.3\|娱乐:0.2\|军事:0.5"：
 
 .. code:: protobuf
-
-    feature_configs : {
+  feature_config:{
+    features : {
        input_names: 'tag_kvs'
        feature_type: TagFeature
        separator: '|'
@@ -201,11 +206,12 @@ tags字段可以用于描述商品的多个属性
        hash_bucket_size: 100000
        embedding_dim: 24
     }
+  }
 或"体育\|娱乐\|军事"和"0.3\|0.2\|0.5"的输入形式：
 
 .. code:: protobuf
-
-    feature_configs : {
+  feature_config:{
+    features : {
        input_names: 'tags'
        input_names: 'tag_scores'
        feature_type: TagFeature
@@ -213,6 +219,7 @@ tags字段可以用于描述商品的多个属性
        hash_bucket_size: 100000
        embedding_dim: 24
     }
+  }
 
 NOTE:
 ~~~~~
@@ -223,19 +230,21 @@ NOTE:
 -  Weights的数目必须要和tag的数目一致，并且使用\ **列内分隔符**\ 进行分隔。
 
 SequenceFeature：行为序列类特征
--------------------------------
+----------------------------------------------------------------
 
 Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征为"item\_id1\|item\_id2\|item\_id3",
 其中\|为分隔符，如:
 
 .. code:: protobuf
 
-    feature_configs {
+  feature_config:{
+    features {
       input_names: "play_sequence"
       feature_type: SequenceFeature
       embedding_dim: 32
       hash_bucket_size: 100000
     }
+  }
 
 -  embedding\_dim: embedding的dimension
 -  hash\_bucket\_size: 同离散值特征
@@ -273,20 +282,47 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 -  seq_att_map: 具体细节可以参考排序里的 DIN 模型。
 -  NOTE：SequenceFeature一般放在 user 组里面。
 
+在模型中可支持对序列特征使用TextCNN算子进行embedding聚合，示例如下：
+
+.. code:: protobuf
+
+  feature_configs: {
+    input_names: 'title'
+    feature_type: SequenceFeature
+    separator: ' '
+    embedding_dim: 32
+    hash_bucket_size: 10000
+    sequence_combiner: {
+      text_cnn: {
+        filter_sizes: [2, 3, 4]
+        num_filters: [16, 8, 8]
+      }
+    }
+  }
+
+- num_filters: 卷积核个数列表
+- filter_sizes: 卷积核步长列表
+
+TextCNN网络是2014年提出的用来做文本分类的卷积神经网络，由于其结构简单、效果好，在文本分类、推荐等NLP领域应用广泛。
+从直观上理解，TextCNN通过一维卷积来获取句子中`N gram`的特征表示。
+在推荐模型中，可以用TextCNN网络来提取文本类型的特征。
+
+
 ComboFeature：组合特征
-----------------------
+----------------------------------------------------------------
 
 对输入的离散值进行组合, 如age + sex:
 
 .. code:: protobuf
-
-    feature_configs {
+  feature_config:{
+    features {
         input_names: ["age", "sex"]
         feature_name: "combo_age_sex"
         feature_type: ComboFeature
         embedding_dim: 16
         hash_bucket_size: 1000
     }
+  }
 
 -  input\_names: 需要组合的特征名，数量>=2,
    来自data\_config.input\_fields.input\_name
@@ -294,7 +330,7 @@ ComboFeature：组合特征
 -  hash\_bucket\_size: hash bucket的大小
 
 特征选择
-------
+----------------------------------------------------------------
 对输入层使用变分dropout计算特征重要性，根据重要性排名进行特征选择。
 
 rank模型中配置相应字段：
@@ -315,7 +351,7 @@ rank模型中配置相应字段：
 
 
 分隔符
-------
+----------------------------------------------------------------
 
 列间分隔符
 ~~~~~~~~~~
