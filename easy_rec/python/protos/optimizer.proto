@@ -13,7 +13,8 @@ message Optimizer {
     AdamWOptimizer adamw_optimizer = 105;
     AdamAsyncOptimizer adam_async_optimizer = 106;
     AdagradOptimizer adagrad_optimizer = 107;
-    AdamAsyncWOptimizer adam_asyncw_optimizer = 108;
+    FtrlOptimizer ftrl_optimizer = 108;
+    AdamAsyncWOptimizer adam_asyncw_optimizer = 109;
   }
   optional bool use_moving_average = 5 [default = false];
   optional float moving_average_decay = 6 [default = 0.9999];
@@ -76,6 +77,17 @@ message AdamAsyncOptimizer {
   optional float beta1 = 3 [default = 0.9];
   optional float beta2 = 4 [default = 0.999];
 }
+
+message FtrlOptimizer {
+  // optional float learning_rate = 1 [default=1e-4];
+  optional LearningRate learning_rate = 1;
+  optional float learning_rate_power = 2 [default=-0.5];
+  optional float initial_accumulator_value = 3 [default=0.1];
+  optional float l1_reg = 4 [default=0.0];
+  optional float l2_reg = 5 [default=0.0];
+  optional float l2_shrinkage_reg = 6 [default=0.0];
+}
+
 
 // Configuration message for optimizer learning rate.
 message LearningRate {
