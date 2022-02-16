@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import json
 import logging
+# use few threads to avoid oss error
+import os
 
 import tensorflow as tf
 
@@ -18,7 +20,6 @@ from easy_rec.python.utils.distribution_utils import set_distribution_config
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
 
-# use few threads to avoid oss error
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -282,7 +283,11 @@ def main(argv):
       assert len(
           FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
-    pipeline_config.eval_input_path = FLAGS.tables
+
+    if FLAGS.eval_tables:
+      pipeline_config.eval_input_path = FLAGS.eval_tables
+    else:
+      pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
     set_tf_config_and_get_train_worker_num(
