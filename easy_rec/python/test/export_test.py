@@ -354,8 +354,13 @@ class ExportTest(tf.test.TestCase):
         self._extract_rtp_data,
         total_steps=1000)
 
+  @unittest.skipIf(
+      'oss_endpoint' not in os.environ or 'oss_ak' not in os.environ or 
+      'oss_sk' not in os.environ or 'oss_path' not in os.environ or
+       '-PAI' not in tf.__version__,
+      'Only execute oss params(oss_endpoint,oss_ak,oss_sk) are specified,' 
+      'and pai-tf is available.')
   def test_big_model_embedding_variable_oss_export(self):
-
     pipeline_config_path = 'samples/model_config/taobao_fg_ev.config'
     test_data_path = 'data/test/rtp/taobao_valid_feature.txt'
     self._test_big_model_export_to_oss(
@@ -364,8 +369,13 @@ class ExportTest(tf.test.TestCase):
         self._extract_rtp_data,
         total_steps=100)
 
+  @unittest.skipIf(
+      'oss_endpoint' not in os.environ or 'oss_ak' not in os.environ or 
+      'oss_sk' not in os.environ or 'oss_path' not in os.environ or
+      '-PAI' not in tf.__version__,
+      'Only execute oss params(oss_endpoint,oss_ak,oss_sk) are specified,'
+      'and pai-tf is available.')
   def test_big_model_embedding_variable_v2_oss_export(self):
-
     pipeline_config_path = 'samples/model_config/taobao_fg_ev_v2.config'
     test_data_path = 'data/test/rtp/taobao_valid_feature.txt'
     self._test_big_model_export_to_oss(
