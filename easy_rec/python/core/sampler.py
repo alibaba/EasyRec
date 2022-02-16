@@ -193,6 +193,8 @@ class BaseSampler(object):
       else:
         raise ValueError('Unknown attr type %s' % attr_gl_type)
       feature = feature.astype(attr_np_type)
+      if attr_gl_type == 'string':
+        feature = feature.tolist()
       features.append(feature)
     return features, nodes.indices
 
@@ -554,7 +556,10 @@ class HardNegativeSampler(BaseSampler):
 
     results = []
     for i, v in enumerate(hard_neg_features):
-      results.append(np.concatenate([neg_features[i], v], axis=-1))
+      if type(v) == list:
+        results.append(np.asarray(neg_features[i] + v, order='C', dtype=object))
+      else:
+        results.append(np.concatenate([neg_features[i], v], axis=0))
     results.append(hard_neg_indices)
     return results
 
@@ -653,7 +658,10 @@ class HardNegativeSamplerV2(BaseSampler):
 
     results = []
     for i, v in enumerate(hard_neg_features):
-      results.append(np.concatenate([neg_features[i], v], axis=-1))
+      if type(v) == list:
+        results.append(np.asarray(neg_features[i] + v, order='C', dtype=object))
+      else:
+        results.append(np.concatenate([neg_features[i], v], axis=0))
     results.append(hard_neg_indices)
     return results
 
