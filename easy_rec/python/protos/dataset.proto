@@ -233,6 +233,8 @@ message DatasetConfig {
     // n data for one feature in tfrecord
     optional uint32 n_data_batch_tfrecord = 24;
 
+    optional bool with_header = 25 [default = false];
+
     oneof sampler {
         NegativeSampler negative_sampler = 101;
         NegativeSamplerV2 negative_sampler_v2 = 102;
