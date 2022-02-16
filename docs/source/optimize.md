@@ -36,7 +36,7 @@ DISTRIBUTE by rand();
 
 将指定特征共享embedding空间，达到节省参数空间，加快收敛，防止过拟合。
 
-- 共享embedding的feature_configs中，**embedding_dim，hash_bucket_size，embedding_name等参数要保证一致**。
+- 共享 embedding 的 feature_config 中，**embedding_dim，hash_bucket_size，embedding_name等参数要保证一致**。
   ![share_emb](../images/optimize/share_emb.png)
 
 ### 5.根据模型效果，相应调整模型参数

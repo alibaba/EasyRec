@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
 
+from easy_rec.python.utils.shape_utils import get_shape_list
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -127,3 +129,105 @@ def session_auc(labels, predictions, session_ids, reduction='mean'):
       * "mean_by_positive_num": weighted mean with positive sample num of different sessions
   """
   return _separated_auc_impl(labels, predictions, session_ids, reduction)
+
+
+def metric_learning_recall_at_k(k,
+                                embeddings,
+                                labels,
+                                session_ids=None,
+                                embed_normed=False):
+  """Computes the recall_at_k metric for metric learning.
+
+  Args:
+    k: a scalar of int, or a tuple of ints
+    embeddings: the output of last hidden layer, a tf.float32 `Tensor` with shape [batch_size, embedding_size]
+    labels: a `Tensor` with shape [batch_size]
+    session_ids: session ids, a `Tensor` with shape [batch_size]
+    embed_normed: indicator of whether the input embeddings are l2_normalized
+  """
+  # make sure embedding should be l2-normalized
+  if not embed_normed:
+    embeddings = tf.nn.l2_normalize(embeddings, axis=1)
+  embed_shape = get_shape_list(embeddings)
+  batch_size = embed_shape[0]
+  sim_mat = tf.matmul(embeddings, embeddings, transpose_b=True)
+  sim_mat = sim_mat - tf.eye(batch_size) * 2.0
+  indices_not_equal = tf.logical_not(tf.eye(batch_size, dtype=tf.bool))
+  # Uses broadcasting where the 1st argument has shape (1, batch_size) and the 2nd (batch_size, 1)
+  labels_equal = tf.equal(tf.expand_dims(labels, 0), tf.expand_dims(labels, 1))
+  if session_ids is not None and session_ids is not labels:
+    sessions_equal = tf.equal(
+        tf.expand_dims(session_ids, 0), tf.expand_dims(session_ids, 1))
+    labels_equal = tf.logical_and(sessions_equal, labels_equal)
+  mask = tf.logical_and(indices_not_equal, labels_equal)
+  mask_pos = tf.where(mask, sim_mat,
+                      -tf.ones_like(sim_mat))  # shape: (batch_size, batch_size)
+  if isinstance(k, int):
+    _, pos_top_k_idx = tf.nn.top_k(mask_pos, k)  # shape: (batch_size, k)
+    return tf.metrics.recall_at_k(
+        labels=tf.to_int64(pos_top_k_idx), predictions=sim_mat, k=k)
+  if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
+    metrics = {}
+    for kk in k:
+      if kk < 1:
+        continue
+      _, pos_top_k_idx = tf.nn.top_k(mask_pos, kk)
+      metrics['recall@' + str(kk)] = tf.metrics.recall_at_k(
+          labels=tf.to_int64(pos_top_k_idx), predictions=sim_mat, k=kk)
+    return metrics
+  else:
+    raise ValueError('k should be a `int` or a list/tuple/set of int.')
+
+
+def metric_learning_average_precision_at_k(k,
+                                           embeddings,
+                                           labels,
+                                           session_ids=None,
+                                           embed_normed=False):
+  # make sure embedding should be l2-normalized
+  if not embed_normed:
+    embeddings = tf.nn.l2_normalize(embeddings, axis=1)
+  embed_shape = get_shape_list(embeddings)
+  batch_size = embed_shape[0]
+  sim_mat = tf.matmul(embeddings, embeddings, transpose_b=True)
+  sim_mat = sim_mat - tf.eye(batch_size) * 2.0
+  mask = tf.equal(tf.expand_dims(labels, 0), tf.expand_dims(labels, 1))
+  if session_ids is not None and session_ids is not labels:
+    sessions_equal = tf.equal(
+        tf.expand_dims(session_ids, 0), tf.expand_dims(session_ids, 1))
+    mask = tf.logical_and(sessions_equal, mask)
+  label_indices = _get_matrix_mask_indices(mask)
+  if isinstance(k, int):
+    return tf.metrics.average_precision_at_k(label_indices, sim_mat, k)
+  if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
+    metrics = {}
+    for kk in k:
+      if kk < 1:
+        continue
+      metrics['MAP@' + str(kk)] = tf.metrics.average_precision_at_k(
+          label_indices, sim_mat, kk)
+    return metrics
+  else:
+    raise ValueError('k should be a `int` or a list/tuple/set of int.')
+
+
+def _get_matrix_mask_indices(matrix, num_rows=None):
+  if num_rows is None:
+    num_rows = get_shape_list(matrix)[0]
+  indices = tf.where(matrix)
+  num_indices = tf.shape(indices)[0]
+  elem_per_row = tf.bincount(
+      tf.cast(indices[:, 0], tf.int32), minlength=num_rows)
+  max_elem_per_row = tf.reduce_max(elem_per_row)
+  row_start = tf.concat([[0], tf.cumsum(elem_per_row[:-1])], axis=0)
+  r = tf.range(max_elem_per_row)
+  idx = tf.expand_dims(row_start, 1) + r
+  idx = tf.minimum(idx, num_indices - 1)
+  result = tf.gather(indices[:, 1], idx)
+  # replace invalid elements with -1
+  result = tf.where(
+      tf.expand_dims(elem_per_row, 1) > r, result, -tf.ones_like(result))
+  max_index_per_row = tf.reduce_max(result, axis=1, keepdims=True)
+  max_index_per_row = tf.tile(max_index_per_row, [1, max_elem_per_row])
+  result = tf.where(result >= 0, result, max_index_per_row)
+  return result

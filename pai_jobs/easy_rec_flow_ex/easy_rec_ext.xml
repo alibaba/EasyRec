@@ -54,6 +54,7 @@
     <parameter name="extra_params" use="optional" default=""/>
     <parameter name="vpcRegion" use="optional" default=""/>
     <parameter name="vpcId" use="optional" default=""/>
+    <parameter name="allOrNothing" use="optional" default="false"/>
   </parameters>
 
   <workflow>
@@ -201,6 +202,7 @@
           <p name="vpcRegion" value="${parameters.vpcRegion}"/>
           <p name="vpcId" value="${parameters.vpcId}"/>
           <p name="userDefinedParameters" value="${workflow.getHyperParams.hyperParameters}"/>
+          <p name="allOrNothing" value="${parameters.allOrNothing}"/>
         </parameters>
         <name>tensorflow1120_ext</name>
         <project>algo_public</project>

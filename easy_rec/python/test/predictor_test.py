@@ -3,6 +3,8 @@
 import csv
 import json
 import logging
+import os
+import shutil
 
 import numpy as np
 import tensorflow as tf
@@ -116,6 +118,41 @@ class PredictorTest(tf.test.TestCase):
         inputs.append({f: row[fid + 2] for fid, f in enumerate(field_keys)})
       output_res = predictor.predict(inputs, batch_size=32)
       self.assertTrue(len(output_res) == 100)
+
+
+class PredictorTestOnDS(tf.test.TestCase):
+
+  def setUp(self):
+    self._test_input_path = 'data/test/inference/taobao_infer_data.txt'
+    self._test_output_path = 'data/test/inference/taobao_infer_result'
+
+    self.gpus = test_utils.get_available_gpus()
+    self.assertTrue(len(self.gpus) > 0, 'no available gpu on this machine')
+    logging.info('available gpus %s' % self.gpus)
+    test_utils.set_gpu_id(self.gpus[0])
+    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
+
+  def tearDown(self):
+    if (os.path.exists(self._test_output_path)):
+      shutil.rmtree(self._test_output_path)
+    test_utils.set_gpu_id(None)
+
+  @RunAsSubprocess
+  def test_local_pred(self):
+    predictor = Predictor('data/test/inference/tb_multitower_export/')
+    predictor.predict_impl(
+        self._test_input_path,
+        self._test_output_path,
+        reserved_cols='ALL_COLUMNS',
+        output_cols='ALL_COLUMNS',
+        slice_id=0,
+        slice_num=1,
+        input_sep=',',
+        output_sep=';')
+
+    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(len(output_res) == 101)
 
 
 class PredictorTestV2(tf.test.TestCase):

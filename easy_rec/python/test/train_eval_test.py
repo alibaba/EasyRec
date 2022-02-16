@@ -42,6 +42,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/deepfm_combo_on_avazu_ctr.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_deepfm_freeze_gradient(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_freeze_gradient.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_deepfm_with_vocab_list(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_vocab_list_on_avazu_ctr.config',
@@ -236,6 +241,16 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_dropoutnet(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dropoutnet_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_metric_learning(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dssm_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_on_taobao.config',
@@ -265,10 +280,10 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_inner_prod_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_dssm_with_regression(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_reg_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
+  # def test_dssm_with_regression(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/dssm_reg_on_taobao.config', self._test_dir)
+  #   self.assertTrue(self._success)
 
   def _test_kd(self, config0, config1):
     self._success = test_utils.test_single_train_eval(config0, self._test_dir)
@@ -340,10 +355,10 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_deepfm_with_sequence_attention(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/deppfm_seq_attn_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
+  # def test_deepfm_with_sequence_attention(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/deppfm_seq_attn_on_taobao.config', self._test_dir)
+  #   self.assertTrue(self._success)
 
   def test_deepfm_with_embedding_learning_rate(self):
     self._success = test_utils.test_single_train_eval(
@@ -409,8 +424,8 @@ class TrainEvalTest(tf.test.TestCase):
   def test_incompatible_restore(self):
 
     def _post_check_func(config):
-      config.feature_configs[0].hash_bucket_size += 20000
-      config.feature_configs[1].hash_bucket_size += 100
+      config.feature_config.features[0].hash_bucket_size += 20000
+      config.feature_config.features[1].hash_bucket_size += 100
       config.train_config.fine_tune_checkpoint = config.model_dir
       config.model_dir += '_finetune'
       config.train_config.force_restore_shape_compatible = True
@@ -504,6 +519,76 @@ class TrainEvalTest(tf.test.TestCase):
   def test_fg_dtype(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_autoint(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/autoint_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dcn(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dcn_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_dssm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  # def test_sequence_essm(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/essm_on_sequence_feature_taobao.config',
+  #       self._test_dir)
+  #   self.assertTrue(self._success)
+
+  def test_sequence_fm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_mmoe(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_ple(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/ple_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_rocket_launching(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/rocket_launching_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_simple_multi_task(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/simple_multi_task_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_sequence_wide_and_deep(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/wide_and_deep_on_sequence_feature_taobao.config',
+        self._test_dir)
+
+  def test_multi_optimizer(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
     self.assertTrue(self._success)
 
 

@@ -1,0 +1,22 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/loss.proto";
+
+
+message CoMetricLearningI2I {
+  optional string session_id = 1;
+  repeated HighWayTower highway = 2;
+  optional string input = 4;
+  required DNN dnn = 5;
+  required float l2_regularization = 6 [default = 1e-4];
+  required bool output_l2_normalized_emb = 7 [default = true];
+  optional string sample_id = 8;
+  oneof loss {
+    CircleLoss circle_loss = 101;
+    MultiSimilarityLoss multi_similarity_loss = 102;
+  }
+  optional string item_id = 9;
+}
