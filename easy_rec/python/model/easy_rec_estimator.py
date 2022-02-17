@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import logging
 import os
+import re
 import time
 from collections import OrderedDict
 
@@ -20,6 +21,7 @@ from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -104,9 +106,23 @@ class EasyRecEstimator(tf.estimator.Estimator):
         loss = tf.identity(loss, name='total_loss')
 
     # build optimizer
-    optimizer_config = self.train_config.optimizer_config
-    optimizer, learning_rate = optimizer_builder.build(optimizer_config)
-    tf.summary.scalar('learning_rate', learning_rate[0])
+    if len(self.train_config.optimizer_config) == 1:
+      optimizer_config = self.train_config.optimizer_config[0]
+      optimizer, learning_rate = optimizer_builder.build(optimizer_config)
+      tf.summary.scalar('learning_rate', learning_rate[0])
+    else:
+      optimizer_config = self.train_config.optimizer_config
+      all_opts = []
+      for opti_id, tmp_config in enumerate(optimizer_config):
+        with tf.name_scope('optimizer_%d' % opti_id):
+          opt, learning_rate = optimizer_builder.build(tmp_config)
+          tf.summary.scalar('learning_rate', learning_rate[0])
+        all_opts.append(opt)
+      grouped_vars = model.get_grouped_vars()
+      assert len(grouped_vars) == len(optimizer_config), \
+          'the number of var group(%d) != the number of optimizers(%d)' \
+          % (len(grouped_vars), len(optimizer_config))
+      optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     hooks = []
     # for distributed and synced training
@@ -161,11 +177,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
       gradient_clipping_by_norm = None
 
     gradient_multipliers = None
-    if self.train_config.optimizer_config.HasField(
+    if self.train_config.optimizer_config[0].HasField(
         'embedding_learning_rate_multiplier'):
       gradient_multipliers = {
-          var:
-          self.train_config.optimizer_config.embedding_learning_rate_multiplier
+          var: self.train_config.optimizer_config[0]
+          .embedding_learning_rate_multiplier
           for var in tf.trainable_variables()
           if 'embedding_weights:' in var.name or
           '/embedding_weights/part_' in var.name
@@ -174,6 +190,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # optimize loss
     # colocate_gradients_with_ops=True means to compute gradients
     # on the same device on which op is processes in forward process
+    all_train_vars = []
+    if len(self.train_config.freeze_gradient) > 0:
+      for one_var in tf.trainable_variables():
+        is_freeze = False
+        for x in self.train_config.freeze_gradient:
+          if re.search(x, one_var.name) is not None:
+            logging.info('will freeze gradients of %s' % one_var.name)
+            is_freeze = True
+            break
+        if not is_freeze:
+          all_train_vars.append(one_var)
+    else:
+      all_train_vars = tf.trainable_variables()
+
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -181,7 +211,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         clip_gradients=gradient_clipping_by_norm,
         optimizer=optimizer,
         gradient_multipliers=gradient_multipliers,
-        variables=tf.trainable_variables(),
+        variables=all_train_vars,
         summaries=summaries,
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
