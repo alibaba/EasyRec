@@ -364,12 +364,12 @@ end
 
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
-                     trainTables, evalTables, boundaryTable)
+                     trainTables, evalTables, boundaryTable, queryTable, docTable)
   -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' and cmd ~= 'custom' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' and cmd ~= 'vector_retrieve' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom, vector_retrieve')
   end
 
   -- for export
@@ -394,6 +394,14 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
     then
       inputTable = tmpTables[1]
     end
+  end
+
+  if cmd == 'vector_retrieve' then
+    inputTable = queryTable
+    all_tables[queryTable] = table_id
+    table_id = table_id + 1
+    all_tables[docTable] = table_id
+    table_id = table_id + 1
   end
 
   if cmd == 'train' then
@@ -478,6 +486,29 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   tables = join(tables, ',')
+
+  if cmd == 'vector_retrieve' then
+    if outputTable == nil or outputTable == '' then
+      error("outputTable is not set")
+    end
+
+    proj1, table1, partition1 = splitTableParam(outputTable)
+    out_table_name = proj1 .. "." .. table1
+    create_sql = ''
+    add_partition_sql = ''
+    if partition1 ~= nil and string.len(partition1) ~= 0 then
+      local partition_names, parition_values = parseParitionSpec(partition1)
+      create_partition_str = genCreatePartitionStr(partition_names)
+      create_sql = string.format("create table if not exists %s (query BIGINT, doc BIGINT, distance DOUBLE) partitioned by %s lifecycle %s;", out_table_name, create_partition_str, lifecycle)
+      add_partition_sql = genAddPartitionStr(partition_names, parition_values)
+      add_partition_sql = string.format("alter table %s add if not exists partition %s;", out_table_name, add_partition_sql)
+    else
+      create_sql = string.format("create table %s (query BIGINT, doc BIGINT, distance DOUBLE) lifecycle %s;", out_table_name, lifecycle)
+      add_partition_sql = string.format("desc %s;",  out_table_name)
+    end
+
+    return "", "", "", "", create_sql, add_partition_sql, tables
+  end
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict
   proj0, table0, partition0 = splitTableParam(inputTable)

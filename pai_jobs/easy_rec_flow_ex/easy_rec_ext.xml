@@ -105,6 +105,8 @@
           <var name="trainTables" value="${parameters.train_tables}" />
           <var name="evalTables" value="${parameters.eval_tables}" />
           <var name="boundaryTable" value="${parameters.boundary_table}" />
+          <var name="queryTable" value="${parameters.query_table}" />
+          <var name="docTable" value="${parameters.doc_table}" />
         </input_vars>
         <output_vars>
           <var name="all_cols"/>

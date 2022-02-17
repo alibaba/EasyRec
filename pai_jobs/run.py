@@ -357,13 +357,19 @@ def main(argv):
         slice_id=FLAGS.task_index,
         slice_num=worker_num)
   elif FLAGS.cmd == 'vector_retrieve':
-    check_param('query_table')
-    check_param('doc_table')
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
     assert FLAGS.knn_num_neighbours is not None, '`knn_num_neighbours` should not be None'
 
     query_table, doc_table, output_table = FLAGS.query_table, FLAGS.doc_table, FLAGS.outputs
+    if not query_table:
+      tables = FLAGS.tables.split(',')
+      assert len(
+          tables
+      ) >= 2, 'at least 2 tables must be specified, but only[%d]: %s' % (
+          len(tables), FLAGS.tables)
+      query_table, doc_table = tables
+
     knn = VectorRetrieve(
         query_table,
         doc_table,
