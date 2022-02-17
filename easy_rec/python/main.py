@@ -267,15 +267,6 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   else:
     eval_data = pipeline_config.eval_input_path
 
-  export_config = pipeline_config.export_config
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    if not gfile.Exists(embed_shape_dir):
-      gfile.MakeDirs(embed_shape_dir)
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    pipeline_config.train_config.separate_save = True
-
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
       pipeline_config, distribution=distribution)

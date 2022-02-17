@@ -79,8 +79,6 @@ message TrainConfig {
     // Number of gpus per machine
     optional int32 num_gpus_per_worker = 21 [default = 1];
 
-    optional bool separate_save = 22 [default = false];
-
     // summary model variables or not
     optional bool summary_model_vars = 23 [default = false];
 
