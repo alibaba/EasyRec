@@ -2,7 +2,7 @@ easy\_rec.python.model
 ==============================
 
 easy\_rec.python.model.easy\_rec\_model
-----------------------------------------------
+------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.easy_rec_model
    :members:
@@ -10,7 +10,7 @@ easy\_rec.python.model.easy\_rec\_model
    :show-inheritance:
 
 easy\_rec.python.model.rank\_model
------------------------------------------
+-------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.rank_model
    :members:
@@ -18,7 +18,7 @@ easy\_rec.python.model.rank\_model
    :show-inheritance:
 
 easy\_rec.python.model.fm
---------------------------------
+----------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.fm
    :members:
@@ -26,7 +26,7 @@ easy\_rec.python.model.fm
    :show-inheritance:
 
 easy\_rec.python.model.wide_and_deep
---------------------------------
+----------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.wide_and_deep
    :members:
@@ -34,7 +34,7 @@ easy\_rec.python.model.wide_and_deep
    :show-inheritance:
 
 easy\_rec.python.model.deepfm
-------------------------------------
+--------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.deepfm
    :members:
@@ -42,7 +42,7 @@ easy\_rec.python.model.deepfm
    :show-inheritance:
 
 easy\_rec.python.model.multi\_tower
-------------------------------------------
+--------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.multi_tower
    :members:
@@ -50,7 +50,7 @@ easy\_rec.python.model.multi\_tower
    :show-inheritance:
 
 easy\_rec.python.model.dcn
-------------------------------------------
+--------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.dcn
    :members:
@@ -58,7 +58,7 @@ easy\_rec.python.model.dcn
    :show-inheritance:
 
 easy\_rec.python.model.autoint
-------------------------------------------
+--------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.autoint
    :members:
@@ -66,7 +66,7 @@ easy\_rec.python.model.autoint
    :show-inheritance:
 
 easy\_rec.python.model.dbmtl
-------------------------------------------
+--------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.dbmtl
    :members:
@@ -74,7 +74,7 @@ easy\_rec.python.model.dbmtl
    :show-inheritance:
 
 easy\_rec.python.model.multi\_tower\_bst
------------------------------------------------
+-------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.multi_tower_bst
    :members:
@@ -82,7 +82,7 @@ easy\_rec.python.model.multi\_tower\_bst
    :show-inheritance:
 
 easy\_rec.python.model.multi\_tower\_din
------------------------------------------------
+-------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.multi_tower_din
    :members:
@@ -90,7 +90,7 @@ easy\_rec.python.model.multi\_tower\_din
    :show-inheritance:
 
 easy\_rec.python.model.dssm
-----------------------------------
+------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.dssm
    :members:
@@ -98,7 +98,7 @@ easy\_rec.python.model.dssm
    :show-inheritance:
 
 easy\_rec.python.model.mind
-----------------------------------
+------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.mind
    :members:
@@ -106,7 +106,7 @@ easy\_rec.python.model.mind
    :show-inheritance:
 
 easy\_rec.python.model.multi\_task\_model
-------------------------------------------------
+--------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.multi_task_model
    :members:
@@ -114,7 +114,7 @@ easy\_rec.python.model.multi\_task\_model
    :show-inheritance:
 
 easy\_rec.python.model.mmoe
-----------------------------------
+------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.mmoe
    :members:
@@ -122,7 +122,7 @@ easy\_rec.python.model.mmoe
    :show-inheritance:
 
 easy\_rec.python.model.esmm
-----------------------------------
+------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.esmm
    :members:
@@ -130,7 +130,7 @@ easy\_rec.python.model.esmm
    :show-inheritance:
 
 easy\_rec.python.model.easy\_rec\_estimator
---------------------------------------------------
+----------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.simple_multi_task
    :members:
@@ -138,7 +138,7 @@ easy\_rec.python.model.easy\_rec\_estimator
    :show-inheritance:
 
 easy\_rec.python.model.easy\_rec\_estimator
---------------------------------------------------
+----------------------------------------------------------------------------------
 
 .. automodule:: easy_rec.python.model.easy_rec_estimator
    :members:
