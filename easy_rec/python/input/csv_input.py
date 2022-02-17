@@ -61,7 +61,7 @@ class CSVInput(Input):
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
           name='decode_csv')
-      if self._field_names is not None:
+      if self._field_names:
         fields = [
             fields[self._field_names.index(x)] for x in self._input_fields
         ]
@@ -86,7 +86,7 @@ class CSVInput(Input):
           line_str = line_str.strip()
           self._field_names = line_str.split(self._data_config.separator)
           break
-        print('field_names: %s' % line_str)
+        print('field_names: %s' % ','.join(self._field_names))
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
