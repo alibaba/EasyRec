@@ -197,7 +197,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_vector_retrieve(self):
     start_files = [
-      # 'vector_retrieve/create_external_vector_table.sql',
       'vector_retrieve/create_inner_vector_table.sql'
     ]
     test_files = [
