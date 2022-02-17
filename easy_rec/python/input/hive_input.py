@@ -1,16 +1,27 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 import numpy as np
 import tensorflow as tf
 from pyhive import hive
+
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 
 
 class TableInfo(object):
-  def __init__(self, tablename: str, selected_cols: str, partition_kv: dict, hash_fields: str, limit_num: int,
-               batch_size=16, task_index=0, task_num=1, epoch=1):
+
+  def __init__(self,
+               tablename: str,
+               selected_cols: str,
+               partition_kv: dict,
+               hash_fields: str,
+               limit_num: int,
+               batch_size=16,
+               task_index=0,
+               task_num=1,
+               epoch=1):
     self.tablename = tablename
     self.selected_cols = selected_cols
     self.partition_kv = partition_kv
@@ -22,17 +33,17 @@ class TableInfo(object):
     self.epoch = epoch
 
   def gen_sql(self):
-    part = ""
+    part = ''
     if self.partition_kv and len(self.partition_kv) > 0:
       res = []
       for k, v in self.partition_kv.items():
-        res.append(f"{k}={v}")
-      part = " ".join(res)
+        res.append(f'{k}={v}')
+      part = ' '.join(res)
     sql = f"""select {self.selected_cols}
         from {self.tablename}"""
-    assert self.hash_fields is not None, "hash_fields must not be empty"
-    fields = [f"cast({key} as string)" for key in self.hash_fields.split(",")]
-    str_fields = ",".join(fields)
+    assert self.hash_fields is not None, 'hash_fields must not be empty'
+    fields = [f'cast({key} as string)' for key in self.hash_fields.split(',')]
+    str_fields = ','.join(fields)
     if not part:
       sql += f"""
         where hash(concat({str_fields}))%{self.task_num}={self.task_index}
@@ -42,12 +53,18 @@ class TableInfo(object):
         where {part} and hash(concat({str_fields}))%{self.task_num}={self.task_index}
         """
     if self.limit_num is not None and self.limit_num > 0:
-      sql += f" limit {self.limit_num}"
+      sql += f' limit {self.limit_num}'
     return sql
 
 
 class HiveManager(object):
-  def __init__(self, host: str, port: int, username: str, info: TableInfo, database="default"):
+
+  def __init__(self,
+               host: str,
+               port: int,
+               username: str,
+               info: TableInfo,
+               database='default'):
     self.host = host
     self.port = port
     self.username = username
@@ -55,7 +72,11 @@ class HiveManager(object):
     self.info = info
 
   def __call__(self):
-    conn = hive.Connection(host=self.host, port=self.port, username=self.username, database=self.database)
+    conn = hive.Connection(
+        host=self.host,
+        port=self.port,
+        username=self.username,
+        database=self.database)
     cursor = conn.cursor()
     sql = self.info.gen_sql()
     res = []
@@ -85,25 +106,24 @@ class HiveInput(Input):
 
   def _construct_table_info(self, table_name, hash_fields, limit_num):
     # sample_table/dt=2014-11-23/name=a
-    segs = table_name.split("/")
+    segs = table_name.split('/')
     table_name = segs[0].strip()
     if len(segs) > 0:
-      partition_kv = {i.split("=")[0]: i.split("=")[1] for i in segs[1:]}
+      partition_kv = {i.split('=')[0]: i.split('=')[1] for i in segs[1:]}
     else:
       partition_kv = None
     selected_cols = ','.join(self._input_fields)
-    table_info = TableInfo(table_name, selected_cols, partition_kv, hash_fields, limit_num,
-                           self._data_config.batch_size,
-                           self._task_index,
-                           self._task_num,
-                           self._num_epoch)
+    table_info = TableInfo(table_name, selected_cols, partition_kv, hash_fields,
+                           limit_num, self._data_config.batch_size,
+                           self._task_index, self._task_num, self._num_epoch)
     return table_info
 
   def _construct_hive_connect(self):
-    conn = hive.Connection(host=self._hive_config.host,
-                           port=self._hive_config.port,
-                           username=self._hive_config.username,
-                           database=self._hive_config.database)
+    conn = hive.Connection(
+        host=self._hive_config.host,
+        port=self._hive_config.port,
+        username=self._hive_config.username,
+        database=self._hive_config.database)
     return conn
 
   def _parse_table(self, *fields):
@@ -128,7 +148,9 @@ class HiveInput(Input):
     ]
 
     for table_path in self._input_path:
-      table_info = self._construct_table_info(table_path, self._hive_config.hash_fields, self._hive_config.limit_num)
+      table_info = self._construct_table_info(table_path,
+                                              self._hive_config.hash_fields,
+                                              self._hive_config.limit_num)
       conn = self._construct_hive_connect()
       cursor = conn.cursor()
       sql = table_info.gen_sql()
@@ -167,8 +189,9 @@ class HiveInput(Input):
     list_shapes = tuple(list_shapes)
 
     # read odps tables
+
     dataset = tf.data.Dataset.from_generator(
-      self._hive_read, output_types=list_type, output_shapes=list_shapes)
+        self._hive_read, output_types=list_type, output_shapes=list_shapes)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(

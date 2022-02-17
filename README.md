@@ -76,6 +76,7 @@ Running Platform:
 - [Home](https://easyrec.readthedocs.io/en/latest/)
 - [FAQ](https://easyrec.readthedocs.io/en/latest/faq.html)
 - [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)(PPT)
+- [benchmark data](docs/source/benchmark.md)
 
 &#160;
 
