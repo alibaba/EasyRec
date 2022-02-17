@@ -450,8 +450,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # add more asset files
     if 'asset_files' in params:
-      for asset_file in params['asset_files'].split(','):
-        _, asset_name = os.path.split(asset_file)
+      for asset_name in params['asset_files']:
+        asset_file = params['asset_files'][asset_name]
         tf.add_to_collection(
             tf.GraphKeys.ASSET_FILEPATHS,
             tf.constant(asset_file, dtype=tf.string, name=asset_name))
