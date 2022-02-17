@@ -73,8 +73,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_dlrm(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dlrm_on_taobao.config',
-        self._test_dir)
+        'samples/model_config/dlrm_on_taobao.config', self._test_dir)
 
   def test_adamw_optimizer(self):
     self._success = test_utils.test_single_train_eval(

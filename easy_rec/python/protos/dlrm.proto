@@ -7,7 +7,7 @@ message DLRM {
   required DNN top_dnn = 1;
 
   required DNN bot_dnn = 2;
-  
+
   // options are: dot and cat
   optional string arch_interaction_op = 3 [default='dot'];
 
