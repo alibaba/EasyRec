@@ -50,7 +50,9 @@ class InputLayer(object):
     self._seq_input_layer = None
     if len(self._seq_feature_groups_config) > 0:
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
-          feature_configs, self._seq_feature_groups_config)
+          feature_configs,
+          self._seq_feature_groups_config,
+          use_embedding_variable=use_embedding_variable)
     wide_and_deep_dict = self.get_wide_deep_dict()
     self._fc_parser = FeatureColumnParser(
         feature_configs,
