@@ -366,9 +366,10 @@ def main(argv):
       tables = FLAGS.tables.split(',')
       assert len(
           tables
-      ) >= 2, 'at least 2 tables must be specified, but only[%d]: %s' % (
+      ) >= 1, 'at least 1 tables must be specified, but only[%d]: %s' % (
           len(tables), FLAGS.tables)
-      query_table, doc_table = tables
+      query_table = tables[0]
+      doc_table = tables[1] if len(tables) > 1 else query_table
 
     knn = VectorRetrieve(
         query_table,
