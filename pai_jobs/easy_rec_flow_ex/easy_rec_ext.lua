@@ -207,6 +207,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. " --eval_result_path=" .. eval_result_path
     hyperParameters = hyperParameters .. " --mask_feature_name=" .. mask_feature_name
     hyperParameters = hyperParameters .. " --distribute_strategy=" .. distribute_strategy
+    if eval_tables ~= "" and eval_tables ~= nil then
+      hyperParameters = hyperParameters .. " --eval_tables " .. eval_tables
+    end
   elseif cmd == 'export' then
     hyperParameters = hyperParameters .. " --checkpoint_path=" .. checkpoint_path
     hyperParameters = hyperParameters .. " --export_dir=" .. export_dir

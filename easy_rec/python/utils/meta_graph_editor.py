@@ -16,9 +16,15 @@ class MetaGraphEditor:
   def __init__(self,
                lookup_lib_path,
                saved_model_dir,
-               redis_url,
-               redis_passwd,
-               redis_timeout,
+               redis_url=None,
+               redis_passwd=None,
+               redis_timeout=0,
+               redis_cache_names=[],
+               oss_path=None,
+               oss_endpoint=None,
+               oss_ak=None,
+               oss_sk=None,
+               oss_timeout=0,
                meta_graph_def=None,
                norm_name_to_ids=None,
                debug_dir=''):
@@ -53,12 +59,20 @@ class MetaGraphEditor:
     self._feature_names = None
     self._embed_names = None
     self._embed_name_to_ids = norm_name_to_ids
+    self._is_cache_from_redis = []
+    self._redis_cache_names = redis_cache_names
     self._embed_ids = None
     self._embed_dims = None
+    self._embed_sizes = None
     self._embed_combiners = None
     self._redis_url = redis_url
     self._redis_passwd = redis_passwd
     self._redis_timeout = redis_timeout
+    self._oss_path = oss_path
+    self._oss_endpoint = oss_endpoint
+    self._oss_ak = oss_ak
+    self._oss_sk = oss_sk
+    self._oss_timeout = oss_timeout
 
   @property
   def graph_def(self):
@@ -220,30 +234,43 @@ class MetaGraphEditor:
   def _find_embed_names_and_dims(self, norm_embed_names):
     # get embedding dimensions from Variables
     embed_dims = {}
+    embed_sizes = {}
+    embed_is_kv = {}
     for node in self._meta_graph_def.graph_def.node:
       if 'embedding_weights' in node.name and node.op in [
           'VariableV2', 'KvVarHandleOp'
       ]:
         tmp = node.attr['shape'].shape.dim[-1].size
+        tmp2 = 1
+        for x in node.attr['shape'].shape.dim[:-1]:
+          tmp2 = tmp2 * x.size
         embed_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
-        embed_dims[embed_name] = tmp
         assert embed_name is not None,\
             'fail to get_norm_embed_name(%s)' % node.name
+        embed_dims[embed_name] = tmp
+        embed_sizes[embed_name] = tmp2
+        embed_is_kv[embed_name] = 1 if node.op == 'KvVarHandleOp' else 0
 
     # get all embedding dimensions, note that some embeddings
     # are shared by multiple inputs, so the names should be
     # transformed
     all_embed_dims = []
     all_embed_names = []
+    all_embed_sizes = []
+    all_embed_is_kv = []
     for x in norm_embed_names:
       if x in embed_dims:
         all_embed_names.append(x)
         all_embed_dims.append(embed_dims[x])
+        all_embed_sizes.append(embed_sizes[x])
+        all_embed_is_kv.append(embed_is_kv[x])
       elif x.endswith('_shared_embedding'):
         tmp_embed_name = self._get_share_embed_name(x, embed_dims.keys())
         all_embed_names.append(tmp_embed_name)
         all_embed_dims.append(embed_dims[tmp_embed_name])
-    return all_embed_names, all_embed_dims
+        all_embed_sizes.append(embed_sizes[tmp_embed_name])
+        all_embed_is_kv.append(embed_is_kv[tmp_embed_name])
+    return all_embed_names, all_embed_dims, all_embed_sizes, all_embed_is_kv
 
   def find_lookup_inputs(self):
     logging.info('Extract embedding_lookup inputs')
@@ -281,8 +308,8 @@ class MetaGraphEditor:
     self._embed_combiners = self._find_embed_combiners(values.keys())
 
     # get embedding dimensions
-    self._embed_names, self._embed_dims = self._find_embed_names_and_dims(
-        values.keys())
+    self._embed_names, self._embed_dims, self._embed_sizes, self._embed_is_kv\
+        = self._find_embed_names_and_dims(values.keys())
 
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
@@ -290,6 +317,11 @@ class MetaGraphEditor:
           t: str(tid) for tid, t in enumerate(embed_name_uniq)
       }
     self._embed_ids = [self._embed_name_to_ids[x] for x in self._embed_names]
+
+    self._is_cache_from_redis = [
+        proto_util.is_cache_from_redis(x, self._redis_cache_names)
+        for x in self._embed_names
+    ]
 
     # normalized feature names
     self._feature_names = list(values.keys())
@@ -314,7 +346,39 @@ class MetaGraphEditor:
         combiners=self._embed_combiners,
         embedding_dims=self._embed_dims,
         embedding_names=self._embed_ids,
+        cache=self._is_cache_from_redis,
         version=self._meta_graph_version)
+
+    meta_graph_def = tf.train.export_meta_graph()
+
+    if self._verbose:
+      debug_path = os.path.join(self._debug_dir, 'graph_raw.txt')
+      with GFile(debug_path, 'w') as fout:
+        fout.write(
+            text_format.MessageToString(
+                self._meta_graph_def.graph_def, as_utf8=True))
+    return meta_graph_def
+
+  def add_oss_lookup_op(self, lookup_input_indices, lookup_input_values,
+                        lookup_input_shapes, lookup_input_weights):
+    logging.info('add custom lookup operation to lookup embeddings from oss')
+    for i in range(len(lookup_input_values)):
+      if lookup_input_values[i].dtype == tf.int32:
+        lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
+    self._lookup_outs = self._lookup_op.oss_read_kv(
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+        osspath=self._oss_path,
+        endpoint=self._oss_endpoint,
+        ak=self._oss_ak,
+        sk=self._oss_sk,
+        timeout=self._oss_timeout,
+        combiners=self._embed_combiners,
+        embedding_dims=self._embed_dims,
+        embedding_names=self._embed_ids,
+        embedding_is_kv=self._embed_is_kv)
 
     meta_graph_def = tf.train.export_meta_graph()
 
@@ -330,7 +394,11 @@ class MetaGraphEditor:
     if bytes == str:
       return x
     else:
-      return x.decode('utf-8')
+      try:
+        return x.decode('utf-8')
+      except Exception:
+        # in case of some special chars in protobuf
+        return str(x)
 
   def clear_meta_graph_embeding(self, meta_graph_def):
     logging.info('clear meta graph embedding_weights')
@@ -496,9 +564,12 @@ class MetaGraphEditor:
       elif 'KvResourceImportV2' in node.name:
         self._all_graph_node_flags[tid] = False
       elif 'save/Const' in node.name and node.op == 'Const':
-        if '_class' in node.attr and 'embedding_weights' in node.attr[
-            '_class'].list.s[0]:
-          self._all_graph_node_flags[tid] = False
+        if '_class' in node.attr and len(node.attr['_class'].list.s) > 0:
+          const_name = node.attr['_class'].list.s[0]
+          if not isinstance(const_name, str):
+            const_name = const_name.decode('utf-8')
+          if 'embedding_weights' in const_name:
+            self._all_graph_node_flags[tid] = False
       elif 'ReadKvVariableOp' in node.name and node.op == 'ReadKvVariableOp':
         all_kv_drop.append(node.name)
         self._all_graph_node_flags[tid] = False
@@ -658,6 +729,58 @@ class MetaGraphEditor:
                                               lookup_input_values,
                                               lookup_input_shapes,
                                               lookup_input_weights)
+
+    self.clear_meta_graph_embeding(self._meta_graph_def)
+
+    self.clear_meta_collect(self._meta_graph_def)
+
+    self.init_graph_node_clear_flags()
+
+    self.remove_embedding_weights_and_update_lookup_outputs()
+
+    # save/RestoreV2
+    self.clear_save_restore()
+
+    # save/Assign
+    self.clear_save_assign()
+
+    # save/SaveV2
+    self.clear_save_v2()
+
+    self.clear_initialize()
+
+    self.clear_embedding_variable()
+
+    self.drop_dependent_nodes()
+
+    self._meta_graph_def.graph_def.ClearField('node')
+    self._meta_graph_def.graph_def.node.extend([
+        x for tid, x in enumerate(self._all_graph_nodes)
+        if self._all_graph_node_flags[tid]
+    ])
+
+    logging.info('old node number = %d' % self._old_node_num)
+    logging.info('node number = %d' % len(self._meta_graph_def.graph_def.node))
+
+    if self._verbose:
+      debug_dump_path = os.path.join(self._debug_dir, 'graph.txt')
+      with GFile(debug_dump_path, 'w') as fout:
+        fout.write(text_format.MessageToString(self.graph_def, as_utf8=True))
+      debug_dump_path = os.path.join(self._debug_dir, 'meta_graph.txt')
+      with GFile(debug_dump_path, 'w') as fout:
+        fout.write(
+            text_format.MessageToString(self._meta_graph_def, as_utf8=True))
+
+  def edit_graph_for_oss(self):
+    # the main entrance
+    lookup_input_indices, lookup_input_values, lookup_input_shapes,\
+        lookup_input_weights = self.find_lookup_inputs()
+
+    # add lookup op to the graph
+    self._meta_graph_def = self.add_oss_lookup_op(lookup_input_indices,
+                                                  lookup_input_values,
+                                                  lookup_input_shapes,
+                                                  lookup_input_weights)
 
     self.clear_meta_graph_embeding(self._meta_graph_def)
 
