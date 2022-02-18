@@ -8,11 +8,11 @@ DLRM(Deep Learning Recommendation Model for Personalization and Recommendation S
 output:
                     probability of a click
 model:                       |
-       ____________________>DNN<______________
-      /                      |                \
-     /_________________>INTERACTION <__________\
-    //                                         \\
-  DNN                              _____________\\________
+       _________________>DNN(top)<___________
+      /                      |               \
+     /_________________>INTERACTION <_________\
+    //                                        \\
+  DNN(bot)                         ____________\\_________
    |                              |                       |
    |                         _____|_______           _____|______
    |                        |_Emb_|____|__|    ...  |_Emb_|__|___|
@@ -56,11 +56,11 @@ model_config {
   }
 
   dlrm {
-    top_dnn {
+    bot_dnn {
       hidden_units: [64, 32, 16]
     }
 
-    bot_dnn {
+    top_dnn {
       hidden_units: [128, 64]
     }
 
@@ -81,11 +81,11 @@ model_config {
 
 - dlrm: dlrm模型相关的参数
 
-- top_dnn: dense mlp的参数配置
+- bot_dnn: dense mlp的参数配置
 
   - hidden_units: dnn每一层的channel数目，即神经元的数目
 
-- bot_dnn: 输出(logits)之前的mlp, 输入为dense features, sparse features and interact features.
+- top_dnn: 输出(logits)之前的mlp, 输入为dense features, sparse features and interact features.
 
   - hidden_units: dnn每一层的channel数目，即神经元的数目
 

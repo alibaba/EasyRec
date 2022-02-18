@@ -35,16 +35,16 @@ class DLRM(RankModel):
     self._dense_feature, _ = self._input_layer(self._feature_dict, 'dense')
 
   def build_predict_graph(self):
-    top_dnn = dnn.DNN(self._model_config.top_dnn, self._l2_reg, 'top_dnn',
+    bot_dnn = dnn.DNN(self._model_config.bot_dnn, self._l2_reg, 'bot_dnn',
                       self._is_training)
-    dense_fea = top_dnn(self._dense_feature)
+    dense_fea = bot_dnn(self._dense_feature)
     logging.info('arch_interaction_op = %s' %
                  self._model_config.arch_interaction_op)
     if self._model_config.arch_interaction_op == 'cat':
       all_fea = tf.concat([dense_fea] + self._sparse_features, axis=1)
     elif self._model_config.arch_interaction_op == 'dot':
       assert dense_fea.get_shape()[1] == self._sparse_features[0].get_shape()[1], \
-          'top_dnn last hidden[%d] != sparse feature embedding_dim[%d]' % (
+          'bot_dnn last hidden[%d] != sparse feature embedding_dim[%d]' % (
           dense_fea.get_shape()[1], self._sparse_features[0].get_shape()[1])
 
       all_feas = [dense_fea] + self._sparse_features
@@ -62,9 +62,9 @@ class DLRM(RankModel):
         concat_feas.append(dense_fea)
       all_fea = tf.concat(concat_feas, axis=1)
 
-    bot_dnn = dnn.DNN(self._model_config.bot_dnn, self._l2_reg, 'bot_dnn',
+    top_dnn = dnn.DNN(self._model_config.top_dnn, self._l2_reg, 'bot_dnn',
                       self._is_training)
-    all_fea = bot_dnn(all_fea)
+    all_fea = top_dnn(all_fea)
     logits = tf.layers.dense(
         all_fea, 1, kernel_regularizer=self._l2_reg, name='output')
 
