@@ -31,7 +31,7 @@ fi
 ps_hosts="localhost:2227"
 chief_hosts="localhost:2223"
 worker_hosts="localhost:2224"
-gpus="4,5"
+gpus=""
 
 echo "ps_hosts=${ps_hosts}"
 echo "chief_hosts=${chief_hosts}"
