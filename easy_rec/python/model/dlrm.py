@@ -62,7 +62,7 @@ class DLRM(RankModel):
         concat_feas.append(dense_fea)
       all_fea = tf.concat(concat_feas, axis=1)
 
-    top_dnn = dnn.DNN(self._model_config.top_dnn, self._l2_reg, 'bot_dnn',
+    top_dnn = dnn.DNN(self._model_config.top_dnn, self._l2_reg, 'top_dnn',
                       self._is_training)
     all_fea = top_dnn(all_fea)
     logits = tf.layers.dense(
