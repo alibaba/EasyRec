@@ -85,6 +85,12 @@ model_config: {
     - hidden_units: dnn每一层的channel数目，即神经元的数目
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
+**备注**
+DIN 模型需保证在单个样本中, seq_att_groups 内字段的序列长度相同,
+例如模型配置示例的 seq_att_groups 中,
+第一个样本的 tag_brand_list 和 tag_category_list 都是3个元素；
+第二个样本的 tag_brand_list 和 tag_category_list 都是5个元素；
+
 ### 示例config
 
 [DIN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/din.config)

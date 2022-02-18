@@ -3,13 +3,15 @@
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
+from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
 from easy_rec.python.utils.shape_utils import get_shape_list
-from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining
-from easy_rec.python.loss.pairwise_loss import pairwise_loss
-from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig
+
+from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
+from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
+from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -34,8 +36,10 @@ class DropoutNet(EasyRecModel):
     super(DropoutNet, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
     self._losses = self._model_config.losses
-    assert self._model_config.WhichOneof('model') == 'dropoutnet', \
-      'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'dropoutnet', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.dropoutnet
     assert isinstance(self._model_config, DropoutNetConfig)
 
@@ -72,8 +76,7 @@ class DropoutNet(EasyRecModel):
     last_user_hidden = self.user_tower_layers.hidden_units.pop()
     num_item_dnn_layer = len(self.item_tower_layers.hidden_units)
     last_item_hidden = self.item_tower_layers.hidden_units.pop()
-    assert last_item_hidden == last_user_hidden, \
-      'the last hidden layer size of user tower must equal to the one of item tower'
+    assert last_item_hidden == last_user_hidden, 'the last hidden layer size of user tower and item tower must be equal'
 
     # --------------------------build user tower-----------------------------------
     with tf.name_scope('user_tower'):
@@ -179,10 +182,8 @@ class DropoutNet(EasyRecModel):
         loss_value = pairwise_loss(labels, logits)
         self._loss_dict['pairwise_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.CLASSIFICATION:
-        loss_value = tf.losses.sigmoid_cross_entropy(
-          labels,
-          logits,
-          self._sample_weight)
+        loss_value = tf.losses.sigmoid_cross_entropy(labels, logits,
+                                                     self._sample_weight)
         self._loss_dict['sigmoid_loss'] = loss_value * loss.weight
     return self._loss_dict
 

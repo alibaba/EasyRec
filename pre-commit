@@ -1,0 +1,31 @@
+#!/bin/bash
+echo "Check for sensitive information leak:"
+projectUrl=`git config --get remote.origin.url`
+user=`git config --get user.name`
+user_email=`git config --get user.email`
+STAGE_FILES=$(git diff --cached --name-only)
+stage_files=(${STAGE_FILES/ // })
+keywords=("LTAI[a-zA-Z0-9]{20}" "LTAI[a-zA-Z0-9]{12}" "acs:ram::[0-9]{16}:role/")
+
+result=0
+for i in "${!stage_files[@]}"; do
+    if [ ! -e "${stage_files[i]}" ]
+    then
+      continue
+    fi
+    for index in "${!keywords[@]}"; do
+      grep -E -q ${keywords[index]} ${stage_files[i]}
+      if [ $? -eq 0 ]
+      then
+         echo "Check Failed, ${stage_files[i]} contain sensitive info: pattern=${keywords[index]}, details: "
+         grep -E ${keywords[index]} ${stage_files[i]}
+         result=1
+         break
+      fi
+    done
+done
+if [ $result -eq 0 ];then
+  echo "Sensitive Information Leak Check Passed."
+else
+  exit 1
+fi

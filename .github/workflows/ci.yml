@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          submodules: recursive      
+          submodules: recursive
       - name: RunCiTest
         id: run_ci_test
         env:
@@ -27,8 +27,8 @@ jobs:
            fi
            tar -zvxf /tmp/easyrec_data_20210818.tar.gz
            source scripts/ci_test.sh
-      - name: LabelAndComment 
-        env: 
+      - name: LabelAndComment
+        env:
           CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
         uses: actions/github-script@v5
         with:
@@ -36,20 +36,20 @@ jobs:
              const { CI_TEST_PASSED } = process.env
              labels = await github.rest.issues.listLabelsOnIssue({
                issue_number: context.issue.number,
-               repo:context.repo.repo, 
+               repo:context.repo.repo,
                owner:context.repo.owner
              })
              console.log('labels.url=' + labels.url)
-             
+
              labels = labels.data
-             
+
              var label_names = []
              if (labels != null) {
                labels.forEach(tmp_lbl => label_names.push(tmp_lbl.name))
              }
              console.log(`ci_test_passed=${CI_TEST_PASSED} labels=${label_names}`);
-             
-             var pass_label = null; 
+
+             var pass_label = null;
              if (labels != null) {
                 pass_label = labels.find(label=>label.name=='ci_test_passed');
              }  
@@ -87,7 +87,7 @@ jobs:
                
                github.rest.issues.createComment({
                   owner: context.repo.owner,
-                  repo: context.repo.repo, 
+                  repo: context.repo.repo,
                   issue_number: context.issue.number,
                   body: "CI Test Passed"
                })
@@ -98,17 +98,17 @@ jobs:
                   repo: context.repo.repo, 
                   labels: ['ci_test_failed']
                })
-
+               
                github.rest.issues.createComment({
                   owner: context.repo.owner,
-                  repo: context.repo.repo, 
+                  repo: context.repo.repo,
                   issue_number: context.issue.number,
                   body: "CI Test Failed"
                })
              }
-      - name: SignalFail 
-        env: 
-          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}  
+      - name: SignalFail
+        env:
+          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
         run: |
           echo "CI_TEST_PASSED=${CI_TEST_PASSED}"
           if [ $CI_TEST_PASSED -ne 1 ]
@@ -116,5 +116,3 @@ jobs:
             echo "ci_test_failed, will exit"
             exit 1
           fi
-
-     

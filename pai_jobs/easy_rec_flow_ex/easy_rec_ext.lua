@@ -53,13 +53,15 @@ function ParseOssUri(oss_uri, default_host)
 end
 
 function getEntry(script_in, entryFile_in, config, cluster, res_project, version)
-  if script_in ~= nil and string.len(script_in) > 0
-    and entryFile_in ~= nil and string.len(entryFile_in) > 0 then
+  if string.len(entryFile_in) == 0 then
+    error('entryFile is not set')
+  end
+  if script_in ~= nil and string.len(script_in) > 0 then
     script = script_in
     entryFile = entryFile_in
   else
-    script= "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
-    entryFile="run.py"
+    script = "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
+    entryFile = entryFile_in
   end
 
   return script, entryFile
@@ -110,6 +112,7 @@ function getHyperParams(config, cmd, checkpoint_path,
                         input_table, output_table, tables, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
+  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')
@@ -149,7 +152,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     return hyperParameters, cluster, tables, output_table
   end
 
-  checkConfig(config)
+  if cmd ~= "custom" then
+    checkConfig(config)
+  end
 
   hyperParameters = "--config='" .. config .. "'"
 
@@ -166,6 +171,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. " --eval_result_path=" .. eval_result_path
     hyperParameters = hyperParameters .. " --mask_feature_name=" .. mask_feature_name
     hyperParameters = hyperParameters .. " --distribute_strategy=" .. distribute_strategy
+    if eval_tables ~= "" and eval_tables ~= nil then
+      hyperParameters = hyperParameters .. " --eval_tables " .. eval_tables
+    end
   elseif cmd == 'export' then
     hyperParameters = hyperParameters .. " --checkpoint_path=" .. checkpoint_path
     hyperParameters = hyperParameters .. " --export_dir=" .. export_dir
@@ -324,15 +332,15 @@ end
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
                      trainTables, evalTables, boundaryTable)
-  -- all_cols, all_col_types, selected_cols, reserved_cols, 
+  -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
   end
 
   -- for export
-  if cmd == 'export' then
+  if cmd == 'export' or cmd == 'custom' then
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 
@@ -349,6 +357,10 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
         table_id = table_id + 1
       end
     end
+    if inputTable == nil or inputTable == ''
+    then
+      inputTable = tmpTables[1]
+    end
   end
 
   if cmd == 'train' then
@@ -362,6 +374,8 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
+
       tmpTables = split(evalTables, ',')
       for k=1, table.getn(tmpTables) do
         v = tmpTables[k]
@@ -380,7 +394,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   if cmd == 'evaluate' then
-    -- merge evalTables into tables if evalTables is set 
+    -- merge evalTables into tables if evalTables is set
     if evalTables ~= nil and evalTables ~= ''
     then
       tmpTables = split(evalTables, ',')
@@ -391,6 +405,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
     end
   end
 
@@ -405,7 +420,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           all_tables[v] = table_id
           table_id = table_id + 1
         end
-      end 
+      end
     else
       -- if inputTable is not set but tables is set
       -- set inputTable to tables
@@ -420,8 +435,15 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   -- merge all_tables into tables
   tables = {}
   for k,v in pairs(all_tables) do
-    table.insert(tables, k)
+    -- ensure order to be compatible
+    tables[v+1] = k
+    --table.insert(tables, k)
   end
+
+  if inputTable == nil or inputTable == '' then
+    error('inputTable is not defined')
+  end
+
   tables = join(tables, ',')
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict

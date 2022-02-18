@@ -112,6 +112,18 @@ def build(optimizer_config):
     optimizer = tf.train.AdamAsyncOptimizer(
         learning_rate, beta1=config.beta1, beta2=config.beta2)
 
+  if optimizer_type == 'ftrl_optimizer':
+    config = optimizer_config.ftrl_optimizer
+    learning_rate = _create_learning_rate(config.learning_rate)
+    summary_vars.append(learning_rate)
+    optimizer = tf.train.FtrlOptimizer(
+        learning_rate=learning_rate,
+        learning_rate_power=config.learning_rate_power,
+        initial_accumulator_value=config.initial_accumulator_value,
+        l1_regularization_strength=config.l1_reg,
+        l2_regularization_strength=config.l2_reg,
+        l2_shrinkage_regularization_strength=config.l2_shrinkage_reg)
+
   if optimizer is None:
     raise ValueError('Optimizer %s not supported.' % optimizer_type)
 

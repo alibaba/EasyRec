@@ -13,7 +13,6 @@ from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
-from easy_rec.python.utils.test_utils import RunAsSubprocess
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -41,6 +40,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_deepfm_with_combo_feature(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_ctr.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_freeze_gradient(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_freeze_gradient.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_deepfm_with_vocab_list(self):
@@ -420,8 +424,8 @@ class TrainEvalTest(tf.test.TestCase):
   def test_incompatible_restore(self):
 
     def _post_check_func(config):
-      config.feature_configs[0].hash_bucket_size += 20000
-      config.feature_configs[1].hash_bucket_size += 100
+      config.feature_config.features[0].hash_bucket_size += 20000
+      config.feature_config.features[1].hash_bucket_size += 100
       config.train_config.fine_tune_checkpoint = config.model_dir
       config.model_dir += '_finetune'
       config.train_config.force_restore_shape_compatible = True
@@ -581,6 +585,11 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/wide_and_deep_on_sequence_feature_taobao.config',
         self._test_dir)
+
+  def test_multi_optimizer(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
+    self.assertTrue(self._success)
 
 
 if __name__ == '__main__':

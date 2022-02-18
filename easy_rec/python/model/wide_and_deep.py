@@ -85,3 +85,24 @@ class WideAndDeep(RankModel):
     self._add_to_prediction_dict(output)
 
     return self._prediction_dict
+
+  def get_grouped_vars(self):
+    """Group the vars into different optimization groups.
+
+    Each group will be optimized by a separate optimizer.
+
+    Return:
+      list of list of variables.
+    """
+    assert len(self._model_config.final_dnn.hidden_units) == 0, \
+        'if use different optimizers for wide group and deep group, '\
+        + ' final_dnn should not be set.'
+    wide_vars = []
+    deep_vars = []
+    for tmp_var in tf.trainable_variables():
+      if tmp_var.name.startswith('input_layer') and \
+          (not tmp_var.name.startswith('input_layer_1')):
+        wide_vars.append(tmp_var)
+      else:
+        deep_vars.append(tmp_var)
+    return [wide_vars, deep_vars]

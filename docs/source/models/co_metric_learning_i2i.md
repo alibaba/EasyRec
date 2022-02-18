@@ -71,7 +71,15 @@ model_config: {
   - dnn: deep part的参数配置
     - hidden_units: dnn每一层的channel数目，即神经元的数目
   - circle_loss: circle loss 损失函数的超参数
+  - output_l2_normalized_emb: 是否输出l2 normalize的embedding，默认值为true
 - embedding_regularization: 对embedding部分加regularization，防止overfit
+
+### 模型输出
+
+- embedding: string类型的未做l2 normalize的embedding，逗号分隔
+- float_emb: float array类型的未做l2 normalize的embedding
+- norm_embedding: string类型的l2 normalize的embedding，逗号分隔
+- norm_emb: float array类型的l2 normalize的embedding
 
 ### 示例Config
 
