@@ -1,6 +1,6 @@
 # EasyRec简介
 
-## What is EasyRec?
+## What is EasyRec?
 
 ![intro.png](../images/intro.png)
 
@@ -55,5 +55,9 @@ EasyRec implements state of the art machine learning models used in common recom
 
 - Easy to implement customized models
 - Not need to care about data pipelines
+
+### Fast vector retrieve
+
+- Run [`knn algorithm`](vector_retrieve.md) of vectors in distribute environment
 
 欢迎加入【EasyRec推荐算法交流群】，钉钉群号 : 32260796

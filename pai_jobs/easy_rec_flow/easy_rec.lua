@@ -87,7 +87,10 @@ function getHyperParams(config, cmd, checkpoint_path,
                         model_dir, hpo_param_path, hpo_metric_save_path,
                         saved_model_dir, all_cols, all_col_types,
                         reserved_cols, output_cols, model_outputs,
-                        input_table, output_table, tables, train_tables,
+                        input_table, output_table, tables, query_table,
+                        doc_table, knn_distance, knn_num_neighbours,
+                        knn_feature_dims, knn_index_type, knn_feature_delimiter,
+                        knn_nlist, knn_nprobe, knn_compress_dim, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
   hyperParameters = ""
@@ -124,6 +127,39 @@ function getHyperParams(config, cmd, checkpoint_path,
     checkTable(input_table)
     checkTable(output_table)
 
+    if extra_params ~= nil and extra_params ~= '' then
+      hyperParameters = hyperParameters .. extra_params
+    end
+    return hyperParameters, cluster, tables, output_table
+  end
+
+  if cmd == "vector_retrieve" then
+    if cluster == nil or cluster == '' then
+      error('cluster must be set')
+    end
+    checkTable(query_table)
+    checkTable(doc_table)
+    checkTable(output_table)
+    hyperParameters = " --cmd=" .. cmd
+    hyperParameters = hyperParameters .. " --batch_size=" .. batch_size
+    hyperParameters = hyperParameters .. " --knn_distance=" .. knn_distance
+    if knn_num_neighbours ~= nil and knn_num_neighbours ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_num_neighbours=' .. knn_num_neighbours
+    end
+    if knn_feature_dims ~= nil and knn_feature_dims ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_feature_dims=' .. knn_feature_dims
+    end
+    hyperParameters = hyperParameters .. " --knn_index_type=" .. knn_index_type
+    hyperParameters = hyperParameters .. " --knn_feature_delimiter=" .. knn_feature_delimiter
+    if knn_nlist ~= nil and knn_nlist ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nlist=' .. knn_nlist
+    end
+    if knn_nprobe ~= nil and knn_nprobe ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nprobe=' .. knn_nprobe
+    end
+    if knn_compress_dim ~= nil and knn_compress_dim ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_compress_dim=' .. knn_compress_dim
+    end
     if extra_params ~= nil and extra_params ~= '' then
       hyperParameters = hyperParameters .. extra_params
     end
@@ -309,12 +345,12 @@ end
 
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
-                     trainTables, evalTables, boundaryTable)
+                     trainTables, evalTables, boundaryTable, queryTable, docTable)
   -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' and cmd ~= 'custom' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom')
+     and cmd ~= 'evaluate' and cmd ~= 'custom' and cmd ~= 'vector_retrieve' then
+    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom, vector_retrieve')
   end
 
   -- for export
@@ -339,6 +375,14 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
     then
       inputTable = tmpTables[1]
     end
+  end
+
+  if cmd == 'vector_retrieve' then
+    inputTable = queryTable
+    all_tables[queryTable] = table_id
+    table_id = table_id + 1
+    all_tables[docTable] = table_id
+    table_id = table_id + 1
   end
 
   if cmd == 'train' then
@@ -423,6 +467,29 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   end
 
   tables = join(tables, ',')
+
+  if cmd == 'vector_retrieve' then
+    if outputTable == nil or outputTable == '' then
+      error("outputTable is not set")
+    end
+
+    proj1, table1, partition1 = splitTableParam(outputTable)
+    out_table_name = proj1 .. "." .. table1
+    create_sql = ''
+    add_partition_sql = ''
+    if partition1 ~= nil and string.len(partition1) ~= 0 then
+      local partition_names, parition_values = parseParitionSpec(partition1)
+      create_partition_str = genCreatePartitionStr(partition_names)
+      create_sql = string.format("create table if not exists %s (query BIGINT, doc BIGINT, distance DOUBLE) partitioned by %s lifecycle %s;", out_table_name, create_partition_str, lifecycle)
+      add_partition_sql = genAddPartitionStr(partition_names, parition_values)
+      add_partition_sql = string.format("alter table %s add if not exists partition %s;", out_table_name, add_partition_sql)
+    else
+      create_sql = string.format("create table %s (query BIGINT, doc BIGINT, distance DOUBLE) lifecycle %s;", out_table_name, lifecycle)
+      add_partition_sql = string.format("desc %s;",  out_table_name)
+    end
+
+    return "", "", "", "", create_sql, add_partition_sql, tables
+  end
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict
   proj0, table0, partition0 = splitTableParam(inputTable)
