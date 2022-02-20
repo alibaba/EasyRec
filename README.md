@@ -2,7 +2,7 @@
 
 &#160;
 
-## What is EasyRec?
+## What is EasyRec?
 
 ![intro.png](docs/images/intro.png)
 
@@ -57,6 +57,10 @@ EasyRec implements state of the art deep learning models used in common recommed
 
 - Easy to implement [customized models](docs/source/models/user_define.md)
 - Not need to care about data pipelines
+
+### Fast vector retrieve
+
+- Run [knn algorithm](docs/source/vector_retrieve.md) of vectors in distribute environment
 
 &#160;
 

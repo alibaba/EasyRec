@@ -84,6 +84,7 @@ Welcome to easy_rec's documentation!
    :caption: REFERENCE
 
    reference
+   metrics
    faq
    tf_on_yarn
    get_role_arn

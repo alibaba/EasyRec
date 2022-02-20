@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
+from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -265,15 +266,6 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     eval_data = pipeline_config.datahub_eval_input
   else:
     eval_data = pipeline_config.eval_input_path
-
-  export_config = pipeline_config.export_config
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    if not gfile.Exists(embed_shape_dir):
-      gfile.MakeDirs(embed_shape_dir)
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    pipeline_config.train_config.separate_save = True
 
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
@@ -647,7 +639,7 @@ def export(export_dir,
            checkpoint_path='',
            asset_files=None,
            verbose=False,
-           **redis_params):
+           **extra_params):
   """Export model defined in pipeline_config_path.
 
   Args:
@@ -656,14 +648,19 @@ def export(export_dir,
        specify proto.EasyRecConfig
     checkpoint_path: if specified, will use this model instead of
        model in model_dir in pipeline_config_path
-    asset_files: extra files to add to assets, comma separated
+    asset_files: extra files to add to assets, comma separated;
+       if asset file variable in graph need to be renamed,
+       specify by new_file_name:file_path
     version: if version is defined, then will skip writing embedding to redis,
        assume that embedding is already write into redis
     verbose: dumps debug information
-    redis_params: keys related to write embedding to redis
+    extra_params: keys related to write embedding to redis/oss
        redis_url, redis_passwd, redis_threads, redis_batch_size,
        redis_timeout, redis_expire if export embedding to redis;
        redis_embedding_version: if specified, will kill export to redis
+       --
+       oss_path, oss_endpoint, oss_ak, oss_sk, oss_timeout,
+       oss_expire, oss_write_kv, oss_embedding_version
 
   Returns:
     the directory where model is exported
@@ -684,53 +681,40 @@ def export(export_dir,
   params = {'log_device_placement': verbose}
   if asset_files:
     logging.info('will add asset files: %s' % asset_files)
-    params['asset_files'] = asset_files
+    asset_file_dict = {}
+    for asset_file in asset_files.split(','):
+      asset_file = asset_file.strip()
+      if ':' not in asset_file or asset_file.startswith('oss:'):
+        _, asset_name = os.path.split(asset_file)
+      else:
+        asset_name, asset_file = asset_file.split(':', 1)
+      asset_file_dict[asset_name] = asset_file
+    params['asset_files'] = asset_file_dict
   estimator, _ = _create_estimator(pipeline_config, params=params)
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config)
+  if 'oss_path' in extra_params:
+    return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
+                                   serving_input_fn, estimator, checkpoint_path,
+                                   verbose)
 
-  if 'redis_url' in redis_params:
-    return export_big_model(export_dir, pipeline_config, redis_params,
+  if 'redis_url' in extra_params:
+    return export_big_model(export_dir, pipeline_config, extra_params,
                             serving_input_fn, estimator, checkpoint_path,
                             verbose)
 
-  # pack embedding.pb into asset_extras
-  assets_extra = None
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    # determine model version
-    if checkpoint_path == '':
-      tmp_ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
-    else:
-      tmp_ckpt_path = checkpoint_path
-    ckpt_ver = tmp_ckpt_path.split('-')[-1]
+  if not checkpoint_path:
+    checkpoint_path = estimator_utils.latest_checkpoint(
+        pipeline_config.model_dir)
 
-    embed_files = gfile.Glob(
-        os.path.join(pipeline_config.model_dir, 'embeddings',
-                     '*.pb.' + ckpt_ver))
-    assets_extra = {}
-    for one_file in embed_files:
-      _, one_file_name = os.path.split(one_file)
-      assets_extra[one_file_name] = one_file
-
-  if checkpoint_path != '':
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        checkpoint_path=checkpoint_path,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
-  else:
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
+  final_export_dir = estimator.export_savedmodel(
+      export_dir_base=export_dir,
+      serving_input_receiver_fn=serving_input_fn,
+      checkpoint_path=checkpoint_path,
+      strip_default_attrs=True)
 
   # add export ts as version info
   saved_model = saved_model_pb2.SavedModel()
