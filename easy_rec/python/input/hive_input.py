@@ -13,11 +13,11 @@ from easy_rec.python.utils import odps_util
 class TableInfo(object):
 
   def __init__(self,
-               tablename: str,
-               selected_cols: str,
-               partition_kv: dict,
-               hash_fields: str,
-               limit_num: int,
+               tablename,
+               selected_cols,
+               partition_kv,
+               hash_fields,
+               limit_num,
                batch_size=16,
                task_index=0,
                task_num=1,
@@ -60,10 +60,10 @@ class TableInfo(object):
 class HiveManager(object):
 
   def __init__(self,
-               host: str,
-               port: int,
-               username: str,
-               info: TableInfo,
+               host,
+               port,
+               username,
+               info,
                database='default'):
     self.host = host
     self.port = port
