@@ -196,7 +196,7 @@ class HiveInput(Input):
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(
           self._data_config.shuffle_buffer_size,
-          seed=2020,
+          seed=2022,
           reshuffle_each_iteration=True)
       dataset = dataset.repeat(self.num_epochs)
     else:
