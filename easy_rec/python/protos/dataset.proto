@@ -248,5 +248,5 @@ message DatasetConfig {
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
 
-    optional HiveConfig hive_config = 25;
+    optional HiveConfig hive_config = 27;
 }

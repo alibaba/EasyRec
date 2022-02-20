@@ -40,7 +40,7 @@ data_config {
 input_fields字段:
 
 - input_name，方便在后续的 feature_config.featurs 中和 data_config.label_fields 中引用;
-- input_type，默认是STRING，可以不设置。可选的字段参考[DatasetConfig.FieldType](../proto.html)
+- input_type，默认是STRING，可以不设置。可选的字段参考[DatasetConfig.FieldType](./proto.html)
 - default_val，默认是空，**注意默认值都是设置成字符串**
   - 如果input是INT类型，并且默认值是6，那么default_val是"6";
   - 如果input是FLOAT类型，并且默认值是0.5，那么default_val是"0.5";
