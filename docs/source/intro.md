@@ -1,12 +1,14 @@
 # EasyRec简介
 
-## What is EasyRec?
+## What is EasyRec?
 
 ![intro.png](../images/intro.png)
 
 ### EasyRec is an easy to use framework for Recommendation
 
 EasyRec implements state of the art machine learning models used in common recommedation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
+
+[EasyRec视频介绍](https://cloud.video.taobao.com/play/u/2248819/p/1/e/6/t/1/325898294308.mp4)
 
 ## Why EasyRec?
 
@@ -44,10 +46,18 @@ EasyRec implements state of the art machine learning models used in common recom
 
 ### A variety of models
 
-- DeepFM / MultiTower / Deep Interest Network / DSSM / MMoE / ESMM
+- [DSSM](models/dssm.md) / [MIND](models/mind.md) / [DropoutNet](models/dropoutnet.md) / [CoMetricLearningI2I](models/co_metric_learning_i2i.md)
+- [W&D](models/wide_and_deep.md) / [DeepFM](models/deepfm.md) / [MultiTower](models/multi_tower.md) / [DCN](models/dcn.md) / [DIN](models/din.md) / [BST](models/bst.md)
+- [MMoE](models/mmoe.md) / [ESMM](models/esmm.md) / [DBMTL](models/dbmtl.md) / [PLE](models/ple.md)
 - More models in development
 
 ### Easy to customize
 
 - Easy to implement customized models
 - Not need to care about data pipelines
+
+### Fast vector retrieve
+
+- Run [`knn algorithm`](vector_retrieve.md) of vectors in distribute environment
+
+欢迎加入【EasyRec推荐算法交流群】，钉钉群号 : 32260796

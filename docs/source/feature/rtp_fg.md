@@ -51,19 +51,19 @@
 
     - num_buckets: 当输入是unsigned int类型的时候，并且输入有界的时候，可以指定num_bucket为输入的最大值.
 
-    - hash_bucket_size: 对应EasyRec feature_configs的hash_bucket_size.
+    - hash_bucket_size: 对应EasyRec feature_config.features的hash_bucket_size.
 
       - 和vocab_file, vocab_list相比，优势是不需要词典，词典可以是不固定的.
 
       - 劣势是需要设置的容量比较大，容易导致hash冲突.
 
-    - embedding_dimension/embedding_dim: 对应EasyRec feature_configs里面的embedding_dim.
+    - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
   - [RawFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
-    - 设置feature_configs.num_buckets = len(boundaries) + 1
+    - 设置feature_config.features.num_buckets = len(boundaries) + 1
 
     - value_dimension > 1时, feature_type = TagFeature
 
@@ -73,11 +73,13 @@
 
     ```
     会配置离散化的bucket, 如:
-    feature_configs: {
-      input_names: "hour"
-      feature_type: RawFeature
-      boundaries: [1,5,9,15,19,23]
-      embedding_dim: 16
+    feature_config: {
+      features: {
+        input_names: "hour"
+        feature_type: RawFeature
+        boundaries: [1,5,9,15,19,23]
+        embedding_dim: 16
+      }
     }
     ```
 
@@ -92,6 +94,34 @@
   - [ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
 
     - 需要设置embedding_dimension和hash_bucket_size.
+      方法一：在fg中生成combo特征，见[ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+
+    ```
+    {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
+    {"expression": "user:occupation", "feature_name": "occupation", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16, "group":"user"},
+    {"expression" : ["user:user_id", "user:occupation"], "feature_name" : "combo__occupation_age_level", "feature_type" : "combo_feature", "hash_bucket_size": 10, "embedding_dim": 16}
+
+    ```
+
+    - fg.json需进行三项配置，生成三列数据
+
+    方法二：在参与combo的特征配置中加入extra_combo_info配置，fg会生成两列数据，在easyrec层面进行combo.
+
+    ```
+     {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
+     {"expression": "user:occupation", "feature_name": "occupation", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16, "group":"user",
+       "extra_combo_info": {
+         "final_feature_name": "combo__occupation_age_level",
+         "feature_names": ["user_id"],
+         "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16
+       }
+     }
+    ```
+
+    - 最终会生成两列数据（user_id和occupation），config中生成三个特征配置，分别是user_id，occupation，combo\_\_occupation_age_level.
+    - final_feature_name: 该combo特征的名字.
+    - feature_names: 除当前特征外，参与combo的特征，至少一项.
+    - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
   - [LookupFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
 
@@ -121,7 +151,7 @@
 
     - combiner: 默认是mean, 也可以是sum.
 
-      - 影响数据生成和EasyRec feature_configs生成, 主要是多值Feature.
+      - 影响数据生成和 EasyRec feature_config 生成, 主要是多值Feature.
 
     - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
 
@@ -141,6 +171,8 @@
     ```
 
   - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"\\u001D"
+
+  - kv_separator: 多值有权重特征的分隔符，如”体育:0.3|娱乐:0.2|军事:0.5”，不指定默认None，即没有权重
 
   - model_dir: 模型目录，仅仅影响EasyRec config生成.
 
@@ -250,10 +282,10 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
 
 #### 从配置文件\[fg.json\]生成EasyRec的config
 
-本地安装wheel包
+从Git克隆EasyRec
 
-```
-pip install http://easyrec.oss-cn-beijing.aliyuncs.com/release/whls/easy_rec-0.1.3-py2.py3-none-any.whl
+```bash
+git clone https://github.com/alibaba/EasyRec.git
 ```
 
 ```python
@@ -429,8 +461,6 @@ EOF
 # 执行部署命令。
 #/home/admin/usertools/tools/eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e pai-eas.us-west-1.aliyuncs.com create echo.json
 /home/admin/usertools/tools/eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e pai-eas.us-west-1.aliyuncs.com update easyrec_processor -s echo.json
-
-
 
 
 ```

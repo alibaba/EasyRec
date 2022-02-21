@@ -19,14 +19,6 @@ message ExportConfig {
     // none: do not perform export
     optional string exporter_type = 2 [default = 'final'];
 
-    // for large embedding models to serve on eas
-    // embedding lookup is done outside of tensorflow graph;
-    // so the tensorflow graph contains only the dnn graphs(the attention part included);
-    // the lookuped results are passed to dnn graphs via embedding placeholders;
-    // we dump embedding placeholder shapes, so that embedding
-    // placeholders could be built.
-    optional bool dump_embedding_shape = 3 [default = false];
-
     // the metric used to determine the best checkpoint
     optional string best_exporter_metric = 4 [default = 'auc'];
     // metric value the bigger the best
@@ -53,6 +45,6 @@ message ExportConfig {
     // is placeholder named by input
     optional bool placeholder_named_by_input = 11 [default = false];
 
-    // rtp fg config file path
-    optional string fg_config = 12;
+    // filter out inputs, only keep effective ones
+    optional bool filter_inputs = 12 [default = true];
 }

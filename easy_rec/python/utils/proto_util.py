@@ -66,3 +66,24 @@ def get_norm_embed_name(name, verbose=False):
       return tmp_name, 0
   logging.warning('Failed to norm: %s' % name)
   return None, None
+
+
+def is_cache_from_redis(name, redis_cache_names):
+  """Check whether name should be cached.
+
+  Args:
+    name: string, the variable name to be checked
+    redis_cache_names: list of string, names which should be cached.
+
+  Return:
+    True if need to be cached
+  """
+  tok = name.split('/')
+  if tok[0].startswith('input_layer'):
+    tok = tok[1:]
+  for y in redis_cache_names:
+    for k in tok:
+      if k.startswith(y):
+        logging.info('embedding %s will be cached[specified by %s]' % (name, y))
+        return True
+  return False

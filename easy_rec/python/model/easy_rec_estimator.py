@@ -5,15 +5,16 @@ import collections
 
 import logging
 import os
+import re
 import time
 from collections import OrderedDict
 
 import tensorflow as tf
 from tensorflow.python.framework.sparse_tensor import SparseTensor
+from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import checkpoint_management
 from tensorflow.python.framework import ops
-from tensorflow.python.estimator import model_fn as model_fn_lib
 from tensorflow.python.eager import context
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.training import monitored_session
@@ -28,7 +29,7 @@ from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
-# from easy_rec.python.input.easy_rec_input_fn_result import EasyRecInputFnResult
+from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -49,8 +50,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
   @property
   def feature_configs(self):
-    assert len(self._pipeline_config.feature_configs) > 0
-    return self._pipeline_config.feature_configs
+    if len(self._pipeline_config.feature_configs) > 0:
+      return self._pipeline_config.feature_configs
+    elif self._pipeline_config.feature_config and len(
+        self._pipeline_config.feature_config.features) > 0:
+      return self._pipeline_config.feature_config.features
+    else:
+      assert False, 'One of feature_configs and feature_config.features must be configured.'
 
   @property
   def model_config(self):
@@ -108,9 +114,23 @@ class EasyRecEstimator(tf.estimator.Estimator):
         loss = tf.identity(loss, name='total_loss')
 
     # build optimizer
-    optimizer_config = self.train_config.optimizer_config
-    optimizer, learning_rate = optimizer_builder.build(optimizer_config)
-    tf.summary.scalar('learning_rate', learning_rate[0])
+    if len(self.train_config.optimizer_config) == 1:
+      optimizer_config = self.train_config.optimizer_config[0]
+      optimizer, learning_rate = optimizer_builder.build(optimizer_config)
+      tf.summary.scalar('learning_rate', learning_rate[0])
+    else:
+      optimizer_config = self.train_config.optimizer_config
+      all_opts = []
+      for opti_id, tmp_config in enumerate(optimizer_config):
+        with tf.name_scope('optimizer_%d' % opti_id):
+          opt, learning_rate = optimizer_builder.build(tmp_config)
+          tf.summary.scalar('learning_rate', learning_rate[0])
+        all_opts.append(opt)
+      grouped_vars = model.get_grouped_vars()
+      assert len(grouped_vars) == len(optimizer_config), \
+          'the number of var group(%d) != the number of optimizers(%d)' \
+          % (len(grouped_vars), len(optimizer_config))
+      optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     hooks = []
     # for distributed and synced training
@@ -165,11 +185,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
       gradient_clipping_by_norm = None
 
     gradient_multipliers = None
-    if self.train_config.optimizer_config.HasField(
+    if self.train_config.optimizer_config[0].HasField(
         'embedding_learning_rate_multiplier'):
       gradient_multipliers = {
-          var:
-          self.train_config.optimizer_config.embedding_learning_rate_multiplier
+          var: self.train_config.optimizer_config[0]
+          .embedding_learning_rate_multiplier
           for var in tf.trainable_variables()
           if 'embedding_weights:' in var.name or
           '/embedding_weights/part_' in var.name
@@ -178,6 +198,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # optimize loss
     # colocate_gradients_with_ops=True means to compute gradients
     # on the same device on which op is processes in forward process
+    all_train_vars = []
+    if len(self.train_config.freeze_gradient) > 0:
+      for one_var in tf.trainable_variables():
+        is_freeze = False
+        for x in self.train_config.freeze_gradient:
+          if re.search(x, one_var.name) is not None:
+            logging.info('will freeze gradients of %s' % one_var.name)
+            is_freeze = True
+            break
+        if not is_freeze:
+          all_train_vars.append(one_var)
+    else:
+      all_train_vars = tf.trainable_variables()
+
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -185,7 +219,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         clip_gradients=gradient_clipping_by_norm,
         optimizer=optimizer,
         gradient_multipliers=gradient_multipliers,
-        variables=tf.trainable_variables(),
+        variables=all_train_vars,
         summaries=summaries,
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
@@ -253,14 +287,26 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x))
+      ]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
+      # incompatiable shape restore will not be saved in checkpoint
+      # but must be able to restore from checkpoint
+      incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
       if early_stop_var is not None:
         var_list = [x for x in var_list if x != early_stop_var]
         local_init_op = tf.group([
             tf.initializers.local_variables(),
-            tf.initializers.variables([early_stop_var])
+            tf.initializers.variables([early_stop_var] +
+                                      incompatiable_shape_restore)
+        ])
+      elif len(incompatiable_shape_restore) > 0:
+        local_init_op = tf.group([
+            tf.initializers.local_variables(),
+            tf.initializers.variables(incompatiable_shape_restore)
         ])
       else:
         local_init_op = None
@@ -271,14 +317,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
               max_to_keep=self.train_config.keep_checkpoint_max),
           local_init_op=local_init_op,
           ready_for_local_init_op=tf.report_uninitialized_variables(
-              var_list=var_list))
+              var_list=initialize_var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
           save_secs=self._config.save_checkpoints_secs,
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
-          write_graph=True)
+          write_graph=self.train_config.write_graph)
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
@@ -325,6 +371,58 @@ class EasyRecEstimator(tf.estimator.Estimator):
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
 
+  def _distribute_eval_model_fn(self, features, labels, run_config):
+    start = time.time()
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels,
+        is_training=False)
+    predict_dict = model.build_predict_graph()
+    loss_dict = model.build_loss_graph()
+    loss = tf.add_n(list(loss_dict.values()))
+    loss_dict['total_loss'] = loss
+    metric_dict = model.build_distribute_metric_graph(self.eval_config)
+    for loss_key in loss_dict.keys():
+      loss_tensor = loss_dict[loss_key]
+      # add key-prefix to make loss metric key in the same family of train loss
+      metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
+    tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
+
+    end = time.time()
+    tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
+    metric_name_list = []
+    for metric_i in self.eval_config.metrics_set:
+      metric_name_list.append(metric_i.WhichOneof('metric'))
+    all_var_list = []
+    metric_var_list = []
+    for var in variables._all_saveable_objects():
+      var_name = var.name
+      flag = True
+      for metric_i in metric_name_list:
+        if metric_i in var_name:
+          flag = False
+          break
+      if flag:
+        all_var_list.append(var)
+      else:
+        metric_var_list.append(var)
+    global_variables = tf.global_variables()
+    metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
+    model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
+    remain_variables = list(
+        set(global_variables).difference(set(metric_variables)))
+    cur_saver = tf.train.Saver(var_list=remain_variables)
+    scaffold = tf.train.Scaffold(
+        saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
+    return tf.estimator.EstimatorSpec(
+        mode=tf.estimator.ModeKeys.EVAL,
+        loss=loss,
+        predictions=predict_dict,
+        eval_metric_ops=metric_dict,
+        scaffold=scaffold)
+
   def _export_model_fn(self, features, labels, run_config, params):
     model = self._model_cls(
         self.model_config,
@@ -360,8 +458,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # add more asset files
     if 'asset_files' in params:
-      for asset_file in params['asset_files'].split(','):
-        _, asset_name = os.path.split(asset_file)
+      for asset_name in params['asset_files']:
+        asset_file = params['asset_files'][asset_name]
         tf.add_to_collection(
             tf.GraphKeys.ASSET_FILEPATHS,
             tf.constant(asset_file, dtype=tf.string, name=asset_name))

@@ -58,7 +58,8 @@ def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
 
 
 def auto_expand_share_feature_configs(pipeline_config):
-  for share_config in pipeline_config.feature_configs:
+  feature_configs = get_compatible_feature_configs(pipeline_config)
+  for share_config in feature_configs:
     if len(share_config.shared_names) == 0:
       continue
 
@@ -84,7 +85,10 @@ def auto_expand_share_feature_configs(pipeline_config):
       tmp_config = FeatureConfig()
       tmp_config.CopyFrom(fea_config)
       tmp_config.input_names.append(tmp_name)
-      pipeline_config.feature_configs.append(tmp_config)
+      if pipeline_config.feature_configs:
+        pipeline_config.feature_configs.append(tmp_config)
+      else:
+        pipeline_config.feature_config.features.append(tmp_config)
   return pipeline_config
 
 
@@ -329,8 +333,8 @@ def add_boundaries_to_config(pipeline_config, tables):
       break
 
   logging.info('feature boundaries: %s' % feature_boundaries_info)
-
-  for feature_config in pipeline_config.feature_configs:
+  feature_configs = get_compatible_feature_configs(pipeline_config)
+  for feature_config in feature_configs:
     feature_name = feature_config.input_names[0]
     if feature_name in feature_boundaries_info:
       feature_config.feature_type = feature_config.RawFeature
@@ -338,3 +342,11 @@ def add_boundaries_to_config(pipeline_config, tables):
       feature_config.ClearField('boundaries')
       feature_config.boundaries.extend(feature_boundaries_info[feature_name])
       logging.info('edited %s' % feature_name)
+
+
+def get_compatible_feature_configs(pipeline_config):
+  if pipeline_config.feature_configs:
+    feature_configs = pipeline_config.feature_configs
+  else:
+    feature_configs = pipeline_config.feature_config.features
+  return feature_configs

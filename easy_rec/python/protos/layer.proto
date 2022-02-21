@@ -1,0 +1,7 @@
+syntax = "proto2";
+package protos;
+
+message HighWayTower {
+    required string input = 1;
+    required uint32 emb_size = 2;
+}

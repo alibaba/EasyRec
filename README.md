@@ -1,18 +1,22 @@
-# EasyRec简介
+# EasyRec Introduction
 
-## What is EasyRec?
+&#160;
+
+## What is EasyRec?
 
 ![intro.png](docs/images/intro.png)
 
 ### EasyRec is an easy to use framework for Recommendation
 
-EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，支持大规模训练、评估、导出和部署。EasyRec实现了业界领先的模型，包含排序、召回、多目标等模型，支持超参搜索，显著降低了建模的复杂度和工作量。
+EasyRec implements state of the art deep learning models used in common recommedation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
+
+&#160;
 
 ## Why EasyRec?
 
 ### Run everywhere
 
-- Local / [MaxCompute](https://help.aliyun.com/product/27797.html) / [DataScience](https://help.aliyun.com/document_detail/170836.html) / [DLC](https://www.alibabacloud.com/help/zh/doc-detail/165137.htm?spm=a2c63.p38356.b99.79.4c0734a4bVav8D)
+- Local / [MaxCompute](https://help.aliyun.com/product/27797.html) / [EMR-DataScience](https://help.aliyun.com/document_detail/170836.html) / [DLC](https://www.alibabacloud.com/help/zh/doc-detail/165137.htm?spm=a2c63.p38356.b99.79.4c0734a4bVav8D)
 - TF1.12-1.15 / TF2.x / PAI-TF
 
 ### Diversified input data
@@ -32,8 +36,8 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 ### It is smart
 
 - EarlyStop / Best Checkpoint Saver
-- [Hyper Parameter Search](docs/source/automl/hpo_pai.md) / [AutoFeatureCross](docs/source/automl/auto_cross_emr.md)
-- In development: NAS, Knowledge Distillation, MultiModal
+- [Hyper Parameter Search](docs/source/automl/hpo_pai.md) / [AutoFeatureCross](docs/source/automl/auto_cross_emr.md) / [Knowledge Distillation](docs/source/kd.md) / [Features Selection](docs/source/feature/feature.rst#id4)
+- In development: NAS / MultiModal
 
 ### Large scale and easy deployment
 
@@ -44,7 +48,9 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 
 ### A variety of models
 
-- [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [Deep Interest Network](docs/source/models/din.md) / [DSSM](docs/source/models/dssm.md) / [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md)
+- [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) / [DropoutNet](docs/source/models/dropoutnet.md) / [CoMetricLearningI2I](docs/source/models/co_metric_learning_i2i.md)
+- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)
+- [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
 - More models in development
 
 ### Easy to customize
@@ -52,23 +58,55 @@ EasyRec致力于成为容易上手的工业界深度学习推荐算法框架，�
 - Easy to implement [customized models](docs/source/models/user_define.md)
 - Not need to care about data pipelines
 
-### Get Started
+### Fast vector retrieve
 
-- Download
+- Run [knn algorithm](docs/source/vector_retrieve.md) of vectors in distribute environment
 
-```
-    git clone https://github.com/AlibabaPAI/EasyRec.git
-    wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
-    sh scripts/gen_proto.sh
-```
+&#160;
 
-- [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)
+## Get Started
 
-- [Run](docs/source/quick_start/local_tutorial.md)
+Running Platform:
 
-- [PAI-DSW DEMO](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
-  (Remember to select Python 3 kernel)
+- [Local](docs/source/quick_start/local_tutorial.md)
+- [MaxCompute](docs/source/quick_start/mc_tutorial.md)
+- [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
+- [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
 
-- [Develop](docs/source/develop.md)
+&#160;
 
-- [Doc](https://easyrec.readthedocs.io/en/latest/)
+## Document
+
+- [Home](https://easyrec.readthedocs.io/en/latest/)
+- [FAQ](https://easyrec.readthedocs.io/en/latest/faq.html)
+- [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)(PPT)
+
+&#160;
+
+## Contribute
+
+Any contributions you make are greatly appreciated!
+
+- Please report bugs by submitting a GitHub issue.
+- Please submit contributions using pull requests.
+- please refer to the [Development](docs/source/develop.md) document for more details.
+
+&#160;
+
+## Contact
+
+### Join Us
+
+- DingDing Group: 32260796. (EasyRec usage general discussion.)
+
+- Email Group: easy_rec@service.aliyun.com.
+
+### Enterprise Service
+
+- If you need EasyRec enterprise service support, or purchase cloud product services, you can contact us by DingDing Group.
+
+&#160;
+
+## License
+
+EasyRec is released under Apache License 2.0. Please note that third-party libraries may not have the same license as EasyRec.

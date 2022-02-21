@@ -21,11 +21,11 @@ enum DistributionStrategy {
     MultiWorkerMirroredStrategy = 5;
 }
 
-// Message for configuring DetectionModel training jobs (train.py).
+// Message for configuring EasyRecModel training jobs (train.py).
 // Next id: 25
 message TrainConfig {
     /* optimizer options */
-    optional Optimizer optimizer_config = 1;
+    repeated Optimizer optimizer_config = 1;
 
     // If greater than 0, clips gradients by this value.
     optional float gradient_clipping_by_norm = 2 [default = 0.0];
@@ -79,8 +79,6 @@ message TrainConfig {
     // Number of gpus per machine
     optional int32 num_gpus_per_worker = 21 [default = 1];
 
-    optional bool separate_save = 22 [default = false];
-
     // summary model variables or not
     optional bool summary_model_vars = 23 [default = false];
 
@@ -97,4 +95,10 @@ message TrainConfig {
 
     // tensor fusion on PAI-TF
     optional bool tensor_fuse = 28 [default = false];
+
+    // write graph into graph.pbtxt and summary or not
+    optional bool write_graph = 29 [default = true];
+
+    // match variable patterns to freeze
+    repeated string freeze_gradient = 30;
 }

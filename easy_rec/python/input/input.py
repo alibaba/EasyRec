@@ -6,7 +6,6 @@ import os
 from abc import abstractmethod
 from collections import OrderedDict
 
-import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.python.framework import ops
@@ -16,6 +15,8 @@ from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
+from easy_rec.python.utils.input_utils import get_type_defaults
+from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -74,6 +75,10 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     # findout effective fields
     self._effective_fields = []
+
+    # for multi value inputs, the types maybe different
+    # from the types defined in input_fields
+    # it is used in create_multi_placeholders
     self._multi_value_types = {}
 
     for fc in self._feature_configs:
@@ -101,6 +106,11 @@ class Input(six.with_metaclass(_meta_type, object)):
     self._effective_fids = [
         self._input_fields.index(x) for x in self._effective_fields
     ]
+    # sort fids from small to large
+    self._effective_fids = list(set(self._effective_fids))
+    self._effective_fields = [
+        self._input_fields[x] for x in self._effective_fids
+    ]
 
     self._label_fids = [self._input_fields.index(x) for x in self._label_fields]
 
@@ -113,6 +123,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     if input_path is not None:
       # build sampler only when train and eval
       self._sampler = sampler_lib.build(data_config)
+
+    self.get_type_defaults = get_type_defaults
 
   @property
   def num_epochs(self):
@@ -133,33 +145,6 @@ class Input(six.with_metaclass(_meta_type, object)):
     assert field_type in type_map, 'invalid type: %s' % field_type
     return type_map[field_type]
 
-  def get_type_defaults(self, field_type, default_val=''):
-    type_defaults = {
-        DatasetConfig.INT32: 0,
-        DatasetConfig.INT64: 0,
-        DatasetConfig.STRING: '',
-        DatasetConfig.BOOL: False,
-        DatasetConfig.FLOAT: 0.0,
-        DatasetConfig.DOUBLE: 0.0
-    }
-    assert field_type in type_defaults, 'invalid type: %s' % field_type
-    if default_val == '':
-      default_val = type_defaults[field_type]
-    if field_type == DatasetConfig.INT32:
-      return int(default_val)
-    elif field_type == DatasetConfig.INT64:
-      return np.int64(default_val)
-    elif field_type == DatasetConfig.STRING:
-      return default_val
-    elif field_type == DatasetConfig.BOOL:
-      return default_val.lower() == 'true'
-    elif field_type in [DatasetConfig.FLOAT]:
-      return float(default_val)
-    elif field_type in [DatasetConfig.DOUBLE]:
-      return np.float64(default_val)
-
-    return type_defaults[field_type]
-
   def create_multi_placeholders(self,
                                 placeholder_named_by_input,
                                 export_fields_name=None):
@@ -176,6 +161,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     inputs = {}
+
     for fid in effective_fids:
       input_name = self._input_fields[fid]
       if placeholder_named_by_input:
@@ -190,19 +176,27 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         ftype = self._input_field_types[fid]
         tf_type = self.get_tf_type(ftype)
+        logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
     return inputs, features
 
-  def create_placeholders(self):
+  def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
     inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
-    effective_fids = list(self._effective_fids)
+    if export_config.filter_inputs:
+      effective_fids = list(self._effective_fids)
+      logging.info('number of effective inputs:%d, total number inputs: %d' %
+                   (len(effective_fids), len(self._input_fields)))
+    else:
+      effective_fids = list(range(1, len(self._input_fields)))
+      logging.info('will not filter any input, total number inputs:%d' %
+                   len(effective_fids))
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     input_vals = tf.reshape(
@@ -218,37 +212,11 @@ class Input(six.with_metaclass(_meta_type, object)):
             tf_type,
             name='input_str_to_%s' % tf_type.name)
       else:
+        if ftype not in [DatasetConfig.STRING]:
+          logging.warning('unexpected field type: ftype=%s tf_type=%s' % (ftype, tf_type))
         features[input_name] = input_vals[:, tmp_id]
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
-
-  def create_embedding_placeholders(self):
-    """Create serving placeholders with embedding lookup result as input.
-
-    For large embedding serving on eas, the embedding lookup are done on eas distributedly,
-    so it is not included in the graph.
-
-    Return:
-      dict of embedding_name to placeholders
-    """
-    inputs = {}
-    dump_input_dir = easy_rec._global_config['dump_embedding_shape_dir']
-    embed_input_desc_files = tf.gfile.Glob(
-        os.path.join(dump_input_dir, 'input_layer_*.txt'))
-    for one_file in embed_input_desc_files:
-      with tf.gfile.GFile(one_file, 'r') as fin:
-        for line_str in fin:
-          shape_config = json.loads(line_str)
-          input_name = shape_config['name']
-          if input_name.endswith('_shared_embedding'):
-            input_name = input_name[:-len('_shared_embedding')]
-          elif input_name.endswith('_embedding'):
-            input_name = input_name[:-len('_embedding')]
-          if '_weighted_by' in input_name:
-            input_name = input_name[:input_name.find('_weighted_by')]
-          inputs[input_name] = tf.placeholder(
-              tf.float32, shape_config['shape'], name=input_name)
-    return inputs
 
   def create_rtp_fg_placeholders(self, fg_config_path):
     """Create serving placeholders with rtp_fg"""
@@ -613,11 +581,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        if export_config.dump_embedding_shape:
-          embed_inputs = self.create_embedding_placeholders()
-          return tf.estimator.export.ServingInputReceiver(
-              embed_inputs, embed_inputs)
-        elif export_config.multi_placeholder:
+        if export_config.multi_placeholder:
           if export_config.multi_value_fields:
             export_fields_name = export_config.multi_value_fields.input_name
           else:
@@ -630,7 +594,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           inputs, features = self.create_rtp_fg_placeholders(export_config.fg_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
-          inputs, features = self.create_placeholders()
+          inputs, features = self.create_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     return _input_fn

@@ -20,26 +20,25 @@ class VariationalDropoutLayer(object):
 
   def __init__(self,
                variational_dropout_config,
-               group_columns,
+               features_dimension,
                is_training=False):
     self._config = variational_dropout_config
-    self.features_dim_used = []
-    self.features_embedding_size = 0
-    for item in range(0, len(group_columns)):
-      if (hasattr(group_columns[item], 'dimension')):
-        self.features_dim_used.append(group_columns[item].dimension)
-        self.features_embedding_size += group_columns[item].dimension
-      else:
-        self.features_dim_used.append(1)
-        self.features_embedding_size += 1
+    self.features_dimension = features_dimension
+    self.features_total_dimension = sum(self.features_dimension)
 
     if self.variational_dropout_wise():
-      self._dropout_param_size = self.features_embedding_size
+      self._dropout_param_size = self.features_total_dimension
       self.drop_param_shape = [self._dropout_param_size]
     else:
-      self._dropout_param_size = len(self.features_dim_used)
+      self._dropout_param_size = len(self.features_dimension)
       self.drop_param_shape = [self._dropout_param_size]
     self.evaluate = not is_training
+
+    self.logit_p = tf.get_variable(
+        name='logit_p',
+        shape=self.drop_param_shape,
+        dtype=tf.float32,
+        initializer=None)
 
   def get_lambda(self):
     return self._config.regularization_lambda
@@ -47,53 +46,43 @@ class VariationalDropoutLayer(object):
   def variational_dropout_wise(self):
     return self._config.embedding_wise_variational_dropout
 
-  def expand_bern_val(self):
+  def build_expand_index(self, batch_size):
     # Build index_list--->[[0,0],[0,0],[0,0],[0,0],[0,1]......]
-    self.expanded_bern_val = []
-    for i in range(len(self.features_dim_used)):
-      index_loop_count = self.features_dim_used[i]
+    expanded_index = []
+    for i in range(len(self.features_dimension)):
+      index_loop_count = self.features_dimension[i]
       for m in range(index_loop_count):
-        self.expanded_bern_val.append([i])
-    self.expanded_bern_val = tf.tile(self.expanded_bern_val,
-                                     [self.batch_size, 1])
-    batch_size_range = tf.range(self.batch_size)
+        expanded_index.append([i])
+    expanded_index = tf.tile(expanded_index, [batch_size, 1])
+    batch_size_range = tf.range(batch_size)
     expand_range_axis = tf.expand_dims(batch_size_range, 1)
-    self.fetures_dim_len = 0
-    for i in self.features_dim_used:
-      self.fetures_dim_len += self.features_dim_used[i]
-    batch_size_range_expand_dim_len = tf.tile(expand_range_axis,
-                                              [1, self.fetures_dim_len])
+    batch_size_range_expand_dim_len = tf.tile(
+        expand_range_axis, [1, self.features_total_dimension])
     index_i = tf.reshape(batch_size_range_expand_dim_len, [-1, 1])
-    self.expanded_bern_val = tf.concat([index_i, self.expanded_bern_val], 1)
-
-  def build_variational_dropout(self):
-    self.logit_p = tf.get_variable(
-        name='logit_p',
-        shape=self.drop_param_shape,
-        dtype=tf.float32,
-        initializer=None)
+    expanded_index = tf.concat([index_i, expanded_index], 1)
+    return expanded_index
 
   def sample_noisy_input(self, input):
-    self.batch_size = tf.shape(input)[0]
+    batch_size = tf.shape(input)[0]
     if self.evaluate:
       expanded_dims_logit_p = tf.expand_dims(self.logit_p, 0)
-      expanded_logit_p = tf.tile(expanded_dims_logit_p, [self.batch_size, 1])
+      expanded_logit_p = tf.tile(expanded_dims_logit_p, [batch_size, 1])
       p = tf.sigmoid(expanded_logit_p)
       if self.variational_dropout_wise():
         scaled_input = input * (1 - p)
       else:
         # expand dropout layer
-        self.expand_bern_val()
-        expanded_p = tf.gather_nd(p, self.expanded_bern_val)
-        expanded_p = tf.reshape(expanded_p, [-1, self.fetures_dim_len])
+        expanded_index = self.build_expand_index(batch_size)
+        expanded_p = tf.gather_nd(p, expanded_index)
+        expanded_p = tf.reshape(expanded_p, [-1, self.features_total_dimension])
         scaled_input = input * (1 - expanded_p)
 
       return scaled_input
-
-    bern_val = self.sampled_from_logit_p(self.batch_size)
-    bern_val = tf.reshape(bern_val, [-1, self.fetures_dim_len])
-    noisy_input = input * bern_val
-    return noisy_input
+    else:
+      bern_val = self.sampled_from_logit_p(batch_size)
+      bern_val = tf.reshape(bern_val, [-1, self.features_total_dimension])
+      noisy_input = input * bern_val
+      return noisy_input
 
   def sampled_from_logit_p(self, num_samples):
     expand_dims_logit_p = tf.expand_dims(self.logit_p, 0)
@@ -105,9 +94,8 @@ class VariationalDropoutLayer(object):
       return bern_val
     else:
       # from feature_num to embedding_dim_num
-      self.expand_bern_val()
-      bern_val_gather_nd = []
-      bern_val_gather_nd = tf.gather_nd(bern_val, self.expanded_bern_val)
+      expanded_index = self.build_expand_index(num_samples)
+      bern_val_gather_nd = tf.gather_nd(bern_val, expanded_index)
       return bern_val_gather_nd
 
   def concrete_dropout_neuron(self, dropout_p, temp=1.0 / 10.0):
@@ -123,12 +111,12 @@ class VariationalDropoutLayer(object):
     return 1 - approx_output
 
   def __call__(self, output_features):
-    self.build_variational_dropout()
+    batch_size = tf.shape(output_features)[0]
     noisy_input = self.sample_noisy_input(output_features)
     dropout_p = tf.sigmoid(self.logit_p)
     variational_dropout_penalty = 1. - dropout_p
     variational_dropout_penalty_lambda = self.get_lambda() / tf.cast(
-        self.batch_size, dtype=tf.float32)
+        batch_size, dtype=tf.float32)
     variational_dropout_loss_sum = variational_dropout_penalty_lambda * tf.reduce_sum(
         variational_dropout_penalty, axis=0)
     tf.add_to_collection('variational_dropout_loss',

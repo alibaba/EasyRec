@@ -4,19 +4,25 @@ from __future__ import print_function
 
 import json
 import logging
+# use few threads to avoid oss error
 import os
 
 import tensorflow as tf
 
 import easy_rec
 from easy_rec.python.inference.predictor import Predictor
-from easy_rec.python.protos.train_pb2 import DistributionStrategy
+from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.utils import config_util
-from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
-from easy_rec.python.utils.estimator_utils import chief_to_master
-from easy_rec.python.utils.estimator_utils import master_to_chief
+from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
+from easy_rec.python.utils.distribution_utils import set_distribution_config
+
+from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
+
+os.environ['OENV_MultiWriteThreadsNum'] = '4'
+os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
 if not tf.__version__.startswith('1.12'):
   tf = tf.compat.v1
@@ -58,6 +64,29 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
+tf.app.flags.DEFINE_string('query_table', '',
+                           'table used for retrieve vector neighbours')
+tf.app.flags.DEFINE_string('doc_table', '',
+                           'table used for be retrieved as indexed vectors')
+tf.app.flags.DEFINE_enum('knn_distance', 'inner_product',
+                         ['l2', 'inner_product'], 'type of knn distance')
+tf.app.flags.DEFINE_integer('knn_num_neighbours', None,
+                            'top n neighbours to be retrieved')
+tf.app.flags.DEFINE_integer('knn_feature_dims', None,
+                            'number of feature dimensions')
+tf.app.flags.DEFINE_enum(
+    'knn_index_type', 'ivfflat',
+    ['flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'],
+    'knn index type')
+tf.app.flags.DEFINE_string('knn_feature_delimiter', ',',
+                           'delimiter for feature vectors')
+tf.app.flags.DEFINE_integer('knn_nlist', 5,
+                            'number of split part on each worker')
+tf.app.flags.DEFINE_integer('knn_nprobe', 2,
+                            'number of probe part on each worker')
+tf.app.flags.DEFINE_integer(
+    'knn_compress_dim', 8,
+    'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`')
 
 # flags used for evaluate & export
 tf.app.flags.DEFINE_string(
@@ -67,11 +96,11 @@ tf.app.flags.DEFINE_string(
 # flags used for evaluate
 tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
                            'eval result metric file')
+tf.app.flags.DEFINE_bool('distribute_eval', False,
+                         'use distribute parameter server for train and eval.')
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
-tf.app.flags.DEFINE_string('export_path', '',
-                           'prefix path where model checkpoint should be exported as')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -110,6 +139,21 @@ tf.app.flags.DEFINE_integer('redis_expire', 24,
 tf.app.flags.DEFINE_string('redis_embedding_version', '',
                            'redis embedding version')
 tf.app.flags.DEFINE_integer('redis_write_kv', 1, 'whether write kv ')
+
+tf.app.flags.DEFINE_string(
+    'oss_path', None, 'write embed objects to oss folder, oss://bucket/folder')
+tf.app.flags.DEFINE_string('oss_endpoint', None, 'oss endpoint')
+tf.app.flags.DEFINE_string('oss_ak', None, 'oss ak')
+tf.app.flags.DEFINE_string('oss_sk', None, 'oss sk')
+tf.app.flags.DEFINE_integer('oss_threads', 10,
+                            '# threads access oss at the same time')
+tf.app.flags.DEFINE_integer('oss_timeout', 10,
+                            'connect to oss, time_out in seconds')
+tf.app.flags.DEFINE_integer('oss_expire', 24, 'oss expire time in hours')
+tf.app.flags.DEFINE_integer('oss_write_kv', 1,
+                            'whether to write embedding to oss')
+tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
+
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
@@ -128,202 +172,6 @@ FLAGS = tf.app.flags.FLAGS
 
 def check_param(name):
   assert getattr(FLAGS, name) != '', '%s should not be empty' % name
-
-
-DistributionStrategyMap = {
-    '': DistributionStrategy.NoStrategy,
-    'ps': DistributionStrategy.PSStrategy,
-    'ess': DistributionStrategy.ExascaleStrategy,
-    'mirrored': DistributionStrategy.MirroredStrategy,
-    'collective': DistributionStrategy.CollectiveAllReduceStrategy
-}
-
-
-def set_tf_config_and_get_train_worker_num(
-    distribute_strategy=DistributionStrategy.NoStrategy, eval_method='none'):
-  logging.info(
-      'set_tf_config_and_get_train_worker_num: distribute_strategy = %d' %
-      distribute_strategy)
-  worker_hosts = FLAGS.worker_hosts.split(',')
-  ps_hosts = FLAGS.ps_hosts.split(',')
-
-  total_worker_num = len(worker_hosts)
-  train_worker_num = total_worker_num
-
-  print('Original TF_CONFIG=%s' % os.environ.get('TF_CONFIG', ''))
-  print('worker_hosts=%s ps_hosts=%s task_index=%d job_name=%s' %
-        (FLAGS.worker_hosts, FLAGS.ps_hosts, FLAGS.task_index, FLAGS.job_name))
-  print('eval_method=%s' % eval_method)
-  if distribute_strategy == DistributionStrategy.MirroredStrategy:
-    assert total_worker_num == 1, 'mirrored distribute strategy only need 1 worker'
-  elif distribute_strategy in [
-      DistributionStrategy.NoStrategy, DistributionStrategy.PSStrategy,
-      DistributionStrategy.CollectiveAllReduceStrategy,
-      DistributionStrategy.ExascaleStrategy
-  ]:
-    cluster, task_type, task_index = estimator_utils.parse_tf_config()
-    train_worker_num = 0
-    if eval_method == 'separate':
-      if 'evaluator' in cluster:
-        # 'evaluator' in cluster indicates user use new-style cluster content
-        if 'chief' in cluster:
-          train_worker_num += len(cluster['chief'])
-        elif 'master' in cluster:
-          train_worker_num += len(cluster['master'])
-        if 'worker' in cluster:
-          train_worker_num += len(cluster['worker'])
-        # drop evaluator to avoid hang
-        if distribute_strategy == DistributionStrategy.NoStrategy:
-          del cluster['evaluator']
-        tf_config = {
-            'cluster': cluster,
-            'task': {
-                'type': task_type,
-                'index': task_index
-            }
-        }
-        os.environ['TF_CONFIG'] = json.dumps(tf_config)
-      else:
-        # backward compatibility, if user does not assign one evaluator in
-        # -Dcluster, we use first worker for chief, second for evaluation
-        train_worker_num = total_worker_num - 1
-        assert train_worker_num > 0, 'in distribution mode worker num must be greater than 1, ' \
-                                     'the second worker will be used as evaluator'
-        if len(worker_hosts) > 1:
-          cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[2:]}
-          if distribute_strategy != DistributionStrategy.NoStrategy:
-            cluster['evaluator'] = [worker_hosts[1]]
-          if FLAGS.ps_hosts != '':
-            cluster['ps'] = ps_hosts
-          if FLAGS.job_name == 'ps':
-            os.environ['TF_CONFIG'] = json.dumps({
-                'cluster': cluster,
-                'task': {
-                    'type': FLAGS.job_name,
-                    'index': FLAGS.task_index
-                }
-            })
-          elif FLAGS.job_name == 'worker':
-            if FLAGS.task_index == 0:
-              os.environ['TF_CONFIG'] = json.dumps({
-                  'cluster': cluster,
-                  'task': {
-                      'type': 'chief',
-                      'index': 0
-                  }
-              })
-            elif FLAGS.task_index == 1:
-              os.environ['TF_CONFIG'] = json.dumps({
-                  'cluster': cluster,
-                  'task': {
-                      'type': 'evaluator',
-                      'index': 0
-                  }
-              })
-            else:
-              os.environ['TF_CONFIG'] = json.dumps({
-                  'cluster': cluster,
-                  'task': {
-                      'type': FLAGS.job_name,
-                      'index': FLAGS.task_index - 2
-                  }
-              })
-    else:
-      if 'evaluator' in cluster:
-        evaluator = cluster['evaluator']
-        del cluster['evaluator']
-        # 'evaluator' in cluster indicates user use new-style cluster content
-        train_worker_num += 1
-        if 'chief' in cluster:
-          train_worker_num += len(cluster['chief'])
-        elif 'master' in cluster:
-          train_worker_num += len(cluster['master'])
-        if 'worker' in cluster:
-          train_worker_num += len(cluster['worker'])
-          cluster['worker'].append(evaluator[0])
-        else:
-          cluster['worker'] = [evaluator[0]]
-        if task_type == 'evaluator':
-          tf_config = {
-              'cluster': cluster,
-              'task': {
-                  'type': 'worker',
-                  'index': train_worker_num - 2
-              }
-          }
-        else:
-          tf_config = {
-              'cluster': cluster,
-              'task': {
-                  'type': task_type,
-                  'index': task_index
-              }
-          }
-        os.environ['TF_CONFIG'] = json.dumps(tf_config)
-      else:
-        cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[1:]}
-        train_worker_num = len(worker_hosts)
-        if FLAGS.ps_hosts != '':
-          cluster['ps'] = ps_hosts
-        if FLAGS.job_name == 'ps':
-          os.environ['TF_CONFIG'] = json.dumps({
-              'cluster': cluster,
-              'task': {
-                  'type': FLAGS.job_name,
-                  'index': FLAGS.task_index
-              }
-          })
-        else:
-          if FLAGS.task_index == 0:
-            os.environ['TF_CONFIG'] = json.dumps({
-                'cluster': cluster,
-                'task': {
-                    'type': 'chief',
-                    'index': 0
-                }
-            })
-          else:
-            os.environ['TF_CONFIG'] = json.dumps({
-                'cluster': cluster,
-                'task': {
-                    'type': 'worker',
-                    'index': FLAGS.task_index - 1
-                }
-            })
-      if eval_method == 'none':
-        # change master to chief, will not evaluate
-        master_to_chief()
-      elif eval_method == 'master':
-        # change chief to master, will evaluate on master
-        chief_to_master()
-  else:
-    assert distribute_strategy == '', 'invalid distribute_strategy %s'\
-           % distribute_strategy
-    cluster, task_type, task_index = estimator_utils.parse_tf_config()
-  print('Final TF_CONFIG = %s' % os.environ.get('TF_CONFIG', ''))
-  tf.logging.info('TF_CONFIG %s' % os.environ.get('TF_CONFIG', ''))
-  tf.logging.info('distribute_stategy %s, train_worker_num: %d' %
-                  (distribute_strategy, train_worker_num))
-
-  # remove pai chief-worker waiting strategy
-  # which is conflicted with worker waiting strategy in easyrec
-  if 'TF_WRITE_WORKER_STATUS_FILE' in os.environ:
-    del os.environ['TF_WRITE_WORKER_STATUS_FILE']
-  return train_worker_num
-
-
-def set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
-                            distribute_strategy):
-  if distribute_strategy in [
-      DistributionStrategy.PSStrategy, DistributionStrategy.MirroredStrategy,
-      DistributionStrategy.CollectiveAllReduceStrategy,
-      DistributionStrategy.ExascaleStrategy
-  ]:
-    pipeline_config.train_config.sync_replicas = False
-    pipeline_config.train_config.train_distribute = distribute_strategy
-    pipeline_config.train_config.num_gpus_per_worker = num_gpus_per_worker
-  print('Dump pipeline_config.train_config:')
-  print(pipeline_config.train_config)
 
 
 def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
@@ -350,6 +198,14 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
 
 def main(argv):
   pai_util.set_on_pai()
+
+  # load lookup op
+  try:
+    lookup_op_path = os.path.join(easy_rec.ops_dir, 'libembed_op.so')
+    tf.load_op_library(lookup_op_path)
+  except Exception as ex:
+    print('Error: exception: %s' % str(ex))
+
   num_gpus_per_worker = FLAGS.num_gpus_per_worker
   worker_hosts = FLAGS.worker_hosts.split(',')
   num_worker = len(worker_hosts)
@@ -402,6 +258,9 @@ def main(argv):
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
 
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
+
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
       config_util.add_boundaries_to_config(pipeline_config,
@@ -433,7 +292,12 @@ def main(argv):
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
     num_worker = set_tf_config_and_get_train_worker_num(
-        distribute_strategy=distribute_strategy, eval_method=FLAGS.eval_method)
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        distribute_strategy=distribute_strategy,
+        eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
     train_and_evaluate_impl(
@@ -447,21 +311,35 @@ def main(argv):
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
     # TODO: support multi-worker evaluation
-    assert len(FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+    if not FLAGS.distribute_eval:
+      assert len(
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
-    pipeline_config.eval_input_path = FLAGS.tables
+
+    if FLAGS.eval_tables:
+      pipeline_config.eval_input_path = FLAGS.eval_tables
+    else:
+      pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
-    set_tf_config_and_get_train_worker_num(eval_method='none')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
     # parse selected_cols
     set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                       FLAGS.all_col_types)
-
-    easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
-                      FLAGS.eval_result_path)
+    if FLAGS.distribute_eval:
+      easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                                   FLAGS.eval_result_path)
+    else:
+      easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
+                        FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')
@@ -482,11 +360,40 @@ def main(argv):
     if FLAGS.redis_write_kv:
       redis_params['redis_write_kv'] = FLAGS.redis_write_kv
 
-    set_tf_config_and_get_train_worker_num(eval_method='none')
+    oss_params = {}
+    if FLAGS.oss_path:
+      oss_params['oss_path'] = FLAGS.oss_path
+    if FLAGS.oss_endpoint:
+      oss_params['oss_endpoint'] = FLAGS.oss_endpoint
+    if FLAGS.oss_ak:
+      oss_params['oss_ak'] = FLAGS.oss_ak
+    if FLAGS.oss_sk:
+      oss_params['oss_sk'] = FLAGS.oss_sk
+    if FLAGS.oss_timeout > 0:
+      oss_params['oss_timeout'] = FLAGS.oss_timeout
+    if FLAGS.oss_expire > 0:
+      oss_params['oss_expire'] = FLAGS.oss_expire
+    if FLAGS.oss_threads > 0:
+      oss_params['oss_threads'] = FLAGS.oss_threads
+    if FLAGS.oss_embedding_version:
+      redis_params['oss_embedding_version'] = FLAGS.oss_embedding_version
+    if FLAGS.oss_write_kv:
+      oss_params['oss_write_kv'] = True if FLAGS.oss_write_kv == 1 else False
+
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
+
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
+
+    extra_params = redis_params
+    extra_params.update(oss_params)
     easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
-                    FLAGS.asset_files, FLAGS.verbose, **redis_params)
+                    FLAGS.asset_files, FLAGS.verbose, **extra_params)
   elif FLAGS.cmd == 'predict':
     check_param('tables')
     check_param('saved_model_dir')
@@ -503,7 +410,7 @@ def main(argv):
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
     worker_num = len(FLAGS.worker_hosts.split(','))
-    predictor.predict_table(
+    predictor.predict_impl(
         input_table,
         output_table,
         all_cols=FLAGS.all_cols,
@@ -515,19 +422,49 @@ def main(argv):
         slice_id=FLAGS.task_index,
         slice_num=worker_num)
   elif FLAGS.cmd == 'export_checkpoint':
-    check_param('export_path')
+    check_param('export_dir')
     check_param('config')
     set_tf_config_and_get_train_worker_num(eval_method='none')
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(
       pipeline_config,
-      export_path=FLAGS.export_path,
+      export_path=FLAGS.export_dir + '/model',
       checkpoint_path=FLAGS.checkpoint_path,
       asset_files=FLAGS.asset_files,
       verbose=FLAGS.verbose)
+  elif FLAGS.cmd == 'vector_retrieve':
+    check_param('knn_distance')
+    assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
+    assert FLAGS.knn_num_neighbours is not None, '`knn_num_neighbours` should not be None'
+
+    query_table, doc_table, output_table = FLAGS.query_table, FLAGS.doc_table, FLAGS.outputs
+    if not query_table:
+      tables = FLAGS.tables.split(',')
+      assert len(
+          tables
+      ) >= 1, 'at least 1 tables must be specified, but only[%d]: %s' % (
+          len(tables), FLAGS.tables)
+      query_table = tables[0]
+      doc_table = tables[1] if len(tables) > 1 else query_table
+
+    knn = VectorRetrieve(
+        query_table,
+        doc_table,
+        output_table,
+        ndim=FLAGS.knn_feature_dims,
+        distance=1 if FLAGS.knn_distance == 'inner_product' else 0,
+        delimiter=FLAGS.knn_feature_delimiter,
+        batch_size=FLAGS.batch_size,
+        index_type=FLAGS.knn_index_type,
+        nlist=FLAGS.knn_nlist,
+        nprobe=FLAGS.knn_nprobe,
+        m=FLAGS.knn_compress_dim)
+    worker_hosts = FLAGS.worker_hosts.split(',')
+    knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
   else:
-    raise ValueError('cmd should be one of train/evaluate/export/predict/export_checkpoint')
+    raise ValueError(
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')
 
 
 if __name__ == '__main__':

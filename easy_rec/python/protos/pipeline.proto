@@ -31,13 +31,14 @@ message EasyRecConfig {
 
   optional DatasetConfig data_config = 8;
 
+  //for compatibility
   repeated FeatureConfig feature_configs = 9;
+  optional FeatureConfigV2 feature_config = 10;
 
   // recommendation model config
-  required EasyRecModel model_config = 10;
+  required EasyRecModel model_config = 14;
 
-  optional ExportConfig export_config = 11;
+  optional ExportConfig export_config = 15;
 
-  // rtp fg config file path
-  optional string fg_config = 101;
+  optional string fg_json_path = 16;
 }

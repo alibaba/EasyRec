@@ -2,7 +2,7 @@ syntax = "proto2";
 package protos;
 
 import "easy_rec/python/protos/hyperparams.proto";
-
+import "easy_rec/python/protos/dnn.proto";
 enum WideOrDeep {
     DEEP = 0;
     WIDE = 1;
@@ -15,10 +15,16 @@ message AttentionCombiner {
 message MultiHeadAttentionCombiner {
 }
 
+message TextCnnCombiner {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+}
+
 message SequenceCombiner {
     oneof combiner {
         AttentionCombiner attention = 1;
         MultiHeadAttentionCombiner multi_head_attention = 2;
+        TextCnnCombiner text_cnn = 3;
     }
 }
 
@@ -40,12 +46,12 @@ message FeatureConfig {
     optional string embedding_name = 4 [default = ''];
     optional uint32 embedding_dim = 5 [default = 0];
 
-    optional uint32 hash_bucket_size = 6 [default = 0];
+    optional uint64 hash_bucket_size = 6 [default = 0];
     // for categorical_column_with_identity
-    optional uint32 num_buckets = 7 [default = 0];
+    optional uint64 num_buckets = 7 [default = 0];
 
     // only for raw features
-    repeated float boundaries = 8;
+    repeated double boundaries = 8;
 
     // separator with in features
     optional string separator = 9 [default = '|'];
@@ -80,8 +86,8 @@ message FeatureConfig {
     optional int32 precision = 21 [default = -1];
 
     // normalize raw feature to [0-1]
-    optional float min_val = 22 [default=0.0];
-    optional float max_val = 23 [default=0.0];
+    optional double min_val = 22 [default=0.0];
+    optional double max_val = 23 [default=0.0];
 
     // raw feature of multiple dimensions
     optional uint32 raw_input_dim = 24 [default=1];
@@ -90,19 +96,27 @@ message FeatureConfig {
     optional SequenceCombiner sequence_combiner = 25;
 }
 
+message FeatureConfigV2 {
+    repeated FeatureConfig features = 1 ;
+}
+
 message FeatureGroupConfig {
     optional string group_name = 1;
     repeated string feature_names = 2;
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
+    optional SeqAttGroupConfig sequence_features = 4;
 }
 
 message SeqAttMap {
-    required string key = 1;
-    required string hist_seq = 2;
+    repeated string key = 1;
+    repeated string hist_seq = 2;
 }
 
 message SeqAttGroupConfig {
     optional string group_name = 1;
     repeated SeqAttMap seq_att_map = 2;
+    optional bool tf_summary = 3 [default = false];
+    optional DNN seq_dnn = 4;
+    optional bool allow_key_search = 5 [default = false];
 }

@@ -37,6 +37,7 @@ class FeatureColumnParser(object):
     Args:
       feature_configs: collections of
             easy_rec.python.protos.feature_config_pb2.FeatureConfig
+            or easy_rec.python.protos.feature_config_pb2.FeatureConfigV2.features
       wide_deep_dict: dict of {feature_name:WideOrDeep}, passed by
         easy_rec.python.layers.input_layer.InputLayer, it is defined in
         easy_rec.python.protos.easy_rec_model_pb2.EasyRecModel.feature_groups
@@ -159,6 +160,11 @@ class FeatureColumnParser(object):
       if type(fc) == tuple:
         self._wide_columns[fc_name] = self._get_shared_embedding_column(
             fc, deep=False)
+
+    for fc_name in self._sequence_columns:
+      fc = self._sequence_columns[fc_name]
+      if type(fc) == tuple:
+        self._sequence_columns[fc_name] = self._get_shared_embedding_column(fc)
 
   @property
   def wide_columns(self):
@@ -305,7 +311,12 @@ class FeatureColumnParser(object):
                    (feature_name, config.num_buckets))
 
     if bounds:
-      fc = feature_column.bucketized_column(fc, bounds)
+      try:
+        fc = feature_column.bucketized_column(fc, bounds)
+      except Exception as e:
+        tf.logging.error('bucketized_column [%s] with bounds %s error' %
+                         (fc.name, str(bounds)))
+        raise e
       if self.is_wide(config):
         self._add_wide_embedding_column(fc, config)
       if self.is_deep(config):
@@ -388,19 +399,8 @@ class FeatureColumnParser(object):
           config.input_names[0], config.num_buckets, default_value=0)
 
     assert config.embedding_dim > 0
-    initializer = None
-    if config.HasField('initializer'):
-      initializer = hyperparams_builder.build_initializer(config.initializer)
-    fc = feature_column.embedding_column(
-        fc,
-        dimension=config.embedding_dim,
-        combiner=config.combiner,
-        initializer=initializer,
-        partitioner=self._build_partitioner(config.max_partitions))
-    fc.sequence_combiner = config.sequence_combiner if config.HasField(
-        'sequence_combiner') else None
-    self._deep_columns[feature_name] = fc
-    self._sequence_columns[feature_name] = fc
+
+    self._add_deep_embedding_column(fc, config)
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:
@@ -470,4 +470,9 @@ class FeatureColumnParser(object):
           initializer=initializer,
           partitioner=self._build_partitioner(config.max_partitions),
           use_embedding_variable=self._use_embedding_variable)
-    self._deep_columns[feature_name] = fc
+    if config.feature_type != config.SequenceFeature:
+      self._deep_columns[feature_name] = fc
+    else:
+      if config.HasField('sequence_combiner'):
+        fc.sequence_combiner = config.sequence_combiner
+      self._sequence_columns[feature_name] = fc

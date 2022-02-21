@@ -38,6 +38,9 @@ class DNN:
 
   def __call__(self, deep_fea, hidden_layer_feature_output=False):
     hidden_units_len = len(self.hidden_units)
+    if hidden_units_len == 1 and self.hidden_units[0] == 0:
+      return deep_fea
+
     hidden_feature_dict = {}
     for i, unit in enumerate(self.hidden_units):
       deep_fea = tf.layers.dense(

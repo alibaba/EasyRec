@@ -1,5 +1,15 @@
 # Local Tutorial
 
+### 下载安装EasyRec
+
+```bash
+git clone https://github.com/alibaba/EasyRec.git
+cd EasyRec
+wget https://easyrec.oss-cn-beijing.aliyuncs.com/data/easyrec_data_20210818.tar.gz
+bash scripts/gen_proto.sh # 根据proto文件生成 配置解析.py文件
+python setup.py install
+```
+
 ### 输入数据:
 
 输入一般是csv格式的文件。
@@ -15,12 +25,6 @@
 ```
 
 - **Note: csv文件不需要有header!!!**
-
-### 安装包
-
-```bash
-pip install -U https://easyrec.oss-cn-beijing.aliyuncs.com/releases/easy_rec-0.1.0-py2.py3-none-any.whl
-```
 
 ### 启动命令:
 
@@ -63,11 +67,12 @@ CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path dwd
 CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config --export_dir dwd_avazu_ctr_export
 ```
 
-#### CPU训练/评估/导出:
+#### CPU训练/评估/导出
+
+不指定CUDA_VISIBLE_DEVICES即可，例如：
 
 ```bash
- 不指定CUDA_VISIBLE_DEVICES即可，例如：
- python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/.config
+ python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel_local.config
 ```
 
 ### 配置文件:
@@ -83,6 +88,8 @@ model_dir: "experiments/easy_rec/"
 ```
 
 #### 数据相关
+
+数据配置具体见：[数据](../feature/data.md)
 
 ```protobuf
 # 数据相关的描述
@@ -111,64 +118,70 @@ data_config {
 
 #### 特征相关
 
+特征配置具体见：[特征](../feature/feature.md)
+
 ```protobuf
-feature_configs: {
-  input_names: "hour"
-  # 特征类型
-  feature_type: IdFeature
-  # embedding向量的dimension
-  embedding_dim: 16
-  # hash_bucket大小，通过tf.strings.to_hash_bucket将hour字符串映射到0-49的Id
-  hash_bucket_size: 50
-}
-feature_configs: {
-  input_names: "c1"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 10
-}
-...
-feature_configs: {
-  input_names: "site_category"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 100
-}
-feature_configs: {
-  input_names: "app_id"
-  feature_type: IdFeature
-  embedding_dim: 32
-  hash_bucket_size: 10000
-}
-...
-feature_configs: {
-  input_names: "c15"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "c16"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-...
-feature_configs: {
-  input_names: "c20"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
-}
-feature_configs: {
-  input_names: "c21"
-  feature_type: IdFeature
-  embedding_dim: 16
-  hash_bucket_size: 500
+feature_config: {
+  features: {
+    input_names: "hour"
+    # 特征类型
+    feature_type: IdFeature
+    # embedding向量的dimension
+    embedding_dim: 16
+    # hash_bucket大小，通过tf.strings.to_hash_bucket将hour字符串映射到0-49的Id
+    hash_bucket_size: 50
+  }
+  features: {
+    input_names: "c1"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 10
+  }
+  ...
+  features: {
+    input_names: "site_category"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 100
+  }
+  features: {
+    input_names: "app_id"
+    feature_type: IdFeature
+    embedding_dim: 32
+    hash_bucket_size: 10000
+  }
+  ...
+  features: {
+    input_names: "c15"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "c16"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  ...
+  features: {
+    input_names: "c20"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
+  features: {
+    input_names: "c21"
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500
+  }
 }
 ```
 
 #### 训练相关
+
+训练配置具体见：[训练](../train.md)
 
 ```protobuf
 # 训练相关的参数
@@ -197,6 +210,8 @@ train_config {
 ```
 
 #### 评估相关
+
+评估配置具体见：[评估](../eval.md)
 
 ```protobuf
 eval_config {

@@ -3,7 +3,7 @@
   "eval_input_path": "data/test/rtp/taobao_test_feature.txt",
   "model_dir": "experiments/taobao_fg_json_demo",
   "train_config": {
-    "optimizer_config": {
+    "optimizer_config": [{
       "use_moving_average": false,
       "adam_optimizer": {
         "learning_rate": {
@@ -15,7 +15,7 @@
           }
         }
       }
-    },
+    }],
     "num_steps": 400,
     "sync_replicas": true,
     "log_step_count_steps": 200
@@ -100,7 +100,9 @@
     ],
     "rtp_separator": ";"
   },
-  "feature_configs": [
+  "feature_config": {
+    "features":
+    [
     {
       "input_names": [
         "user_id"
@@ -261,7 +263,8 @@
       "hash_bucket_size": 10000,
       "separator": "\u0003"
     }
-  ],
+  ]
+  },
   "model_config": {
     "model_class": "MultiTower",
     "feature_groups": [
