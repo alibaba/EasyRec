@@ -11,6 +11,13 @@ from collections import OrderedDict
 import tensorflow as tf
 from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.training import checkpoint_management
+from tensorflow.python.framework import ops
+from tensorflow.python.estimator import model_fn as model_fn_lib
+from tensorflow.python.eager import context
+from tensorflow.python.client import session as tf_session
+from tensorflow.python.training import monitored_session
+from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -371,6 +378,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self._pipeline_config.fg_config:
       EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_config)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
+    print("_model_fn mode is {}".format(mode))
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:
@@ -381,7 +389,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
   @staticmethod
   def _write_rtp_fg_config_to_col(fg_config=None, fg_config_path=None):
     import json
-    from tensorflow.python.framework import ops
     from easy_rec.python.compat.ops import GraphKeys
     if fg_config is None:
       with tf.gfile.GFile(fg_config_path, 'r') as f:
@@ -395,7 +402,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
   @staticmethod
   def _write_rtp_inputs_to_col(features):
     import json
-    from tensorflow.python.framework import ops
     from easy_rec.python.layers.utils import _tensor_to_tensorinfo
     from easy_rec.python.compat.ops import GraphKeys
     feature_info_map = dict()
@@ -407,3 +413,28 @@ class EasyRecEstimator(tf.estimator.Estimator):
       col.append(json.dumps(feature_info_map))
     else:
       col[0] = json.dumps(feature_info_map)
+
+  def export_checkpoint(self,
+      export_path=None,
+      serving_input_receiver_fn=None,
+      checkpoint_path=None,
+      mode=tf.estimator.ModeKeys.PREDICT):
+    with context.graph_mode():
+      if not checkpoint_path:
+        # Locate the latest checkpoint
+        checkpoint_path = checkpoint_management.latest_checkpoint(
+            self._model_dir)
+      if not checkpoint_path:
+        raise ValueError("Couldn't find trained model at %s." % self._model_dir)
+      with ops.Graph().as_default() as g:
+        input_receiver = serving_input_receiver_fn()
+        estimator_spec = self._call_model_fn(
+            features=input_receiver.features,
+            labels=getattr(input_receiver, 'labels', None),
+            mode=mode,
+            config=self.config)
+        with tf_session.Session(config=self._session_config) as session:
+          graph_saver = estimator_spec.scaffold.saver or saver.Saver(sharded=True)
+          graph_saver.restore(session, checkpoint_path)
+          graph_saver.save(session, export_path)
+

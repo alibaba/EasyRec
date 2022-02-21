@@ -250,6 +250,17 @@ class Input(six.with_metaclass(_meta_type, object)):
               tf.float32, shape_config['shape'], name=input_name)
     return inputs
 
+  def create_rtp_fg_placeholders(self, fg_config_path):
+    """Create serving placeholders with rtp_fg"""
+    import rtp_fg
+    with tf.gfile.GFile(fg_config_path, 'r') as f:
+      fg_config = json.load(f)
+    self._mode = tf.estimator.ModeKeys.PREDICT
+    inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
+    features = rtp_fg.parse_genreated_fg(fg_config, inputs_placeholder)
+    features = self._preprocess(features)
+    return {'features': inputs_placeholder}, features
+
   def _get_features(self, fields):
     field_dict = {x: fields[x] for x in self._effective_fields if x in fields}
     for k in self._appended_fields:
@@ -594,10 +605,10 @@ class Input(six.with_metaclass(_meta_type, object)):
         else, return:
             tf.estimator.export.ServingInputReceiver instance
       """
+      tf.get_default_graph().set_shape_optimize(False)
       if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
                   tf.estimator.ModeKeys.PREDICT):
         # build dataset from self._config.input_path
-        tf.get_default_graph().set_shape_optimize(False)
         self._mode = mode
         dataset = self._build(mode, params)
         return dataset
@@ -614,6 +625,9 @@ class Input(six.with_metaclass(_meta_type, object)):
           placeholder_named_by_input = export_config.placeholder_named_by_input
           inputs, features = self.create_multi_placeholders(
               placeholder_named_by_input, export_fields_name)
+          return tf.estimator.export.ServingInputReceiver(features, inputs)
+        elif export_config.fg_config:
+          inputs, features = self.create_rtp_fg_placeholders(export_config.fg_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
           inputs, features = self.create_placeholders()

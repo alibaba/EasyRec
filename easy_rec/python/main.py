@@ -354,6 +354,8 @@ def evaluate(pipeline_config,
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
 
+  data_config = pipeline_config.data_config
+
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
     if isinstance(eval_data_path, list):
@@ -364,6 +366,8 @@ def evaluate(pipeline_config,
 
   if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     eval_data = pipeline_config.kafka_eval_input
+  elif data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    eval_data = (pipeline_config.eval_input_path, pipeline_config.fg_config)
   else:
     eval_data = pipeline_config.eval_input_path
 
@@ -472,12 +476,15 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
       * pipeline_config_path does not exist
   """
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  data_config = pipeline_config.data_config
   if data_path is not None:
     logging.info('Predict on data: %s' % data_path)
     pipeline_config.eval_input_path = data_path
   train_config = pipeline_config.train_config
   if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     eval_data = pipeline_config.kafka_eval_input
+  elif data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    eval_data = (pipeline_config.eval_input_path, pipeline_config.fg_config)
   else:
     eval_data = pipeline_config.eval_input_path
 
@@ -597,3 +604,36 @@ def export(export_dir,
 
   logging.info('model has been exported to %s successfully' % final_export_dir)
   return final_export_dir
+
+
+def export_checkpoint(
+    pipeline_config=None,
+    export_path='',
+    checkpoint_path='',
+    asset_files=None,
+    verbose=False,
+    mode=tf.estimator.ModeKeys.PREDICT):
+  """Export the EasyRec model as checkpoint"""
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  feature_configs = pipeline_config.feature_configs
+
+  # create estimator
+  params = {'log_device_placement': verbose}
+  if asset_files:
+    logging.info('will add asset files: %s' % asset_files)
+    params['asset_files'] = asset_files
+  estimator, _ = _create_estimator(pipeline_config, params=params)
+
+  # construct serving input fn
+  export_config = pipeline_config.export_config
+  data_config = pipeline_config.data_config
+  serving_input_fn = _get_input_fn(data_config, feature_configs, None,
+                                   export_config)
+  estimator.export_checkpoint(
+    export_path=export_path,
+    serving_input_receiver_fn=serving_input_fn,
+    checkpoint_path=checkpoint_path,
+    mode=mode)
+
+  logging.info('model checkpoint has been exported successfully')
+

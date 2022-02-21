@@ -70,6 +70,8 @@ tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
+tf.app.flags.DEFINE_string('export_path', '',
+                           'prefix path where model checkpoint should be exported as')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -374,6 +376,7 @@ def main(argv):
 
   if FLAGS.fg_config:
     pipeline_config.fg_config = FLAGS.fg_config
+    pipeline_config.export_config.fg_config = FLAGS.fg_config
     print('[run.py] update fg_config to %s' % pipeline_config.fg_config)
 
   if FLAGS.cmd == 'train':
@@ -511,8 +514,20 @@ def main(argv):
         batch_size=FLAGS.batch_size,
         slice_id=FLAGS.task_index,
         slice_num=worker_num)
+  elif FLAGS.cmd == 'export_checkpoint':
+    check_param('export_path')
+    check_param('config')
+    set_tf_config_and_get_train_worker_num(eval_method='none')
+    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
+    config_util.auto_expand_share_feature_configs(pipeline_config)
+    easy_rec.export_checkpoint(
+      pipeline_config,
+      export_path=FLAGS.export_path,
+      checkpoint_path=FLAGS.checkpoint_path,
+      asset_files=FLAGS.asset_files,
+      verbose=FLAGS.verbose)
   else:
-    raise ValueError('cmd should be one of train/evaluate/export/predict')
+    raise ValueError('cmd should be one of train/evaluate/export/predict/export_checkpoint')
 
 
 if __name__ == '__main__':

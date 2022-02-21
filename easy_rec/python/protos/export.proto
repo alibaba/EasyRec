@@ -52,4 +52,7 @@ message ExportConfig {
     optional MultiValueFields multi_value_fields = 10;
     // is placeholder named by input
     optional bool placeholder_named_by_input = 11 [default = false];
+
+    // rtp fg config file path
+    optional string fg_config = 12;
 }
