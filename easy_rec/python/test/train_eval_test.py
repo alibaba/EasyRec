@@ -71,6 +71,10 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_dlrm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dlrm_on_taobao.config', self._test_dir)
+
   def test_adamw_optimizer(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_adamw_ctr.config',

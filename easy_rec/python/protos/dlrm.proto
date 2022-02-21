@@ -1,0 +1,21 @@
+syntax="proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message DLRM {
+  required DNN top_dnn = 1;
+
+  required DNN bot_dnn = 2;
+
+  // options are: dot and cat
+  optional string arch_interaction_op = 3 [default='dot'];
+
+  // whether a feature will interact with itself
+  optional bool arch_interaction_itself = 4 [default=false];
+
+  // whether to include dense features after interaction
+  optional bool arch_with_dense_feature = 5 [default=false];
+
+  optional float l2_regularization = 10 [default=1e-5];
+}
