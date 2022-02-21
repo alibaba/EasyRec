@@ -37,23 +37,23 @@ class TableInfo(object):
     if self.partition_kv and len(self.partition_kv) > 0:
       res = []
       for k, v in self.partition_kv.items():
-        res.append(f'{k}={v}')
+        res.append('{}={}'.format(k, v))
       part = ' '.join(res)
-    sql = f"""select {self.selected_cols}
-        from {self.tablename}"""
+    sql = """select {}
+        from {}""".format(self.selected_cols, self.tablename)
     assert self.hash_fields is not None, 'hash_fields must not be empty'
-    fields = [f'cast({key} as string)' for key in self.hash_fields.split(',')]
+    fields = ['cast({} as string)'.format(key) for key in self.hash_fields.split(',')]
     str_fields = ','.join(fields)
     if not part:
-      sql += f"""
-        where hash(concat({str_fields}))%{self.task_num}={self.task_index}
-        """
+      sql += """
+        where hash(concat({}))%{}={}
+        """.format(str_fields, self.task_num, self.task_index)
     else:
-      sql += f"""
-        where {part} and hash(concat({str_fields}))%{self.task_num}={self.task_index}
-        """
+      sql += """
+        where {} and hash(concat({}))%{}={}
+        """.format(part, str_fields, self.task_num, self.task_index)
     if self.limit_num is not None and self.limit_num > 0:
-      sql += f' limit {self.limit_num}'
+      sql += ' limit {}'.format(self.limit_num)
     return sql
 
 
