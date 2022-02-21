@@ -43,7 +43,7 @@ pai -name easy_rec_ext -project algo_public
 create table doc_table(pk BIGINT,vector string) partitioned by (pt string);
 
 INSERT OVERWRITE TABLE query_table PARTITION(pt='20190410')
-VALUES 
+VALUES
     (1, '0.1,0.2,-0.4,0.5'),
     (2, '-0.1,0.8,0.4,0.5'),
     (3, '0.59,0.2,0.4,0.15'),
@@ -59,7 +59,7 @@ VALUES
 create table query_table(pk BIGINT,vector string) partitioned by (pt string);
 
 INSERT OVERWRITE TABLE doc_table PARTITION(pt='20190410')
-VALUES 
+VALUES
     (1, '0.1,0.2,0.4,0.5'),
     (2, '-0.1,0.2,0.4,0.5'),
     (3, '0.5,0.2,0.4,0.5'),

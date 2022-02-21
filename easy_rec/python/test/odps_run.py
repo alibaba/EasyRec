@@ -196,12 +196,8 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_vector_retrieve(self):
-    start_files = [
-      'vector_retrieve/create_inner_vector_table.sql'
-    ]
-    test_files = [
-      'vector_retrieve/run_vector_retrieve.sql'
-    ]
+    start_files = ['vector_retrieve/create_inner_vector_table.sql']
+    test_files = ['vector_retrieve/run_vector_retrieve.sql']
     end_file = ['vector_retrieve/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
     tot.start_test()

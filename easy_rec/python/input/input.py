@@ -193,9 +193,13 @@ class Input(six.with_metaclass(_meta_type, object)):
       logging.info('number of effective inputs:%d, total number inputs: %d' %
                    (len(effective_fids), len(self._input_fields)))
     else:
-      effective_fids = list(range(1, len(self._input_fields)))
-      logging.info('will not filter any input, total number inputs:%d' %
-                   len(effective_fids))
+      effective_fids = [
+          fid for fid in range(len(self._input_fields))
+          if self._input_fields[fid] not in self._label_fields
+      ]
+      logging.info(
+          'will not filter any input[except labels], total number inputs:%d' %
+          len(effective_fids))
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     input_vals = tf.reshape(
@@ -212,7 +216,8 @@ class Input(six.with_metaclass(_meta_type, object)):
             name='input_str_to_%s' % tf_type.name)
       else:
         if ftype not in [DatasetConfig.STRING]:
-          logging.warning('unexpected field type: ftype=%s tf_type=%s' % (ftype, tf_type))
+          logging.warning('unexpected field type: ftype=%s tf_type=%s' %
+                          (ftype, tf_type))
         features[input_name] = input_vals[:, tmp_id]
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
