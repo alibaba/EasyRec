@@ -105,7 +105,6 @@ class DSSM(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
-    print("dssm.build_predict_graph run in graph: {}".format(id(tf.get_default_graph())))
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
     user_dnn = dnn.DNN(self.user_tower.dnn, self._l2_reg, 'user_dnn',

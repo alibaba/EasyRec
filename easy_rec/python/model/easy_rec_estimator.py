@@ -476,7 +476,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self._pipeline_config.fg_config:
       EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_config)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
-    print("_model_fn mode is {}".format(mode))
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:

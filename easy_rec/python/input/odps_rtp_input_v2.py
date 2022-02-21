@@ -26,7 +26,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
      such as: clk,features, the last selected column is features, the first
      selected columns are labels
   """
-  
+
   def __init__(self,
                data_config,
                feature_config,
@@ -53,7 +53,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
         self._fg_config = json.load(f)
     else:
       self._fg_config = None
-  
+
   def _parse_input_path(input_path):
     if input_path is not None:
       parts = input_path.split(";")
@@ -65,7 +65,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
         raise ValueError("illegal input path: {}".format(input_path))
     else:
       return (None, None)
-  
+
   def _parse_table(self, *fields):
     fields = list(fields)
     labels = fields[:-1]
