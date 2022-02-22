@@ -5,7 +5,6 @@ import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
 import "easy_rec/python/protos/wide_and_deep.proto";
 import "easy_rec/python/protos/multi_tower.proto";
-import "easy_rec/python/protos/dlrm.proto";
 import "easy_rec/python/protos/feature_config.proto";
 import "easy_rec/python/protos/dropoutnet.proto";
 import "easy_rec/python/protos/dssm.proto";
@@ -59,7 +58,6 @@ message EasyRecModel {
         FM fm = 105;
         DCN dcn = 106;
         AutoInt autoint = 107;
-        DLRM dlrm = 108;
 
         DSSM dssm = 201;
         MIND mind = 202;
