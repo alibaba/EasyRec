@@ -1,5 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
@@ -28,6 +29,8 @@ class RankModel(EasyRecModel):
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
 
+    self._build_default_outputs()
+
   def _output_to_prediction_impl(self,
                                  output,
                                  loss_type,
@@ -54,9 +57,24 @@ class RankModel(EasyRecModel):
     return prediction_dict
 
   def _add_to_prediction_dict(self, output):
-    self._prediction_dict.update(
-        self._output_to_prediction_impl(
-            output, loss_type=self._loss_type, num_class=self._num_class))
+    prediction_dict = self._output_to_prediction_impl(
+        output, loss_type=self._loss_type, num_class=self._num_class)
+    self._prediction_dict.update(prediction_dict)
+    if self._loss_type == LossType.CLASSIFICATION:
+      if 'probs' in prediction_dict:
+        self._forward_rank_predict(prediction_dict['probs'])
+    elif self._loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+      if 'y' in prediction_dict:
+        self._forward_rank_predict(prediction_dict['y'])
+
+  def _forward_rank_predict(self, tensor):
+    try:
+      op = tf.get_default_graph().get_operation_by_name('rank_predict')
+      logging.warning(("failed to forward [{}] to rank_predict. because rank_predict "
+                      + "is already routed from [{}].").format(tensor.name, op.name))
+    except KeyError:
+      self._prediction_dict['rank_predict'] = tf.identity(tensor, name='rank_predict')
+      return
 
   def _build_loss_impl(self,
                        loss_type,
@@ -363,15 +381,18 @@ class RankModel(EasyRecModel):
     return metric_dict
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
+    outputs = super(RankModel, self)._build_default_output_names()
     if loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
-        return ['probs' + suffix, 'logits' + suffix]
+        outputs += ['probs' + suffix, 'logits' + suffix]
       else:
-        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
+        outputs += ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
-      return ['y' + suffix]
+      outputs += ['y' + suffix]
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
+    outputs += ['rank_predict']
+    return outputs
 
   def get_outputs(self):
     return self._get_outputs_impl(self._loss_type, self._num_class)
