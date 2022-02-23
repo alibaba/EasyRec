@@ -435,6 +435,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # add output info to estimator spec
     outputs = {}
     output_list = model.get_outputs()
+    if 'rank_predict' in predict_dict:
+      output_list += ['rank_predict']
     for out in output_list:
       assert out in predict_dict, \
           'output node %s not in prediction_dict, can not be exported' % out
