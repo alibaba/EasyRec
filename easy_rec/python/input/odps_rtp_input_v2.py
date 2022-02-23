@@ -5,15 +5,15 @@ import logging
 import numpy as np
 import tensorflow as tf
 import json
-import rtp_fg
-from tensorflow.python.framework import ops
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
 
 try:
   import pai
+  import rtp_fg
 except Exception:
-  pass
+  pai = None
+  rtp_fg = None
 
 class OdpsRTPInputV2(OdpsRTPInput):
   """RTPInput for parsing rtp fg new input format on odps.
@@ -44,6 +44,8 @@ class OdpsRTPInputV2(OdpsRTPInput):
       self._fg_config = json.load(f)
 
   def _parse_table(self, *fields):
+    self.check_rtp()
+
     fields = list(fields)
     labels = fields[:-1]
 
@@ -69,6 +71,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
 
   def create_placeholders(self, *args, **kwargs):
     """Create serving placeholders with rtp_fg"""
+    self.check_rtp()
     self._mode = tf.estimator.ModeKeys.PREDICT
     inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
     print("[OdpsRTPInputV2] building placeholders.")
@@ -82,3 +85,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
   def create_multi_placeholders(self, *args, **kwargs):
     """Create serving multi-placeholders with rtp_fg"""
     raise NotImplementedError("create_multi_placeholders is not supported for OdpsRTPInputV2")
+
+  def check_rtp(self):
+    if rtp_fg is None:
+      raise NotImplementedError("OdpsRTPInputV2 cannot run without rtp_fg, which is not installed")
