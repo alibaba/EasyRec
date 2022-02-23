@@ -1,21 +1,17 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 import logging
-import os
 from abc import abstractmethod
 from collections import OrderedDict
 
 import six
 import tensorflow as tf
 
-import easy_rec
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -212,7 +208,8 @@ class Input(six.with_metaclass(_meta_type, object)):
             name='input_str_to_%s' % tf_type.name)
       else:
         if ftype not in [DatasetConfig.STRING]:
-          logging.warning('unexpected field type: ftype=%s tf_type=%s' % (ftype, tf_type))
+          logging.warning('unexpected field type: ftype=%s tf_type=%s' %
+                          (ftype, tf_type))
         features[input_name] = input_vals[:, tmp_id]
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features

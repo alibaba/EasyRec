@@ -52,29 +52,39 @@ jobs:
              var pass_label = null;
              if (labels != null) {
                 pass_label = labels.find(label=>label.name=='ci_test_passed');
-             }
+             }  
+             
              var fail_label = null;
              if (labels != null) {
                 fail_label = labels.find(label=>label.name=='ci_test_failed');
-             }
-
-             if (CI_TEST_PASSED == 1) {
-               if (! pass_label) {
-                 github.rest.issues.addLabels({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    labels: ['ci_test_passed']
-                 })
-               }
-               if (fail_label) {
-                 github.rest.issues.removeLabel({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: 'ci_test_failed'
-                 })
-               }
+             }             
+             
+             if (pass_label) {
+               github.rest.issues.removeLabel({
+                 issue_number: context.issue.number,
+                 owner: context.repo.owner,
+                 repo: context.repo.repo, 
+                 name: 'ci_test_passed'
+               })                    
+             }               
+             
+             if (fail_label) {
+               github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo, 
+                  name: 'ci_test_failed'
+               })                 
+             }             
+            
+             if (CI_TEST_PASSED == 1) {        
+               github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo, 
+                  labels: ['ci_test_passed']
+               })
+               
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -82,22 +92,13 @@ jobs:
                   body: "CI Test Passed"
                })
              } else {
-               if (!fail_label) {
-                 github.rest.issues.addLabels({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    labels: ['ci_test_failed']
-                 })
-               }
-               if (pass_label) {
-                 github.rest.issues.removeLabel({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: 'ci_test_passed'
-                 })
-               }
+               github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo, 
+                  labels: ['ci_test_failed']
+               })
+               
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
