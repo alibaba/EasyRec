@@ -27,3 +27,7 @@ pai_jobs/easy_rec*.tar.gz
 
 # idea files
 .idea
+
+# unit test
+/data
+/UNIT_TEST_CASE_LIST

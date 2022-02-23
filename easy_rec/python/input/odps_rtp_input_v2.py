@@ -89,3 +89,9 @@ class OdpsRTPInputV2(OdpsRTPInput):
   def check_rtp(self):
     if rtp_fg is None:
       raise NotImplementedError("OdpsRTPInputV2 cannot run without rtp_fg, which is not installed")
+
+  def _pre_build(self, mode, params):
+    try:
+      tf.get_default_graph().set_shape_optimize(False)
+    except AttributeError as e:
+      logging.warning("failed to disable shape optimization:", e)

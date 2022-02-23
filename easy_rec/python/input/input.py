@@ -542,6 +542,9 @@ class Input(six.with_metaclass(_meta_type, object)):
   def _build(self, mode, params):
     raise NotImplementedError
 
+  def _pre_build(self, mode, params):
+    pass
+
   def create_input(self, export_config=None):
 
     def _input_fn(mode=None, params=None, config=None):
@@ -559,7 +562,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         else, return:
             tf.estimator.export.ServingInputReceiver instance
       """
-      tf.get_default_graph().set_shape_optimize(False)
+      self._pre_build(mode, params)
       if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
                   tf.estimator.ModeKeys.PREDICT):
         # build dataset from self._config.input_path
