@@ -105,6 +105,7 @@ class DSSM(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
+    self._build_default_outputs()
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
     user_dnn = dnn.DNN(self.user_tower.dnn, self._l2_reg, 'user_dnn',
@@ -252,10 +253,19 @@ class DSSM(EasyRecModel):
     return metric_dict
 
   def get_outputs(self):
+    default_outputs = self._build_default_output_names()
     if self._loss_type in (LossType.CLASSIFICATION,
                            LossType.SOFTMAX_CROSS_ENTROPY):
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return default_outputs + ['logits', 'probs', 'user_emb', 'item_emb']
     elif self._loss_type == LossType.L2_LOSS:
-      return ['y', 'user_emb', 'item_emb']
+      return default_outputs + ['y', 'user_emb', 'item_emb']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
+
+  def _build_default_output_names(self):
+    return super(DSSM, self)._build_default_output_names() + ['user_tower_feature', 'item_tower_feature']
+
+  def _build_default_outputs(self):
+    super(DSSM, self)._build_default_outputs()
+    self._prediction_dict['user_tower_feature'] = tf.reduce_join(tf.as_string(self.user_tower_feature), axis=-1, separator=',')
+    self._prediction_dict['item_tower_feature'] = tf.reduce_join(tf.as_string(self.item_tower_feature), axis=-1, separator=',')

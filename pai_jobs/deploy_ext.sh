@@ -85,15 +85,14 @@ cd $curr_dir
 
 RES_PATH=easy_rec_ext_${VERSION}_res.tar.gz
 
-if [ ! -e easy_rec ]
+if [ -e easy_rec ]
 then
-  ln -s $root_dir/easy_rec ./
+  rm -rf easy_rec
 fi
-cp easy_rec/__init__.py easy_rec/__init__.py.bak
+cp -R $root_dir/easy_rec ./easy_rec
 sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
 tar -cvzhf $RES_PATH easy_rec run.py
-mv easy_rec/__init__.py.bak easy_rec/__init__.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]

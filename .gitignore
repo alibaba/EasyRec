@@ -22,6 +22,7 @@ log
 # pai job
 pai_jobs/easy_rec
 pai_jobs/easy_rec.tar.gz
+pai_jobs/easy_rec*.tar.gz
 
 
 # idea files

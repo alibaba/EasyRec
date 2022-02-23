@@ -759,7 +759,9 @@ def export_checkpoint(
     mode=tf.estimator.ModeKeys.PREDICT):
   """Export the EasyRec model as checkpoint"""
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
-  feature_configs = pipeline_config.feature_configs
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   data_config = pipeline_config.data_config
 
   input_fn_kwargs = {}

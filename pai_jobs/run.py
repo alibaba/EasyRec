@@ -416,7 +416,12 @@ def main(argv):
   elif FLAGS.cmd == 'export_checkpoint':
     check_param('export_dir')
     check_param('config')
-    set_tf_config_and_get_train_worker_num(eval_method='none')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(

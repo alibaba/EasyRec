@@ -32,39 +32,16 @@ class OdpsRTPInputV2(OdpsRTPInput):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               fg_json_path=None):
     super(OdpsRTPInputV2, self).__init__(
       data_config, feature_config, input_path, task_index, task_num)
-    # load fg config
-    if isinstance(self._input_path, tuple):
-      if len(self._input_path) == 1:
-        self._fg_config_path = None
-      elif len(self._input_path) == 2:
-        self._input_path, self._fg_config_path = self._input_path
-      else:
-        raise ValueError("illegal input path: {}".format(input_path))
-    elif isinstance(self._input_path, str):
-      self._input_path, self._fg_config_path = self._parse_input_path(self._input_path)
-    else:
-      self._fg_config_path = None
+    self._fg_config_path = fg_json_path
     logging.info('fg config path: {}'.format(self._fg_config_path))
-    if self._fg_config_path is not None:
-      with tf.gfile.GFile(self._fg_config_path, 'r') as f:
-        self._fg_config = json.load(f)
-    else:
-      self._fg_config = None
-
-  def _parse_input_path(input_path):
-    if input_path is not None:
-      parts = input_path.split(";")
-      if len(parts) == 1:
-        return (parts[0], None)
-      elif len(parts) == 2:
-        return (parts[0], parts[1])
-      else:
-        raise ValueError("illegal input path: {}".format(input_path))
-    else:
-      return (None, None)
+    if self._fg_config_path is None:
+      raise ValueError("fg_json_path is not set")
+    with tf.gfile.GFile(self._fg_config_path, 'r') as f:
+      self._fg_config = json.load(f)
 
   def _parse_table(self, *fields):
     fields = list(fields)
@@ -89,3 +66,19 @@ class OdpsRTPInputV2(OdpsRTPInput):
     for x in range(len(self._label_fields)):
       inputs[self._label_fields[x]] = labels[x]
     return inputs
+
+  def create_placeholders(self, *args, **kwargs):
+    """Create serving placeholders with rtp_fg"""
+    self._mode = tf.estimator.ModeKeys.PREDICT
+    inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
+    print("[OdpsRTPInputV2] building placeholders.")
+    print("[OdpsRTPInputV2] fg_config: {}".format(self._fg_config))
+    features = rtp_fg.parse_genreated_fg(self._fg_config, inputs_placeholder)
+    print("[OdpsRTPInputV2] built features: {}".format(features.keys()))
+    features = self._preprocess(features)
+    print("[OdpsRTPInputV2] processed features: {}".format(features.keys()))
+    return {'features': inputs_placeholder}, features
+
+  def create_multi_placeholders(self, *args, **kwargs):
+    """Create serving multi-placeholders with rtp_fg"""
+    raise NotImplementedError("create_multi_placeholders is not supported for OdpsRTPInputV2")

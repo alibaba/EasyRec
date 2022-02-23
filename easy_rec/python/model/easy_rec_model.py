@@ -304,3 +304,22 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
        grouped_vars: list of list of variables
     """
     raise NotImplementedError()
+
+  def _build_default_output_names(self):
+    return [ 'feature_' + name for name in self._feature_dict ]
+
+  def _build_default_outputs(self):
+    for feature_name in self._feature_dict:
+      feature_value = self._feature_dict[feature_name]
+      if isinstance(feature_value, tf.SparseTensor):
+        sparse_values = feature_value.values
+        if sparse_values.dtype != tf.string:
+          sparse_values = tf.as_string(sparse_values)
+        feature_value = tf.sparse_to_dense(feature_value.indices,
+                                           feature_value.dense_shape,
+                                           sparse_values,
+                                           "")
+      elif feature_value.dtype != tf.string:
+        feature_value = tf.as_string(feature_value)
+      feature_value = tf.reduce_join(feature_value, axis=-1, separator=',')
+      self._prediction_dict['feature_' + feature_name] = feature_value

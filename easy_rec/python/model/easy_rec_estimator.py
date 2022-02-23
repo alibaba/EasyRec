@@ -473,8 +473,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
   def _model_fn(self, features, labels, mode, config, params):
     os.environ['tf.estimator.mode'] = mode
     os.environ['tf.estimator.ModeKeys.TRAIN'] = tf.estimator.ModeKeys.TRAIN
-    if self._pipeline_config.fg_config:
-      EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_config)
+    if self._pipeline_config.fg_json_path:
+      EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_json_path)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
