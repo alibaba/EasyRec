@@ -381,18 +381,15 @@ class RankModel(EasyRecModel):
     return metric_dict
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
-    outputs = super(RankModel, self)._build_default_output_names()
     if loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
-        outputs += ['probs' + suffix, 'logits' + suffix]
+        return ['probs' + suffix, 'logits' + suffix]
       else:
-        outputs += ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
+        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
-      outputs += ['y' + suffix]
+      return ['y' + suffix]
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
-    outputs += ['rank_predict']
-    return outputs
 
   def get_outputs(self):
     return self._get_outputs_impl(self._loss_type, self._num_class)
