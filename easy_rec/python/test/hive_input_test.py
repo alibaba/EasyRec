@@ -27,8 +27,7 @@ if tf.__version__ >= '2.0':
 
 class HiveInputTest(tf.test.TestCase):
 
-  def __init__(self, methodName='HiveInputTest'):
-    super(HiveInputTest, self).__init__(methodName=methodName)
+  def _init_config(self):
     hive_host = os.environ["hive_host"]
     hive_username = os.environ["hive_username"]
     hive_table_name = os.environ["hive_table_name"]
@@ -54,12 +53,16 @@ class HiveInputTest(tf.test.TestCase):
     self.hive_eval_input_config = HiveConfig()
     text_format.Merge(hive_eval_input, self.hive_eval_input_config)
 
+  def __init__(self, methodName='HiveInputTest'):
+    super(HiveInputTest, self).__init__(methodName=methodName)
+
   @unittest.skipIf(
       'hive_host' not in os.environ or 'hive_username' not in os.environ or
       'hive_table_name' not in os.environ or 'hive_hash_fields' not in os.environ,
       """Only execute hive_config var are specified,hive_host、
        hive_username、hive_table_name、hive_hash_fields is available.""")
   def test_hive_input(self):
+    self._init_config()
     data_config_str = """
           batch_size: 1024
           label_fields: "label_1"
