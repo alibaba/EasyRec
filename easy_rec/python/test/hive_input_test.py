@@ -2,11 +2,15 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define cv_input, the base class for cv tasks."""
 import tensorflow as tf
+import unittest
 from easy_rec.python.input.hive_input import HiveInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.config_util import *
 from easy_rec.python.utils.test_utils import *
+from easy_rec.python.utils.test_utils import _load_config_for_test
+from easy_rec.python.protos.hive_config_pb2 import HiveConfig
+import os
 
 if tf.__version__ >= '2.0':
   #tf = tf.compat.v1
@@ -25,9 +29,36 @@ class HiveInputTest(tf.test.TestCase):
 
   def __init__(self, methodName='HiveInputTest'):
     super(HiveInputTest, self).__init__(methodName=methodName)
-    self._input_path = 'census_income_train_simple'
+    hive_host = os.environ["hive_host"]
+    hive_username = os.environ["hive_username"]
+    hive_table_name = os.environ["hive_table_name"]
+    hive_hash_fields = os.environ["hive_hash_fields"]
 
-  @RunAsSubprocess
+    hive_train_input = """
+      host: "{}"
+      username: "{}"
+      table_name: "{}"
+      limit_num: 500
+      hash_fields: "{}"
+    """.format(hive_host, hive_username, hive_table_name, hive_hash_fields)
+    hive_eval_input ="""
+      host: "{}"
+      username: "{}"
+      table_name: "{}"
+      limit_num: 500
+      hash_fields: "{}"
+    """.format(hive_host, hive_username, hive_table_name, hive_hash_fields)
+    self.hive_train_input_config = HiveConfig()
+    text_format.Merge(hive_train_input, self.hive_train_input_config)
+
+    self.hive_eval_input_config = HiveConfig()
+    text_format.Merge(hive_eval_input, self.hive_eval_input_config)
+
+  @unittest.skipIf(
+      'hive_host' not in os.environ or 'hive_username' not in os.environ or
+      'hive_table_name' not in os.environ or 'hive_hash_fields' not in os.environ,
+      """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available.""")
   def test_hive_input(self):
     data_config_str = """
           batch_size: 1024
@@ -36,11 +67,6 @@ class HiveInputTest(tf.test.TestCase):
           num_epochs: 1
           prefetch_size: 32
           input_type: HiveInput
-          hive_config {
-            host: "192.168.0.1"
-            username: "admin"
-            hash_fields: "age,class_of_worker, marital_status,education"
-          }
           input_fields {
             input_name:'label_1'
             input_type: INT32
@@ -199,7 +225,7 @@ class HiveInputTest(tf.test.TestCase):
     while len(empty_config.shared_names) > 0:
       empty_config.shared_names.pop()
     train_input_fn = HiveInput(dataset_config, feature_configs,
-                               self._input_path).create_input()
+                               self.hive_train_input_config).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -210,52 +236,53 @@ class HiveInputTest(tf.test.TestCase):
         gpu_options=gpu_options,
         allow_soft_placement=True,
         log_device_placement=False)
-    # with self.test_session(config=session_config) as sess:
-    #   sess.run(init_op)
-    #   feature_dict, label_dict = sess.run([features, labels])
-    #   for key in feature_dict:
-    #     print(key, feature_dict[key][:5])
-    #
-    #   for key in label_dict:
-    #     print(key, label_dict[key][:5])
+    with self.test_session(config=session_config) as sess:
+      sess.run(init_op)
+      feature_dict, label_dict = sess.run([features, labels])
+      for key in feature_dict:
+        print(key, feature_dict[key][:5])
+    
+      for key in label_dict:
+        print(key, label_dict[key][:5])
     return 0
 
-  @RunAsSubprocess
+  @unittest.skipIf(
+      'hive_host' not in os.environ or 'hive_username' not in os.environ or
+      'hive_table_name' not in os.environ or 'hive_hash_fields' not in os.environ,
+      """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available.""")
   def test_mmoe(self):
-    # pipeline_config_path = 'samples/emr_script/mmoe/mmoe_census_income.config'
-    # gpus = get_available_gpus()
-    # if len(gpus) > 0:
-    #   set_gpu_id(gpus[0])
-    # else:
-    #   set_gpu_id(None)
-    #
-    # if not isinstance(pipeline_config_path, EasyRecConfig):
-    #   logging.info('testing pipeline config %s' % pipeline_config_path)
-    # if 'TF_CONFIG' in os.environ:
-    #   del os.environ['TF_CONFIG']
-    #
-    # if isinstance(pipeline_config_path, EasyRecConfig):
-    #   pipeline_config = pipeline_config_path
-    # else:
-    #   pipeline_config = _load_config_for_test(pipeline_config_path, self._test_dir)
-    #
-    # pipeline_config.train_config.train_distribute = 0
-    # pipeline_config.train_config.num_gpus_per_worker = 1
-    # pipeline_config.train_config.sync_replicas = False
-    # pipeline_config.train_input_path = "census_income_train_simple"
-    # pipeline_config.eval_input_path = "census_income_train_simple"
-    #
-    # process_pipeline_func = None
-    # config_util.save_pipeline_config(pipeline_config, self._test_dir)
-    # test_pipeline_config_path = os.path.join(self._test_dir, 'pipeline.config')
-    # hyperparam_str = ""
-    # train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-    #   test_pipeline_config_path, hyperparam_str)
-    # proc = run_cmd(train_cmd, '%s/log_%s.txt' % (self._test_dir, 'master'))
-    # proc.wait()
-    # if proc.returncode != 0:
-    #   logging.error('train %s failed' % test_pipeline_config_path)
-    #   return 1
+    pipeline_config_path = 'samples/emr_script/mmoe/mmoe_census_income.config'
+    gpus = get_available_gpus()
+    if len(gpus) > 0:
+      set_gpu_id(gpus[0])
+    else:
+      set_gpu_id(None)
+
+    if not isinstance(pipeline_config_path, EasyRecConfig):
+      logging.info('testing pipeline config %s' % pipeline_config_path)
+    if 'TF_CONFIG' in os.environ:
+      del os.environ['TF_CONFIG']
+
+    if isinstance(pipeline_config_path, EasyRecConfig):
+      pipeline_config = pipeline_config_path
+    else:
+      pipeline_config = _load_config_for_test(pipeline_config_path, self._test_dir)
+
+    pipeline_config.train_config.train_distribute = 0
+    pipeline_config.train_config.num_gpus_per_worker = 1
+    pipeline_config.train_config.sync_replicas = False
+
+    config_util.save_pipeline_config(pipeline_config, self._test_dir)
+    test_pipeline_config_path = os.path.join(self._test_dir, 'pipeline.config')
+    hyperparam_str = ""
+    train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
+      test_pipeline_config_path, hyperparam_str)
+    proc = run_cmd(train_cmd, '%s/log_%s.txt' % (self._test_dir, 'master'))
+    proc.wait()
+    if proc.returncode != 0:
+      logging.error('train %s failed' % test_pipeline_config_path)
+      return 1
     return 0
 
   def setUp(self):

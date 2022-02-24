@@ -1,6 +1,5 @@
 syntax = "proto2";
 package protos;
-import "easy_rec/python/protos/hive_config.proto";
 
 // Weighted Random Sampling ItemID not in Batch
 message NegativeSampler {
@@ -248,5 +247,4 @@ message DatasetConfig {
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
 
-    optional HiveConfig hive_config = 27;
 }
