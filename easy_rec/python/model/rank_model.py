@@ -68,6 +68,7 @@ class RankModel(EasyRecModel):
         self._forward_rank_predict(prediction_dict['y'])
 
   def _forward_rank_predict(self, tensor):
+    """Forward tensor as `rank_predict`, which is a special node for RTP"""
     try:
       op = tf.get_default_graph().get_operation_by_name('rank_predict')
       logging.warning(("failed to forward [{}] to rank_predict. because rank_predict "

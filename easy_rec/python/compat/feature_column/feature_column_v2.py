@@ -3124,6 +3124,9 @@ class EmbeddingColumn(
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
           collections=weight_collections)
+
+    # Write the embedding configuration to RTP-specified collections. This will inform RTP to
+    # optimize this embedding operation.
     layer_utils.update_attr_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
                                           layer_utils.gen_embedding_attrs(
                                             column=self,
@@ -3131,11 +3134,18 @@ class EmbeddingColumn(
                                             bucket_size=self.categorical_column._num_buckets,
                                             combiner=self.combiner,
                                             is_embedding_var=self.use_embedding_variable))
+
+    # operate embedding
     predictions = self._get_dense_tensor_internal_helper(sparse_tensors, embedding_weights)
+
+    # Update the information about the output and input nodes of embedding operation to the
+    # previous written RTP-specific collection entry. RTP uses these informations to extract
+    # the embedding subgraph.
     layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
                                             self.name, 'tensor', predictions)
     layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
                                             self.name, 'input', sparse_tensors.id_tensor)
+
     return predictions
 
   def get_dense_tensor(self, transformation_cache, state_manager):
