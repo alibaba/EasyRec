@@ -20,6 +20,19 @@ class CSVInputV2(Input):
     if self._input_path.startswith('hdfs://'):
       # support hdfs input
       dataset = tf.data.TextLineDataset([self._input_path])
+    elif self._input_path.startswith('oss://'):
+        # support oss input
+        access_id="***************"
+        access_key="**************"
+        host = "oss-cn-beijing.aliyuncs.com"
+
+        bucket = "/".join(self._input_path.split("/")[0:3])
+        file_path = "/".join(self._input_path.split("/")[3:])
+        oss_bucket_root="{}\x01id={}\x02key={}\x02host={}/".format(bucket, access_id, access_key, host)
+
+        oss_file = oss_bucket_root + file_path
+        dataset = tf.data.TextLineDataset([oss_file])
+        # dataset = tf.data.TextLineDataset([self._input_path])
     else:
       num_epochs = self.num_epochs if mode == tf.estimator.ModeKeys.TRAIN else 1
       is_train = (mode == tf.estimator.ModeKeys.TRAIN)
