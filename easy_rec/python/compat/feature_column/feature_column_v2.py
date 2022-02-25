@@ -3146,14 +3146,14 @@ class SequenceBucketizedColumn(
     return cls(**kwargs)
 
 
-class SequenceRawColumn(
+class SequenceNumericColumn(
     DenseColumn,
     CategoricalColumn,
     fc_old._DenseColumn,  # pylint: disable=protected-access
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple('SequenceRawColumn',
+    collections.namedtuple('SequenceNumericColumn',
                            ('source_column', 'sequence_length'))):
-  """See `bucketized_column`."""
+  """See `SequenceNumericColumn`."""
 
   @property
   def _is_v2_column(self):
@@ -3774,7 +3774,7 @@ class EmbeddingColumn(
     if not isinstance(
         self.categorical_column,
         (SequenceCategoricalColumn, fc_old._SequenceCategoricalColumn,
-         SequenceBucketizedColumn, SequenceRawColumn,
+         SequenceBucketizedColumn, SequenceNumericColumn,
          SequenceWeightedCategoricalColumn)):  # pylint: disable=protected-access
       raise ValueError(
           'In embedding_column: {}. '

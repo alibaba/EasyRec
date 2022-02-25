@@ -265,7 +265,7 @@ def sequence_numeric_column_with_raw_column(source_column, sequence_length):
     raise ValueError('source_column must be one-dimensional column. '
                      'Given: {}'.format(source_column))
 
-  return fc.SequenceRawColumn(source_column, sequence_length)
+  return fc.SequenceNumericColumn(source_column, sequence_length)
 
 
 def sequence_numeric_column_with_categorical_column_with_identity(
