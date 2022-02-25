@@ -29,8 +29,6 @@ class RankModel(EasyRecModel):
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
 
-    self._build_default_outputs()
-
   def _output_to_prediction_impl(self,
                                  output,
                                  loss_type,
@@ -60,22 +58,43 @@ class RankModel(EasyRecModel):
     prediction_dict = self._output_to_prediction_impl(
         output, loss_type=self._loss_type, num_class=self._num_class)
     self._prediction_dict.update(prediction_dict)
-    if self._loss_type == LossType.CLASSIFICATION:
-      if 'probs' in prediction_dict:
-        self._forward_rank_predict(prediction_dict['probs'])
-    elif self._loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
-      if 'y' in prediction_dict:
-        self._forward_rank_predict(prediction_dict['y'])
 
-  def _forward_rank_predict(self, tensor):
+  def build_rtp_output_dict(self):
     """Forward tensor as `rank_predict`, which is a special node for RTP"""
+    outputs = {}
+    outputs.update(super(RankModel, self).build_rtp_output_dict())
+    rank_predict = None
     try:
       op = tf.get_default_graph().get_operation_by_name('rank_predict')
-      logging.warning(("failed to forward [{}] to rank_predict. because rank_predict "
-                      + "is already routed from [{}].").format(tensor.name, op.name))
+      if len(op.outputs) != 1:
+        raise ValueError(("failed to build RTP rank_predict output: op {}[{}] has output "
+                        + "size {}, however 1 is expected.").format(
+                          op.name, op.type, len(op.outputs)))
+      rank_predict = op.outputs[0]
     except KeyError:
-      self._prediction_dict['rank_predict'] = tf.identity(tensor, name='rank_predict')
-      return
+      forwarded = None
+      if self._loss_type == LossType.CLASSIFICATION:
+        if 'probs' in self._prediction_dict:
+          forwarded = self._prediction_dict['probs']
+        else:
+          raise ValueError("failed to build RTP rank_predict output: classification model "
+                         + "expect 'probs' prediction, which is not found. Please check if"
+                         + " build_predict_graph() is called.")
+      elif self._loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+        if 'y' in self._prediction_dict:
+          forwarded = self._prediction_dict['y']
+        else:
+          raise ValueError("failed to build RTP rank_predict output: regression model expect"
+                         + "'y' prediction, which is not found. Please check if build_predic"
+                         + "t_graph() is called.")
+      else:
+        logging.warning("failed to build RTP rank_predict: unsupported loss type {}".foramt(
+            self._loss_type))
+      if forwarded is not None:
+        rank_predict = tf.identity(forwarded, name='rank_predict')
+    if rank_predict is not None:
+      outputs['rank_predict'] = rank_predict
+    return outputs
 
   def _build_loss_impl(self,
                        loss_type,

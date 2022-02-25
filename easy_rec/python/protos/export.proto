@@ -47,4 +47,10 @@ message ExportConfig {
 
     // filter out inputs, only keep effective ones
     optional bool filter_inputs = 12 [default = true];
+
+    // export the original feature values as string
+    optional bool export_features = 13 [default = false];
+
+    // export the outputs required by RTP
+    optional bool export_rtp_outputs = 14 [default = false];
 }

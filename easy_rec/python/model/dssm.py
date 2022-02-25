@@ -105,7 +105,6 @@ class DSSM(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
-    self._build_default_outputs()
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
     user_dnn = dnn.DNN(self.user_tower.dnn, self._l2_reg, 'user_dnn',
@@ -265,7 +264,8 @@ class DSSM(EasyRecModel):
   def _build_default_output_names(self):
     return super(DSSM, self)._build_default_output_names() + ['user_tower_feature', 'item_tower_feature']
 
-  def _build_default_outputs(self):
-    super(DSSM, self)._build_default_outputs()
-    self._prediction_dict['user_tower_feature'] = tf.reduce_join(tf.as_string(self.user_tower_feature), axis=-1, separator=',')
-    self._prediction_dict['item_tower_feature'] = tf.reduce_join(tf.as_string(self.item_tower_feature), axis=-1, separator=',')
+  def build_rtp_output_dict(self):
+    output_dict = super(DSSM, self).build_output_dict()
+    output_dict['user_tower_feature'] = tf.reduce_join(tf.as_string(self.user_tower_feature), axis=-1, separator=',')
+    output_dict['item_tower_feature'] = tf.reduce_join(tf.as_string(self.item_tower_feature), axis=-1, separator=',')
+    return output_dict

@@ -433,17 +433,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
         features,
         labels=None,
         is_training=False)
-    predict_dict = model.build_predict_graph()
+    model.build_predict_graph()
 
-    # add output info to estimator spec
+    export_config = self._pipeline_config.export_config
     outputs = {}
-    output_list = model.get_outputs()
-    if 'rank_predict' in predict_dict:
-      output_list += ['rank_predict']
-    for out in output_list:
-      assert out in predict_dict, \
-          'output node %s not in prediction_dict, can not be exported' % out
-      outputs[out] = predict_dict[out]
+    logging.info("building default outputs")
+    outputs.update(model.build_output_dict())
+    if export_config.export_features:
+      logging.info("building output features")
+      outputs.update(model.build_feature_output_dict())
+    if export_config.export_rtp_outputs:
+      logging.info("building RTP outputs")
+      outputs.update(model.build_rtp_output_dict())
+
+    for out in outputs:
       tf.logging.info(
           'output %s shape: %s type: %s' %
           (out, outputs[out].get_shape().as_list(), outputs[out].dtype))
