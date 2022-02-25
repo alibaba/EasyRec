@@ -433,7 +433,7 @@ class FeatureColumnParser(object):
         if config.embedding_dim > 0:
           tmp_id_col = sequence_feature_column.sequence_numeric_column_with_categorical_column_with_identity(
               config.input_names[0] + '_raw_proj_id',
-              config.sequence_length,
+              config.raw_input_dim,
               default_value=0)
           wgt_fc = sequence_feature_column.sequence_numeric_column_with_weighted_categorical_column(
               tmp_id_col,
