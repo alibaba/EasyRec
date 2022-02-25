@@ -63,13 +63,17 @@ def append_tensor_to_collection(collection_name, name, key, tensor):
   append_attr_to_collection(collection_name, name, key, tensor_info)
 
 
+def _collection_item_key(col, name):
+  return "%d#%s" % (id(col), name)
+
+
 def _process_item(collection_name, name, func):
   col = ops.get_collection_ref(collection_name)
   item_found = {}
   idx_found = -1
 
   # add id(col) because col may re-new sometimes
-  key = "%s#%d#%s" % (collection_name, id(col), name)
+  key = _collection_item_key(col, name)
   if key in ColumnNameInCollection:
     idx_found = ColumnNameInCollection[key]
     if idx_found >= len(col):
@@ -100,6 +104,19 @@ def update_attr_to_collection(collection_name, attrs):
     item_found.update(attrs)
 
   _process_item(collection_name, attrs['name'], update)
+
+
+def unique_name_in_collection(collection_name, name):
+  col = ops.get_collection_ref(collection_name)
+  unique_name = name
+  index = 0
+  while True:
+    key = _collection_item_key(col, unique_name)
+    if key not in ColumnNameInCollection:
+      break
+    index += 1
+    unique_name = "%s_%d" % (name, index)
+  return unique_name
 
 
 def gen_embedding_attrs(column=None,

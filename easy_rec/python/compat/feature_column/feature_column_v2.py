@@ -3127,13 +3127,14 @@ class EmbeddingColumn(
 
     # Write the embedding configuration to RTP-specified collections. This will inform RTP to
     # optimize this embedding operation.
-    layer_utils.update_attr_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
-                                          layer_utils.gen_embedding_attrs(
-                                            column=self,
-                                            variable=embedding_weights,
-                                            bucket_size=self.categorical_column._num_buckets,
-                                            combiner=self.combiner,
-                                            is_embedding_var=self.use_embedding_variable))
+    embedding_attrs = layer_utils.gen_embedding_attrs(column=self,
+                                                      variable=embedding_weights,
+                                                      bucket_size=self.categorical_column._num_buckets,
+                                                      combiner=self.combiner,
+                                                      is_embedding_var=self.use_embedding_variable)
+    embedding_attrs['name'] = layer_utils.unique_name_in_collection(
+                                compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'])
+    layer_utils.update_attr_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs)
 
     # operate embedding
     predictions = self._get_dense_tensor_internal_helper(sparse_tensors, embedding_weights)
@@ -3142,9 +3143,9 @@ class EmbeddingColumn(
     # previous written RTP-specific collection entry. RTP uses these informations to extract
     # the embedding subgraph.
     layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
-                                            self.name, 'tensor', predictions)
+                                            embedding_attrs['name'], 'tensor', predictions)
     layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
-                                            self.name, 'input', sparse_tensors.id_tensor)
+                                            embedding_attrs['name'], 'input', sparse_tensors.id_tensor)
 
     return predictions
 
