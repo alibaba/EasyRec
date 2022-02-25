@@ -81,6 +81,10 @@ class ExportTest(tf.test.TestCase):
     self._export_test('samples/model_config/multi_tower_export.config',
                       self._extract_data)
 
+  def test_filter_input(self):
+    self._export_test('samples/model_config/export_filter_input.config',
+                      self._extract_data)
+
   def test_mmoe(self):
     self._export_test(
         'samples/model_config/mmoe_on_taobao.config',
