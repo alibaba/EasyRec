@@ -591,7 +591,7 @@ class SequenceNumericColumn(
     input_tensor = transformation_cache.get(self.key, state_manager)
     if self.normalizer_fn is not None:
       input_tensor = self.normalizer_fn(input_tensor)
-    return input_tensor
+    return self._transform_input_tensor(input_tensor)
 
   @property
   def variable_shape(self):
