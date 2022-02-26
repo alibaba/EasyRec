@@ -1,21 +1,17 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 import logging
-import os
 from abc import abstractmethod
 from collections import OrderedDict
 
 import six
 import tensorflow as tf
 
-import easy_rec
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.load_class import get_register_class_meta
 
 if tf.__version__ >= '2.0':
@@ -74,6 +70,10 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     # findout effective fields
     self._effective_fields = []
+
+    # for multi value inputs, the types maybe different
+    # from the types defined in input_fields
+    # it is used in create_multi_placeholders
     self._multi_value_types = {}
 
     for fc in self._feature_configs:
@@ -100,6 +100,11 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     self._effective_fids = [
         self._input_fields.index(x) for x in self._effective_fields
+    ]
+    # sort fids from small to large
+    self._effective_fids = list(set(self._effective_fids))
+    self._effective_fields = [
+        self._input_fields[x] for x in self._effective_fids
     ]
 
     self._label_fids = [self._input_fields.index(x) for x in self._label_fields]
@@ -173,13 +178,20 @@ class Input(six.with_metaclass(_meta_type, object)):
     features = self._preprocess(features)
     return inputs, features
 
-  def create_placeholders(self):
+  def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
     inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
-    effective_fids = list(self._effective_fids)
+    if export_config.filter_inputs:
+      effective_fids = list(self._effective_fids)
+      logging.info('number of effective inputs:%d, total number inputs: %d' %
+                   (len(effective_fids), len(self._input_fields)))
+    else:
+      effective_fids = list(range(1, len(self._input_fields)))
+      logging.info('will not filter any input, total number inputs:%d' %
+                   len(effective_fids))
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
     input_vals = tf.reshape(
@@ -187,43 +199,20 @@ class Input(six.with_metaclass(_meta_type, object)):
     features = {}
     for tmp_id, fid in enumerate(effective_fids):
       ftype = self._input_field_types[fid]
+      tf_type = self.get_tf_type(ftype)
       input_name = self._input_fields[fid]
-
-      if ftype in [DatasetConfig.STRING]:
-        features[input_name] = input_vals[:, tmp_id]
+      if tf_type in [tf.float32, tf.double, tf.int32, tf.int64]:
+        features[input_name] = tf.string_to_number(
+            input_vals[:, tmp_id],
+            tf_type,
+            name='input_str_to_%s' % tf_type.name)
       else:
-        features[input_name] = string_to_number(input_vals[:, tmp_id], ftype,
-                                                tmp_id)
+        if ftype not in [DatasetConfig.STRING]:
+          logging.warning('unexpected field type: ftype=%s tf_type=%s' %
+                          (ftype, tf_type))
+        features[input_name] = input_vals[:, tmp_id]
     features = self._preprocess(features)
     return {'features': inputs_placeholder}, features
-
-  def create_embedding_placeholders(self):
-    """Create serving placeholders with embedding lookup result as input.
-
-    For large embedding serving on eas, the embedding lookup are done on eas distributedly,
-    so it is not included in the graph.
-
-    Return:
-      dict of embedding_name to placeholders
-    """
-    inputs = {}
-    dump_input_dir = easy_rec._global_config['dump_embedding_shape_dir']
-    embed_input_desc_files = tf.gfile.Glob(
-        os.path.join(dump_input_dir, 'input_layer_*.txt'))
-    for one_file in embed_input_desc_files:
-      with tf.gfile.GFile(one_file, 'r') as fin:
-        for line_str in fin:
-          shape_config = json.loads(line_str)
-          input_name = shape_config['name']
-          if input_name.endswith('_shared_embedding'):
-            input_name = input_name[:-len('_shared_embedding')]
-          elif input_name.endswith('_embedding'):
-            input_name = input_name[:-len('_embedding')]
-          if '_weighted_by' in input_name:
-            input_name = input_name[:input_name.find('_weighted_by')]
-          inputs[input_name] = tf.placeholder(
-              tf.float32, shape_config['shape'], name=input_name)
-    return inputs
 
   def _get_features(self, fields):
     field_dict = {x: fields[x] for x in self._effective_fields if x in fields}
@@ -665,11 +654,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        if export_config.dump_embedding_shape:
-          embed_inputs = self.create_embedding_placeholders()
-          return tf.estimator.export.ServingInputReceiver(
-              embed_inputs, embed_inputs)
-        elif export_config.multi_placeholder:
+        if export_config.multi_placeholder:
           if export_config.multi_value_fields:
             export_fields_name = export_config.multi_value_fields.input_name
           else:
@@ -679,7 +664,7 @@ class Input(six.with_metaclass(_meta_type, object)):
               placeholder_named_by_input, export_fields_name)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
-          inputs, features = self.create_placeholders()
+          inputs, features = self.create_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     return _input_fn

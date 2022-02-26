@@ -52,6 +52,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
       input_data:  a list of numpy array, each array is a sample to be predicted
       batch_size: batch_size passed by the caller, you can also ignore this param and
         use a fixed number if you do not want to adjust batch_size in runtime
+
     Returns:
       result: a list of dict, each dict is the prediction result of one sample
         eg, {"output1": value1, "output2": value2}, the value type can be
@@ -62,15 +63,20 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
   def get_output_type(self):
     """Get output types of prediction.
 
-    in this function user should return a type dict, which indicates which type of
+    In this function user should return a type dict, which indicates which type of
     data should the output of predictor be converted to.
 
+    In this function user should return a type dict, which indicates
+    which type of data should the output of predictor be converted to
     * type json, data will be serialized to json str
+
     * type image, data will be converted to encode image binary and write to oss file,
       whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
       is extracted from url, key corresponds to the key in the dict of output_type,
       if the type of data indexed by key is a list, idx is the index of element in list, otherwhile ${idx} will be empty
+
     * type video, data will be converted to encode video binary and write to oss file,
+
     eg:  return  {
       'image': 'image',
       'feature': 'json'
@@ -118,8 +124,10 @@ class PredictorImpl(object):
   def search_pb(self, directory):
     """Search pb file recursively in model directory. if multiple pb files exist, exception will be raised.
 
+    If multiple pb files exist, exception will be raised.
+
     Args:
-      directory: model directory
+      directory: model directory.
 
     Returns:
       directory contain pb file
@@ -253,6 +261,7 @@ class PredictorImpl(object):
         value is the corresponding value
       output_names:  if not None, will fetch certain outputs, if set None, will
         return all the output info according to the output info in model signature
+
     Return:
       a dict of outputs, key is the output name, value is the corresponding value
     """
@@ -644,6 +653,7 @@ class Predictor(PredictorInterface):
       input_data_dict_list: list of dict
       output_names:  if not None, will fetch certain outputs, if set None, will
       batch_size: batch_size used to predict, -1 indicates to use the real batch_size
+
     Return:
       a list of dict, each dict contain a key-value pair for output_name, output_value
     """

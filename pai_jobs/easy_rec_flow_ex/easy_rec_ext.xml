@@ -40,6 +40,17 @@
     <parameter name="output_cols" use="optional" default="probs double"/>
     <parameter name="model_outputs" use="optional" default=""/>
     <parameter name="batch_size" use="optional" default="32"/>
+    <!--for cmd=vector_retrieve only-->
+    <parameter name="query_table" use="optional" default=""/>
+    <parameter name="doc_table" use="optional" default=""/>
+    <parameter name="knn_distance" use="optional" default="inner_product"/>
+    <parameter name="knn_num_neighbours" use="optional" default=""/>
+    <parameter name="knn_feature_dims" use="optional" default=""/>
+    <parameter name="knn_index_type" use="optional" default="ivfflat"/>
+    <parameter name="knn_feature_delimiter" use="optional" default=","/>
+    <parameter name="knn_nlist" use="optional" default=""/>
+    <parameter name="knn_nprobe" use="optional" default=""/>
+    <parameter name="knn_compress_dim" use="optional" default=""/>
     <!-- for hyperparameter tuning -->
     <parameter name="model_dir" use="optional" default=""/>
     <parameter name="hpo_param_path" use="optional" default=""/>
@@ -94,6 +105,8 @@
           <var name="trainTables" value="${parameters.train_tables}" />
           <var name="evalTables" value="${parameters.eval_tables}" />
           <var name="boundaryTable" value="${parameters.boundary_table}" />
+          <var name="queryTable" value="${parameters.query_table}" />
+          <var name="docTable" value="${parameters.doc_table}" />
         </input_vars>
         <output_vars>
           <var name="all_cols"/>
@@ -162,6 +175,17 @@
           <var name="input_table" value="${parameters.input_table}"/>
           <var name="output_table" value="${parameters.output_table}"/>
           <var name="tables" value="${workflow.parseTable.tables}"/>
+          <!-- for cmd = vector_retrieve only -->
+          <var name="query_table" value="${parameters.query_table}"/>
+          <var name="doc_table" value="${parameters.doc_table}"/>
+          <var name="knn_distance" value="${parameters.knn_distance}"/>
+          <var name="knn_num_neighbours" value="${parameters.knn_num_neighbours}"/>
+          <var name="knn_feature_dims" value="${parameters.knn_feature_dims}"/>
+          <var name="knn_index_type" value="${parameters.knn_index_type}"/>
+          <var name="knn_feature_delimiter" value="${parameters.knn_feature_delimiter}"/>
+          <var name="knn_nlist" value="${parameters.knn_nlist}"/>
+          <var name="knn_nprobe" value="${parameters.knn_nprobe}"/>
+          <var name="knn_compress_dim" value="${parameters.knn_compress_dim}"/>
           <!-- separate train and test -->
           <var name="train_tables" value="${parameters.train_tables}"/>
           <var name="eval_tables" value="${parameters.eval_tables}"/>

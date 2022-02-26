@@ -233,6 +233,12 @@ message DatasetConfig {
     // n data for one feature in tfrecord
     optional uint32 n_data_batch_tfrecord = 24;
 
+    // for csv files, may optionally with an header
+    // in that case, input_name must match header name,
+    // and the number and the order of input_fields
+    // may not be the same as that in csv files.
+    optional bool with_header = 25 [default = false];
+
     oneof sampler {
         NegativeSampler negative_sampler = 101;
         NegativeSamplerV2 negative_sampler_v2 = 102;

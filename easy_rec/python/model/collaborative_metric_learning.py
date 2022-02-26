@@ -45,7 +45,8 @@ class CoMetricLearningI2I(EasyRecModel):
     elif self._loss_type == LossType.MULTI_SIMILARITY_LOSS:
       self.loss = self._model_config.multi_similarity_loss
     else:
-      raise ValueError('unsupported loss type: %s' % LossType.Name(self._loss_type))
+      raise ValueError('unsupported loss type: %s' %
+                       LossType.Name(self._loss_type))
 
     self._highway_features = {}
     self._highway_num = len(self._model_config.highway)

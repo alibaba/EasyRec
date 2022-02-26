@@ -8,6 +8,7 @@
    deepfm
    fm
    wide_and_deep
+   dlrm
    dcn
    autoint
    din

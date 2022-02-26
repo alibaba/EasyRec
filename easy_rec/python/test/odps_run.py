@@ -187,8 +187,22 @@ class TestPipelineOnOdps(tf.test.TestCase):
         'boundary/create_external_boundary_table.sql',
         'boundary/create_inner_boundary_table.sql',
     ]
-    test_files = ['boundary/train_multi_tower_model.sql', 'boundary/train_compat.sql']
+    test_files = [
+        'boundary/train_multi_tower_model.sql', 'boundary/train_compat.sql'
+    ]
     end_file = ['boundary/drop_table.sql']
+    tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
+    tot.start_test()
+    tot.drop_table()
+
+  def test_vector_retrieve(self):
+    start_files = [
+      'vector_retrieve/create_inner_vector_table.sql'
+    ]
+    test_files = [
+      'vector_retrieve/run_vector_retrieve.sql'
+    ]
+    end_file = ['vector_retrieve/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
     tot.start_test()
     tot.drop_table()

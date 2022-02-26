@@ -521,4 +521,6 @@ class FeatureColumnParser(object):
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
     else:
+      if config.HasField('sequence_combiner'):
+        fc.sequence_combiner = config.sequence_combiner
       self._sequence_columns[feature_name] = fc

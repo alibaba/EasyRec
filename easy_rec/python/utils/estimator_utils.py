@@ -276,8 +276,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
                checkpoint_basename='model.ckpt',
                scaffold=None,
                listeners=None,
-               write_graph=True,
-               separate_save=False):
+               write_graph=True):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -290,6 +289,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       listeners: List of `CheckpointSaverListener` subclass instances.
         Used for callbacks that run immediately before or after this hook saves
         the checkpoint.
+      write_graph: whether to save graph.pbtxt.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.

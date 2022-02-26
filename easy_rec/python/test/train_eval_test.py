@@ -42,6 +42,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/deepfm_combo_on_avazu_ctr.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_deepfm_freeze_gradient(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_freeze_gradient.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_deepfm_with_vocab_list(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_vocab_list_on_avazu_ctr.config',
@@ -65,6 +70,10 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/wide_and_deep_on_avazau_ctr.config',
         self._test_dir)
     self.assertTrue(self._success)
+
+  def test_dlrm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dlrm_on_taobao.config', self._test_dir)
 
   def test_adamw_optimizer(self):
     self._success = test_utils.test_single_train_eval(
@@ -629,10 +638,16 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dbmtl_on_multi_numeric_num_buckets_sequence_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
+
   def test_multi_sequence_dbmtl(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_multi_sequence_feature_taobao.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_multi_optimizer(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
     self.assertTrue(self._success)
 
 

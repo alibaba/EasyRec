@@ -345,9 +345,8 @@ rank模型中配置相应字段：
 -  regularization\_lambda: 变分dropout层的正则化系数设置
 -  embedding\_wise\_variational\_dropout: 变分dropout层维度是否为embedding维度（true：embedding维度；false：feature维度；默认false）
 
-
-
-
+备注：
+**这个配在model_config下面，跟model_class平级**
 
 
 分隔符
