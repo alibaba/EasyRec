@@ -6,7 +6,6 @@ import tensorflow as tf
 
 from easy_rec.python.builders import hyperparams_builder
 from easy_rec.python.compat.feature_column import sequence_feature_column
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 
@@ -380,8 +379,8 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    sub_value_type = config.sub_value_type
-    if sub_value_type == DatasetConfig.STRING:
+    sub_feature_type = config.sub_feature_type
+    if sub_feature_type == config.IdFeature:
       if config.HasField('hash_bucket_size'):
         hash_bucket_size = config.hash_bucket_size
         fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
@@ -406,10 +405,8 @@ class FeatureColumnParser(object):
           config.input_names[0], shape=(1,))
       if config.hash_bucket_size > 0:
         hash_bucket_size = config.hash_bucket_size
-        assert sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64
-                                  ], 'hash_bucket_size dtype must be integer.'
-        fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-            config.input_names[0], hash_bucket_size, dtype=tf.int64)
+        assert sub_feature_type == config.IdFeature, \
+            'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
       elif config.boundaries:
         bounds = list(config.boundaries)
         bounds.sort()

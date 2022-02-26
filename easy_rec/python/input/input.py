@@ -347,7 +347,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       elif feature_type == fc.SequenceFeature:
         input_0 = fc.input_names[0]
         field = field_dict[input_0]
-        sub_value_type = fc.sub_value_type
+        sub_feature_type = fc.sub_feature_type
         # Construct the output of SeqFeature according to the dimension of field_dict.
         # When the input field exceeds 2 dimensions, convert SeqFeature to 2D output.
         if len(field.get_shape()) < 2:
@@ -365,9 +365,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                 axis=0)
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 out_indices, multi_vals.values, out_shape)
-          if (fc.num_buckets > 1 and fc.max_val == fc.min_val) or (
-              fc.max_val == fc.min_val and
-              sub_value_type in [DatasetConfig.INT32, DatasetConfig.INT64]):
+          if (fc.num_buckets > 1 and fc.max_val == fc.min_val):
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
@@ -375,7 +373,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                     tf.int64,
                     name='sequence_str_2_int_%s' % input_0),
                 parsed_dict[input_0].dense_shape)
-          elif sub_value_type != DatasetConfig.STRING:
+          elif sub_feature_type == fc.RawFeature:
             parsed_dict[input_0] = tf.sparse.SparseTensor(
                 parsed_dict[input_0].indices,
                 tf.string_to_number(
@@ -392,7 +390,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         else:
           parsed_dict[input_0] = field
         if not fc.boundaries and fc.num_buckets <= 1 and fc.hash_bucket_size <= 0 and \
-            self._data_config.sample_weight != input_0 and sub_value_type != DatasetConfig.STRING and \
+            self._data_config.sample_weight != input_0 and sub_feature_type == fc.RawFeature and \
             fc.raw_input_dim == 1:
           # may need by wide model and deep model to project
           # raw values to a vector, it maybe better implemented
@@ -425,7 +423,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           self._appended_fields.append(input_0 + '_raw_proj_id')
           self._appended_fields.append(input_0 + '_raw_proj_val')
         elif not fc.boundaries and fc.num_buckets <= 1 and fc.hash_bucket_size <= 0 and \
-            self._data_config.sample_weight != input_0 and sub_value_type != DatasetConfig.STRING and \
+            self._data_config.sample_weight != input_0 and sub_feature_type == fc.RawFeature and \
             fc.raw_input_dim > 1:
           # for 3 dimension sequence feature input.
           # may need by wide model and deep model to project

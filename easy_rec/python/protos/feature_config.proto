@@ -104,8 +104,8 @@ message FeatureConfig {
     // sequence feature combiner
     optional SequenceCombiner sequence_combiner = 25;
 
-    // sub value type for sequence feature
-    optional FieldType sub_value_type = 26 [default = STRING];
+    // sub feature type for sequence feature
+    optional FeatureType sub_feature_type = 26 [default = IdFeature];
 
     // sequence length
     optional uint32 sequence_length = 27 [default = 1];
