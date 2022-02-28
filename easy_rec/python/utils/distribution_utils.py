@@ -47,7 +47,7 @@ def set_tf_config_and_get_train_worker_num(
       'set_tf_config_and_get_train_worker_num: distribute_strategy = %d' %
       distribute_strategy)
   worker_hosts = worker_hosts.split(',')
-  ps_hosts = ps_hosts.split(',')
+  ps_hosts = ps_hosts.split(',') if ps_hosts else []
 
   total_worker_num = len(worker_hosts)
   train_worker_num = total_worker_num
