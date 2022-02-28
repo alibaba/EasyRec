@@ -21,36 +21,19 @@ class CSVInputV2(Input):
       # support hdfs input
       dataset = tf.data.TextLineDataset([self._input_path])
     elif self._input_path.startswith('oss://'):
-        # support oss input
-        access_id="***************"
-        access_key="**************"
-        host = "oss-cn-beijing.aliyuncs.com"
+      # support oss input
+      access_id="***************"
+      access_key="**************"
+      host = "oss-cn-beijing.aliyuncs.com"
 
-        bucket = "/".join(self._input_path.split("/")[0:3])
-        file_path = "/".join(self._input_path.split("/")[3:])
-        oss_bucket_root="{}\x01id={}\x02key={}\x02host={}/".format(bucket, access_id, access_key, host)
+      bucket = "/".join(self._input_path.split("/")[0:3])
+      file_path = "/".join(self._input_path.split("/")[3:])
+      oss_bucket_root="{}\x01id={}\x02key={}\x02host={}/".format(bucket, access_id, access_key, host)
 
-        oss_file = oss_bucket_root + file_path
-        dataset = tf.data.TextLineDataset([oss_file])
-        # dataset = tf.data.TextLineDataset([self._input_path])
+      oss_file = oss_bucket_root + file_path
+      dataset = tf.data.TextLineDataset([oss_file])
     else:
-      num_epochs = self.num_epochs if mode == tf.estimator.ModeKeys.TRAIN else 1
-      is_train = (mode == tf.estimator.ModeKeys.TRAIN)
-      record_defaults = [
-          self.get_type_defaults(x, v)
-          for x, v in zip(self._input_field_types, self._input_field_defaults)
-      ]
-      dataset = tf.data.experimental.make_csv_dataset(
-          [self._input_path],
-          self._data_config.batch_size,
-          column_names=self._input_fields,
-          field_delim=self._data_config.separator,
-          column_defaults=record_defaults,
-          header=False,
-          num_epochs=num_epochs,
-          shuffle=is_train and self._data_config.shuffle,
-          num_parallel_reads=8,
-          sloppy=is_train)
+      raise ValueError("input_path must start with hdfs/oss，now it's %s".format(str(self._input_path)))
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.chief_redundant:
@@ -60,9 +43,10 @@ class CSVInputV2(Input):
         dataset = dataset.shard(self._task_num, self._task_index)
     else:
       dataset = dataset.repeat(1)
-
+    _NUM_PARALLEL_CALLS = 8
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-    dataset = dataset.map(map_func=self._preprocess, num_parallel_calls=8)
+    dataset = dataset.map(self._parse_csv, num_parallel_calls=_NUM_PARALLEL_CALLS)
+    dataset = dataset.map(map_func=self._preprocess, num_parallel_calls=_NUM_PARALLEL_CALLS)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
