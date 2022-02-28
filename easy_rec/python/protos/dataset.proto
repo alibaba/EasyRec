@@ -177,6 +177,10 @@ message DatasetConfig {
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
+        // for e2e multimodal input on local or ds
+        GroupRTPInput = 20;
+        // for e2e multimodal input on odps
+        OdpsGroupRTPInput = 21;
     }
     required InputType input_type = 10;
 
@@ -211,6 +215,9 @@ message DatasetConfig {
 
     // for RTPInput only
     optional string rtp_separator = 17 [default = ';'];
+    // for GroupRTPInput/OdpsGroupRTPInput, it is usually set to '\001'
+    // CTRL+A could be set as '\001'
+    optional string group_sample_separator = 26 [default = ','];
 
     // ignore some data errors
     // it is not suggested to set this parameter

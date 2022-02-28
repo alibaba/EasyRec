@@ -115,6 +115,10 @@ class FeatureColumnParser(object):
           self.parse_lookup_feature(config)
         elif config.feature_type == config.SequenceFeature:
           self.parse_sequence_feature(config)
+        elif config.feature_type == config.ImgFeature:
+          self.parse_img_feature(config)
+        elif config.feature_type == config.SampleNumFeature:
+          self.parse_sample_num_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -401,6 +405,23 @@ class FeatureColumnParser(object):
     assert config.embedding_dim > 0
 
     self._add_deep_embedding_column(fc, config)
+
+  def parse_img_feature(self, config):
+    feature_name = config.input_names[0]
+    assert config.HasField('img_shape'), 'ImgFeature must set img_shape.'
+    fc = feature_column.numeric_column(
+        feature_name,
+        shape=(
+            config.img_shape.width,
+            config.img_shape.height,
+            config.img_shape.channel,
+        ))
+    self._deep_columns[feature_name] = fc
+
+  def parse_sample_num_feature(self, config):
+    feature_name = config.input_names[0]
+    fc = feature_column.numeric_column(feature_name, shape=(1,), dtype=tf.int64)
+    self._deep_columns[feature_name] = fc
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:

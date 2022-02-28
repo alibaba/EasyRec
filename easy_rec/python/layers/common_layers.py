@@ -35,7 +35,8 @@ def highway(x,
     if size is None:
       size = x.shape.as_list()[-1]
     else:
-      x = tf.layers.dense(x, size, name='input_projection', reuse=reuse)
+      x = tf.layers.dense(
+          x, size, activation=activation, name='input_projection', reuse=reuse)
 
     for i in range(num_layers):
       T = tf.layers.dense(

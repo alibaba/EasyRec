@@ -14,5 +14,6 @@
    din
    bst
    rocket_launching
+   end-to-end_multimodal_dbmtl
    regression
    multi_cls

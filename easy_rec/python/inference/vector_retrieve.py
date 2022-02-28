@@ -10,13 +10,13 @@ from datetime import datetime
 import common_io
 import numpy as np
 import tensorflow as tf
+
 try:
   import graphlearn as gl
 except:
   logging.WARN(
-    'GraphLearn is not installed. You can install it by "pip install http://odps-release.cn-hangzhou.oss-cdn.aliyun-inc.com/graphlearn/tunnel/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl."'  # noqa: E501
+      'GraphLearn is not installed. You can install it by "pip install http://odps-release.cn-hangzhou.oss-cdn.aliyun-inc.com/graphlearn/tunnel/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl."'  # noqa: E501
   )
-
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

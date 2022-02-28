@@ -1,5 +1,6 @@
 syntax = "proto2";
 package protos;
+import "easy_rec/python/protos/feature_config.proto";
 
 message MultiValueFields {
     repeated string input_name = 1;
@@ -47,4 +48,8 @@ message ExportConfig {
 
     // filter out inputs, only keep effective ones
     optional bool filter_inputs = 12 [default = true];
+
+    // only for e2e_mm_dbmtl
+    optional string img_input_name = 13;
+    optional ImgShape img_shape = 14;
 }

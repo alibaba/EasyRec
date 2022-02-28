@@ -595,6 +595,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_e2e_mm_dbmtl(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/taobao_fg_e2e_mm_dbmtl.config', self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
