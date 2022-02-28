@@ -177,6 +177,7 @@ message DatasetConfig {
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
+        HiveInput = 16;
     }
     required InputType input_type = 10;
 
@@ -245,4 +246,5 @@ message DatasetConfig {
         HardNegativeSampler hard_negative_sampler = 103;
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
+
 }
