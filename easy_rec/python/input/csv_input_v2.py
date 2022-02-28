@@ -43,9 +43,11 @@ class CSVInputV2(Input):
         dataset = dataset.shard(self._task_num, self._task_index)
     else:
       dataset = dataset.repeat(1)
+
     _NUM_PARALLEL_CALLS = 8
-    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
+    dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(self._parse_csv, num_parallel_calls=_NUM_PARALLEL_CALLS)
+    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     dataset = dataset.map(map_func=self._preprocess, num_parallel_calls=_NUM_PARALLEL_CALLS)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
