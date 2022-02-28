@@ -432,7 +432,7 @@ class FeatureColumnParser(object):
               config.input_names[0] + '_raw_proj_id',
               config.raw_input_dim,
               default_value=0)
-          wgt_fc = sequence_feature_column.sequence_numeric_column_with_weighted_categorical_column(
+          wgt_fc = sequence_feature_column.sequence_weighted_categorical_column(
               tmp_id_col,
               weight_feature_key=config.input_names[0] + '_raw_proj_val',
               dtype=tf.float32)

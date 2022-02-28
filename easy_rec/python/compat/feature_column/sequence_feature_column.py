@@ -283,8 +283,9 @@ def sequence_numeric_column_with_categorical_column_with_identity(
       key=key, number_buckets=num_buckets, default_value=default_value)
 
 
-def sequence_numeric_column_with_weighted_categorical_column(
-    categorical_column, weight_feature_key, dtype=dtypes.float32):
+def sequence_weighted_categorical_column(categorical_column,
+                                         weight_feature_key,
+                                         dtype=dtypes.float32):
   if (dtype is None) or not (dtype.is_integer or dtype.is_floating):
     raise ValueError('dtype {} is not convertible to float.'.format(dtype))
   return fc.SequenceWeightedCategoricalColumn(
