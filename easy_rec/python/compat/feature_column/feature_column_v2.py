@@ -3297,131 +3297,6 @@ class SequenceNumericColumn(
     return cls(**kwargs)
 
 
-class SequenceIdentityCategoricalColumn(
-    CategoricalColumn,
-    fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple('SequenceIdentityCategoricalColumn',
-                           ('key', 'number_buckets', 'default_value'))):
-  """See `categorical_column_with_identity`."""
-
-  @property
-  def _is_v2_column(self):
-    return True
-
-  @property
-  def name(self):
-    """See `FeatureColumn` base class."""
-    return self.key
-
-  @property
-  def raw_name(self):
-    """See `FeatureColumn` base class."""
-    return self.key
-
-  @property
-  def parse_example_spec(self):
-    """See `FeatureColumn` base class."""
-    return {self.key: parsing_ops.VarLenFeature(dtypes.int64)}
-
-  @property
-  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
-                          _FEATURE_COLUMN_DEPRECATION)
-  def _parse_example_spec(self):
-    return self.parse_example_spec
-
-  def _transform_input_tensor(self, input_tensor):
-    """Returns a SparseTensor with identity values."""
-    if not input_tensor.dtype.is_integer:
-      raise ValueError('Invalid input, not integer. key: {} dtype: {}'.format(
-          self.key, input_tensor.dtype))
-
-    values = math_ops.cast(input_tensor.values, dtypes.int64, name='values')
-    num_buckets = math_ops.cast(
-        self.num_buckets, dtypes.int64, name='num_buckets')
-    zero = math_ops.cast(0, dtypes.int64, name='zero')
-    if self.default_value is None:
-      # Fail if values are out-of-range.
-      assert_less = check_ops.assert_less(
-          values,
-          num_buckets,
-          data=(values, num_buckets),
-          name='assert_less_than_num_buckets')
-      assert_greater = check_ops.assert_greater_equal(
-          values, zero, data=(values,), name='assert_greater_or_equal_0')
-      with ops.control_dependencies((assert_less, assert_greater)):
-        values = array_ops.identity(values)
-    else:
-      # Assign default for out-of-range values.
-      values = array_ops.where(
-          math_ops.logical_or(
-              values < zero, values >= num_buckets, name='out_of_range'),
-          array_ops.fill(
-              dims=array_ops.shape(values),
-              value=math_ops.cast(self.default_value, dtypes.int64),
-              name='default_values'), values)
-    shape = tf.shape(input_tensor)
-    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
-    ret_tensor = sparse_tensor_lib.SparseTensor(
-        indices=input_tensor.indices,
-        values=values,
-        dense_shape=input_tensor.dense_shape)
-    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
-    return ret_tensor
-
-  def transform_feature(self, transformation_cache, state_manager):
-    """Returns a SparseTensor with identity values."""
-    input_tensor = _to_sparse_input_and_drop_ignore_values(
-        transformation_cache.get(self.key, state_manager))
-    return self._transform_input_tensor(input_tensor)
-
-  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
-                          _FEATURE_COLUMN_DEPRECATION)
-  def _transform_feature(self, inputs):
-    input_tensor = _to_sparse_input_and_drop_ignore_values(inputs.get(self.key))
-    return self._transform_input_tensor(input_tensor)
-
-  @property
-  def num_buckets(self):
-    """Returns number of buckets in this sparse feature."""
-    return self.number_buckets
-
-  @property
-  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
-                          _FEATURE_COLUMN_DEPRECATION)
-  def _num_buckets(self):
-    return self.num_buckets
-
-  def get_sparse_tensors(self, transformation_cache, state_manager):
-    """See `CategoricalColumn` base class."""
-    return CategoricalColumn.IdWeightPair(
-        transformation_cache.get(self, state_manager), None)
-
-  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
-                          _FEATURE_COLUMN_DEPRECATION)
-  def _get_sparse_tensors(self,
-                          inputs,
-                          weight_collections=None,
-                          trainable=None):
-    del weight_collections
-    del trainable
-    return CategoricalColumn.IdWeightPair(inputs.get(self), None)
-
-  @property
-  def parents(self):
-    """See 'FeatureColumn` base class."""
-    return [self.key]
-
-  def _get_config(self):
-    """See 'FeatureColumn` base class."""
-    return dict(zip(self._fields, self))
-
-  @classmethod
-  def _from_config(cls, config, custom_objects=None, columns_by_name=None):
-    """See 'FeatureColumn` base class."""
-    _check_config_keys(config, cls._fields)
-    return cls(**config)
-
-
 class SequenceWeightedCategoricalColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
@@ -4436,10 +4311,14 @@ class IdentityCategoricalColumn(
               value=math_ops.cast(self.default_value, dtypes.int64),
               name='default_values'), values)
 
-    return sparse_tensor_lib.SparseTensor(
+    ret_tensor = sparse_tensor_lib.SparseTensor(
         indices=input_tensor.indices,
         values=values,
         dense_shape=input_tensor.dense_shape)
+    shape = tf.shape(input_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
+    return ret_tensor
 
   def transform_feature(self, transformation_cache, state_manager):
     """Returns a SparseTensor with identity values."""

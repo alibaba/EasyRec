@@ -428,7 +428,7 @@ class FeatureColumnParser(object):
           raise e
       elif config.hash_bucket_size <= 0:
         if config.embedding_dim > 0:
-          tmp_id_col = sequence_feature_column.sequence_numeric_column_with_categorical_column_with_identity(
+          tmp_id_col = sequence_feature_column.sequence_categorical_column_with_identity(
               config.input_names[0] + '_raw_proj_id',
               config.raw_input_dim,
               default_value=0)

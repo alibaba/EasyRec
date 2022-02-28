@@ -268,21 +268,6 @@ def sequence_numeric_column_with_raw_column(source_column, sequence_length):
   return fc.SequenceNumericColumn(source_column, sequence_length)
 
 
-def sequence_numeric_column_with_categorical_column_with_identity(
-    key, num_buckets, default_value=None):
-  if num_buckets < 1:
-    raise ValueError('num_buckets {} < 1, column_name {}'.format(
-        num_buckets, key))
-  if (default_value is not None) and ((default_value < 0) or
-                                      (default_value >= num_buckets)):
-    raise ValueError(
-        'default_value {} not in range [0, {}), column_name {}'.format(
-            default_value, num_buckets, key))
-  fc_utils.assert_key_is_string(key)
-  return fc.SequenceIdentityCategoricalColumn(
-      key=key, number_buckets=num_buckets, default_value=default_value)
-
-
 def sequence_weighted_categorical_column(categorical_column,
                                          weight_feature_key,
                                          dtype=dtypes.float32):
