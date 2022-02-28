@@ -380,6 +380,8 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
     sub_feature_type = config.sub_feature_type
+    assert sub_feature_type in [config.IdFeature, config.RawFeature], \
+        'Current sub_feature_type only support IdFeature and RawFeature.'
     if sub_feature_type == config.IdFeature:
       if config.HasField('hash_bucket_size'):
         hash_bucket_size = config.hash_bucket_size
