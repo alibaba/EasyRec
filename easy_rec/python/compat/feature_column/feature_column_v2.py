@@ -4311,14 +4311,10 @@ class IdentityCategoricalColumn(
               value=math_ops.cast(self.default_value, dtypes.int64),
               name='default_values'), values)
 
-    ret_tensor = sparse_tensor_lib.SparseTensor(
+    return sparse_tensor_lib.SparseTensor(
         indices=input_tensor.indices,
         values=values,
         dense_shape=input_tensor.dense_shape)
-    shape = tf.shape(input_tensor)
-    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
-    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
-    return ret_tensor
 
   def transform_feature(self, transformation_cache, state_manager):
     """Returns a SparseTensor with identity values."""
@@ -4979,13 +4975,21 @@ class SequenceCategoricalColumn(
 
   def transform_feature(self, transformation_cache, state_manager):
     """See `FeatureColumn` base class."""
-    return self.categorical_column.transform_feature(transformation_cache,
-                                                     state_manager)
+    ret_tensor = self.categorical_column.transform_feature(
+        transformation_cache, state_manager)
+    shape = array_ops.shape(ret_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
+    return ret_tensor
 
   @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
                           _FEATURE_COLUMN_DEPRECATION)
   def _transform_feature(self, inputs):
-    return self.categorical_column._transform_feature(inputs)  # pylint: disable=protected-access
+    ret_tensor = self.categorical_column._transform_feature(inputs)
+    shape = array_ops.shape(ret_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
+    return ret_tensor
 
   @property
   def num_buckets(self):
