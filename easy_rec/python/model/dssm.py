@@ -166,7 +166,6 @@ class DSSM(EasyRecModel):
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(
         tf.as_string(item_tower_emb), axis=-1, separator=',')
-    self._prediction_dict['rank_predict'] = tf.identity(self._prediction_dict['probs'], name='rank_predict')
     return self._prediction_dict
 
   def build_loss_graph(self):
