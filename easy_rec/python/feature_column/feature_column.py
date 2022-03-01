@@ -443,14 +443,10 @@ class FeatureColumnParser(object):
           fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
               fc, config.sequence_length)
 
-    assert config.embedding_dim > 0
-    if config.HasField('sequence_combiner'):
-      fc.sequence_combiner = config.sequence_combiner
-      self._deep_columns[feature_name] = fc
-    elif config.embedding_dim > 0:
+    if config.embedding_dim > 0:
       self._add_deep_embedding_column(fc, config)
     else:
-      self._deep_columns[feature_name] = fc
+      self._sequence_columns[feature_name] = fc
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:
