@@ -533,7 +533,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     with context.graph_mode():
       if not checkpoint_path:
         # Locate the latest checkpoint
-        checkpoint_path = checkpoint_management.latest_checkpoint(
+        checkpoint_path = estimator_utils.latest_checkpoint(
             self._model_dir)
       if not checkpoint_path:
         raise ValueError("Couldn't find trained model at %s." % self._model_dir)
