@@ -282,7 +282,6 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[k] = v
           self._appended_fields.append(k)
 
-    print("[input] all feature names: {}".format([fc.feature_name for fc in self._feature_configs]))
     for fc in self._feature_configs:
       feature_name = fc.feature_name
       feature_type = fc.feature_type
@@ -677,7 +676,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
           inputs, features = self.create_placeholders(export_config)
-          print("built feature placeholders. features: {}".format(features.keys()))
+          print('built feature placeholders. features: {}'.format(
+              features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     return _input_fn

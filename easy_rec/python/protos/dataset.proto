@@ -170,8 +170,8 @@ message DatasetConfig {
         OdpsInputV3 = 9;
         RTPInput = 4;
         RTPInputV2 = 5;
-        OdpsRTPInput = 6;
-        OdpsRTPInputV2 = 16;
+        OdpsRTPInput = 601;
+        OdpsRTPInputV2 = 602;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
@@ -179,6 +179,7 @@ message DatasetConfig {
         DummyInput = 8;
         KafkaInput = 13;
         HiveInput = 16;
+        CriteoInput = 1001;
     }
     required InputType input_type = 10;
 

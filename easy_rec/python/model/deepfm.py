@@ -99,8 +99,14 @@ class DeepFM(RankModel):
   def build_feature_output_dict(self):
     outputs = super(DeepFM, self).build_feature_output_dict()
     outputs.update({
-      'wide_features': tf.reduce_join(tf.as_string(self._wide_features), axis=-1, separator=','),
-      'deep_features': tf.reduce_join(tf.as_string(self._deep_features), axis=-1, separator=','),
-      'fm_outputs': tf.reduce_join(tf.as_string(self._fm_outputs), axis=-1, separator=',')
+        'wide_features':
+            tf.reduce_join(
+                tf.as_string(self._wide_features), axis=-1, separator=','),
+        'deep_features':
+            tf.reduce_join(
+                tf.as_string(self._deep_features), axis=-1, separator=','),
+        'fm_outputs':
+            tf.reduce_join(
+                tf.as_string(self._fm_outputs), axis=-1, separator=',')
     })
     return outputs

@@ -17,14 +17,15 @@ message EasyRecConfig {
       string train_input_path = 1;
       KafkaServer kafka_train_input = 2;
       DatahubServer datahub_train_input = 12;
-      HiveConfig hive_train_input = 21;
+      HiveConfig hive_train_input = 101;
+      BinaryDataInput binary_train_input = 102;
   }
   oneof eval_path {
       string eval_input_path = 3;
       KafkaServer kafka_eval_input = 4;
       DatahubServer datahub_eval_input = 13;
-      HiveConfig hive_eval_input= 22;
-
+      HiveConfig hive_eval_input= 201;
+      BinaryDataInput binary_eval_input = 202;
   }
   required string model_dir = 5;
 

@@ -104,16 +104,18 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     pass
 
   def build_output_dict(self):
-    """for exporting: get standard output nodes"""
+    """for exporting: get standard output nodes."""
     outputs = {}
     for name in self.get_outputs():
       if name not in self._prediction_dict:
-        raise KeyError('output node {} not in prediction_dict, can not be exported'.format(name))
+        raise KeyError(
+            'output node {} not in prediction_dict, can not be exported'.format(
+                name))
       outputs[name] = self._prediction_dict[name]
     return outputs
 
   def build_feature_output_dict(self):
-    """for exporting: get output feature nodes"""
+    """for exporting: get output feature nodes."""
     outputs = {}
     for feature_name in self._feature_dict:
       out_name = 'feature_' + feature_name
@@ -124,8 +126,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           sparse_values = tf.as_string(sparse_values)
         feature_value = tf.sparse_to_dense(feature_value.indices,
                                            feature_value.dense_shape,
-                                           sparse_values,
-                                           "")
+                                           sparse_values, '')
       elif feature_value.dtype != tf.string:
         feature_value = tf.as_string(feature_value)
       feature_value = tf.reduce_join(feature_value, axis=-1, separator=',')
@@ -133,7 +134,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return outputs
 
   def build_rtp_output_dict(self):
-    """for exporting: get output nodes for RTP infering"""
+    """for exporting: get output nodes for RTP infering."""
     return {}
 
   def restore(self,

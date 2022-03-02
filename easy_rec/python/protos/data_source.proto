@@ -18,3 +18,9 @@ message DatahubServer{
     required uint32 shard_num  = 6;
     required uint32 life_cycle = 7;
 }
+
+message BinaryDataInput {
+    required string category_input = 1;
+    required string dense_input = 2;
+    required string label_input = 3;
+}

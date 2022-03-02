@@ -247,28 +247,14 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
 
 
 def _get_input_object_by_name(pipeline_config, worker_type):
-  """"
-    get object by worker type
+  """" get object by worker type.
 
-    pipeline_config: pipeline_config
-    worker_type: train or eval
+  pipeline_config: pipeline_config
+  worker_type: train or eval
   """
-  input_type = "{}_path".format(worker_type)
+  input_type = '{}_path'.format(worker_type)
   input_name = pipeline_config.WhichOneof(input_type)
-  _dict = {"kafka_train_input": pipeline_config.kafka_train_input,
-           "kafka_eval_input": pipeline_config.kafka_eval_input,
-           "datahub_train_input": pipeline_config.datahub_train_input,
-           "datahub_eval_input": pipeline_config.datahub_eval_input,
-           "hive_train_input": pipeline_config.hive_train_input,
-           "hive_eval_input": pipeline_config.hive_eval_input
-           }
-  if input_name in _dict:
-    return _dict[input_name]
-
-  if worker_type == "train":
-    return pipeline_config.train_input_path
-  else:
-    return pipeline_config.eval_input_path
+  return getattr(pipeline_config, input_name)
 
 
 def _train_and_evaluate_impl(pipeline_config, continue_train=False):
@@ -764,14 +750,13 @@ def export(export_dir,
   return final_export_dir
 
 
-def export_checkpoint(
-    pipeline_config=None,
-    export_path='',
-    checkpoint_path='',
-    asset_files=None,
-    verbose=False,
-    mode=tf.estimator.ModeKeys.PREDICT):
-  """Export the EasyRec model as checkpoint"""
+def export_checkpoint(pipeline_config=None,
+                      export_path='',
+                      checkpoint_path='',
+                      asset_files=None,
+                      verbose=False,
+                      mode=tf.estimator.ModeKeys.PREDICT):
+  """Export the EasyRec model as checkpoint."""
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
   if pipeline_config.fg_json_path:
     fg_util.load_fg_json_to_config(pipeline_config)
@@ -794,9 +779,9 @@ def export_checkpoint(
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
   estimator.export_checkpoint(
-    export_path=export_path,
-    serving_input_receiver_fn=serving_input_fn,
-    checkpoint_path=checkpoint_path,
-    mode=mode)
+      export_path=export_path,
+      serving_input_receiver_fn=serving_input_fn,
+      checkpoint_path=checkpoint_path,
+      mode=mode)
 
   logging.info('model checkpoint has been exported successfully')
