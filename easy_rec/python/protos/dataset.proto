@@ -178,7 +178,7 @@ message DatasetConfig {
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
-        HiveInput = 16;
+        HiveInput = 17;
     }
     required InputType input_type = 10;
 
