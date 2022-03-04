@@ -171,12 +171,14 @@ message DatasetConfig {
         RTPInput = 4;
         RTPInputV2 = 5;
         OdpsRTPInput = 6;
+        OdpsRTPInputV2 = 16;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
+        HiveInput = 17;
     }
     required InputType input_type = 10;
 
@@ -245,4 +247,5 @@ message DatasetConfig {
         HardNegativeSampler hard_negative_sampler = 103;
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
+
 }

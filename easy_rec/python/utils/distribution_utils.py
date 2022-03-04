@@ -47,7 +47,7 @@ def set_tf_config_and_get_train_worker_num(
       'set_tf_config_and_get_train_worker_num: distribute_strategy = %d' %
       distribute_strategy)
   worker_hosts = worker_hosts.split(',')
-  ps_hosts = ps_hosts.split(',')
+  ps_hosts = ps_hosts.split(',') if ps_hosts else []
 
   total_worker_num = len(worker_hosts)
   train_worker_num = total_worker_num
@@ -96,7 +96,7 @@ def set_tf_config_and_get_train_worker_num(
           cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[2:]}
           if distribute_strategy != DistributionStrategy.NoStrategy:
             cluster['evaluator'] = [worker_hosts[1]]
-          if len(ps_hosts) > 1:
+          if len(ps_hosts) > 0:
             cluster['ps'] = ps_hosts
           if job_name == 'ps':
             os.environ['TF_CONFIG'] = json.dumps({
@@ -166,7 +166,7 @@ def set_tf_config_and_get_train_worker_num(
       else:
         cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[1:]}
         train_worker_num = len(worker_hosts)
-        if len(ps_hosts) > 1:
+        if len(ps_hosts) > 0:
           cluster['ps'] = ps_hosts
         if job_name == 'ps':
           os.environ['TF_CONFIG'] = json.dumps({

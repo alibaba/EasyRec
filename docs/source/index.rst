@@ -88,7 +88,7 @@ Welcome to easy_rec's documentation!
    faq
    tf_on_yarn
    get_role_arn
-
+   benchmark
 
 
 Indices and tables

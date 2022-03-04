@@ -38,6 +38,15 @@ message FeatureConfig {
         SequenceFeature = 5;
     }
 
+    enum FieldType {
+        INT32 = 0;
+        INT64 = 1;
+        STRING = 2;
+        FLOAT = 4;
+        DOUBLE = 5;
+        BOOL = 6;
+    }
+
     optional string feature_name = 1;
 
     // input field names: must be included in DatasetConfig.input_fields
@@ -94,6 +103,12 @@ message FeatureConfig {
 
     // sequence feature combiner
     optional SequenceCombiner sequence_combiner = 25;
+
+    // sub feature type for sequence feature
+    optional FeatureType sub_feature_type = 26 [default = IdFeature];
+
+    // sequence length
+    optional uint32 sequence_length = 27 [default = 1];
 }
 
 message FeatureConfigV2 {
@@ -105,7 +120,7 @@ message FeatureGroupConfig {
     repeated string feature_names = 2;
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
-    optional SeqAttGroupConfig sequence_features = 4;
+    repeated SeqAttGroupConfig sequence_features = 4;
 }
 
 message SeqAttMap {

@@ -28,11 +28,11 @@ class AutoInt(RankModel):
     self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._feature_num = len(self._model_config.feature_groups[0].feature_names)
     self._seq_key_num = 0
-    if self._model_config.feature_groups[0].HasField('sequence_features'):
-      self._feature_num += len(self._model_config.feature_groups[0]
-                               .sequence_features.seq_att_map[0].hist_seq)
-      self._seq_key_num = len(self._model_config.feature_groups[0]
-                              .sequence_features.seq_att_map[0].key)
+    if len(self._model_config.feature_groups[0].sequence_features) > 0:
+      for seq_fea in self._model_config.feature_groups[0].sequence_features:
+        for seq_att in seq_fea.seq_att_map:
+          self._feature_num += len(seq_att.hist_seq)
+          self._seq_key_num += len(seq_att.key)
     self._model_config = self._model_config.autoint
     assert isinstance(self._model_config, AutoIntConfig)
 

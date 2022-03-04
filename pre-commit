@@ -29,3 +29,6 @@ if [ $result -eq 0 ];then
 else
   exit 1
 fi
+pwd
+
+python scripts/pre-commit
