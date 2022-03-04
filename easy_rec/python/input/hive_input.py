@@ -4,10 +4,14 @@ import logging
 
 import numpy as np
 import tensorflow as tf
-from pyhive import hive
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
+
+try:
+  from pyhive import hive
+except ModuleNotFoundError:
+  logging.warning('pyhive is not installed.')
 
 
 class TableInfo(object):
@@ -42,7 +46,9 @@ class TableInfo(object):
     sql = """select {}
         from {}""".format(self.selected_cols, self.tablename)
     assert self.hash_fields is not None, 'hash_fields must not be empty'
-    fields = ['cast({} as string)'.format(key) for key in self.hash_fields.split(',')]
+    fields = [
+        'cast({} as string)'.format(key) for key in self.hash_fields.split(',')
+    ]
     str_fields = ','.join(fields)
     if not part:
       sql += """
@@ -59,12 +65,7 @@ class TableInfo(object):
 
 class HiveManager(object):
 
-  def __init__(self,
-               host,
-               port,
-               username,
-               info,
-               database='default'):
+  def __init__(self, host, port, username, info, database='default'):
     self.host = host
     self.port = port
     self.username = username

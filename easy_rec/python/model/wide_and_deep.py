@@ -46,7 +46,8 @@ class WideAndDeep(RankModel):
         wide_output_dim=wide_output_dim,
         use_embedding_variable=model_config.use_embedding_variable,
         embedding_regularizer=self._emb_reg,
-        kernel_regularizer=self._l2_reg)
+        kernel_regularizer=self._l2_reg,
+        group_as_scope=model_config.group_as_scope)
 
   def build_predict_graph(self):
     wide_fea = tf.add_n(self._wide_features)

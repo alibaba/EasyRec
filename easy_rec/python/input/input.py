@@ -561,8 +561,8 @@ class Input(six.with_metaclass(_meta_type, object)):
 
       Args:
         mode: tf.estimator.ModeKeys.(TRAIN, EVAL, PREDICT)
-            params: `dict` of hyper parameters, from Estimator
-            config: tf.estimator.RunConfig instance
+        params: `dict` of hyper parameters, from Estimator
+        config: tf.estimator.RunConfig instance
 
       Return:
         if mode is not None, return:

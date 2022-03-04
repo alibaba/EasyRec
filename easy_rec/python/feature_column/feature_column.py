@@ -377,8 +377,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(  # noqa: F841
+        'feature_name') else config.input_names[0]
     if config.HasField('hash_bucket_size'):
       hash_bucket_size = config.hash_bucket_size
       fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(

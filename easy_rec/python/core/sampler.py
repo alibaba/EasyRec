@@ -3,7 +3,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import json
 import logging
 import math
 import os
@@ -13,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils import graph_utils
 
 try:
   import graphlearn as gl
@@ -76,46 +76,7 @@ class BaseSampler(object):
     self._build_field_types(fields)
 
   def _init_graph(self):
-    if 'TF_CONFIG' in os.environ:
-      tf_config = json.loads(os.environ['TF_CONFIG'])
-      if 'ps' in tf_config['cluster']:
-        # ps mode
-        tf_config = json.loads(os.environ['TF_CONFIG'])
-        ps_count = len(tf_config['cluster']['ps'])
-        task_count = len(tf_config['cluster']['worker']) + 2
-        cluster = {'server_count': ps_count, 'client_count': task_count}
-        if tf_config['task']['type'] in ['chief', 'master']:
-          self._g.init(cluster=cluster, job_name='client', task_index=0)
-        elif tf_config['task']['type'] == 'worker':
-          self._g.init(
-              cluster=cluster,
-              job_name='client',
-              task_index=tf_config['task']['index'] + 2)
-        # TODO(hongsheng.jhs): check cluster has evaluator or not?
-        elif tf_config['task']['type'] == 'evaluator':
-          self._g.init(
-              cluster=cluster,
-              job_name='client',
-              task_index=tf_config['task']['index'] + 1)
-          if self._num_eval_sample is not None and self._num_eval_sample > 0:
-            self._num_sample = self._num_eval_sample
-        elif tf_config['task']['type'] == 'ps':
-          self._g.init(
-              cluster=cluster,
-              job_name='server',
-              task_index=tf_config['task']['index'])
-      else:
-        # worker mode
-        task_count = len(tf_config['cluster']['worker']) + 1
-        if tf_config['task']['type'] in ['chief', 'master']:
-          self._g.init(task_index=0, task_count=task_count)
-        elif tf_config['task']['type'] == 'worker':
-          self._g.init(
-              task_index=tf_config['task']['index'] + 1, task_count=task_count)
-        # TODO(hongsheng.jhs): check cluster has evaluator or not?
-    else:
-      # local mode
-      self._g.init()
+    graph_utils.graph_init(self._g, os.environ.get('TF_CONFIG', None))
 
   def _build_field_types(self, fields):
     self._attr_names = []

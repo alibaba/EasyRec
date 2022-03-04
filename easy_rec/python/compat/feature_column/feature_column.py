@@ -228,8 +228,12 @@ def _internal_input_layer(features,
   if from_template:
     return _get_logits()
   else:
+    reuse = None if scope is None else variable_scope.AUTO_REUSE
     with variable_scope.variable_scope(
-        scope, default_name='input_layer', values=features.values()):
+        scope,
+        default_name='input_layer',
+        values=features.values(),
+        reuse=reuse):
       return _get_logits()
 
 
@@ -239,7 +243,8 @@ def input_layer(features,
                 trainable=True,
                 cols_to_vars=None,
                 cols_to_output_tensors=None,
-                feature_name_to_output_tensors=None):
+                feature_name_to_output_tensors=None,
+                scope=None):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -287,6 +292,7 @@ def input_layer(features,
     cols_to_output_tensors: If not `None`, must be a dictionary that will be
       filled with a mapping from '_FeatureColumn' to the associated
       output `Tensor`s.
+    scope: variable scope.
 
   Returns:
     A `Tensor` which represents input layer of a model. Its shape
@@ -303,7 +309,8 @@ def input_layer(features,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
       cols_to_output_tensors=cols_to_output_tensors,
-      feature_name_to_output_tensors=feature_name_to_output_tensors)
+      feature_name_to_output_tensors=feature_name_to_output_tensors,
+      scope=scope)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it
