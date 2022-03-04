@@ -561,6 +561,10 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_eges(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/eges_on_taobao.config', self._test_dir)
+
   def test_sequence_mmoe(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_sequence_feature_taobao.config',

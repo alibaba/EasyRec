@@ -288,8 +288,7 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   else:
     logging.info('train_steps = %d' % train_steps)
   # create train input
-  train_input_fn = _get_input_object_by_task_type(data_config, feature_configs,
-                                                  train_data)
+  train_input_fn = _get_input_fn(data_config, feature_configs, train_data)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)

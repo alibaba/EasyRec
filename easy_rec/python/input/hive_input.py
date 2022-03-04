@@ -10,7 +10,7 @@ from easy_rec.python.utils import odps_util
 
 try:
   from pyhive import hive
-except ModuleNotFoundError:
+except ImportError:
   logging.warning('pyhive is not installed.')
 
 
