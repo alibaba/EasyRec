@@ -1,16 +1,25 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
+import collections
 
 import logging
 import os
 import re
 import time
+import json
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.training import checkpoint_management
+from tensorflow.python.framework import ops
+from tensorflow.python.eager import context
+from tensorflow.python.client import session as tf_session
+from tensorflow.python.training import monitored_session
+from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -18,6 +27,8 @@ from easy_rec.python.compat.early_stopping import custom_early_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
+from easy_rec.python.compat.ops import GraphKeys
+from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
@@ -423,15 +434,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
         features,
         labels=None,
         is_training=False)
-    predict_dict = model.build_predict_graph()
+    model.build_predict_graph()
 
-    # add output info to estimator spec
+    export_config = self._pipeline_config.export_config
     outputs = {}
-    output_list = model.get_outputs()
-    for out in output_list:
-      assert out in predict_dict, \
-          'output node %s not in prediction_dict, can not be exported' % out
-      outputs[out] = predict_dict[out]
+    logging.info("building default outputs")
+    outputs.update(model.build_output_dict())
+    if export_config.export_features:
+      logging.info("building output features")
+      outputs.update(model.build_feature_output_dict())
+    if export_config.export_rtp_outputs:
+      logging.info("building RTP outputs")
+      outputs.update(model.build_rtp_output_dict())
+
+    for out in outputs:
       tf.logging.info(
           'output %s shape: %s type: %s' %
           (out, outputs[out].get_shape().as_list(), outputs[out].dtype))
@@ -466,9 +482,71 @@ class EasyRecEstimator(tf.estimator.Estimator):
   def _model_fn(self, features, labels, mode, config, params):
     os.environ['tf.estimator.mode'] = mode
     os.environ['tf.estimator.ModeKeys.TRAIN'] = tf.estimator.ModeKeys.TRAIN
+    if self._pipeline_config.fg_json_path:
+      EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_json_path)
+      EasyRecEstimator._write_rtp_inputs_to_col(features)
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:
       return self._eval_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.PREDICT:
       return self._export_model_fn(features, labels, config, params)
+
+  @staticmethod
+  def _write_rtp_fg_config_to_col(fg_config=None, fg_config_path=None):
+    """Write RTP config to RTP-specified graph collections.
+
+    Args:
+      fg_config: JSON-dict RTP config. If set, fg_config_path will be ignored.
+      fg_config_path: path to the RTP config file.
+    """
+    if fg_config is None:
+      with tf.gfile.GFile(fg_config_path, 'r') as f:
+        fg_config = json.load(f)
+    col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)
+    if len(col) == 0:
+        col.append(json.dumps(fg_config))
+    else:
+        col[0] = json.dumps(fg_config)
+
+  @staticmethod
+  def _write_rtp_inputs_to_col(features):
+    """Write input nodes information to RTP-specified graph collections.
+
+    Args:
+      features: the feature dictionary used as model input.
+    """
+    feature_info_map = dict()
+    for feature_name, feature_value in features.items():
+      feature_info = _tensor_to_tensorinfo(feature_value)
+      feature_info_map[feature_name] = feature_info
+    col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FEATURE_NODE)
+    if len(col) == 0:
+      col.append(json.dumps(feature_info_map))
+    else:
+      col[0] = json.dumps(feature_info_map)
+
+  def export_checkpoint(self,
+      export_path=None,
+      serving_input_receiver_fn=None,
+      checkpoint_path=None,
+      mode=tf.estimator.ModeKeys.PREDICT):
+    with context.graph_mode():
+      if not checkpoint_path:
+        # Locate the latest checkpoint
+        checkpoint_path = estimator_utils.latest_checkpoint(
+            self._model_dir)
+      if not checkpoint_path:
+        raise ValueError("Couldn't find trained model at %s." % self._model_dir)
+      with ops.Graph().as_default() as g:
+        input_receiver = serving_input_receiver_fn()
+        estimator_spec = self._call_model_fn(
+            features=input_receiver.features,
+            labels=getattr(input_receiver, 'labels', None),
+            mode=mode,
+            config=self.config)
+        with tf_session.Session(config=self._session_config) as session:
+          graph_saver = estimator_spec.scaffold.saver or saver.Saver(sharded=True)
+          graph_saver.restore(session, checkpoint_path)
+          graph_saver.save(session, export_path)
+

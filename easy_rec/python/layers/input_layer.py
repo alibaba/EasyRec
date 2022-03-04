@@ -54,20 +54,21 @@ class InputLayer(object):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
-    self._seq_feature_groups_config = [
-        x.sequence_features
-        for x in feature_groups_config
-        if x.HasField('sequence_features')
-    ]
+    self._seq_feature_groups_config = []
+    for x in feature_groups_config:
+      for y in x.sequence_features:
+        self._seq_feature_groups_config.append(y)
     self._group_name_to_seq_features = {
         x.group_name: x.sequence_features
         for x in feature_groups_config
-        if x.HasField('sequence_features')
+        if len(x.sequence_features) > 0
     }
     self._seq_input_layer = None
     if len(self._seq_feature_groups_config) > 0:
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
-          feature_configs, self._seq_feature_groups_config)
+          feature_configs,
+          self._seq_feature_groups_config,
+          use_embedding_variable=use_embedding_variable)
     wide_and_deep_dict = self.get_wide_deep_dict()
     self._fc_parser = FeatureColumnParser(
         feature_configs,
@@ -117,30 +118,38 @@ class InputLayer(object):
 
   def call_seq_input_layer(self,
                            features,
-                           seq_att_map_config,
+                           all_seq_att_map_config,
                            feature_name_to_output_tensors=None):
-    group_name = seq_att_map_config.group_name
-    allow_key_search = seq_att_map_config.allow_key_search
-    seq_features = self._seq_input_layer(features, group_name,
-                                         feature_name_to_output_tensors,
-                                         allow_key_search)
-    regularizers.apply_regularization(
-        self._embedding_regularizer, weights_list=[seq_features['key']])
-    regularizers.apply_regularization(
-        self._embedding_regularizer,
-        weights_list=[seq_features['hist_seq_emb']])
-    seq_dnn_config = None
-    if seq_att_map_config.HasField('seq_dnn'):
-      seq_dnn_config = seq_att_map_config.seq_dnn
-    else:
-      logging.info(
-          'seq_dnn not set in seq_att_groups, will use default settings')
-      from easy_rec.python.protos.dnn_pb2 import DNN
-      seq_dnn_config = DNN()
-      seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
-    seq_fea = self.target_attention(
-        seq_dnn_config, seq_features, name='seq_dnn')
-    return seq_fea
+    all_seq_fea = []
+    # process all sequence features
+    for seq_att_map_config in all_seq_att_map_config:
+      group_name = seq_att_map_config.group_name
+      allow_key_search = seq_att_map_config.allow_key_search
+      seq_features = self._seq_input_layer(features, group_name,
+                                           feature_name_to_output_tensors,
+                                           allow_key_search)
+      regularizers.apply_regularization(
+          self._embedding_regularizer, weights_list=[seq_features['key']])
+      regularizers.apply_regularization(
+          self._embedding_regularizer,
+          weights_list=[seq_features['hist_seq_emb']])
+      seq_dnn_config = None
+      if seq_att_map_config.HasField('seq_dnn'):
+        seq_dnn_config = seq_att_map_config.seq_dnn
+      else:
+        logging.info(
+            'seq_dnn not set in seq_att_groups, will use default settings')
+        # If not set seq_dnn, will use default settings
+        from easy_rec.python.protos.dnn_pb2 import DNN
+        seq_dnn_config = DNN()
+        seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
+      cur_target_attention_name = 'seq_dnn' + group_name
+      seq_fea = self.target_attention(
+          seq_dnn_config, seq_features, name=cur_target_attention_name)
+      all_seq_fea.append(seq_fea)
+    # concat all seq_fea
+    all_seq_fea = tf.concat(all_seq_fea, axis=1)
+    return all_seq_fea
 
   def __call__(self, features, group_name, is_combine=True):
     """Get features by group_name.
@@ -162,9 +171,10 @@ class InputLayer(object):
         group_name, ','.join([x for x in self._feature_groups]))
     feature_name_to_output_tensors = {}
     if group_name in self._group_name_to_seq_features:
-      for seq_att in self._group_name_to_seq_features[group_name].seq_att_map:
-        for k in seq_att.key:
-          feature_name_to_output_tensors[k] = None
+      for seq_feature in self._group_name_to_seq_features[group_name]:
+        for seq_att in seq_feature.seq_att_map:
+          for k in seq_att.key:
+            feature_name_to_output_tensors[k] = None
     if is_combine:
       concat_features, group_features = self.single_call_input_layer(
           features, group_name, is_combine, feature_name_to_output_tensors)

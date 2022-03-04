@@ -417,6 +417,23 @@ def main(argv):
         batch_size=FLAGS.batch_size,
         slice_id=FLAGS.task_index,
         slice_num=worker_num)
+  elif FLAGS.cmd == 'export_checkpoint':
+    check_param('export_dir')
+    check_param('config')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
+    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
+    config_util.auto_expand_share_feature_configs(pipeline_config)
+    easy_rec.export_checkpoint(
+      pipeline_config,
+      export_path=FLAGS.export_dir + '/model',
+      checkpoint_path=FLAGS.checkpoint_path,
+      asset_files=FLAGS.asset_files,
+      verbose=FLAGS.verbose)
   elif FLAGS.cmd == 'vector_retrieve':
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
@@ -448,7 +465,7 @@ def main(argv):
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
   else:
     raise ValueError(
-        'cmd should be one of train/evaluate/export/predict/vector_retrieve')
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')
 
 
 if __name__ == '__main__':

@@ -55,7 +55,8 @@ BestExporter = exporter.BestExporter
 def _get_input_fn(data_config,
                   feature_configs,
                   data_path=None,
-                  export_config=None):
+                  export_config=None,
+                  **kwargs):
   """Build estimator input function.
 
   Args:
@@ -78,7 +79,8 @@ def _get_input_fn(data_config,
       feature_configs,
       data_path,
       task_index=task_id,
-      task_num=task_num)
+      task_num=task_num,
+      **kwargs)
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
@@ -135,9 +137,12 @@ def _create_eval_export_spec(pipeline_config, eval_data):
     logging.info('eval_steps = %d' % eval_steps)
   else:
     eval_steps = None
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
   export_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                  export_config)
+                                  export_config, **input_fn_kwargs)
   if export_config.exporter_type == 'final':
     exporters = [
         FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
@@ -178,7 +183,8 @@ def _create_eval_export_spec(pipeline_config, eval_data):
 
   # set throttle_secs to a small number, so that we can control evaluation
   # interval steps by checkpoint saving steps
-  eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data)
+  eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
+                                **input_fn_kwargs)
   eval_spec = tf.estimator.EvalSpec(
       name='val',
       input_fn=eval_input_fn,
@@ -287,8 +293,14 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     logging.warn('will train INFINITE number of steps')
   else:
     logging.info('train_steps = %d' % train_steps)
+
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+
   # create train input
-  train_input_fn = _get_input_fn(data_config, feature_configs, train_data)
+  train_input_fn = _get_input_fn(data_config, feature_configs, train_data,
+                                 **input_fn_kwargs)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
@@ -691,8 +703,11 @@ def export(export_dir,
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                   export_config)
+                                   export_config, **input_fn_kwargs)
   if 'oss_path' in extra_params:
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
                                    serving_input_fn, estimator, checkpoint_path,
@@ -730,3 +745,41 @@ def export(export_dir,
 
   logging.info('model has been exported to %s successfully' % final_export_dir)
   return final_export_dir
+
+
+def export_checkpoint(
+    pipeline_config=None,
+    export_path='',
+    checkpoint_path='',
+    asset_files=None,
+    verbose=False,
+    mode=tf.estimator.ModeKeys.PREDICT):
+  """Export the EasyRec model as checkpoint"""
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
+  data_config = pipeline_config.data_config
+
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+
+  # create estimator
+  params = {'log_device_placement': verbose}
+  if asset_files:
+    logging.info('will add asset files: %s' % asset_files)
+    params['asset_files'] = asset_files
+  estimator, _ = _create_estimator(pipeline_config, params=params)
+
+  # construct serving input fn
+  export_config = pipeline_config.export_config
+  serving_input_fn = _get_input_fn(data_config, feature_configs, None,
+                                   export_config, **input_fn_kwargs)
+  estimator.export_checkpoint(
+    export_path=export_path,
+    serving_input_receiver_fn=serving_input_fn,
+    checkpoint_path=checkpoint_path,
+    mode=mode)
+
+  logging.info('model checkpoint has been exported successfully')

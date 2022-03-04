@@ -21,7 +21,6 @@ jobs:
           TEST_DEVICES: ""
         run: |
            source activate /home/admin/tf12_py2/
-
            source scripts/ci_test.sh
       - name: LabelAndComment
         env:

@@ -177,14 +177,15 @@ message DatasetConfig {
         RTPInput = 4;
         RTPInputV2 = 5;
         OdpsRTPInput = 6;
+        OdpsRTPInputV2 = 16;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
-        HiveInput = 16;
-        GraphInput = 17;
+        HiveInput = 17;
+        GraphInput = 18;
     }
     required InputType input_type = 10;
 
