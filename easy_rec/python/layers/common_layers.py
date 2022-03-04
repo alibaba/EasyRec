@@ -65,8 +65,8 @@ def text_cnn(x,
       # conv shape: (batch_size, seq_len - filter_size + 1, num_filters)
       conv = tf.layers.conv1d(
           x,
-          filters=num_filter,
-          kernel_size=filter_size,
+          filters=int(num_filter),
+          kernel_size=int(filter_size),
           activation=tf.nn.relu,
           name='conv_layer',
           reuse=reuse,
