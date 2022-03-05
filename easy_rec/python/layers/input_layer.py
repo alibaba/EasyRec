@@ -227,6 +227,8 @@ class InputLayer(object):
       embedding_reg_lst = [output_features]
       builder = feature_column._LazyBuilder(features)
       seq_features = []
+      if scope_name is None:
+        scope_name = 'input_layer'
       for column in sorted(group_seq_columns, key=lambda x: x.name):
         with variable_scope.variable_scope(
             scope_name + '/' + column._var_scope_name, reuse=reuse):
@@ -288,6 +290,8 @@ class InputLayer(object):
       builder = feature_column._LazyBuilder(features)
       seq_features = []
       embedding_reg_lst = []
+      if scope_name is None:
+        scope_name = 'input_layer'
       for fc in group_seq_columns:
         with variable_scope.variable_scope(
             scope_name + '/' + fc._var_scope_name, reuse=reuse):
