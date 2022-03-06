@@ -72,12 +72,12 @@ class MIND(EasyRecModel):
                                  self._is_training)
 
     time_id_fea = [
-        x[0] for x in self._hist_seq_features if 'time_id/' in x[0].name
+        x[0] for x in self._hist_seq_features if 'time_id_embedding/' in x[0].name
     ]
     time_id_fea = time_id_fea[0] if len(time_id_fea) > 0 else None
 
     hist_seq_feas = [
-        x[0] for x in self._hist_seq_features if 'time_id/' not in x[0].name
+        x[0] for x in self._hist_seq_features if 'time_id_embedding/' not in x[0].name
     ]
     # it is assumed that all hist have the same length
     hist_seq_len = self._hist_seq_features[0][1]
