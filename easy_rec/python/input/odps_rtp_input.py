@@ -40,23 +40,33 @@ class OdpsRTPInput(Input):
 
   def _parse_table(self, *fields):
     fields = list(fields)
-    labels = fields[:-1]
+    labels = fields[:len(self._label_fields)]
 
     # only for features, labels excluded
     record_types = [
         t for x, t in zip(self._input_fields, self._input_field_types)
         if x not in self._label_fields
     ]
-    # assume that the last field is the generated feature column
-    print('field_delim = %s, input_field_name = %d' %
-          (self._data_config.separator, len(record_types)))
+    record_defaults = [
+        self.get_type_defaults(t, v)
+        for x, t, v in zip(self._input_fields, self._input_field_types,
+                           self._input_field_defaults)
+        if x not in self._label_fields
+    ]
+    # assume that the last fields are the generated feature column
+    print('field_delim = %s' % self._data_config.separator)
+    fea_sid = len(self._label_fields)
+    fea_parts = fields[fea_sid:]
+    print('field_part_num = %d' % len(fea_parts))
+    fea_str = fea_parts[0]
+    for part in fea_parts[1:]:
+      fea_str += part
     fields = tf.string_split(
-        fields[-1], self._data_config.separator, skip_empty=False)
-    tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
+        fea_str, self._data_config.separator, skip_empty=False)
+    tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     fields = []
-    for i in range(len(record_types)):
-      field = string_to_number(tmp_fields[:, i], record_types[i], i)
-      fields.append(field)
+    for i in range(len(record_defaults)):
+      fields.append(string_to_number(tmp_fields[:, i], record_types[i], i))
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
     effective_fids = [field_keys.index(x) for x in self._effective_fields]
@@ -76,7 +86,7 @@ class OdpsRTPInput(Input):
                            self._input_field_defaults)
         if x in self._label_fields
     ]
-    # the actual features are in one single column
+    # the actual features are in several columns
     record_defaults.append(
         self._data_config.separator.join([
             str(self.get_type_defaults(t, v))
@@ -86,6 +96,15 @@ class OdpsRTPInput(Input):
         ]))
     selected_cols = self._data_config.selected_cols \
         if self._data_config.selected_cols else None
+
+    selected_col_arr = selected_cols.split(',')
+    print('label_field_num = %d total_col_num = %d' %
+          (len(self._label_fields), len(selected_col_arr)))
+    # for extra feature columns
+    # in case the feature is too large, could not
+    # be stored in one column
+    for _ in range(len(selected_col_arr) - len(record_defaults)):
+      record_defaults.append('')
 
     if self._data_config.pai_worker_queue and \
         mode == tf.estimator.ModeKeys.TRAIN:
@@ -115,7 +134,10 @@ class OdpsRTPInput(Input):
             self._data_config.shuffle_buffer_size,
             seed=2020,
             reshuffle_each_iteration=True)
-      dataset = dataset.repeat(self.num_epochs)
+      logging.info('train num_epochs = %d' %
+                   self.num_epochs if self.num_epochs is not None else -1)
+      if not self._data_config.pai_worker_queue:
+        dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
 
