@@ -1,6 +1,8 @@
 syntax = "proto2";
 package protos;
 
+import "easy_rec/python/protos/graph.proto";
+
 // Weighted Random Sampling ItemID not in Batch
 message NegativeSampler {
     // sample data path
@@ -99,12 +101,6 @@ message HardNegativeSamplerV2 {
 
     optional uint32 num_eval_sample = 11 [default=0];
 }
-
-message GraphWalkConfig {
-  optional uint32 walk_len = 1 [default=10];
-  optional uint32 window_size = 2 [default=5];
-  optional uint32 negative_num = 3 [default=10];
-};
 
 message DatasetConfig {
     // mini batch size to use for training and evaluation.
@@ -255,5 +251,5 @@ message DatasetConfig {
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
 
-    optional GraphWalkConfig graph_walk = 26;
+    optional GraphConfig graph_config = 26;
 }

@@ -41,9 +41,9 @@ class GraphInput(Input):
     self._model = None
     self._build_field_types()
 
-    self._walk_len = self._data_config.graph_walk.walk_len
-    self._window_size = self._data_config.graph_walk.window_size
-    self._negative_num = self._data_config.graph_walk.negative_num
+    self._walk_len = self._data_config.graph_config.random_walk_len
+    self._window_size = self._data_config.graph_config.window_size
+    self._negative_num = self._data_config.graph_config.negative_num
     logging.info('walk_len=%d window_size=%d negative_num=%d' %
                  (self._walk_len, self._window_size, self._negative_num))
 
@@ -61,7 +61,7 @@ class GraphInput(Input):
                     edge_type=(GraphInput.node_type, GraphInput.node_type,
                                GraphInput.edge_type),
                     decoder=gl.Decoder(weighted=True),
-                    directed=False)
+                    directed=data_config.graph_config.directed)
         graph_utils.graph_init(GraphInput.graph,
                                os.environ.get('TF_CONFIG', None))
     if GraphInput.graph is not None:

@@ -1,0 +1,17 @@
+syntax = "proto2";
+package protos;
+
+// for graph based algorithms: EGES, DeepWalk, etc.
+message GraphConfig {
+  // graph edges are directed or directless, default to be directless
+  optional bool directed = 1 [default=false];
+
+  // for random walk, random walk length
+  optional uint32 random_walk_len = 2 [default=10];
+
+  // skip-gram window size
+  optional uint32 window_size = 3 [default=5];
+
+  // for negative sampling, number negatives sampled for each positive sample
+  optional uint32 negative_num = 4 [default=10];
+}
