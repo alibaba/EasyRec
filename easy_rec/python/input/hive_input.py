@@ -4,7 +4,11 @@ import logging
 
 import numpy as np
 import tensorflow as tf
-from pyhive import hive
+
+try:
+  from pyhive import hive
+except ImportError:
+  logging.warning('pyhive is not installed.')
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util

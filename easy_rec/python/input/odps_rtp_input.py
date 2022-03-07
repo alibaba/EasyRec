@@ -60,7 +60,7 @@ class OdpsRTPInput(Input):
     print('field_part_num = %d' % len(fea_parts))
     fea_str = fea_parts[0]
     for part in fea_parts[1:]:
-      fea_str += part
+      fea_str = fea_str + self._data_config.separator + part
     fields = tf.string_split(
         fea_str, self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
