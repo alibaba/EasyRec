@@ -1,9 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import ResNet50
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
@@ -78,23 +76,23 @@ class E2E_MM_DBMTL(MultiTaskModel):
     with tf.device('/CPU:0'):
       img_feature = tf.reshape(
           img_feature, (-1, self.img_width, self.img_height, self.img_channel))
-      # if self._model_config.img_model.model_name == 'ResNet':
-      #   from easy_vision.python.core.backbones.nets.resnet_v1 import resnet_v1a_18
-      #   img_logit = resnet_v1a_18(
-      #     img_feature, num_classes=self._model_config.img_model.num_classes, is_training=self._is_training)[0]
-      # elif self._model_config.img_model.model_name == 'MobileNet':
-      #   from easy_vision.python.core.backbones.nets.mobilenet.mobilenet_v3 import mobilenet
-      #   img_logit = mobilenet(
-      #         img_feature, num_classes=self._model_config.img_model.num_classes, is_training=self._is_training)[0]
-      # else:
-      # assert False, "img_model must in [ResNet, MobileNet]"
-
-      img_model = ResNet50(
-          include_top=True,
-          pooling='max',
-          classes=self._model_config.img_model.num_classes,
-          weights=None)
-      img_logit = img_model(img_feature)
+      if self._model_config.img_model.model_name == 'ResNet':
+        from easy_rec.python.backbones.nets.resnet_v1 import resnet_v1a_18
+        img_logit = resnet_v1a_18(
+          img_feature, num_classes=self._model_config.img_model.num_classes, is_training=self._is_training)[0]
+      elif self._model_config.img_model.model_name == 'MobileNet':
+        from easy_rec.python.backbones.nets.mobilenet.mobilenet_v3 import mobilenet
+        img_logit = mobilenet(
+              img_feature, num_classes=self._model_config.img_model.num_classes, is_training=self._is_training)[0]
+      else:
+        assert False, "img_model must in [ResNet, MobileNet]"
+      # from tensorflow.keras.applications.resnet50 import ResNet50
+      # img_model = ResNet50(
+      #     include_top=True,
+      #     pooling='max',
+      #     classes=self._model_config.img_model.num_classes,
+      #     weights=None)
+      # img_logit = img_model(img_feature)
 
       img_emb = self.tune_img_emb(img_logit)
       if 'sample_num' in self._input_layer._feature_groups:
