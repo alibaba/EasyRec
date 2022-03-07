@@ -84,6 +84,10 @@ model_config {
   }
   embedding_regularization: 1e-05
   e2e_mm_dbmtl {
+    img_model {
+      model_name: "ResNet"
+      num_classes: 16
+    }
     highway_dnn {
       input: "img"
       emb_size: 16
@@ -168,6 +172,8 @@ export_config {
   - 分别配置名为 img 和 sample_num 的 feature_group
   - e2e_mm_dbmtl:
     - highway_dnn/img_dnn: 用来处理图像网络的输出向量
+    - img_model:
+      - model_name: 支持"ResNet"/"MobileNet"
   - 其余配置与[dbmtl](dbmtl.md)一致
 
 ### 示例Config
@@ -181,6 +187,10 @@ export_config {
 - 图像网络：用来推理img embedding，可将embedding存入向量引擎(如hologres)中，线上直接查询以减少推理链路时长。
 - 推荐模型：部署到推荐服务上，接收特征和图像embedding（用逗号分割的字符串格式）所为输入。
 - 完整模型：包含图像网络和推荐网络，线上不需要使用。
+
+### pre_train
+
+当您使用 ResNet 作为 img_model 时，您可以使用 [预训练模型](https://easyrec.oss-cn-beijing.aliyuncs.com/pre_train/resnet_v1a_18.zip) 进行初始化，具体参考[增量训练](../incremental_train.md)。
 
 ```
 pai -name tensorflow1120_ext

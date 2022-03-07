@@ -97,7 +97,6 @@ class E2E_MM_DBMTL(MultiTaskModel):
       img_logit = img_model(img_feature)
 
       img_emb = self.tune_img_emb(img_logit)
-      self._prediction_dict['img_logits_test'] = img_emb
       if 'sample_num' in self._input_layer._feature_groups:
         # 扩展 img_emb, img_logits
         sample_idx_fea = tf.cast(self._sample_idx_fea, tf.int32)
@@ -235,5 +234,4 @@ class E2E_MM_DBMTL(MultiTaskModel):
               suffix='_%s' % tower_name))
     if 'img' in self._input_layer._feature_groups:
       outputs.append('img_emb')
-      outputs.append('img_logits_test')
     return outputs
