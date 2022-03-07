@@ -171,17 +171,18 @@ message DatasetConfig {
         RTPInput = 4;
         RTPInputV2 = 5;
         OdpsRTPInput = 6;
+        OdpsRTPInputV2 = 16;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
-        HiveInput = 16;
+        HiveInput = 17;
         // for e2e multimodal input on local or ds
-        GroupRTPInput = 20;
+        GroupRTPInput = 18;
         // for e2e multimodal input on odps
-        OdpsGroupRTPInput = 21;
+        OdpsGroupRTPInput = 19;
     }
     required InputType input_type = 10;
 

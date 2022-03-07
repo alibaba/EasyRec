@@ -15,12 +15,18 @@ if tf.__version__ >= '2.0':
 
 class SeqInputLayer(object):
 
-  def __init__(self, feature_configs, feature_groups_config):
+  def __init__(self,
+               feature_configs,
+               feature_groups_config,
+               use_embedding_variable=False):
     self._feature_groups_config = {
         x.group_name: x for x in feature_groups_config
     }
     wide_and_deep_dict = self.get_wide_deep_dict()
-    self._fc_parser = FeatureColumnParser(feature_configs, wide_and_deep_dict)
+    self._fc_parser = FeatureColumnParser(
+        feature_configs,
+        wide_and_deep_dict,
+        use_embedding_variable=use_embedding_variable)
 
   def __call__(self,
                features,

@@ -383,28 +383,74 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    if config.HasField('hash_bucket_size'):
-      hash_bucket_size = config.hash_bucket_size
-      fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-          config.input_names[0], hash_bucket_size, dtype=tf.string)
-    elif config.vocab_list:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_list=config.vocab_list)
-    elif config.vocab_file:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_file=config.vocab_file,
-          vocabulary_size=self._get_vocab_size(config.vocab_file))
+    sub_feature_type = config.sub_feature_type
+    assert sub_feature_type in [config.IdFeature, config.RawFeature], \
+        'Current sub_feature_type only support IdFeature and RawFeature.'
+    if sub_feature_type == config.IdFeature:
+      if config.HasField('hash_bucket_size'):
+        hash_bucket_size = config.hash_bucket_size
+        fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
+            config.input_names[0], hash_bucket_size, dtype=tf.string)
+      elif config.vocab_list:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_list=config.vocab_list)
+      elif config.vocab_file:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_file=config.vocab_file,
+            vocabulary_size=self._get_vocab_size(config.vocab_file))
+      else:
+        fc = sequence_feature_column.sequence_categorical_column_with_identity(
+            config.input_names[0], config.num_buckets, default_value=0)
     else:
-      fc = sequence_feature_column.sequence_categorical_column_with_identity(
-          config.input_names[0], config.num_buckets, default_value=0)
+      bounds = None
+      fc = sequence_feature_column.sequence_numeric_column(
+          config.input_names[0], shape=(1,))
+      if config.hash_bucket_size > 0:
+        hash_bucket_size = config.hash_bucket_size
+        assert sub_feature_type == config.IdFeature, \
+            'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
+      elif config.boundaries:
+        bounds = list(config.boundaries)
+        bounds.sort()
+      elif config.num_buckets > 1 and config.max_val > config.min_val:
+        # the feature values are already normalized into [0, 1]
+        bounds = [
+            x / float(config.num_buckets) for x in range(0, config.num_buckets)
+        ]
+        logging.info('sequence feature discrete %s into %d buckets' %
+                     (feature_name, config.num_buckets))
+      if bounds:
+        try:
+          fc = sequence_feature_column.sequence_numeric_column_with_bucketized_column(
+              fc, bounds)
+        except Exception as e:
+          tf.logging.error(
+              'sequence features bucketized_column [%s] with bounds %s error' %
+              (config.input_names[0], str(bounds)))
+          raise e
+      elif config.hash_bucket_size <= 0:
+        if config.embedding_dim > 0:
+          tmp_id_col = sequence_feature_column.sequence_categorical_column_with_identity(
+              config.input_names[0] + '_raw_proj_id',
+              config.raw_input_dim,
+              default_value=0)
+          wgt_fc = sequence_feature_column.sequence_weighted_categorical_column(
+              tmp_id_col,
+              weight_feature_key=config.input_names[0] + '_raw_proj_val',
+              dtype=tf.float32)
+          fc = wgt_fc
+        else:
+          fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
+              fc, config.sequence_length)
 
-    assert config.embedding_dim > 0
-
-    self._add_deep_embedding_column(fc, config)
+    if config.embedding_dim > 0:
+      self._add_deep_embedding_column(fc, config)
+    else:
+      self._sequence_columns[feature_name] = fc
 
   def parse_img_feature(self, config):
     feature_name = config.input_names[0]

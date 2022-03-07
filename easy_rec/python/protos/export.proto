@@ -49,7 +49,14 @@ message ExportConfig {
     // filter out inputs, only keep effective ones
     optional bool filter_inputs = 12 [default = true];
 
+    // export the original feature values as string
+    optional bool export_features = 13 [default = false];
+
+    // export the outputs required by RTP
+    optional bool export_rtp_outputs = 14 [default = false];
+
     // only for e2e_mm_dbmtl
-    optional string img_input_name = 13;
-    optional ImgShape img_shape = 14;
+    optional string img_input_name = 15;
+    optional ImgShape img_shape = 16;
+
 }
