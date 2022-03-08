@@ -84,6 +84,7 @@ data_config {
   prefetch_size: 32
   input_type: GraphInput
 }
+```
 
 - input_fields:
   - input_name: 输入特征名, 对应odps表的字段名或者csv文件的header名(如果没有header,按照字段顺序一一对应)
