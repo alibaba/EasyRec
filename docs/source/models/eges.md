@@ -44,7 +44,8 @@ graph_eval_input {
   - float对应的类型是double
   - string对应的类型是string
 
-#### 特征配置
+#### 数据配置
+```protobuf
 data_config {
   input_fields {
     input_name: 'adgroup_id'
