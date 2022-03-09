@@ -82,7 +82,7 @@ def train_and_evaluate(estimator, train_spec, eval_spec):
 
   result = executor.run()
 
-  if estimator_utils.is_master() or estimator_utils.is_evaluator():
+  if estimator_utils.is_evaluator():
     export_dir_base = os.path.join(
         compat.as_str_any(estimator.model_dir),
         compat.as_str_any('export'))

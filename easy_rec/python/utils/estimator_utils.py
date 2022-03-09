@@ -640,4 +640,4 @@ def is_evaluator():
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'task' in tf_config:
       return tf_config['task']['type'] == 'evaluator'
-  return True
+  return False
