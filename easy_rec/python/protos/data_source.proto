@@ -18,3 +18,8 @@ message DatahubServer{
     required uint32 shard_num  = 6;
     required uint32 life_cycle = 7;
 }
+
+message GraphLearnInput {
+    repeated string node_inputs = 1;
+    repeated string edge_inputs = 2;
+}

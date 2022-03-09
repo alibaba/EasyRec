@@ -3,6 +3,7 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.ops import variable_scope
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
@@ -34,7 +35,22 @@ class InputLayer(object):
                use_embedding_variable=False,
                embedding_regularizer=None,
                kernel_regularizer=None,
-               is_training=False):
+               is_training=False,
+               group_as_scope=False):
+    """Build an input_layer to generate features specified by feature_configs.
+
+    Args:
+      feature_configs: feature_config.features in pipeline.config.
+      feature_groups_config: feature_groups defined in model_config.
+      variational_dropout_config: for variational dropout.
+      wide_output_dim: for wide_and_deep and deepfm models, the wide part generates embedding.
+      use_embedding_variable: whether to use sparse embedding(kv indexed).
+      embedding_regularizer: regularization loss over the embedding_lookup results.
+      kernel_regularizer: regularization loss over dnn kernel parameters.
+      is_training: true if train phase, otherwise false.
+      group_as_scope: use group name as variable scope name to ensure embedding
+          sharing between different feature groups.
+    """
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
@@ -64,6 +80,7 @@ class InputLayer(object):
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
     self._variational_dropout_config = variational_dropout_config
+    self._group_as_scope = group_as_scope
 
   def has_group(self, group_name):
     return group_name in self._feature_groups
@@ -197,18 +214,24 @@ class InputLayer(object):
     feature_group = self._feature_groups[group_name]
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
+    scope_name = group_name if self._group_as_scope else None
+    reuse = variable_scope.AUTO_REUSE if self._group_as_scope else None
     if is_combine:
       cols_to_output_tensors = {}
       output_features = feature_column.input_layer(
           features,
           group_columns,
           cols_to_output_tensors=cols_to_output_tensors,
-          feature_name_to_output_tensors=feature_name_to_output_tensors)
+          feature_name_to_output_tensors=feature_name_to_output_tensors,
+          scope=scope_name)
       embedding_reg_lst = [output_features]
       builder = feature_column._LazyBuilder(features)
       seq_features = []
+      if scope_name is None:
+        scope_name = 'input_layer'
       for column in sorted(group_seq_columns, key=lambda x: x.name):
-        with tf.variable_scope(None, default_name=column._var_scope_name):
+        with variable_scope.variable_scope(
+            scope_name + '/' + column._var_scope_name, reuse=reuse):
           seq_feature, seq_len = column._get_sequence_dense_tensor(builder)
           embedding_reg_lst.append(seq_feature)
 
@@ -241,7 +264,8 @@ class InputLayer(object):
             seq_features.append(cnn_feature)
             cols_to_output_tensors[column] = cnn_feature
           else:
-            raise NotImplementedError
+            raise NotImplementedError('unknown sequence combiner type: %s' %
+                                      sequence_combiner.WhichOneof('combiner'))
       if self._variational_dropout_config is not None:
         features_dimension = [
             cols_to_output_tensors[x].get_shape()[-1] for x in group_columns
@@ -266,8 +290,11 @@ class InputLayer(object):
       builder = feature_column._LazyBuilder(features)
       seq_features = []
       embedding_reg_lst = []
+      if scope_name is None:
+        scope_name = 'input_layer'
       for fc in group_seq_columns:
-        with tf.variable_scope('input_layer/' + fc.categorical_column.name):
+        with variable_scope.variable_scope(
+            scope_name + '/' + fc._var_scope_name, reuse=reuse):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
           seq_features.append((tmp_embedding, tmp_seq_len))
           embedding_reg_lst.append(tmp_embedding)

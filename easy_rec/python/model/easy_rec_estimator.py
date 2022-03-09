@@ -86,6 +86,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         is_training=True)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
+    assert loss_dict is not None, 'loss_dict should be returned by build_loss_graph'
 
     regularization_losses = tf.get_collection(
         tf.GraphKeys.REGULARIZATION_LOSSES)

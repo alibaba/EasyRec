@@ -1,6 +1,8 @@
 syntax = "proto2";
 package protos;
 
+import "easy_rec/python/protos/graph.proto";
+
 // Weighted Random Sampling ItemID not in Batch
 message NegativeSampler {
     // sample data path
@@ -179,6 +181,7 @@ message DatasetConfig {
         DummyInput = 8;
         KafkaInput = 13;
         HiveInput = 17;
+        GraphInput = 18;
     }
     required InputType input_type = 10;
 
@@ -248,4 +251,5 @@ message DatasetConfig {
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
 
+    optional GraphConfig graph_config = 26;
 }

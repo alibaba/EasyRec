@@ -283,6 +283,10 @@ def main(argv):
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
+
+    if FLAGS.eval_method == 'separate':
+      pai_util.set_has_evaluator()
+
     num_worker = set_tf_config_and_get_train_worker_num(
         FLAGS.ps_hosts,
         FLAGS.worker_hosts,

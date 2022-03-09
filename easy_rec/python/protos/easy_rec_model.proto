@@ -10,6 +10,8 @@ import "easy_rec/python/protos/feature_config.proto";
 import "easy_rec/python/protos/dropoutnet.proto";
 import "easy_rec/python/protos/dssm.proto";
 import "easy_rec/python/protos/collaborative_metric_learning.proto";
+import "easy_rec/python/protos/mind.proto";
+import "easy_rec/python/protos/eges.proto";
 import "easy_rec/python/protos/mmoe.proto";
 import "easy_rec/python/protos/esmm.proto";
 import "easy_rec/python/protos/dbmtl.proto";
@@ -17,7 +19,6 @@ import "easy_rec/python/protos/ple.proto";
 import "easy_rec/python/protos/simple_multi_task.proto";
 import "easy_rec/python/protos/dcn.proto";
 import "easy_rec/python/protos/autoint.proto";
-import "easy_rec/python/protos/mind.proto";
 import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
@@ -65,6 +66,7 @@ message EasyRecModel {
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
+        EGES eges = 205;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
@@ -95,4 +97,8 @@ message EasyRecModel {
     optional VariationalDropoutLayer variational_dropout = 14;
 
     repeated Loss losses = 15;
+
+    // use group_name as scope_name to ensure embedding sharing
+    // between different feature_groups.
+    optional bool group_as_scope = 1001 [default=false];
 }

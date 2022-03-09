@@ -24,6 +24,7 @@ class CSVInput(Input):
     super(CSVInput, self).__init__(data_config, feature_config, input_path,
                                    task_index, task_num)
     self._with_header = data_config.with_header
+    # only for csv file with headers
     self._field_names = None
 
   def _parse_csv(self, line):

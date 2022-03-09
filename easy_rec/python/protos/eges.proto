@@ -1,0 +1,10 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message EGES {
+  required DNN dnn = 1;
+
+  optional float l2_regularization = 2 [default=0.0];
+}

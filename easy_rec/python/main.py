@@ -246,29 +246,15 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   return pipeline_config
 
 
-def _get_input_object_by_name(pipeline_config, worker_type):
-  """"
-    get object by worker type
+def _get_input_object_by_task_type(pipeline_config, task_type):
+  """Get subclass input by task type.
 
-    pipeline_config: pipeline_config
-    worker_type: train or eval
+  pipeline_config: pipeline_config
+  task_type: train or eval
   """
-  input_type = "{}_path".format(worker_type)
+  input_type = '{}_path'.format(task_type)
   input_name = pipeline_config.WhichOneof(input_type)
-  _dict = {"kafka_train_input": pipeline_config.kafka_train_input,
-           "kafka_eval_input": pipeline_config.kafka_eval_input,
-           "datahub_train_input": pipeline_config.datahub_train_input,
-           "datahub_eval_input": pipeline_config.datahub_eval_input,
-           "hive_train_input": pipeline_config.hive_train_input,
-           "hive_eval_input": pipeline_config.hive_eval_input
-           }
-  if input_name in _dict:
-    return _dict[input_name]
-
-  if worker_type == "train":
-    return pipeline_config.train_input_path
-  else:
-    return pipeline_config.eval_input_path
+  return getattr(pipeline_config, input_name)
 
 
 def _train_and_evaluate_impl(pipeline_config, continue_train=False):
@@ -284,8 +270,8 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
         % pipeline_config.train_config.train_distribute)
     pipeline_config.train_config.sync_replicas = False
 
-  train_data = _get_input_object_by_name(pipeline_config, 'train')
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  train_data = _get_input_object_by_task_type(pipeline_config, 'train')
+  eval_data = _get_input_object_by_task_type(pipeline_config, 'eval')
 
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
@@ -362,10 +348,7 @@ def evaluate(pipeline_config,
       pipeline_config.eval_input_path = eval_data_path
   train_config = pipeline_config.train_config
 
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
+  eval_data = _get_input_object_by_task_type(pipeline_config, 'eval')
 
   server_target = None
   if 'TF_CONFIG' in os.environ:

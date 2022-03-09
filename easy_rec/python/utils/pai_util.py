@@ -26,6 +26,15 @@ def set_on_pai():
   os.environ['IS_ON_PAI'] = '1'
 
 
+def set_has_evaluator():
+  logging.info('set environment variable: HAS_EVALUATOR')
+  os.environ['HAS_EVALUATOR'] = '1'
+
+
+def has_evaluator():
+  return 'HAS_EVALUATOR' in os.environ
+
+
 def download(url):
   _, fname = os.path.split(url)
   request = Request(url=url)

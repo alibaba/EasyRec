@@ -14,17 +14,18 @@ import "easy_rec/python/protos/hive_config.proto";
 
 message EasyRecConfig {
   oneof train_path {
-      string train_input_path = 1;
-      KafkaServer kafka_train_input = 2;
-      DatahubServer datahub_train_input = 12;
-      HiveConfig hive_train_input = 21;
+      string train_input_path = 101;
+      KafkaServer kafka_train_input = 102;
+      DatahubServer datahub_train_input = 103;
+      HiveConfig hive_train_input = 104;
+      GraphLearnInput graph_train_input = 105;
   }
   oneof eval_path {
-      string eval_input_path = 3;
-      KafkaServer kafka_eval_input = 4;
-      DatahubServer datahub_eval_input = 13;
-      HiveConfig hive_eval_input= 22;
-
+      string eval_input_path = 201;
+      KafkaServer kafka_eval_input = 202;
+      DatahubServer datahub_eval_input = 203;
+      HiveConfig hive_eval_input= 204;
+      GraphLearnInput graph_eval_input = 205;
   }
   required string model_dir = 5;
 

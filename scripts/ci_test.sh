@@ -5,7 +5,11 @@ pip install oss2
 pip install -r requirements.txt
 
 # update/generate proto
-bash scripts/gen_proto.sh
+bash scripts/init.sh
+if [ $? -ne 0 ]
+then
+  exit 1
+fi
 
 export CUDA_VISIBLE_DEVICES=""
 export TEST_DEVICES=""
