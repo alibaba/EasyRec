@@ -32,6 +32,7 @@ from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 
 if tf.__version__ >= '2.0':
@@ -140,10 +141,15 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
       logging.info('sync_replicas: num_worker_replias = %d' %
                    run_config.num_worker_replicas)
+      if pai_util.is_on_pai:
+        extra_args = {'sparse_accumulator_type': self.train_config.sparse_accumulator_type}
+      else:
+        extra_args = {}
       optimizer = tf.train.SyncReplicasOptimizer(
           optimizer,
           replicas_to_aggregate=run_config.num_worker_replicas,
-          total_num_replicas=run_config.num_worker_replicas)
+          total_num_replicas=run_config.num_worker_replicas,
+          **extra_args)
       hooks.append(
           optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
 
