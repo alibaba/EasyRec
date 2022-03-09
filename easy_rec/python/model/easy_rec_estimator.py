@@ -141,7 +141,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
       logging.info('sync_replicas: num_worker_replias = %d' %
                    run_config.num_worker_replicas)
-      if pai_util.is_on_pai:
+      if pai_util.is_on_pai():
         extra_args = {'sparse_accumulator_type': self.train_config.sparse_accumulator_type}
       else:
         extra_args = {}
