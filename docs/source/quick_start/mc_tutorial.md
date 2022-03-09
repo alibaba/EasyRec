@@ -147,7 +147,7 @@ data_config {
 
 #### 特征相关
 
-特征配置具体见：[特征](../feature/feature.md)
+特征配置具体见：[特征](../feature/feature.rst)
 
 ```protobuf
 feature_config: {
