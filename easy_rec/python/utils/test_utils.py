@@ -385,25 +385,27 @@ def _get_ports(num_worker):
     logging.info('ports %s in use, retry...' % ports)
 
 
-def _ps_worker_train(pipeline_config_path, test_dir, num_worker):
+def _ps_worker_train(pipeline_config_path, test_dir, num_worker, num_evaluator=0):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
   if len(gpus) < num_worker:
     gpus = [None] * num_worker
   ports = _get_ports(num_worker + 1)
+  chief_or_master = 'master' if num_evaluator == 0 else 'chief'
+  cluster = {
+      chief_or_master: ['localhost:%d' % ports[0]],
+      'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
+      'ps': ['localhost:%d' % ports[-1]]
+  }
   tf_config = {
-      'cluster': {
-          'master': ['localhost:%d' % ports[0]],
-          'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
-          'ps': ['localhost:%d' % ports[-1]]
-      }
+      'cluster': cluster
   }
   procs = {}
-  tf_config['task'] = {'type': 'master', 'index': 0}
+  tf_config['task'] = {'type': chief_or_master, 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % pipeline_config_path
-  procs['master'] = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
+  procs[chief_or_master] = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id('')
@@ -416,6 +418,12 @@ def _ps_worker_train(pipeline_config_path, test_dir, num_worker):
     worker_name = 'worker_%d' % idx
     procs[worker_name] = run_cmd(train_cmd,
                                  '%s/log_%s.txt' % (test_dir, worker_name))
+  if num_evaluator > 0:
+    tf_config['task'] = {'type':'evaluator', 'index':0}
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    set_gpu_id('')
+    procs['evaluator'] = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'evaluator'))
+
   return procs
 
 
@@ -442,7 +450,7 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
   return procs
 
 
-def test_distributed_train_eval(pipeline_config_path, test_dir, total_steps=50):
+def test_distributed_train_eval(pipeline_config_path, test_dir, total_steps=50, num_evaluator=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
@@ -455,7 +463,7 @@ def test_distributed_train_eval(pipeline_config_path, test_dir, total_steps=50):
   try:
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker)
+      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker, num_evaluator)
     elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:
       num_worker = 2
       procs = _multi_worker_mirror_train(test_pipeline_config_path, test_dir,
