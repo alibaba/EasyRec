@@ -247,8 +247,10 @@ class InputLayer(object):
             cols_to_output_tensors[x].get_shape()[-1] for x in group_columns
         ]
         variational_dropout = variational_dropout_layer.VariationalDropoutLayer(
-            self._variational_dropout_config, features_dimension,
-            self._is_training)
+            self._variational_dropout_config,
+            features_dimension,
+            self._is_training,
+            name=group_name)
         noisy_features = variational_dropout(output_features)
         concat_features = tf.concat([noisy_features] + seq_features, axis=-1)
       else:
