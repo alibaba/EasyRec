@@ -156,7 +156,6 @@ class HiveInput(Input):
       conn = self._construct_hive_connect()
       cursor = conn.cursor()
       sql = table_info.gen_sql()
-      res = []
       cursor.execute(sql)
 
       batch_defaults = [
@@ -165,23 +164,25 @@ class HiveInput(Input):
 
       row_id = 0
       batch_data_np = [x.copy() for x in batch_defaults]
-      for result in cursor.fetchall():
-        res.append(1)
-        for col_id in range(len(record_defaults)):
-          if result[col_id] not in ['', 'NULL', None]:
-            batch_data_np[col_id][row_id] = result[col_id]
-        if len(res) == self._data_config.batch_size:
-          yield tuple(batch_data_np)
-          res = []
-          row_id = 0
-          batch_data_np = [x.copy() for x in batch_defaults]
-        else:
-          row_id += 1
-
-      if len(res) > 0:
+      while True:
+        data = cursor.fetchmany(size=16)
+        if len(data) == 0:
+          break
+        for row in data:
+          for col_id in range(len(record_defaults)):
+            if row[col_id] not in ['', 'NULL', None]:
+              batch_data_np[col_id][row_id] = row[col_id]
+            row_id += 1
+            if row_id == self._data_config.batch_size:
+              yield tuple(batch_data_np)
+              row_id = 0
+              batch_data_np = [x.copy() for x in batch_defaults]
+      if row_id > 0:
         yield tuple(batch_data_np)
+      cursor.close()
       conn.close()
     logging.info('finish epoch[%d]' % self._num_epoch_record)
+
 
   def _build(self, mode, params):
     # get input type
