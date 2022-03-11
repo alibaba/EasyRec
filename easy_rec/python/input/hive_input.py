@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-
 import logging
-
 import numpy as np
 import tensorflow as tf
 
@@ -105,8 +103,9 @@ class HiveInput(Input):
                task_num=1):
     super(HiveInput, self).__init__(data_config, feature_config, input_path,
                                     task_index, task_num)
-    self._hive_config = data_config.hive_config
+    self._hive_config = input_path
     self._num_epoch = data_config.num_epochs
+    self._num_epoch_record = 1
 
   def _construct_table_info(self, table_name, hash_fields, limit_num):
     # sample_table/dt=2014-11-23/name=a
@@ -138,10 +137,9 @@ class HiveInput(Input):
     return inputs
 
   def _hive_read(self):
-    logging.info('start epoch[%d]' % self._num_epoch)
-    self._num_epoch += 1
-    if type(self._input_path) != list:
-      self._input_path = [x for x in str(self._input_path).split(',')]
+    logging.info('start epoch[%d]' % self._num_epoch_record)
+    self._num_epoch_record += 1
+    talbe_names = [t for t in str(self._hive_config.table_name).split(',')]
 
     # check data_config are consistent with odps tables
     odps_util.check_input_field_and_types(self._data_config)
@@ -151,7 +149,7 @@ class HiveInput(Input):
         for x, v in zip(self._input_field_types, self._input_field_defaults)
     ]
 
-    for table_path in self._input_path:
+    for table_path in talbe_names:
       table_info = self._construct_table_info(table_path,
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
@@ -183,7 +181,7 @@ class HiveInput(Input):
       if len(res) > 0:
         yield tuple(batch_data_np)
       conn.close()
-    logging.info('finish epoch[%d]' % self._num_epoch)
+    logging.info('finish epoch[%d]' % self._num_epoch_record)
 
   def _build(self, mode, params):
     # get input type
