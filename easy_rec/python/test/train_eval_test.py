@@ -30,8 +30,8 @@ class TrainEvalTest(tf.test.TestCase):
 
   def tearDown(self):
     test_utils.set_gpu_id(None)
-    # if self._success:
-    #   test_utils.clean_up(self._test_dir)
+    if self._success:
+      test_utils.clean_up(self._test_dir)
 
   def test_deepfm_with_lookup_feature(self):
     self._success = test_utils.test_single_train_eval(
