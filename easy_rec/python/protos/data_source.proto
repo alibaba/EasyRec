@@ -20,7 +20,8 @@ message DatahubServer{
 }
 
 message BinaryDataInput {
-    required string category_input = 1;
-    required string dense_input = 2;
-    required string label_input = 3;
+    // support gfile.Glob
+    repeated string category_path = 1;
+    repeated string dense_path = 2;
+    repeated string label_path = 3;
 }

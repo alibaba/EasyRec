@@ -128,6 +128,13 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       return None
 
+  def should_stop(self, curr_epoch):
+    """Check whether have run enough num epochs."""
+    total_epoch = self.num_epochs
+    if self._mode != tf.estimator.ModeKeys.TRAIN:
+      total_epoch = 1
+    return total_epoch is not None and curr_epoch >= total_epoch
+
   def get_tf_type(self, field_type):
     type_map = {
         DatasetConfig.INT32: tf.int32,

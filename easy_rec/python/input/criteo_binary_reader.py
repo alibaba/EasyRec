@@ -1,66 +1,131 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
+import argparse
 import concurrent
 import concurrent.futures
+import glob
+import logging
 import os
 import queue
 import time
 
 import numpy as np
-import tensorflow as tf
-
-# import horovod.tensorflow as hvd
 
 
 class BinaryDataset:
 
   def __init__(
       self,
-      label_bin,
-      dense_bin,
-      category_bin,
+      label_bins,
+      dense_bins,
+      category_bins,
       batch_size=1,
       drop_last=False,
       prefetch=1,
       global_rank=0,
       global_size=1,
   ):
-    file_size = os.path.getsize(label_bin)
-    if file_size % 4 != 0:
-      raise RuntimeError(
-          'The file size of {} should be an integer multiple of 4.'.format(
-              label_bin))
-    num_samples = file_size // 4
-    assert (os.path.getsize(dense_bin) // 52 == num_samples)
-    assert (os.path.getsize(category_bin) // 104 == num_samples)
+    total_sample_num = 0
+    sample_num_arr = []
+    for label_bin in label_bins:
+      sample_num = os.path.getsize(label_bin) // 4
+      total_sample_num += sample_num
+      sample_num_arr.append(sample_num)
+    logging.info('total number samples = %d' % total_sample_num)
 
-    if global_rank == (global_size - 1):
-      self._num_samples = num_samples - (num_samples //
-                                         global_size) * global_rank
+    self._sampler_num_arr = sample_num_arr
+
+    # ensure all workers have the same number of samples
+    avg_sample_num = (total_sample_num // global_size)
+    res_num = (total_sample_num % global_size)
+    self._num_samples = avg_sample_num
+    if res_num > 0:
+      self._num_samples += 1
+      if global_rank < res_num:
+        global_start_pos = (avg_sample_num + 1) * global_rank
+      else:
+        global_start_pos = avg_sample_num * global_rank + res_num - 1
     else:
-      self._num_samples = num_samples // global_size
+      global_start_pos = avg_sample_num * global_rank
+    # global_end_pos = global_start_pos + self._num_samples
 
-    self._bytes_offset_label = num_samples // global_size * 4 * global_rank
-    self._bytes_offset_dense = num_samples // global_size * 52 * global_rank
-    self._bytes_offset_category = num_samples // global_size * 104 * global_rank
-
+    self._batch_size = batch_size
+    self._drop_last = drop_last
     self._num_entries = self._num_samples // batch_size
+    self._last_batch_size = batch_size
     if not drop_last and (self._num_samples % batch_size != 0):
       self._num_entries += 1
+      self._last_batch_size = self._num_samples % batch_size
+    logging.info('num_batches = %d num_samples = %d' %
+                 (self._num_entries, self._num_samples))
 
-    self._batch_size = batch_size
-    self._drop_last = drop_last
+    start_file_id = 0
+    curr_pos = 0
+    while curr_pos + sample_num_arr[start_file_id] <= global_start_pos:
+      start_file_id += 1
+      curr_pos += sample_num_arr[start_file_id]
+    self._start_file_id = start_file_id
+    self._start_file_pos = global_start_pos - curr_pos
+
+    logging.info('start_file_id = %d start_file_pos = %d' %
+                 (start_file_id, self._start_file_pos))
+
+    # find the start of each batch
+    self._start_pos_arr = np.zeros([self._num_entries, 2], dtype=np.uint32)
+    batch_id = 0
+    tmp_start_pos = self._start_file_pos
+    while batch_id < self._num_entries:
+      self._start_pos_arr[batch_id] = (start_file_id, tmp_start_pos)
+      batch_id += 1
+      # the last batch
+      if batch_id == self._num_entries:
+        tmp_start_pos += self._last_batch_size
+        while start_file_id < len(
+            sample_num_arr) and tmp_start_pos > sample_num_arr[start_file_id]:
+          tmp_start_pos -= sample_num_arr[start_file_id]
+          start_file_id += 1
+      else:
+        tmp_start_pos += batch_size
+        while start_file_id < len(
+            sample_num_arr) and tmp_start_pos >= sample_num_arr[start_file_id]:
+          tmp_start_pos -= sample_num_arr[start_file_id]
+          start_file_id += 1
+
+    self._end_file_id = start_file_id
+    self._end_file_pos = tmp_start_pos
+
+    logging.info('end_file_id = %d end_file_pos = %d' %
+                 (self._end_file_id, self._end_file_pos))
+
+    self._label_file_arr = [None for _ in self._sampler_num_arr]
+    self._dense_file_arr = [None for _ in self._sampler_num_arr]
+    self._category_file_arr = [None for _ in self._sampler_num_arr]
+
+    for tmp_file_id in range(self._start_file_id, self._end_file_id + 1):
+      self._label_file_arr[tmp_file_id] = os.open(label_bins[tmp_file_id],
+                                                  os.O_RDONLY)
+      self._dense_file_arr[tmp_file_id] = os.open(dense_bins[tmp_file_id],
+                                                  os.O_RDONLY)
+      self._category_file_arr[tmp_file_id] = os.open(category_bins[tmp_file_id],
+                                                     os.O_RDONLY)
 
     self._prefetch = min(prefetch, self._num_entries)
     self._prefetch_queue = queue.Queue()
-    self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    self._executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=self._prefetch)
 
-    self._label_file = os.open(label_bin, os.O_RDONLY)
-    self._dense_file = os.open(dense_bin, os.O_RDONLY)
-    self._category_file = os.open(category_bin, os.O_RDONLY)
+    self._os_close_func = os.close
 
   def __del__(self):
-    for file in [self._label_file, self._dense_file, self._category_file]:
-      if file is not None:
-        os.close(file)
+    for f in self._label_file_arr:
+      if f is not None:
+        self._os_close_func(f)
+    for f in self._dense_file_arr:
+      if f is not None:
+        self._os_close_func(f)
+    for f in self._category_file_arr:
+      if f is not None:
+        self._os_close_func(f)
 
   def __len__(self):
     return self._num_entries
@@ -83,139 +148,106 @@ class BinaryDataset:
     return self._prefetch_queue.get().result()
 
   def _get(self, idx):
-    batch = self._batch_size
-    if (idx == self._num_entries - 1) and not self._drop_last and (
-        self._num_samples % self._batch_size != 0):
-      batch = self._num_samples % self._batch_size
+    curr_file_id = self._start_pos_arr[idx][0]
+    start_read_pos = self._start_pos_arr[idx][1]
 
-    label_raw_data = os.pread(
-        self._label_file, 4 * batch,
-        self._bytes_offset_label + idx * self._batch_size * 4)
-    label = np.frombuffer(label_raw_data, dtype=np.int32).reshape([batch, 1])
+    end_read_pos = start_read_pos + self._batch_size
+    total_read_num = 0
 
-    dense_raw_data = os.pread(
-        self._dense_file, 52 * batch,
-        self._bytes_offset_dense + idx * self._batch_size * 52)
-    dense = np.frombuffer(dense_raw_data, dtype=np.float32).reshape([batch, 13])
-    dense = np.log(dense + 3, dtype=np.float32)
+    label_read_arr = []
+    dense_read_arr = []
+    cate_read_arr = []
+    while total_read_num < self._batch_size and curr_file_id < len(
+        self._sampler_num_arr):
+      tmp_read_num = min(end_read_pos,
+                         self._sampler_num_arr[curr_file_id]) - start_read_pos
 
-    category_raw_data = os.pread(
-        self._category_file, 104 * batch,
-        self._bytes_offset_category + idx * self._batch_size * 104)
-    category = np.frombuffer(
-        category_raw_data, dtype=np.float32).reshape([batch, 26])
+      label_raw_data = os.pread(self._label_file_arr[curr_file_id],
+                                4 * tmp_read_num, start_read_pos * 4)
+      tmp_lbl_np = np.frombuffer(
+          label_raw_data, dtype=np.int32).reshape([tmp_read_num, 1])
+      label_read_arr.append(tmp_lbl_np)
 
-    return dense, category, label
+      dense_raw_data = os.pread(self._dense_file_arr[curr_file_id],
+                                52 * tmp_read_num, start_read_pos * 52)
+      part_dense_np = np.frombuffer(
+          dense_raw_data, dtype=np.float32).reshape([tmp_read_num, 13])
+      # part_dense_np = np.log(part_dense_np + 3, dtype=np.float32)
+      dense_read_arr.append(part_dense_np)
 
+      category_raw_data = os.pread(self._category_file_arr[curr_file_id],
+                                   104 * tmp_read_num, start_read_pos * 104)
+      part_cate_np = np.frombuffer(
+          category_raw_data, dtype=np.uint32).reshape([tmp_read_num, 26])
+      cate_read_arr.append(part_cate_np)
 
-class BinaryDataset2:
+      curr_file_id += 1
+      start_read_pos = 0
+      total_read_num += tmp_read_num
 
-  def __init__(
-      self,
-      label_bin,
-      dense_bin,
-      category_bin,
-      batch_size=1,
-      drop_last=False,
-      prefetch=1,
-      global_rank=0,
-      global_size=1,
-  ):
+    if len(label_read_arr) == 1:
+      label = label_read_arr[0]
+    else:
+      label = np.concatenate(label_read_arr, axis=0)
 
-    file_size = os.path.getsize(label_bin)
-    if file_size % 4 != 0:
-      raise RuntimeError(
-          'The file size of {} should be an integer multiple of 4.'.format(
-              label_bin))
-    num_samples = file_size // 4
-    assert (os.path.getsize(dense_bin) // 52 == num_samples)
-    assert (os.path.getsize(category_bin) // 104 == num_samples)
+    if len(cate_read_arr) == 1:
+      category = cate_read_arr[0]
+    else:
+      category = np.concatenate(cate_read_arr, axis=0)
 
-    self._num_entries = num_samples // (batch_size * global_size)
-    self._num_samples = self._num_entries * batch_size
-    assert ((num_samples -
-             self._num_samples * global_size) == (num_samples %
-                                                  (batch_size * global_size)))
-
-    self._batch_size = batch_size
-    self._drop_last = drop_last
-    self._global_rank = global_rank
-    self._global_size = global_size
-
-    self._prefetch = min(prefetch, self._num_entries)
-    self._prefetch_queue = queue.Queue()
-    self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
-    self._label_file = os.open(label_bin, os.O_RDONLY)
-    self._dense_file = os.open(dense_bin, os.O_RDONLY)
-    self._category_file = os.open(category_bin, os.O_RDONLY)
-
-  def __del__(self):
-    for file in [self._label_file, self._dense_file, self._category_file]:
-      if file is not None:
-        os.close(file)
-
-  def __len__(self):
-    return self._num_entries
-
-  def __getitem__(self, idx):
-    if idx >= self._num_entries:
-      raise IndexError()
-
-    if self._prefetch <= 1:
-      return self._get(idx)
-
-    if idx == 0:
-      for i in range(self._prefetch):
-        self._prefetch_queue.put(self._executor.submit(self._get, (i)))
-
-    if idx < (self._num_entries - self._prefetch):
-      self._prefetch_queue.put(
-          self._executor.submit(self._get, (idx + self._prefetch)))
-
-    return self._prefetch_queue.get().result()
-
-  def _get(self, idx):
-    sample_offset = idx * self._batch_size * self._global_size + self._global_rank * self._batch_size
-
-    label_raw_data = os.pread(self._label_file, 4 * self._batch_size,
-                              4 * sample_offset)
-    label = np.frombuffer(
-        label_raw_data, dtype=np.int32).reshape([self._batch_size, 1])
-
-    dense_raw_data = os.pread(self._dense_file, 52 * self._batch_size,
-                              52 * sample_offset)
-    dense = np.frombuffer(
-        dense_raw_data, dtype=np.float32).reshape([self._batch_size, 13])
-    dense = np.log(dense + 3, dtype=np.float32)
-
-    category_raw_data = os.pread(self._category_file, 104 * self._batch_size,
-                                 104 * sample_offset)
-    category = np.frombuffer(
-        category_raw_data, dtype=np.float32).reshape([self._batch_size, 26])
+    if len(dense_read_arr) == 1:
+      dense = dense_read_arr[0]
+    else:
+      dense = np.concatenate(dense_read_arr, axis=0)
 
     return dense, category, label
 
 
 if __name__ == '__main__':
-  global_batch_size = 1024
-  dataset_dir = './dataset/'
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--batch_size', type=int, default=1024, help='batch_size')
+  parser.add_argument(
+      '--dataset_dir', type=str, default='./', help='dataset_dir')
+  parser.add_argument('--task_num', type=int, default=1, help='task number')
+  parser.add_argument('--task_index', type=int, default=0, help='task index')
+  parser.add_argument(
+      '--prefetch_size', type=int, default=10, help='prefetch size')
+  args = parser.parse_args()
+
+  batch_size = args.batch_size
+  dataset_dir = args.dataset_dir
+  logging.info('batch_size = %d' % batch_size)
+  logging.info('dataset_dir = %s' % dataset_dir)
+
+  label_files = glob.glob(os.path.join(dataset_dir, '*_label.bin'))
+  dense_files = glob.glob(os.path.join(dataset_dir, '*_dense.bin'))
+  category_files = glob.glob(os.path.join(dataset_dir, '*_category.bin'))
+
+  label_files.sort()
+  dense_files.sort()
+  category_files.sort()
+
   test_dataset = BinaryDataset(
-      dataset_dir + 'label.bin',
-      dataset_dir + 'dense.bin',
-      dataset_dir + 'category.bin',
-      batch_size=global_batch_size,
+      label_files,
+      dense_files,
+      category_files,
+      batch_size=batch_size,
       drop_last=False,
-      prefetch=10,
-      global_rank=0,
-      global_size=1,
+      prefetch=args.prefetch_size,
+      global_rank=args.task_index,
+      global_size=args.task_num,
   )
 
   for step, (dense, category, labels) in enumerate(test_dataset):
-    if (step % 100 == 0):
-      print(step, 0)
+    # if (step % 100 == 0):
+    #   print(step, dense.shape, category.shape, labels.shape)
     if step == 0:
-      print('warmup over!')
+      logging.info('warmup over!')
       start_time = time.time()
     if step == 1000:
-      print('1000 steps ==', time.time() - start_time, 0)
+      logging.info('1000 steps time = %.3f' % (time.time() - start_time))
+  logging.info('total_steps = %d total_time = %.3f' %
+               (step + 1, time.time() - start_time))
+  logging.info(
+      'final step[%d] dense_shape=%s category_shape=%s labels_shape=%s' %
+      (step, dense.shape, category.shape, labels.shape))

@@ -104,7 +104,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     pass
 
   def build_output_dict(self):
-    """for exporting: get standard output nodes."""
+    """For exporting: get standard output nodes."""
     outputs = {}
     for name in self.get_outputs():
       if name not in self._prediction_dict:
@@ -115,7 +115,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return outputs
 
   def build_feature_output_dict(self):
-    """for exporting: get output feature nodes."""
+    """For exporting: get output feature nodes."""
     outputs = {}
     for feature_name in self._feature_dict:
       out_name = 'feature_' + feature_name
@@ -134,7 +134,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return outputs
 
   def build_rtp_output_dict(self):
-    """for exporting: get output nodes for RTP infering."""
+    """For exporting: get output nodes for RTP infering."""
     return {}
 
   def restore(self,
