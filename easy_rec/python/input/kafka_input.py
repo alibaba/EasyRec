@@ -7,11 +7,22 @@ import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 
+try:
+  from tensorflow_io.kafka import KafkaDataset
+except ImportError:
+  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
+except NotImplementedError:
+  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
+except ValueError:
+  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class KafkaInput(Input):
+
+  DATA_OFFSET = 'DATA_OFFSET'
 
   def __init__(self,
                data_config,
@@ -23,91 +34,82 @@ class KafkaInput(Input):
                                      task_index, task_num)
     self._kafka = kafka_config
 
-  def _parse_csv(self, line):
+  def _preprocess(self, field_dict):
+    output_dict = super(KafkaInput, self)._preprocess(field_dict)
+    output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
+
+    if Input.DATA_OFFSET not in self._appended_fields: 
+      self._appended_fields.append(Input.DATA_OFFSET)
+    return output_dict
+
+  def _parse_csv(self, line, message_key, message_offset):
     record_defaults = [
         self.get_type_defaults(t, v)
         for t, v in zip(self._input_field_types, self._input_field_defaults)
     ]
 
-    def _check_data(line):
-      sep = self._data_config.separator
-      if type(sep) != type(str):
-        sep = sep.encode('utf-8')
-      field_num = len(line[0].split(sep))
-      assert field_num == len(record_defaults),\
-          'sep[%s] maybe invalid: field_num=%d, required_num=%d' % (sep, field_num, len(record_defaults))
-      return True
-
-    check_op = tf.py_func(_check_data, [line], Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
-      fields = tf.decode_csv(
-          line,
-          field_delim=self._data_config.separator,
-          record_defaults=record_defaults,
-          name='decode_csv')
+    fields = tf.decode_csv(
+        line,
+        use_quote_delim=False,
+        field_delim=self._data_config.separator,
+        record_defaults=record_defaults,
+        name='decode_csv')
 
     inputs = {self._input_fields[x]: fields[x] for x in self._effective_fids}
 
     for x in self._label_fids:
       inputs[self._input_fields[x]] = fields[x]
+
+    offset_vals = tf.strings.split(message_offset, ':').values
+    offset_vals = tf.reshape(offset_vals, [-1, 2])
+    offset_vals = offset_vals[:, 1]
+
+    inputs[Input.DATA_OFFSET] = tf.string_to_number(offset_vals, tf.int64)
     return inputs
 
   def _build(self, mode, params):
-    try:
-      import tensorflow_io.kafka as kafka_io
-    except ImportError:
-      logging.error(
-          'Please install tensorflow-io, '
-          'version compatibility can refer to https://github.com/tensorflow/io#tensorflow-version-compatibility'
-      )
-
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
-      train = self._kafka
+      train_kafka = self._kafka
       topics = []
-      i = self._task_index
-      assert len(train.offset) == 1 or len(train.offset) == train.partitions, \
-          'number of train.offset must be 1 or train.partitions'
-      while i < train.partitions:
-        offset_i = train.offset[i] if i < len(
-            train.offset) else train.offset[-1]
-        topics.append(train.topic + ':' + str(i) + ':' + str(offset_i) + ':-1')
-        i = i + self._task_num
+      assert train_kafka.partitions == len(train_kafka.offset)
+      for part_id, offset in enumerate(train_kafka.offset):
+        if (part_id % self._task_num) == self._task_index:
+          topics.append('%s:%d:%d:-1' % (train_kafka.topic, self._task_index, offset))
+      assert len(topics) > 0, 'no partitions are assigned for train task(%d)' % self._task_index
 
       logging.info(
           'train kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
           %
-          (train.server, train.topic, self._task_num, self._task_index, topics))
-      if len(topics) == 0:
-        logging.info('train kafka topic is empty')
-        sys.exit(1)
+          (train_kafka.server, train_kafka.topic, self._task_num, self._task_index, topics))
 
-      dataset = kafka_io.KafkaDataset(
-          topics, servers=train.server, group=train.group, eof=False)
+      dataset = KafkaDataset(
+          topics,
+          servers=train_kafka.server,
+          group=train_kafka.group,
+          eof=False,
+          message_key=True,
+          message_offset=True)
       dataset = dataset.repeat(1)
     else:
-      eval = self._kafka
-      topics = []
-      i = 0
-      assert len(eval.offset) == 1 or len(eval.offset) == eval.partitions, \
-          'number of eval.offset must be 1 or eval.partitions'
-      while i < eval.partitions:
-        offset_i = eval.offset[i] if i < len(eval.offset) else eval.offset[-1]
-        topics.append(eval.topic + ':' + str(i) + ':' + str(eval.offset) +
-                      ':-1')
-        i = i + 1
+      eval_kafka = self._kafka
+      topics = [
+          '%s:%d:%d:-1' % (eval_kafka.topic, part_id, eval_kafka.offset[part_id])
+          for part_id in range(eval_kafka.partitions)
+      ]
 
       logging.info(
           'eval kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
-          % (eval.server, eval.topic, self._task_num, self._task_index, topics))
+          % (eval_kafka.server, eval_kafka.topic, self._task_num, self._task_index, topics))
 
-      if len(topics) == 0:
-        logging.info('eval kafka topic is empty')
-        sys.exit(1)
+      assert len(topics) > 0, 'eval kafka topic is not set'
 
-      dataset = kafka_io.KafkaDataset(
-          topics, servers=eval.server, group=eval.group, eof=False)
-      dataset = dataset.repeat(1)
+      dataset = tf.data.Dataset.from_tensor_slices(topics)\
+          .interleave(lambda x: KafkaDataset(
+              x, servers=eval_kafka.server, group=eval_kafka.group, eof=True,
+              config_topic='auto.offset.reset=largest',
+              message_key=True, message_offset=True).repeat(1),
+              cycle_length=len(topics), block_length=1)
 
     dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(

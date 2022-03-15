@@ -17,6 +17,7 @@ import tensorflow as tf
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import shape_utils
 
@@ -111,10 +112,10 @@ class ExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -208,10 +209,10 @@ class EvaluateExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -235,7 +236,7 @@ class ProgressHook(SessionRunHook):
     self._num_steps = num_steps
     self._is_chief = is_chief
     if self._is_chief:
-      self._progress_file = tf.gfile.GFile(filename, 'w')
+      self._progress_file = gfile.GFile(filename, 'w')
       self._progress_file.write('0.00\n')
       self._progress_interval = 0.01  # 1%
       self._last_progress_cnt = 0
@@ -276,7 +277,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
                checkpoint_basename='model.ckpt',
                scaffold=None,
                listeners=None,
-               write_graph=True):
+               write_graph=True,
+               data_offset_var=None):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -290,6 +292,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         Used for callbacks that run immediately before or after this hook saves
         the checkpoint.
       write_graph: whether to save graph.pbtxt.
+      data_offset_var: data offset variable.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.
@@ -304,6 +307,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         scaffold=scaffold,
         listeners=listeners)
     self._write_graph = write_graph
+    self._data_offset_var = data_offset_var
 
   def after_create_session(self, session, coord):
     global_step = session.run(self._global_step_tensor)
@@ -342,6 +346,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
         global_step=step,
         write_meta_graph=self._write_graph)
     save_dir, save_name = os.path.split(self._save_path)
+
+    if self._data_offset_var is not None:
+      save_data_offset = session.run(self._data_offset_var)
+      data_offset_json = {}
+      for x in save_data_offset:
+        if x :
+          data_offset_json.update(json.loads(x))
+      save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
+      with gfile.GFile(save_offset_path, 'w') as fout:
+        json.dump(data_offset_json, fout) 
 
     self._summary_writer.add_session_log(
         tf.SessionLog(
@@ -395,7 +409,7 @@ class NumpyCheckpointRestoreHook(SessionRunHook):
           vars_not_inited[var_name] = ','.join([str(s) for s in var_shape])
     self._restore_op = tf.group(assign_ops)
 
-    with tf.gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
+    with gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
       for var_name in sorted(vars_not_inited.keys()):
         f.write('%s:%s\n' % (var_name, vars_not_inited[var_name]))
     assert not has_shape_unmatch, 'exist variable shape not match, restore failed'
@@ -516,7 +530,7 @@ class OnlineEvaluationHook(SessionRunHook):
     eval_result_file = os.path.join(self._output_dir,
                                     'online_eval_result.txt-%s' % global_step)
     logging.info('Saving online eval result to file %s' % eval_result_file)
-    with tf.gfile.GFile(eval_result_file, 'w') as ofile:
+    with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
       for key in sorted(metric_value_dict):
         # convert numpy float to python float
@@ -580,7 +594,7 @@ def latest_checkpoint(model_dir):
   Return:
     model_path: xx/model.ckpt-2000
   """
-  ckpt_metas = tf.gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+  ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
   if len(ckpt_metas) == 0:
     return None
 

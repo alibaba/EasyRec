@@ -24,7 +24,7 @@ def download_data(ali_bucket, script_path):
   if os.path.exists(os.path.join(script_path, 'test')):
     shutil.rmtree(os.path.join(script_path, 'test'))
 
-  for obj in oss2.ObjectIterator(ali_bucket, prefix='test/odps/data/'):
+  for obj in oss2.ObjectIterator(ali_bucket, prefix='data/odps_test/'):
     obj_key = obj.key
     tmp_oss_dir = os.path.split(obj_key)[0]
     obj_path = os.path.join(script_path, tmp_oss_dir)
@@ -36,7 +36,7 @@ def download_data(ali_bucket, script_path):
     if obj_key.endswith('/'):
       continue
 
-    dst_name = obj_key.replace('test/odps/data/', 'test_data/')
+    dst_name = obj_key.replace('data/odps_test/', 'test_data/')
     dst_path = os.path.join(script_path, dst_name)
     dst_dir, _ = os.path.split(dst_path)
     if not os.path.exists(dst_dir):

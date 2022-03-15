@@ -23,6 +23,8 @@ _meta_type = get_register_class_meta(_INPUT_CLASS_MAP, have_abstract_class=True)
 
 class Input(six.with_metaclass(_meta_type, object)):
 
+  DATA_OFFSET = 'DATA_OFFSET' 
+
   def __init__(self,
                data_config,
                feature_configs,
