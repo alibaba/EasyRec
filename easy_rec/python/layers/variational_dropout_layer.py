@@ -21,7 +21,8 @@ class VariationalDropoutLayer(object):
   def __init__(self,
                variational_dropout_config,
                features_dimension,
-               is_training=False):
+               is_training=False,
+               name=None):
     self._config = variational_dropout_config
     self.features_dimension = features_dimension
     self.features_total_dimension = sum(self.features_dimension)
@@ -34,8 +35,9 @@ class VariationalDropoutLayer(object):
       self.drop_param_shape = [self._dropout_param_size]
     self.evaluate = not is_training
 
+    logit_p_name = 'logit_p' if name == 'all' else 'logit_p_%s' % name
     self.logit_p = tf.get_variable(
-        name='logit_p',
+        name=logit_p_name,
         shape=self.drop_param_shape,
         dtype=tf.float32,
         initializer=None)

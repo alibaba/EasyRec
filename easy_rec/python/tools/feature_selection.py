@@ -23,7 +23,8 @@ tf.app.flags.DEFINE_string('checkpoint_path', None,
                            'feature selection model checkpoint path')
 tf.app.flags.DEFINE_string('output_dir', '',
                            'feature selection result directory')
-tf.app.flags.DEFINE_integer('topk', 100, 'select topk importance features')
+tf.app.flags.DEFINE_integer(
+    'topk', 100, 'select topk importance features for each feature group')
 tf.app.flags.DEFINE_string('fg_path', '', 'fg config path')
 tf.app.flags.DEFINE_bool('visualize', False,
                          'visualization feature selection result or not')
@@ -50,24 +51,27 @@ class VariationalDropoutFS:
 
   def process(self):
     tf.logging.info('Loading logit_p of VariationalDropout layer ...')
-    feature_dim_dropout_p, embedding_wise_variational_dropout = self._feature_dim_dropout_ratio(
+    feature_dim_dropout_p_map, embedding_wise_variational_dropout = self._feature_dim_dropout_ratio(
     )
 
-    tf.logging.info('Calculating feature importance ...')
-    feature_importance = self._get_feature_importance(
-        feature_dim_dropout_p, embedding_wise_variational_dropout)
+    feature_importance_map = {}
+    for group_name, feature_dim_dropout_p in feature_dim_dropout_p_map.items():
+      tf.logging.info('Calculating %s feature importance ...' % group_name)
+      feature_importance = self._get_feature_importance(
+          feature_dim_dropout_p, embedding_wise_variational_dropout)
+      feature_importance_map[group_name] = feature_importance
+
+      tf.logging.info('Dump %s  feature importance to csv ...' % group_name)
+      self._dump_to_csv(feature_importance, group_name)
+
+      if self._visualize:
+        tf.logging.info('Visualizing %s feature importance ...' % group_name)
+        if embedding_wise_variational_dropout:
+          self._visualize_embedding_dim_importance(feature_dim_dropout_p)
+        self._visualize_feature_importance(feature_importance, group_name)
 
     tf.logging.info('Processing model config ...')
-    self._process_config(feature_importance)
-
-    tf.logging.info('Dump feature importance to csv ...')
-    self._dump_to_csv(feature_importance)
-
-    if self._visualize:
-      tf.logging.info('Visualizing feature importance ...')
-      if embedding_wise_variational_dropout:
-        self._visualize_embedding_dim_importance(feature_dim_dropout_p)
-      self._visualize_feature_importance(feature_importance)
+    self._process_config(feature_importance_map)
 
   def _feature_dim_dropout_ratio(self):
     """Get dropout ratio of embedding-wise or feature-wise."""
@@ -80,7 +84,10 @@ class VariationalDropoutFS:
         if cfg.HasField('embedding_dim') else cfg.raw_input_dim
         for cfg in config_util.get_compatible_feature_configs(config)
     }
-    features = list(config.model_config.feature_groups[0].feature_names)
+    features_map = {}
+    for feature_group in config.model_config.feature_groups:
+      features_map[feature_group.group_name] = list(feature_group.feature_names)
+
     if self._checkpoint_path is None or len(self._checkpoint_path) == 0:
       checkpoint_path = tf.train.latest_checkpoint(config.model_dir)
     else:
@@ -88,25 +95,31 @@ class VariationalDropoutFS:
 
     tf.logging.info('Reading checkpoint from %s ...' % checkpoint_path)
     reader = tf.train.NewCheckpointReader(checkpoint_path)
-    logit_p = reader.get_tensor('logit_p')
-    feature_dims_importance = tf.sigmoid(logit_p)
-    with tf.Session() as sess:
-      feature_dims_importance = feature_dims_importance.eval(session=sess)
 
-    feature_dim_dropout_p = {}
-    if embedding_wise_variational_dropout:
-      index_end = 0
-      for feature_name in features:
-        index_start = index_end
-        index_end = index_start + features_dim[feature_name]
-        feature_dim_dropout_p[feature_name] = feature_dims_importance[
-            index_start:index_end]
-    else:
-      index = 0
-      for feature_name in features:
-        feature_dim_dropout_p[feature_name] = feature_dims_importance[index]
-        index += 1
-    return feature_dim_dropout_p, embedding_wise_variational_dropout
+    feature_dim_dropout_p_map = {}
+    for group_name, features in features_map.items():
+      logit_p_name = 'logit_p' if group_name == 'all' else 'logit_p_%s' % group_name
+      logit_p = reader.get_tensor(logit_p_name)
+      feature_dims_importance = tf.sigmoid(logit_p)
+      with tf.Session() as sess:
+        feature_dims_importance = feature_dims_importance.eval(session=sess)
+
+      feature_dim_dropout_p = {}
+      if embedding_wise_variational_dropout:
+        index_end = 0
+        for feature_name in features:
+          index_start = index_end
+          index_end = index_start + features_dim[feature_name]
+          feature_dim_dropout_p[feature_name] = feature_dims_importance[
+              index_start:index_end]
+      else:
+        index = 0
+        for feature_name in features:
+          feature_dim_dropout_p[feature_name] = feature_dims_importance[index]
+          index += 1
+
+      feature_dim_dropout_p_map[group_name] = feature_dim_dropout_p
+    return feature_dim_dropout_p_map, embedding_wise_variational_dropout
 
   def _get_feature_importance(self, feature_dim_dropout_p,
                               embedding_wise_variational_dropout):
@@ -123,12 +136,13 @@ class VariationalDropoutFS:
           sorted(feature_dim_dropout_p.items(), key=lambda e: e[1]))
     return feature_importance
 
-  def _process_config(self, feature_importance):
+  def _process_config(self, feature_importance_map):
     """Process model config and fg config with feature selection."""
     selected_features = set()
-    for i, (feature_name, _) in enumerate(feature_importance.items()):
-      if i < self._topk:
-        selected_features.add(feature_name)
+    for group_name, feature_importance in feature_importance_map.items():
+      for i, (feature_name, _) in enumerate(feature_importance.items()):
+        if i < self._topk:
+          selected_features.add(feature_name)
     config = config_util.get_configs_from_pipeline_file(self._config_path)
     feature_configs = []
     for feature_config in config_util.get_compatible_feature_configs(config):
@@ -167,10 +181,11 @@ class VariationalDropoutFS:
           'w') as f:
         json.dump(fg_json, f, indent=4)
 
-  def _dump_to_csv(self, feature_importance):
+  def _dump_to_csv(self, feature_importance, group_name):
     """Dump feature importance data to a csv file."""
     with tf.gfile.Open(
-        os.path.join(self._output_dir, 'feature_dropout_ratio.csv'), 'w') as f:
+        os.path.join(self._output_dir,
+                     'feature_dropout_ratio_%s.csv' % group_name), 'w') as f:
       df = pd.DataFrame(
           columns=['feature_name', 'mean_drop_p'],
           data=[list(kv) for kv in feature_importance.items()])
@@ -215,7 +230,7 @@ class VariationalDropoutFS:
       with tf.gfile.GFile(img_path, 'wb') as f:
         plt.savefig(f, format='png')
 
-  def _visualize_feature_importance(self, feature_importance):
+  def _visualize_feature_importance(self, feature_importance, group_name):
     """Draw feature importance histogram."""
     df = pd.DataFrame(
         columns=['feature_name', 'mean_drop_p'],
@@ -243,7 +258,8 @@ class VariationalDropoutFS:
     plt.grid(linestyle='--', alpha=0.5)
     plt.xlim(0, 1)
     with tf.gfile.GFile(
-        os.path.join(self._output_dir, 'feature_dropout_pic.png'), 'wb') as f:
+        os.path.join(self._output_dir,
+                     'feature_dropout_pic_%s.png' % group_name), 'wb') as f:
       plt.savefig(f, format='png')
 
 
