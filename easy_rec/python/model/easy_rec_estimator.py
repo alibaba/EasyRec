@@ -308,22 +308,26 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+
+      # exclude data_offset_var
       var_list = [ x for x in var_list if x != data_offset_var ]
-      initialize_var_list = [
-          x for x in var_list if 'WorkQueue' not in str(type(x)) 
-      ]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
       var_list = [x for x in var_list if x != early_stop_var]
+
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x)) 
+      ]
+
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
       incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
  
-      local_init_ops = [tf.initializers.local_variables()]
-      if data_offset_var is not None:
+      local_init_ops = [tf.train.Scaffold.default_local_init_op()]
+      if data_offset_var is not None and estimator_utils.is_chief():
         local_init_ops.append(tf.initializers.variables([data_offset_var]))
-      if early_stop_var is not None:
+      if early_stop_var is not None and estimator_utils.is_chief():
         local_init_ops.append(tf.initializers.variables([early_stop_var]))
       if len(incompatiable_shape_restore) > 0:
         local_init_ops.append(tf.initializers.variables(incompatiable_shape_restore))

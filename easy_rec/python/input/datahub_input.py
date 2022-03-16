@@ -64,8 +64,8 @@ class DataHubInput(Input):
       shard_result = self._datahub.list_shard(self._datahub_config.project,
                                               self._datahub_config.topic)
       shards = shard_result.shards
-      logging.info('all shards: %s' % str(shards))
       self._shards = [shards[i] for i in range(len(shards)) if (i % task_num) == task_index]
+      logging.info('all shards: %s' % str(self._shards))
       offset_dict = {}
       for x in self._shards:
         if x.shard_id in self._offset_dict:
