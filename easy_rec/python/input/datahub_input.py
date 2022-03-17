@@ -6,6 +6,7 @@ import time
 import numpy as np
 import json
 import tensorflow as tf
+import traceback
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
@@ -22,7 +23,8 @@ try:
   import urllib3
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
-except Exception:
+except Exception as ex:
+  logging.warning(traceback.format_exc(ex))
   logging.warning(
       'DataHub is not installed. You can install it by: pip install pydatahub')
   DataHub = None
@@ -174,10 +176,11 @@ class DataHubInput(Input):
         output_types=list_types,
         output_shapes=list_shapes)
     if mode == tf.estimator.ModeKeys.TRAIN:
-      dataset = dataset.shuffle(
-          self._data_config.shuffle_buffer_size,
-          seed=2020,
-          reshuffle_each_iteration=True)
+      if self._data_config.shuffle:
+        dataset = dataset.shuffle(
+            self._data_config.shuffle_buffer_size,
+            seed=2020,
+            reshuffle_each_iteration=True)
 
     dataset = dataset.map(
         self._parse_record,
