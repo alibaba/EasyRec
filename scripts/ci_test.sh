@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+code_changed=`git diff --name-status master | awk '{ print $2 }' | awk -v FS='/' '{ print $1 }' | sort -u | grep -v docs | grep -v scripts | grep -v pai_jobs |  wc -l  | awk '{ print $0 }'`
+if [ $code_changed -eq 0 ]
+then
+  echo "::set-output name=ci_test_passed::1"
+  exit
+fi 
+
 # pip install
 pip install oss2
 pip install -r requirements.txt
@@ -16,24 +23,12 @@ else
   export TEST_DIR="/tmp/easy_rec_test_${USER}_`date +%s`"
 fi
 
-export UnitTestSucceedFlag=EasyRecUnitSucceed
-
-PYTHONPATH=. python -m easy_rec.python.test.run --list_test_to_file UNIT_TEST_CASE_LIST
-
-for test_name in `cat UNIT_TEST_CASE_LIST`
-do
-  rm -rf $UnitTestSucceedFlag
-  # run test
-  PYTHONPATH=. python -m easy_rec.python.test.run --pattern ${test_name}.*
-  # for github
-  if [ ! -e "$UnitTestSucceedFlag" ]
-  then
-    echo "::set-output name=ci_test_passed::0"
-    exit
-  fi
-done
+PYTHONPATH=. python -m easy_rec.python.test.run
 
 # for github
-echo "::set-output name=ci_test_passed::1"
-rm -rf $UnitTestSucceedFlag
-rm -rf UNIT_TEST_CASE_LIST
+if [ $? -eq 0 ]
+then
+  echo "::set-output name=ci_test_passed::0"
+else
+  echo "::set-output name=ci_test_passed::1"
+fi
