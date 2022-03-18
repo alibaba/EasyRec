@@ -18,11 +18,11 @@ logging.basicConfig(
 
 def save_np_bin(labels, dense_arr, cate_arr, prefix):
   with gfile.GFile(prefix + '_label.bin', 'wb') as fout:
-    np.array(labels, dtype=np.int32).tofile(fout)
+    fout.write(np.array(labels, dtype=np.int32).tobytes())
   with gfile.GFile(prefix + '_dense.bin', 'wb') as fout:
-    np.array(dense_arr, dtype=np.float32).tofile(fout)
+    fout.write(np.array(dense_arr, dtype=np.float32).tobytes())
   with gfile.GFile(prefix + '_category.bin', 'wb') as fout:
-    np.array(cate_arr, dtype=np.float32).tofile(fout)
+    fout.write(np.array(cate_arr, dtype=np.float32).tobytes())
 
 
 def convert(input_path, prefix, part_record_num):
