@@ -61,7 +61,12 @@ def main(argv):
   if FLAGS.list_tests or FLAGS.list_test_to_file:
     return
 
-  logging.info('Total number of cases: %d' % len(all_tests))
+  test_dir = os.environ.get('TEST_DIR', '.')
+  if not os.path.isdir(test_dir):
+    os.makedirs(test_dir)
+  test_log_dir = os.path.join(test_dir, 'logs')
+  os.makedirs(test_log_dir)
+  logging.info('Total number of cases: %d test_dir: %s' % (len(all_tests), test_dir))
   procs = {}
   failed_cases = []
   for case_file, case_name in all_tests:
@@ -76,7 +81,7 @@ def main(argv):
       for proc in procs_done:
         del procs[proc]
     cmd = 'python -m easy_rec.python.test.%s %s' % (case_file, case_name) 
-    log_file = '%s.%s.log' % (case_file, case_name)
+    log_file = '%s/%s.%s.log' % (test_log_dir, case_file, case_name)
     logging.info('Run %s.%s Log: %s' % (case_file, case_name, log_file))
     proc = test_utils.run_cmd(cmd, log_file)
     procs[proc] = (case_file, case_name)
@@ -84,7 +89,8 @@ def main(argv):
   for proc in procs:
     try:
       proc.wait(timeout=FLAGS.timeout)
-    except subprocess.TimeoutExpired as ex:
+    except Exception as ex:
+      logging.info('Exception: %s' % str(ex))
       fail_file, fail_name = procs[proc] 
       logging.info('Case Timeout: %s.%s' % (fail_file, fail_name))
       proc.kill()
