@@ -19,6 +19,7 @@ jobs:
         id: run_ci_test
         env:
           TEST_DEVICES: ""
+          PULL_REQUEST_CHANGES: ${{ github.event.changes}}
         run: |
            source activate /home/admin/tf12_py2/
            if [ ! -e "/tmp/easyrec_data_20220113.tar.gz" ]

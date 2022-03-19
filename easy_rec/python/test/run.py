@@ -88,11 +88,10 @@ def main(argv):
 
   for proc in procs:
     try:
-      proc.wait(timeout=FLAGS.timeout)
+      proc.wait()
     except Exception as ex:
-      logging.info('Exception: %s' % str(ex))
       fail_file, fail_name = procs[proc] 
-      logging.info('Case Timeout: %s.%s' % (fail_file, fail_name))
+      logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))
       proc.kill()
 
     if proc.returncode != 0:
