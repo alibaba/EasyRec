@@ -35,7 +35,7 @@ PYTHONPATH=. python -m easy_rec.python.test.run  # --pattern export_test.*
 # for github
 if [ $? -eq 0 ]
 then
-  echo "::set-output name=ci_test_passed::0"
-else
   echo "::set-output name=ci_test_passed::1"
+else
+  echo "::set-output name=ci_test_passed::0"
 fi
