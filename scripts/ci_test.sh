@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 
-echo "$PULL_REQUEST_CHANGES"
-exit 1 
+echo "will test pull_request(number=$PULL_REQUEST_NUM)"
+
+if [ -n "$PULL_REQUEST_NUM" ]
+then
+  # check updates
+  python scripts/ci_test_change_files.py --pull_request_num 140 --exclude_dir docs
+  if [ $? -ne 0 ]
+  then
+     # there are no code changes related to this test
+     echo "::set-output name=ci_test_passed::0"
+     exit
+  fi
+fi
 
 # pip install
 pip install oss2
