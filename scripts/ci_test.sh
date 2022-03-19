@@ -2,6 +2,13 @@
 
 echo "will test pull_request(number=$PULL_REQUEST_NUM)"
 
+# pip install
+pip install oss2
+pip install -r requirements.txt
+
+# update/generate proto
+bash scripts/gen_proto.sh
+
 if [ -n "$PULL_REQUEST_NUM" ]
 then
   # check updates
@@ -13,13 +20,6 @@ then
      exit
   fi
 fi
-
-# pip install
-pip install oss2
-pip install -r requirements.txt
-
-# update/generate proto
-bash scripts/gen_proto.sh
 
 export CUDA_VISIBLE_DEVICES=""
 export TEST_DEVICES=""
