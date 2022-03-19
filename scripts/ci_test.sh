@@ -5,7 +5,7 @@ echo "will test pull_request(number=$PULL_REQUEST_NUM)"
 if [ -n "$PULL_REQUEST_NUM" ]
 then
   # check updates
-  python scripts/ci_test_change_files.py --pull_request_num 140 --exclude_dir docs
+  PYTHONPATH=. python scripts/ci_test_change_files.py --pull_request_num $PULL_REQUEST_NUM --exclude_dir docs
   if [ $? -ne 0 ]
   then
      # there are no code changes related to this test
