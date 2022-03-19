@@ -14,26 +14,18 @@
 # ==============================================================================
 """Kafka Dataset."""
 
-import warnings
 import logging
 
 from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
+import traceback
 
 try:
   from easy_rec.python.ops import gen_kafka_ops
-except Exception:
-  logging.warning('failed to import gen_kafka_ops')
-
-warnings.warn(
-    'implementation of existing tensorflow_io.kafka.KafkaDataset is '
-    'deprecated and will be replaced with the implementation in '
-    'tensorflow_io.core.python.ops.kafka_dataset_ops.KafkaDataset, '
-    'please check the doc of new implementation for API changes',
-    DeprecationWarning,
-)
+except ImportError as ex:
+  logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc(ex))
 
 
 class KafkaDatasetV2(dataset_ops.Dataset):
