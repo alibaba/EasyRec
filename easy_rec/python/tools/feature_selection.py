@@ -91,12 +91,9 @@ class VariationalDropoutFS:
     features_dimension_map = dict()
     for col_def in meta_graph_def.collection_def[
         'variational_dropout'].bytes_list.value:
-      print(col_def)
       name, features_dimension = json.loads(col_def)
       name = 'all' if name == '' else name
       features_dimension_map[name] = OrderedDict(features_dimension)
-    print(features_dimension_map)
-    # exit()
 
     tf.logging.info('Reading checkpoint from %s ...' % checkpoint_path)
     reader = tf.train.NewCheckpointReader(checkpoint_path)
