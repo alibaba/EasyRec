@@ -135,6 +135,10 @@ class DSSM(EasyRecModel):
         user_tower_emb = self.norm(user_tower_emb)
         item_tower_emb = self.norm(item_tower_emb)
 
+    # forward tower top nodes to specific names
+    user_tower_emb = tf.identity(user_tower_emb, 'user_tower_top')
+    item_tower_emb = tf.identity(item_tower_emb, 'item_tower_top')
+
     user_item_sim = self.sim(user_tower_emb, item_tower_emb)
     y_pred = user_item_sim
     if self._model_config.scale_simi:
@@ -264,10 +268,10 @@ class DSSM(EasyRecModel):
     output_dict = super(DSSM, self).build_rtp_output_dict()
     if self._user_tower_emb is None:
       raise ValueError("User tower embedding does not exist. Please checking predict graph.")
-    output_dict['user_embedding_output'] = tf.identity(self._user_tower_emb, name='user_embedding_output')
+    output_dict['user_embedding_top'] = self._user_tower_emb
     if self._item_tower_emb is None:
       raise ValueError("Item tower embedding does not exist. Please checking predict graph.")
-    output_dict['item_embedding_output'] = tf.identity(self._item_tower_emb, name='item_embedding_output')
+    output_dict['item_embedding_top'] = self._item_tower_emb
     if self._loss_type == LossType.CLASSIFICATION:
       if 'probs' not in self._prediction_dict:
         raise ValueError("Probs output does not exist. Please checking predict graph.")
