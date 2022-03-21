@@ -5,7 +5,6 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers import input_layer
 from easy_rec.python.model.rank_model import RankModel
 
 from easy_rec.python.protos.wide_and_deep_pb2 import WideAndDeep as WideAndDeepConfig  # NOQA
@@ -36,17 +35,11 @@ class WideAndDeep(RankModel):
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
     has_final = len(model_config.wide_and_deep.final_dnn.hidden_units) > 0
-    wide_output_dim = model_config.wide_and_deep.wide_output_dim
+    self._wide_output_dim = model_config.wide_and_deep.wide_output_dim
     if not has_final:
       model_config.wide_and_deep.wide_output_dim = model_config.num_class
-      wide_output_dim = model_config.num_class
-    self._input_layer = input_layer.InputLayer(
-        feature_configs,
-        model_config.feature_groups,
-        wide_output_dim=wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable,
-        embedding_regularizer=self._emb_reg,
-        kernel_regularizer=self._l2_reg)
+      self._wide_output_dim = model_config.num_class
+    super(WideAndDeep, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     wide_fea = tf.add_n(self._wide_features)
