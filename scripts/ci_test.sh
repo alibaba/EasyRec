@@ -16,7 +16,7 @@ then
   if [ $? -ne 0 ]
   then
      # there are no code changes related to this test
-     echo "::set-output name=ci_test_passed::0"
+     echo "::set-output name=ci_test_passed::1"
      exit
   fi
 fi
