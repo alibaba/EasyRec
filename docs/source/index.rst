@@ -21,6 +21,7 @@ Welcome to easy_rec's documentation!
    feature/feature
    feature/excel_config
    feature/rtp_fg
+   feature/rtp_native
 
 .. toctree::
    :maxdepth: 3
