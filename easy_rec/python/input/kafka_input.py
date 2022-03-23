@@ -2,19 +2,19 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import sys
+import traceback
+import json
+import six
 
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.input.kafka_dataset import KafkaDataset
 
 try:
-  from tensorflow_io.kafka import KafkaDataset
-except ImportError:
-  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
-except NotImplementedError:
-  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
-except ValueError:
-  from easy_rec.python.input.kafka_dataset import KafkaDatasetV2 as KafkaDataset
+  from kafka import KafkaConsumer
+except ImportError as ex:
+  logging.warning('kafka-python is not installed: %s' % traceback.format_exc(ex))
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -33,6 +33,30 @@ class KafkaInput(Input):
     super(KafkaInput, self).__init__(data_config, feature_config, '',
                                      task_index, task_num)
     self._kafka = kafka_config
+    self._offset_dict = {}
+    if self._kafka is not None:
+      # each topic in the format: topic:partition_id:offset
+      self._topics = []
+      if self._kafka.offset_info:
+        offset_dict = json.loads(self._kafka.offset_info)
+        for part in offset_dict:
+          part_id = int(part)
+          if (part_id % self._task_num) == self._task_index:
+            self._offset_dict[part_id] = offset_dict[part]
+      consumer = KafkaConsumer(group_id='kafka_dataset_consumer', 
+           bootstrap_servers=[self._kafka.server])
+      partitions = consumer.partitions_for_topic(self._kafka.topic)
+      num_partition = len(partitions)
+      logging.info('all partitions[%d]: %s' % (num_partition, partitions))
+      for part_id in range(num_partition):
+        if (part_id % self._task_num) == self._task_index:
+          offset = self._offset_dict.get(part_id, 0)
+          self._topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
+      logging.info('assigned topic partitions: %s' % (','.join(self._topics)))
+      assert len(self._topics) > 0, 'no partitions are assigned for this task(%d/%d)' % (
+         self._task_index, self._task_num)
+    else:
+      self._topics = None
 
   def _preprocess(self, field_dict):
     output_dict = super(KafkaInput, self)._preprocess(field_dict)
@@ -60,56 +84,62 @@ class KafkaInput(Input):
     for x in self._label_fids:
       inputs[self._input_fields[x]] = fields[x]
 
-    offset_vals = tf.strings.split(message_offset, ':').values
-    offset_vals = tf.reshape(offset_vals, [-1, 2])
-    offset_vals = offset_vals[:, 1]
-
-    inputs[Input.DATA_OFFSET] = tf.string_to_number(offset_vals, tf.int64)
+    # record current offset
+    def _parse_offset(message_offset):
+      for kv in message_offset:
+        if six.PY3:
+          kv = kv.decode('utf-8')
+        k,v = kv.split(':')
+        v = int(v)
+        if k not in self._offset_dict or v > self._offset_dict[k]:
+          self._offset_dict[k] = v
+      return json.dumps(self._offset_dict) 
+       
+    inputs[Input.DATA_OFFSET] = tf.py_func(_parse_offset, [message_offset], tf.string) 
     return inputs
+
+  def _preprocess(self, field_dict):
+    output_dict = super(KafkaInput, self)._preprocess(field_dict)
+
+    # append offset fields
+    if Input.DATA_OFFSET in field_dict:
+      output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
+
+    # for _get_features to include DATA_OFFSET
+    if Input.DATA_OFFSET not in self._appended_fields: 
+      self._appended_fields.append(Input.DATA_OFFSET)
+
+    return output_dict
 
   def _build(self, mode, params):
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
       train_kafka = self._kafka
-      topics = []
-      assert train_kafka.partitions == len(train_kafka.offset)
-      for part_id, offset in enumerate(train_kafka.offset):
-        if (part_id % self._task_num) == self._task_index:
-          topics.append('%s:%d:%d:-1' % (train_kafka.topic, self._task_index, offset))
-      assert len(topics) > 0, 'no partitions are assigned for train task(%d)' % self._task_index
-
       logging.info(
           'train kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
           %
-          (train_kafka.server, train_kafka.topic, self._task_num, self._task_index, topics))
+          (train_kafka.server, train_kafka.topic, self._task_num, self._task_index, self._topics))
 
       dataset = KafkaDataset(
-          topics,
+          self._topics,
           servers=train_kafka.server,
           group=train_kafka.group,
           eof=False,
+          config_global = list(self._kafka.config_global),
+          config_topic = list(self._kafka.config_topic),
           message_key=True,
           message_offset=True)
-      dataset = dataset.repeat(1)
     else:
       eval_kafka = self._kafka
-      topics = [
-          '%s:%d:%d:-1' % (eval_kafka.topic, part_id, eval_kafka.offset[part_id])
-          for part_id in range(eval_kafka.partitions)
-      ]
-
       logging.info(
           'eval kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
-          % (eval_kafka.server, eval_kafka.topic, self._task_num, self._task_index, topics))
+          % (eval_kafka.server, eval_kafka.topic, self._task_num, self._task_index, self._topics))
 
-      assert len(topics) > 0, 'eval kafka topic is not set'
-
-      dataset = tf.data.Dataset.from_tensor_slices(topics)\
-          .interleave(lambda x: KafkaDataset(
-              x, servers=eval_kafka.server, group=eval_kafka.group, eof=True,
-              config_topic='auto.offset.reset=largest',
-              message_key=True, message_offset=True).repeat(1),
-              cycle_length=len(topics), block_length=1)
+      dataset = KafkaDataset(self._topics, servers=self._kafka.server, 
+              group=eval_kafka.group, eof=True,
+              config_global = list(self._kafka.config_global),
+              config_topic = list(self._kafka.config_topic),
+              message_key=True, message_offset=True)
 
     dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(

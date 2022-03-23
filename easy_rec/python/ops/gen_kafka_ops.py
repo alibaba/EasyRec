@@ -39,8 +39,7 @@ def io_kafka_dataset_v2(topics,
   Args:
     topics: A `Tensor` of type `string`.
       A `tf.string` tensor containing one or more subscriptions,
-      in the format of [topic:partition:offset:length],
-      by default length is -1 for unlimited.
+      in the format of [topic:partition:offset].
     servers: A `Tensor` of type `string`. A list of bootstrap servers.
     group: A `Tensor` of type `string`. The consumer group id.
     eof: A `Tensor` of type `bool`.

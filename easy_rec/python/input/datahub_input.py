@@ -24,13 +24,13 @@ try:
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
 except Exception as ex:
-  logging.warning(traceback.format_exc(ex))
+  # logging.warning(traceback.format_exc(ex))
   logging.warning(
       'DataHub is not installed. You can install it by: pip install pydatahub')
   DataHub = None
 
 class DataHubInput(Input):
-  """Common IO based interface, could run at local or on data science."""
+  """DataHubInput is used for online train."""
 
 
   def __init__(self,
@@ -85,9 +85,11 @@ class DataHubInput(Input):
   def _preprocess(self, field_dict):
     output_dict = super(DataHubInput, self)._preprocess(field_dict)
 
+    # append offset fields
     if Input.DATA_OFFSET in field_dict:
       output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
 
+    # for _get_features to include DATA_OFFSET
     if Input.DATA_OFFSET not in self._appended_fields: 
       self._appended_fields.append(Input.DATA_OFFSET)
 

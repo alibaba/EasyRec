@@ -28,7 +28,7 @@ except ImportError as ex:
   logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc(ex))
 
 
-class KafkaDatasetV2(dataset_ops.Dataset):
+class KafkaDataset(dataset_ops.Dataset):
   """A Kafka Dataset that consumes the message."""
 
   def __init__(self,
@@ -83,7 +83,7 @@ class KafkaDatasetV2(dataset_ops.Dataset):
         config_topic, dtype=dtypes.string, name='config_topic')
     self._message_key = message_key
     self._message_offset = message_offset
-    super(KafkaDatasetV2, self).__init__()
+    super(KafkaDataset, self).__init__()
 
   def _inputs(self):
     return []
