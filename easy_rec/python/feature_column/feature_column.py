@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import collections
 
 import tensorflow as tf
 
@@ -22,6 +23,13 @@ class FeatureKeyError(KeyError):
 
   def __init__(self, feature_name):
     super(FeatureKeyError, self).__init__(feature_name)
+
+
+class SharedEmbedding(object):
+   def __init__(self, embedding_name, index, sequence_combiner=None):
+     self.embedding_name = embedding_name
+     self.index = index
+     self.sequence_combiner = sequence_combiner
 
 
 class FeatureColumnParser(object):
@@ -157,13 +165,13 @@ class FeatureColumnParser(object):
 
     for fc_name in self._wide_columns:
       fc = self._wide_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._wide_columns[fc_name] = self._get_shared_embedding_column(
             fc, deep=False)
 
     for fc_name in self._sequence_columns:
       fc = self._sequence_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._sequence_columns[fc_name] = self._get_shared_embedding_column(fc)
 
   @property
@@ -464,14 +472,16 @@ class FeatureColumnParser(object):
       self._deep_share_embed_columns[embedding_name].append(fc)
     else:
       self._wide_share_embed_columns[embedding_name].append(fc)
-    return (embedding_name, curr_id)
+    return SharedEmbedding(embedding_name, curr_id, None)
 
   def _get_shared_embedding_column(self, fc_handle, deep=True):
-    embed_name, embed_id = fc_handle
+    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index 
     if deep:
-      return self._deep_share_embed_columns[embed_name][embed_id]
+      tmp = self._deep_share_embed_columns[embed_name][embed_id]
     else:
-      return self._wide_share_embed_columns[embed_name][embed_id]
+      tmp = self._wide_share_embed_columns[embed_name][embed_id]
+    tmp.sequence_combiner = fc_handle.sequence_combiner
+    return tmp
 
   def _add_wide_embedding_column(self, fc, config):
     """Generate wide feature columns.
@@ -520,5 +530,7 @@ class FeatureColumnParser(object):
       self._deep_columns[feature_name] = fc
     else:
       if config.HasField('sequence_combiner'):
+        import pdb
+        pdb.set_trace()
         fc.sequence_combiner = config.sequence_combiner
       self._sequence_columns[feature_name] = fc
