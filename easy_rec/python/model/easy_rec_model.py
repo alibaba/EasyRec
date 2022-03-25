@@ -40,6 +40,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    # only used by model with wide feature groups, e.g. WideAndDeep
     self._wide_output_dim = -1
 
     self._feature_configs = feature_configs
