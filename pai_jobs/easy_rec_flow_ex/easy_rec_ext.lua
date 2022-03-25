@@ -101,7 +101,7 @@ function check_run_mode(cluster, gpuRequired)
   end
 end
 
-function getHyperParams(config, cmd, checkpoint_path,
+function getHyperParams(config, cmd, checkpoint_path, fine_tune_checkpoint,
                         eval_result_path, export_dir,  gpuRequired,
                         cpuRequired, memRequired, cluster, continue_train,
                         distribute_strategy, with_evaluator, eval_method,
@@ -210,7 +210,7 @@ function getHyperParams(config, cmd, checkpoint_path,
     if eval_tables ~= "" and eval_tables ~= nil then
       hyperParameters = hyperParameters .. " --eval_tables " .. eval_tables
     end
-  elseif cmd == 'export' then
+  elseif cmd == 'export' or cmd == 'export_checkpoint' then
     hyperParameters = hyperParameters .. " --checkpoint_path=" .. checkpoint_path
     hyperParameters = hyperParameters .. " --export_dir=" .. export_dir
   elseif cmd == 'train' then
@@ -220,6 +220,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. " --distribute_strategy=" .. distribute_strategy
     if with_evaluator ~= "" and tonumber(with_evaluator) ~= 0 then
       hyperParameters = hyperParameters .. " --with_evaluator"
+    end
+    if fine_tune_checkpoint ~= nil and fine_tune_checkpoint ~= '' then
+      hyperParameters = hyperParameters .. " --fine_tune_checkpoint=" .. fine_tune_checkpoint
     end
     if eval_method ~= 'none' and eval_method ~= 'separate' and eval_method ~= 'master' then
       error('invalid eval_method ' .. eval_method)

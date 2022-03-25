@@ -64,6 +64,7 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
+tf.app.flags.DEFINE_string('fine_tune_checkpoint', None, 'finetune checkpoint path')
 tf.app.flags.DEFINE_string('query_table', '',
                            'table used for retrieve vector neighbours')
 tf.app.flags.DEFINE_string('doc_table', '',
@@ -252,6 +253,9 @@ def main(argv):
 
     if pipeline_config.fg_json_path:
       fg_util.load_fg_json_to_config(pipeline_config)
+
+    if FLAGS.fine_tune_checkpoint:
+      pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
 
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
