@@ -85,7 +85,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=False)
+        is_training=self._is_training)
 
   @abstractmethod
   def build_predict_graph(self):
