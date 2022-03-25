@@ -4,6 +4,8 @@ import logging
 from abc import abstractmethod
 from collections import OrderedDict
 
+import cv2
+import numpy as np
 import six
 import tensorflow as tf
 
@@ -161,7 +163,12 @@ class Input(six.with_metaclass(_meta_type, object)):
           fid for fid in range(len(self._input_fields))
           if self._input_fields[fid] not in self._label_fields
       ]
-
+    img_fea_info = None
+    if export_config.img_input_name and export_config.img_shape:
+      img_fea_info = {
+          'input_name': export_config.img_input_name,
+          'input_shape': export_config.img_shape
+      }
     if self._data_config.HasField('sample_weight'):
       effective_fids = effective_fids[:-1]
 
@@ -177,6 +184,12 @@ class Input(six.with_metaclass(_meta_type, object)):
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+      elif img_fea_info and input_name == img_fea_info.get('input_name', None):
+        width = img_fea_info['input_shape'].width
+        height = img_fea_info['input_shape'].height
+        channel = img_fea_info['input_shape'].channel
+        finput = tf.placeholder(
+            tf.float32, [None, width, height, channel], name=input_name)
       else:
         ftype = self._input_field_types[fid]
         tf_type = self.get_tf_type(ftype)
@@ -282,7 +295,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[k] = v
           self._appended_fields.append(k)
 
-    print("[input] all feature names: {}".format([fc.feature_name for fc in self._feature_configs]))
+    print('[input] all feature names: {}'.format(
+        [fc.feature_name for fc in self._feature_configs]))
     for fc in self._feature_configs:
       feature_name = fc.feature_name
       feature_type = fc.feature_type
@@ -545,6 +559,45 @@ class Input(six.with_metaclass(_meta_type, object)):
           if parsed_dict[input_0].dtype == tf.string:
             parsed_dict[input_0] = tf.string_to_number(
                 parsed_dict[input_0], tf.int32, name='%s_str_2_int' % input_0)
+      elif feature_type == fc.ImgFeature:
+
+        def _load_img(img_paths):
+          img_feas = []
+          for img_path in img_paths:
+            if isinstance(img_path, bytes):
+              img_path = img_path.decode('utf-8')
+            if tf.gfile.Exists(img_path):
+              img_fea = np.asarray(
+                  bytearray(tf.gfile.FastGFile(img_path, 'rb').read()))
+              img_fea = cv2.imdecode(img_fea, cv2.IMREAD_COLOR)
+            else:
+              img_fea = np.zeros(shape=(224, 224, 3))
+            img_fea = img_fea.astype(np.float32)
+            img_feas.append(img_fea)
+          img_feas = np.array(img_feas)
+          return img_feas
+
+        field = field_dict[input_0]
+        if (len(field.get_shape()) == 1):
+          img_fea = tf.py_func(_load_img, [field], Tout=tf.float32)
+          parsed_dict[input_0] = img_fea
+        else:
+          parsed_dict[input_0] = field
+      elif feature_type == fc.SampleNumFeature:
+        def _repeat_sample(sample_nums):
+          sample_num_feas = []
+          idx = 0
+          for sample_num in sample_nums:
+            assert isinstance(sample_num, str) or isinstance(sample_num, bytes) or isinstance(sample_num, int)
+            sample_num = int(sample_num)
+            sample_num_feas.extend([idx] * sample_num)
+            idx += 1
+          sample_num_feas = np.array(sample_num_feas)
+          return sample_num_feas
+
+        sample_num_fea = tf.py_func(
+            _repeat_sample, [field_dict[input_0]], Tout=tf.int64)
+        parsed_dict[input_0] = sample_num_fea
       else:
         for input_name in fc.input_names:
           parsed_dict[input_name] = field_dict[input_name]
@@ -677,7 +730,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
           inputs, features = self.create_placeholders(export_config)
-          print("built feature placeholders. features: {}".format(features.keys()))
+          print('built feature placeholders. features: {}'.format(
+              features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     return _input_fn

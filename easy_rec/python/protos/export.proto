@@ -1,5 +1,6 @@
 syntax = "proto2";
 package protos;
+import "easy_rec/python/protos/feature_config.proto";
 
 message MultiValueFields {
     repeated string input_name = 1;
@@ -53,4 +54,9 @@ message ExportConfig {
 
     // export the outputs required by RTP
     optional bool export_rtp_outputs = 14 [default = false];
+
+    // only for e2e_mm_dbmtl
+    optional string img_input_name = 15;
+    optional ImgShape img_shape = 16;
+
 }
