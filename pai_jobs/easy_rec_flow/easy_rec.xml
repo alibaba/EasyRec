@@ -25,6 +25,7 @@
     <parameter name="edit_config_json" use="optional" default=""/>
     <!-- for evaluate only -->
     <parameter name="checkpoint_path" use="optional" default=""/>
+    <parameter name="fine_tune_checkpoint" use="optional" default=""/>
     <parameter name="eval_result_path" use="optional" default="eval_result.txt"/>
     <!--for cmd=predict only-->
     <parameter name="saved_model_dir" use="optional" default="" />
@@ -64,6 +65,7 @@
     <parameter name="useSparseClusterSchema" use="optional" default="false"/>
     <parameter name="autoEnablePsTaskFailover" use="optional" default="false"/>
     <parameter name="allOrNothing" use="optional" default="false"/>
+    <parameter name="maxTrainingTimeInHour" use="optional" default="0"/>
   </parameters>
 
   <workflow>
@@ -142,6 +144,7 @@
           <var name="config" value="${parameters.config}" />
           <var name="cmd" value="${parameters.cmd}" />
           <var name="checkpoint_path" value="${parameters.checkpoint_path}" />
+          <var name="fine_tune_checkpoint" value="${parameters.fine_tune_checkpoint}" />
           <var name="eval_result_path" value="${parameters.eval_result_path}" />
           <var name="export_dir" value="${parameters.export_dir}" />
           <var name="gpuRequired" value="${parameters.gpuRequired}" />
@@ -223,6 +226,7 @@
 	  <p name="useSparseClusterSchema" value="${parameters.useSparseClusterSchema}"/>
           <p name="autoEnablePsTaskFailover" value="${parameters.autoEnablePsTaskFailover}"/>
           <p name="allOrNothing" value="${parameters.allOrNothing}"/>
+          <p name="maxTrainingTimeInHour" value="${parameters.maxTrainingTimeInHour}"/>
         </parameters>
         <name>tensorflow1120</name>
         <project>algo_public</project>

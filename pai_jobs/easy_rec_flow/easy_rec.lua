@@ -352,12 +352,13 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
   if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
+     and cmd ~= 'export_checkpoint'
      and cmd ~= 'evaluate' and cmd ~= 'custom' and cmd ~= 'vector_retrieve' then
     error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export, custom, vector_retrieve')
   end
 
   -- for export
-  if cmd == 'export' or cmd == 'custom' then
+  if cmd == 'export' or cmd == 'custom' or cmd == 'export_checkpoint' then
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 
