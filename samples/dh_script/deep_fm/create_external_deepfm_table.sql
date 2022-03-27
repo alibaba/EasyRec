@@ -28,7 +28,7 @@ STORED BY 'com.aliyun.odps.CsvStorageHandler'
 WITH SERDEPROPERTIES (
  'odps.properties.rolearn'='{ROLEARN}'
 )
-LOCATION 'oss://{OSS_ENDPOINT_INTERNAL}/{OSS_BUCKET_NAME}/{EXP_NAME}/test_data/train/'
+LOCATION 'oss://{OSS_BUCKET_NAME}/{EXP_NAME}/test_data/train/'
 ;
 
 drop TABLE IF EXISTS external_deepfm_test_{TIME_STAMP};
@@ -61,5 +61,5 @@ STORED BY 'com.aliyun.odps.CsvStorageHandler'
 WITH SERDEPROPERTIES (
  'odps.properties.rolearn'='{ROLEARN}'
 )
-LOCATION 'oss://{OSS_ENDPOINT_INTERNAL}/{OSS_BUCKET_NAME}/{EXP_NAME}/test_data/test/'
+LOCATION 'oss://{OSS_BUCKET_NAME}/{EXP_NAME}/test_data/test/'
 ;

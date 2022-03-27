@@ -33,7 +33,8 @@ class TestPipelineOnOdps(tf.test.TestCase):
     ]
     test_files = [
         'deep_fm/train_deepfm_model.sql', 'deep_fm/eval_deepfm.sql',
-        'deep_fm/export_deepfm.sql', 'deep_fm/predict_deepfm.sql'
+        'deep_fm/export_deepfm.sql', 'deep_fm/predict_deepfm.sql',
+        'deep_fm/export_rtp_ckpt.sql'
     ]
     end_file = ['deep_fm/drop_table.sql']
 
@@ -226,6 +227,12 @@ if __name__ == '__main__':
       help='algo resource project name')
   parser.add_argument(
       '--algo_version', type=str, default=None, help='algo version')
+  parser.add_argument(
+      '--is_outer',
+      type=int,
+      default=1,
+      help='is outer pai or inner pai, the arguments are differed slightly due to history reasons'
+  )
   args, unknown_args = parser.parse_known_args()
   sys.argv = [sys.argv[0]]
   for unk_arg in unknown_args:
@@ -247,6 +254,7 @@ if __name__ == '__main__':
     odps_oss_config.arn = args.arn
   if args.bucket_name:
     odps_oss_config.bucket_name = args.bucket_name
+  odps_oss_config.is_outer = args.is_outer
 
   prepare(odps_oss_config)
   tf.test.main()

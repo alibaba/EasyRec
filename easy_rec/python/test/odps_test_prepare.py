@@ -24,6 +24,8 @@ def download_data(ali_bucket, script_path):
   if os.path.exists(os.path.join(script_path, 'test')):
     shutil.rmtree(os.path.join(script_path, 'test'))
 
+  # download data from oss://${ali_bucket}/data/odps_test/
+  # to script_path/test_data
   for obj in oss2.ObjectIterator(ali_bucket, prefix='data/odps_test/'):
     obj_key = obj.key
     tmp_oss_dir = os.path.split(obj_key)[0]
@@ -42,8 +44,8 @@ def download_data(ali_bucket, script_path):
     if not os.path.exists(dst_dir):
       os.makedirs(dst_dir)
     ali_bucket.get_object_to_file(obj_key, dst_path)
-    logging.info('down file %s to %s completed' %
-                 ('oss://easyrec/' + obj_key, dst_path))
+    logging.info('down file oss://%s/%s to %s completed' %
+                 (ali_bucket.bucket_name, obj_key, dst_path))
 
 
 def change_files(odps_oss_config, file_path):
@@ -58,14 +60,19 @@ def change_files(odps_oss_config, file_path):
     return
 
   endpoint = odps_oss_config.endpoint.replace('http://', '')
-  endpoint_internal = endpoint.replace('.aliyuncs.com',
-                                       '-internal.aliyuncs.com')
+  # endpoint_internal = endpoint.replace('.aliyuncs.com',
+  #                                      '-internal.aliyuncs.com')
 
   with open(file_path, 'r') as fin:
     lines = fin.readlines()
 
   with open(file_path, 'w') as fw:
+    skip_next = False
     for line in lines:
+      if skip_next:
+        skip_next = False
+        continue
+
       if 'pai' in line.lower() and 'easy_rec_ext' in line.lower():
         if odps_oss_config.algo_project:
           line += '-project=%s\n' % odps_oss_config.algo_project
@@ -74,15 +81,41 @@ def change_files(odps_oss_config, file_path):
         if odps_oss_config.algo_version:
           line += '-Dversion=%s\n' % odps_oss_config.algo_version
 
-      line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
+      if odps_oss_config.is_outer:
+        line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
+        line = line.replace('{ROLEARN}', odps_oss_config.arn)
+        line = line.replace('{OSS_ENDPOINT}', endpoint)
+      else:
+        tmp_e = odps_oss_config.endpoint
+        tmp_e = tmp_e.replace('oss-cn-', 'cn-')
+        tmp_e = tmp_e.replace('.aliyuncs.com', '.oss-internal.aliyun-inc.com')
+        if '-Dbuckets=' in line:
+          line = '-Dbuckets=oss://%s/?role_arn=%s&host=%s\n' % (
+              odps_oss_config.bucket_name, odps_oss_config.arn, tmp_e)
+        elif '-Darn=' in line or '-DossHost' in line:
+          continue
+        elif 'WITH SERDEPROPERTIES' in line:
+          continue
+        elif 'odps.properties.rolearn' in line:
+          skip_next = True
+          continue
+        elif 'LOCATION' in line:
+          # ${accessKeyId}:${accessKeySecret}@${endpoint}/
+          # oss-cn-shanghai.aliyuncs.com => cn-shanghai.oss-internal.aliyun-inc.com
+          line = line.replace(
+              '{OSS_BUCKET_NAME}', '%s:%s@%s/%s' %
+              (odps_oss_config.oss_key, odps_oss_config.oss_secret, tmp_e,
+               odps_oss_config.bucket_name))
+        line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
+
       line = line.replace('{TIME_STAMP}', str(odps_oss_config.time_stamp))
 
       # for emr odps test only
       line = line.replace('{TEMP_DIR}', str(odps_oss_config.temp_dir))
 
-      line = line.replace('{ROLEARN}', odps_oss_config.arn)
-      line = line.replace('{OSS_ENDPOINT_INTERNAL}', endpoint_internal)
-      line = line.replace('{OSS_ENDPOINT}', endpoint)
+      # line = line.replace('{ROLEARN}', odps_oss_config.arn)
+      # line = line.replace('{OSS_ENDPOINT_INTERNAL}', endpoint_internal)
+      # line = line.replace('{OSS_ENDPOINT}', endpoint)
       line = line.replace('{ODPS_PROJ_NAME}', odps_oss_config.project_name)
       line = line.replace('{EXP_NAME}', odps_oss_config.exp_dir)
       fw.write(line)
