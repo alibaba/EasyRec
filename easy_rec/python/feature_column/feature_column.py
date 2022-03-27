@@ -530,7 +530,5 @@ class FeatureColumnParser(object):
       self._deep_columns[feature_name] = fc
     else:
       if config.HasField('sequence_combiner'):
-        import pdb
-        pdb.set_trace()
         fc.sequence_combiner = config.sequence_combiner
       self._sequence_columns[feature_name] = fc
