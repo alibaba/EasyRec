@@ -97,8 +97,8 @@ class TestPipelineOnOdps(tf.test.TestCase):
         # 'other_test/test_train_gpuRequired_mirrored', # 线上报错，
         # 'other_test/test_train_distribute_strategy_collective',  # 线上报错，
         'other_test/test_train_hpo_with_evaluator.sql',
-        'other_test/test_train_version.sql',
-        'other_test/test_train_distribute_strategy_ess.sql',
+        # 'other_test/test_train_version.sql',
+        # 'other_test/test_train_distribute_strategy_ess.sql',
         'other_test/test_train_before_export.sql',
         'other_test/test_eval_checkpoint_path.sql',
         'other_test/test_export_checkpoint_path.sql',
