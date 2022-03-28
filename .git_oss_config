@@ -1,0 +1,6 @@
+[OSSCredentials]
+bucket_name = easyrec
+git_oss_data_dir = data/git_oss_sample_data
+host = oss-cn-beijing.aliyuncs.com
+accessid = 
+accesskey = 
