@@ -341,6 +341,7 @@ elif sys.argv[1] == 'pull':
       oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
     else:
       url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
+      subprocess.check_output(['wget', url, '-O', tar_tmp_path])
     subprocess.check_output(['tar', '-zxf', tar_tmp_path])
     os.remove(tar_tmp_path)
     logging.info('%s updated' % leaf_path)

@@ -29,6 +29,14 @@ if [ $result -eq 0 ];then
 else
   exit 1
 fi
+
+python git-lfs/git_lfs.py push
+
 pwd
 
-python scripts/pre-commit
+is_py3=`python -c "import six; print six.PY3"`
+
+if [ "$is_py3" == "True" ]
+then
+  python scripts/pre-commit
+fi
