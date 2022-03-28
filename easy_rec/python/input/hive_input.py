@@ -139,7 +139,7 @@ class HiveInput(Input):
   def _hive_read(self):
     logging.info('start epoch[%d]' % self._num_epoch_record)
     self._num_epoch_record += 1
-    talbe_names = [t for t in str(self._hive_config.table_name).split(',')]
+    table_names = [t for t in str(self._hive_config.table_name).split(',')]
 
     # check data_config are consistent with odps tables
     odps_util.check_input_field_and_types(self._data_config)
@@ -149,7 +149,7 @@ class HiveInput(Input):
         for x, v in zip(self._input_field_types, self._input_field_defaults)
     ]
 
-    for table_path in talbe_names:
+    for table_path in table_names:
       table_info = self._construct_table_info(table_path,
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
@@ -165,7 +165,7 @@ class HiveInput(Input):
       row_id = 0
       batch_data_np = [x.copy() for x in batch_defaults]
       while True:
-        data = cursor.fetchmany(size=16)
+        data = cursor.fetchmany(size=64)
         if len(data) == 0:
           break
         for row in data:
