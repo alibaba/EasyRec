@@ -1,7 +1,7 @@
-# MaxCompute Tutorial
+# MaxCompute(Inner) Tutorial
 
 ```
-EasyRec在MaxCompute公有云版本上的使用文档.
+EasyRec在MaxCompute内部版本上的使用文档.
 ```
 
 ### 输入数据:
@@ -27,9 +27,7 @@ pai -name easy_rec_ext -project algo_public
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
--Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easyrec/
--DossHost=oss-cn-beijing-internal.aliyuncs.com;
+-Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
 - -Dcmd: train 模型训练
@@ -45,9 +43,7 @@ pai -name easy_rec_ext -project algo_public
 - -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
  - 可以指定directory，将使用directory里面的最新的checkpoint.
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
-- -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
-- -DossHost: ossHost地址
 
 ### 注意：
 
@@ -70,9 +66,7 @@ pai -name easy_rec_ext -project algo_public
 -Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
--Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easyrec/
--DossHost=oss-cn-beijing-internal.aliyuncs.com；
+-Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
 - -Dcmd: evaluate 模型评估
@@ -82,7 +76,7 @@ pai -name easy_rec_ext -project algo_public
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - -Dcheckpoint_path: 使用指定的checkpoint_path，如oss://easyrec/ckpt/MultiTower/model.ckpt-1000。不指定的话，默认model_dir中最新的ckpt文件。
-- arn,buckets,ossHost同训练.
+- -Dbuckets: oss bucket，同训练.
 
 ### 导出:
 
@@ -97,9 +91,7 @@ pai -name easy_rec_ext -project algo_public
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dexport_dir=oss://easyrec/ckpt/MultiTower/export
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
--Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easyrec/
--DossHost=oss-cn-beijing-internal.aliyuncs.com
+-Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
 - -Dcmd: export 模型导出
@@ -108,9 +100,9 @@ pai -name easy_rec_ext -project algo_public
 - -Dexport_dir: 导出的目录
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dcheckpoint_path: 同评估
-- arn,buckets,ossHost同训练.
+- -Dbuckets: oss bucket，同训练.
 
-### 导出RTP serving checkpoint:
+### 导出RTP serving:
 
 ```
 导出RTPserving支持的checkpoint, 更多参考[RTPServing的文档](../feature/rtp_native.md).
@@ -123,9 +115,7 @@ pai -name easy_rec_ext -project algo_public
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dexport_dir=oss://easyrec/ckpt/MultiTower/export
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
--Darn=acs:ram::xxx:role/xxx
--Dbuckets=oss://easyrec/
--DossHost=oss-cn-beijing-internal.aliyuncs.com
+-Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
 - -Dcmd: export_checkpoint, 导出RTP支持的checkpoint
@@ -134,7 +124,7 @@ pai -name easy_rec_ext -project algo_public
 - -Dexport_dir: 导出的目录
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dcheckpoint_path: 同评估
-- arn,buckets,ossHost同训练.
+- -Dbuckets: oss bucket，同训练.
 
 
 ### 配置文件:

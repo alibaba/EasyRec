@@ -106,8 +106,8 @@ def change_files(odps_oss_config, file_path):
         line = line.replace('{OSS_ENDPOINT}', endpoint)
       else:
         tmp_e = odps_oss_config.endpoint
-        tmp_e = tmp_e.replace('oss-cn-', 'cn-')
-        tmp_e = tmp_e.replace('.aliyuncs.com', '.oss-internal.aliyun-inc.com')
+        # tmp_e = tmp_e.replace('oss-cn-', 'cn-')
+        # tmp_e = tmp_e.replace('.aliyuncs.com', '.oss-internal.aliyun-inc.com')
         if '-Dbuckets=' in line:
           line = '-Dbuckets=oss://%s/?role_arn=%s&host=%s\n' % (
               odps_oss_config.bucket_name, odps_oss_config.arn, tmp_e)
