@@ -103,7 +103,12 @@ class HiveInput(Input):
                task_num=1):
     super(HiveInput, self).__init__(data_config, feature_config, input_path,
                                     task_index, task_num)
+    if input_path is None:
+        return
     self._hive_config = input_path
+    self._eval_batch_size = data_config.eval_batch_size
+    self._fetch_size = self._hive_config.fetch_size
+    
     self._num_epoch = data_config.num_epochs
     self._num_epoch_record = 1
 
@@ -153,37 +158,46 @@ class HiveInput(Input):
       table_info = self._construct_table_info(table_path,
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
+      batch_size = self.this_batch_size
+      batch_defaults = [
+          np.array([x] * batch_size) for x in record_defaults
+      ]
+      row_id = 0
+      batch_data_np = [x.copy() for x in batch_defaults]
+      
       conn = self._construct_hive_connect()
       cursor = conn.cursor()
       sql = table_info.gen_sql()
       cursor.execute(sql)
-
-      batch_defaults = [
-          np.array([x] * self._data_config.batch_size) for x in record_defaults
-      ]
-
-      row_id = 0
-      batch_data_np = [x.copy() for x in batch_defaults]
+  
       while True:
-        data = cursor.fetchmany(size=64)
+        data = cursor.fetchmany(size=self._fetch_size)
         if len(data) == 0:
           break
-        for row in data:
+        for rows in data:
           for col_id in range(len(record_defaults)):
-            if row[col_id] not in ['', 'NULL', None]:
-              batch_data_np[col_id][row_id] = row[col_id]
+            if rows[col_id] not in ['', 'NULL', None]:
+              batch_data_np[col_id][row_id] = rows[col_id]
+            else:
+              batch_data_np[col_id][row_id] = batch_defaults[col_id][row_id]
             row_id += 1
-            if row_id == self._data_config.batch_size:
+
+            if row_id >= batch_size:
               yield tuple(batch_data_np)
               row_id = 0
-              batch_data_np = [x.copy() for x in batch_defaults]
+
       if row_id > 0:
-        yield tuple(batch_data_np)
+        yield tuple(batch_data_np[:row_id])
       cursor.close()
       conn.close()
     logging.info('finish epoch[%d]' % self._num_epoch_record)
 
-
+  def _get_batch_size(self, mode):
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      return self._data_config.batch_size
+    else:
+      return self._eval_batch_size
+    
   def _build(self, mode, params):
     # get input type
     list_type = [self.get_tf_type(x) for x in self._input_field_types]
@@ -192,7 +206,8 @@ class HiveInput(Input):
     list_shapes = tuple(list_shapes)
 
     # read odps tables
-
+    self.this_batch_size = self._get_batch_size(mode)
+    
     dataset = tf.data.Dataset.from_generator(
         self._hive_read, output_types=list_type, output_shapes=list_shapes)
 

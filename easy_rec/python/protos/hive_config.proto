@@ -19,4 +19,7 @@ message HiveConfig {
   required string hash_fields = 6;
 
   optional uint32 limit_num = 7 [default = 0];
+  
+  required uint32 fetch_size = 8 [default = 512];
+
 }
