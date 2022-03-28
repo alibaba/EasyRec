@@ -340,8 +340,7 @@ elif sys.argv[1] == 'pull':
     if oss_bucket:
       oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
     else:
-      url = os.path.join('http://%s.%s/%s' % (bucket_name, bucket_endpoint),
-          remote_path)
+      url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
     subprocess.check_output(['tar', '-zxf', tar_tmp_path])
     os.remove(tar_tmp_path)
     logging.info('%s updated' % leaf_path)
