@@ -64,7 +64,7 @@
     <parameter name="extra_params" use="optional" default=""/>
     <parameter name="useSparseClusterSchema" use="optional" default="false"/>
     <parameter name="autoEnablePsTaskFailover" use="optional" default="false"/>
-    <parameter name="allOrNothing" use="optional" default="false"/>
+    <!--<parameter name="allOrNothing" use="optional" default="false"/> -->
     <parameter name="maxTrainingTimeInHour" use="optional" default="0"/>
   </parameters>
 
@@ -225,7 +225,7 @@
           <p name="userDefinedParameters" value="${workflow.getHyperParams.hyperParameters}"/>
 	  <p name="useSparseClusterSchema" value="${parameters.useSparseClusterSchema}"/>
           <p name="autoEnablePsTaskFailover" value="${parameters.autoEnablePsTaskFailover}"/>
-          <p name="allOrNothing" value="${parameters.allOrNothing}"/>
+          <!--<p name="allOrNothing" value="${parameters.allOrNothing}"/>-->
           <p name="maxTrainingTimeInHour" value="${parameters.maxTrainingTimeInHour}"/>
         </parameters>
         <name>tensorflow1120</name>

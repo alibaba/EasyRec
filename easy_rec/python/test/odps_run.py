@@ -28,7 +28,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_deepfm(self):
     start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
         'deep_fm/create_inner_deepfm_table.sql'
     ]
     test_files = [
@@ -44,7 +43,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_mmoe(self):
     start_files = [
-        'mmoe/create_external_mmoe_table.sql',
         'mmoe/create_inner_mmoe_table.sql'
     ]
     test_files = [
@@ -60,7 +58,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_dssm(self):
     start_files = [
-        'dssm/create_external_dssm_table.sql',
         'dssm/create_inner_dssm_table.sql',
     ]
     test_files = [
@@ -78,8 +75,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_multi_tower(self):
     start_files = [
-        'multi_tower/create_external_multi_tower_table.sql',
-        'multi_tower/create_inner_multil_tower_table.sql',
+        'multi_tower/create_inner_multi_tower_table.sql'
     ]
     test_files = [
         'multi_tower/train_multil_tower_din_model.sql',
@@ -95,7 +91,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_other(self):
     start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
         'deep_fm/create_inner_deepfm_table.sql'
     ]
     test_files = [
@@ -117,7 +112,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_best_exporter(self):
     start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
         'deep_fm/create_inner_deepfm_table.sql'
     ]
     test_files = [
@@ -174,8 +168,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_multi_value_export(self):
     start_files = [
-        'multi_value/create_external_multi_value_table.sql',
-        'multi_value/create_inner_multi_value_table.sql',
+        'multi_value/create_inner_multi_value_table.sql'
     ]
     test_files = ['multi_value/train_multi_tower_model.sql']
     end_file = ['multi_value/drop_table.sql']
@@ -185,7 +178,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_boundary_test(self):
     start_files = [
-        'boundary/create_external_boundary_table.sql',
         'boundary/create_inner_boundary_table.sql',
     ]
     test_files = [
