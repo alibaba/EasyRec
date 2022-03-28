@@ -285,8 +285,11 @@ def main(argv):
     assert FLAGS.eval_method in [
         'none', 'master', 'separate'
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
+   
+    # with_evaluator is depreciated, keeped for compatibility
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
+
     num_worker = set_tf_config_and_get_train_worker_num(
         FLAGS.ps_hosts,
         FLAGS.worker_hosts,
@@ -303,7 +306,8 @@ def main(argv):
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=FLAGS.with_evaluator)
+          has_evaluator=(FLAGS.eval_method == "separate"))
+
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
     # TODO: support multi-worker evaluation
