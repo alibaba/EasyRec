@@ -160,7 +160,7 @@ class FeatureColumnParser(object):
 
     for fc_name in self._deep_columns:
       fc = self._deep_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._deep_columns[fc_name] = self._get_shared_embedding_column(fc)
 
     for fc_name in self._wide_columns:
