@@ -30,7 +30,6 @@
 | BST        | 3500        | 0.566251 | [bst.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/ctr/taobao_bst.config)                      |
 | AutoInt    | 700         | 0.605982 | [autoint.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/ctr/taobao_autoint.config)              |
 
-
 ### Avazu CTR 数据集
 
 - 该数据集是DSP广告公司Avazu在Kaggle平台举办的移动广告点击率预测模型挑战赛中使用的。[Click-Through Rate Prediction比赛链接](https://www.kaggle.com/c/avazu-ctr-prediction)
@@ -42,10 +41,13 @@
 ### AliCCP 数据集
 
 - 数据集采集自手机淘宝移动客户端的推荐系统日志，其中包含点击和与之关联的转化数据。[天池比赛链接](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408)
+
 - 训练数据表：pai_rec_dev.AliCCP_sample_train_data_processed
+
 - 测试数据表：pai_rec_dev.AliCCP_sample_test_data_processeds
 
 - 在PAI上面测试使用的资源包括2个parameter server，9个worker，其中一个worker做评估:
+
   ```json
   {"ps":{"count":2,
          "cpu":1000,
@@ -55,6 +57,7 @@
             "memory":40000}
   }
   ```
+
 - 测试结果
 
 | model           | global_step | ctr auc   | masked cvr auc | ctcvr auc | 训练时间 | config                                                                                                               |

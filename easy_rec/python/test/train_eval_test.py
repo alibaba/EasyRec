@@ -130,7 +130,6 @@ class TrainEvalTest(tf.test.TestCase):
     def _post_check_func(pipeline_config):
       ckpt_prefix = os.path.join(pipeline_config.model_dir, 'model.ckpt-*.meta')
       ckpts = gfile.Glob(ckpt_prefix)
-      print(ckpts)
       assert len(ckpts) == 3, 'invalid number of checkpoints: %d' % len(ckpts)
 
     self._success = test_utils.test_single_train_eval(
@@ -398,12 +397,6 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/esmm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_essm_variational_dropout(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/esmm_variational_dropout_on_taobao.config',
-        self._test_dir)
-    self.assertTrue(self._success)
-
   def test_tag_kv_input(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/kv_tag.config', self._test_dir)
@@ -451,13 +444,51 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_dbmtl_variational_dropout(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dbmtl_variational_dropout.config', self._test_dir)
+        'samples/model_config/dbmtl_variational_dropout.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
     self.assertTrue(self._success)
 
   def test_dbmtl_variational_dropout_feature_num(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_variational_dropout_feature_num.config',
-        self._test_dir)
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_essm_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/esmm_variational_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_fm_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_variational_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_combo_feature_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_variational_dropout_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_sequence_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_variational_dropout_on_sequence_feature_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_din_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/din_varitional_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
     self.assertTrue(self._success)
 
   def test_rocket_launching(self):

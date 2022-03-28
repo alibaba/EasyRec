@@ -14,9 +14,9 @@ import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file

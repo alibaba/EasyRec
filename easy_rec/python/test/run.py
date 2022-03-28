@@ -2,12 +2,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import os
-import subprocess
 import logging
+import os
 import unittest
 
 import tensorflow as tf
+
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
@@ -18,8 +18,10 @@ tf.app.flags.DEFINE_string('list_test_to_file', None, 'list all tests')
 tf.app.flags.DEFINE_string('pattern', '*_test.py', 'test file pattern')
 tf.app.flags.DEFINE_string('test_dir', 'easy_rec/python/test',
                            'directory to be tested')
-tf.app.flags.DEFINE_integer('num_parallel', 10, 'number of parallel executed cases.')
-tf.app.flags.DEFINE_integer('timeout', 3600, 'maximal execute time in seconds for each case.')
+tf.app.flags.DEFINE_integer('num_parallel', 10,
+                            'number of parallel executed cases.')
+tf.app.flags.DEFINE_integer('timeout', 3600,
+                            'maximal execute time in seconds for each case.')
 FLAGS = tf.flags.FLAGS
 
 
@@ -56,7 +58,6 @@ def gather_test_cases(test_dir, pattern):
 
 
 def main(argv):
-  runner = unittest.TextTestRunner()
   all_tests = gather_test_cases(os.path.abspath(FLAGS.test_dir), FLAGS.pattern)
   if FLAGS.list_tests or FLAGS.list_test_to_file:
     return
@@ -66,7 +67,8 @@ def main(argv):
     os.makedirs(test_dir)
   test_log_dir = os.path.join(test_dir, 'logs')
   os.makedirs(test_log_dir)
-  logging.info('Total number of cases: %d test_dir: %s' % (len(all_tests), test_dir))
+  logging.info('Total number of cases: %d test_dir: %s' %
+               (len(all_tests), test_dir))
   procs = {}
   failed_cases = []
   for case_file, case_name in all_tests:
@@ -75,12 +77,12 @@ def main(argv):
       for proc in procs:
         if proc.poll() is not None:
           if proc.returncode != 0:
-            fail_file, fail_name = procs[proc] 
+            fail_file, fail_name = procs[proc]
             failed_cases.append((fail_file, fail_name, proc.returncode))
           procs_done.append(proc)
       for proc in procs_done:
         del procs[proc]
-    cmd = 'python -m easy_rec.python.test.%s %s' % (case_file, case_name) 
+    cmd = 'python -m easy_rec.python.test.%s %s' % (case_file, case_name)
     log_file = '%s/%s.%s.log' % (test_log_dir, case_file, case_name)
     logging.info('Run %s.%s Log: %s' % (case_file, case_name, log_file))
     proc = test_utils.run_cmd(cmd, log_file)
@@ -90,19 +92,19 @@ def main(argv):
     try:
       proc.wait()
     except Exception as ex:
-      fail_file, fail_name = procs[proc] 
+      fail_file, fail_name = procs[proc]
       logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))
       proc.kill()
 
     if proc.returncode != 0:
-      fail_file, fail_name = procs[proc] 
+      fail_file, fail_name = procs[proc]
       failed_cases.append((fail_file, fail_name, proc.returncode))
 
   if len(failed_cases) > 0:
     logging.info('Number Cases Failed: %d' % len(failed_cases))
     for fail_file, fail_name, exit_code in failed_cases:
-      logging.info('\t%s.%s failed, exit_code:%d log: %s.%s.log' % ( 
-          fail_file, fail_name, exit_code, fail_file, fail_name))
+      logging.info('\t%s.%s failed, exit_code:%d log: %s.%s.log' %
+                   (fail_file, fail_name, exit_code, fail_file, fail_name))
     return 1
   else:
     logging.info('TestSucceed.')

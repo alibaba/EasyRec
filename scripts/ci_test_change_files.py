@@ -1,10 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
-import sys
-import os
-import logging
 import json
+import logging
+import sys
+
 from easy_rec.python.utils.io_util import http_read
 
 logging.basicConfig(
@@ -20,18 +20,18 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   url = 'https://api.github.com/repos/alibaba/EasyRec/pulls/%d/files' % args.pull_request_num
-  pull_request_data = http_read(url) 
+  pull_request_data = http_read(url)
 
   changes = json.loads(pull_request_data)
   change_dir = []
   for obj in changes:
     filename = obj['filename']
-    toks = filename.split('/') 
+    toks = filename.split('/')
     if len(toks) > 0:
       if toks[0] not in args.exclude_dirs:
         change_dir.append(toks[0])
-  
+
   change_dir = list(set(change_dir))
-  logging.info('changed directories: %s' % ','.join(change_dir))   
+  logging.info('changed directories: %s' % ','.join(change_dir))
   if len(change_dir) == 0:
     sys.exit(1)

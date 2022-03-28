@@ -8,6 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tensorflow.python.framework.meta_graph import read_meta_graph_file
 
 from easy_rec.python.utils import config_util
 
@@ -78,26 +79,29 @@ class VariationalDropoutFS:
     config = config_util.get_configs_from_pipeline_file(self._config_path)
     assert config.model_config.HasField(
         'variational_dropout'), 'variational_dropout must be in model_config'
+
     embedding_wise_variational_dropout = config.model_config.variational_dropout.embedding_wise_variational_dropout
-    features_dim = {
-        cfg.input_names[0]: cfg.embedding_dim
-        if cfg.HasField('embedding_dim') else cfg.raw_input_dim
-        for cfg in config_util.get_compatible_feature_configs(config)
-    }
-    features_map = {}
-    for feature_group in config.model_config.feature_groups:
-      features_map[feature_group.group_name] = list(feature_group.feature_names)
 
     if self._checkpoint_path is None or len(self._checkpoint_path) == 0:
       checkpoint_path = tf.train.latest_checkpoint(config.model_dir)
     else:
       checkpoint_path = self._checkpoint_path
 
+    meta_graph_def = read_meta_graph_file(checkpoint_path + '.meta')
+    features_dimension_map = dict()
+    for col_def in meta_graph_def.collection_def[
+        'variational_dropout'].bytes_list.value:
+      name, features_dimension = json.loads(col_def)
+      name = 'all' if name == '' else name
+      features_dimension_map[name] = OrderedDict(features_dimension)
+
     tf.logging.info('Reading checkpoint from %s ...' % checkpoint_path)
     reader = tf.train.NewCheckpointReader(checkpoint_path)
 
     feature_dim_dropout_p_map = {}
-    for group_name, features in features_map.items():
+    for feature_group in config.model_config.feature_groups:
+      group_name = feature_group.group_name
+
       logit_p_name = 'logit_p' if group_name == 'all' else 'logit_p_%s' % group_name
       logit_p = reader.get_tensor(logit_p_name)
       feature_dims_importance = tf.sigmoid(logit_p)
@@ -107,14 +111,15 @@ class VariationalDropoutFS:
       feature_dim_dropout_p = {}
       if embedding_wise_variational_dropout:
         index_end = 0
-        for feature_name in features:
+        for feature_name, feature_dim in features_dimension_map[
+            group_name].items():
           index_start = index_end
-          index_end = index_start + features_dim[feature_name]
+          index_end = index_start + feature_dim
           feature_dim_dropout_p[feature_name] = feature_dims_importance[
               index_start:index_end]
       else:
         index = 0
-        for feature_name in features:
+        for feature_name in features_dimension_map[group_name].keys():
           feature_dim_dropout_p[feature_name] = feature_dims_importance[index]
           index += 1
 
@@ -138,18 +143,38 @@ class VariationalDropoutFS:
 
   def _process_config(self, feature_importance_map):
     """Process model config and fg config with feature selection."""
-    selected_features = set()
+    excluded_features = set()
     for group_name, feature_importance in feature_importance_map.items():
       for i, (feature_name, _) in enumerate(feature_importance.items()):
-        if i < self._topk:
-          selected_features.add(feature_name)
+        if i >= self._topk:
+          excluded_features.add(feature_name)
+
     config = config_util.get_configs_from_pipeline_file(self._config_path)
+    # keep sequence features and side-infos
+    sequence_features = set()
+    for feature_group in config.model_config.feature_groups:
+      for sequence_feature in feature_group.sequence_features:
+        for seq_att_map in sequence_feature.seq_att_map:
+          for key in seq_att_map.key:
+            sequence_features.add(key)
+          for hist_seq in seq_att_map.hist_seq:
+            sequence_features.add(hist_seq)
+    # compat with din
+    for sequence_feature in config.model_config.seq_att_groups:
+      for seq_att_map in sequence_feature.seq_att_map:
+        for key in seq_att_map.key:
+          sequence_features.add(key)
+        for hist_seq in seq_att_map.hist_seq:
+          sequence_features.add(hist_seq)
+    excluded_features = excluded_features - sequence_features
+
     feature_configs = []
     for feature_config in config_util.get_compatible_feature_configs(config):
       feature_name = feature_config.feature_name if feature_config.HasField('feature_name') \
           else feature_config.input_names[0]
-      if feature_name in selected_features:
+      if feature_name not in excluded_features:
         feature_configs.append(feature_config)
+
     if config.feature_configs:
       config.ClearField('feature_configs')
       config.feature_configs.extend(feature_configs)
@@ -160,7 +185,7 @@ class VariationalDropoutFS:
     for feature_group in config.model_config.feature_groups:
       feature_names = []
       for feature_name in feature_group.feature_names:
-        if feature_name in selected_features:
+        if feature_name not in excluded_features:
           feature_names.append(feature_name)
       feature_group.ClearField('feature_names')
       feature_group.feature_names.extend(feature_names)
@@ -173,7 +198,10 @@ class VariationalDropoutFS:
         fg_json = json.load(f, object_pairs_hook=OrderedDict)
         features = []
         for feature in fg_json['features']:
-          if feature['feature_name'] in selected_features:
+          if 'feature_name' in feature:
+            if feature['feature_name'] not in excluded_features:
+              features.append(feature)
+          else:
             features.append(feature)
         fg_json['features'] = features
       with tf.gfile.Open(
