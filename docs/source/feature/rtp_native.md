@@ -1,7 +1,6 @@
-# RTP原生
+# RTP部署
 
-使用RTP的用户会思考，能否将EasyRec模型部署在RTP上呢？答案是可以的，但需要特殊的配置和流程。
-- 对于深度模型来说，RTP服务使用Key-Value形式的FG格式，不同于传统LR模型使用的多值格式
+本文档介绍将EasyRec模型部署到RTP上的流程.
 - RTP目前仅支持checkpoint形式的模型部署，因此需要将EasyRec模型导出为checkpoint形式
 
 #### 编写RTP特征配置 [fg.json](https://easyrec.oss-cn-beijing.aliyuncs.com/rtp_fg/fg.json)
@@ -23,8 +22,7 @@
 
  "reserves": [
    "user_id", "campaign_id", "clk"
- ],
- "multi_val_sep": "|"
+ ]
 }
 ```
 
@@ -111,10 +109,6 @@
 
 - 全局配置说明:
   - reserves: 要在最终表里面要保存的字段，通常包括label, user_id, item_id等
-  - separator: sparse格式里面，特征之间的分隔符，不指定默认是","
-  - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"\\u001D"
-  - kv_separator: 多值有权重特征的分隔符，如”体育:0.3|娱乐:0.2|军事:0.5”，不指定默认None，即没有权重
-
 
 #### 生成样本
 
@@ -137,8 +131,7 @@
   ],
   "reserves": [
     "user_id", "item_id", "clk"
-  ],
-  "multi_val_sep": "|"
+  ]
 }
 ```
 
@@ -304,4 +297,11 @@ pai -name easy_rec_ext -project algo_public
 -Dbatch_size=256;
 ```
 
-这会在`export_dir`指定的目录下生成名为 model.ckpt.* 的checkpoint文件，将`export_dir`指定的目录所对应的主目录指定为RTP模型表的模型目录即可。例如`export_dir`为 oss://bucket-name/easy_rect_test_model_export/202203031730/data ，则将RTP模型目录指定为 oss://bucket-name/easy_rect_test_model_export 。
+- 在`export_dir`指定的目录下生成名为 model.ckpt.* 的checkpoint文件，将`export_dir`指定的目录所对应的主目录指定为RTP模型表的模型目录即可, 例如:
+ - `export_dir`为 oss://bucket-name/easy_rect_test_model_export/202203031730/data，则将RTP模型目录指定为 oss://bucket-name/easy_rect_test_model_export
+- Note: 弹内pai版本ossHost, arn, buckets参数指定方式和公有云版本有差异，具体见[使用文档](../quick_start/mc_tutorial_inner.md) RTP Serving部分.
+
+#### EAS部署
+- 还可以将模型部署到EAS上，参考[文档](../predict/在线预测).
+
+
