@@ -34,9 +34,10 @@ python git-lfs/git_lfs.py push
 
 pwd
 
-is_py3=`python -c "import six; print six.PY3"`
+gt_py36=`python --version 2>&1 | awk '{ print ($2 >= 3.6) }'`
 
-if [ "$is_py3" == "True" ]
+if [ "$gt_py36" == "True" ]
 then
+  pip install pre-commit
   python scripts/pre-commit
 fi
