@@ -38,7 +38,7 @@ class OdpsOSSConfig:
 
   def __init__(self, script_path='./samples/odps_script'):
     self.time_stamp = int(time.time())
-    temp_dir = os.environ.get('TEST_DIR', '/tmp')
+    temp_dir = os.environ.get('TMPDIR', '/tmp')
     self.exp_dir = 'easy_rec_odps_test_%d' % self.time_stamp
     self.temp_dir = os.path.join(temp_dir, self.exp_dir)
     self.log_dir = os.path.join(self.temp_dir, 'logs/')
