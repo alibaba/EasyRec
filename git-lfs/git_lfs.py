@@ -20,58 +20,22 @@ except ImportError:
   )
   sys.exit(1)
 
-git_oss_config_path = os.environ['HOME'] + '/.git_oss_config'
 git_bin_path = '.git_bin_path'
 git_bin_url_path = '.git_bin_url'
 # temporary storage path
-git_bin_archive_path = '.git_bin_archive_path'
+git_oss_cache_dir = '.git_oss_cache'
 
-if len(sys.argv) < 2:
-  logging.error('usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]')
-  sys.exit(1)
 
-if not os.path.exists(git_bin_archive_path):
-  os.mkdir(git_bin_archive_path)
-
-with open('.git_oss_config_pub', 'r') as fin:
-  git_oss_data_dir = None
-  host = None
-  bucket_name = None
-  git_oss_private_path = None
-  for line_str in fin:
-    line_str = line_str.strip()
-    line_tok = [x.strip() for x in line_str.split('=') if x != '']
-    if line_tok[0] == 'host':
-      host = line_tok[1]
-    elif line_tok[0] == 'git_oss_data_dir':
-      git_oss_data_dir = line_tok[1].strip('/')
-    elif line_tok[0] == 'bucket_name':
-      bucket_name = line_tok[1]
-    elif line_tok[0] == 'git_oss_private_path':
-      git_oss_private_path = line_tok[1]
-      if git_oss_private_path.startswith('~/'):
-        git_oss_private_path = os.path.join(os.environ['HOME'], git_oss_private_path[2:])
-  logging.info('git_oss_data_dir=%s, host=%s, bucket_name=%s' % (
-    git_oss_data_dir, host, bucket_name))
-
-logging.info('git_oss_private_path=%s' % git_oss_private_path)
-if git_oss_private_path is not None and os.path.exists(git_oss_private_path):
-  # load oss configs
-  with open(git_oss_private_path, 'r') as fin:
-    for line_str in fin:
-      line_str = line_str.strip()
-      line_tok = [x.strip() for x in line_str.split('=') if x != '']
-      if line_tok[0] in ['accessid', 'accessKeyID']:
-        accessid = line_tok[1]
-      elif line_tok[0] in ['accesskey', 'accessKeySecret']:
-        accesskey = line_tok[1]
-  oss_auth = oss2.Auth(accessid, accesskey)
-  oss_bucket = oss2.Bucket(oss_auth, host, bucket_name)
-else:
-  logging.info('git_oss_private_path[%s] is not found, read-only mode' % git_oss_private_path)
-  # pull only mode
-  oss_auth = None
-  oss_bucket = None
+#get project name by using git remote -v
+def get_proj_name():
+  proj_name=subprocess.check_output(['git', 'remote', '-v'])
+  proj_name = proj_name.decode('utf-8')
+  proj_name = proj_name.split('\n')[0]
+  proj_name = proj_name.split('\t')[1]
+  proj_name = proj_name.split('/')[-1]
+  proj_name = proj_name.replace('.git (fetch)', '')
+  proj_name = proj_name.strip()
+  return proj_name
 
 
 # load .git_bin_url
@@ -210,16 +174,6 @@ def list_leafs(curr_path):
   return bottom_dir
 
 
-# recursive mkdir
-def mkdir_r(path):
-  sub_path = os.path.dirname(path)
-  if not os.path.exists(sub_path):
-    if sub_path != '':
-      mkdir_r(sub_path)
-  if not os.path.exists(path):
-    os.mkdir(path)
-
-
 # check whether lst0 and lst1 contain the same string elements
 def lst_eq(lst0, lst1):
   if len(lst0) != len(lst1):
@@ -261,206 +215,268 @@ def get_yes_no(msg):
       break
   return update
 
-
-if sys.argv[1] == 'push':
-  updated = False
-  git_bin_arr = recheck_git_bin()
-  git_bin_url = load_git_url()
-  for leaf_path in git_bin_arr:
-    leaf_files = git_bin_arr[leaf_path]
-    # empty directory will not be push to oss
-    if len(leaf_files) == 0:
-      continue
-    file_name = path2name(leaf_path)
-    new_sig = get_local_sig(leaf_files)
-    if new_sig is None:
-      continue
-    if leaf_path in git_bin_url and git_bin_url[leaf_path][0] == new_sig:
-      continue
-    # build tar file and push to oss
-    tar_out_path = '%s/%s.tar.gz' % (git_bin_archive_path, file_name)
-    subprocess.check_output(['tar', '-czf', tar_out_path] + leaf_files)
-    save_path = '%s/%s' % (git_oss_data_dir, file_name + '_' + new_sig)
-    oss_bucket.put_object_from_file(save_path, tar_out_path)
-    git_bin_url[leaf_path] = (new_sig, save_path)
-    logging.info('pushed %s' % leaf_path)
-    updated = True
-  for leaf_path in list(git_bin_url.keys()):
-    if leaf_path not in git_bin_arr:
-      del git_bin_url[leaf_path]
-      logging.info('dropped %s' % leaf_path)
-      updated = True
-  if updated:
-    save_git_url(git_bin_url)
-    logging.info('push succeed.')
-  else:
-    logging.warning('nothing to push')
-  subprocess.check_output(['git', 'add', git_bin_url_path])
-elif sys.argv[1] == 'pull':
-  # pull images from remote
-  any_update = False
-  git_bin_arr = load_git_bin()
-  git_bin_url = load_git_url()
-  for leaf_path in git_bin_arr:
-    leaf_files = git_bin_arr[leaf_path]
-    if len(leaf_files) == 0:
-      if os.path.isfile(leaf_path):
-        logging.error('conflicts: %s is a file, but was a dir' % leaf_path)
-      elif not os.path.isdir(leaf_path):
-        mkdir_r(leaf_path)
-      continue
-    # newly add files
-    if leaf_path not in git_bin_url:
-      continue
-    file_name = path2name(leaf_path)
-    all_file_exist = True
-    for tmp in leaf_files:
-      if not os.path.exists(tmp):
-        all_file_exist = False
-    remote_sig = git_bin_url[leaf_path][0]
-    if all_file_exist:
-      local_sig = get_local_sig(leaf_files)
-      if local_sig == remote_sig:
+if __name__ == '__main__':
+  if len(sys.argv) < 2:
+    logging.error('usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]')
+    sys.exit(1)
+  with open('.git_oss_config_pub', 'r') as fin:
+    git_oss_data_dir = None
+    host = None
+    bucket_name = None
+    git_oss_private_path = None
+    for line_str in fin:
+      line_str = line_str.strip()
+      if len(line_str) == 0:
         continue
-    else:
-      local_sig = ''
-
-    update = False
-    if has_conflict(leaf_path, leaf_files):
-      update = get_yes_no(
-          'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
-          (leaf_path, remote_sig, local_sig))
-    else:
-      update = True
-    if not update:
-      continue
-    # pull from remote oss
-    remote_path = git_bin_url[leaf_path][1]
-    tar_tmp_path = '%s/%s.tar.gz' % (git_bin_archive_path, file_name)
-    if oss_bucket:
-      oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
-    else:
-      url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
-      subprocess.check_output(['wget', url, '-O', tar_tmp_path])
-    subprocess.check_output(['tar', '-zxf', tar_tmp_path])
-    os.remove(tar_tmp_path)
-    logging.info('%s updated' % leaf_path)
-    any_update = True
-  if not any_update:
-    logging.info('nothing to be updated')
-elif sys.argv[1] == 'add':
-  add_path = sys.argv[2]
-  if not os.path.exists(add_path):
-    raise ValueError('add path %s does not exist' % add_path)
-  bin_file_map = {}
-  try:
-    bin_file_map = load_git_bin()
-  except Exception as ex:
-    logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
-    pass
-  leaf_dirs = list_leafs(add_path)
-  any_new = False
-  for leaf_path, leaf_files in leaf_dirs:
-    for leaf_file in leaf_files:
-      tmp_out = subprocess.check_output(['git', 'ls-files', leaf_file])
-      if len(tmp_out.strip()) > 0:
-        subprocess.check_output(['git', 'rm', '--cached', leaf_file])
-    if leaf_path not in bin_file_map:
-      bin_file_map[leaf_path] = leaf_files
-      any_new = True
-    else:  # check whether the files are the same
-      old_leaf_files = bin_file_map[leaf_path]
-      if not lst_eq(old_leaf_files, leaf_files):
-        bin_file_map[leaf_path] = merge_lst(old_leaf_files, leaf_files)
-        any_new = True
-  if any_new:
-    # write back to .git_bin_path
-    save_git_bin(bin_file_map)
-    logging.info('added %s' % add_path)
+      if line_str.startswith('#'):
+        continue
+      line_str = line_str.replace('~/', os.environ['HOME'] + '/')
+      line_str = line_str.replace('${TMPDIR}', os.environ.get('TMPDIR', '/tmp'))
+      line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
+      line_tok = [x.strip() for x in line_str.split('=') if x != '']
+      if line_tok[0] == 'host':
+        host = line_tok[1]
+      elif line_tok[0] == 'git_oss_data_dir':
+        git_oss_data_dir = line_tok[1].strip('/')
+      elif line_tok[0] == 'bucket_name':
+        bucket_name = line_tok[1]
+      elif line_tok[0] == 'git_oss_private_config':
+        git_oss_private_path = line_tok[1]
+        if git_oss_private_path.startswith('~/'):
+          git_oss_private_path = os.path.join(os.environ['HOME'], git_oss_private_path[2:])
+      elif line_tok[0] == 'git_oss_cache_dir':
+        git_oss_cache_dir = line_tok[1]
+        
+    logging.info('git_oss_data_dir=%s, host=%s, bucket_name=%s' % (
+      git_oss_data_dir, host, bucket_name))
+  
+  logging.info('git_oss_cache_dir: %s' % git_oss_cache_dir)
+  
+  if not os.path.exists(git_oss_cache_dir):
+    os.makedirs(git_oss_cache_dir)
+  
+  logging.info('git_oss_private_config=%s' % git_oss_private_path)
+  if git_oss_private_path is not None and os.path.exists(git_oss_private_path):
+    # load oss configs
+    with open(git_oss_private_path, 'r') as fin:
+      for line_str in fin:
+        line_str = line_str.strip()
+        line_tok = [x.strip() for x in line_str.split('=') if x != '']
+        if line_tok[0] in ['accessid', 'accessKeyID']:
+          accessid = line_tok[1]
+        elif line_tok[0] in ['accesskey', 'accessKeySecret']:
+          accesskey = line_tok[1]
+    oss_auth = oss2.Auth(accessid, accesskey)
+    oss_bucket = oss2.Bucket(oss_auth, host, bucket_name)
   else:
-    logging.info('already add %s' % add_path)
-  subprocess.check_output(['git', 'add', '.git_bin_path'])
-elif sys.argv[1] == 'remove':
-  del_path = sys.argv[2]
-  try:
-    bin_file_map = load_git_bin()
-  except Exception as ex:
-    logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
-    pass
-  leaf_dirs = list_leafs(del_path)
-  any_update = False
-  for leaf_path, leaf_files in leaf_dirs:
-    if leaf_path in bin_file_map:
-      for leaf_file in leaf_files:
-        if leaf_file in bin_file_map[leaf_path]:
-          tmp_id = bin_file_map[leaf_path].index(leaf_file)
-          del bin_file_map[leaf_path][tmp_id]
-          any_update = True
-      if len(bin_file_map[leaf_path]) == 0:
-        del bin_file_map[leaf_path]
-  if any_update:
-    save_git_bin(bin_file_map)
-    logging.info('remove %s' % del_path)
-elif sys.argv[1] == 'resolve_conflict':
-  git_objs = {}
-  with open(git_bin_path, 'r') as fin:
-    merge_start = 0
-    for line_str in fin:
-      if line_str.startswith('<<<<<<<'):
-        merge_start = 1
-      elif line_str.startswith('======='):
-        merge_start = 2
-      elif line_str.startswith('>>>>>>>'):
-        merge_start = 0
-      elif merge_start == 0:
-        tmp_obj = json.loads(line_str)
-        leaf_name = tmp_obj['leaf_name']
-        leaf_file = tmp_obj['leaf_file']
-        git_objs[leaf_name] = leaf_file
-      elif merge_start == 1:
-        tmp_obj = json.loads(line_str)
-        leaf_name = tmp_obj['leaf_name']
-        leaf_file = tmp_obj['leaf_file']
-        git_objs[leaf_name] = leaf_file
-      elif merge_start == 2:
-        tmp_obj = json.loads(line_str)
-        leaf_name = tmp_obj['leaf_name']
-        leaf_file = tmp_obj['leaf_file']
-        if leaf_name in git_objs:
-          union = git_objs[leaf_name]
-          for tmp in leaf_file:
-            if tmp not in union:
-              union.append(tmp)
-              logging.info('add %s to %s' % (tmp, leaf_name))
-          git_objs[leaf_name] = union
-        else:
-          git_objs[leaf_name] = leaf_file
-      else:
-        logging.warning('invalid state: merge_start = %d, line_str = %s' %
-                        (merge_start, line_str))
-  save_git_bin(git_objs)
+    logging.info('git_oss_private_path[%s] is not found, read-only mode' % git_oss_private_path)
+    # pull only mode
+    oss_auth = None
+    oss_bucket = None
 
-  git_bin_url_map = {}
-  with open(git_bin_url_path, 'r') as fin:
-    merge_start = 0
-    for line_str in fin:
-      if line_str.startswith('<<<<<<<'):
-        merge_start = 1
-      elif line_str.startswith('======='):
-        merge_start = 2
-      elif line_str.startswith('>>>>>>>'):
-        merge_start = 0
-      elif merge_start in [0, 1, 2]:
-        line_json = json.loads(line_str)
-        if line_json['leaf_path'] in git_objs:
-          git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
-                                                     line_json['remote_path'])
+  if sys.argv[1] == 'push':
+    updated = False
+    git_bin_arr = recheck_git_bin()
+    git_bin_url = load_git_url()
+    for leaf_path in git_bin_arr:
+      leaf_files = git_bin_arr[leaf_path]
+      # empty directory will not be push to oss
+      if len(leaf_files) == 0:
+        continue
+      file_name = path2name(leaf_path)
+      new_sig = get_local_sig(leaf_files)
+      if new_sig is None:
+        continue
+      if leaf_path in git_bin_url and git_bin_url[leaf_path][0] == new_sig:
+        continue
+      # build tar file and push to oss
+      file_name_with_sig = file_name + '_' + new_sig
+      tar_out_path = '%s/%s.tar.gz' % (git_oss_cache_dir, file_name_with_sig)
+      subprocess.check_output(['tar', '-czf', tar_out_path] + leaf_files)
+      save_path = '%s/%s' % (git_oss_data_dir, file_name_with_sig)
+      oss_bucket.put_object_from_file(save_path, tar_out_path)
+      git_bin_url[leaf_path] = (new_sig, save_path)
+      logging.info('pushed %s' % leaf_path)
+      updated = True
+    for leaf_path in list(git_bin_url.keys()):
+      if leaf_path not in git_bin_arr:
+        del git_bin_url[leaf_path]
+        logging.info('dropped %s' % leaf_path)
+        updated = True
+    if updated:
+      save_git_url(git_bin_url)
+      logging.info('push succeed.')
+    else:
+      logging.warning('nothing to push')
+    subprocess.check_output(['git', 'add', git_bin_url_path])
+  elif sys.argv[1] == 'pull':
+    # pull images from remote
+    any_update = False
+    git_bin_arr = load_git_bin()
+    git_bin_url = load_git_url()
+    for leaf_path in git_bin_arr:
+      leaf_files = git_bin_arr[leaf_path]
+      if len(leaf_files) == 0:
+        if os.path.isfile(leaf_path):
+          logging.error('conflicts: %s is a file, but was a dir' % leaf_path)
+        elif not os.path.isdir(leaf_path):
+          os.makedirs(leaf_path)
+        continue
+      # newly add files
+      if leaf_path not in git_bin_url:
+        continue
+      file_name = path2name(leaf_path)
+      all_file_exist = True
+      for tmp in leaf_files:
+        if not os.path.exists(tmp):
+          all_file_exist = False
+      remote_sig = git_bin_url[leaf_path][0]
+      if all_file_exist:
+        local_sig = get_local_sig(leaf_files)
+        if local_sig == remote_sig:
+          continue
       else:
-        logging.warning('invalid state: merge_start = %d, line_str = %s' %
-                        (merge_start, line_str))
-  save_git_url(git_bin_url_map)
-  logging.info('all conflicts fixed.')
-else:
-  logging.warning('invalid cmd: %s' % sys.argv[1])
-  logging.warning('choices are: %s' %
-                  ','.join(['push', 'pull', 'add', 'remove', 'resolve_conflict']))
+        local_sig = ''
+  
+      update = False
+      if has_conflict(leaf_path, leaf_files):
+        update = get_yes_no(
+            'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
+            (leaf_path, remote_sig, local_sig))
+      else:
+        update = True
+      if not update:
+        continue
+      # pull from remote oss
+      remote_path = git_bin_url[leaf_path][1]
+      _, file_name_with_sig = os.path.split(remote_path)
+      tar_tmp_path = '%s/%s.tar.gz' % (git_oss_cache_dir, file_name_with_sig)
+      if not os.path.exists(tar_tmp_path):
+        if oss_bucket:
+          oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
+        else:
+          url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
+          subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+      else:
+        logging.info('%s is in cache' % file_name_with_sig)
+      subprocess.check_output(['tar', '-zxf', tar_tmp_path])
+      logging.info('%s updated' % leaf_path)
+      any_update = True
+    if not any_update:
+      logging.info('nothing to be updated')
+  elif sys.argv[1] == 'add':
+    add_path = sys.argv[2]
+    if not os.path.exists(add_path):
+      raise ValueError('add path %s does not exist' % add_path)
+    bin_file_map = {}
+    try:
+      bin_file_map = load_git_bin()
+    except Exception as ex:
+      logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
+      pass
+    leaf_dirs = list_leafs(add_path)
+    any_new = False
+    for leaf_path, leaf_files in leaf_dirs:
+      for leaf_file in leaf_files:
+        tmp_out = subprocess.check_output(['git', 'ls-files', leaf_file])
+        if len(tmp_out.strip()) > 0:
+          subprocess.check_output(['git', 'rm', '--cached', leaf_file])
+      if leaf_path not in bin_file_map:
+        bin_file_map[leaf_path] = leaf_files
+        any_new = True
+      else:  # check whether the files are the same
+        old_leaf_files = bin_file_map[leaf_path]
+        if not lst_eq(old_leaf_files, leaf_files):
+          bin_file_map[leaf_path] = merge_lst(old_leaf_files, leaf_files)
+          any_new = True
+    if any_new:
+      # write back to .git_bin_path
+      save_git_bin(bin_file_map)
+      logging.info('added %s' % add_path)
+    else:
+      logging.info('already add %s' % add_path)
+    subprocess.check_output(['git', 'add', '.git_bin_path'])
+  elif sys.argv[1] == 'remove':
+    del_path = sys.argv[2]
+    try:
+      bin_file_map = load_git_bin()
+    except Exception as ex:
+      logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
+      pass
+    leaf_dirs = list_leafs(del_path)
+    any_update = False
+    for leaf_path, leaf_files in leaf_dirs:
+      if leaf_path in bin_file_map:
+        for leaf_file in leaf_files:
+          if leaf_file in bin_file_map[leaf_path]:
+            tmp_id = bin_file_map[leaf_path].index(leaf_file)
+            del bin_file_map[leaf_path][tmp_id]
+            any_update = True
+        if len(bin_file_map[leaf_path]) == 0:
+          del bin_file_map[leaf_path]
+    if any_update:
+      save_git_bin(bin_file_map)
+      logging.info('remove %s' % del_path)
+  elif sys.argv[1] == 'resolve_conflict':
+    git_objs = {}
+    with open(git_bin_path, 'r') as fin:
+      merge_start = 0
+      for line_str in fin:
+        if line_str.startswith('<<<<<<<'):
+          merge_start = 1
+        elif line_str.startswith('======='):
+          merge_start = 2
+        elif line_str.startswith('>>>>>>>'):
+          merge_start = 0
+        elif merge_start == 0:
+          tmp_obj = json.loads(line_str)
+          leaf_name = tmp_obj['leaf_name']
+          leaf_file = tmp_obj['leaf_file']
+          git_objs[leaf_name] = leaf_file
+        elif merge_start == 1:
+          tmp_obj = json.loads(line_str)
+          leaf_name = tmp_obj['leaf_name']
+          leaf_file = tmp_obj['leaf_file']
+          git_objs[leaf_name] = leaf_file
+        elif merge_start == 2:
+          tmp_obj = json.loads(line_str)
+          leaf_name = tmp_obj['leaf_name']
+          leaf_file = tmp_obj['leaf_file']
+          if leaf_name in git_objs:
+            union = git_objs[leaf_name]
+            for tmp in leaf_file:
+              if tmp not in union:
+                union.append(tmp)
+                logging.info('add %s to %s' % (tmp, leaf_name))
+            git_objs[leaf_name] = union
+          else:
+            git_objs[leaf_name] = leaf_file
+        else:
+          logging.warning('invalid state: merge_start = %d, line_str = %s' %
+                          (merge_start, line_str))
+    save_git_bin(git_objs)
+  
+    git_bin_url_map = {}
+    with open(git_bin_url_path, 'r') as fin:
+      merge_start = 0
+      for line_str in fin:
+        if line_str.startswith('<<<<<<<'):
+          merge_start = 1
+        elif line_str.startswith('======='):
+          merge_start = 2
+        elif line_str.startswith('>>>>>>>'):
+          merge_start = 0
+        elif merge_start in [0, 1, 2]:
+          line_json = json.loads(line_str)
+          if line_json['leaf_path'] in git_objs:
+            git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
+                                                       line_json['remote_path'])
+        else:
+          logging.warning('invalid state: merge_start = %d, line_str = %s' %
+                          (merge_start, line_str))
+    save_git_url(git_bin_url_map)
+    logging.info('all conflicts fixed.')
+  else:
+    logging.warning('invalid cmd: %s' % sys.argv[1])
+    logging.warning('choices are: %s' %
+                    ','.join(['push', 'pull', 'add', 'remove', 'resolve_conflict']))
