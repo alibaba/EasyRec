@@ -7,6 +7,9 @@ import os
 import subprocess
 import sys
 import traceback
+import re
+
+blank_split = re.compile('[\t ]')
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s[%(lineno)d] : %(message)s',
@@ -26,15 +29,14 @@ git_bin_url_path = '.git_bin_url'
 git_oss_cache_dir = '.git_oss_cache'
 
 
-#get project name by using git remote -v
+# get project name by using git remote -v
 def get_proj_name():
   proj_name=subprocess.check_output(['git', 'remote', '-v'])
   proj_name = proj_name.decode('utf-8')
   proj_name = proj_name.split('\n')[0]
-  proj_name = proj_name.split('\t')[1]
+  proj_name = blank_split.split(proj_name)[1]
   proj_name = proj_name.split('/')[-1]
-  proj_name = proj_name.replace('.git (fetch)', '')
-  proj_name = proj_name.strip()
+  proj_name = proj_name.replace('.git', '')
   return proj_name
 
 
