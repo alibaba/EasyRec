@@ -7,7 +7,7 @@ import re
 import common_io
 import tensorflow as tf
 from google.protobuf import text_format
-
+from easy_rec.python.protos import train_pb2
 from easy_rec.python.utils import config_util
 
 if tf.__version__ >= '2.0':
@@ -64,9 +64,11 @@ def main(argv):
   pipeline_config.train_config.num_steps = feature_info_map['num_steps'][
       'num_steps']
   train_config = pipeline_config.train_config
+
   config_text = text_format.MessageToString(train_config, as_utf8=True)
   config_text = re.compile('decay_steps: \d+').\
       sub('decay_steps: %s' % feature_info_map['decay_steps']['decay_steps'], config_text)
+  train_config.ClearField('optimizer_config')
   text_format.Merge(config_text, train_config)
 
   config_dir, config_name = os.path.split(FLAGS.output_config_path)
