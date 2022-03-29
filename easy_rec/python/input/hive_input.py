@@ -187,7 +187,7 @@ class HiveInput(Input):
               row_id = 0
 
       if row_id > 0:
-        yield tuple(batch_data_np[:row_id])
+        yield tuple([x[:row_id] for x in batch_data_np])
       cursor.close()
       conn.close()
     logging.info('finish epoch[%d]' % self._num_epoch_record)
