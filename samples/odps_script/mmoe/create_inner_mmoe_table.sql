@@ -23,10 +23,7 @@ create table mmoe_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE mmoe_train_{TIME_STAMP}
-select * from external_mmoe_train_{TIME_STAMP} ;
-
-
+tunnel upload {TEST_DATA_DIR}/tb_data/train_{TIME_STAMP} mmoe_train_{TIME_STAMP};
 
 drop TABLE IF EXISTS mmoe_test_{TIME_STAMP};
 create table mmoe_test_{TIME_STAMP}(
@@ -53,5 +50,4 @@ create table mmoe_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE mmoe_test_{TIME_STAMP}
-select * from external_mmoe_test_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/test_{TIME_STAMP} mmoe_test_{TIME_STAMP};

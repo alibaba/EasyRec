@@ -23,9 +23,7 @@ create table multil_tower_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE multil_tower_test_{TIME_STAMP}
-select * from external_multil_tower_test_{TIME_STAMP} ;
-
+tunnel upload {TEST_DATA_DIR}/tb_data/test_{TIME_STAMP} deepfm_test_{TIME_STAMP};
 
 drop TABLE IF EXISTS multil_tower_train_{TIME_STAMP} ;
 create  table multil_tower_train_{TIME_STAMP}(
@@ -52,5 +50,4 @@ create  table multil_tower_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE multil_tower_train_{TIME_STAMP}
-select * from external_multil_tower_train_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/train_{TIME_STAMP} deepfm_train_{TIME_STAMP};
