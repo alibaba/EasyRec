@@ -1,14 +1,7 @@
-cprotobuf==0.1.9
 future
 matplotlib
 pandas
 psutil
 scikit-learn
 xlrd >= 0.9.0
-pyhive
-thrift
-sasl==0.3.0
-thrift_sasl
-# pydatahub
-# cprotobuf is required by pydatahub
-# cprotobuf==0.1.9
+PyYAML
