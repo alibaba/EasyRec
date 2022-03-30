@@ -1,13 +1,10 @@
 
 version: 2
 
-build:
-  tools:
-    python: "3.7"
-
 sphinx:
   configuration: docs/source/conf.py
 
 python:
+  version: "3.7"
   install:
   - requirements: requirements/docs.txt
