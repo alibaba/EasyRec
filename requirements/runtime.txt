@@ -7,7 +7,7 @@ scikit-learn
 xlrd >= 0.9.0
 pyhive
 thrift
-sasl
+sasl==0.3.0
 thrift_sasl
 # pydatahub
 # cprotobuf is required by pydatahub
