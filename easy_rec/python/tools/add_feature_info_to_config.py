@@ -72,7 +72,7 @@ def main(argv):
     optimizer = getattr(optimizer_config, optimizer)
     learning_rate = optimizer.learning_rate.WhichOneof('learning_rate')
     learning_rate = getattr(optimizer.learning_rate, learning_rate)
-    if learning_rate.HasField('decay_steps'):
+    if hasattr(learning_rate, 'decay_steps'):
       learning_rate.decay_steps = feature_info_map['__DECAY_STEPS__'][
           'decay_steps']
     logging.info('modify decay_steps to %s' % learning_rate.decay_steps)
