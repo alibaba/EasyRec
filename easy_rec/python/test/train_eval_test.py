@@ -1,9 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import glob
 import logging
 import os
-import glob
 import unittest
 from distutils.version import LooseVersion
 
@@ -130,7 +130,6 @@ class TrainEvalTest(tf.test.TestCase):
     def _post_check_func(pipeline_config):
       ckpt_prefix = os.path.join(pipeline_config.model_dir, 'model.ckpt-*.meta')
       ckpts = gfile.Glob(ckpt_prefix)
-      print(ckpts)
       assert len(ckpts) == 3, 'invalid number of checkpoints: %d' % len(ckpts)
 
     self._success = test_utils.test_single_train_eval(
@@ -445,13 +444,51 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_dbmtl_variational_dropout(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dbmtl_variational_dropout.config', self._test_dir)
+        'samples/model_config/dbmtl_variational_dropout.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
     self.assertTrue(self._success)
 
   def test_dbmtl_variational_dropout_feature_num(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_variational_dropout_feature_num.config',
-        self._test_dir)
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_essm_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/esmm_variational_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_fm_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_variational_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_combo_feature_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_variational_dropout_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_sequence_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_variational_dropout_on_sequence_feature_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
+    self.assertTrue(self._success)
+
+  def test_din_variational_dropout(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/din_varitional_dropout_on_taobao.config',
+        self._test_dir,
+        post_check_func=test_utils.test_feature_selection)
     self.assertTrue(self._success)
 
   def test_rocket_launching(self):
@@ -477,13 +514,14 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_train_with_ps_worker_with_evaluator(self):
     self._success = test_utils.test_distributed_train_eval(
-        'samples/model_config/multi_tower_on_taobao.config', self._test_dir,
+        'samples/model_config/multi_tower_on_taobao.config',
+        self._test_dir,
         num_evaluator=1)
     self.assertTrue(self._success)
     final_export_dir = os.path.join(self._test_dir, 'train/export/final')
-    all_saved_files = glob.glob(final_export_dir + '/*/saved_model.pb')  
-    logging.info('final_export_dir=%s all_saved_files=%s' % (final_export_dir,
-        ','.join(all_saved_files)))
+    all_saved_files = glob.glob(final_export_dir + '/*/saved_model.pb')
+    logging.info('final_export_dir=%s all_saved_files=%s' %
+                 (final_export_dir, ','.join(all_saved_files)))
     self.assertTrue(len(all_saved_files) == 1)
 
   def test_train_with_ps_worker_chief_redundant(self):

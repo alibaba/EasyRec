@@ -23,8 +23,7 @@ create table boundary_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE boundary_test_{TIME_STAMP}
-select * from external_boundary_test_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/train_{TIME_STAMP} boundary_test_{TIME_STAMP};
 
 
 drop TABLE IF EXISTS boundary_train_{TIME_STAMP} ;
@@ -52,8 +51,7 @@ create  table boundary_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE boundary_train_{TIME_STAMP}
-select * from external_boundary_train_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/test_{TIME_STAMP} boundary_train_{TIME_STAMP};
 
 
 drop TABLE IF EXISTS boundary_info_table_{TIME_STAMP} ;
@@ -63,5 +61,4 @@ create table boundary_info_table_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE boundary_info_table_{TIME_STAMP}
-select * from external_boundary_info_table_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/boundary_{TIME_STAMP} boundary_info_table_{TIME_STAMP} -fd='\t';

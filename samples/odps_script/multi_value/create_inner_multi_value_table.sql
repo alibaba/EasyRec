@@ -23,8 +23,7 @@ create table multi_value_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE multi_value_test_{TIME_STAMP}
-select * from external_multi_value_test_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/test_{TIME_STAMP} multi_value_test_{TIME_STAMP};
 
 
 drop TABLE IF EXISTS multi_value_train_{TIME_STAMP} ;
@@ -52,5 +51,4 @@ create  table multi_value_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE multi_value_train_{TIME_STAMP}
-select * from external_multi_value_train_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/train_{TIME_STAMP} multi_value_train_{TIME_STAMP};

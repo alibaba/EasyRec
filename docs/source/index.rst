@@ -21,6 +21,7 @@ Welcome to easy_rec's documentation!
    feature/feature
    feature/excel_config
    feature/rtp_fg
+   feature/rtp_native
 
 .. toctree::
    :maxdepth: 3
@@ -49,6 +50,7 @@ Welcome to easy_rec's documentation!
    predict/MaxCompute 离线预测
    predict/Local 离线预测
    predict/在线预测
+   feature/rtp_native
 
 .. toctree::
    :maxdepth: 2

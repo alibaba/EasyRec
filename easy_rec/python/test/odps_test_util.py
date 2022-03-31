@@ -38,7 +38,7 @@ class OdpsOSSConfig:
 
   def __init__(self, script_path='./samples/odps_script'):
     self.time_stamp = int(time.time())
-    temp_dir = os.environ.get('TEST_DIR', '/tmp')
+    temp_dir = os.environ.get('TMPDIR', '/tmp')
     self.exp_dir = 'easy_rec_odps_test_%d' % self.time_stamp
     self.temp_dir = os.path.join(temp_dir, self.exp_dir)
     self.log_dir = os.path.join(self.temp_dir, 'logs/')
@@ -78,6 +78,10 @@ class OdpsOSSConfig:
     self.algo_project = None
     self.algo_res_project = None
     self.algo_version = None
+
+    # default to outer environment
+    # the difference are ossHost buckets arn settings
+    self.is_outer = True
 
   def load_oss_config(self, config_path):
     with open(config_path, 'r') as fin:

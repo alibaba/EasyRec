@@ -23,8 +23,7 @@ create table dssm_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE dssm_test_{TIME_STAMP}
-select * from external_dssm_test_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/test_{TIME_STAMP} dssm_test_{TIME_STAMP};
 
 
 drop TABLE IF EXISTS dssm_train_{TIME_STAMP} ;
@@ -52,5 +51,4 @@ create  table dssm_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE dssm_train_{TIME_STAMP}
-select * from external_dssm_train_{TIME_STAMP} ;
+tunnel upload {TEST_DATA_DIR}/tb_data/train_{TIME_STAMP} dssm_train_{TIME_STAMP};
