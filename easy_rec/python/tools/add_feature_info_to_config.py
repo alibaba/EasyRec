@@ -61,13 +61,13 @@ def main(argv):
             feature_info_map[feature_name]['hash_bucket_size'])
         logging.info('hash_bucket_size: %s' % feature_config.hash_bucket_size)
 
-  pipeline_config.train_config.num_steps = feature_info_map['num_steps'][
+  pipeline_config.train_config.num_steps = feature_info_map['__NUM_STEPS__'][
       'num_steps']
   train_config = pipeline_config.train_config
 
   config_text = text_format.MessageToString(train_config, as_utf8=True)
   config_text = re.compile('decay_steps: \d+').\
-      sub('decay_steps: %s' % feature_info_map['decay_steps']['decay_steps'], config_text)
+      sub('decay_steps: %s' % feature_info_map['__DECAY_STEPS__']['decay_steps'], config_text)
   train_config.ClearField('optimizer_config')
   text_format.Merge(config_text, train_config)
 
