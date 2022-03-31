@@ -3,11 +3,10 @@
 import json
 import logging
 import os
-import re
+
 import common_io
 import tensorflow as tf
-from google.protobuf import text_format
-from easy_rec.python.protos import train_pb2
+
 from easy_rec.python.utils import config_util
 
 if tf.__version__ >= '2.0':
@@ -50,26 +49,32 @@ def main(argv):
       logging.info('edited %s' % feature_name)
       feature_config.embedding_dim = int(
           feature_info_map[feature_name]['embedding_dim'])
-      logging.info('embedding_dim: %s' % feature_config.embedding_dim)
+      logging.info('modify embedding_dim to %s' % feature_config.embedding_dim)
       if 'boundary' in feature_info_map[feature_name]:
         feature_config.ClearField('boundaries')
         feature_config.boundaries.extend(
             [float(i) for i in feature_info_map[feature_name]['boundary']])
-        logging.info('boundaries: %s' % feature_config.boundaries)
+        logging.info('modify boundaries to %s' % feature_config.boundaries)
       elif 'hash_bucket_size' in feature_info_map[feature_name]:
         feature_config.hash_bucket_size = int(
             feature_info_map[feature_name]['hash_bucket_size'])
-        logging.info('hash_bucket_size: %s' % feature_config.hash_bucket_size)
-
+        logging.info('modify hash_bucket_size to %s' %
+                     feature_config.hash_bucket_size)
+  # modify num_steps
   pipeline_config.train_config.num_steps = feature_info_map['__NUM_STEPS__'][
       'num_steps']
-  train_config = pipeline_config.train_config
-
-  config_text = text_format.MessageToString(train_config, as_utf8=True)
-  config_text = re.compile('decay_steps: \d+').\
-      sub('decay_steps: %s' % feature_info_map['__DECAY_STEPS__']['decay_steps'], config_text)
-  train_config.ClearField('optimizer_config')
-  text_format.Merge(config_text, train_config)
+  logging.info('modify num_steps to %s' %
+               pipeline_config.train_config.num_steps)
+  # modify decay_steps
+  optimizer_config = pipeline_config.train_config.optimizer_config
+  optimizer = optimizer_config.WhichOneof('optimizer')
+  optimizer = getattr(optimizer_config, optimizer)
+  learning_rate = optimizer.learning_rate.WhichOneof('learning_rate')
+  learning_rate = getattr(optimizer.learning_rate, learning_rate)
+  if learning_rate.HasField('decay_steps'):
+    learning_rate.decay_steps = feature_info_map['__DECAY_STEPS__'][
+        'decay_steps']
+    logging.info('modify decay_steps to %s' % learning_rate.decay_steps)
 
   config_dir, config_name = os.path.split(FLAGS.output_config_path)
   config_util.save_pipeline_config(pipeline_config, config_dir, config_name)
@@ -77,3 +82,4 @@ def main(argv):
 
 if __name__ == '__main__':
   tf.app.run()
+
