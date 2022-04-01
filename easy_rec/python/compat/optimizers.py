@@ -35,6 +35,7 @@ from tensorflow.python.summary import summary
 from tensorflow.python.training import moving_averages
 from tensorflow.python.training import optimizer as optimizer_
 from tensorflow.python.training import training as train
+from easy_rec.python.ops.incr_record import set_sparse_indices
 
 OPTIMIZER_CLS_NAMES = {
     'Adagrad':
@@ -75,7 +76,8 @@ def optimize_loss(loss,
                   summaries=None,
                   colocate_gradients_with_ops=False,
                   not_apply_grad_after_first_step=False,
-                  increment_global_step=True):
+                  increment_global_step=True,
+                  incr_save=False):
   """Given loss and parameters for optimizer, returns a training op.
 
   Various ways of passing optimizers include:
@@ -146,6 +148,7 @@ def optimize_loss(loss,
       calls `optimize_loss` multiple times per training step (e.g. to optimize
       different parts of the model), use this arg to avoid incrementing
       `global_step` more times than necessary.
+    incr_save: increment dump checkpoints.
 
   Returns:
     Training op.
@@ -300,11 +303,22 @@ def optimize_loss(loss,
 
     # Create gradient updates.
     def _apply_grad():
+      if incr_save:
+        incr_save_ops = []
+        for grad, var in gradients:
+          if isinstance(grad, ops.IndexedSlices):
+            incr_save_op = set_sparse_indices(grad.indices, var_name=var.op.name)
+            incr_save_ops.append(incr_save_op)
+            ops.add_to_collection('SPARSE_TRAIN_VARIABLES', (var, grad.indices.dtype))
+          else:
+            ops.add_to_collection('DENSE_TRAIN_VARIABLES', var)
+
       grad_updates = opt.apply_gradients(
           gradients,
           global_step=global_step if increment_global_step else None,
           name='train')
-      return control_flow_ops.with_dependencies([grad_updates], loss)
+
+      return control_flow_ops.with_dependencies([grad_updates] + incr_save_ops, loss)
 
     if not_apply_grad_after_first_step:
       train_tensor = control_flow_ops.cond(global_step > 0, lambda: loss,

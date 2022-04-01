@@ -72,6 +72,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
     return self._pipeline_config.train_config
 
   @property
+  def incr_save_config(self):
+    return self.train_config.incr_save_config \
+      if self.train_config.HasField('incr_save_config') else None
+
+  @property
   def export_config(self):
     return self._pipeline_config.export_config
 
@@ -243,7 +248,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
         self._pipeline_config.data_config.chief_redundant,
-        name='')  # Preventing scope prefix on all variables.
+        name='', # Preventing scope prefix on all variables.
+        incr_save=(self.incr_save_config is not None))
+   
 
     # online evaluation
     metric_update_op_dict = None
@@ -345,7 +352,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
           write_graph=self.train_config.write_graph,
-          data_offset_var=data_offset_var)
+          data_offset_var=data_offset_var,
+          increment_save_config=self.incr_save_config)
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)

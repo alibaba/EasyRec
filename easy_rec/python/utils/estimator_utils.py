@@ -14,9 +14,13 @@ from distutils.version import LooseVersion
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from easy_rec.python.ops.incr_record import get_sparse_indices
+from tensorflow.python.ops import array_ops
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import shape_utils
@@ -278,7 +282,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
                scaffold=None,
                listeners=None,
                write_graph=True,
-               data_offset_var=None):
+               data_offset_var=None,
+               increment_save_config=None):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -293,6 +298,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         the checkpoint.
       write_graph: whether to save graph.pbtxt.
       data_offset_var: data offset variable.
+      increment_save_config: parameters for saving increment checkpoints.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.
@@ -308,6 +314,32 @@ class CheckpointSaverHook(CheckpointSaverHook):
         listeners=listeners)
     self._write_graph = write_graph
     self._data_offset_var = data_offset_var
+ 
+    if increment_save_config is not None:
+      save_secs = increment_save_config.dense_save_secs 
+      save_steps = increment_save_config.dense_save_steps
+      self._dense_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+      save_secs = increment_save_config.sparse_save_secs 
+      save_steps = increment_save_config.sparse_save_steps
+      self._sparse_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+
+      self._sparse_indices = []
+      self._sparse_values = []
+      sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+      for sparse_var, indice_dtype in sparse_train_vars:
+        with ops.control_dependencies([tf.train.get_global_step()]):
+          sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
+          sparse_indice = sparse_indice.global_indices
+        self._sparse_indices.append(sparse_indice)
+        if 'EmbeddingVariable' in str(type(sparse_var)):
+          self._sparse_values.append(sparse_var.sparse_read(sparse_indice))
+        else:
+          self._sparse_values.append(array_ops.gather(sparse_var, sparse_indice)) 
+    else:
+      self._dense_timer = None
+      self._sparse_timer = None
 
   def after_create_session(self, session, coord):
     global_step = session.run(self._global_step_tensor)
@@ -323,15 +355,30 @@ class CheckpointSaverHook(CheckpointSaverHook):
           graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def)
       self._summary_writer.add_graph(graph)
       self._summary_writer.add_meta_graph(meta_graph_def)
-    # when tf version > 1.10.0, we use defaut training strategy, which saves ckpt
-    # at first train step
-    if LooseVersion(tf.__version__) >= LooseVersion('1.10.0'):
-      # The checkpoint saved here is the state at step "global_step".
-      self._save(session, global_step)
+
+    # save for step 0
+    self._save(session, global_step)
+
     self._timer.update_last_triggered_step(global_step)
 
   def before_run(self, run_context):  # pylint: disable=unused-argument
     return tf.train.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):
+    super(CheckpointSaverHook, self).after_run(run_context, run_values)
+    global_step = run_context.session.run(self._global_step_tensor)
+    if self._dense_timer is not None:
+      if self._dense_timer.should_trigger_for_step(global_step):
+        self._dense_timer.update_last_triggered_step(global_step)
+        dense_train_vars = ops.get_collection('DENSE_TRAIN_VARIABLES')
+        dense_train_vals = run_context.session.run(dense_train_vars)
+        logging.info("global_step=%d, increment save dense variables" % global_step)
+    if self._sparse_timer is not None:
+      if self._sparse_timer.should_trigger_for_step(global_step):
+        self._sparse_timer.update_last_triggered_step(global_step)
+        sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+        sparse_res = run_context.session.run(self._sparse_indices)
+        logging.info("global_step=%d, increment save sparse variables" % global_step)
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
