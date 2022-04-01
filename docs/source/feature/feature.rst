@@ -117,8 +117,8 @@ RawFeature：连续值特征
    pai -name easy_rec_ext -project algo_public
     -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
     -Dcmd=train
-    -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
-    -Dboundary_table=odps://pai_online_project/tables/boundary_info
+    -Dtables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
+    -Dboundary_table='odps://pai_online_project/tables/boundary_info'
     -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
     -Darn=acs:ram::xxx:role/xxx
     -Dbuckets=oss://easyrec/

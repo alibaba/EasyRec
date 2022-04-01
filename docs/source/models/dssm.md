@@ -58,6 +58,11 @@ model_config:{
 - simi_func: 向量相似度函数，包括\[COSINE, INNER_PRODUCT, EUCLID\]，默认COSINE，建议使用INNER_PRODUCT
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
+支持的metric_set包括:
+- auc
+- mean_absolute_error
+- accuracy
+
 ### 示例Config
 
 [DSSM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dssm.config)

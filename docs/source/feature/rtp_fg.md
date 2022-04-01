@@ -358,7 +358,7 @@ pai -name easy_rec_ext
 
 环境里没有安装easy_rec_ext ，则上传easy_rec.tar.gz包
 
-```
+```sql
 pai -name tensorflow1120_cpu_ext
     -Dscript='oss://<path>/easy_rec.tar.gz'
     -DentryFile='run.py'

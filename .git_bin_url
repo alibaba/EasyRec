@@ -22,5 +22,5 @@
 {"leaf_path": "data/test/inference/tb_multitower_placeholder_rename_export/variables", "sig": "56850b4506014ce1bd3ba9b6d60e2770", "remote_path": "data/git_oss_sample_data/data_test_inference_tb_multitower_placeholder_rename_export_variables_56850b4506014ce1bd3ba9b6d60e2770"}
 {"leaf_path": "data/test/latest_ckpt_test", "sig": "d41d8cd98f00b204e9800998ecf8427e", "remote_path": "data/git_oss_sample_data/data_test_latest_ckpt_test_d41d8cd98f00b204e9800998ecf8427e"}
 {"leaf_path": "data/test/rtp", "sig": "76cda60582617ddbb7cd5a49eb68a4b9", "remote_path": "data/git_oss_sample_data/data_test_rtp_76cda60582617ddbb7cd5a49eb68a4b9"}
-{"leaf_path": "data/test/tb_data", "sig": "2005981b8f3eafd0ba74ab08fee0050b", "remote_path": "data/git_oss_sample_data/data_test_tb_data_2005981b8f3eafd0ba74ab08fee0050b"}
+{"leaf_path": "data/test/tb_data", "sig": "c8136915b6e5e9d96b18448cf2e21d3d", "remote_path": "data/git_oss_sample_data/data_test_tb_data_c8136915b6e5e9d96b18448cf2e21d3d"}
 {"leaf_path": "data/test/tb_data_with_time", "sig": "1a7648f4ae55faf37855762bccbb70cc", "remote_path": "data/git_oss_sample_data/data_test_tb_data_with_time_1a7648f4ae55faf37855762bccbb70cc"}
