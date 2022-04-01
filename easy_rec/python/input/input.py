@@ -11,6 +11,7 @@ from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
+from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 
@@ -260,7 +261,6 @@ class Input(six.with_metaclass(_meta_type, object)):
           such as input tensors of tag features and lookup features
     """
     parsed_dict = {}
-
     if self._sampler is not None:
       sampler_type = self._data_config.WhichOneof('sampler')
       sampler_config = getattr(self._data_config, sampler_type)
@@ -545,6 +545,25 @@ class Input(six.with_metaclass(_meta_type, object)):
           if parsed_dict[input_0].dtype == tf.string:
             parsed_dict[input_0] = tf.string_to_number(
                 parsed_dict[input_0], tf.int32, name='%s_str_2_int' % input_0)
+
+      elif feature_type == fc.ExprFeature:
+        fea_name = fc.feature_name
+        prefix = "expr_"
+        for input_name in fc.input_names:
+            new_input_name = prefix + input_name
+            if field_dict[input_name].dtype == tf.string:
+                parsed_dict[new_input_name] = tf.string_to_number(
+                    field_dict[input_name], tf.float64, name='%s_str_2_int_for_expr' % new_input_name)
+            elif field_dict[input_name].dtype in [tf.int32, tf.int64, tf.double, tf.float32]:
+                parsed_dict[new_input_name] = tf.cast(field_dict[input_name], tf.float64)
+            else:
+                assert False, 'invalid input dtype[%s] for expr feature' % str(field_dict[input_name].dtype)
+
+        expression = get_expression(fc.expression, fc.input_names, prefix=prefix)
+        logging.info("expression: %s" % expression)
+        parsed_dict[fea_name] = eval(expression)
+        self._appended_fields.append(fea_name)
+
       else:
         for input_name in fc.input_names:
           parsed_dict[input_name] = field_dict[input_name]
@@ -573,7 +592,6 @@ class Input(six.with_metaclass(_meta_type, object)):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
-
     return parsed_dict
 
   def _lookup_preprocess(self, fc, field_dict):

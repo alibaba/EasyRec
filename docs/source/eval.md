@@ -16,13 +16,17 @@ eval_config {
 ```sql
 eval_config {
   metrics_set: {
-    # metric为auc
     auc {}
-    # metric为mae
-    mean_absolute_error {}
+  }
+  metrics_set: {
+    accuracy {}
+  }
+  metrics_set: {
+    gauc {}
   }
 }
 ```
+
 
 - num_examples: 默认为0, 表示评估所有样本；大于0，则每次只评估num_examples样本，一般在调试或者示例的时候使用
 
