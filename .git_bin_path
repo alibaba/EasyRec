@@ -17,7 +17,7 @@
 {"leaf_name": "data/test/inference/tb_multitower_export", "leaf_file": ["data/test/inference/tb_multitower_export/saved_model.pb"]}
 {"leaf_name": "data/test/inference/tb_multitower_export/assets", "leaf_file": ["data/test/inference/tb_multitower_export/assets/pipeline.config"]}
 {"leaf_name": "data/test/inference/tb_multitower_export/variables", "leaf_file": ["data/test/inference/tb_multitower_export/variables/variables.data-00000-of-00001", "data/test/inference/tb_multitower_export/variables/variables.index"]}
-{"leaf_name": "data/test/inference/tb_multitower_placeholder_rename_export", "leaf_file": []}
+{"leaf_name": "data/test/inference/tb_multitower_placeholder_rename_export", "leaf_file": ["data/test/inference/tb_multitower_placeholder_rename_export/saved_model.pb"]}
 {"leaf_name": "data/test/inference/tb_multitower_placeholder_rename_export/assets", "leaf_file": ["data/test/inference/tb_multitower_placeholder_rename_export/assets/pipeline.config"]}
 {"leaf_name": "data/test/inference/tb_multitower_placeholder_rename_export/variables", "leaf_file": ["data/test/inference/tb_multitower_placeholder_rename_export/variables/variables.data-00000-of-00001", "data/test/inference/tb_multitower_placeholder_rename_export/variables/variables.index"]}
 {"leaf_name": "data/test/latest_ckpt_test", "leaf_file": ["data/test/latest_ckpt_test/model.ckpt-500.data-00000-of-00001", "data/test/latest_ckpt_test/model.ckpt-500.index", "data/test/latest_ckpt_test/model.ckpt-500.meta"]}
