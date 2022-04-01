@@ -14,6 +14,7 @@ import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
@@ -133,7 +134,7 @@ class PredictorImpl(object):
       directory contain pb file
     """
     dir_list = []
-    for root, dirs, files in tf.gfile.Walk(directory):
+    for root, dirs, files in gfile.Walk(directory):
       for f in files:
         _, ext = os.path.splitext(f)
         if ext == '.pb':
@@ -147,7 +148,7 @@ class PredictorImpl(object):
 
   def _get_input_fields_from_pipeline_config(self, model_path):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
-    assert tf.gfile.Exists(pipeline_path), '%s not exists.' % pipeline_path
+    assert gfile.Exists(pipeline_path), '%s not exists.' % pipeline_path
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     input_fields = pipeline_config.data_config.input_fields
     input_fields_info = {
@@ -175,7 +176,7 @@ class PredictorImpl(object):
         # load model
         _, ext = os.path.splitext(model_path)
         tf.logging.info('loading model from %s' % model_path)
-        if tf.gfile.IsDirectory(model_path):
+        if gfile.IsDirectory(model_path):
           model_path = self.search_pb(model_path)
           logging.info('model find in %s' % model_path)
           self._input_fields_info, self._input_fields_list = self._get_input_fields_from_pipeline_config(
@@ -239,7 +240,7 @@ class PredictorImpl(object):
             type_name = asset_file.tensor_info.name.split(':')[0]
             asset_path = os.path.join(model_path, constants.ASSETS_DIRECTORY,
                                       asset_file.filename)
-            assert tf.gfile.Exists(
+            assert gfile.Exists(
                 asset_path), '%s is missing in saved model' % asset_path
             self._assets[type_name] = asset_path
           logging.info(self._assets)
@@ -299,7 +300,7 @@ class PredictorImpl(object):
           from tensorflow.python.client import timeline
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
-          with tf.gfile.GFile(self._profiling_file, 'w') as f:
+          with gfile.GFile(self._profiling_file, 'w') as f:
             f.write(ctf)
           return results
 
@@ -424,7 +425,7 @@ class Predictor(PredictorInterface):
       num_parallel_calls = 8
       file_paths = []
       for x in input_path.split(','):
-        file_paths.extend(tf.gfile.Glob(x))
+        file_paths.extend(gfile.Glob(x))
       assert len(file_paths) > 0, 'match no files with %s' % input_path
 
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
@@ -464,10 +465,10 @@ class Predictor(PredictorInterface):
       iterator = dataset.make_one_shot_iterator()
       all_dict = iterator.get_next()
 
-      if not tf.gfile.Exists(output_path):
-        tf.gfile.MakeDirs(output_path)
+      if not gfile.Exists(output_path):
+        gfile.MakeDirs(output_path)
       res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
-      table_writer = tf.gfile.FastGFile(res_path, 'w')
+      table_writer = gfile.GFile(res_path, 'w')
 
       input_names = self._predictor_impl.input_names
       progress = 0

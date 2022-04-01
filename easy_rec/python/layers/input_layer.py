@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+from collections import OrderedDict
 
 import tensorflow as tf
 
@@ -168,6 +169,9 @@ class InputLayer(object):
         concat_features = tf.concat([concat_features, seq_fea], axis=1)
       return concat_features, group_features
     else:
+      if self._variational_dropout_config is not None:
+        raise ValueError(
+            'variational dropout is not supported in not combined mode now.')
       return self.single_call_input_layer(features, group_name, is_combine)
 
   def single_call_input_layer(self,
@@ -198,7 +202,7 @@ class InputLayer(object):
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
     if is_combine:
-      cols_to_output_tensors = {}
+      cols_to_output_tensors = OrderedDict()
       output_features = feature_column.input_layer(
           features,
           group_columns,
@@ -243,21 +247,26 @@ class InputLayer(object):
           else:
             raise NotImplementedError
       if self._variational_dropout_config is not None:
-        features_dimension = [
-            cols_to_output_tensors[x].get_shape()[-1] for x in group_columns
-        ]
+        features_dimension = OrderedDict([
+            (k.raw_name, int(v.shape[-1]))
+            for k, v in cols_to_output_tensors.items()
+        ])
+        concat_features = tf.concat([output_features] + seq_features, axis=-1)
         variational_dropout = variational_dropout_layer.VariationalDropoutLayer(
-            self._variational_dropout_config, features_dimension,
-            self._is_training)
-        noisy_features = variational_dropout(output_features)
-        concat_features = tf.concat([noisy_features] + seq_features, axis=-1)
+            self._variational_dropout_config,
+            features_dimension,
+            self._is_training,
+            name=group_name)
+        concat_features = variational_dropout(concat_features)
+        group_features = tf.split(
+            concat_features, features_dimension.values(), axis=-1)
       else:
         concat_features = tf.concat([output_features] + seq_features, axis=-1)
+        group_features = [cols_to_output_tensors[x] for x in group_columns] + \
+                         [cols_to_output_tensors[x] for x in group_seq_columns]
+
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
-
-      group_features = [cols_to_output_tensors[x] for x in group_columns] + \
-                       [cols_to_output_tensors[x] for x in group_seq_columns]
       return concat_features, group_features
 
     else:  # return sequence feature in raw format instead of combine them

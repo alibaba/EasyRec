@@ -190,8 +190,8 @@ class ExportTest(tf.test.TestCase):
     export_dir_single = os.path.join(test_dir, 'train/export/final')
     export_dir_multi = os.path.join(test_dir, 'train/export/multi')
     export_cmd = """
-      python -m easy_rec.python.export
-        --pipeline_config_path %s
+      python -m easy_rec.python.export 
+        --pipeline_config_path %s 
         --export_dir %s
     """ % (config_path_multi, export_dir_multi)
     proc = test_utils.run_cmd(export_cmd,
@@ -202,9 +202,9 @@ class ExportTest(tf.test.TestCase):
     # use checkpoint to prepare result
     result_path = os.path.join(test_dir, 'result.txt')
     predict_cmd = """
-      python -m easy_rec.python.predict
-        --pipeline_config_path %s
-        --output_path %s
+      python -m easy_rec.python.predict 
+        --pipeline_config_path %s 
+        --output_path %s 
     """ % (config_path_single, result_path)
     proc = test_utils.run_cmd(predict_cmd % (),
                               '%s/log_%s.txt' % (test_dir, 'predict'))

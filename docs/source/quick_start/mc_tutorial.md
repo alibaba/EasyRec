@@ -1,5 +1,9 @@
 # MaxCompute Tutorial
 
+```
+EasyRec在MaxCompute公有云版本上的使用文档.
+```
+
 ### 输入数据:
 
 输入一般是odps表:
@@ -18,9 +22,10 @@
 pai -name easy_rec_ext -project algo_public
 -Dcmd=train
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Dtrain_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train
+-Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
--Dwith_evaluator=1
+-Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
 -Dbuckets=oss://easyrec/
@@ -29,9 +34,16 @@ pai -name easy_rec_ext -project algo_public
 
 - -Dcmd: train 模型训练
 - -Dconfig: 训练用的配置文件
-- -Dtables: 定义训练表和测试表，默认最后一个表示测试表。
+- -Dtrain_tables: 定义训练表
+- -Deval_tables: 定义测试表
+- -Dtables: 定义其他依赖表(可选)，如负采样的表
 - -Dcluster: 定义PS的数目和worker的数目。具体见：[PAI-TF任务参数介绍](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
-- -Dwith_evaluator，训练时定义一个worker将被用于做评估
+- -Deval_method: 评估方法
+ - separate: 用worker(task_id=1)做评估
+ - none: 不需要评估
+ - master: 在master(task_id=0)上做评估
+- -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
+ - 可以指定directory，将使用directory里面的最新的checkpoint.
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
 - -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
@@ -55,7 +67,7 @@ pai -name easy_rec_ext -project algo_public
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
@@ -65,10 +77,12 @@ pai -name easy_rec_ext -project algo_public
 
 - -Dcmd: evaluate 模型评估
 - -Dconfig: 同训练
-- -Dtables: 只需要指定测试 tables
+- -Deval_tables: 指定测试tables
+- -Dtables: 指定其他依赖表，如负采样的表
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - -Dcheckpoint_path: 使用指定的checkpoint_path，如oss://easyrec/ckpt/MultiTower/model.ckpt-1000。不指定的话，默认model_dir中最新的ckpt文件。
+- arn,buckets,ossHost同训练.
 
 ### 导出:
 
@@ -94,6 +108,34 @@ pai -name easy_rec_ext -project algo_public
 - -Dexport_dir: 导出的目录
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dcheckpoint_path: 同评估
+- arn,buckets,ossHost同训练.
+
+### 导出RTP serving checkpoint:
+
+```
+导出RTPserving支持的checkpoint, 更多参考[RTPServing的文档](../feature/rtp_native.md).
+```
+
+```sql
+pai -name easy_rec_ext -project algo_public
+-Dcmd=export_checkpoint
+-Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
+-Dmodel_dir=oss://easyrec/ckpt/MultiTower
+-Dexport_dir=oss://easyrec/ckpt/MultiTower/export
+-Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
+-Darn=acs:ram::xxx:role/xxx
+-Dbuckets=oss://easyrec/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com
+```
+
+- -Dcmd: export_checkpoint, 导出RTP支持的checkpoint
+- -Dconfig: 同训练
+- -Dmodel_dir: 同训练
+- -Dexport_dir: 导出的目录
+- -Dcluster: 评估不需要PS节点，指定一个worker节点即可
+- -Dcheckpoint_path: 同评估
+- arn,buckets,ossHost同训练.
+
 
 ### 配置文件:
 
@@ -147,7 +189,7 @@ data_config {
 
 #### 特征相关
 
-特征配置具体见：[特征](../feature/feature.md)
+特征配置具体见：[特征](../feature/feature.rst)
 
 ```protobuf
 feature_config: {

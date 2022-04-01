@@ -5,7 +5,6 @@ from __future__ import print_function
 import tensorflow as tf
 
 from easy_rec.python.layers import fm
-from easy_rec.python.layers import input_layer
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.fm_pb2 import FM as FMConfig
 
@@ -34,13 +33,8 @@ class FM(RankModel):
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
-    self._input_layer = input_layer.InputLayer(
-        feature_configs,
-        model_config.feature_groups,
-        wide_output_dim=model_config.num_class,
-        use_embedding_variable=model_config.use_embedding_variable,
-        embedding_regularizer=self._emb_reg,
-        kernel_regularizer=self._l2_reg)
+    self._wide_output_dim = model_config.num_class
+    super(FM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     wide_fea = tf.reduce_sum(

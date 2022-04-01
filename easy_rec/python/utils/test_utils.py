@@ -74,10 +74,11 @@ def get_available_gpus():
 
 def run_cmd(cmd_str, log_file):
   """Run a shell cmd."""
-  logging.info('%s > %s 2>&1 ' % (cmd_str, log_file))
+  cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
+  logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
     return subprocess.Popen(
-        cmd_str.split(), stdout=lfile, stderr=subprocess.STDOUT)
+        cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True)
 
 
 def RunAsSubprocess(f):
@@ -240,6 +241,20 @@ def test_single_train_eval(pipeline_config_path,
   return True
 
 
+def test_feature_selection(pipeline_config):
+  model_dir = pipeline_config.model_dir
+  pipeline_config_path = os.path.join(model_dir, 'pipeline.config')
+  output_dir = os.path.join(model_dir, 'feature_selection')
+  cmd = 'python -m easy_rec.python.tools.feature_selection --config_path %s ' \
+        '--output_dir %s --topk 5 --visualize true' % (pipeline_config_path, output_dir)
+  proc = run_cmd(cmd, os.path.join(model_dir, 'log_feature_selection.txt'))
+  proc.wait()
+  if proc.returncode != 0:
+    logging.error('feature selection %s failed' % pipeline_config_path)
+    return False
+  return True
+
+
 def yaml_replace(train_yaml_path,
                  pipline_config_path,
                  test_pipeline_config_path,
@@ -385,7 +400,10 @@ def _get_ports(num_worker):
     logging.info('ports %s in use, retry...' % ports)
 
 
-def _ps_worker_train(pipeline_config_path, test_dir, num_worker, num_evaluator=0):
+def _ps_worker_train(pipeline_config_path,
+                     test_dir,
+                     num_worker,
+                     num_evaluator=0):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
   if len(gpus) < num_worker:
@@ -397,15 +415,14 @@ def _ps_worker_train(pipeline_config_path, test_dir, num_worker, num_evaluator=0
       'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
       'ps': ['localhost:%d' % ports[-1]]
   }
-  tf_config = {
-      'cluster': cluster
-  }
+  tf_config = {'cluster': cluster}
   procs = {}
   tf_config['task'] = {'type': chief_or_master, 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % pipeline_config_path
-  procs[chief_or_master] = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, chief_or_master))
+  procs[chief_or_master] = run_cmd(
+      train_cmd, '%s/log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id('')
@@ -419,10 +436,11 @@ def _ps_worker_train(pipeline_config_path, test_dir, num_worker, num_evaluator=0
     procs[worker_name] = run_cmd(train_cmd,
                                  '%s/log_%s.txt' % (test_dir, worker_name))
   if num_evaluator > 0:
-    tf_config['task'] = {'type':'evaluator', 'index':0}
+    tf_config['task'] = {'type': 'evaluator', 'index': 0}
     os.environ['TF_CONFIG'] = json.dumps(tf_config)
     set_gpu_id('')
-    procs['evaluator'] = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'evaluator'))
+    procs['evaluator'] = run_cmd(train_cmd,
+                                 '%s/log_%s.txt' % (test_dir, 'evaluator'))
 
   return procs
 
@@ -450,7 +468,10 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
   return procs
 
 
-def test_distributed_train_eval(pipeline_config_path, test_dir, total_steps=50, num_evaluator=0):
+def test_distributed_train_eval(pipeline_config_path,
+                                test_dir,
+                                total_steps=50,
+                                num_evaluator=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
@@ -463,7 +484,8 @@ def test_distributed_train_eval(pipeline_config_path, test_dir, total_steps=50, 
   try:
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker, num_evaluator)
+      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker,
+                               num_evaluator)
     elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:
       num_worker = 2
       procs = _multi_worker_mirror_train(test_pipeline_config_path, test_dir,

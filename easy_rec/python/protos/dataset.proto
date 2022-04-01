@@ -247,5 +247,7 @@ message DatasetConfig {
         HardNegativeSampler hard_negative_sampler = 103;
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
     }
+    optional uint32 eval_batch_size = 1001 [default = 4096];
+
 
 }

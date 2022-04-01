@@ -217,7 +217,9 @@ def _internal_input_layer(features,
               scope=variable_scope.get_variable_scope().name)
         if cols_to_output_tensors is not None:
           cols_to_output_tensors[column] = output_tensor
-        if feature_name_to_output_tensors is not None and column.raw_name in feature_name_to_output_tensors:
+        if feature_name_to_output_tensors is not None and len(
+            feature_name_to_output_tensors
+        ) > 0 and column.raw_name in feature_name_to_output_tensors:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
@@ -2527,6 +2529,10 @@ class _SharedEmbeddingColumn(
     if not hasattr(self, '_name'):
       self._name = '{}_shared_embedding'.format(self.categorical_column.name)
     return self._name
+
+  @property
+  def raw_name(self):
+    return self.categorical_column.name
 
   @property
   def _var_scope_name(self):
