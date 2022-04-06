@@ -14,9 +14,14 @@ from distutils.version import LooseVersion
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from easy_rec.python.ops.incr_record import get_sparse_indices
+from tensorflow.python.ops import array_ops
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import shape_utils
 
@@ -111,10 +116,10 @@ class ExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -208,10 +213,10 @@ class EvaluateExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -235,7 +240,7 @@ class ProgressHook(SessionRunHook):
     self._num_steps = num_steps
     self._is_chief = is_chief
     if self._is_chief:
-      self._progress_file = tf.gfile.GFile(filename, 'w')
+      self._progress_file = gfile.GFile(filename, 'w')
       self._progress_file.write('0.00\n')
       self._progress_interval = 0.01  # 1%
       self._last_progress_cnt = 0
@@ -276,7 +281,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
                checkpoint_basename='model.ckpt',
                scaffold=None,
                listeners=None,
-               write_graph=True):
+               write_graph=True,
+               data_offset_var=None,
+               increment_save_config=None):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -290,6 +297,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         Used for callbacks that run immediately before or after this hook saves
         the checkpoint.
       write_graph: whether to save graph.pbtxt.
+      data_offset_var: data offset variable.
+      increment_save_config: parameters for saving increment checkpoints.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.
@@ -304,6 +313,33 @@ class CheckpointSaverHook(CheckpointSaverHook):
         scaffold=scaffold,
         listeners=listeners)
     self._write_graph = write_graph
+    self._data_offset_var = data_offset_var
+ 
+    if increment_save_config is not None:
+      save_secs = increment_save_config.dense_save_secs 
+      save_steps = increment_save_config.dense_save_steps
+      self._dense_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+      save_secs = increment_save_config.sparse_save_secs 
+      save_steps = increment_save_config.sparse_save_steps
+      self._sparse_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+
+      self._sparse_indices = []
+      self._sparse_values = []
+      sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+      for sparse_var, indice_dtype in sparse_train_vars:
+        with ops.control_dependencies([tf.train.get_global_step()]):
+          sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
+          sparse_indice = sparse_indice.global_indices
+        self._sparse_indices.append(sparse_indice)
+        if 'EmbeddingVariable' in str(type(sparse_var)):
+          self._sparse_values.append(sparse_var.sparse_read(sparse_indice))
+        else:
+          self._sparse_values.append(array_ops.gather(sparse_var, sparse_indice)) 
+    else:
+      self._dense_timer = None
+      self._sparse_timer = None
 
   def after_create_session(self, session, coord):
     global_step = session.run(self._global_step_tensor)
@@ -319,15 +355,30 @@ class CheckpointSaverHook(CheckpointSaverHook):
           graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def)
       self._summary_writer.add_graph(graph)
       self._summary_writer.add_meta_graph(meta_graph_def)
-    # when tf version > 1.10.0, we use defaut training strategy, which saves ckpt
-    # at first train step
-    if LooseVersion(tf.__version__) >= LooseVersion('1.10.0'):
-      # The checkpoint saved here is the state at step "global_step".
-      self._save(session, global_step)
+
+    # save for step 0
+    self._save(session, global_step)
+
     self._timer.update_last_triggered_step(global_step)
 
   def before_run(self, run_context):  # pylint: disable=unused-argument
     return tf.train.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):
+    super(CheckpointSaverHook, self).after_run(run_context, run_values)
+    global_step = run_context.session.run(self._global_step_tensor)
+    if self._dense_timer is not None:
+      if self._dense_timer.should_trigger_for_step(global_step):
+        self._dense_timer.update_last_triggered_step(global_step)
+        dense_train_vars = ops.get_collection('DENSE_TRAIN_VARIABLES')
+        dense_train_vals = run_context.session.run(dense_train_vars)
+        logging.info("global_step=%d, increment save dense variables" % global_step)
+    if self._sparse_timer is not None:
+      if self._sparse_timer.should_trigger_for_step(global_step):
+        self._sparse_timer.update_last_triggered_step(global_step)
+        sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+        sparse_res = run_context.session.run(self._sparse_indices)
+        logging.info("global_step=%d, increment save sparse variables" % global_step)
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
@@ -342,6 +393,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
         global_step=step,
         write_meta_graph=self._write_graph)
     save_dir, save_name = os.path.split(self._save_path)
+
+    if self._data_offset_var is not None:
+      save_data_offset = session.run(self._data_offset_var)
+      data_offset_json = {}
+      for x in save_data_offset:
+        if x :
+          data_offset_json.update(json.loads(x))
+      save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
+      with gfile.GFile(save_offset_path, 'w') as fout:
+        json.dump(data_offset_json, fout) 
 
     self._summary_writer.add_session_log(
         tf.SessionLog(
@@ -395,7 +456,7 @@ class NumpyCheckpointRestoreHook(SessionRunHook):
           vars_not_inited[var_name] = ','.join([str(s) for s in var_shape])
     self._restore_op = tf.group(assign_ops)
 
-    with tf.gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
+    with gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
       for var_name in sorted(vars_not_inited.keys()):
         f.write('%s:%s\n' % (var_name, vars_not_inited[var_name]))
     assert not has_shape_unmatch, 'exist variable shape not match, restore failed'
@@ -516,7 +577,7 @@ class OnlineEvaluationHook(SessionRunHook):
     eval_result_file = os.path.join(self._output_dir,
                                     'online_eval_result.txt-%s' % global_step)
     logging.info('Saving online eval result to file %s' % eval_result_file)
-    with tf.gfile.GFile(eval_result_file, 'w') as ofile:
+    with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
       for key in sorted(metric_value_dict):
         # convert numpy float to python float
@@ -580,7 +641,7 @@ def latest_checkpoint(model_dir):
   Return:
     model_path: xx/model.ckpt-2000
   """
-  ckpt_metas = tf.gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+  ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
   if len(ckpt_metas) == 0:
     return None
 

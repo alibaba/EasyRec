@@ -165,6 +165,8 @@ tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 
+tf.app.flags.DEFINE_bool('online', False, 'for online training')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -238,18 +240,21 @@ def main(argv):
       ) >= 2, 'at least 2 tables must be specified, but only[%d]: %s' % (
           len(tables), FLAGS.tables)
 
-    if FLAGS.train_tables:
-      pipeline_config.train_input_path = FLAGS.train_tables
-    else:
-      pipeline_config.train_input_path = FLAGS.tables.split(',')[0]
+    if not FLAGS.online:
+      if FLAGS.train_tables:
+        pipeline_config.train_input_path = FLAGS.train_tables
+      else:
+        pipeline_config.train_input_path = FLAGS.tables.split(',')[0]
 
-    if FLAGS.eval_tables:
-      pipeline_config.eval_input_path = FLAGS.eval_tables
-    else:
-      pipeline_config.eval_input_path = FLAGS.tables.split(',')[1]
+      if FLAGS.eval_tables:
+        pipeline_config.eval_input_path = FLAGS.eval_tables
+      else:
+        pipeline_config.eval_input_path = FLAGS.tables.split(',')[1]
 
-    print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
-    print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
+      print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
+      print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
+    else:
+      print('[run.py] online training is enabled.')
 
     if pipeline_config.fg_json_path:
       fg_util.load_fg_json_to_config(pipeline_config)
@@ -265,9 +270,13 @@ def main(argv):
     if FLAGS.sampler_table:
       pipeline_config.data_config.negative_sampler.input_path = FLAGS.sampler_table
 
-    # parse selected_cols
-    set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                      FLAGS.all_col_types)
+    if not FLAGS.online:
+      # parse selected_cols
+      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
+                        FLAGS.all_col_types)
+    else:
+      pipeline_config.data_config.selected_cols = ''
+      pipeline_config.data_config.selected_col_types = ''
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
 
@@ -331,9 +340,14 @@ def main(argv):
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
-    # parse selected_cols
-    set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                      FLAGS.all_col_types)
+    if not FLAGS.online:
+      # parse selected_cols
+      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
+                        FLAGS.all_col_types)
+    else:
+      pipeline_config.data_config.selected_cols = ''
+      pipeline_config.data_config.selected_col_types = ''
+
     if FLAGS.distribute_eval:
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                                    FLAGS.eval_result_path)

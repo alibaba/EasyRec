@@ -30,6 +30,7 @@ from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+from easy_rec.python.input.input import Input
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -71,6 +72,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
     return self._pipeline_config.train_config
 
   @property
+  def incr_save_config(self):
+    return self.train_config.incr_save_config \
+      if self.train_config.HasField('incr_save_config') else None
+
+  @property
   def export_config(self):
     return self._pipeline_config.export_config
 
@@ -105,6 +111,17 @@ class EasyRecEstimator(tf.estimator.Estimator):
     loss_dict['total_loss'] = loss
     for key in loss_dict:
       tf.summary.scalar(key, loss_dict[key], family='loss')
+
+    if Input.DATA_OFFSET in features:
+      task_index, task_num = estimator_utils.get_task_index_and_num()
+      data_offset_var = tf.get_variable(name=Input.DATA_OFFSET, dtype=tf.string,
+                      shape=[task_num], 
+                      collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
+                      trainable=False)
+      update_offset = tf.assign(data_offset_var[task_index], features[Input.DATA_OFFSET])
+      tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
+    else: 
+      data_offset_var = None
 
     # update op, usually used for batch-norm
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -231,7 +248,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
         self._pipeline_config.data_config.chief_redundant,
-        name='')  # Preventing scope prefix on all variables.
+        name='', # Preventing scope prefix on all variables.
+        incr_save=(self.incr_save_config is not None))
+   
 
     # online evaluation
     metric_update_op_dict = None
@@ -294,35 +313,36 @@ class EasyRecEstimator(tf.estimator.Estimator):
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
-      initialize_var_list = [
-          x for x in var_list if 'WorkQueue' not in str(type(x))
-      ]
+
+      # exclude data_offset_var
+      var_list = [ x for x in var_list if x != data_offset_var ]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
+      var_list = [x for x in var_list if x != early_stop_var]
+
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x)) 
+      ]
+
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
       incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
-      if early_stop_var is not None:
-        var_list = [x for x in var_list if x != early_stop_var]
-        local_init_op = tf.group([
-            tf.initializers.local_variables(),
-            tf.initializers.variables([early_stop_var] +
-                                      incompatiable_shape_restore)
-        ])
-      elif len(incompatiable_shape_restore) > 0:
-        local_init_op = tf.group([
-            tf.initializers.local_variables(),
-            tf.initializers.variables(incompatiable_shape_restore)
-        ])
-      else:
-        local_init_op = None
+ 
+      local_init_ops = [tf.train.Scaffold.default_local_init_op()]
+      if data_offset_var is not None and estimator_utils.is_chief():
+        local_init_ops.append(tf.initializers.variables([data_offset_var]))
+      if early_stop_var is not None and estimator_utils.is_chief():
+        local_init_ops.append(tf.initializers.variables([early_stop_var]))
+      if len(incompatiable_shape_restore) > 0:
+        local_init_ops.append(tf.initializers.variables(incompatiable_shape_restore))
+
       scaffold = tf.train.Scaffold(
           saver=tf.train.Saver(
               var_list=var_list,
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max),
-          local_init_op=local_init_op,
+          local_init_op=tf.group(local_init_ops),
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))
       # saver hook
@@ -331,7 +351,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
           save_secs=self._config.save_checkpoints_secs,
           save_steps=self._config.save_checkpoints_steps,
           scaffold=scaffold,
-          write_graph=self.train_config.write_graph)
+          write_graph=self.train_config.write_graph,
+          data_offset_var=data_offset_var,
+          increment_save_config=self.incr_save_config)
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)

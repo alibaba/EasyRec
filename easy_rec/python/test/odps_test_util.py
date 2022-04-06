@@ -59,16 +59,16 @@ class OdpsOSSConfig:
 
     self.odpscmd_path = os.environ.get('ODPS_CMD_PATH', 'odpscmd')
     self.odps_config_path = ''
-    # input table project name replace {ODPS_PROJ_NAME} in
-    # samples/odps_script:
-    #    grep ODPS_PROJ_NAME -r samples/odps_script/
+
     self.project_name = ''
 
     self.dh_id = ''
     self.dh_key = ''
-    self.dh_endpoint = ''
-    self.dh_topic = ''
-    self.dh_project = ''
+
+    self.dh_endpoint = 'https://dh-cn-beijing.aliyuncs.com'
+    self.dh_topic = 'easy_rec_test'
+    self.dh_project = 'easy_rec_test'
+
     self.odps_endpoint = ''
 
     self.dh = None
@@ -82,17 +82,6 @@ class OdpsOSSConfig:
     # default to outer environment
     # the difference are ossHost buckets arn settings
     self.is_outer = True
-
-  def load_dh_config(self, config_path):
-    import pdb
-    pdb.set_trace()
-    configer = configparser.ConfigParser()
-    configer.read(config_path, encoding='utf-8')
-    self.dh_id = configer.get('datahub', 'access_id')
-    self.dh_key = configer.get('datahub', 'access_key')
-    self.dh_endpoint = configer.get('datahub', 'endpoint')
-    self.dh_topic = configer.get('datahub', 'topic_name')
-    self.dh_project = configer.get('datahub', 'project')
 
   def load_oss_config(self, config_path):
     with open(config_path, 'r') as fin:
@@ -112,10 +101,18 @@ class OdpsOSSConfig:
       for line_str in fin:
         line_str = line_str.strip()
         line_str = line_str.replace(' ', '')
-        if line_str.startswith('project_name='):
-          self.project_name = line_str[len('project_name='):]
-        if line_str.startswith('end_point='):
-          self.odps_endpoint = line_str[len('end_point='):]
+        key_str = 'project_name='
+        if line_str.startswith(key_str):
+          self.project_name = line_str[len(key_str):]
+        key_str = 'end_point='
+        if line_str.startswith(key_str):
+          self.odps_endpoint = line_str[len(key_str):]
+        key_str = 'access_id='
+        if line_str.startswith(key_str):
+          self.dh_id = line_str[len(key_str):]
+        key_str = 'access_key='
+        if line_str.startswith(key_str):
+          self.dh_key = line_str[len(key_str):]
 
   def clean_topic(self, dh_project):
     if not dh_project:
@@ -160,47 +157,44 @@ class OdpsOSSConfig:
     self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
     read_odps = DataFrame(self.odps.get_table(self.odpsTable))
-    col = read_odps.schema.names
+    col_name = read_odps.schema.names
     col_type = [self.get_input_type(str(i)) for i in read_odps.schema.types]
     try:
-      self.dh.create_project(self.dh_project, 'EasyRecTest')
+      self.dh.create_project(self.dh_project, comment='EasyRecTest')
       logging.info('create project success!')
     except ResourceExistException:
-      logging.info('project %s already exist!' % self.dh_project)
+      logging.warning('project %s already exist!' % self.dh_project)
     except Exception as ex:
-      logging.info(traceback.format_exc(ex))
-    record_schema = RecordSchema.from_lists(col, col_type)
+      logging.error(traceback.format_exc(ex))
+    record_schema = RecordSchema.from_lists(col_name, col_type)
     try:
       # project_name, topic_name, shard_count, life_cycle, record_schema, comment
       self.dh.create_tuple_topic(self.dh_project, self.dh_topic, 7, 3,
-                                 record_schema, 'easyrec_datahub')
-      logging.info('create tuple topic success!')
+                                 record_schema, comment='EasyRecTest')
+      logging.info('create tuple topic %s success!' % self.dh_topic)
     except ResourceExistException:
       logging.info('topic %s already exist!' % self.dh_topic)
     except Exception as ex:
-      logging.error('exception:', ex)
+      logging.error('exception:%s' % str(ex))
       logging.error(traceback.format_exc())
     try:
       self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
-      logging.info('shards all ready')
+      logging.info('datahub[%s,%s] shards all ready' % (self.dh_project, self.dh_topic))
       topic_result = self.dh.get_topic(self.dh_project, self.dh_topic)
       if topic_result.record_type != RecordType.TUPLE:
-        logging.error('topic type illegal! ')
+        logging.error('invalid topic type: %s' % str(topic_result.record_type))
       record_schema = topic_result.record_schema
       t = self.odps.get_table(self.odpsTable)
       with t.open_reader() as reader:
-        size = 0
         record_list = []
-        for data in reader[0:1000]:
+        for data in reader:
           record = TupleRecord(values=data.values, schema=record_schema)
           record_list.append(record)
-          if size % 1000:
-            self.dh.put_records(self.dh_project, self.dh_topic, record_list)
-            record_list = []
-          size += 1
-    except Exception as e:
-      logging.error(e)
-
+        for i in range(10):
+          self.dh.put_records(self.dh_project, self.dh_topic, record_list)
+    except Exception as ex:
+      logging.error('exception: %s' % str(ex))
+      logging.error(traceback.format_exc())
 
 def get_oss_bucket(oss_key, oss_secret, endpoint, bucket_name):
   """Build oss2.Bucket instance.

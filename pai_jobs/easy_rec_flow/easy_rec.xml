@@ -56,7 +56,7 @@
     <parameter name="hpo_metric_save_path" use="optional" default=""/>
     <parameter name="profiling_file" use="optional" default=""/>
     <!-- for resources and version control -->
-    <parameter name="version" use="optional" default="stable"/>
+    <parameter name="version" use="optional" default="datahub"/>
     <parameter name="res_project" use="optional" default="algo_public"/>
     <!-- for mask feature for eval -->
     <parameter name="mask_feature_name" use="optional" default=""/>

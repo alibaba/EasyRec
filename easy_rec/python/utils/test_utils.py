@@ -150,9 +150,9 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
 
 
 def test_datahub_train_eval(pipeline_config_path,
+                            odps_oss_config,
                             test_dir,
                             process_pipeline_func=None,
-                            hyperparam_str='',
                             total_steps=50,
                             post_check_func=None):
   gpus = get_available_gpus()
@@ -175,13 +175,26 @@ def test_datahub_train_eval(pipeline_config_path,
   pipeline_config.train_config.train_distribute = 0
   pipeline_config.train_config.num_gpus_per_worker = 1
   pipeline_config.train_config.sync_replicas = False
+
+  pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id 
+  pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
+  pipeline_config.datahub_train_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
+  pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
+
+  pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id 
+  pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
+  pipeline_config.datahub_eval_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
+  pipeline_config.datahub_eval_input.topic = odps_oss_config.dh_topic
+
   if process_pipeline_func is not None:
     assert callable(process_pipeline_func)
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python3 -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-      test_pipeline_config_path, hyperparam_str)
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % \
+      test_pipeline_config_path
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc.wait()
   if proc.returncode != 0:

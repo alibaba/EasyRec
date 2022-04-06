@@ -21,6 +21,13 @@ enum DistributionStrategy {
     MultiWorkerMirroredStrategy = 5;
 }
 
+message IncrementSaveConfig {
+   optional int32 sparse_save_secs  = 1 [default=0];
+   optional int32 dense_save_secs   = 2 [default=0];
+   optional int32 sparse_save_steps = 3 [default=0];
+   optional int32 dense_save_steps  = 4 [default=0];
+}
+
 // Message for configuring EasyRecModel training jobs (train.py).
 // Next id: 25
 message TrainConfig {
@@ -107,4 +114,7 @@ message TrainConfig {
 
     // match variable patterns to freeze
     repeated string freeze_gradient = 30;
+
+    // increment save config
+    optional IncrementSaveConfig incr_save_config = 31;
 }

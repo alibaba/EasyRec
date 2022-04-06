@@ -5,8 +5,12 @@ message KafkaServer {
     required string server     = 1;
     required string topic      = 2;
     required string group      = 3;
-    required uint32 partitions = 4;
-    repeated uint32 offset     = 5;
+    // in json format: {'0':10, '1':20}
+    optional string offset_info = 4;
+    // kafka global config, such as: fetch.max.bytes=1024
+    repeated string config_global = 5;
+    // kafka topic config, such as: max.partition.fetch.bytes=1024
+    repeated string config_topic = 6;
 }
 
 message DatahubServer{
@@ -15,6 +19,5 @@ message DatahubServer{
     required string region     = 3;
     required string project    = 4;
     required string topic      = 5;
-    required uint32 shard_num  = 6;
-    required uint32 life_cycle = 7;
+    optional string offset_info  = 6;
 }

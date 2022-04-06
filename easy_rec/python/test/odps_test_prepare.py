@@ -138,7 +138,7 @@ def put_data_to_bucket(odps_oss_config):
                                odps_oss_config.oss_secret,
                                odps_oss_config.endpoint,
                                odps_oss_config.bucket_name)
-  for sub_dir in ['configs']: #, 'test_data']:
+  for sub_dir in ['configs']:
     for root, dirs, files in os.walk(
         os.path.join(odps_oss_config.temp_dir, sub_dir)):
       for one_file in files:
