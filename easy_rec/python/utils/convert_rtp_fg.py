@@ -3,6 +3,7 @@
 import json
 import logging
 import sys
+import traceback
 
 import tensorflow as tf
 from google.protobuf import text_format
@@ -122,7 +123,7 @@ def process_features(feature_type,
     else:
       if is_multi:
         feature_config.feature_type = feature_config.TagFeature
-        if feature_config.get('needWeighting', False):
+        if feature.get('needWeighting', False):
           feature_config.kv_separator = ''
       else:
         feature_config.feature_type = feature_config.IdFeature
@@ -139,7 +140,7 @@ def process_features(feature_type,
     if need_discrete:
       if is_multi:
         feature_config.feature_type = feature_config.TagFeature
-        if feature_config.get('needWeighting', False):
+        if feature.get('needWeighting', False):
           feature_config.kv_separator = ''
       else:
         feature_config.feature_type = feature_config.IdFeature
@@ -251,6 +252,7 @@ def load_input_field_and_feature_config(rtp_fg,
               incol_separator,
               is_sequence=True)
     except Exception as ex:
+      logging.info(traceback.format_exc(ex))
       print('Exception: %s %s' % (type(ex), str(ex)))
       print(feature)
       sys.exit(1)
