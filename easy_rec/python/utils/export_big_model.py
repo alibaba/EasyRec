@@ -18,12 +18,13 @@ from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training.device_setter import replica_device_setter
 from tensorflow.python.training.monitored_session import ChiefSessionCreator
 from tensorflow.python.training.saver import export_meta_graph
+from tensorflow.python.training.monitored_session import Scaffold
 
 import easy_rec
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import io_util
 from easy_rec.python.utils import proto_util
-from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor
+from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor, EMBEDDING_INITIALIZERS
 
 if tf.__version__ >= '2.0':
   from tensorflow.python.framework.ops import disable_eager_execution
@@ -282,6 +283,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
   saver = tf.train.Saver()
   with tf.Session(target=server.target if server else '') as sess:
     saver.restore(sess, checkpoint_path)
+
     builder.add_meta_graph_and_variables(
         sess, [tf.saved_model.tag_constants.SERVING],
         signature_def_map={
@@ -535,6 +537,8 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   saver = tf.train.Saver()
   with tf.Session(target=server.target if server else '') as sess:
     saver.restore(sess, checkpoint_path)
+    main_op = tf.group([Scaffold.default_local_init_op(), 
+       ops.get_collection(EMBEDDING_INITIALIZERS)]) 
     builder.add_meta_graph_and_variables(
         sess, [tf.saved_model.tag_constants.SERVING],
         signature_def_map={
@@ -542,6 +546,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
         },
         assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
         saver=saver,
+        main_op=main_op,
         strip_default_attrs=True,
         clear_devices=True)
     builder.save()

@@ -7,8 +7,12 @@ from google.protobuf import text_format
 from tensorflow.python.platform.gfile import GFile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
+from tensorflow.python.saved_model import constants
+from tensorflow.python.framework import ops
 
 from easy_rec.python.utils import proto_util
+
+EMBEDDING_INITIALIZERS = 'embedding_initializers'
 
 
 class MetaGraphEditor:
@@ -73,6 +77,8 @@ class MetaGraphEditor:
     self._oss_ak = oss_ak
     self._oss_sk = oss_sk
     self._oss_timeout = oss_timeout
+   
+    self._kafka_params = None
 
   @property
   def graph_def(self):
@@ -378,7 +384,36 @@ class MetaGraphEditor:
         combiners=self._embed_combiners,
         embedding_dims=self._embed_dims,
         embedding_names=self._embed_ids,
-        embedding_is_kv=self._embed_is_kv)
+        embedding_is_kv=self._embed_is_kv,
+        shared_name='embedding_lookup_res',
+        name='embedding_lookup_fused/lookup')
+
+    lookup_init_op = self._lookup_op.oss_init(
+        osspath=self._oss_path,
+        endpoint=self._oss_endpoint,
+        ak=self._oss_ak,
+        sk=self._oss_sk,
+        combiners=self._embed_combiners,
+        embedding_dims=self._embed_dims,
+        embedding_names=self._embed_ids,
+        embedding_is_kv=self._embed_is_kv,
+        N=len(self._embed_is_kv),
+        shared_name='embedding_lookup_res',
+        name='embedding_lookup_fused/init')
+
+    ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
+
+    if self._kafka_params:
+      kafka_init_op = self._lookup_op.init_kafka_embedding_consumer(
+         topics=self._kafka_params.get('topics'),
+         config_topic=self._kafka_params.get('config_topic', ''),
+         config_global=self._kafka_params.get('config_global', ''),
+         servers=self._kafka_params.get('servers'),
+         group=self._kafka_params.get('group'),
+         timeout=self._kafka_params.get('timeout', 3600),
+         shared_name='embedding_lookup_res',
+         name='embedding_lookup_fused/init_kafka')
+      ops.add_to_collection(EMBEDDING_INITIALIZERS, kafka_init_op)
 
     meta_graph_def = tf.train.export_meta_graph()
 
