@@ -67,7 +67,7 @@ class MultiTower(RankModel):
 
   def build_loss_graph(self):
     if len(self._losses) == 0:
-      return super.build_loss_graph()
+      return super(MultiTower, self).build_loss_graph()
 
     logits = self._prediction_dict['logits']
     labels = self._labels[self._label_name]
@@ -80,5 +80,6 @@ class MultiTower(RankModel):
                                                      self._sample_weight)
         self._loss_dict['sigmoid_loss'] = loss_value * loss.weight
       else:
-        logging.warning("Unsupported loss type: %s" % loss.loss_type)
+        logging.error("Unsupported loss type: %s" % loss.loss_type)
+        raise Exception("Unsupported loss type: %s" % loss.loss_type)
     return self._loss_dict
