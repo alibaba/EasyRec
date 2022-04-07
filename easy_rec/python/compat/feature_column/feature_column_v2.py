@@ -1056,12 +1056,6 @@ def shared_embedding_columns(categorical_columns,
     if isinstance(
         c, (fc_old._WeightedCategoricalColumn, WeightedCategoricalColumn)):  # pylint: disable=protected-access
       c = c.categorical_column
-    # if not isinstance(c, type(c0)):
-    #   raise ValueError(
-    #       'To use shared_embedding_column, all categorical_columns must have '
-    #       'the same type, or be weighted_categorical_column of the same type. '
-    #       'Given column: {} of type: {} does not match given column: {} of '
-    #       'type: {}'.format(c0, type(c0), c, type(c)))
     if num_buckets != c._num_buckets:  # pylint: disable=protected-access
       raise ValueError(
           'To use shared_embedding_column, all categorical_columns must have '

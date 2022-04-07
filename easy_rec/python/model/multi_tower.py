@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import logging
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
@@ -24,9 +25,9 @@ class MultiTower(RankModel):
     super(MultiTower, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
     self._losses = self._model_config.losses
-    print("loss num:", len(self._losses))
+    logging.info('loss num: %d' % len(self._losses))
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+      'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.multi_tower
     assert isinstance(self._model_config, MultiTowerConfig)
 
