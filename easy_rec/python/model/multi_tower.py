@@ -5,7 +5,8 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
-
+from easy_rec.python.protos.loss_pb2 import LossType
+from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -22,6 +23,8 @@ class MultiTower(RankModel):
                is_training=False):
     super(MultiTower, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
+    self._losses = self._model_config.losses
+    print("loss num:", len(self._losses))
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.multi_tower
@@ -60,3 +63,19 @@ class MultiTower(RankModel):
     self._add_to_prediction_dict(output)
 
     return self._prediction_dict
+
+  def build_loss_graph(self):
+    if len(self._losses) == 0:
+      return super.build_loss_graph()
+
+    logits = self._prediction_dict['logits']
+    labels = self._labels[self._label_name]
+    for loss in self._losses:
+      if loss.loss_type == LossType.PAIR_WISE_LOSS:
+        loss_value = pairwise_loss(labels, logits)
+        self._loss_dict['pairwise_loss'] = loss_value * loss.weight
+      elif loss.loss_type == LossType.CLASSIFICATION:
+        loss_value = tf.losses.sigmoid_cross_entropy(labels, logits,
+                                                     self._sample_weight)
+        self._loss_dict['sigmoid_loss'] = loss_value * loss.weight
+    return self._loss_dict

@@ -155,16 +155,17 @@ class Input(six.with_metaclass(_meta_type, object)):
       export_fields_name = None
     placeholder_named_by_input = export_config.placeholder_named_by_input
 
+    sample_weight_field = ""
+    if self._data_config.HasField('sample_weight'):
+      sample_weight_field = self._data_config.sample_weight
+
     if export_config.filter_inputs:
       effective_fids = list(self._effective_fids)
     else:
       effective_fids = [
           fid for fid in range(len(self._input_fields))
-          if self._input_fields[fid] not in self._label_fields
+          if self._input_fields[fid] not in self._label_fields  and self._input_fields[fid] != sample_weight_field
       ]
-
-    if self._data_config.HasField('sample_weight'):
-      effective_fids = effective_fids[:-1]
 
     inputs = {}
     for fid in effective_fids:
@@ -194,6 +195,11 @@ class Input(six.with_metaclass(_meta_type, object)):
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
+
+    sample_weight_field = ""
+    if self._data_config.HasField('sample_weight'):
+      sample_weight_field = self._data_config.sample_weight
+
     if export_config.filter_inputs:
       effective_fids = list(self._effective_fids)
       logging.info('number of effective inputs:%d, total number inputs: %d' %
@@ -201,13 +207,11 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       effective_fids = [
           fid for fid in range(len(self._input_fields))
-          if self._input_fields[fid] not in self._label_fields
+          if self._input_fields[fid] not in self._label_fields and self._input_fields[fid] != sample_weight_field
       ]
       logging.info(
           'will not filter any input[except labels], total number inputs:%d' %
           len(effective_fids))
-    if self._data_config.HasField('sample_weight'):
-      effective_fids = effective_fids[:-1]
     input_vals = tf.reshape(
         input_vals, [-1, len(effective_fids)], name='input_reshape')
     features = {}
