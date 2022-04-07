@@ -79,4 +79,6 @@ class MultiTower(RankModel):
         loss_value = tf.losses.sigmoid_cross_entropy(labels, logits,
                                                      self._sample_weight)
         self._loss_dict['sigmoid_loss'] = loss_value * loss.weight
+      else:
+        logging.warning("Unsupported loss type: %s" % loss.loss_type)
     return self._loss_dict
