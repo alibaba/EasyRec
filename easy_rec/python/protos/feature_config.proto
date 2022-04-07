@@ -100,7 +100,7 @@ message FeatureConfig {
  
     // normalization function for raw features:
     //   such as: tf.math.log1p
-    optional string normalizer = 214 [default=''];
+    optional string normalizer_fn = 214;
 
     // raw feature of multiple dimensions
     optional uint32 raw_input_dim = 24 [default=1];

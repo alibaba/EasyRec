@@ -497,9 +497,9 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[input_0] = (parsed_dict[input_0] - fc.min_val) /\
                                  (fc.max_val - fc.min_val)
 
-        if fc.HasField('normalizer'):
-          logging.info('apply normalizer: %s' % fc.normalizer)
-          parsed_dict[input_0] = load_by_path(fc.normalizer)(parsed_dict[input_0])
+        if fc.HasField('normalizer_fn'):
+          logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
+          parsed_dict[input_0] = load_by_path(fc.normalizer_fn)(parsed_dict[input_0])
 
         if not fc.boundaries and fc.num_buckets <= 1 and \
             self._data_config.sample_weight != input_0:
