@@ -226,6 +226,8 @@ if __name__ == '__main__':
     host = None
     bucket_name = None
     git_oss_private_path = None
+    enable_accelerate = 0
+    accl_endpoint = None
     for line_str in fin:
       line_str = line_str.strip()
       if len(line_str) == 0:
@@ -248,6 +250,8 @@ if __name__ == '__main__':
           git_oss_private_path = os.path.join(os.environ['HOME'], git_oss_private_path[2:])
       elif line_tok[0] == 'git_oss_cache_dir':
         git_oss_cache_dir = line_tok[1]
+      elif line_tok[0] == 'accl_endpoint':
+        accl_endpoint = line_tok[1]
         
     logging.info('git_oss_data_dir=%s, host=%s, bucket_name=%s' % (
       git_oss_data_dir, host, bucket_name))
@@ -353,15 +357,40 @@ if __name__ == '__main__':
       remote_path = git_bin_url[leaf_path][1]
       _, file_name_with_sig = os.path.split(remote_path)
       tar_tmp_path = '%s/%s.tar.gz' % (git_oss_cache_dir, file_name_with_sig)
-      if not os.path.exists(tar_tmp_path):
-        if oss_bucket:
-          oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
-        else:
-          url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
-          subprocess.check_output(['wget', url, '-O', tar_tmp_path])
-      else:
-        logging.info('%s is in cache' % file_name_with_sig)
-      subprocess.check_output(['tar', '-zxf', tar_tmp_path])
+
+      max_retry = 5
+      while max_retry > 0:
+        try:
+          if not os.path.exists(tar_tmp_path):
+            in_cache = False
+            if oss_bucket:
+              oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
+            else:
+              url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
+              subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+          else:
+            in_cache = True
+            logging.info('%s is in cache' % file_name_with_sig)
+          subprocess.check_output(['tar', '-zxf', tar_tmp_path])
+          local_sig = get_local_sig(leaf_files)
+          if local_sig == remote_sig:
+            break
+          if in_cache:
+            logging.warning('cache invalid, will download from remote')
+            os.remove(tar_tmp_path)
+            continue
+          logging.warning('download failed, local_sig(%s) != remote_sig(%s)' % (
+              local_sig, remote_sig))
+        except subprocess.CalledProcessError as ex:
+          logging.error("exception: %s" % str(ex))
+        os.remove(tar_tmp_path)
+        if accl_endpoint is not None and host != accl_endpoint:
+          logging.info('will try accelerate endpoint: %s' % accl_endpoint)
+          host = accl_endpoint
+          if oss_auth:
+            oss_bucket = oss2.Bucket(oss_auth, host, bucket_name)
+        max_retry -= 1
+   
       logging.info('%s updated' % leaf_path)
       any_update = True
     if not any_update:
