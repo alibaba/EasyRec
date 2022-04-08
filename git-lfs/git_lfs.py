@@ -383,6 +383,9 @@ if __name__ == '__main__':
               local_sig, remote_sig))
         except subprocess.CalledProcessError as ex:
           logging.error("exception: %s" % str(ex))
+        except oss2.exceptions.RequestError as ex:
+          logging.error("exception: %s" % str(ex))
+       
         os.remove(tar_tmp_path)
         if accl_endpoint is not None and host != accl_endpoint:
           logging.info('will try accelerate endpoint: %s' % accl_endpoint)
