@@ -3,12 +3,8 @@
 ### 获取EasyRec源码
 
 ```bash
-git clone git@gitlab.alibaba-inc.com:pai_biz_arch/easy-rec.git
-git submodule init
-git submodule update
-python git-lfs/git_lfs.py pull
-# 运行测试用例确保通过
-sh scripts/ci_test.sh
+git clone https://github.com/alibaba/EasyRec.git
+sh scripts/init.sh
 ```
 
 ### 编写模型proto文件
@@ -61,6 +57,9 @@ message EasyRecModel {
       MultiTower multi_tower = 6;
       CustomModel custom_model = 7;
       ...
+   }
+   ...
+}
 ```
 
 #### proto编译
@@ -96,7 +95,7 @@ sh scripts/gen_proto.sh
 
 - 如果是Rank模型，则推荐继承自RankModel
   - 可以复用RankModel的build_predict_graph和build_loss_graph
-  - 可以利用RankModel中实现的_add_to_prediction_dict把build_predict_graph中DNN的输出加入到self.\_prediction_dict中，具体参考DeepFM和MultiTower的实现。
+  - 可以利用RankModel中实现的_add_to_prediction_dict把build_predict_graph中DNN的输出加入到self._prediction_dict中，具体参考DeepFM和MultiTower的实现。
 
 #### 初始化函数: __init__(self, model_config, feature_configs, features, labels, is_training)
 
@@ -320,7 +319,6 @@ scripts/ci_test.sh
 
 ```shell
 python git-lfs/git_lfs.py add data/test/your_data_files
-python git-lfs/git_lfs.py push
 git add easy_rec/python/model/custom_model.py
 git add samples/model_config/custom_model.config
 git add easy_rec/python/protos/custom_model.proto
