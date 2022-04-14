@@ -34,6 +34,9 @@ ConfigProto = config_pb2.ConfigProto
 GPUOptions = config_pb2.GPUOptions
 
 
+INCR_UPDATE_SIGNATURE_KEY = 'incr_update_sig'
+
+
 def export_big_model(export_dir, pipeline_config, redis_params,
                      serving_input_fn, estimator, checkpoint_path, verbose):
   for key in redis_params:
@@ -300,7 +303,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
   return
 
 
-def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
+def export_big_model_to_oss(export_dir, pipeline_config, oss_params, 
                             serving_input_fn, estimator, checkpoint_path,
                             verbose):
   for key in oss_params:
@@ -491,6 +494,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       oss_timeout=oss_params.get('oss_timeout', 1500),
       meta_graph_def=meta_graph_def,
       norm_name_to_ids=norm_name_to_ids,
+      incr_update_params=oss_params.get('incr_save', None),
       debug_dir=export_dir if verbose else '')
   meta_graph_editor.edit_graph_for_oss()
   tf.reset_default_graph()
@@ -520,6 +524,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
     tmp = graph.get_tensor_by_name(inputs[tmp_key].name)
     tensor_info_inputs[tmp_key] = \
         tf.saved_model.utils.build_tensor_info(tmp)
+
   tensor_info_outputs = {}
   for tmp_key in outputs:
     tmp = graph.get_tensor_by_name(outputs[tmp_key].name)
@@ -529,6 +534,26 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       tf.saved_model.signature_def_utils.build_signature_def(
           inputs=tensor_info_inputs,
           outputs=tensor_info_outputs,
+          method_name=signature_constants.PREDICT_METHOD_NAME))
+
+  incr_update_inputs = meta_graph_editor.sparse_update_inputs
+  incr_update_outputs = meta_graph_editor.sparse_update_outputs
+  incr_update_inputs.update(meta_graph_editor.dense_update_inputs)
+  incr_update_outputs.update(meta_graph_editor.dense_update_outputs)
+  tensor_info_incr_update_inputs = {}
+  tensor_info_incr_update_outputs = {}
+  for tmp_key in incr_update_inputs:
+    tmp = graph.get_tensor_by_name(incr_update_inputs[tmp_key].name)
+    tensor_info_incr_update_inputs[tmp_key] = \
+        tf.saved_model.utils.build_tensor_info(tmp)
+  for tmp_key in incr_update_outputs:
+    tmp = graph.get_tensor_by_name(incr_update_outputs[tmp_key].name)
+    tensor_info_incr_update_outputs[tmp_key] = \
+        tf.saved_model.utils.build_tensor_info(tmp)
+  incr_update_signature = (
+      tf.saved_model.signature_def_utils.build_signature_def(
+          inputs=tensor_info_incr_update_inputs,
+          outputs=tensor_info_incr_update_outputs,
           method_name=signature_constants.PREDICT_METHOD_NAME))
 
   session_config = ConfigProto(
@@ -543,6 +568,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
         sess, [tf.saved_model.tag_constants.SERVING],
         signature_def_map={
             signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature,
+            INCR_UPDATE_SIGNATURE_KEY: incr_update_signature
         },
         assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
         saver=saver,

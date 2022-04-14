@@ -303,6 +303,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     if self.train_config.train_distribute in [
         DistributionStrategy.CollectiveAllReduceStrategy,
+        DistributionStrategy.MirroredStrategy,
         DistributionStrategy.MultiWorkerMirroredStrategy
     ]:
       # for multi worker strategy, we could not replace the

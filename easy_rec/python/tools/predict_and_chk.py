@@ -4,10 +4,18 @@ import argparse
 import json
 import logging
 import sys
+import os
+import easy_rec
 
 import numpy as np
 
 from easy_rec.python.inference.predictor import Predictor
+
+try:
+  import tensorflow as tf
+  tf.load_op_library(os.path.join(easy_rec.ops_dir, 'libembed_op.so'))
+except Exception as ex:
+  logging.warning('exception: %s' % str(ex))
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -77,7 +85,7 @@ if __name__ == '__main__':
           x for fid, x in enumerate(feature.split(args.separator))
           if fid not in args.label_id
       ]
-      if len(predictor.input_names) == 1:
+      if 'features' in predictor.input_names:
         feature = args.separator.join(feature)
       batch_input.append(feature)
     output = predictor.predict(batch_input)

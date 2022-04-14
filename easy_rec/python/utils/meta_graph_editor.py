@@ -31,6 +31,7 @@ class MetaGraphEditor:
                oss_timeout=0,
                meta_graph_def=None,
                norm_name_to_ids=None,
+               incr_update_params=None,
                debug_dir=''):
     self._lookup_op = tf.load_op_library(lookup_lib_path)
     self._debug_dir = debug_dir
@@ -79,6 +80,35 @@ class MetaGraphEditor:
     self._oss_timeout = oss_timeout
    
     self._kafka_params = None
+    if incr_update_params is not None and 'kafka' in incr_update_params:
+      self._kafka_params = incr_update_params['kafka']
+
+    self._datahub_params = None
+    if incr_update_params is not None and 'datahub' in incr_update_params:
+      self._datahub_params = incr_update_params['datahub']
+
+    # increment update placeholders
+    self._embedding_update_inputs = {}
+    self._embedding_update_outputs = {}
+
+    self._dense_update_inputs = {}
+    self._dense_update_outputs = {}
+
+  @property
+  def sparse_update_inputs(self):
+    return self._embedding_update_inputs
+
+  @property
+  def sparse_update_outputs(self):
+    return self._embedding_update_outputs
+
+  @property
+  def dense_update_inputs(self): 
+    return self._dense_update_inputs
+
+  @property
+  def dense_update_outputs(self):
+    return self._dense_update_outputs
 
   @property
   def graph_def(self):
@@ -404,16 +434,24 @@ class MetaGraphEditor:
     ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
 
     if self._kafka_params:
-      kafka_init_op = self._lookup_op.init_kafka_embedding_consumer(
-         topics=self._kafka_params.get('topics'),
-         config_topic=self._kafka_params.get('config_topic', ''),
-         config_global=self._kafka_params.get('config_global', ''),
-         servers=self._kafka_params.get('servers'),
-         group=self._kafka_params.get('group'),
-         timeout=self._kafka_params.get('timeout', 3600),
+      message_ph = tf.placeholder(tf.int8, [None], name='incr_update/message') 
+      message_len_ph = tf.placeholder(tf.int32, [None], name='incr_update/message_len')
+      embedding_update = self._lookup_op.embedding_update(
+         message=message_ph,
+         message_len=message_len_ph,
          shared_name='embedding_lookup_res',
-         name='embedding_lookup_fused/init_kafka')
-      ops.add_to_collection(EMBEDDING_INITIALIZERS, kafka_init_op)
+         name='embedding_lookup_fused/embedding_update')
+      self._embedding_update_inputs['incr_update/message'] = message_ph
+      self._embedding_update_inputs['incr_update/message_len'] = message_len_ph
+      self._embedding_update_outputs['incr_update/embedding_update'] = embedding_update
+
+      for x in tf.trainable_variables():
+        if 'embedding_weights' in x.name:
+          continue
+        dense_ph = tf.placeholder(tf.float32, x.get_shape(), name=x.op.name + '_ph')
+        self._dense_update_inputs[x.op.name] = dense_ph
+        assign_op = tf.assign(x, dense_ph)
+        self._dense_update_outputs['incr_update/' + x.op.name] = assign_op
 
     meta_graph_def = tf.train.export_meta_graph()
 
