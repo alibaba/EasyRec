@@ -95,16 +95,33 @@ find -L easy_rec -name "*.pyc" | xargs rm -rf
 
 if [ ! -d "datahub" ]
 then 
-  wget http://easyrec.oss-cn-beijing.aliyuncs.com/third_party/pydatahub.tar.gz
-  if [ $? -ne 0 ]
+  if [ ! -e "pydatahub.tar.gz" ]
   then
-    echo "datahub download failed."
+    wget http://easyrec.oss-cn-beijing.aliyuncs.com/third_party/pydatahub.tar.gz
+    if [ $? -ne 0 ]
+    then
+      echo "datahub download failed."
+    fi
   fi
   tar -zvxf pydatahub.tar.gz
   rm -rf pydatahub.tar.gz
 fi
 
-tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf run.py
+if [ ! -d "kafka" ]
+then
+  if [ ! -e "kafka.tar.gz" ]
+  then
+    wget http://easyrec.oss-cn-beijing.aliyuncs.com/third_party/kafka.tar.gz
+    if [ $? -ne 0 ]
+    then
+      echo "kafka download failed."
+    fi 
+  fi
+  tar -zvxf kafka.tar.gz
+  rm -rf kafka.tar.gz
+fi
+
+tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]
