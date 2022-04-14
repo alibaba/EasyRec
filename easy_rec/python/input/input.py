@@ -13,6 +13,7 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.utils.load_class import load_by_path
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -495,6 +496,11 @@ class Input(six.with_metaclass(_meta_type, object)):
         if fc.max_val > fc.min_val:
           parsed_dict[input_0] = (parsed_dict[input_0] - fc.min_val) /\
                                  (fc.max_val - fc.min_val)
+
+        if fc.HasField('normalizer_fn'):
+          logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
+          parsed_dict[input_0] = load_by_path(fc.normalizer_fn)(parsed_dict[input_0])
+
         if not fc.boundaries and fc.num_buckets <= 1 and \
             self._data_config.sample_weight != input_0:
           # may need by wide model and deep model to project
