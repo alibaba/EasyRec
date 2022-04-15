@@ -29,8 +29,10 @@ from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import pai_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 from easy_rec.python.input.input import Input
+from tensorflow.python.platform import gfile
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -126,6 +128,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # update op, usually used for batch-norm
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     if update_ops:
+      # register for increment update
+      global_vars = { x.name:x for x in tf.global_variables() }
+      for x in update_ops:
+        if x.inputs[0] in global_vars:
+          ops.add_to_collection('DENSE_TRAIN_VARIABLES', global_vars[x.name])
       update_op = tf.group(*update_ops, name='update_barrier')
       with tf.control_dependencies([update_op]):
         loss = tf.identity(loss, name='total_loss')
@@ -250,7 +257,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self._pipeline_config.data_config.chief_redundant,
         name='', # Preventing scope prefix on all variables.
         incr_save=(self.incr_save_config is not None))
-   
+
 
     # online evaluation
     metric_update_op_dict = None
@@ -484,12 +491,22 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # save train pipeline.config for debug purpose
     pipeline_path = os.path.join(self._model_dir, 'pipeline.config')
-    if tf.gfile.Exists(pipeline_path):
+    if gfile.Exists(pipeline_path):
       tf.add_to_collection(
           tf.GraphKeys.ASSET_FILEPATHS,
           tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'))
     else:
       print('train pipeline_path(%s) does not exist' % pipeline_path)
+
+    # restore DENSE_TRAIN_VARIABLES collection
+    dense_train_var_path = os.path.join(self.model_dir, constant.DENSE_TRAIN_VARIABLES)
+    if gfile.Exists(dense_train_var_path):
+      with gfile.GFile(dense_train_var_path, 'r') as fin:
+        var_name_to_id_map = json.load(fin)
+        all_vars = { x.op.name:x for x in  tf.global_variables() }
+        for var_name in var_name_to_id_map:
+          if var_name in all_vars:
+            tf.add_to_collection(constant.DENSE_TRAIN_VARIABLES, all_vars[var_name])
 
     # add more asset files
     if 'asset_files' in params:
@@ -528,7 +545,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fg_config_path: path to the RTP config file.
     """
     if fg_config is None:
-      with tf.gfile.GFile(fg_config_path, 'r') as f:
+      with gfile.GFile(fg_config_path, 'r') as f:
         fg_config = json.load(f)
     col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)
     if len(col) == 0:

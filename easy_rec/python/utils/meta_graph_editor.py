@@ -11,6 +11,8 @@ from tensorflow.python.saved_model import constants
 from tensorflow.python.framework import ops
 
 from easy_rec.python.utils import proto_util
+from easy_rec.python.utils import embedding_utils
+from easy_rec.python.utils import constant
 
 EMBEDDING_INITIALIZERS = 'embedding_initializers'
 
@@ -434,24 +436,26 @@ class MetaGraphEditor:
     ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
 
     if self._kafka_params:
+      # all sparse variables are updated by a single custom operation
       message_ph = tf.placeholder(tf.int8, [None], name='incr_update/message') 
-      message_len_ph = tf.placeholder(tf.int32, [None], name='incr_update/message_len')
       embedding_update = self._lookup_op.embedding_update(
          message=message_ph,
-         message_len=message_len_ph,
          shared_name='embedding_lookup_res',
          name='embedding_lookup_fused/embedding_update')
-      self._embedding_update_inputs['incr_update/message'] = message_ph
-      self._embedding_update_inputs['incr_update/message_len'] = message_len_ph
-      self._embedding_update_outputs['incr_update/embedding_update'] = embedding_update
+      self._embedding_update_inputs['incr_update/sparse/message'] = message_ph
+      self._embedding_update_outputs['incr_update/sparse/embedding_update'] = embedding_update
 
-      for x in tf.trainable_variables():
-        if 'embedding_weights' in x.name:
-          continue
-        dense_ph = tf.placeholder(tf.float32, x.get_shape(), name=x.op.name + '_ph')
-        self._dense_update_inputs[x.op.name] = dense_ph
-        assign_op = tf.assign(x, dense_ph)
-        self._dense_update_outputs['incr_update/' + x.op.name] = assign_op
+      # dense variables are updated one by one
+      dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
+      for x in ops.get_collection(constant.DENSE_TRAIN_VARIABLES):
+        dense_var_id = dense_name_to_ids[x.op.name]
+        dense_input_name = 'incr_update/dense/%d/input' % dense_var_id
+        dense_output_name = 'incr_update/dense/%d/output' % dense_var_id
+        dense_update_input = tf.placeholder(tf.float32, x.get_shape(), 
+             name=dense_input_name)
+        self._dense_update_inputs[dense_input_name] = dense_update_input
+        dense_assign_op = tf.assign(x, dense_update_input)
+        self._dense_update_outputs[dense_output_name] = dense_assign_op
 
     meta_graph_def = tf.train.export_meta_graph()
 

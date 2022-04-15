@@ -6,6 +6,7 @@ import os
 import time
 
 import numpy as np
+from google.protobuf import json_format
 import tensorflow as tf
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.framework import ops
@@ -21,9 +22,11 @@ from tensorflow.python.training.saver import export_meta_graph
 from tensorflow.python.training.monitored_session import Scaffold
 
 import easy_rec
+import json
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import io_util
 from easy_rec.python.utils import proto_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor, EMBEDDING_INITIALIZERS
 
 if tf.__version__ >= '2.0':
@@ -506,10 +509,23 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   with GFile(embed_name_to_id_file, 'w') as fout:
     for tmp_norm_name in norm_name_to_ids:
       fout.write('%s\t%s\n' % (tmp_norm_name, norm_name_to_ids[tmp_norm_name]))
-  tf.add_to_collection(
-      tf.GraphKeys.ASSET_FILEPATHS,
+  ops.add_to_collection(
+      ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
+
+  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path), constant.DENSE_TRAIN_VARIABLES)
+  ops.add_to_collection(
+      ops.GraphKeys.ASSET_FILEPATHS,
+      tf.constant(
+          dense_train_vars_path, dtype=tf.string, name=constant.DENSE_TRAIN_VARIABLES))
+
+  kafka_params_file = os.path.join(export_dir, "kafka.txt")
+  with GFile(kafka_params_file, 'w') as fout:
+    json.dump(json.loads(json_format.MessageToJson(oss_params['incr_save']['kafka'],
+        preserving_proto_field_name=True)), fout, indent=2)
+  ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
+      tf.constant(kafka_params_file, dtype=tf.string, name="kafka.txt"))
 
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)

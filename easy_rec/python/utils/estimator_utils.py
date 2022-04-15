@@ -25,6 +25,7 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import shape_utils
 from easy_rec.python.utils import embedding_utils
+from easy_rec.python.utils import constant
 
 try:
   import kafka
@@ -327,6 +328,10 @@ class CheckpointSaverHook(CheckpointSaverHook):
     if increment_save_config is not None:
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids() 
+
+      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_TRAIN_VARIABLES), 'w') as fout:
+        json.dump(self._dense_name_to_ids, fout, indent=2)
+
       save_secs = increment_save_config.dense_save_secs 
       save_steps = increment_save_config.dense_save_steps
       self._dense_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
@@ -338,7 +343,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
       self._sparse_indices = []
       self._sparse_values = []
-      sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+      sparse_train_vars = ops.get_collection(constant.SPARSE_TRAIN_VARIABLES)
       for sparse_var, indice_dtype in sparse_train_vars:
         with ops.control_dependencies([tf.train.get_global_step()]):
           sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
@@ -394,18 +399,17 @@ class CheckpointSaverHook(CheckpointSaverHook):
     global_step = run_context.session.run(self._global_step_tensor)
     if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(global_step):
       self._dense_timer.update_last_triggered_step(global_step)
-      dense_train_vars = ops.get_collection('DENSE_TRAIN_VARIABLES')
+      dense_train_vars = ops.get_collection(constant.DENSE_TRAIN_VARIABLES)
       dense_train_vals = run_context.session.run(dense_train_vars)
       logging.info("global_step=%d, increment save dense variables" % global_step)
 
       msg_num = len(dense_train_vals)
-      msg_ids = [ self._dense_name_to_ids[x.name] for x in dense_train_vars]
+      msg_ids = [ self._dense_name_to_ids[x.op.name] for x in dense_train_vars]
       # 0 mean dense update message
       msg_header = [0, msg_num, global_step]
       for msg_id, x in zip(msg_ids, dense_train_vals):
         msg_header.append(msg_id)
-        msg_header.append(len(x.shape))
-        msg_header.extend(list(x.shape))
+        msg_header.append(x.size)
       bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
       for x in dense_train_vals:
         bytes_buf += x.tobytes()
@@ -418,7 +422,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
     if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(global_step):
       self._sparse_timer.update_last_triggered_step(global_step)
-      sparse_train_vars = ops.get_collection('SPARSE_TRAIN_VARIABLES')
+      sparse_train_vars = ops.get_collection(constant.SPARSE_TRAIN_VARIABLES)
       sparse_res = run_context.session.run(self._sparse_indices + self._sparse_values)
       msg_num = int(len(sparse_res) / 2)
 

@@ -310,7 +310,7 @@ def optimize_loss(loss,
             incr_save_op = set_sparse_indices(grad.indices, var_name=var.op.name)
             incr_save_ops.append(incr_save_op)
             ops.add_to_collection('SPARSE_TRAIN_VARIABLES', (var, grad.indices.dtype))
-          elif 'Adam' not in var.name:
+          else:
             ops.add_to_collection('DENSE_TRAIN_VARIABLES', var)
 
       grad_updates = opt.apply_gradients(
