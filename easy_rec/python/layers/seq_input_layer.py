@@ -51,6 +51,7 @@ class SeqInputLayer(object):
     with tf.variable_scope(group_name, reuse=tf.AUTO_REUSE):
       key_tensors = []
       hist_tensors = []
+      check_op_list = []
       for x in feature_dict.seq_att_map:
         for key in x.key:
           if key not in feature_name_to_output_tensors or (
@@ -84,7 +85,15 @@ class SeqInputLayer(object):
             tf.summary.histogram(
                 _seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
 
-    features = {
+        for idx in range(1, len(hist_tensors)):
+          check_op = tf.assert_equal(
+          hist_tensors[0][1],
+          hist_tensors[idx][1],
+          message="SequenceFeature Error: The size of %s not equal to the size of %s." % (x.hist_seq[idx], x.hist_seq[0]))
+          check_op_list.append(check_op)
+
+    with tf.control_dependencies(check_op_list):
+      features = {
         'key': tf.concat(key_tensors, axis=-1),
         'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
         'hist_seq_len': hist_tensors[0][1]

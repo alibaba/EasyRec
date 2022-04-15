@@ -307,6 +307,7 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     logging.warn('will train INFINITE number of steps')
   else:
     logging.info('train_steps = %d' % train_steps)
+  assert not (train_steps == 0 and data_config.num_epochs == 0), "num_steps and num_epochs cannot both be 0."
 
   input_fn_kwargs = {}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
