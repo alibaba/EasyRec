@@ -30,6 +30,8 @@ from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+from easy_rec.python.sok_adapter import sparse_operation_kit as sok
+from easy_rec.python.builders import strategy_builder
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -83,7 +85,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
         is_training=True)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
-
     regularization_losses = tf.get_collection(
         tf.GraphKeys.REGULARIZATION_LOSSES)
     if regularization_losses:
@@ -284,12 +285,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     if self.train_config.train_distribute in [
         DistributionStrategy.CollectiveAllReduceStrategy,
-        DistributionStrategy.MultiWorkerMirroredStrategy
+        DistributionStrategy.MultiWorkerMirroredStrategy,
+        DistributionStrategy.MirroredStrategy
     ]:
       # for multi worker strategy, we could not replace the
       # inner CheckpointSaverHook, so just use it.
-      scaffold = tf.train.Scaffold()
       chief_hooks = []
+      if self._pipeline_config.model_config.use_sok:
+        if self.train_config.train_distribute != DistributionStrategy.MultiWorkerMirroredStrategy:
+          raise RuntimeError("SOK only supports MultiWorkerMirroredStrategy")
+        local_init_op = sok.Init(global_batch_size=self._pipeline_config.data_config.batch_size)
+        scaffold = tf.train.Scaffold(local_init_op=local_init_op)
+      else:
+        scaffold = tf.train.Scaffold()
     else:
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +

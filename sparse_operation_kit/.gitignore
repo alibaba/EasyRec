@@ -1,0 +1,14 @@
+/dockerfiles/*
+/*.gitkeep
+/build/
+/test.py
+*__pycache__/
+Deprecated/
+*.qdrep
+*.log
+/system_clock_log/
+*dummy*
+/**/*.file
+*nccl_tests/
+*.egg-info/
+dist/

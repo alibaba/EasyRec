@@ -1,12 +1,15 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from itertools import accumulate
 import logging
 from collections import OrderedDict
+from this import d
 
 import tensorflow as tf
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
+from easy_rec.python.compat.feature_column import feature_column_v2
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import dnn
@@ -14,9 +17,12 @@ from easy_rec.python.layers import seq_input_layer
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.utils import estimator_utils
+from easy_rec.python.sok_adapter import sparse_operation_kit as sok
 
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -33,6 +39,7 @@ class InputLayer(object):
                variational_dropout_config=None,
                wide_output_dim=-1,
                use_embedding_variable=False,
+               use_sok=False,
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False):
@@ -61,6 +68,7 @@ class InputLayer(object):
         wide_output_dim,
         use_embedding_variable=use_embedding_variable)
 
+    self.use_sok = use_sok
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
@@ -196,6 +204,7 @@ class InputLayer(object):
           3 dimension embedding tensor (batch_size, max_seq_len, embedding_dimension),
           1 dimension sequence length tensor.
     """
+
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
         group_name, ','.join([x for x in self._feature_groups]))
     feature_group = self._feature_groups[group_name]
@@ -203,11 +212,16 @@ class InputLayer(object):
         self._fc_parser)
     if is_combine:
       cols_to_output_tensors = OrderedDict()
-      output_features = feature_column.input_layer(
-          features,
-          group_columns,
-          cols_to_output_tensors=cols_to_output_tensors,
-          feature_name_to_output_tensors=feature_name_to_output_tensors)
+      if True:  # debug
+      #if self.use_sok:
+        self.sok_input_layer(features, group_columns,
+                             cols_to_output_tensors=cols_to_output_tensors)
+      else:
+        output_features = feature_column.input_layer(
+            features,
+            group_columns,
+            cols_to_output_tensors=cols_to_output_tensors,
+            feature_name_to_output_tensors=feature_name_to_output_tensors)
       embedding_reg_lst = [output_features]
       builder = feature_column._LazyBuilder(features)
       seq_features = []
@@ -283,6 +297,104 @@ class InputLayer(object):
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
       return seq_features
+
+  def sok_input_layer(self, features, group_columns,
+                      cols_to_output_tensors=None):
+    allowd_column_types = [feature_column._EmbeddingColumn, feature_column_v2.EmbeddingColumn]
+    combiner_map = {
+        'mean': 'Mean',
+        'sum': 'Sum'
+    }
+    _, workers = estimator_utils.get_task_index_and_num()
+    gpus_num = None
+
+    # fix for now
+    max_nnz = 100
+    try:
+      assert len(group_columns) > 0
+      assert type(group_columns[0]) in allowd_column_types
+      emb_vec_size = group_columns[0].dimension
+      combiner = group_columns[0].combiner
+
+      bucket_sizes = []
+      for column in group_columns:
+        assert type(column) in allowd_column_types
+        assert column.dimension == emb_vec_size
+        assert column.combiner == combiner
+        assert column.max_norm is None
+        bucket_sizes.append(column.categorical_column._num_buckets)
+    except AssertionError as e:
+      logging.error("SOK requires all EmbeddingColumn have the same emb_dim and combiner. max_norm is not supported")
+      raise e
+
+    try:
+      combiner = combiner_map[combiner]
+    except KeyError as e:
+      logging.error("SOK only support mean and sum as combiner")
+      raise e
+
+    builder = feature_column._LazyBuilder(features)
+    inputs = []
+    for column in group_columns:
+      sparse_tensor, _ = column.categorical_column._get_sparse_tensors(  # pylint: disable=protected-access
+          builder, trainable=True)
+      inputs.append(sparse_tensor)
+
+    total_bucket_size = sum(bucket_sizes)
+
+    # slot_num = len(inputs) = len(group_columns)
+    # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
+    # need to accmulate indices and offet them.
+    values = []
+    batch_sizes = []
+    offsetted_indices = []
+    nnzs = []
+    for i, input_sparse in enumerate(inputs):
+      # Technically all batch_sizes should all be the same. But in case they are not,
+      # just accu them one bu one
+      batch_size = input_sparse.dense_shape[0]
+      if i == 0:
+        accumulate_batch_size = tf.constant([0], dtype=tf.int64)
+        # first input's indices don't need to offset
+        offsetted_indices.append(input_sparse.indices)
+      else:
+        accumulate_batch_size += batch_sizes[i - 1]
+        offset = tf.concat([accumulate_batch_size, tf.constant([0], dtype=tf.int64)], axis=-1)
+        offsetted_indices.append(input_sparse.indices + offset)
+
+      values.append(sparse_tensor.values)
+      batch_sizes.append(batch_size)
+      nnzs.append(tf.cast(input_sparse.dense_shape[1], dtype=tf.int64))
+
+    # accmu for the one last batch size
+    accumulate_batch_size += batch_sizes[-1]
+    max_nnz_tensor = tf.reduce_max(tf.stack(nnzs, axis=-1), keepdims=True)
+    combined_input = tf.SparseTensor(
+      values=tf.concat(values, axis=0),
+      indices=tf.concat(offsetted_indices, axis=0),
+      dense_shape=tf.concat([accumulate_batch_size, max_nnz_tensor], axis=0)
+    )
+    import pdb;pdb.set_trace()
+
+    sok_instance = sok.DistributedEmbedding(
+      combiner=combiner,
+      max_vocabulary_size_per_gpu=total_bucket_size / (workers * gpus_num),
+      embedding_vec_size=emb_vec_size,
+      slot_num=len(inputs),
+      max_nnz=max_nnz,
+      use_hashtable=False,
+      key_dtype=combined_input.values.dtype,
+    )
+
+    # output should be [slot_num * batch_size, emb_vec_size]
+    output = sok_instance(combined_input, training=self._is_training)
+    slices = []
+    for i, _ in enumerate(inputs):
+      output_piece = tf.slice(output, offset[i], tf.concat([batch_sizes[i], max_nnz_tensor], axis=0))
+      slices.append(output_piece)
+      cols_to_output_tensors[group_columns[i]] = output_piece
+    output = tf.concat(slices, axis=0)
+    return output
 
   def get_wide_deep_dict(self):
     """Get wide or deep indicator for feature columns.

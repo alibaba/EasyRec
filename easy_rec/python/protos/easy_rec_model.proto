@@ -95,4 +95,6 @@ message EasyRecModel {
     optional VariationalDropoutLayer variational_dropout = 14;
 
     repeated Loss losses = 15;
+
+    optional bool use_sok = 16;
 }

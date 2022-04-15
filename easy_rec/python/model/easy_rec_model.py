@@ -84,6 +84,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         model_config.feature_groups,
         wide_output_dim=self._wide_output_dim,
         use_embedding_variable=model_config.use_embedding_variable,
+        use_sok=model_config.use_sok,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
