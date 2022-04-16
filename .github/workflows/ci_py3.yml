@@ -48,12 +48,12 @@ jobs:
 
              var pass_label = null;
              if (labels != null) {
-                pass_label = labels.find(label=>label.name=='ci_test_passed');
+                pass_label = labels.find(label=>label.name=='ci_py3_test_passed');
              }
 
              var fail_label = null;
              if (labels != null) {
-                fail_label = labels.find(label=>label.name=='ci_test_failed');
+                fail_label = labels.find(label=>label.name=='ci_py3_test_failed');
              }
 
              if (pass_label) {
