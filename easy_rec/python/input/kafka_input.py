@@ -114,6 +114,7 @@ class KafkaInput(Input):
   def _build(self, mode, params):
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
+      assert self._kafka is not None, "kafka_train_input is not set."
       train_kafka = self._kafka
       logging.info(
           'train kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
@@ -131,6 +132,8 @@ class KafkaInput(Input):
           message_offset=True)
     else:
       eval_kafka = self._kafka
+      assert self._kafka is not None, "kafka_eval_input is not set."
+ 
       logging.info(
           'eval kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
           % (eval_kafka.server, eval_kafka.topic, self._task_num, self._task_index, self._topics))

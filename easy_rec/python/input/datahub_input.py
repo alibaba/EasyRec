@@ -165,6 +165,11 @@ class DataHubInput(Input):
       logging.error('DatahubException: %s' % str(ex))
 
   def _build(self, mode, params):
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      assert self._datahub is not None, "datahub_train_input is not set"
+    elif mode == tf.estimator.ModeKeys.EVAL:
+      assert self._datahub is not None, "datahub_eval_input is not set"
+
     # get input types
     list_types = [self.get_tf_type(x) for x in self._input_field_types]
     list_types.append(tf.string)
