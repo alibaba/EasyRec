@@ -131,8 +131,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # register for increment update
       global_vars = { x.name:x for x in tf.global_variables() }
       for x in update_ops:
-        if x.inputs[0] in global_vars:
-          ops.add_to_collection('DENSE_TRAIN_VARIABLES', global_vars[x.name])
+        if x.inputs[0].name in global_vars:
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
       with tf.control_dependencies([update_op]):
         loss = tf.identity(loss, name='total_loss')
@@ -366,6 +366,12 @@ class EasyRecEstimator(tf.estimator.Estimator):
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
 
+    # oss stop signal hook
+    if self.train_config.enable_oss_stop_signal:
+      oss_stop_signal = estimator_utils.OssStopSignalHook(
+         model_dir=self.model_dir)
+      hooks.append(oss_stop_signal)
+
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_chief():
       profile_hook = tf.train.ProfilerHook(
@@ -498,15 +504,15 @@ class EasyRecEstimator(tf.estimator.Estimator):
     else:
       print('train pipeline_path(%s) does not exist' % pipeline_path)
 
-    # restore DENSE_TRAIN_VARIABLES collection
-    dense_train_var_path = os.path.join(self.model_dir, constant.DENSE_TRAIN_VARIABLES)
+    # restore DENSE_UPDATE_VARIABLES collection
+    dense_train_var_path = os.path.join(self.model_dir, constant.DENSE_UPDATE_VARIABLES)
     if gfile.Exists(dense_train_var_path):
       with gfile.GFile(dense_train_var_path, 'r') as fin:
         var_name_to_id_map = json.load(fin)
         all_vars = { x.op.name:x for x in  tf.global_variables() }
         for var_name in var_name_to_id_map:
           if var_name in all_vars:
-            tf.add_to_collection(constant.DENSE_TRAIN_VARIABLES, all_vars[var_name])
+            tf.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
 
     # add more asset files
     if 'asset_files' in params:

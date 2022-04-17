@@ -13,6 +13,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 import six
+import threading
 import tensorflow as tf
 from tensorflow.python.framework import ops
 from easy_rec.python.ops.incr_record import get_sparse_indices
@@ -21,6 +22,7 @@ from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
 from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer
+from tensorflow.python.training import training_util
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import shape_utils
@@ -329,7 +331,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids() 
 
-      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_TRAIN_VARIABLES), 'w') as fout:
+      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES), 'w') as fout:
         json.dump(self._dense_name_to_ids, fout, indent=2)
 
       save_secs = increment_save_config.dense_save_secs 
@@ -343,7 +345,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
       self._sparse_indices = []
       self._sparse_values = []
-      sparse_train_vars = ops.get_collection(constant.SPARSE_TRAIN_VARIABLES)
+      sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
       for sparse_var, indice_dtype in sparse_train_vars:
         with ops.control_dependencies([tf.train.get_global_step()]):
           sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
@@ -396,10 +398,10 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def after_run(self, run_context, run_values):
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
-    global_step = run_context.session.run(self._global_step_tensor)
+    global_step = run_values.results
     if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(global_step):
       self._dense_timer.update_last_triggered_step(global_step)
-      dense_train_vars = ops.get_collection(constant.DENSE_TRAIN_VARIABLES)
+      dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
       dense_train_vals = run_context.session.run(dense_train_vars)
       logging.info("global_step=%d, increment save dense variables" % global_step)
 
@@ -422,7 +424,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
     if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(global_step):
       self._sparse_timer.update_last_triggered_step(global_step)
-      sparse_train_vars = ops.get_collection(constant.SPARSE_TRAIN_VARIABLES)
+      sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
       sparse_res = run_context.session.run(self._sparse_indices + self._sparse_values)
       msg_num = int(len(sparse_res) / 2)
 
@@ -625,6 +627,35 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
     for saver, ckpt_path in zip(self._saver_list, self._ckpt_path_list):
       logging.info('restore checkpoint from %s' % ckpt_path)
       saver.restore(session, ckpt_path)
+
+class OssStopSignalHook(SessionRunHook):
+  def __init__(self, model_dir, secs_interval=60, step_interval=10):
+    self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
+    self._stop = False
+    self._last_chk_step = 0
+    self._curr_step = 0
+    def _check_stop():
+      while True:
+        if self._curr_step < self._last_chk_step + step_interval: 
+          time.sleep(1)
+          continue
+        self._last_chk_step = self._curr_step
+        if gfile.Exists(self._stop_sig_file):
+          self._stop = True
+          logging.info('OssStopSignalHook: stop on signal %s' % self._stop_sig_file)
+          break 
+        time.sleep(secs_interval)
+    self._th = threading.Thread(target=_check_stop)
+    self._th.start()
+
+  def before_run(self, run_context):
+    if self._stop:
+      run_context.request_stop()
+    self._global_step_tensor = training_util._get_or_create_global_step_read()
+    return tf.train.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):
+    self._curr_step = run_values.results
 
 
 class OnlineEvaluationHook(SessionRunHook):

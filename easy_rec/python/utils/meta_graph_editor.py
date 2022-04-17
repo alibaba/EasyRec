@@ -447,7 +447,7 @@ class MetaGraphEditor:
 
       # dense variables are updated one by one
       dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
-      for x in ops.get_collection(constant.DENSE_TRAIN_VARIABLES):
+      for x in ops.get_collection(constant.DENSE_UPDATE_VARIABLES):
         dense_var_id = dense_name_to_ids[x.op.name]
         dense_input_name = 'incr_update/dense/%d/input' % dense_var_id
         dense_output_name = 'incr_update/dense/%d/output' % dense_var_id

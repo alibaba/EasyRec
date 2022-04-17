@@ -514,11 +514,11 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       tf.constant(
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
 
-  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path), constant.DENSE_TRAIN_VARIABLES)
+  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path), constant.DENSE_UPDATE_VARIABLES)
   ops.add_to_collection(
       ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
-          dense_train_vars_path, dtype=tf.string, name=constant.DENSE_TRAIN_VARIABLES))
+          dense_train_vars_path, dtype=tf.string, name=constant.DENSE_UPDATE_VARIABLES))
 
   kafka_params_file = os.path.join(export_dir, "kafka.txt")
   with GFile(kafka_params_file, 'w') as fout:

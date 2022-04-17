@@ -16,7 +16,7 @@ def get_norm_name_to_ids():
     normalized names to ids mapping.
   """
   norm_name_to_ids = {} 
-  for x in ops.get_collection(constant.SPARSE_TRAIN_VARIABLES):
+  for x in ops.get_collection(constant.SPARSE_UPDATE_VARIABLES):
     norm_name, part_id = proto_util.get_norm_embed_name(x[0].name)
     norm_name_to_ids[norm_name] = 1
     
@@ -32,13 +32,13 @@ def get_sparse_name_to_ids():
   """
   norm_name_to_ids = get_norm_name_to_ids()
   name_to_ids = {}
-  for x in ops.get_collection(constant.SPARSE_TRAIN_VARIABLES):
+  for x in ops.get_collection(constant.SPARSE_UPDATE_VARIABLES):
     norm_name, _ = proto_util.get_norm_embed_name(x[0].name)
     name_to_ids[x[0].name] = norm_name_to_ids[norm_name]
   return name_to_ids
 
 def get_dense_name_to_ids():
-  dense_train_vars = ops.get_collection(constant.DENSE_TRAIN_VARIABLES)
+  dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
   norm_name_to_ids = {}
   for x in dense_train_vars: 
     norm_name_to_ids[x.op.name] = 1

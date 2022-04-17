@@ -148,4 +148,8 @@ message TrainConfig {
 
     // increment save config
     optional IncrementSaveConfig incr_save_config = 31;
+
+    // enable oss stop signal
+    // stop by create OSS_STOP_SIGNAL under model_dir
+    optional bool enable_oss_stop_signal = 32 [default = false];
 }
