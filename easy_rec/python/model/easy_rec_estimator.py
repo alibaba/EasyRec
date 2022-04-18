@@ -128,7 +128,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # update op, usually used for batch-norm
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     if update_ops:
-      # register for increment update
+      # register for increment update, such as batchnorm moving_mean and moving_variance
       global_vars = { x.name:x for x in tf.global_variables() }
       for x in update_ops:
         if x.inputs[0].name in global_vars:
