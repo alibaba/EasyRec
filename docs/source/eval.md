@@ -115,7 +115,7 @@ pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
--Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dextra_params=" --distribute_eval True"
 -Darn=acs:ram::xxx:role/xxx
