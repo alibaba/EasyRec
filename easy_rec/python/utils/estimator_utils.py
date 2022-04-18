@@ -331,7 +331,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids() 
 
-      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES), 'w') as fout:
+      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES),
+          'w') as fout:
         json.dump(self._dense_name_to_ids, fout, indent=2)
 
       save_secs = increment_save_config.dense_save_secs 
@@ -366,7 +367,10 @@ class CheckpointSaverHook(CheckpointSaverHook):
              topic_configs={'max.message.bytes':1024 * 1024 * 1024})], validate_only=False)
         logging.info('create increment save topic: %s' % self._topic)
         admin_clt.close()
-        self._kafka_producer = KafkaProducer(bootstrap_servers=increment_save_config.kafka.server, max_request_size=1024 * 1024 * 64)
+     
+        servers = increment_save_config.kafka.server.split(',')
+        self._kafka_producer = KafkaProducer(bootstrap_servers=servers,
+            max_request_size=1024 * 1024 * 64)
       else:
         self._kafka_producer = None
     else:
