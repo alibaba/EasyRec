@@ -19,8 +19,10 @@ from tensorflow.python.framework import ops as _ops
 from tensorflow.python.util.tf_export import tf_export
 import easy_rec
 
-
-kafka_module = tf.load_op_library(os.path.join(easy_rec.ops_dir, 'kafka.so'))
+kafka_dataset_ops_dir = easy_rec.ops_dir
+if 'PAI' in tf.__version__:
+  kafka_dataset_ops_dir = os.path.join(os.path.dirname(kafka_dataset_ops_dir), '1.12_pai')
+kafka_module = tf.load_op_library(os.path.join(kafka_dataset_ops_dir, 'kafka.so'))
 
 
 @tf_export('io_kafka_dataset_v2')
