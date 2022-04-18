@@ -34,7 +34,7 @@ try:
   from kafka import KafkaProducer, KafkaAdminClient
   from kafka.admin import NewTopic
 except ImportError as ex:
-  logging.warning('kafka-python is not installed: %s' % traceback.format_exc(ex))
+  logging.warning('kafka-python is not installed: %s' % str(ex))
 
 
 if tf.__version__ >= '2.0':
