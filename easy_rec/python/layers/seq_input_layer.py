@@ -70,13 +70,14 @@ class SeqInputLayer(object):
           for key_tensor in key_tensors:
             tf.summary.histogram(
                 _seq_embed_summary_name(key_tensor.name), key_tensor)
-
+        cur_hist_seqs = []
         for hist_seq in x.hist_seq:
           seq_fc = feature_column_dict[hist_seq]
           with tf.variable_scope(seq_fc._var_scope_name):
-            hist_tensors.append(
+            cur_hist_seqs.append(
                 feature_column_dict[hist_seq]._get_sequence_dense_tensor(
                     builder))
+        hist_tensors.extend(cur_hist_seqs)
 
         if tf_summary:
           for hist_embed, hist_seq_len in hist_tensors:
@@ -85,10 +86,10 @@ class SeqInputLayer(object):
             tf.summary.histogram(
                 _seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
 
-        for idx in range(1, len(hist_tensors)):
+        for idx in range(1, len(cur_hist_seqs)):
           check_op = tf.assert_equal(
-          hist_tensors[0][1],
-          hist_tensors[idx][1],
+          cur_hist_seqs[0][1],
+          cur_hist_seqs[idx][1],
           message="SequenceFeature Error: The size of %s not equal to the size of %s." % (x.hist_seq[idx], x.hist_seq[0]))
           check_op_list.append(check_op)
 

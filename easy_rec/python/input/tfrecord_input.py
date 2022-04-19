@@ -17,9 +17,10 @@ class TFRecordInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(TFRecordInput, self).__init__(data_config, feature_config, input_path,
-                                        task_index, task_num)
+                                        task_index, task_num, check_mode)
 
     self.feature_desc = {}
     for x, t, d in zip(self._input_fields, self._input_field_types,

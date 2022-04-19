@@ -56,7 +56,7 @@ setup(
     doc=readme(),
     author='EasyRec Team',
     author_email='easy_rec@alibaba-inc.com',
-    url='http://gitlab.alibaba-inc.com/pai_biz_arch/EasyRec',
+    url='https://github.com/alibaba/EasyRec',
     packages=find_packages(),
     include_package_data=True,
     classifiers=[

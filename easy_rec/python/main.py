@@ -304,12 +304,16 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=F
       gfile.Remove(master_stat_file)
 
   train_steps = pipeline_config.train_config.num_steps
-  if train_steps <= 0:
-    train_steps = None
-    logging.warn('will train INFINITE number of steps')
-  else:
-    logging.info('train_steps = %d' % train_steps)
   assert not (train_steps == 0 and data_config.num_epochs == 0), "num_steps and num_epochs cannot both be 0."
+  if train_steps and data_config.num_epochs:
+    logging.info("Both num_steps and num_epochs are set.")
+    is_sync = train_config.sync_replicas
+    batch_size = data_config.batch_size
+    epoch_str = "sample_num * %d / %d" % (data_config.num_epochs, batch_size)
+    if is_sync:
+      _, worker_num = estimator_utils.get_task_index_and_num()
+      epoch_str += " / " + str(worker_num)
+    logging.info("Will train min(%d, %s) steps..." % (train_steps, epoch_str))
 
   input_fn_kwargs = {}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:

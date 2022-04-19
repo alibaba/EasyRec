@@ -24,9 +24,10 @@ class OdpsInputV3(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(OdpsInputV3, self).__init__(data_config, feature_config, input_path,
-                                      task_index, task_num)
+                                      task_index, task_num, check_mode)
     self._num_epoch = 0
     if common_io is None:
       logging.error("""please install common_io pip install

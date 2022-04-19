@@ -12,9 +12,10 @@ class CSVInputV2(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(CSVInputV2, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num)
+                                     task_index, task_num, check_mode)
 
   def _build(self, mode, params):
     if self._input_path.startswith('hdfs://'):
