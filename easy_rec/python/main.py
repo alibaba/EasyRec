@@ -56,6 +56,7 @@ def _get_input_fn(data_config,
                   feature_configs,
                   data_path=None,
                   export_config=None,
+                  check_mode=False,
                   **kwargs):
   """Build estimator input function.
 
@@ -80,6 +81,7 @@ def _get_input_fn(data_config,
       data_path,
       task_index=task_id,
       task_num=task_num,
+      check_mode=check_mode,
       **kwargs)
   input_fn = input_obj.create_input(export_config)
   return input_fn
@@ -125,7 +127,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   return estimator, run_config
 
 
-def _create_eval_export_spec(pipeline_config, eval_data):
+def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
@@ -142,7 +144,8 @@ def _create_eval_export_spec(pipeline_config, eval_data):
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
   export_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                  export_config, **input_fn_kwargs)
+                                  export_config, check_mode=check_mode,
+                                  **input_fn_kwargs)
   if export_config.exporter_type == 'final':
     exporters = [
         FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
@@ -271,10 +274,9 @@ def _get_input_object_by_name(pipeline_config, worker_type):
     return pipeline_config.eval_input_path
 
 
-def _train_and_evaluate_impl(pipeline_config, continue_train=False):
+def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=False):
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
-  # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
 
   if train_config.train_distribute != DistributionStrategy.NoStrategy\
@@ -314,13 +316,13 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
   # create train input
-  train_input_fn = _get_input_fn(data_config, feature_configs, train_data,
+  train_input_fn = _get_input_fn(data_config, feature_configs, train_data, check_mode=check_mode,
                                  **input_fn_kwargs)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
   # create eval spec
-  eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
+  eval_spec = _create_eval_export_spec(pipeline_config, eval_data, check_mode=check_mode)
   from easy_rec.python.compat import estimator_train
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')

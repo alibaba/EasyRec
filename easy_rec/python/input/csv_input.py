@@ -27,7 +27,6 @@ class CSVInput(Input):
                                    task_index, task_num, check_mode)
     self._with_header = data_config.with_header
     self._field_names = None
-    self._check_mode = check_mode
 
   def _parse_csv(self, line):
     record_defaults = [

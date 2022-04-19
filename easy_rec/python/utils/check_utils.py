@@ -33,12 +33,12 @@ def check_string_to_number(field_vals, field_name, check_mode):
 						  "please check data." % (field_name, val)
 	return True
 
-
 def check_size(field_vals1, field_vals2, field1, field2, check_mode):
 	if not check_mode:
 		return True
 	assert len(field_vals1) == len(field_vals2), \
-		"TagFeature Error: The size of %s not equal to the size of %s." % (field1, field2)
+		"TagFeature Error: The size of %s not equal to the size of %s. Please check input: %s and %s." \
+		% (field1, field2, field1, field2)
 	return True
 
 def check_train_step(pipeline_config):
@@ -61,5 +61,7 @@ def check_sequence(pipeline_config_path, features):
 			for hist_seq in seq_att_map.hist_seq:
 				cur_seq_size = len(features[hist_seq].values)
 				size_list.append(cur_seq_size)
+			hist_seqs = ' '.join(seq_att_map.hist_seq)
 			assert len(set(size_list)) == 1, \
-				'SequenceFeature Error: The size in [%s] should be consistent.' % ' '.join(seq_att_map.hist_seq)
+				'SequenceFeature Error: The size in [%s] should be consistent. Please check input: [%s].' % \
+				(hist_seqs, hist_seqs)

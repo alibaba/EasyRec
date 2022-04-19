@@ -34,6 +34,7 @@ class Input(six.with_metaclass(_meta_type, object)):
                check_mode=False):
     self._data_config = data_config
     self._check_mode = check_mode
+    logging.info("check_mode: %s " % self._check_mode)
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
@@ -353,7 +354,8 @@ class Input(six.with_metaclass(_meta_type, object)):
             assert_op = tf.assert_equal(
                 tf.shape(field_vals)[0],
                 tf.shape(parsed_dict[input_0].values)[0],
-                message="TagFeature Error: The size of %s not equal to the size of %s." % (input_0, input_1))
+                message="TagFeature Error: The size of %s not equal to the size of %s. Please check input: %s and %s."
+                        % (input_0, input_1, input_0, input_1))
             with tf.control_dependencies([assert_op]):
               field = tf.sparse.SparseTensor(field.indices,
                                              tf.identity(field_vals),

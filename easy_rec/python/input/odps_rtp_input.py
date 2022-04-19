@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.input_utils import string_to_number
 
 try:
@@ -32,9 +33,10 @@ class OdpsRTPInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(OdpsRTPInput, self).__init__(data_config, feature_config, input_path,
-                                       task_index, task_num)
+                                       task_index, task_num, check_mode)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
 
@@ -48,9 +50,13 @@ class OdpsRTPInput(Input):
         if x not in self._label_fields
     ]
     # assume that the last field is the generated feature column
-    print('field_delim = %s, input_field_name = %d' %
+    logging.info('field_delim = %s, input_field_name = %d' %
           (self._data_config.separator, len(record_types)))
-    fields = tf.string_split(
+
+    check_op = tf.py_func(check_split, [fields[-1], self._data_config.separator, len(record_types), self._check_mode],
+                          Tout=tf.bool)
+    with tf.control_dependencies([check_op]):
+      fields = tf.string_split(
         fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
     fields = []
