@@ -243,6 +243,7 @@ def optimize_loss(loss,
       variables = vars_.trainable_variables()
 
     # Compute gradients.
+    import pdb;pdb.set_trace()
     gradients = opt.compute_gradients(
         loss,
         variables,

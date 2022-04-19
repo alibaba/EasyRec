@@ -212,10 +212,9 @@ class InputLayer(object):
         self._fc_parser)
     if is_combine:
       cols_to_output_tensors = OrderedDict()
-      if True:  # debug
-      #if self.use_sok:
-        self.sok_input_layer(features, group_columns,
-                             cols_to_output_tensors=cols_to_output_tensors)
+      if self.use_sok:
+        output_features= self.sok_input_layer(features, group_columns,
+                                              cols_to_output_tensors=cols_to_output_tensors)
       else:
         output_features = feature_column.input_layer(
             features,
@@ -306,7 +305,7 @@ class InputLayer(object):
         'sum': 'Sum'
     }
     _, workers = estimator_utils.get_task_index_and_num()
-    gpus_num = None
+    gpus_num = 2
 
     # fix for now
     max_nnz = 100
@@ -374,7 +373,6 @@ class InputLayer(object):
       indices=tf.concat(offsetted_indices, axis=0),
       dense_shape=tf.concat([accumulate_batch_size, max_nnz_tensor], axis=0)
     )
-    import pdb;pdb.set_trace()
 
     sok_instance = sok.DistributedEmbedding(
       combiner=combiner,
