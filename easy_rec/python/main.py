@@ -299,6 +299,20 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
+  # support for datahub/kafka offset restore
+  final_ckpt = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
+  if final_ckpt is not None:
+    final_offset_path = final_ckpt + '.offset'
+    logging.info('restore offset_info from %s' % final_offset_path)
+    if gfile.Exists(final_offset_path): 
+      with gfile.GFile(final_offset_path) as fin:
+        offset_info = json.load(fin)
+      if train_data:
+        train_data.offset_info = json.dumps(offset_info)
+      if eval_data is not None:
+        eval_data.offset_info = json.dumps(ofset_info)
+
+
   # create train input
   train_input_fn = _get_input_fn(data_config, feature_configs, train_data,
                                  **input_fn_kwargs)
