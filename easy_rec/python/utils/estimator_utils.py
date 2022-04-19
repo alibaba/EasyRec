@@ -400,65 +400,71 @@ class CheckpointSaverHook(CheckpointSaverHook):
   def before_run(self, run_context):  # pylint: disable=unused-argument
     return tf.train.SessionRunArgs(self._global_step_tensor)
 
+  def _send_dense(self, global_step, session):
+    dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
+    dense_train_vals = session.run(dense_train_vars)
+    logging.info("global_step=%d, increment save dense variables" % global_step)
+
+    msg_num = len(dense_train_vals)
+    msg_ids = [ self._dense_name_to_ids[x.op.name] for x in dense_train_vars]
+    # 0 mean dense update message
+    msg_header = [0, msg_num, global_step]
+    for msg_id, x in zip(msg_ids, dense_train_vals):
+      msg_header.append(msg_id)
+      msg_header.append(x.size)
+    bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
+    for x in dense_train_vals:
+      bytes_buf += x.tobytes()
+    if self._kafka_producer is not None:
+      msg_key = 'dense_update_%d' % global_step
+      send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8')) 
+      logging.info('kafka send dense: %d exception: %s' % (global_step, send_res.exception))
+    logging.info("global_step=%d, increment update dense variables, msg_num=%d" \
+           % (global_step, msg_num))
+
+  def _send_sparse(self, global_step, session):
+    sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
+    sparse_res = session.run(self._sparse_indices + self._sparse_values)
+    msg_num = int(len(sparse_res) / 2)
+
+    sel_ids = [ i for i in range(msg_num) if len(sparse_res[i]) > 0 ]
+    sparse_key_res = [ sparse_res[i] for i in sel_ids ]
+    sparse_val_res = [ sparse_res[i+msg_num] for i in sel_ids ]
+    sparse_train_vars = [ sparse_train_vars[i][0] for i in sel_ids ]
+
+    embed_ids = [ self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
+
+    msg_num = len(sel_ids) 
+    # 1 means sparse update messages
+    msg_header = [1, msg_num, global_step]
+    for i, x in enumerate(embed_ids):
+      msg_header.append(x)
+      msg_header.append(len(sparse_res[sel_ids[i]])) 
+    bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
+    for tmp_key, tmp_val, tmp_var in zip(sparse_key_res, sparse_val_res, sparse_train_vars):
+      # for non kv embedding variables, add partition offset to tmp_key
+      if 'EmbeddingVariable' not in str(type(tmp_var)):
+        if tmp_var._save_slice_info is not None:
+          tmp_key += tmp_var._save_slice_info.var_offset[0]
+      bytes_buf += tmp_key.tobytes()
+      bytes_buf += tmp_val.tobytes()
+    if self._kafka_producer is not None:
+      msg_key = 'sparse_update_%d' % global_step
+      send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
+      logging.info('kafka send sparse: %d %s' % (global_step, send_res.exception))
+    logging.info("global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d" \
+           % (global_step, msg_num, len(bytes_buf)))
+
   def after_run(self, run_context, run_values):
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     global_step = run_values.results
     if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(global_step):
       self._dense_timer.update_last_triggered_step(global_step)
-      dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
-      dense_train_vals = run_context.session.run(dense_train_vars)
-      logging.info("global_step=%d, increment save dense variables" % global_step)
-
-      msg_num = len(dense_train_vals)
-      msg_ids = [ self._dense_name_to_ids[x.op.name] for x in dense_train_vars]
-      # 0 mean dense update message
-      msg_header = [0, msg_num, global_step]
-      for msg_id, x in zip(msg_ids, dense_train_vals):
-        msg_header.append(msg_id)
-        msg_header.append(x.size)
-      bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
-      for x in dense_train_vals:
-        bytes_buf += x.tobytes()
-      if self._kafka_producer is not None:
-        msg_key = 'dense_update_%d' % global_step
-        send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8')) 
-        logging.info('kafka send dense: %d exception: %s' % (global_step, send_res.exception))
-      logging.info("global_step=%d, increment update dense variables, msg_num=%d" \
-             % (global_step, msg_num))
+      self._send_dense(global_step, run_context.session)
 
     if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(global_step):
       self._sparse_timer.update_last_triggered_step(global_step)
-      sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
-      sparse_res = run_context.session.run(self._sparse_indices + self._sparse_values)
-      msg_num = int(len(sparse_res) / 2)
-
-      sel_ids = [ i for i in range(msg_num) if len(sparse_res[i]) > 0 ]
-      sparse_key_res = [ sparse_res[i] for i in sel_ids ]
-      sparse_val_res = [ sparse_res[i+msg_num] for i in sel_ids ]
-      sparse_train_vars = [ sparse_train_vars[i][0] for i in sel_ids ]
-
-      embed_ids = [ self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
-
-      msg_num = len(sel_ids) 
-      # 1 means sparse update messages
-      msg_header = [1, msg_num, global_step]
-      for i, x in enumerate(embed_ids):
-        msg_header.append(x)
-        msg_header.append(len(sparse_res[sel_ids[i]])) 
-      bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
-      for tmp_key, tmp_val, tmp_var in zip(sparse_key_res, sparse_val_res, sparse_train_vars):
-        # for non kv embedding variables, add partition offset to tmp_key
-        if 'EmbeddingVariable' not in str(type(tmp_var)):
-          if tmp_var._save_slice_info is not None:
-            tmp_key += tmp_var._save_slice_info.var_offset[0]
-        bytes_buf += tmp_key.tobytes()
-        bytes_buf += tmp_val.tobytes()
-      if self._kafka_producer is not None:
-        msg_key = 'sparse_update_%d' % global_step
-        send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
-        logging.info('kafka send sparse: %d %s' % (global_step, send_res.exception))
-      logging.info("global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d" \
-             % (global_step, msg_num, len(bytes_buf)))
+      self._send_sparse(global_step, run_context.session)
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
@@ -497,6 +503,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
             'listener: {}'.format(l))
         should_stop = True
     return should_stop
+
+  def end(self, session):
+    super(CheckpointSaverHook, self).end(session)
+    global_step = session.run(self._global_step_tensor)
+    if self._dense_timer is not None:
+      self._dense_timer.update_last_triggered_step(global_step)
+      self._send_dense(global_step, session)
+    if self._sparse_timer is not None:
+      self._sparse_timer.update_last_triggered_step(global_step)
+      self._send_sparse(global_step, session)
 
 
 class NumpyCheckpointRestoreHook(SessionRunHook):
