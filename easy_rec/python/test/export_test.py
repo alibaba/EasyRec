@@ -440,8 +440,7 @@ class ExportTest(tf.test.TestCase):
         --input_path %s
         --output_path %s
     """ % (config_path, test_data_path, result_path)
-    proc = test_utils.run_cmd(predict_cmd % (),
-                              '%s/log_%s.txt' % (test_dir, 'predict'))
+    proc = test_utils.run_cmd(predict_cmd, '%s/log_%s.txt' % (test_dir, 'predict'))
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     with open(result_path, 'r') as fin:
