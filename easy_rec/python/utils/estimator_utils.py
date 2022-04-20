@@ -18,6 +18,7 @@ from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
 from tensorflow.python.platform import gfile
+from tensorflow.python.framework import errors_impl
 
 from easy_rec.python.utils import shape_utils
 
@@ -594,14 +595,18 @@ def latest_checkpoint(model_dir):
   Return:
     model_path: xx/model.ckpt-2000
   """
-  ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
-  if len(ckpt_metas) == 0:
-    return None
+  try:
+    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
 
-  if len(ckpt_metas) > 1:
-    ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
-  ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
-  return ckpt_path
+    if len(ckpt_metas) == 0:
+      return None
+
+    if len(ckpt_metas) > 1:
+      ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
+    ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
+    return ckpt_path
+  except errors_impl.NotFoundError:
+    return None
 
 
 def master_to_chief():

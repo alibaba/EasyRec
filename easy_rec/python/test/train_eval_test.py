@@ -425,6 +425,12 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_latest_export_with_asset(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/din_on_taobao_latest_export.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_incompatible_restore(self):
 
     def _post_check_func(config):

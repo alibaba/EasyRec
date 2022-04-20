@@ -483,7 +483,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
       print('train pipeline_path(%s) does not exist' % pipeline_path)
 
     # add more asset files
-    if 'asset_files' in params:
+    if len(export_config.asset_files) > 0:
+      for asset_file in export_config.asset_files:
+        _, asset_name = os.path.split(asset_file)
+        ops.add_to_collection(
+            ops.GraphKeys.ASSET_FILEPATHS,
+            tf.constant(asset_file, dtype=tf.string, name=asset_name))
+    elif 'asset_files' in params:
       for asset_name in params['asset_files']:
         asset_file = params['asset_files'][asset_name]
         tf.add_to_collection(

@@ -230,6 +230,9 @@ def main(argv):
     assert pipeline_config.model_dir.startswith(
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
 
+  if FLAGS.asset_files:
+    pipeline_config.export_config.asset_files.extend(FLAGS.asset_files.split(','))
+
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
 
