@@ -70,20 +70,47 @@ def _get_input_fn(data_config,
 
 def _is_local(pipeline_config):
     input = pipeline_config.data_config.input_type
-    if input in [DatasetConfig.InputType.OdpsInputV2, DatasetConfig.InputType.OdpsRTPInput]:
-        return False
-    elif input in [DatasetConfig.InputType.CSVInput, DatasetConfig.InputType.RTPInput]:
+
+    if input in [DatasetConfig.InputType.CSVInput,
+                 DatasetConfig.InputType.CSVInputV2,
+                 DatasetConfig.InputType.RTPInput,
+                 DatasetConfig.InputType.RTPInputV2,
+                 DatasetConfig.InputType.HiveInput]:
         return True
+    elif input in [DatasetConfig.InputType.OdpsInputV2,
+                   DatasetConfig.InputType.OdpsRTPInput,
+                   DatasetConfig.InputType.OdpsRTPInputV2,
+                   DatasetConfig.InputType.OdpsInput,
+                   DatasetConfig.InputType.OdpsInputV3,
+
+                   DatasetConfig.InputType.TFRecordInput,
+                   DatasetConfig.InputType.BatchTFRecordInput,
+                   DatasetConfig.InputType.KafkaInput,
+                   DatasetConfig.InputType.DataHubInput]:
+        return False
     else:
         assert False, "Currently only supports OdpsInputV2/OdpsRTPInput/CSVInput/RTPInput."
 
 def check_env(pipeline_config, is_local):
-    if pipeline_config.data_config.input_type not in [
+    input_list = [
         DatasetConfig.InputType.OdpsInputV2,
         DatasetConfig.InputType.OdpsRTPInput,
+        DatasetConfig.InputType.OdpsRTPInputV2,
+        DatasetConfig.InputType.OdpsInput,
+        DatasetConfig.InputType.OdpsInputV3,
         DatasetConfig.InputType.CSVInput,
-        DatasetConfig.InputType.RTPInput]:
-        assert False, "Currently only supports OdpsInputV2/OdpsRTPInput/CSVInput/RTPInput."
+        DatasetConfig.InputType.CSVInputV2,
+        DatasetConfig.InputType.RTPInput,
+        DatasetConfig.InputType.RTPInputV2,
+        DatasetConfig.InputType.HiveInput,
+        DatasetConfig.InputType.TFRecordInput,
+        DatasetConfig.InputType.BatchTFRecordInput,
+        DatasetConfig.InputType.KafkaInput,
+        DatasetConfig.InputType.DataHubInput
+    ]
+    if pipeline_config.data_config.input_type not in input_list:
+        assert False, "Currently only supports [%s]." % ','.join(input_list)
+
     assert is_local == _is_local(pipeline_config), \
         "If you run it in local/ds, the inputype should be CSVInput/RTPInput."
 

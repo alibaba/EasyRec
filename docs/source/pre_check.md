@@ -3,7 +3,6 @@
 为解决用户常由于脏数据或配置错误的原因，导致训练失败，开发了预检查功能。
 在训练时打开检查模式，或是训练前执行pre_check脚本，即会检查data_config配置及train_config部分配置，筛查全部数据，遇到异常则抛出相关信息，并给出修改意见。
 
-目前已经支持CSVInput, OdpsInputV2，RTPInput, OdpsRTPInput四种常用input。
 
 ### 命令
 
