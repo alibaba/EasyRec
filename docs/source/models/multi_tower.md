@@ -35,6 +35,9 @@ model_config: {
     feature_names: 'tag_brand_list'
     wide_deep: DEEP
   }
+  f1_reweight_loss {
+    f1_beta_square: 2.25
+  }
   losses {
     loss_type: CLASSIFICATION
     weight: 2.0
@@ -77,6 +80,7 @@ model_config: {
 - losses: 可选，可以选择同时配置两个loss函数，并且为每个loss配置不同的权重
   - loss_type: CLASSIFICATION [默认值] 二分类的sigmoid cross entropy loss
   - loss_type: PAIR_WISE_LOSS [可选] 以优化AUC为主要目标的 pairwise rank loss
+  - loss_type: F1_REWEIGHTED_LOSS [可选] 可以调节二分类模型recall/precision相对权重的loss; 注意不要与`loss_type: CLASSIFICATION`同时使用
 - towers:
   - 每个feature_group对应了一个tower, tower的input必须和feature_groups的group_name对应
   - dnn: 深度网络

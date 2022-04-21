@@ -103,7 +103,7 @@ class RankModel(EasyRecModel):
                        num_class=1,
                        suffix=''):
     loss_dict = {}
-    if loss_type == LossType.CLASSIFICATION:
+    if loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]:
       loss_name = 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
