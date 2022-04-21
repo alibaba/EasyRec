@@ -36,11 +36,11 @@ model_config: {
     wide_deep: DEEP
   }
   f1_reweight_loss {
-    f1_beta_square: 2.25
+    f1_beta_square: 1.0
   }
   losses {
-    loss_type: CLASSIFICATION
-    weight: 2.0
+    loss_type: F1_REWEIGHTED_LOSS
+    weight: 1.0
   }
   losses {
     loss_type: PAIR_WISE_LOSS
