@@ -389,6 +389,12 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_deepfm_with_eval_online_gauc(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_eval_online_gauc_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_mmoe(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_taobao.config', self._test_dir)
