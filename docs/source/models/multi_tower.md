@@ -35,9 +35,12 @@ model_config: {
     feature_names: 'tag_brand_list'
     wide_deep: DEEP
   }
+  f1_reweight_loss {
+    f1_beta_square: 1.0
+  }
   losses {
-    loss_type: CLASSIFICATION
-    weight: 2.0
+    loss_type: F1_REWEIGHTED_LOSS
+    weight: 1.0
   }
   losses {
     loss_type: PAIR_WISE_LOSS
@@ -77,6 +80,14 @@ model_config: {
 - losses: 可选，可以选择同时配置两个loss函数，并且为每个loss配置不同的权重
   - loss_type: CLASSIFICATION [默认值] 二分类的sigmoid cross entropy loss
   - loss_type: PAIR_WISE_LOSS [可选] 以优化AUC为主要目标的 pairwise rank loss
+  - loss_type: F1_REWEIGHTED_LOSS [可选] 可以调节二分类模型recall/precision相对权重的loss; 注意不要与`loss_type: CLASSIFICATION`同时使用
+- f1_reweight_loss: 可以调节二分类模型`recall/precision`相对权重的损失函数
+  - f1_beta_square: 大于1的值会导致模型更关注`recall`，小于1的值会导致模型更关注`precision`
+  - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
+    ![](https://bkimg.cdn.bcebos.com/formula/65c23656f29403bc7813b9c02635c8b3.svg)
+  - 更一般的，我们定义 `F_beta` 分数为:
+    ![](https://bkimg.cdn.bcebos.com/formula/8e8672fad2d5444ddca67bb36a51603a.svg)
+  - f1_beta_square 即为 上述公式中的 beta 系数的平方。
 - towers:
   - 每个feature_group对应了一个tower, tower的input必须和feature_groups的group_name对应
   - dnn: 深度网络
