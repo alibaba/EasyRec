@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 import logging
+
 import numpy as np
 import tensorflow as tf
+
+from easy_rec.python.input.input import Input
+from easy_rec.python.utils import odps_util
 
 try:
   from pyhive import hive
 except ImportError:
   logging.warning('pyhive is not installed.')
-
-from easy_rec.python.input.input import Input
-from easy_rec.python.utils import odps_util
 
 
 class TableInfo(object):
@@ -44,7 +45,9 @@ class TableInfo(object):
     sql = """select {}
         from {}""".format(self.selected_cols, self.tablename)
     assert self.hash_fields is not None, 'hash_fields must not be empty'
-    fields = ['cast({} as string)'.format(key) for key in self.hash_fields.split(',')]
+    fields = [
+        'cast({} as string)'.format(key) for key in self.hash_fields.split(',')
+    ]
     str_fields = ','.join(fields)
     if not part:
       sql += """
@@ -61,12 +64,7 @@ class TableInfo(object):
 
 class HiveManager(object):
 
-  def __init__(self,
-               host,
-               port,
-               username,
-               info,
-               database='default'):
+  def __init__(self, host, port, username, info, database='default'):
     self.host = host
     self.port = port
     self.username = username
@@ -104,11 +102,11 @@ class HiveInput(Input):
     super(HiveInput, self).__init__(data_config, feature_config, input_path,
                                     task_index, task_num)
     if input_path is None:
-        return
+      return
     self._hive_config = input_path
     self._eval_batch_size = data_config.eval_batch_size
     self._fetch_size = self._hive_config.fetch_size
-    
+
     self._num_epoch = data_config.num_epochs
     self._num_epoch_record = 1
 
@@ -159,17 +157,15 @@ class HiveInput(Input):
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
       batch_size = self.this_batch_size
-      batch_defaults = [
-          np.array([x] * batch_size) for x in record_defaults
-      ]
+      batch_defaults = [np.array([x] * batch_size) for x in record_defaults]
       row_id = 0
       batch_data_np = [x.copy() for x in batch_defaults]
-      
+
       conn = self._construct_hive_connect()
       cursor = conn.cursor()
       sql = table_info.gen_sql()
       cursor.execute(sql)
-  
+
       while True:
         data = cursor.fetchmany(size=self._fetch_size)
         if len(data) == 0:
@@ -197,7 +193,7 @@ class HiveInput(Input):
       return self._data_config.batch_size
     else:
       return self._eval_batch_size
-    
+
   def _build(self, mode, params):
     # get input type
     list_type = [self.get_tf_type(x) for x in self._input_field_types]
@@ -207,7 +203,7 @@ class HiveInput(Input):
 
     # read odps tables
     self.this_batch_size = self._get_batch_size(mode)
-    
+
     dataset = tf.data.Dataset.from_generator(
         self._hive_read, output_types=list_type, output_shapes=list_shapes)
 

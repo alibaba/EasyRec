@@ -3,7 +3,9 @@ import tensorflow as tf
 
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.circle_loss import get_anchor_positive_triplet_mask
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy
+
+from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
+
 from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -16,7 +18,8 @@ class LossTest(tf.test.TestCase):
     print('test_f1_reweighted_loss')
     logits = tf.constant([0.1, 0.5, 0.3, 0.8, -0.1, 0.3])
     labels = tf.constant([1, 1, 0, 0, 1, 1])
-    loss = f1_reweight_sigmoid_cross_entropy(labels=labels, logits=logits, beta_square=4)
+    loss = f1_reweight_sigmoid_cross_entropy(
+        labels=labels, logits=logits, beta_square=4)
     with self.test_session() as sess:
       loss_val = sess.run(loss)
       self.assertAlmostEqual(loss_val, 0.47844395, delta=1e-5)

@@ -4,9 +4,10 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
+
+from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -30,7 +31,8 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
     return pairwise_loss(pred, label)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     beta_square = kwargs['beta_square'] if 'beta_square' in kwargs else 1.0
-    return f1_reweight_sigmoid_cross_entropy(pred, label, beta_square, weights=loss_weight)
+    return f1_reweight_sigmoid_cross_entropy(
+        pred, label, beta_square, weights=loss_weight)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

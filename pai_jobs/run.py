@@ -64,7 +64,8 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
-tf.app.flags.DEFINE_string('fine_tune_checkpoint', None, 'finetune checkpoint path')
+tf.app.flags.DEFINE_string('fine_tune_checkpoint', None,
+                           'finetune checkpoint path')
 tf.app.flags.DEFINE_string('query_table', '',
                            'table used for retrieve vector neighbours')
 tf.app.flags.DEFINE_string('doc_table', '',
@@ -285,7 +286,7 @@ def main(argv):
     assert FLAGS.eval_method in [
         'none', 'master', 'separate'
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
-   
+
     # with_evaluator is depreciated, keeped for compatibility
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
@@ -306,7 +307,7 @@ def main(argv):
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=(FLAGS.eval_method == "separate"))
+          has_evaluator=(FLAGS.eval_method == 'separate'))
 
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
@@ -433,11 +434,11 @@ def main(argv):
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(
-      pipeline_config,
-      export_path=FLAGS.export_dir + '/model',
-      checkpoint_path=FLAGS.checkpoint_path,
-      asset_files=FLAGS.asset_files,
-      verbose=FLAGS.verbose)
+        pipeline_config,
+        export_path=FLAGS.export_dir + '/model',
+        checkpoint_path=FLAGS.checkpoint_path,
+        asset_files=FLAGS.asset_files,
+        verbose=FLAGS.verbose)
   elif FLAGS.cmd == 'vector_retrieve':
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
@@ -469,7 +470,8 @@ def main(argv):
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
   else:
     raise ValueError(
-        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve'
+    )
 
 
 if __name__ == '__main__':

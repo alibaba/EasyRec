@@ -95,7 +95,7 @@ sh scripts/gen_proto.sh
 
 - 如果是Rank模型，则推荐继承自RankModel
   - 可以复用RankModel的build_predict_graph和build_loss_graph
-  - 可以利用RankModel中实现的_add_to_prediction_dict把build_predict_graph中DNN的输出加入到self._prediction_dict中，具体参考DeepFM和MultiTower的实现。
+  - 可以利用RankModel中实现的_add_to_prediction_dict把build_predict_graph中DNN的输出加入到self.\_prediction_dict中，具体参考DeepFM和MultiTower的实现。
 
 #### 初始化函数: __init__(self, model_config, feature_configs, features, labels, is_training)
 

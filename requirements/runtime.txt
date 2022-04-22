@@ -2,6 +2,6 @@ future
 matplotlib
 pandas
 psutil
+PyYAML
 scikit-learn
 xlrd >= 0.9.0
-PyYAML

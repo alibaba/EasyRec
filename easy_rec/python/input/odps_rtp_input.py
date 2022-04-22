@@ -55,7 +55,8 @@ class OdpsRTPInput(Input):
     ]
     feature_num = len(record_types)
     # assume that the last field is the generated feature column
-    print('field_delim = %s, feature_num = %d' % (self._data_config.separator, feature_num))
+    print('field_delim = %s, feature_num = %d' %
+          (self._data_config.separator, feature_num))
     feature_fields = tf.string_split(
         fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(feature_fields.values, [-1, feature_num])
@@ -71,7 +72,8 @@ class OdpsRTPInput(Input):
 
     for x in range(len(self._label_fields)):
       inputs[self._label_fields[x]] = labels[x]
-    print('effective field num = %d, input_num = %d' % (len(fields), len(inputs)))
+    print('effective field num = %d, input_num = %d' %
+          (len(fields), len(inputs)))
     return inputs
 
   def _build(self, mode, params):
@@ -83,18 +85,19 @@ class OdpsRTPInput(Input):
     if selected_cols:
       cols = [c.strip() for c in selected_cols.split(',')]
       record_defaults = [
-        self.get_type_defaults(t, v)
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
-        if x in cols[:-1]
+          self.get_type_defaults(t, v)
+          for x, t, v in zip(self._input_fields, self._input_field_types,
+                             self._input_field_defaults)
+          if x in cols[:-1]
       ]
-      print('selected_cols: %s; defaults num: %d' % (','.join(cols), len(record_defaults)))
+      print('selected_cols: %s; defaults num: %d' %
+            (','.join(cols), len(record_defaults)))
     else:
       record_defaults = [
-        self.get_type_defaults(t, v)
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
-        if x in self._label_fields
+          self.get_type_defaults(t, v)
+          for x, t, v in zip(self._input_fields, self._input_field_types,
+                             self._input_field_defaults)
+          if x in self._label_fields
       ]
     # the actual features are in one single column
     record_defaults.append(

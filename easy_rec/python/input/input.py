@@ -155,7 +155,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       export_fields_name = None
     placeholder_named_by_input = export_config.placeholder_named_by_input
 
-    sample_weight_field = ""
+    sample_weight_field = ''
     if self._data_config.HasField('sample_weight'):
       sample_weight_field = self._data_config.sample_weight
 
@@ -164,7 +164,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       effective_fids = [
           fid for fid in range(len(self._input_fields))
-          if self._input_fields[fid] not in self._label_fields  and self._input_fields[fid] != sample_weight_field
+          if self._input_fields[fid] not in self._label_fields and
+          self._input_fields[fid] != sample_weight_field
       ]
 
     inputs = {}
@@ -196,7 +197,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
 
-    sample_weight_field = ""
+    sample_weight_field = ''
     if self._data_config.HasField('sample_weight'):
       sample_weight_field = self._data_config.sample_weight
 
@@ -207,7 +208,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       effective_fids = [
           fid for fid in range(len(self._input_fields))
-          if self._input_fields[fid] not in self._label_fields and self._input_fields[fid] != sample_weight_field
+          if self._input_fields[fid] not in self._label_fields and
+          self._input_fields[fid] != sample_weight_field
       ]
       logging.info(
           'will not filter any input[except labels], total number inputs:%d' %
@@ -286,7 +288,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[k] = v
           self._appended_fields.append(k)
 
-    print("[input] all feature names: {}".format([fc.feature_name for fc in self._feature_configs]))
+    print('[input] all feature names: {}'.format(
+        [fc.feature_name for fc in self._feature_configs]))
     for fc in self._feature_configs:
       feature_name = fc.feature_name
       feature_type = fc.feature_type
@@ -552,19 +555,26 @@ class Input(six.with_metaclass(_meta_type, object)):
 
       elif feature_type == fc.ExprFeature:
         fea_name = fc.feature_name
-        prefix = "expr_"
+        prefix = 'expr_'
         for input_name in fc.input_names:
-            new_input_name = prefix + input_name
-            if field_dict[input_name].dtype == tf.string:
-                parsed_dict[new_input_name] = tf.string_to_number(
-                    field_dict[input_name], tf.float64, name='%s_str_2_int_for_expr' % new_input_name)
-            elif field_dict[input_name].dtype in [tf.int32, tf.int64, tf.double, tf.float32]:
-                parsed_dict[new_input_name] = tf.cast(field_dict[input_name], tf.float64)
-            else:
-                assert False, 'invalid input dtype[%s] for expr feature' % str(field_dict[input_name].dtype)
+          new_input_name = prefix + input_name
+          if field_dict[input_name].dtype == tf.string:
+            parsed_dict[new_input_name] = tf.string_to_number(
+                field_dict[input_name],
+                tf.float64,
+                name='%s_str_2_int_for_expr' % new_input_name)
+          elif field_dict[input_name].dtype in [
+              tf.int32, tf.int64, tf.double, tf.float32
+          ]:
+            parsed_dict[new_input_name] = tf.cast(field_dict[input_name],
+                                                  tf.float64)
+          else:
+            assert False, 'invalid input dtype[%s] for expr feature' % str(
+                field_dict[input_name].dtype)
 
-        expression = get_expression(fc.expression, fc.input_names, prefix=prefix)
-        logging.info("expression: %s" % expression)
+        expression = get_expression(
+            fc.expression, fc.input_names, prefix=prefix)
+        logging.info('expression: %s' % expression)
         parsed_dict[fea_name] = eval(expression)
         self._appended_fields.append(fea_name)
 
@@ -699,7 +709,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
           inputs, features = self.create_placeholders(export_config)
-          print("built feature placeholders. features: {}".format(features.keys()))
+          print('built feature placeholders. features: {}'.format(
+              features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     return _input_fn

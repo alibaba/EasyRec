@@ -2,13 +2,16 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
+from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.loss_pb2 import LossType
-from easy_rec.python.loss.pairwise_loss import pairwise_loss
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy
+
+from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
+
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -27,7 +30,7 @@ class MultiTower(RankModel):
                                      labels, is_training)
     self._losses = self._model_config.losses
     logging.info('loss num: %d' % len(self._losses))
-    if self._model_config.HasField("f1_reweight_loss"):
+    if self._model_config.HasField('f1_reweight_loss'):
       self._f1_reweight_loss = self._model_config.f1_reweight_loss
     else:
       self._f1_reweight_loss = None
@@ -86,13 +89,15 @@ class MultiTower(RankModel):
         self._loss_dict['sigmoid_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.F1_REWEIGHTED_LOSS:
         if not self._f1_reweight_loss:
-          raise Exception("f1 reweight loss must be configured in model config")
-        loss_value = f1_reweight_sigmoid_cross_entropy(labels, logits,
-                                                       beta_square=self._f1_reweight_loss.f1_beta_square,
-                                                       label_smoothing=self._f1_reweight_loss.label_smoothing,
-                                                       weights=self._sample_weight)
+          raise Exception('f1 reweight loss must be configured in model config')
+        loss_value = f1_reweight_sigmoid_cross_entropy(
+            labels,
+            logits,
+            beta_square=self._f1_reweight_loss.f1_beta_square,
+            label_smoothing=self._f1_reweight_loss.label_smoothing,
+            weights=self._sample_weight)
         self._loss_dict['f1_reweight_loss'] = loss_value * loss.weight
       else:
-        logging.error("Unsupported loss type: %s" % loss.loss_type)
-        raise Exception("Unsupported loss type: %s" % loss.loss_type)
+        logging.error('Unsupported loss type: %s' % loss.loss_type)
+        raise Exception('Unsupported loss type: %s' % loss.loss_type)
     return self._loss_dict

@@ -27,9 +27,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
   """train eval export test on odps."""
 
   def test_deepfm(self):
-    start_files = [
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         'deep_fm/train_deepfm_model.sql', 'deep_fm/eval_deepfm.sql',
         'deep_fm/export_deepfm.sql', 'deep_fm/predict_deepfm.sql',
@@ -42,9 +40,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_mmoe(self):
-    start_files = [
-        'mmoe/create_inner_mmoe_table.sql'
-    ]
+    start_files = ['mmoe/create_inner_mmoe_table.sql']
     test_files = [
         'mmoe/train_mmoe_model.sql',
         'mmoe/eval_mmoe.sql',
@@ -74,9 +70,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_multi_tower(self):
-    start_files = [
-        'multi_tower/create_inner_multi_tower_table.sql'
-    ]
+    start_files = ['multi_tower/create_inner_multi_tower_table.sql']
     test_files = [
         'multi_tower/train_multil_tower_din_model.sql',
         'multi_tower/train_multil_tower_bst_model.sql',
@@ -90,9 +84,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_other(self):
-    start_files = [
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         # 'other_test/test_train_gpuRequired_mirrored', # 线上报错，
         # 'other_test/test_train_distribute_strategy_collective',  # 线上报错，
@@ -111,9 +103,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_best_exporter(self):
-    start_files = [
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         'other_test/test_train_best_export.sql',
     ]
@@ -167,9 +157,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_multi_value_export(self):
-    start_files = [
-        'multi_value/create_inner_multi_value_table.sql'
-    ]
+    start_files = ['multi_value/create_inner_multi_value_table.sql']
     test_files = ['multi_value/train_multi_tower_model.sql']
     end_file = ['multi_value/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
@@ -182,8 +170,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     ]
     test_files = [
         'boundary/train_multi_tower_model.sql',
-        'boundary/finetune_multi_tower_model.sql',
-        'boundary/train_compat.sql'
+        'boundary/finetune_multi_tower_model.sql', 'boundary/train_compat.sql'
     ]
     end_file = ['boundary/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
