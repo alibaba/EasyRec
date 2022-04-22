@@ -46,6 +46,7 @@ class RTPInput(Input):
     ]
     self._num_cols = -1
     self._feature_col_id = self._selected_cols[-1]
+    print("rtp input : ", self._input_path)
     logging.info('rtp separator = %s' % self._rtp_separator)
 
   def _parse_csv(self, line):
@@ -102,7 +103,11 @@ class RTPInput(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     # try to figure out number of fields from one file

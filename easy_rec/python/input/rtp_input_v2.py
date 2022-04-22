@@ -83,7 +83,12 @@ class RTPInputV2(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
+    assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:

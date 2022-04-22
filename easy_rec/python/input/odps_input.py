@@ -43,7 +43,9 @@ class OdpsInput(Input):
           slice_id=self._task_index)
 
     if type(self._input_path) != list:
-      self._input_path = [x for x in self._input_path.split(',')]
+      self._input_path = self._input_path.split(',')
+    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.pai_worker_queue:
         work_queue = pai.data.WorkQueue(

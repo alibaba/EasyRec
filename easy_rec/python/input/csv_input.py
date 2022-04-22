@@ -67,8 +67,10 @@ class CSVInput(Input):
     return inputs
 
   def _build(self, mode, params):
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
     file_paths = []
-    for x in self._input_path.split(','):
+    for x in self._input_path:
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 

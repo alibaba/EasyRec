@@ -74,7 +74,8 @@ class OdpsRTPInput(Input):
 
   def _build(self, mode, params):
     if type(self._input_path) != list:
-      self._input_path = [x for x in self._input_path.split(',')]
+      self._input_path = self._input_path.split(',')
+    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
 
     record_defaults = [
         self.get_type_defaults(t, v)
