@@ -241,6 +241,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     features {
       input_names: "play_sequence"
       feature_type: SequenceFeature
+      sub_feature_type: IdFeature
       embedding_dim: 32
       hash_bucket_size: 100000
     }
@@ -248,6 +249,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 
 -  embedding\_dim: embedding的dimension
 -  hash\_bucket\_size: 同离散值特征
+-  sub_feature_type: 用于描述序列特征里子特征的类型，目前支持 IdFeature 和 RawFeature 两种形式，默认为 IdFeature
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
 在模型中可支持对序列特征使用Target Attention（DIN)，方法如下：

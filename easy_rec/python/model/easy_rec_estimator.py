@@ -240,7 +240,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict = model.build_metric_graph(self.eval_config)
       for k, v in metric_dict.items():
         metric_update_op_dict['%s/batch' % k] = v[1]
-        tf.summary.scalar('%s/batch' % k, v[1])
+        if isinstance(v[1], tf.Tensor):
+            tf.summary.scalar('%s/batch' % k, v[1])
       train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
       if estimator_utils.is_chief():
         hooks.append(
