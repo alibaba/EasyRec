@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-from string import strip
 
 import tensorflow as tf
 
@@ -47,7 +46,7 @@ class OdpsRTPInput(Input):
       if self._data_config.selected_cols else None
     non_feature_cols = self._label_fields
     if selected_cols:
-      cols = [strip(c) for c in selected_cols.split(',')]
+      cols = [c.strip() for c in selected_cols.split(',')]
       non_feature_cols = cols[:-1]
     # only for features, labels and sample_weight excluded
     record_types = [
@@ -82,7 +81,7 @@ class OdpsRTPInput(Input):
     selected_cols = self._data_config.selected_cols \
       if self._data_config.selected_cols else None
     if selected_cols:
-      cols = [strip(c) for c in selected_cols.split(',')]
+      cols = [c.strip() for c in selected_cols.split(',')]
       record_defaults = [
         self.get_type_defaults(t, v)
         for x, t, v in zip(self._input_fields, self._input_field_types,
