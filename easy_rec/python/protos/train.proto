@@ -107,4 +107,8 @@ message TrainConfig {
 
     // match variable patterns to freeze
     repeated string freeze_gradient = 30;
+
+    // enable oss stop signal
+    // stop by create OSS_STOP_SIGNAL under model_dir
+    optional bool enable_oss_stop_signal = 32 [default = false];
 }

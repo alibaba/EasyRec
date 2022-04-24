@@ -17,6 +17,9 @@
 import collections
 import operator
 import os
+import logging
+import time
+import threading
 
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -548,3 +551,62 @@ class _CheckForStoppingHook(session_run_hook.SessionRunHook):
     if should_early_stop:
       tf_logging.info('Early stopping requested, suspending run.')
       run_context.request_stop()
+
+
+class OssStopSignalHook(session_run_hook.SessionRunHook):
+  def __init__(self, model_dir, run_every_secs=10, run_every_steps=None):
+    self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
+    self._stop = False
+    self._check_run = True
+    self._timer = basic_session_run_hooks.SecondOrStepTimer(
+        every_secs=run_every_secs, every_steps=run_every_steps)
+    sleep_time = run_every_secs if run_every_secs is not None else 1
+    self._curr_step = 0
+    def _check_stop():
+      while self._check_run:
+        if self._timer.should_trigger_for_step(self._curr_step):
+          self._timer.update_last_triggered_step(self._curr_step)
+          if gfile.Exists(self._stop_sig_file):
+            self._stop = True
+            logging.info('OssStopSignalHook: stop on signal %s' % self._stop_sig_file)
+            break 
+        else:
+          time.sleep(sleep_time)
+    self._th = threading.Thread(target=_check_stop)
+    self._th.start()
+
+    self._global_step_tensor = None
+    self._stop_var = _get_or_create_stop_var()
+    self._stop_op = None
+
+  def begin(self):
+    self._global_step_tensor = training_util.get_global_step()
+    self._stop_op = state_ops.assign(self._stop_var, True)
+
+  def before_run(self, run_context):
+    return session_run_hook.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):
+    if self._stop:
+      run_context.request_stop()
+      run_context.session.run(self._stop_op)
+    self._curr_step = run_values.results
+
+  def end(self, session):
+    self._check_run = False
+    self._th.join()
+
+
+def oss_stop_hook(estimator,
+                             run_every_secs=10,
+                             run_every_steps=None):
+  """Creates oss stop hook.
+
+  Returns a `SessionRunHook` that stops training when model_dir/OSS_STOP_SIGNAL is created. 
+  """
+
+  if estimator.config.is_chief:
+    return OssStopSignalHook(estimator.model_dir, run_every_secs=run_every_secs,
+       run_every_steps=run_every_steps) 
+  else:
+    return _CheckForStoppingHook()

@@ -19,6 +19,7 @@ from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
 from tensorflow.python.platform import gfile
 from tensorflow.python.framework import errors_impl
+from tensorflow.python.training import training_util
 
 from easy_rec.python.utils import shape_utils
 
@@ -505,6 +506,7 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
     for saver, ckpt_path in zip(self._saver_list, self._ckpt_path_list):
       logging.info('restore checkpoint from %s' % ckpt_path)
       saver.restore(session, ckpt_path)
+
 
 
 class OnlineEvaluationHook(SessionRunHook):

@@ -23,6 +23,7 @@ from easy_rec.python.compat.early_stopping import custom_early_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
+from easy_rec.python.compat.early_stopping import oss_stop_hook
 from easy_rec.python.compat.ops import GraphKeys
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
@@ -194,6 +195,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
                 self.export_config.best_exporter_metric,
                 self.export_config.max_check_steps,
                 eval_dir=eval_dir))
+
+    if self.train_config.enable_oss_stop_signal:
+      hooks.append(oss_stop_hook(self))
 
     summaries = ['global_gradient_norm']
     if self.train_config.summary_model_vars:
