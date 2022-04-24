@@ -652,10 +652,11 @@ class OssStopSignalHook(SessionRunHook):
   def __init__(self, model_dir, secs_interval=60, step_interval=10):
     self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
     self._stop = False
+    self._check_stop = False
     self._last_chk_step = 0
     self._curr_step = 0
     def _check_stop():
-      while True:
+      while self._check_stop:
         if self._curr_step < self._last_chk_step + step_interval: 
           time.sleep(1)
           continue
@@ -676,6 +677,10 @@ class OssStopSignalHook(SessionRunHook):
 
   def after_run(self, run_context, run_values):
     self._curr_step = run_values.results
+
+  def end(self, session):
+    self._check_stop = True
+    self._th.join()
 
 
 class OnlineEvaluationHook(SessionRunHook):
