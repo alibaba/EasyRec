@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.input_utils import string_to_number
 
 if tf.__version__ >= '2.0':
@@ -31,9 +32,10 @@ class RTPInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(RTPInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num)
+                                   task_index, task_num, check_mode)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
     self._rtp_separator = self._data_config.rtp_separator
@@ -44,6 +46,7 @@ class RTPInput(Input):
     ]
     self._num_cols = -1
     self._feature_col_id = self._selected_cols[-1]
+    print("rtp input : ", self._input_path)
     logging.info('rtp separator = %s' % self._rtp_separator)
 
   def _parse_csv(self, line):
@@ -64,7 +67,13 @@ class RTPInput(Input):
         if x not in self._label_fields
     ])
 
-    fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
+    check_list = [tf.py_func(check_split,
+                             [line, self._rtp_separator, len(record_defaults)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
+      fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
+
     fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     labels = [fields[:, x] for x in self._selected_cols[:-1]]
 
@@ -75,8 +84,14 @@ class RTPInput(Input):
     ]
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
-    fields = tf.string_split(
-        fields[:, self._feature_col_id],
+    feature_str = fields[:, self._feature_col_id]
+    check_list = [tf.py_func(check_split,
+                             [feature_str, self._data_config.separator, len(record_types)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
+      fields = tf.string_split(
+        feature_str,
         self._data_config.separator,
         skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
@@ -94,7 +109,11 @@ class RTPInput(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     # try to figure out number of fields from one file
@@ -103,7 +122,9 @@ class RTPInput(Input):
       for line_str in fin:
         line_tok = line_str.strip().split(self._rtp_separator)
         if self._num_cols != -1:
-          assert self._num_cols == len(line_tok)
+          assert self._num_cols == len(line_tok), \
+              "num selected cols is %d, not equal to %d, current line is: %s, please check rtp_separator and data." % \
+              (self._num_cols, len(line_tok), line_str)
         self._num_cols = len(line_tok)
         num_lines += 1
         if num_lines > 10:

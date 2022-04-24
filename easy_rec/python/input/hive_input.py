@@ -100,9 +100,10 @@ class HiveInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(HiveInput, self).__init__(data_config, feature_config, input_path,
-                                    task_index, task_num)
+                                    task_index, task_num, check_mode)
     if input_path is None:
         return
     self._hive_config = input_path
