@@ -502,6 +502,11 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_rocket_launching_with_rtp_input(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/rocket_launching_with_rtp_input.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dbmtl_mmoe(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_mmoe_on_taobao.config', self._test_dir)
