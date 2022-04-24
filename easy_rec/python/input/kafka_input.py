@@ -36,7 +36,8 @@ class KafkaInput(Input):
     self._offset_dict = {}
     if self._kafka is not None:
       consumer = KafkaConsumer(group_id='kafka_dataset_consumer', 
-           bootstrap_servers=[self._kafka.server])
+           bootstrap_servers=[self._kafka.server],
+           api_version_auto_timeout_ms=10000) # in miliseconds
       partitions = consumer.partitions_for_topic(self._kafka.topic)
       num_partition = len(partitions)
       logging.info('all partitions[%d]: %s' % (num_partition, partitions))
