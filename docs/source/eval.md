@@ -16,13 +16,17 @@ eval_config {
 ```sql
 eval_config {
   metrics_set: {
-    # metric为auc
     auc {}
-    # metric为mae
-    mean_absolute_error {}
+  }
+  metrics_set: {
+    accuracy {}
+  }
+  metrics_set: {
+    gauc {}
   }
 }
 ```
+
 
 - num_examples: 默认为0, 表示评估所有样本；大于0，则每次只评估num_examples样本，一般在调试或者示例的时候使用
 
@@ -111,7 +115,7 @@ pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
--Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dextra_params=" --distribute_eval True"
 -Darn=acs:ram::xxx:role/xxx

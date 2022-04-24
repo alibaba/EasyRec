@@ -35,7 +35,14 @@ model_config: {
     feature_names: 'tag_brand_list'
     wide_deep: DEEP
   }
-
+  losses {
+    loss_type: CLASSIFICATION
+    weight: 2.0
+  }
+  losses {
+    loss_type: PAIR_WISE_LOSS
+    weight: 1.0
+  }
   multi_tower {
     towers {
       input: "user"
@@ -67,6 +74,9 @@ model_config: {
 - feature_groups: 不同的特征组，如user feature为一组，item feature为一组, combo feature为一组
   - group_name: 可以根据实际情况取
   - wide_deep: 必须是DEEP
+- losses: 可选，可以选择同时配置两个loss函数，并且为每个loss配置不同的权重
+  - loss_type: CLASSIFICATION [默认值] 二分类的sigmoid cross entropy loss
+  - loss_type: PAIR_WISE_LOSS [可选] 以优化AUC为主要目标的 pairwise rank loss
 - towers:
   - 每个feature_group对应了一个tower, tower的input必须和feature_groups的group_name对应
   - dnn: 深度网络

@@ -52,6 +52,7 @@ tf.app.flags.DEFINE_bool(
 )
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
+tf.app.flags.DEFINE_bool('check_mode', False, help='is use check mode')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -118,7 +119,7 @@ def main(argv):
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
@@ -135,13 +136,14 @@ def main(argv):
                        fine_tune_checkpoint)
       config_util.edit_config(pipeline_config, config_json)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')
 
 
 if __name__ == '__main__':
   tf.app.run()
+

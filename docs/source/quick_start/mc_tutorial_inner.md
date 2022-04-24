@@ -22,8 +22,8 @@ EasyRec在MaxCompute内部版本上的使用文档.
 pai -name easy_rec_ext -project algo_public
 -Dcmd=train
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtrain_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train
--Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Dtrain_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train'
+-Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
@@ -63,7 +63,7 @@ pai -name easy_rec_ext -project algo_public
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;

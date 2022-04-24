@@ -18,9 +18,8 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
-
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
-
+from easy_rec.python.tools.pre_check import run_check
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -164,7 +163,7 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
-
+tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -299,8 +298,9 @@ def main(argv):
         eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
+    logging.info("run.py check_mode: %s ." % FLAGS.check_mode)
     train_and_evaluate_impl(
-        pipeline_config, continue_train=FLAGS.continue_train)
+        pipeline_config, continue_train=FLAGS.continue_train, check_mode=FLAGS.check_mode)
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(
@@ -467,6 +467,8 @@ def main(argv):
         m=FLAGS.knn_compress_dim)
     worker_hosts = FLAGS.worker_hosts.split(',')
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
+  elif FLAGS.cmd == 'check':
+    run_check(pipeline_config, FLAGS.tables)
   else:
     raise ValueError(
         'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')

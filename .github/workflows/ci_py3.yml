@@ -1,11 +1,11 @@
-name: CI Build
+name: CI Build PY3
 on:
   pull_request:
     types: [opened, reopened, synchronize]
 
 jobs:
   ci-test:
-    runs-on: EasyRec-unit-test
+    runs-on: EasyRec-py3-15
     defaults:
       run:
         shell: bash {0}
@@ -21,7 +21,7 @@ jobs:
           TEST_DEVICES: ""
           PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
         run: |
-           source activate /home/admin/tf12_py2/
+           source activate tf15_py3
            python git-lfs/git_lfs.py pull
            source scripts/ci_test.sh
       - name: LabelAndComment
@@ -48,12 +48,12 @@ jobs:
 
              var pass_label = null;
              if (labels != null) {
-                pass_label = labels.find(label=>label.name=='ci_test_passed');
+                pass_label = labels.find(label=>label.name=='ci_py3_test_passed');
              }
 
              var fail_label = null;
              if (labels != null) {
-                fail_label = labels.find(label=>label.name=='ci_test_failed');
+                fail_label = labels.find(label=>label.name=='ci_py3_test_failed');
              }
 
              if (pass_label) {
@@ -61,7 +61,7 @@ jobs:
                  issue_number: context.issue.number,
                  owner: context.repo.owner,
                  repo: context.repo.repo,
-                 name: 'ci_test_passed'
+                 name: 'ci_py3_test_passed'
                })
              }
 
@@ -70,7 +70,7 @@ jobs:
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  name: 'ci_test_failed'
+                  name: 'ci_py3_test_failed'
                })
              }
 
@@ -79,28 +79,28 @@ jobs:
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  labels: ['ci_test_passed']
+                  labels: ['ci_py3_test_passed']
                })
 
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: "CI Test Passed"
+                  body: "CI PY3 Test Passed"
                })
              } else {
                github.rest.issues.addLabels({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  labels: ['ci_test_failed']
+                  labels: ['ci_py3_test_failed']
                })
 
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: "CI Test Failed"
+                  body: "CI PY3 Test Failed"
                })
              }
       - name: SignalFail
@@ -110,6 +110,6 @@ jobs:
           echo "CI_TEST_PASSED=${CI_TEST_PASSED}"
           if [ $CI_TEST_PASSED -ne 1 ]
           then
-            echo "ci_test_failed, will exit"
+            echo "ci_py3_test_failed, will exit"
             exit 1
           fi

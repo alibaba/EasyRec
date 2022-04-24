@@ -5,7 +5,11 @@ import json
 import logging
 import sys
 
-from easy_rec.python.utils.io_util import http_read
+try:
+  from easy_rec.python.utils.io_util import http_read
+except Exception as ex:
+  logging.error(ex)
+  sys.exit(2)
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
