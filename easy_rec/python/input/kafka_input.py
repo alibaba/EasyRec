@@ -12,7 +12,7 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.input.kafka_dataset import KafkaDataset
 
 try:
-  from kafka import KafkaConsumer
+  from kafka import KafkaConsumer, TopicPartition
 except ImportError as ex:
   logging.warning('kafka-python is not installed: %s' % traceback.format_exc(ex))
 
@@ -35,19 +35,36 @@ class KafkaInput(Input):
     self._kafka = kafka_config
     self._offset_dict = {}
     if self._kafka is not None:
-      # each topic in the format: topic:partition_id:offset
-      self._topics = []
-      if self._kafka.offset_info:
-        offset_dict = json.loads(self._kafka.offset_info)
-        for part in offset_dict:
-          part_id = int(part)
-          if (part_id % self._task_num) == self._task_index:
-            self._offset_dict[part_id] = offset_dict[part]
       consumer = KafkaConsumer(group_id='kafka_dataset_consumer', 
            bootstrap_servers=[self._kafka.server])
       partitions = consumer.partitions_for_topic(self._kafka.topic)
       num_partition = len(partitions)
       logging.info('all partitions[%d]: %s' % (num_partition, partitions))
+
+      # each topic in the format: 
+      #     topic:partition_id:offset
+      self._topics = []
+
+      # determine kafka offsets for each partition
+      if self._kafka.offset_info:
+        offset_dict = json.loads(self._kafka.offset_info)
+        if 'timestamp' in self._kafka.offset_info:
+          timestamp = offset_dict['timestamp'] 
+          input_map = { TopicPartition(partition=part_id, topic=self._kafka.topic) : timestamp * 1000 \
+              for part_id in partitions }
+          part_offsets = consumer.offsets_for_times(input_map)
+          # {TopicPartition(topic=u'kafka_data_20220408', partition=0):
+          #    OffsetAndTimestamp(offset=2, timestamp=1650611437895)}
+          for part in part_offsets:
+            self._offset_dict[part.partition] = part_offsets[part].offset
+            logging.info('find offset by time, topic[%s], partition[%d], timestamp[%ss], offset[%d], offset_timestamp[%dms]' % \
+                (self._kafka.topic, part.partition, timestamp, part_offsets[part].offset, part_offsets[part].timestamp))
+        else:
+          for part in offset_dict:
+            part_id = int(part)
+            if (part_id % self._task_num) == self._task_index:
+              self._offset_dict[part_id] = offset_dict[part]
+
       for part_id in range(num_partition):
         if (part_id % self._task_num) == self._task_index:
           offset = self._offset_dict.get(part_id, 0)
