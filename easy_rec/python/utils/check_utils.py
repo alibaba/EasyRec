@@ -1,9 +1,15 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-def check_split(line, sep, requried_field_num, check_mode, field_name=''):
-	if not check_mode:
-		return True
+import tensorflow as tf
+
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+
+
+if tf.__version__ >= '2.0':
+	tf = tf.compat.v1
+
+def check_split(line, sep, requried_field_num, field_name=''):
 	assert sep, "must have separator." + (" field: %s." % field_name) if field_name else ""
 	# if isinstance(sep, bytes):
 	#   sep = bytes.decode(sep)
@@ -22,9 +28,7 @@ def check_split(line, sep, requried_field_num, check_mode, field_name=''):
 		assert field_num == requried_field_num, assert_info
 	return True
 
-def check_string_to_number(field_vals, field_name, check_mode):
-	if not check_mode:
-		return True
+def check_string_to_number(field_vals, field_name):
 	for val in field_vals:
 		try:
 			float(val)
@@ -32,19 +36,6 @@ def check_string_to_number(field_vals, field_name, check_mode):
 			assert False, "StringToNumber ERROR: cannot convert string_to_number, field: %s, value: %s. " \
 						  "please check data." % (field_name, val)
 	return True
-
-def check_size(field_vals1, field_vals2, field1, field2, check_mode):
-	if not check_mode:
-		return True
-	assert len(field_vals1) == len(field_vals2), \
-		"TagFeature Error: The size of %s not equal to the size of %s. Please check input: %s and %s." \
-		% (field1, field2, field1, field2)
-	return True
-
-def check_train_step(pipeline_config):
-	num_steps = pipeline_config.train_config.num_steps
-	num_epochs = pipeline_config.data_config.num_epochs
-	assert not (num_steps == 0 and num_epochs == 0), "num_steps and num_epochs cannot both be 0."
 
 def check_sequence(pipeline_config_path, features):
 	seq_att_groups = pipeline_config_path.model_config.seq_att_groups
@@ -65,3 +56,31 @@ def check_sequence(pipeline_config_path, features):
 			assert len(set(size_list)) == 1, \
 				'SequenceFeature Error: The size in [%s] should be consistent. Please check input: [%s].' % \
 				(hist_seqs, hist_seqs)
+
+def check_env_and_input_path(pipeline_config, input_path):
+	input_type = pipeline_config.data_config.input_type
+	input_type_name = DatasetConfig.InputType.Name(input_type)
+	ignore_input_list = [
+		DatasetConfig.InputType.TFRecordInput,
+		DatasetConfig.InputType.BatchTFRecordInput,
+		DatasetConfig.InputType.KafkaInput,
+		DatasetConfig.InputType.DataHubInput,
+		DatasetConfig.InputType.HiveInput,
+		DatasetConfig.InputType.DummyInput,
+	]
+	if input_type in ignore_input_list:
+		return True
+	assert_info = "Current InputType is %s, InputPath is %s. Please check InputType and InputPath." % \
+				  (input_type_name, input_path)
+	if input_type_name.startswith('Odps'):
+		# is on pai
+		for path in input_path.split(','):
+			if not path.startswith('odps://'):
+				assert False, assert_info
+		return True
+	else:
+		# local or ds
+		for path in input_path.split(','):
+			if path.startswith('odps://'):
+				assert False, assert_info
+	return True

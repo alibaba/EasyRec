@@ -9,8 +9,7 @@ import tensorflow as tf
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.utils.check_utils import check_sequence, check_train_step
+from easy_rec.python.utils.check_utils import check_env_and_input_path, check_sequence
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -23,8 +22,6 @@ tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'file.')
 tf.app.flags.DEFINE_multi_string(
     'data_input_path', None, help='data input path')
-tf.app.flags.DEFINE_bool('is_local', True, help='is on local')
-tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on DataScience')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -68,52 +65,6 @@ def _get_input_fn(data_config,
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
-def _is_local(pipeline_config):
-    input = pipeline_config.data_config.input_type
-
-    if input in [DatasetConfig.InputType.CSVInput,
-                 DatasetConfig.InputType.CSVInputV2,
-                 DatasetConfig.InputType.RTPInput,
-                 DatasetConfig.InputType.RTPInputV2,
-                 DatasetConfig.InputType.HiveInput]:
-        return True
-    elif input in [DatasetConfig.InputType.OdpsInputV2,
-                   DatasetConfig.InputType.OdpsRTPInput,
-                   DatasetConfig.InputType.OdpsRTPInputV2,
-                   DatasetConfig.InputType.OdpsInput,
-                   DatasetConfig.InputType.OdpsInputV3,
-
-                   DatasetConfig.InputType.TFRecordInput,
-                   DatasetConfig.InputType.BatchTFRecordInput,
-                   DatasetConfig.InputType.KafkaInput,
-                   DatasetConfig.InputType.DataHubInput]:
-        return False
-    else:
-        assert False, "Currently only supports OdpsInputV2/OdpsRTPInput/CSVInput/RTPInput."
-
-def check_env(pipeline_config, is_local):
-    input_list = [
-        DatasetConfig.InputType.OdpsInputV2,
-        DatasetConfig.InputType.OdpsRTPInput,
-        DatasetConfig.InputType.OdpsRTPInputV2,
-        DatasetConfig.InputType.OdpsInput,
-        DatasetConfig.InputType.OdpsInputV3,
-        DatasetConfig.InputType.CSVInput,
-        DatasetConfig.InputType.CSVInputV2,
-        DatasetConfig.InputType.RTPInput,
-        DatasetConfig.InputType.RTPInputV2,
-        DatasetConfig.InputType.HiveInput,
-        DatasetConfig.InputType.TFRecordInput,
-        DatasetConfig.InputType.BatchTFRecordInput,
-        DatasetConfig.InputType.KafkaInput,
-        DatasetConfig.InputType.DataHubInput
-    ]
-    if pipeline_config.data_config.input_type not in input_list:
-        assert False, "Currently only supports [%s]." % ','.join(input_list)
-
-    assert is_local == _is_local(pipeline_config), \
-        "If you run it in local/ds, the inputype should be CSVInput/RTPInput."
-
 def loda_pipeline_config(pipeline_config_path):
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
@@ -122,10 +73,9 @@ def loda_pipeline_config(pipeline_config_path):
     config_util.auto_expand_share_feature_configs(pipeline_config)
     return pipeline_config
 
-def run_check(pipeline_config, input_path, is_local=False):
-    check_env(pipeline_config, is_local=is_local)
-    check_train_step(pipeline_config)
+def run_check(pipeline_config, input_path):
     logging.info("data_input_path: %s" % input_path)
+    check_env_and_input_path(pipeline_config, input_path)
     feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
     eval_input_fn = _get_input_fn(pipeline_config.data_config, feature_configs, input_path)
     eval_spec = tf.estimator.EvalSpec(
@@ -156,7 +106,7 @@ def main(argv):
             "input_path should not be empty when checking!"
         input_path = pipeline_config.train_input_path + ',' + pipeline_config.eval_input_path
 
-    run_check(pipeline_config, input_path, is_local=FLAGS.is_local or FLAGS.is_on_ds)
+    run_check(pipeline_config, input_path)
 
 if __name__ == '__main__':
   tf.app.run()

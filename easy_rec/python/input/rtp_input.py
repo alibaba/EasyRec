@@ -67,8 +67,11 @@ class RTPInput(Input):
         if x not in self._label_fields
     ])
 
-    check_op = tf.py_func(check_split, [line, self._rtp_separator, len(record_defaults), self._check_mode], Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
+    check_list = [tf.py_func(check_split,
+                             [line, self._rtp_separator, len(record_defaults)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
       fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
 
     fields = tf.reshape(fields.values, [-1, len(record_defaults)])
@@ -82,8 +85,11 @@ class RTPInput(Input):
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
     feature_str = fields[:, self._feature_col_id]
-    check_op = tf.py_func(check_split, [feature_str, self._data_config.separator, len(record_types), self._check_mode], Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
+    check_list = [tf.py_func(check_split,
+                             [feature_str, self._data_config.separator, len(record_types)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
       fields = tf.string_split(
         feature_str,
         self._data_config.separator,

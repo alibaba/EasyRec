@@ -53,9 +53,11 @@ class OdpsRTPInput(Input):
     logging.info('field_delim = %s, input_field_name = %d' %
           (self._data_config.separator, len(record_types)))
 
-    check_op = tf.py_func(check_split, [fields[-1], self._data_config.separator, len(record_types), self._check_mode],
-                          Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
+    check_list = [tf.py_func(check_split,
+                             [fields[-1], self._data_config.separator, len(record_types)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
       fields = tf.string_split(
         fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
