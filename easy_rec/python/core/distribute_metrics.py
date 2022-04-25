@@ -7,13 +7,14 @@ import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.shape_utils import get_shape_list
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
 
-if pai_util.is_on_pai():
+if pai_util.is_on_pai() or tf.__version__ <= '1.13':
   from easy_rec.python.core import metrics_impl_pai as distribute_metrics_tf
 else:
   from easy_rec.python.core import metrics_impl_tf as distribute_metrics_tf
+
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
 
 def max_f1(label, predictions):
   """Calculate the largest F1 metric under different thresholds.
