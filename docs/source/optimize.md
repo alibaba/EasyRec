@@ -26,10 +26,12 @@
 （注：只需shuffle训练表，无需shuffle评估表）
 
 ```sql
-create table train_table_shuffled
-as
-select * from train_table
-DISTRIBUTE by rand();
+create table train_table_shuffled as
+select  *, row_number() over(partition by t.key1 order by t.key2) row_num
+from (
+   select  *, cast(floor(rand()*100) as bigint) key1, rand() key2
+   from   train_table
+) t;
 ```
 
 ### 4.share embedding
