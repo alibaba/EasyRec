@@ -17,9 +17,10 @@ class TFRecordInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(TFRecordInput, self).__init__(data_config, feature_config, input_path,
-                                        task_index, task_num)
+                                        task_index, task_num, check_mode)
 
     self.feature_desc = {}
     for x, t, d in zip(self._input_fields, self._input_field_types,
@@ -37,7 +38,11 @@ class TFRecordInput(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     num_parallel_calls = self._data_config.num_parallel_calls
