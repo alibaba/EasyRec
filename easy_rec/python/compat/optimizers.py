@@ -36,6 +36,8 @@ from tensorflow.python.training import moving_averages
 from tensorflow.python.training import optimizer as optimizer_
 from tensorflow.python.training import training as train
 from easy_rec.python.ops.incr_record import set_sparse_indices
+import tensorflow as tf
+import logging
 
 OPTIMIZER_CLS_NAMES = {
     'Adagrad':
@@ -307,7 +309,8 @@ def optimize_loss(loss,
       if incr_save:
         for grad, var in gradients:
           if isinstance(grad, ops.IndexedSlices):
-            incr_save_op = set_sparse_indices(grad.indices, var_name=var.op.name)
+            with ops.colocate_with(var):
+              incr_save_op = set_sparse_indices(grad.indices, var_name=var.op.name)
             incr_save_ops.append(incr_save_op)
             ops.add_to_collection('SPARSE_UPDATE_VARIABLES', (var, grad.indices.dtype))
           else:

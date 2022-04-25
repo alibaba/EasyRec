@@ -24,6 +24,7 @@ from tensorflow.python.training.summary_io import SummaryWriterCache
 from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer
 from tensorflow.python.training import training_util
 from tensorflow.python.platform import gfile
+from tensorflow.python.framework import errors_impl
 
 from easy_rec.python.utils import shape_utils
 from easy_rec.python.utils import embedding_utils
@@ -326,7 +327,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         listeners=listeners)
     self._write_graph = write_graph
     self._data_offset_var = data_offset_var
- 
+
     if increment_save_config is not None:
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids() 
@@ -344,12 +345,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer = SecondOrStepTimer(every_secs=save_secs if save_secs > 0 else None,
           every_steps=save_steps if save_steps > 0 else None)
 
+      self._dense_timer.update_last_triggered_step(0)
+      self._sparse_timer.update_last_triggered_step(0)
+ 
       self._sparse_indices = []
       self._sparse_values = []
       sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
       for sparse_var, indice_dtype in sparse_train_vars:
         with ops.control_dependencies([tf.train.get_global_step()]):
-          sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
+          with ops.colocate_with(sparse_var):
+            sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
           sparse_indice = sparse_indice.global_indices
         self._sparse_indices.append(sparse_indice)
         if 'EmbeddingVariable' in str(type(sparse_var)):
@@ -435,13 +440,20 @@ class CheckpointSaverHook(CheckpointSaverHook):
     embed_ids = [ self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
 
     msg_num = len(sel_ids) 
+ 
+    if msg_num == 0:
+      logging.warning('there are no sparse updates, will skip this send: %d' % global_step)
+      return
+
+
     # 1 means sparse update messages
     msg_header = [1, msg_num, global_step]
     for i, x in enumerate(embed_ids):
       msg_header.append(x)
       msg_header.append(len(sparse_res[sel_ids[i]])) 
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
-    for tmp_key, tmp_val, tmp_var in zip(sparse_key_res, sparse_val_res, sparse_train_vars):
+    for tmp_id, tmp_key, tmp_val, tmp_var in zip(embed_ids, sparse_key_res,
+        sparse_val_res, sparse_train_vars):
       # for non kv embedding variables, add partition offset to tmp_key
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
@@ -457,12 +469,17 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def after_run(self, run_context, run_values):
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
-    global_step = run_values.results
-    if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(global_step):
+    stale_global_step = run_values.results
+    global_step = -1
+    if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(stale_global_step + self._steps_per_run):
+      global_step = run_context.session.run(self._global_step_tensor)
       self._dense_timer.update_last_triggered_step(global_step)
       self._send_dense(global_step, run_context.session)
 
-    if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(global_step):
+    if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(stale_global_step + self._steps_per_run):
+      if global_step < 0:
+        global_step = run_context.session.run(self._global_step_tensor)
+
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, run_context.session)
 
@@ -507,10 +524,12 @@ class CheckpointSaverHook(CheckpointSaverHook):
   def end(self, session):
     super(CheckpointSaverHook, self).end(session)
     global_step = session.run(self._global_step_tensor)
-    if self._dense_timer is not None:
+    if self._dense_timer is not None and \
+        global_step != self._dense_timer.last_triggered_step():
       self._dense_timer.update_last_triggered_step(global_step)
       self._send_dense(global_step, session)
-    if self._sparse_timer is not None:
+    if self._sparse_timer is not None and \
+        global_step != self._sparse_timer.last_triggered_step():
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, session)
 
@@ -771,7 +790,11 @@ def latest_checkpoint(model_dir):
   Return:
     model_path: xx/model.ckpt-2000
   """
-  ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+  try:
+    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+  except errors_impl.NotFoundError as ex:
+    return None
+
   if len(ckpt_metas) == 0:
     return None
 

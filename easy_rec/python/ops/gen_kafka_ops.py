@@ -5,6 +5,7 @@ Original C++ source file: kafka_ops_deprecated.cc
 """
 
 import os
+import logging
 
 import six as _six
 import tensorflow as tf
@@ -20,7 +21,11 @@ from tensorflow.python.util.tf_export import tf_export
 import easy_rec
 
 
-kafka_module = tf.load_op_library(os.path.join(easy_rec.ops_dir, 'kafka.so'))
+try:
+  kafka_module = tf.load_op_library(os.path.join(easy_rec.ops_dir, 'kafka.so'))
+except Exception as ex:
+  logging.error("failed to load kafka.so: %s" % str(ex))
+  kafka_module = None
 
 
 @tf_export('io_kafka_dataset_v2')

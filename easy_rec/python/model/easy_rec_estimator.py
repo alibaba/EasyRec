@@ -509,10 +509,12 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if gfile.Exists(dense_train_var_path):
       with gfile.GFile(dense_train_var_path, 'r') as fin:
         var_name_to_id_map = json.load(fin)
+        var_name_id_lst =  [ (x, var_name_to_id_map[x]) for x in var_name_to_id_map ]
+        var_name_id_lst.sort(key=lambda x : x[1])
         all_vars = { x.op.name:x for x in  tf.global_variables() }
-        for var_name in var_name_to_id_map:
-          if var_name in all_vars:
-            tf.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
+        for var_name, var_id in var_name_id_lst:
+          assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
+          tf.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
 
     # add more asset files
     if 'asset_files' in params:

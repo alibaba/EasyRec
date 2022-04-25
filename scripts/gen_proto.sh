@@ -16,5 +16,4 @@ then
   exit 1
 fi
 
-#PATH=protoc/bin protoc/bin/protoc  --doc_out=html,index.html:. easy_rec/python/protos/*.proto
-#sed -i 's#<p>#<pre>#g;s#</p>#</pre>#g' index.html
+cp easy_rec/python/protos/dataset_pb2.py  easy_rec/python/protos/tf_predict_pb2.py processor/

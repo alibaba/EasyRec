@@ -288,8 +288,12 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
   eval_data = _get_input_object_by_name(pipeline_config, 'eval')
 
   distribution = strategy_builder.build(train_config)
+  params = {}
+  if train_config.is_profiling:
+    params['log_device_placement'] = True
   estimator, run_config = _create_estimator(
-      pipeline_config, distribution=distribution)
+      pipeline_config, distribution=distribution,
+      params=params)
 
   master_stat_file = os.path.join(pipeline_config.model_dir, 'master.stat')
   version_file = os.path.join(pipeline_config.model_dir, 'version')

@@ -40,8 +40,6 @@ def get_sparse_name_to_ids():
 def get_dense_name_to_ids():
   dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
   norm_name_to_ids = {}
-  for x in dense_train_vars: 
-    norm_name_to_ids[x.op.name] = 1
-  for tid, t in enumerate(norm_name_to_ids.keys()):
-    norm_name_to_ids[t] = tid
+  for tid, x in enumerate(dense_train_vars): 
+    norm_name_to_ids[x.op.name] = tid
   return norm_name_to_ids
