@@ -1,11 +1,11 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import glob
 import logging
 import os
 import shutil
 import sys
-import glob
 
 import oss2
 
@@ -48,6 +48,7 @@ def download_data(ali_bucket, script_path):
     logging.info('down file oss://%s/%s to %s completed' %
                  (ali_bucket.bucket_name, obj_key, dst_path))
 
+
 def merge_files(merge_dir, merge_out):
   """Merge files in merge_dir into merge_out.
 
@@ -63,6 +64,7 @@ def merge_files(merge_dir, merge_out):
         for line_str in fin:
           fout.write(line_str)
   return merge_out
+
 
 def change_files(odps_oss_config, file_path):
   """Update params in config files.
@@ -94,7 +96,6 @@ def change_files(odps_oss_config, file_path):
         if odps_oss_config.algo_version:
           line += '-Dversion=%s\n' % odps_oss_config.algo_version
 
-
       if odps_oss_config.is_outer:
         line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
         line = line.replace('{ROLEARN}', odps_oss_config.arn)
@@ -115,7 +116,7 @@ def change_files(odps_oss_config, file_path):
       if 'tunnel upload' in line:
         line = line.replace('{TEST_DATA_DIR}', test_data_dir)
         # merge files
-        toks = [ x for x in line.split(' ') if x != '' ]
+        toks = [x for x in line.split(' ') if x != '']
         merge_path = toks[2]
         merge_dir = '_'.join(merge_path.split('_')[:-1])
         if not os.path.exists(merge_path):
@@ -138,7 +139,7 @@ def put_data_to_bucket(odps_oss_config):
                                odps_oss_config.oss_secret,
                                odps_oss_config.endpoint,
                                odps_oss_config.bucket_name)
-  for sub_dir in ['configs']: #, 'test_data']:
+  for sub_dir in ['configs']:  #, 'test_data']:
     for root, dirs, files in os.walk(
         os.path.join(odps_oss_config.temp_dir, sub_dir)):
       for one_file in files:

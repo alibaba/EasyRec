@@ -635,6 +635,7 @@ def is_master():
       return tf_config['task']['type'] == 'master'
   return True
 
+
 def is_evaluator():
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])

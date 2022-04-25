@@ -23,7 +23,7 @@ from (
     from (
         select group_name, label, rank() over(partition by group_name order by probs asc) as rn
         from your_table
-    ) 
+    )
     group by group_name
 );
 ```

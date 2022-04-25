@@ -44,7 +44,7 @@ pre-commit run -a
 sh scripts/ci_test.sh
 ```
 
-- 运行单个测试用例 
+- 运行单个测试用例
 
 ```bash
 TEST_DEVICES='' python -m easy_rec.python.test.train_eval_test TrainEvalTest.test_tfrecord_input
@@ -61,32 +61,38 @@ TMPDIR=/tmp python -m easy_rec.python.test.odps_run --oss_config ~/.ossutilconfi
 测试数据放在data/test目录下面, remote存储在oss://easyrec bucket里面, 使用git-lfs组件管理测试数据.
 
 - 从remote同步数据:
+
   ```bash
   python git-lfs/git_lfs.py pull
   ```
 
 - 增加新数据:
- - git-lfs配置文件: .git_oss_config_pub 
-   ```yaml
-   bucket_name = easyrec
-   git_oss_data_dir = data/git_oss_sample_data
-   host = oss-cn-beijing.aliyuncs.com
-   git_oss_cache_dir = ${TMPDIR}/${PROJECT_NAME}/.git_oss_cache
-   git_oss_private_config = ~/.git_oss_config_private
-   ```
-   - bucket_name: 数据存储的oss bucket, 默认是easyrec 
-   - git_oss_data_dir: oss bucket内部的存储目录
-   - host: oss bucket对应的endpoint 
-   - git_oss_cache_dir: 更新数据时使用的本地的临时dir
-   - git_oss_private_config: [ossutil](https://help.aliyun.com/document_detail/120075.html)对应的config，用于push数据到oss bucket.
-     - 考虑到安全问题, oss://easyrec暂不开放提交数据到oss的权限
-     - 如需要提交测试数据, 可以先提交到自己的oss bucket里面, 等pull requst merge以后，再同步到oss://easyrec里面.
 
- - git-lfs提交命令:
-  ```bash
-  python git-lfs/git_lfs.py add data/test/new_data
-  python git-lfs/git_lfs.py push
+- git-lfs配置文件: .git_oss_config_pub
+
+  ```yaml
+  bucket_name = easyrec
+  git_oss_data_dir = data/git_oss_sample_data
+  host = oss-cn-beijing.aliyuncs.com
+  git_oss_cache_dir = ${TMPDIR}/${PROJECT_NAME}/.git_oss_cache
+  git_oss_private_config = ~/.git_oss_config_private
   ```
+
+  - bucket_name: 数据存储的oss bucket, 默认是easyrec
+  - git_oss_data_dir: oss bucket内部的存储目录
+  - host: oss bucket对应的endpoint
+  - git_oss_cache_dir: 更新数据时使用的本地的临时dir
+  - git_oss_private_config: [ossutil](https://help.aliyun.com/document_detail/120075.html)对应的config，用于push数据到oss bucket.
+    - 考虑到安全问题, oss://easyrec暂不开放提交数据到oss的权限
+    - 如需要提交测试数据, 可以先提交到自己的oss bucket里面, 等pull requst merge以后，再同步到oss://easyrec里面.
+
+- git-lfs提交命令:
+
+```bash
+python git-lfs/git_lfs.py add data/test/new_data
+python git-lfs/git_lfs.py push
+```
+
 git-commit也会自动调用pre-commit hook, 执行git_lfs.py push操作.
 
 ### 文档
@@ -96,7 +102,7 @@ git-commit也会自动调用pre-commit hook, 执行git_lfs.py push操作.
 如果文档包含公式或表格，我们建议您使用 reStructuredText 格式或使用
 [md-to-rst](https://cloudconvert.com/md-to-rst) 将现有的 Markdown 文件转换为 reStructuredText 。
 
-**构建文档** 
+**构建文档**
 
 ```bash
 # 在python3环境下运行
@@ -112,4 +118,5 @@ python setup.py sdist bdist_wheel
 ```
 
 ### 部署
+
 - MaxCompute和DataScience[部署文档](./release.md)

@@ -73,7 +73,8 @@ class MultiTowerBST(RankModel):
 
     hist_mask = tf.sequence_mask(
         cur_seq_len, maxlen=seq_size - 1)  # [B, seq_size-1]
-    cur_id_mask = tf.ones(tf.stack([tf.shape(hist_mask)[0], 1]), dtype=tf.bool)  # [B, 1]
+    cur_id_mask = tf.ones(
+        tf.stack([tf.shape(hist_mask)[0], 1]), dtype=tf.bool)  # [B, 1]
     mask = tf.concat([hist_mask, cur_id_mask], axis=1)  # [B, seq_size]
     masks = tf.reshape(tf.tile(mask, [1, seq_size]),
                        (-1, seq_size, seq_size))  # [B, seq_size, seq_size]

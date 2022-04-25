@@ -27,7 +27,6 @@ eval_config {
 }
 ```
 
-
 - num_examples: 默认为0, 表示评估所有样本；大于0，则每次只评估num_examples样本，一般在调试或者示例的时候使用
 
 **备注**
