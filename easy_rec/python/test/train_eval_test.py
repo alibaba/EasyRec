@@ -9,6 +9,8 @@ from distutils.version import LooseVersion
 
 import numpy as np
 import tensorflow as tf
+import threading
+import time
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
@@ -178,6 +180,34 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir,
         post_check_func=_post_check_func)
     self.assertTrue(self._success)
+
+  def test_oss_stop_signal(self):  
+    train_dir = os.path.join(self._test_dir, 'train/')
+    def _watch_func():
+      while True:
+        tmp_ckpt = estimator_utils.latest_checkpoint(train_dir)
+        if tmp_ckpt is not None:
+          version = estimator_utils.get_ckpt_version(tmp_ckpt)
+          if version > 30:
+            break
+        time.sleep(1)
+      stop_file = os.path.join(train_dir, 'OSS_STOP_SIGNAL')
+      with open(stop_file, 'w') as fout:
+        fout.write('OSS_STOP_SIGNAL')
+
+    watch_th = threading.Thread(target=_watch_func)
+    watch_th.start()
+     
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/taobao_fg_signal_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    watch_th.join()
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    assert ckpt_version < 1000
 
   def test_fine_tune_ckpt(self):
 
@@ -422,6 +452,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_early_stop_dis(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_early_stop_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_latest_export_with_asset(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/din_on_taobao_latest_export.config',
         self._test_dir)
     self.assertTrue(self._success)
 

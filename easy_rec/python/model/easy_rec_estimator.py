@@ -23,6 +23,7 @@ from easy_rec.python.compat.early_stopping import custom_early_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
+from easy_rec.python.compat.early_stopping import oss_stop_hook
 from easy_rec.python.compat.ops import GraphKeys
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
@@ -207,6 +208,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
                 self.export_config.max_check_steps,
                 eval_dir=eval_dir))
 
+    if self.train_config.enable_oss_stop_signal:
+      hooks.append(oss_stop_hook(self))
+
     summaries = ['global_gradient_norm']
     if self.train_config.summary_model_vars:
       summaries.extend(['gradient_norm', 'gradients'])
@@ -366,12 +370,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
 
-    # oss stop signal hook
-    if self.train_config.enable_oss_stop_signal:
-      oss_stop_signal = estimator_utils.OssStopSignalHook(
-         model_dir=self.model_dir)
-      hooks.append(oss_stop_signal)
-
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_chief():
       profile_hook = tf.train.ProfilerHook(
@@ -517,7 +515,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
 
     # add more asset files
-    if 'asset_files' in params:
+    if len(export_config.asset_files) > 0:
+      for asset_file in export_config.asset_files:
+        _, asset_name = os.path.split(asset_file)
+        ops.add_to_collection(
+            ops.GraphKeys.ASSET_FILEPATHS,
+            tf.constant(asset_file, dtype=tf.string, name=asset_name))
+    elif 'asset_files' in params:
       for asset_name in params['asset_files']:
         asset_file = params['asset_files'][asset_name]
         tf.add_to_collection(

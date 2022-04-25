@@ -667,41 +667,6 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
       logging.info('restore checkpoint from %s' % ckpt_path)
       saver.restore(session, ckpt_path)
 
-class OssStopSignalHook(SessionRunHook):
-  def __init__(self, model_dir, secs_interval=60, step_interval=10):
-    self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
-    self._stop = False
-    self._check_stop = False
-    self._last_chk_step = 0
-    self._curr_step = 0
-    def _check_stop():
-      while self._check_stop:
-        if self._curr_step < self._last_chk_step + step_interval: 
-          time.sleep(1)
-          continue
-        self._last_chk_step = self._curr_step
-        if gfile.Exists(self._stop_sig_file):
-          self._stop = True
-          logging.info('OssStopSignalHook: stop on signal %s' % self._stop_sig_file)
-          break 
-        time.sleep(secs_interval)
-    self._th = threading.Thread(target=_check_stop)
-    self._th.start()
-
-  def before_run(self, run_context):
-    if self._stop:
-      run_context.request_stop()
-    self._global_step_tensor = training_util._get_or_create_global_step_read()
-    return tf.train.SessionRunArgs(self._global_step_tensor)
-
-  def after_run(self, run_context, run_values):
-    self._curr_step = run_values.results
-
-  def end(self, session):
-    self._check_stop = True
-    self._th.join()
-
-
 class OnlineEvaluationHook(SessionRunHook):
 
   def __init__(self, metric_dict, output_dir):
@@ -792,16 +757,16 @@ def latest_checkpoint(model_dir):
   """
   try:
     ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
-  except errors_impl.NotFoundError as ex:
-    return None
 
-  if len(ckpt_metas) == 0:
-    return None
+    if len(ckpt_metas) == 0:
+      return None
 
-  if len(ckpt_metas) > 1:
-    ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
-  ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
-  return ckpt_path
+    if len(ckpt_metas) > 1:
+      ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
+    ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
+    return ckpt_path
+  except errors_impl.NotFoundError:
+    return None
 
 
 def master_to_chief():

@@ -105,6 +105,7 @@ class KafkaTest(tf.test.TestCase):
     logging.info('create topic: %s' % self._test_topic)
     topic_list = [NewTopic(name=self._test_topic, num_partitions=num_partitions,
          replication_factor=1)]
+
     admin_clt.create_topics(new_topics=topic_list, validate_only=False)
     logging.info('all topics: %s' % (','.join(admin_clt.list_topics())))
     admin_clt.close()
