@@ -2,6 +2,8 @@ import tensorflow as tf
 
 from easy_rec.python.core.metrics import metric_learning_average_precision_at_k
 from easy_rec.python.core.metrics import metric_learning_recall_at_k
+from easy_rec.python.core.distribute_metrics import distribute_metric_learning_average_precision_at_k
+from easy_rec.python.core.distribute_metrics import distribute_metric_learning_recall_at_k
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.common_layers import gelu
 from easy_rec.python.layers.common_layers import highway
@@ -174,5 +176,26 @@ class CoMetricLearningI2I(EasyRecModel):
     if len(precision_at_k) > 0:
       metric_dict.update(
           metric_learning_average_precision_at_k(precision_at_k, emb,
+                                                 self.labels, self.session_ids))
+    return metric_dict
+
+  def build_distribute_metric_graph(self, eval_config):
+    metric_dict = {}
+    recall_at_k = []
+    precision_at_k = []
+    for metric in eval_config.metrics_set:
+      if metric.WhichOneof('metric') == 'recall_at_topk':
+        recall_at_k.append(metric.recall_at_topk.topk)
+      elif metric.WhichOneof('metric') == 'precision_at_topk':
+        precision_at_k.append(metric.precision_at_topk.topk)
+
+    emb = self._prediction_dict['float_emb']
+    if len(recall_at_k) > 0:
+      metric_dict.update(
+          distribute_metric_learning_recall_at_k(recall_at_k, emb, self.labels,
+                                      self.session_ids))
+    if len(precision_at_k) > 0:
+      metric_dict.update(
+          distribute_metric_learning_average_precision_at_k(precision_at_k, emb,
                                                  self.labels, self.session_ids))
     return metric_dict

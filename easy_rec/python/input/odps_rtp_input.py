@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.input_utils import string_to_number
 
 try:
@@ -32,9 +33,10 @@ class OdpsRTPInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(OdpsRTPInput, self).__init__(data_config, feature_config, input_path,
-                                       task_index, task_num)
+                                       task_index, task_num, check_mode)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
 
@@ -57,7 +59,15 @@ class OdpsRTPInput(Input):
     # assume that the last field is the generated feature column
     print('field_delim = %s, feature_num = %d' %
           (self._data_config.separator, feature_num))
-    feature_fields = tf.string_split(
+    logging.info('field_delim = %s, input_field_name = %d' %
+          (self._data_config.separator, len(record_types)))
+
+    check_list = [tf.py_func(check_split,
+                             [fields[-1], self._data_config.separator, len(record_types)],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
+      fields = tf.string_split(
         fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(feature_fields.values, [-1, feature_num])
 
@@ -78,7 +88,8 @@ class OdpsRTPInput(Input):
 
   def _build(self, mode, params):
     if type(self._input_path) != list:
-      self._input_path = [x for x in self._input_path.split(',')]
+      self._input_path = self._input_path.split(',')
+    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
 
     selected_cols = self._data_config.selected_cols \
       if self._data_config.selected_cols else None
