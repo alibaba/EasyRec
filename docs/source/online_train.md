@@ -159,7 +159,7 @@ pai -name easy_rec_ext -project algo_public
    - asset_files: 把fg.json加入到asset_file里面，EAS Processor依赖fg.json生成特征
 - 其他参数参考MaxCompute离线训练
 #### 目录结构:
-![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2022/png/33578/1650941616874-fbefd12f-a2d2-4a18-8ebb-5f52711bc12e.png#clientId=ua770ca3c-b11c-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=203&id=u8050156c&margin=%5Bobject%20Object%5D&name=image.png&originHeight=406&originWidth=716&originalType=binary&ratio=1&rotation=0&showTitle=false&size=171018&status=done&style=none&taskId=u710360a3-7ade-4aed-b678-8ca9f12b508&title=&width=358)
+![online_auth.png](../images/other/online_auth.png)
 
 - DENSE_UPDATE_VARIABLES: 
    - 记录了dense参数名称到参数id的映射
