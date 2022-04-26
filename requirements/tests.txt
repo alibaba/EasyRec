@@ -1,5 +1,4 @@
 configparser
-configparser
 docformatter
 flake8
 flake8-docstrings
