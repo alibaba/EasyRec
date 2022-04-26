@@ -1,0 +1,15 @@
+# extra packages for some features
+
+cprotobuf is required by pydatahub
+cprotobuf==0.1.9
+
+# for data input from datahub
+pydatahub
+# for data input from hive tables
+pyhive
+
+# for datahub test
+pyodps
+sasl==0.3.1
+thrift
+thrift_sasl
