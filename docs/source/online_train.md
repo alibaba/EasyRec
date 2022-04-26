@@ -67,8 +67,8 @@ datahub_eval_input{
    - key: partition_id
    - value: dict，其中必须包含 cursor字段
 - 权限开通: ak对应的用户必须要添加datahub访问权限
+  ![online_auth.png](../images/other/online_auth.png)
 
-     ![image.png](https://intranetproxy.alipay.com/skylark/lark/0/2022/png/33578/1650938911924-284f2f4d-4d0e-4e95-9f7d-646c93fee4a4.png#clientId=ua770ca3c-b11c-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=232&id=ud65695da&margin=%5Bobject%20Object%5D&name=image.png&originHeight=495&originWidth=1500&originalType=binary&ratio=1&rotation=0&showTitle=false&size=152476&status=done&style=none&taskId=uf287e5df-b8d7-4a27-8cf4-99925f47d4c&title=&width=702)
 #### VPC打通
 MaxCompute在经典网络里面，而Kafka/Datahub通常在VPC里面，为了能够访问VPC，需要打通网络，[打通流程](https://help.aliyun.com/document_detail/187866.html#section-qug-auu-qn2)。
 ### 训练
@@ -161,8 +161,8 @@ pai -name easy_rec_ext -project algo_public
    - oss_endpoint: oss endpoint
    - asset_files: 把fg.json加入到asset_file里面，EAS Processor依赖fg.json生成特征
 - 其他参数参考MaxCompute离线训练
+
 #### 目录结构:
-![online_auth.png](../images/other/online_auth.png)
 
 - DENSE_UPDATE_VARIABLES: 
    - 记录了dense参数名称到参数id的映射
