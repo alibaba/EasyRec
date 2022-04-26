@@ -106,7 +106,6 @@ model_config:{
 
 注意，DSSM负采样版目前仅支持recall_at_topk做评估指标。
 
-
 #### 负采样配置
 
 目前支持四种负采样Sampler：

@@ -59,6 +59,7 @@ model_config:{
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 支持的metric_set包括:
+
 - auc
 - mean_absolute_error
 - accuracy

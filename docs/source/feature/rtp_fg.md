@@ -312,13 +312,13 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 - --separator: feature之间的分隔符, 默认是CTRL_B(\\u0002)
 
-- --selected_cols: 指定输入列，包括label和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型),  最后一列必须是features, 如:
+- --selected_cols: 指定输入列，包括label、\[sample_weight\]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型),  最后一列必须是features, 如:
 
   ```
-  label0,label1,features
+  label0,label1,sample_weight,features
   ```
 
-  - 注意不要有**空格**
+  - 注意不要有**空格**，其中 sample_weight 列是可选的，可以没有
 
 - --incol_separator: feature内部的分隔符，即多值分隔符，默认是CTRL_C(\\u0003)
 
