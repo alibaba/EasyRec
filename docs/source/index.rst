@@ -38,6 +38,7 @@ Welcome to easy_rec's documentation!
 
    train
    incremental_train
+   online_train
    eval
    export
    kd
