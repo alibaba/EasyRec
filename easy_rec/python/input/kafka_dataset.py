@@ -25,7 +25,7 @@ import traceback
 try:
   from easy_rec.python.ops import gen_kafka_ops
 except ImportError as ex:
-  logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc(ex))
+  logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc())
 
 
 class KafkaDataset(dataset_ops.Dataset):

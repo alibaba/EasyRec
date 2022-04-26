@@ -24,9 +24,8 @@ try:
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
 except Exception as ex:
-  # logging.warning(traceback.format_exc(ex))
   logging.warning(
-      'DataHub is not installed. You can install it by: pip install pydatahub')
+      'DataHub is not installed[%s]. You can install it by: pip install pydatahub' % str(ex))
   DataHub = None
 
 class DataHubInput(Input):

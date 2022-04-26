@@ -314,7 +314,7 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
       if train_data:
         train_data.offset_info = json.dumps(offset_info)
       if eval_data is not None:
-        eval_data.offset_info = json.dumps(ofset_info)
+        eval_data.offset_info = json.dumps(offset_info)
 
 
   # create train input

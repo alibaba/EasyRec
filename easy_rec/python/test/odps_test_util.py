@@ -165,7 +165,7 @@ class OdpsOSSConfig:
     except ResourceExistException:
       logging.warning('project %s already exist!' % self.dh_project)
     except Exception as ex:
-      logging.error(traceback.format_exc(ex))
+      logging.error(traceback.format_exc())
     record_schema = RecordSchema.from_lists(col_name, col_type)
     try:
       # project_name, topic_name, shard_count, life_cycle, record_schema, comment

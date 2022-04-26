@@ -14,7 +14,7 @@ from easy_rec.python.input.kafka_dataset import KafkaDataset
 try:
   from kafka import KafkaConsumer, TopicPartition
 except ImportError as ex:
-  logging.warning('kafka-python is not installed: %s' % traceback.format_exc(ex))
+  logging.warning('kafka-python is not installed[%s]. You can install it by: pip install kafka-python' % str(ex))
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

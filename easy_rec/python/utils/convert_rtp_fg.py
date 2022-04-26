@@ -253,9 +253,8 @@ def load_input_field_and_feature_config(rtp_fg,
               incol_separator,
               is_sequence=True)
     except Exception as ex:
-      logging.info(traceback.format_exc(ex))
-      print('Exception: %s %s' % (type(ex), str(ex)))
-      print(feature)
+      logging.info('convert feature[%s] exception[%s]' % (
+          str(feature),traceback.format_exc()))
       sys.exit(1)
   return pipeline_config
 
