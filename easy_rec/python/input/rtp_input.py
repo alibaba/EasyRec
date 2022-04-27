@@ -76,7 +76,7 @@ class RTPInput(Input):
       fname = self._input_fields[idx]
       ftype = self._input_field_types[idx]
       tf_type = self.get_tf_type(ftype)
-      if ftype in [DatasetConfig.String]:
+      if field.dtype in [tf.string]:
         check_list = [tf.py_func(check_string_to_number, [field, fname], Tout=tf.bool)
                       ] if self._check_mode else []
         with tf.control_dependencies(check_list):
