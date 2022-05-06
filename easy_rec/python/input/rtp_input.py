@@ -5,8 +5,9 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
-from easy_rec.python.utils.check_utils import check_split
+from easy_rec.python.utils.check_utils import check_split, check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -51,13 +52,6 @@ class RTPInput(Input):
 
   def _parse_csv(self, line):
     record_defaults = ['' for i in range(self._num_cols)]
-    lbl_id = 0
-    for x, t, v in zip(self._input_fields, self._input_field_types,
-                       self._input_field_defaults):
-      if x not in self._label_fields:
-        continue
-      record_defaults[self._selected_cols[lbl_id]] = self.get_type_defaults(
-          t, v)
 
     # the actual features are in one single column
     record_defaults[self._feature_col_id] = self._data_config.separator.join([
@@ -75,7 +69,19 @@ class RTPInput(Input):
       fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
 
     fields = tf.reshape(fields.values, [-1, len(record_defaults)])
-    labels = [fields[:, x] for x in self._selected_cols[:-1]]
+
+    labels = []
+    for idx, x in enumerate(self._selected_cols[:-1]):
+      field = fields[:, x]
+      fname = self._input_fields[idx]
+      ftype = self._input_field_types[idx]
+      tf_type = self.get_tf_type(ftype)
+      if field.dtype in [tf.string]:
+        check_list = [tf.py_func(check_string_to_number, [field, fname], Tout=tf.bool)
+                      ] if self._check_mode else []
+        with tf.control_dependencies(check_list):
+          field = tf.string_to_number(field, tf_type)
+      labels.append(field)
 
     # only for features, labels excluded
     record_types = [

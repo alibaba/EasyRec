@@ -402,8 +402,9 @@ class Predictor(PredictorInterface):
   def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
                   batch_size, slice_id, slice_num, input_sep, output_sep):
     record_defaults = [
-        self._input_fields_info[col_name][1] for col_name in self._input_fields
+      get_type_defaults(*self._input_fields_info[col_name]) for col_name in self._input_fields
     ]
+
     if reserved_cols == 'ALL_COLUMNS':
       reserved_cols = self._input_fields
     else:
