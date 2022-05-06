@@ -65,10 +65,15 @@ class KafkaInput(Input):
 
   def _preprocess(self, field_dict):
     output_dict = super(KafkaInput, self)._preprocess(field_dict)
-    output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
 
+    # append offset fields
+    if Input.DATA_OFFSET in field_dict:
+      output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
+
+    # for _get_features to include DATA_OFFSET
     if Input.DATA_OFFSET not in self._appended_fields: 
       self._appended_fields.append(Input.DATA_OFFSET)
+
     return output_dict
 
   def _parse_csv(self, line, message_key, message_offset):
@@ -103,18 +108,6 @@ class KafkaInput(Input):
     inputs[Input.DATA_OFFSET] = tf.py_func(_parse_offset, [message_offset], tf.string) 
     return inputs
 
-  def _preprocess(self, field_dict):
-    output_dict = super(KafkaInput, self)._preprocess(field_dict)
-
-    # append offset fields
-    if Input.DATA_OFFSET in field_dict:
-      output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
-
-    # for _get_features to include DATA_OFFSET
-    if Input.DATA_OFFSET not in self._appended_fields: 
-      self._appended_fields.append(Input.DATA_OFFSET)
-
-    return output_dict
 
   def restore(self, checkpoint_path):
     if checkpoint_path is None:

@@ -274,7 +274,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         summaries=summaries,
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
-        self._pipeline_config.data_config.chief_redundant,
+          self._pipeline_config.data_config.chief_redundant,
         name='')  # Preventing scope prefix on all variables.
 
     # online evaluation

@@ -307,10 +307,9 @@ def optimize_loss(loss,
       return control_flow_ops.with_dependencies([grad_updates], loss)
 
     if not_apply_grad_after_first_step:
-      train_tensor = control_flow_ops.cond(global_step > 0, lambda: loss,
-                                           _apply_grad)
+      _apply_grad()
+      train_tensor = loss
     else:
-      # Ensure the train_tensor computes grad_updates.
       train_tensor = _apply_grad()
 
     return train_tensor
