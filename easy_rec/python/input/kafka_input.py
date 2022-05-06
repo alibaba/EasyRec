@@ -43,10 +43,6 @@ class KafkaInput(Input):
       self._num_partition = len(partitions)
       logging.info('all partitions[%d]: %s' % (self._num_partition, partitions))
 
-      # each topic in the format: 
-      #     topic:partition_id:offset
-      self._topics = []
-
       # determine kafka offsets for each partition
       if self._kafka.offset_info:
         offset_dict = json.loads(self._kafka.offset_info)
@@ -64,18 +60,8 @@ class KafkaInput(Input):
         else:
           for part in offset_dict:
             part_id = int(part)
-            if (part_id % self._task_num) == self._task_index:
-              self._offset_dict[part_id] = offset_dict[part]
-
-      for part_id in range(self._num_partition):
-        if (part_id % self._task_num) == self._task_index:
-          offset = self._offset_dict.get(part_id, 0)
-          self._topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
-      logging.info('assigned topic partitions: %s' % (','.join(self._topics)))
-      assert len(self._topics) > 0, 'no partitions are assigned for this task(%d/%d)' % (
-         self._task_index, self._task_num)
-    else:
-      self._topics = None
+            self._offset_dict[part_id] = offset_dict[part]
+    self._task_offset_dict = {}  
 
   def _preprocess(self, field_dict):
     output_dict = super(KafkaInput, self)._preprocess(field_dict)
@@ -110,7 +96,7 @@ class KafkaInput(Input):
           kv = kv.decode('utf-8')
         k,v = kv.split(':')
         v = int(v)
-        if k not in self._offset_dict or v > self._offset_dict[k]:
+        if k not in self._task_offset_dict or v > self._task_offset_dict[k]:
           self._offset_dict[k] = v
       return json.dumps(self._offset_dict) 
        
@@ -146,24 +132,40 @@ class KafkaInput(Input):
         v = offset_dict[k]
         k = int(k)
         self._offset_dict[k] = v
-    self._topics = []
+
+  def _get_topics(self):
+    task_num = self._task_num
+    task_index = self._task_index
+    if self._data_config.chief_redundant and self._mode == tf.estimator.ModeKeys.TRAIN:
+      task_index = max(task_index-1, 0)
+      task_num = task_num - 1
+
+    topics = []
+    self._task_offset_dict = {}
     for part_id in range(self._num_partition):
-      if (part_id % self._task_num) == self._task_index:
+      if (part_id % task_num) == task_index:
         offset = self._offset_dict.get(part_id, 0)
-        self._topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
+        topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
+        self._task_offset_dict[part_id] = offset
+    logging.info('assigned topic partitions: %s' % (','.join(topics)))
+    assert len(topics) > 0, 'no partitions are assigned for this task(%d/%d)' % (
+       self._task_index, self._task_num)
+    return topics
 
   def _build(self, mode, params):
     num_parallel_calls = self._data_config.num_parallel_calls
+    task_topics = self._get_topics()
     if mode == tf.estimator.ModeKeys.TRAIN:
       assert self._kafka is not None, "kafka_train_input is not set."
       train_kafka = self._kafka
       logging.info(
           'train kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
           %
-          (train_kafka.server, train_kafka.topic, self._task_num, self._task_index, self._topics))
+          (train_kafka.server, train_kafka.topic, self._task_num,
+           self._task_index, task_topics))
 
       dataset = KafkaDataset(
-          self._topics,
+          task_topics,
           servers=train_kafka.server,
           group=train_kafka.group,
           eof=False,
@@ -177,9 +179,11 @@ class KafkaInput(Input):
  
       logging.info(
           'eval kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
-          % (eval_kafka.server, eval_kafka.topic, self._task_num, self._task_index, self._topics))
+          % (eval_kafka.server, eval_kafka.topic, self._task_num,
+             self._task_index, task_topics))
 
-      dataset = KafkaDataset(self._topics, servers=self._kafka.server, 
+      dataset = KafkaDataset(task_topics,
+              servers=self._kafka.server, 
               group=eval_kafka.group, eof=True,
               config_global = list(self._kafka.config_global),
               config_topic = list(self._kafka.config_topic),

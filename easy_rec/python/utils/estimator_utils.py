@@ -353,7 +353,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       save_data_offset = session.run(self._data_offset_var)
       data_offset_json = {}
       for x in save_data_offset:
-        if x :
+        if x:
           data_offset_json.update(json.loads(x))
       save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
