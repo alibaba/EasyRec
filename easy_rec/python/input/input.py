@@ -655,6 +655,9 @@ class Input(six.with_metaclass(_meta_type, object)):
   def _pre_build(self, mode, params):
     pass
 
+  def restore(self, checkpoint_path):
+    pass
+
   def create_input(self, export_config=None):
 
     def _input_fn(mode=None, params=None, config=None):
@@ -688,4 +691,5 @@ class Input(six.with_metaclass(_meta_type, object)):
           print("built feature placeholders. features: {}".format(features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
+    _input_fn.input_creator = self
     return _input_fn

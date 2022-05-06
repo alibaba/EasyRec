@@ -218,7 +218,6 @@ class KafkaTest(tf.test.TestCase):
 
       self._success = test_utils.test_single_train_eval(
           'samples/model_config/deepfm_combo_avazu_kafka.config', self._test_dir) 
-     
       self.assertTrue(self._success)
     except Exception as ex:
       self._success = False

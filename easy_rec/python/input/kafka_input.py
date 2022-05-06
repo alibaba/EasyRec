@@ -7,6 +7,7 @@ import json
 import six
 
 import tensorflow as tf
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.input.kafka_dataset import KafkaDataset
@@ -39,8 +40,8 @@ class KafkaInput(Input):
            bootstrap_servers=[self._kafka.server],
            api_version_auto_timeout_ms=10000) # in miliseconds
       partitions = consumer.partitions_for_topic(self._kafka.topic)
-      num_partition = len(partitions)
-      logging.info('all partitions[%d]: %s' % (num_partition, partitions))
+      self._num_partition = len(partitions)
+      logging.info('all partitions[%d]: %s' % (self._num_partition, partitions))
 
       # each topic in the format: 
       #     topic:partition_id:offset
@@ -66,7 +67,7 @@ class KafkaInput(Input):
             if (part_id % self._task_num) == self._task_index:
               self._offset_dict[part_id] = offset_dict[part]
 
-      for part_id in range(num_partition):
+      for part_id in range(self._num_partition):
         if (part_id % self._task_num) == self._task_index:
           offset = self._offset_dict.get(part_id, 0)
           self._topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
@@ -128,6 +129,28 @@ class KafkaInput(Input):
       self._appended_fields.append(Input.DATA_OFFSET)
 
     return output_dict
+
+  def restore(self, checkpoint_path):
+    if checkpoint_path is None:
+      return 
+
+    offset_path = checkpoint_path + '.offset'
+    if not gfile.Exists(offset_path):
+      return
+
+    logging.info('will restore kafka offset from  %s' % offset_path)
+    with gfile.GFile(offset_path, 'r') as fin:
+      offset_dict = json.load(fin)
+      self._offset_dict = {}
+      for k in offset_dict:
+        v = offset_dict[k]
+        k = int(k)
+        self._offset_dict[k] = v
+    self._topics = []
+    for part_id in range(self._num_partition):
+      if (part_id % self._task_num) == self._task_index:
+        offset = self._offset_dict.get(part_id, 0)
+        self._topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
 
   def _build(self, mode, params):
     num_parallel_calls = self._data_config.num_parallel_calls

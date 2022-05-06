@@ -37,6 +37,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
+tf.estimator.Estimator._assert_members_are_not_overridden = lambda x : x   
 class EasyRecEstimator(tf.estimator.Estimator):
 
   def __init__(self, pipeline_config, model_cls, run_config, params):
@@ -49,6 +50,33 @@ class EasyRecEstimator(tf.estimator.Estimator):
         model_dir=pipeline_config.model_dir,
         config=run_config,
         params=params)
+
+  def evaluate(self, input_fn, steps=None, hooks=None, checkpoint_path=None,
+               name=None):
+    # support for datahub/kafka offset restore
+    input_fn.input_creator.restore(checkpoint_path)
+    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks, checkpoint_path, name)
+
+  def train(self,
+            input_fn,
+            hooks=None,
+            steps=None,
+            max_steps=None,
+            saving_listeners=None):
+    # support for datahub/kafka offset restore
+    checkpoint_path = estimator_utils.latest_checkpoint(self.model_dir)
+    if checkpoint_path is not None:
+      input_fn.input_creator.restore(checkpoint_path)
+    elif self.train_config.HasField('fine_tune_checkpoint'):
+      fine_tune_ckpt = self.train_config.fine_tune_checkpoint
+      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt + '/'):
+        fine_tune_ckpt = estimator_utils.latest_checkpoint(fine_tune_ckpt)
+        print('fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s' %
+              (self.train_config.fine_tune_checkpoint, fine_tune_ckpt))
+        self.train_config.fine_tune_checkpoint = fine_tune_ckpt
+        input_fn.input_creator.restore(fine_tune_ckpt)
+    return super(EasyRecEstimator, self).train(input_fn, hooks, steps, max_steps,
+        saving_listeners)
 
   @property
   def feature_configs(self):
