@@ -111,7 +111,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
 
   run_config = tf.estimator.RunConfig(
       model_dir=pipeline_config.model_dir,
-      log_step_count_steps=train_config.log_step_count_steps,
+      log_step_count_steps=None, # train_config.log_step_count_steps,
       save_summary_steps=train_config.save_summary_steps,
       save_checkpoints_steps=save_checkpoints_steps,
       save_checkpoints_secs=save_checkpoints_secs,

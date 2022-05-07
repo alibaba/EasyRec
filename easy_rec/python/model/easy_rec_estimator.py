@@ -16,6 +16,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
+from tensorflow.python.training import basic_session_run_hooks
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -306,24 +307,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # logging
     logging_dict = OrderedDict()
-    logging_dict['lr'] = learning_rate[0]
     logging_dict['step'] = tf.train.get_global_step()
+    logging_dict['lr'] = learning_rate[0]
     logging_dict.update(loss_dict)
     if metric_update_op_dict is not None:
       logging_dict.update(metric_update_op_dict)
-    tensor_order = logging_dict.keys()
-
-    def format_fn(tensor_dict):
-      stats = []
-      for k in tensor_order:
-        tensor_value = tensor_dict[k]
-        stats.append('%s = %s' % (k, tensor_value))
-      return ','.join(stats)
 
     log_step_count_steps = self.train_config.log_step_count_steps
-
-    logging_hook = tf.train.LoggingTensorHook(
-        logging_dict, every_n_iter=log_step_count_steps, formatter=format_fn)
+    logging_hook = basic_session_run_hooks.LoggingTensorHook(
+        logging_dict, every_n_iter=log_step_count_steps,
+        formatter=estimator_utils.tensor_log_format_func)
     hooks.append(logging_hook)
 
     if self.train_config.train_distribute in [

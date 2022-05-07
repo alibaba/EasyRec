@@ -131,7 +131,7 @@ class KafkaInput(Input):
     task_index = self._task_index
     if self._data_config.chief_redundant and self._mode == tf.estimator.ModeKeys.TRAIN:
       task_index = max(task_index-1, 0)
-      task_num = task_num - 1
+      task_num = max(task_num-1, 1)
 
     topics = []
     self._task_offset_dict = {}

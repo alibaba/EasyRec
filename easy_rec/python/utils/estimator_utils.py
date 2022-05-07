@@ -20,16 +20,28 @@ from tensorflow.python.training.summary_io import SummaryWriterCache
 from tensorflow.python.platform import gfile
 from tensorflow.python.framework import errors_impl
 from tensorflow.python.training import training_util
+from tensorflow.python.training import session_run_hook
+from tensorflow.python.training import basic_session_run_hooks
 
 from easy_rec.python.utils import shape_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-  SessionRunHook = tf.estimator.SessionRunHook
-  CheckpointSaverHook = tf.estimator.CheckpointSaverHook
-else:
-  SessionRunHook = tf.train.SessionRunHook
-  CheckpointSaverHook = tf.train.CheckpointSaverHook
+SessionRunHook = session_run_hook.SessionRunHook
+CheckpointSaverHook = basic_session_run_hooks.CheckpointSaverHook
+
+
+def tensor_log_format_func(tensor_dict):
+  prefix = ''
+  if 'step' in tensor_dict:
+    prefix = 'global step %s: ' % tensor_dict['step']
+  stats = []
+  for k in tensor_dict:
+    if k == 'step':
+      continue
+    tensor_value = tensor_dict[k]
+    stats.append('%s = %s' % (k, tensor_value))
+  return prefix + ', '.join(stats)
 
 
 class ExitBarrierHook(SessionRunHook):
