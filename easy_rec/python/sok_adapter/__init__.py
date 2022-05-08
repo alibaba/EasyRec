@@ -1,8 +1,10 @@
 import traceback
 import logging
 import inspect
+import types
 
 import tensorflow
+from easy_rec.python.sok_adapter import nvtf_1_15_opt_1, nvtf_1_15_opt_2
 
 
 class ErrorImportedSOK(object):
@@ -24,21 +26,11 @@ except Exception as e:
 else:
     sok_import_sucess = True
 
-if sok_import_sucess:
-    logging.info("Try modifying tensorflow.train.Optimizer._distributed_apply.")
-
-    original_distributed_apply = tensorflow.train.Optimizer._distributed_apply
-    spec = inspect.getfullargspec(original_distributed_apply)
-    try:
-        grads_and_vars_idx_in_args = spec.args.index('grads_and_vars')
-    except ValueError:
-        logging.error("Can not found arg 'grads_and_vars' in tensorflow.train.Optimizer._distributed_apply."
-                      " Modifying failed")
-    else:
-        def sok_split_vars_wrapper(*args, **kwargs):
-            grads_and_vars = args[grads_and_vars_idx_in_args]
-            logging.info("Splitting grads_and_vars in sok_split_vars_wrapper")
-            return original_distributed_apply(*args, **kwargs)
-        tensorflow.train.Optimizer._distributed_apply = sok_split_vars_wrapper
-        logging.info("Wrapped it with sok_split_vars_wrapper")
-
+if tensorflow.__version__ == '1.15.5':
+    custom_apply_gradient = nvtf_1_15_opt_2.apply_gradients
+else:
+    raise RuntimeError("Not able to import custom_apply_gradient")
+def modify_apply_gradients(optimizer):
+    logging.info("Modifying {} 's apply_gradients".format(str(optimizer)))
+    optimizer.apply_gradients = types.MethodType(custom_apply_gradient, optimizer)
+    return optimizer

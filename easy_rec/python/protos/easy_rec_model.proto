@@ -97,4 +97,5 @@ message EasyRecModel {
     repeated Loss losses = 15;
 
     optional bool use_sok = 16;
+    optional uint32 sok_max_nnz = 17;
 }

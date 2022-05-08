@@ -6,6 +6,7 @@ from collections import OrderedDict
 from this import d
 
 import tensorflow as tf
+from tensorflow.python.client import device_lib
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
@@ -40,6 +41,7 @@ class InputLayer(object):
                wide_output_dim=-1,
                use_embedding_variable=False,
                use_sok=False,
+               sok_max_nnz=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False):
@@ -69,6 +71,7 @@ class InputLayer(object):
         use_embedding_variable=use_embedding_variable)
 
     self.use_sok = use_sok
+    self.sok_max_nnz = sok_max_nnz
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
@@ -212,7 +215,7 @@ class InputLayer(object):
         self._fc_parser)
     if is_combine:
       cols_to_output_tensors = OrderedDict()
-      if self.use_sok:
+      if self.use_sok and group_name == 'sparse':
         output_features= self.sok_input_layer(features, group_columns,
                                               cols_to_output_tensors=cols_to_output_tensors)
       else:
@@ -299,16 +302,15 @@ class InputLayer(object):
 
   def sok_input_layer(self, features, group_columns,
                       cols_to_output_tensors=None):
+    assert self.sok_max_nnz is not None
+    max_nnz = self.sok_max_nnz
     allowd_column_types = [feature_column._EmbeddingColumn, feature_column_v2.EmbeddingColumn]
-    combiner_map = {
-        'mean': 'Mean',
-        'sum': 'Sum'
-    }
     _, workers = estimator_utils.get_task_index_and_num()
-    gpus_num = 2
 
-    # fix for now
-    max_nnz = 100
+    # get gpu nums
+    local_device_protos = device_lib.list_local_devices()
+    gpus_num = len([x for x in local_device_protos if x.device_type == 'GPU'])
+
     try:
       assert len(group_columns) > 0
       assert type(group_columns[0]) in allowd_column_types
@@ -326,12 +328,6 @@ class InputLayer(object):
       logging.error("SOK requires all EmbeddingColumn have the same emb_dim and combiner. max_norm is not supported")
       raise e
 
-    try:
-      combiner = combiner_map[combiner]
-    except KeyError as e:
-      logging.error("SOK only support mean and sum as combiner")
-      raise e
-
     builder = feature_column._LazyBuilder(features)
     inputs = []
     for column in group_columns:
@@ -344,54 +340,58 @@ class InputLayer(object):
     # slot_num = len(inputs) = len(group_columns)
     # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
     # need to accmulate indices and offet them.
-    values = []
+    offetsed_values = []
     batch_sizes = []
     offsetted_indices = []
-    nnzs = []
+
+
+    batch_size = inputs[0].dense_shape[0]
     for i, input_sparse in enumerate(inputs):
-      # Technically all batch_sizes should all be the same. But in case they are not,
-      # just accu them one bu one
-      batch_size = input_sparse.dense_shape[0]
-      if i == 0:
-        accumulate_batch_size = tf.constant([0], dtype=tf.int64)
-        # first input's indices don't need to offset
-        offsetted_indices.append(input_sparse.indices)
-      else:
-        accumulate_batch_size += batch_sizes[i - 1]
-        offset = tf.concat([accumulate_batch_size, tf.constant([0], dtype=tf.int64)], axis=-1)
-        offsetted_indices.append(input_sparse.indices + offset)
+      offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
+      #offsetted_value = tf.Print(offsetted_value, [offsetted_value, tf.reduce_min(offsetted_value), tf.reduce_max(offsetted_value)], message='offsetted_value')
+      offetsed_values.append(offsetted_value)
 
-      values.append(sparse_tensor.values)
-      batch_sizes.append(batch_size)
-      nnzs.append(tf.cast(input_sparse.dense_shape[1], dtype=tf.int64))
+      offsetted_indice = input_sparse.indices + tf.stack([[i * batch_size, 0]])
+      #offsetted_indice = tf.Print(offsetted_indice, [ tf.reduce_min(offsetted_indice[:, 0]), tf.reduce_max(offsetted_indice[:, 0]), tf.reduce_min(offsetted_indice[:, 1]), tf.reduce_max(offsetted_indice[:, 1])], message='offsetted_indice')
+      offsetted_indices.append(offsetted_indice)
 
-    # accmu for the one last batch size
-    accumulate_batch_size += batch_sizes[-1]
-    max_nnz_tensor = tf.reduce_max(tf.stack(nnzs, axis=-1), keepdims=True)
+    offetsed_values = tf.concat(offetsed_values, axis=0)
+    offsetted_indices = tf.concat(offsetted_indices, axis=0)
+    dense_shape = tf.concat([[batch_size * len(inputs)],
+                            tf.constant(max_nnz, shape=(1,), dtype=tf.int64)], axis=0)
+    #offetsed_values = tf.Print(offetsed_values, [dense_shape, tf.reduce_max(offetsed_values)], message='dense_shape')
+
     combined_input = tf.SparseTensor(
-      values=tf.concat(values, axis=0),
-      indices=tf.concat(offsetted_indices, axis=0),
-      dense_shape=tf.concat([accumulate_batch_size, max_nnz_tensor], axis=0)
+      values=offetsed_values,
+      indices=offsetted_indices,
+      dense_shape=dense_shape
     )
+    sok_instance = tf.get_collection("SOK")[1]
+    #self.sok_instance = sok.DistributedEmbedding(
+    #  combiner=combiner,
+    #  max_vocabulary_size_per_gpu=total_bucket_size / (workers * gpus_num),
+    #  embedding_vec_size=emb_vec_size,
+    #  slot_num=len(inputs),
+    #  max_nnz=max_nnz,
+    #  use_hashtable=False,
+    #  key_dtype=combined_input.values.dtype,
+    #)
 
-    sok_instance = sok.DistributedEmbedding(
-      combiner=combiner,
-      max_vocabulary_size_per_gpu=total_bucket_size / (workers * gpus_num),
-      embedding_vec_size=emb_vec_size,
-      slot_num=len(inputs),
-      max_nnz=max_nnz,
-      use_hashtable=False,
-      key_dtype=combined_input.values.dtype,
-    )
-
-    # output should be [slot_num * batch_size, emb_vec_size]
+    # output should be [batch_size, slot_num, emb_vec_size]
     output = sok_instance(combined_input, training=self._is_training)
-    slices = []
+    #output = tf.Print(output, [ tf.reduce_min(output), tf.reduce_max(output), tf.shape(output)], message='output_min_max')
+
+    #slices = []
+    # for i, _ in enumerate(inputs):
+    #   output_piece = tf.slice(output, offset[i], tf.concat([batch_sizes[i].exa, max_nnz_tensor], axis=0))
+    #   slices.append(output_piece)
+    #   cols_to_output_tensors[group_columns[i]] = output_piece
+
     for i, _ in enumerate(inputs):
-      output_piece = tf.slice(output, offset[i], tf.concat([batch_sizes[i], max_nnz_tensor], axis=0))
-      slices.append(output_piece)
+      output_piece = tf.squeeze(
+        tf.slice(output, [0, i, 0], [batch_size, 1, emb_vec_size]),
+        axis=1)
       cols_to_output_tensors[group_columns[i]] = output_piece
-    output = tf.concat(slices, axis=0)
     return output
 
   def get_wide_deep_dict(self):

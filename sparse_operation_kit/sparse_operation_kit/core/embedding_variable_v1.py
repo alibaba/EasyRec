@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tensorflow as tf
 from sparse_operation_kit import kit_lib
 from sparse_operation_kit.core.inplace_initializer import InPlaceInitializer
 from tensorflow.python.keras import initializers as tf_initializers
@@ -46,8 +47,9 @@ class EmbeddingVariable(BaseResourceVariable):
 
         strategy = get_strategy()
         strategy_extended = strategy.extended
-        devices = strategy_extended._devices
-        
+        device_map = strategy_extended._device_map
+        devices = device_map.all_devices
+ 
         value_list = []
         for i, d in enumerate(devices):
             with ops.device(d):
@@ -60,9 +62,9 @@ class EmbeddingVariable(BaseResourceVariable):
                 value_list.append(v)
         
         # TODO: check whether it will impact the performance due to the aggregation or synchronization setting.
-        return DistributedVariable(strategy=strategy, values=value_list,
-                                    aggregation=VariableAggregation.ONLY_FIRST_REPLICA,
-                                    var_policy=VariableSynchronization.NONE)
+        return DistributedVariable(strategy=strategy, device_map=device_map, values=value_list)
+        #                            aggregation=VariableAggregation.ONLY_FIRST_REPLICA,
+        #                            var_policy=VariableSynchronization.NONE)
 
     def __init__(self,
                  shape,
@@ -129,6 +131,9 @@ class EmbeddingVariable(BaseResourceVariable):
                                 raise ValueError("The initial value's shape (%s) is not compatible with "
                                                  "the explicitly supplied `shape` argument (%s)." %
                                                  (initial_value.shape, self.m_shape_per_gpu))
+                            if type(self.m_initial_value) is str:
+                                with tf.device('/cpu:0'):
+                                    self.m_initial_value = tf.convert_to_tensor(self.m_initial_value)
 
                             _init_op = kit_lib.assign_embedding_variable(emb_var_handle=self.m_handle,
                                                                  tf_var_handle=self.tf_handle,

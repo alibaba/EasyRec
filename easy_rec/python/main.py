@@ -88,14 +88,14 @@ def _get_input_fn(data_config,
 def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
-  gpu_options = GPUOptions(allow_growth=False)
+  gpu_options = GPUOptions(allow_growth=True)
   session_config = ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
       log_device_placement=params.get('log_device_placement', False),
       inter_op_parallelism_threads=train_config.inter_op_parallelism_threads,
       intra_op_parallelism_threads=train_config.intra_op_parallelism_threads)
-  session_config.device_filters.append('/job:ps')
+  #session_config.device_filters.append('/job:ps')
   model_cls = EasyRecModel.create_class(model_config.model_class)
 
   save_checkpoints_steps = None

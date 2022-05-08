@@ -219,7 +219,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
           all_train_vars.append(one_var)
     else:
       all_train_vars = tf.trainable_variables()
-
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -292,10 +291,33 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # inner CheckpointSaverHook, so just use it.
       chief_hooks = []
       if self._pipeline_config.model_config.use_sok:
-        if self.train_config.train_distribute != DistributionStrategy.MultiWorkerMirroredStrategy:
-          raise RuntimeError("SOK only supports MultiWorkerMirroredStrategy")
-        local_init_op = sok.Init(global_batch_size=self._pipeline_config.data_config.batch_size)
-        scaffold = tf.train.Scaffold(local_init_op=local_init_op)
+        #if self.train_config.train_distribute != DistributionStrategy.MultiWorkerMirroredStrategy:
+        #  raise RuntimeError("SOK only supports MultiWorkerMirroredStrategy")
+        #local_init_op = sok_init_op
+        #sok_init_op = ops.get_collection("SOK")[0]
+        var_list = (
+            tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
+            tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+        initialize_var_list = [
+            x for x in var_list if 'WorkQueue' not in str(type(x))
+        ]
+        initialize_var_list = [v for v in initialize_var_list if not "EmbeddingVariable" in v.name]
+        # from tensorflow.python.ops import resources
+        # from tensorflow.python.ops import control_flow_ops
+        #if run_config._task_id == 0:
+        #  with ops.control_dependencies(list(sok_init_op)):
+        #    init_op = control_flow_ops.group(variables.global_variables_initializer(), resources.initialize_resources(resources.shared_resources()))
+        #else:
+        #  init_op = None
+        scaffold = tf.train.Scaffold(
+            #saver=tf.train.Saver(
+            #    sharded=True,
+            #    max_to_keep=self.train_config.keep_checkpoint_max),
+            init_op=None,
+            ready_op=tf.report_uninitialized_variables(
+                var_list=initialize_var_list),
+            ready_for_local_init_op=tf.report_uninitialized_variables(
+                var_list=initialize_var_list))
       else:
         scaffold = tf.train.Scaffold()
     else:

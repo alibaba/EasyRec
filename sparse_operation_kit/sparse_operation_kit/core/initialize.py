@@ -97,7 +97,7 @@ def Init(**kwargs):
             visible_devices.append(int(gpus[i].name.split(':')[-1]))
         return array_ops.constant(visible_devices, dtype=int32)
     
-    @function
+    #@function
     def _single_worker_init(**kwargs):
         replica_ctx = tf_dist.get_replica_context()
         replica_ctx.merge_call(lambda strategy: 
