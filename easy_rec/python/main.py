@@ -303,8 +303,10 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=F
     if gfile.Exists(master_stat_file):
       gfile.Remove(master_stat_file)
 
-  train_steps = pipeline_config.train_config.num_steps
-  assert not (train_steps == 0 and data_config.num_epochs == 0), "num_steps and num_epochs cannot both be 0."
+  train_steps = None
+  if train_config.HasField('num_steps'):
+    train_steps = train_config.num_steps
+  assert train_steps is not None or data_config.num_epochs > 0, "either num_steps and num_epochs must be set to an integer > 0."
   if train_steps and data_config.num_epochs:
     logging.info("Both num_steps and num_epochs are set.")
     is_sync = train_config.sync_replicas
