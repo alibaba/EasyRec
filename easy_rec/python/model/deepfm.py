@@ -4,7 +4,6 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import fm
-from easy_rec.python.layers import input_layer
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.deepfm_pb2 import DeepFM as DeepFMConfig
 
@@ -43,13 +42,8 @@ class DeepFM(RankModel):
     has_final = len(model_config.deepfm.final_dnn.hidden_units) > 0
     if not has_final:
       assert model_config.deepfm.wide_output_dim == model_config.num_class
-    self._input_layer = input_layer.InputLayer(
-        feature_configs,
-        model_config.feature_groups,
-        wide_output_dim=model_config.deepfm.wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable,
-        embedding_regularizer=self._emb_reg,
-        kernel_regularizer=self._l2_reg)
+    self._wide_output_dim = model_config.deepfm.wide_output_dim
+    super(DeepFM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     # Wide

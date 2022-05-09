@@ -38,6 +38,13 @@ def get_all_eval_result(event_file_pattern):
 
 
 def save_eval_metrics(model_dir, metric_save_path, has_evaluator=True):
+  """Save evaluation metrics.
+
+  Args:
+    model_dir: train model directory
+    metric_save_path: metric saving path
+    has_evaluator: evaluation is done on a separate evaluator, not on master.
+  """
 
   def _get_eval_event_file_pattern():
     eval_dir = os.path.join(model_dir, 'eval_val/')

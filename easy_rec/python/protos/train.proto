@@ -46,6 +46,12 @@ message TrainConfig {
     // In case so, build a SyncReplicateOptimizer
     optional bool sync_replicas = 9 [default = true];
 
+    // only take effect on pai-tf when sync_replicas is set,
+    // options are:
+    //     raw, hash, multi_map, list, parallel
+    // in general, multi_map runs faster than other options.
+    optional string sparse_accumulator_type = 901 [default='multi_map'];
+
     // Number of training steps between replica startup.
     // This flag must be set to 0 if sync_replicas is set to true.
     optional float startup_delay_steps = 10 [default = 15];

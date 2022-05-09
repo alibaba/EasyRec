@@ -233,12 +233,6 @@ class DSSM(EasyRecModel):
       if metric.WhichOneof('metric') == 'auc':
         assert self._loss_type == LossType.CLASSIFICATION
         metric_dict['auc'] = metrics.auc(label, self._prediction_dict['probs'])
-      elif metric.WhichOneof('metric') == 'recall_at_topk':
-        assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['recall_at_topk%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
-                        label, self._prediction_dict['probs'],
-                        metric.recall_at_topk.topk)
       elif metric.WhichOneof('metric') == 'mean_absolute_error':
         assert self._loss_type == LossType.L2_LOSS
         metric_dict['mean_absolute_error'] = metrics.mean_absolute_error(

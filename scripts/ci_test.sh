@@ -1,11 +1,30 @@
 #!/usr/bin/env bash
 
+echo "will test pull_request(number=$PULL_REQUEST_NUM)"
+
 # pip install
 pip install oss2
 pip install -r requirements.txt
 
 # update/generate proto
 bash scripts/gen_proto.sh
+
+if [ -n "$PULL_REQUEST_NUM" ]
+then
+  # check updates
+  PYTHONPATH=. python scripts/ci_test_change_files.py --pull_request_num $PULL_REQUEST_NUM --exclude_dir docs
+  if [ $? -eq 2 ]
+  then
+     echo "::set-output name=ci_test_passed::0"
+     exit
+  fi
+  if [ $? -ne 0 ]
+  then
+     # there are no code changes related to this test
+     echo "::set-output name=ci_test_passed::1"
+     exit
+  fi
+fi
 
 export CUDA_VISIBLE_DEVICES=""
 export TEST_DEVICES=""
@@ -16,24 +35,12 @@ else
   export TEST_DIR="/tmp/easy_rec_test_${USER}_`date +%s`"
 fi
 
-export UnitTestSucceedFlag=EasyRecUnitSucceed
-
-PYTHONPATH=. python -m easy_rec.python.test.run --list_test_to_file UNIT_TEST_CASE_LIST
-
-for test_name in `cat UNIT_TEST_CASE_LIST`
-do
-  rm -rf $UnitTestSucceedFlag
-  # run test
-  PYTHONPATH=. python -m easy_rec.python.test.run --pattern ${test_name}.*
-  # for github
-  if [ ! -e "$UnitTestSucceedFlag" ]
-  then
-    echo "::set-output name=ci_test_passed::0"
-    exit
-  fi
-done
+PYTHONPATH=. python -m easy_rec.python.test.run  # --pattern export_test.*
 
 # for github
-echo "::set-output name=ci_test_passed::1"
-rm -rf $UnitTestSucceedFlag
-rm -rf UNIT_TEST_CASE_LIST
+if [ $? -eq 0 ]
+then
+  echo "::set-output name=ci_test_passed::1"
+else
+  echo "::set-output name=ci_test_passed::0"
+fi

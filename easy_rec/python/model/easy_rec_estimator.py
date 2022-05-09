@@ -17,8 +17,6 @@ from tensorflow.python.framework import ops
 from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.training import checkpoint_management
-from tensorflow.python.training import monitored_session
 from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
@@ -32,6 +30,7 @@ from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 
 if tf.__version__ >= '2.0':
@@ -140,10 +139,17 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
       logging.info('sync_replicas: num_worker_replias = %d' %
                    run_config.num_worker_replicas)
+      if pai_util.is_on_pai():
+        extra_args = {
+            'sparse_accumulator_type': self.train_config.sparse_accumulator_type
+        }
+      else:
+        extra_args = {}
       optimizer = tf.train.SyncReplicasOptimizer(
           optimizer,
           replicas_to_aggregate=run_config.num_worker_replicas,
-          total_num_replicas=run_config.num_worker_replicas)
+          total_num_replicas=run_config.num_worker_replicas,
+          **extra_args)
       hooks.append(
           optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
 
@@ -236,7 +242,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict = model.build_metric_graph(self.eval_config)
       for k, v in metric_dict.items():
         metric_update_op_dict['%s/batch' % k] = v[1]
-        tf.summary.scalar('%s/batch' % k, v[1])
+        if isinstance(v[1], tf.Tensor):
+          tf.summary.scalar('%s/batch' % k, v[1])
       train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
       if estimator_utils.is_chief():
         hooks.append(
@@ -537,7 +544,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         checkpoint_path = estimator_utils.latest_checkpoint(self._model_dir)
       if not checkpoint_path:
         raise ValueError("Couldn't find trained model at %s." % self._model_dir)
-      with ops.Graph().as_default() as g:
+      with ops.Graph().as_default():
         input_receiver = serving_input_receiver_fn()
         estimator_spec = self._call_model_fn(
             features=input_receiver.features,

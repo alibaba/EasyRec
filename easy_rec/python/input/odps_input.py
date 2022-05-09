@@ -18,9 +18,10 @@ class OdpsInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(OdpsInput, self).__init__(data_config, feature_config, input_path,
-                                    task_index, task_num)
+                                    task_index, task_num, check_mode)
 
   def _build(self, mode, params):
     # check data_config are consistent with odps tables
@@ -42,7 +43,9 @@ class OdpsInput(Input):
           slice_id=self._task_index)
 
     if type(self._input_path) != list:
-      self._input_path = [x for x in self._input_path.split(',')]
+      self._input_path = self._input_path.split(',')
+    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.pai_worker_queue:
         work_queue = pai.data.WorkQueue(

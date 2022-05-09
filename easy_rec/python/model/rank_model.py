@@ -112,6 +112,12 @@ class RankModel(EasyRecModel):
     if loss_type == LossType.CLASSIFICATION:
       loss_name = 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.F1_REWEIGHTED_LOSS:
+      loss_name = 'f1_reweighted_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.PAIR_WISE_LOSS:
+      loss_name = 'pairwise_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       loss_name = 'l2_loss' + suffix
       pred = self._prediction_dict['y' + suffix]

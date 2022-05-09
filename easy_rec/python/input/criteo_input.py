@@ -20,9 +20,10 @@ class CriteoInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(CriteoInput, self).__init__(data_config, feature_config, input_path,
-                                      task_index, task_num)
+                                      task_index, task_num, check_mode)
     all_label_paths = []
     all_dense_paths = []
     all_category_paths = []

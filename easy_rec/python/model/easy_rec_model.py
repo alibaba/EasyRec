@@ -40,6 +40,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    # only used by model with wide feature groups, e.g. WideAndDeep
+    self._wide_output_dim = -1
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)
@@ -80,12 +82,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._input_layer = input_layer.InputLayer(
         feature_configs,
         model_config.feature_groups,
+        wide_output_dim=self._wide_output_dim,
         use_embedding_variable=model_config.use_embedding_variable,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=False)
+        is_training=self._is_training)
 
   @abstractmethod
   def build_predict_graph(self):

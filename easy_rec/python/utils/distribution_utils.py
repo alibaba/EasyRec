@@ -241,3 +241,26 @@ def set_tf_config_and_get_train_worker_num_on_ds():
       easyrec_tf_config['task']['type'] = tf_config['task']['type']
       easyrec_tf_config['task']['index'] = tf_config['task']['index']
     os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
+
+def set_tf_config_and_get_distribute_eval_worker_num_on_ds():
+  assert 'TF_CONFIG' in os.environ, "'TF_CONFIG' must in os.environ"
+  tf_config = json.loads(os.environ['TF_CONFIG'])
+  if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
+      'evaluator' not in tf_config['cluster']):
+    easyrec_tf_config = dict()
+    easyrec_tf_config['cluster'] = {}
+    easyrec_tf_config['task'] = {}
+    easyrec_tf_config['cluster']['ps'] = tf_config['cluster']['ps']
+    easyrec_tf_config['cluster']['chief'] = [tf_config['cluster']['worker'][0]]
+    easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker'][1:]
+
+    if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 0:
+      easyrec_tf_config['task']['type'] = 'chief'
+      easyrec_tf_config['task']['index'] = 0
+    elif tf_config['task']['type'] == 'worker':
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 1
+    else:
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index']
+    os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)

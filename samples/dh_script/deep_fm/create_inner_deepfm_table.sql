@@ -26,11 +26,7 @@ create table deepfm_train_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE deepfm_train_{TIME_STAMP}
-select * from external_deepfm_train_{TIME_STAMP} ;
-
-desc deepfm_train_{TIME_STAMP};
-desc external_deepfm_train_{TIME_STAMP};
+tunnel upload {TEST_DATA_DIR}/train_{TIME_STAMP} deepfm_train_{TIME_STAMP};
 
 drop TABLE IF EXISTS deepfm_test_{TIME_STAMP};
 create table deepfm_test_{TIME_STAMP}(
@@ -60,7 +56,4 @@ create table deepfm_test_{TIME_STAMP}(
 )
 ;
 
-INSERT OVERWRITE TABLE deepfm_test_{TIME_STAMP}
-select * from external_deepfm_test_{TIME_STAMP};
-desc deepfm_test_{TIME_STAMP};
-desc external_deepfm_test_{TIME_STAMP};
+tunnel upload {TEST_DATA_DIR}/test_{TIME_STAMP} deepfm_test_{TIME_STAMP};

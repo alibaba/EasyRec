@@ -1,0 +1,6 @@
+bucket_name = easyrec
+git_oss_data_dir = data/git_oss_sample_data
+host = oss-cn-beijing.aliyuncs.com
+git_oss_cache_dir = ${TMPDIR}/${PROJECT_NAME}/.git_oss_cache
+git_oss_private_config = ~/.git_oss_config_private
+accl_endpoint = oss-accelerate.aliyuncs.com

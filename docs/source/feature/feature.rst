@@ -117,8 +117,8 @@ RawFeature：连续值特征
    pai -name easy_rec_ext -project algo_public
     -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
     -Dcmd=train
-    -Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
-    -Dboundary_table=odps://pai_online_project/tables/boundary_info
+    -Dtables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train,odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
+    -Dboundary_table='odps://pai_online_project/tables/boundary_info'
     -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
     -Darn=acs:ram::xxx:role/xxx
     -Dbuckets=oss://easyrec/
@@ -241,6 +241,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     features {
       input_names: "play_sequence"
       feature_type: SequenceFeature
+      sub_feature_type: IdFeature
       embedding_dim: 32
       hash_bucket_size: 100000
     }
@@ -248,6 +249,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 
 -  embedding\_dim: embedding的dimension
 -  hash\_bucket\_size: 同离散值特征
+-  sub_feature_type: 用于描述序列特征里子特征的类型，目前支持 IdFeature 和 RawFeature 两种形式，默认为 IdFeature
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
 在模型中可支持对序列特征使用Target Attention（DIN)，方法如下：
@@ -328,6 +330,74 @@ ComboFeature：组合特征
    来自data\_config.input\_fields.input\_name
 -  embedding\_dim: embedding的维度，同IdFeature
 -  hash\_bucket\_size: hash bucket的大小
+
+
+ExprFeature：表达式特征
+----------------------------------------------------------------
+
+对数值型特征进行比较运算，如判断当前用户年龄是否>18，男嘉宾年龄是否符合女嘉宾年龄需求等。
+将表达式特征放在EasyRec中，一方面减少模型io，另一方面保证离在线一致。
+
+.. code:: protobuf
+  data_config {
+      input_fields {
+        input_name: 'user_age'
+        input_type: INT32
+      }
+      input_fields {
+        input_name: 'user_start_age'
+        input_type: INT32
+      }
+      input_fields {
+        input_name: 'user_start_age'
+        input_type: INT32
+      }
+      input_fields {
+        input_name: 'user_end_age'
+        input_type: INT32
+      }
+      input_fields {
+        input_name: 'guest_age'
+        input_type: INT32
+      }
+    ...
+  )
+  feature_config:{
+      features {
+       feature_name: "age_satisfy1"
+       input_names: "user_age"
+       feature_type: ExprFeature
+       expression: "user_age>=18"
+     }
+     features {
+       feature_name: "age_satisfy2"
+       input_names: "user_start_age"
+       input_names: "user_end_age"
+       input_names: "guest_age"
+       feature_type: ExprFeature
+       expression: "(guest_age>=user_start_age) & (guest_age<=user_end_age)"
+     }
+     features {
+       feature_name: "age_satisfy3"
+       input_names: "user_age"
+       input_names: "guest_age"
+       feature_type: ExprFeature
+       expression: "user_age==guest_age"
+     }
+     features {
+       feature_name: "age_satisfy4"
+       input_names: "user_age"
+       input_names: "user_start_age"
+       feature_type: ExprFeature
+       expression: "(age_level>=user_start_age) | (user_age>=18)"
+     }
+  }
+-  feature\_names: 特征名
+-  input\_names: 参与计算的特征名
+   来自data\_config.input\_fields.input\_name
+-  expression: 表达式。
+    - 目前支持"<", "<=", "==", ">", "<=", "+", "-", "*", "/", "&" , "|"运算符。
+    - 当前版本未定义"&","|"的符号优先级，建议使用括号保证优先级。
 
 特征选择
 ----------------------------------------------------------------
