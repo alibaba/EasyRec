@@ -303,7 +303,9 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=F
     if gfile.Exists(master_stat_file):
       gfile.Remove(master_stat_file)
 
-  train_steps = pipeline_config.train_config.num_steps
+  train_steps = None
+  if train_config.HasField('num_steps'):
+    train_steps = train_config.train_steps
   assert not (train_steps == 0 and data_config.num_epochs == 0), "num_steps and num_epochs cannot both be 0."
   if train_steps and data_config.num_epochs:
     logging.info("Both num_steps and num_epochs are set.")
