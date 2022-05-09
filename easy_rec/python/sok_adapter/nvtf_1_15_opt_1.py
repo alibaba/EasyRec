@@ -29,7 +29,6 @@ def _get_processor(v):
 
 
 def apply_gradients(self, grads_and_vars, global_step=None, name=None):
-    import pdb;pdb.set_trace()
     # if distribute_ctx.has_strategy():
     # Handle DistributionStrategy case.
     # if distribute_ctx.in_cross_replica_context():

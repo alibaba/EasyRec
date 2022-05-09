@@ -26,5 +26,4 @@
 
           /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/session_manager.py:295
           sok_init_op = ops.get_collection("SOK")[0]
-          import pdb;pdb.set_trace()
           sess.run(sok_init_op)

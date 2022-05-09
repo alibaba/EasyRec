@@ -346,7 +346,6 @@ def optimize_loss(loss,
                 name='train')
 
             if sok_emb_update_ops:
-                import pdb;pdb.set_trace()
                 return control_flow_ops.with_dependencies([grad_updates, sok_emb_update_ops], loss)
             return control_flow_ops.with_dependencies([grad_updates], loss)
 
