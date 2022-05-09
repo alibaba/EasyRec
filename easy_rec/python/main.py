@@ -305,7 +305,7 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=F
 
   train_steps = None
   if train_config.HasField('num_steps'):
-    train_steps = train_config.train_steps
+    train_steps = train_config.num_steps
   assert not (train_steps == 0 and data_config.num_epochs == 0), "num_steps and num_epochs cannot both be 0."
   if train_steps and data_config.num_epochs:
     logging.info("Both num_steps and num_epochs are set.")
