@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from email import message
 from itertools import accumulate
 import logging
 from collections import OrderedDict
@@ -302,14 +303,12 @@ class InputLayer(object):
 
   def sok_input_layer(self, features, group_columns,
                       cols_to_output_tensors=None):
-    assert self.sok_max_nnz is not None
-    max_nnz = self.sok_max_nnz
     allowd_column_types = [feature_column._EmbeddingColumn, feature_column_v2.EmbeddingColumn]
-    _, workers = estimator_utils.get_task_index_and_num()
+    #_, workers = estimator_utils.get_task_index_and_num()
 
     # get gpu nums
-    local_device_protos = device_lib.list_local_devices()
-    gpus_num = len([x for x in local_device_protos if x.device_type == 'GPU'])
+    #local_device_protos = device_lib.list_local_devices()
+    #gpus_num = len([x for x in local_device_protos if x.device_type == 'GPU'])
 
     try:
       assert len(group_columns) > 0
@@ -336,46 +335,57 @@ class InputLayer(object):
       inputs.append(sparse_tensor)
 
     batch_size = inputs[0].dense_shape[0]
+    #batch_size = tf.Print(batch_size, [batch_size], message="======= BatchSize: ")
+
     sok_instance = tf.get_collection("SOK")[1]
 
     # slot_num = len(inputs) = len(group_columns)
     # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
     # need to accmulate indices and offset them.
     def sparse_sok():
-      offetsed_values = []
+      assert self.sok_max_nnz is not None
+      max_nnz = self.sok_max_nnz
+      offseted_values = []
       offsetted_indices = []
 
       for i, input_sparse in enumerate(inputs):
-        offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
-        offetsed_values.append(offsetted_value)
+        offsetted_value = input_sparse.values
+        # special change for dlrm_on_criteo test
+        # + group_columns[i].categorical_column.hash_bucket_size
+        offseted_values.append(offsetted_value)
 
         offsetted_indice = input_sparse.indices + tf.stack([[i * batch_size, 0]])
         offsetted_indices.append(offsetted_indice)
 
-      offetsed_values = tf.concat(offetsed_values, axis=0)
+      offseted_values = tf.concat(offseted_values, axis=0)
       offsetted_indices = tf.concat(offsetted_indices, axis=0)
       dense_shape = tf.concat([[batch_size * len(inputs)],
                               tf.constant(max_nnz, shape=(1,), dtype=tf.int64)], axis=0)
 
       combined_input = tf.SparseTensor(
-        values=offetsed_values,
+        values=offseted_values,
         indices=offsetted_indices,
         dense_shape=dense_shape
       )
 
       # output should be [batch_size, slot_num, emb_vec_size]
-      return sok_instance(combined_input, training=self._is_training)
+      output = sok_instance(combined_input, training=self._is_training)
+      return output
 
     def dense_sok():
-      offetsed_values = []
+      offseted_values = []
 
       for i, input_sparse in enumerate(inputs):
-        offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
-        offetsed_values.append(offsetted_value)
+        offsetted_value = input_sparse.values
+        # special change for dlrm_on_criteo test
+        #+ group_columns[i].categorical_column.hash_bucket_size
+        offseted_values.append(offsetted_value)
 
-      offetsed_values = tf.concat(offetsed_values, axis=0)
-
-      return sok_instance(offetsed_values, training=self._is_training)
+      offseted_values = tf.expand_dims(tf.transpose(tf.stack(offseted_values)), axis=-1)
+      # output should be [accu_batch_size, emb_vec_size]
+      output = sok_instance(offseted_values, training=self._is_training)
+      output = tf.reshape(output, [batch_size, -1, emb_vec_size])
+      return output
 
     output = sparse_sok()
     #output = dense_sok()
@@ -385,6 +395,8 @@ class InputLayer(object):
         tf.slice(output, [0, i, 0], [batch_size, 1, emb_vec_size]),
         axis=1)
       cols_to_output_tensors[group_columns[i]] = output_piece
+
+
     return output
 
   def get_wide_deep_dict(self):

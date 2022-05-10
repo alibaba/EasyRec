@@ -1294,26 +1294,43 @@ class Estimator(object):
         else:
           features, labels = estimator_util.parse_iterator_result(
               iterator.get_next())
+
           import sparse_operation_kit as sok
           from easy_rec.python.sok_adapter import modify_apply_gradients
-          batch_per_worker = 4096
+
+          # DLRM on criteo
+          batch_per_worker = 8192
           gpu_nums = 8
+          #total_bucket_size = 100000000 * 9 + 3853295 + 9 * 100000000 + 3997977 + 2564129 + 3966498 + 4 * 100000000
+          total_bucket_size = 1e8
+          embedding_vec_size = 32
+          slot_num = 26
+          max_nnz = 1
+
+          # DLRM on taobao
+          # batch_per_worker = 4096
+          # gpu_nums = 8
+          # total_bucket_size = 10 + 100000 + 10000 + 100000 * 4 + 100 * 2 + 10
+          # embedding_vec_size = 16
+          # slot_num = 12
+          # max_nnz = 100
+
           sok_init_op = sok.Init(global_batch_size=batch_per_worker * gpu_nums)
           # Sparse embedding
           sok_instance = sok.DistributedEmbedding(
             combiner='mean',
-            max_vocabulary_size_per_gpu=250000,
-            embedding_vec_size=16,
-            slot_num=12,
-            max_nnz=100,
+            max_vocabulary_size_per_gpu=int((total_bucket_size / gpu_nums) + 1),
+            embedding_vec_size=embedding_vec_size,
+            slot_num=slot_num,
+            max_nnz=max_nnz,
             use_hashtable=False,
             key_dtype=dtypes.int64)
 
           # Dense embedding
           #sok_instance = sok.All2AllDenseEmbedding(
-          #  max_vocabulary_size_per_gpu=2500000,
-          #  embedding_vec_size=16,
-          #  slot_num=12,
+          #  max_vocabulary_size_per_gpu=int((total_bucket_size / gpu_nums) + 1),
+          #  embedding_vec_size=embedding_vec_size,
+          #  slot_num=slot_num,
           #  nnz_per_slot=1,
           #  use_hashtable=False,
           #  key_dtype=dtypes.int64)
@@ -1324,6 +1341,8 @@ class Estimator(object):
           ops.add_to_collection('SOK', sok_init_op)
           ops.add_to_collection('SOK', sok_instance)
           ops.add_to_collection('SOK', emb_opt)
+
+
           grouped_estimator_spec = strategy.extended.call_for_each_replica(
               self._call_model_fn,
               args=(features,

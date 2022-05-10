@@ -1,0 +1,289 @@
+2022-05-10 10:37:57.784165: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+WARNING:tensorflow:Deprecation warnings have been disabled. Set TF_ENABLE_DEPRECATION_WARNINGS=1 to re-enable them.
+[2022-05-10 10:37:59,019][INFO] GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"
+[2022-05-10 10:37:59,077][INFO] Try importing sparse_operation_kit ...
+[2022-05-10 10:37:59,086][ERROR] Traceback (most recent call last):
+  File "/home/ruotongw/EasyRec/easy_rec/python/sok_adapter/__init__.py", line 19, in <module>
+    sparse_operation_kit.Init
+AttributeError: module 'sparse_operation_kit' has no attribute 'Init'
+
+[2022-05-10 10:37:59,086][INFO] sparse_operation_kit module importing failed. Continue running the program,but anything related with SOK will not work properly
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+[2022-05-10 10:37:59,119][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+[2022-05-10 10:37:59,119][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+[2022-05-10 10:37:59,283][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+[2022-05-10 10:37:59,332][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+[2022-05-10 10:37:59,332][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+[2022-05-10 10:37:59,876][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+[2022-05-10 10:37:59,911][WARNING] 
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+WARNING:tensorflow:TensorFlow will not use sklearn by default. This improves performance in some cases. To enable sklearn export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-10 10:37:59,964][WARNING] TensorFlow will not use sklearn by default. This improves performance in some cases. To enable sklearn export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Dask by default. This improves performance in some cases. To enable Dask export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-10 10:38:00,000][WARNING] TensorFlow will not use Dask by default. This improves performance in some cases. To enable Dask export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Pandas by default. This improves performance in some cases. To enable Pandas export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-10 10:38:00,005][WARNING] TensorFlow will not use Pandas by default. This improves performance in some cases. To enable Pandas export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-10 10:38:00,338][WARNING] DataHub is not installed. You can install it by: pip install pydatahub
+[2022-05-10 10:38:00,344][WARNING] pyhive is not installed.
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/train_eval.py:148: The name tf.app.run is deprecated. Please use tf.compat.v1.app.run instead.
+
+[2022-05-10 10:38:00,384][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/train_eval.py:148: The name tf.app.run is deprecated. Please use tf.compat.v1.app.run instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:40: The name tf.gfile.Exists is deprecated. Please use tf.io.gfile.exists instead.
+
+W0510 10:38:00.385186 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:40: The name tf.gfile.Exists is deprecated. Please use tf.io.gfile.exists instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:45: The name tf.gfile.GFile is deprecated. Please use tf.io.gfile.GFile instead.
+
+W0510 10:38:00.385358 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:45: The name tf.gfile.GFile is deprecated. Please use tf.io.gfile.GFile instead.
+
+INFO:tensorflow:TF_CONFIG environment variable: {'cluster': {'ps': ['localhost:2227', 'localhost:2220'], 'chief': ['localhost:2225'], 'worker': ['localhost:2224', 'localhost:2222', 'localhost:2223', 'localhost:2226', 'localhost:2228', 'localhost:2221', 'localhost:2229']}, 'task': {'type': 'worker', 'index': 6}}
+I0510 10:38:00.407450 140265624123200 run_config.py:535] TF_CONFIG environment variable: {'cluster': {'ps': ['localhost:2227', 'localhost:2220'], 'chief': ['localhost:2225'], 'worker': ['localhost:2224', 'localhost:2222', 'localhost:2223', 'localhost:2226', 'localhost:2228', 'localhost:2221', 'localhost:2229']}, 'task': {'type': 'worker', 'index': 6}}
+INFO:tensorflow:Using config: {'_model_dir': 'experiments/dlrm_on_criteo_ps/ckpt', '_tf_random_seed': None, '_save_summary_steps': 1000, '_save_checkpoints_steps': 10000, '_save_checkpoints_secs': None, '_session_config': gpu_options {
+  allow_growth: true
+}
+allow_soft_placement: true
+, '_keep_checkpoint_max': 10, '_keep_checkpoint_every_n_hours': 10000, '_log_step_count_steps': 100, '_train_distribute': None, '_device_fn': None, '_protocol': None, '_eval_distribute': None, '_experimental_distribute': None, '_experimental_max_worker_delay_secs': None, '_session_creation_timeout_secs': 7200, '_service': None, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f907f9376d0>, '_task_type': 'worker', '_task_id': 6, '_evaluation_master': '', '_master': 'grpc://localhost:2229', '_num_ps_replicas': 2, '_num_worker_replicas': 8, '_global_id_in_cluster': 7, '_is_chief': False}
+I0510 10:38:00.407932 140265624123200 estimator.py:212] Using config: {'_model_dir': 'experiments/dlrm_on_criteo_ps/ckpt', '_tf_random_seed': None, '_save_summary_steps': 1000, '_save_checkpoints_steps': 10000, '_save_checkpoints_secs': None, '_session_config': gpu_options {
+  allow_growth: true
+}
+allow_soft_placement: true
+, '_keep_checkpoint_max': 10, '_keep_checkpoint_every_n_hours': 10000, '_log_step_count_steps': 100, '_train_distribute': None, '_device_fn': None, '_protocol': None, '_eval_distribute': None, '_experimental_distribute': None, '_experimental_max_worker_delay_secs': None, '_session_creation_timeout_secs': 7200, '_service': None, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f907f9376d0>, '_task_type': 'worker', '_task_id': 6, '_evaluation_master': '', '_master': 'grpc://localhost:2229', '_num_ps_replicas': 2, '_num_worker_replicas': 8, '_global_id_in_cluster': 7, '_is_chief': False}
+I0510 10:38:00.408346 140265624123200 input.py:37] check_mode: False 
+I0510 10:38:00.419121 140265624123200 criteo_input.py:54] total number of input parts: 1
+I0510 10:38:00.419200 140265624123200 criteo_binary_reader.py:34] total number samples = 89137319
+I0510 10:38:00.419240 140265624123200 criteo_binary_reader.py:59] num_batches = 171 num_samples = 11142165
+I0510 10:38:00.419269 140265624123200 criteo_binary_reader.py:70] start_file_id = 0 start_file_pos = 77995154
+I0510 10:38:00.419444 140265624123200 criteo_binary_reader.py:97] end_file_id = 0 end_file_pos = 89137319
+I0510 10:38:00.426188 140265624123200 input.py:37] check_mode: False 
+I0510 10:38:00.426440 140265624123200 input.py:37] check_mode: False 
+I0510 10:38:00.431879 140265624123200 criteo_input.py:54] total number of input parts: 1
+I0510 10:38:00.431956 140265624123200 criteo_binary_reader.py:34] total number samples = 89137319
+I0510 10:38:00.431993 140265624123200 criteo_binary_reader.py:59] num_batches = 171 num_samples = 11142165
+I0510 10:38:00.432021 140265624123200 criteo_binary_reader.py:70] start_file_id = 0 start_file_pos = 77995154
+I0510 10:38:00.432185 140265624123200 criteo_binary_reader.py:97] end_file_id = 0 end_file_pos = 89137319
+INFO:tensorflow:Not using Distribute Coordinator.
+I0510 10:38:00.437180 140265624123200 estimator_training.py:186] Not using Distribute Coordinator.
+INFO:tensorflow:Start Tensorflow server.
+I0510 10:38:00.437429 140265624123200 training.py:744] Start Tensorflow server.
+2022-05-10 10:38:00.469690: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2700000000 Hz
+2022-05-10 10:38:00.474210: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x295ad10 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2022-05-10 10:38:00.474229: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2022-05-10 10:38:00.476648: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+2022-05-10 10:38:02.884062: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x2956480 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-05-10 10:38:02.884082: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Tesla V100-SXM3-32GB, Compute Capability 7.0
+2022-05-10 10:38:02.895145: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM3-32GB major: 7 minor: 0 memoryClockRate(GHz): 1.597
+pciBusID: 0000:5c:00.0
+2022-05-10 10:38:02.895173: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-10 10:38:02.899503: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-10 10:38:02.925170: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-10 10:38:02.925568: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-10 10:38:02.926092: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-10 10:38:02.927005: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-10 10:38:02.927201: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-10 10:38:02.930851: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0
+2022-05-10 10:38:02.930885: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-10 10:38:03.360953: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-10 10:38:03.360975: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 
+2022-05-10 10:38:03.360990: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N 
+2022-05-10 10:38:03.370245: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:worker/replica:0/task:6/device:GPU:0 with 31004 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM3-32GB, pci bus id: 0000:5c:00.0, compute capability: 7.0)
+2022-05-10 10:38:03.372963: I tensorflow/core/distributed_runtime/rpc/grpc_channel.cc:258] Initialize GrpcChannelCache for job chief -> {0 -> localhost:2225}
+2022-05-10 10:38:03.372974: I tensorflow/core/distributed_runtime/rpc/grpc_channel.cc:258] Initialize GrpcChannelCache for job ps -> {0 -> localhost:2227, 1 -> localhost:2220}
+2022-05-10 10:38:03.372978: I tensorflow/core/distributed_runtime/rpc/grpc_channel.cc:258] Initialize GrpcChannelCache for job worker -> {0 -> localhost:2224, 1 -> localhost:2222, 2 -> localhost:2223, 3 -> localhost:2226, 4 -> localhost:2228, 5 -> localhost:2221, 6 -> localhost:2229}
+2022-05-10 10:38:03.379199: I tensorflow/core/distributed_runtime/rpc/grpc_server_lib.cc:365] Started server with target: grpc://localhost:2229
+INFO:tensorflow:Waiting 35 secs before starting training.
+I0510 10:38:03.380783 140265624123200 training.py:788] Waiting 35 secs before starting training.
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.string_to_number is deprecated. Please use tf.strings.to_number instead.
+
+W0510 10:38:42.027495 140265624123200 module_wrapper.py:137] From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.string_to_number is deprecated. Please use tf.strings.to_number instead.
+
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.assert_equal is deprecated. Please use tf.compat.v1.assert_equal instead.
+
+W0510 10:38:42.029303 140265624123200 module_wrapper.py:137] From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.assert_equal is deprecated. Please use tf.compat.v1.assert_equal instead.
+
+INFO:tensorflow:Calling model_fn.
+I0510 10:38:48.879832 140265624123200 estimator.py:1148] Calling model_fn.
+I0510 10:38:48.880484 140265624123200 feature_column.py:100] shared embeddings[num=1]
+I0510 10:38:48.880564 140265624123200 feature_column.py:102] 	embedding: share_num[22], share_info[{'embedding_dim': 32, 'combiner': 'mean', 'initializer': None, 'max_partitions': 8}]
+I0510 10:38:50.256641 140265624123200 dnn.py:28] dnn activation function = tf.nn.relu
+I0510 10:38:50.348609 140265624123200 dlrm.py:41] arch_interaction_op = dot
+I0510 10:38:50.484792 140265624123200 dnn.py:28] dnn activation function = tf.nn.relu
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/builders/loss_builder.py:19: The name tf.losses.sigmoid_cross_entropy is deprecated. Please use tf.compat.v1.losses.sigmoid_cross_entropy instead.
+
+W0510 10:38:50.620657 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/builders/loss_builder.py:19: The name tf.losses.sigmoid_cross_entropy is deprecated. Please use tf.compat.v1.losses.sigmoid_cross_entropy instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:90: The name tf.get_collection is deprecated. Please use tf.compat.v1.get_collection instead.
+
+W0510 10:38:50.634932 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:90: The name tf.get_collection is deprecated. Please use tf.compat.v1.get_collection instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:91: The name tf.GraphKeys is deprecated. Please use tf.compat.v1.GraphKeys instead.
+
+W0510 10:38:50.635055 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:91: The name tf.GraphKeys is deprecated. Please use tf.compat.v1.GraphKeys instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:110: The name tf.summary.scalar is deprecated. Please use tf.compat.v1.summary.scalar instead.
+
+W0510 10:38:50.636046 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:110: The name tf.summary.scalar is deprecated. Please use tf.compat.v1.summary.scalar instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:58: The name tf.train.MomentumOptimizer is deprecated. Please use tf.compat.v1.train.MomentumOptimizer instead.
+
+W0510 10:38:50.639803 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:58: The name tf.train.MomentumOptimizer is deprecated. Please use tf.compat.v1.train.MomentumOptimizer instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:223: The name tf.trainable_variables is deprecated. Please use tf.compat.v1.trainable_variables instead.
+
+W0510 10:38:50.640635 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:223: The name tf.trainable_variables is deprecated. Please use tf.compat.v1.trainable_variables instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:226: The name tf.train.get_global_step is deprecated. Please use tf.compat.v1.train.get_global_step instead.
+
+W0510 10:38:50.640740 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:226: The name tf.train.get_global_step is deprecated. Please use tf.compat.v1.train.get_global_step instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:284: The name tf.train.LoggingTensorHook is deprecated. Please use tf.estimator.LoggingTensorHook instead.
+
+W0510 10:38:53.141640 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:284: The name tf.train.LoggingTensorHook is deprecated. Please use tf.estimator.LoggingTensorHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:353: The name tf.train.Scaffold is deprecated. Please use tf.compat.v1.train.Scaffold instead.
+
+W0510 10:38:53.142093 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:353: The name tf.train.Scaffold is deprecated. Please use tf.compat.v1.train.Scaffold instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:354: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+W0510 10:38:53.142188 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:354: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:359: The name tf.report_uninitialized_variables is deprecated. Please use tf.compat.v1.report_uninitialized_variables instead.
+
+W0510 10:38:53.225689 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:359: The name tf.report_uninitialized_variables is deprecated. Please use tf.compat.v1.report_uninitialized_variables instead.
+
+INFO:tensorflow:Create CheckpointSaverHook.
+I0510 10:38:53.290661 140265624123200 basic_session_run_hooks.py:541] Create CheckpointSaverHook.
+INFO:tensorflow:Done calling model_fn.
+I0510 10:38:53.290902 140265624123200 estimator.py:1150] Done calling model_fn.
+INFO:tensorflow:Create CheckpointSaverHook.
+I0510 10:38:53.291696 140265624123200 basic_session_run_hooks.py:541] Create CheckpointSaverHook.
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:54: The name tf.logging.info is deprecated. Please use tf.compat.v1.logging.info instead.
+
+W0510 10:38:53.291902 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:54: The name tf.logging.info is deprecated. Please use tf.compat.v1.logging.info instead.
+
+INFO:tensorflow:number workers(including master) = 8
+I0510 10:38:53.291955 140265624123200 estimator_utils.py:54] number workers(including master) = 8
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:57: The name tf.FIFOQueue is deprecated. Please use tf.queue.FIFOQueue instead.
+
+W0510 10:38:53.292088 140265624123200 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:57: The name tf.FIFOQueue is deprecated. Please use tf.queue.FIFOQueue instead.
+
+INFO:tensorflow:Graph was finalized.
+I0510 10:38:53.475373 140265624123200 monitored_session.py:240] Graph was finalized.
+INFO:tensorflow:Waiting for model to be ready.  Ready_for_local_init_op:  Variables not initialized: global_step, input_layer/c10_embedding/embedding_weights/part_0, input_layer/c10_embedding/embedding_weights/part_1, input_layer/c10_embedding/embedding_weights/part_2, input_layer/c10_embedding/embedding_weights/part_3, input_layer/c10_embedding/embedding_weights/part_4, input_layer/c10_embedding/embedding_weights/part_5, input_layer/c10_embedding/embedding_weights/part_6, input_layer/c10_embedding/embedding_weights/part_7, input_layer/embedding/embedding_weights/part_0, input_layer/embedding/embedding_weights/part_1, input_layer/embedding/embedding_weights/part_2, input_layer/embedding/embedding_weights/part_3, input_layer/embedding/embedding_weights/part_4, input_layer/embedding/embedding_weights/part_5, input_layer/embedding/embedding_weights/part_6, input_layer/embedding/embedding_weights/part_7, input_layer/c20_embedding/embedding_weights/part_0, input_layer/c20_embedding/embedding_weights/part_1, input_layer/c20_embedding/embedding_weights/part_2, input_layer/c20_embedding/embedding_weights/part_3, input_layer/c20_embedding/embedding_weights/part_4, input_layer/c20_embedding/embedding_weights/part_5, input_layer/c20_embedding/embedding_weights/part_6, input_layer/c20_embedding/embedding_weights/part_7, input_layer/c21_embedding/embedding_weights/part_0, input_layer/c21_embedding/embedding_weights/part_1, input_layer/c21_embedding/embedding_weights/part_2, input_layer/c21_embedding/embedding_weights/part_3, input_layer/c21_embedding/embedding_weights/part_4, input_layer/c21_embedding/embedding_weights/part_5, input_layer/c21_embedding/embedding_weights/part_6, input_layer/c21_embedding/embedding_weights/part_7, input_layer/c22_embedding/embedding_weights/part_0, input_layer/c22_embedding/embedding_weights/part_1, input_layer/c22_embedding/embedding_weights/part_2, input_layer/c22_embedding/embedding_weights/part_3, input_layer/c22_embedding/embedding_weights/part_4, input_layer/c22_embedding/embedding_weights/part_5, input_layer/c22_embedding/embedding_weights/part_6, input_layer/c22_embedding/embedding_weights/part_7, bot_dnn/dnn_0/kernel, bot_dnn/dnn_0/bias, bot_dnn/dnn_0/bn/gamma, bot_dnn/dnn_0/bn/beta, bot_dnn/dnn_0/bn/moving_mean, bot_dnn/dnn_0/bn/moving_variance, bot_dnn/dnn_1/kernel, bot_dnn/dnn_1/bias, bot_dnn/dnn_1/bn/gamma, bot_dnn/dnn_1/bn/beta, bot_dnn/dnn_1/bn/moving_mean, bot_dnn/dnn_1/bn/moving_variance, bot_dnn/dnn_2/kernel, bot_dnn/dnn_2/bias, bot_dnn/dnn_2/bn/gamma, bot_dnn/dnn_2/bn/beta, bot_dnn/dnn_2/bn/moving_mean, bot_dnn/dnn_2/bn/moving_variance, top_dnn/dnn_0/kernel, top_dnn/dnn_0/bias, top_dnn/dnn_0/bn/gamma, top_dnn/dnn_0/bn/beta, top_dnn/dnn_0/bn/moving_mean, top_dnn/dnn_0/bn/moving_variance, top_dnn/dnn_1/kernel, top_dnn/dnn_1/bias, top_dnn/dnn_1/bn/gamma, top_dnn/dnn_1/bn/beta, top_dnn/dnn_1/bn/moving_mean, top_dnn/dnn_1/bn/moving_variance, top_dnn/dnn_2/kernel, top_dnn/dnn_2/bias, top_dnn/dnn_2/bn/gamma, top_dnn/dnn_2/bn/beta, top_dnn/dnn_2/bn/moving_mean, top_dnn/dnn_2/bn/moving_variance, top_dnn/dnn_3/kernel, top_dnn/dnn_3/bias, top_dnn/dnn_3/bn/gamma, top_dnn/dnn_3/bn/beta, top_dnn/dnn_3/bn/moving_mean, top_dnn/dnn_3/bn/moving_variance, output/kernel, output/bias, input_layer/c10_embedding/embedding_weights/part_0/Momentum, input_layer/c10_embedding/embedding_weights/part_1/Momentum, input_layer/c10_embedding/embedding_weights/part_2/Momentum, input_layer/c10_embedding/embedding_weights/part_3/Momentum, input_layer/c10_embedding/embedding_weights/part_4/Momentum, input_layer/c10_embedding/embedding_weights/part_5/Momentum, input_layer/c10_embedding/embedding_weights/part_6/Momentum, input_layer/c10_embedding/embedding_weights/part_7/Momentum, input_layer/embedding/embedding_weights/part_0/Momentum, input_layer/embedding/embedding_weights/part_1/Momentum, input_layer/embedding/embedding_weights/part_2/Momentum, input_layer/embedding/embedding_weights/part_3/Momentum, input_layer/embedding/embedding_weights/part_4/Momentum, input_layer/embedding/embedding_weights/part_5/Momentum, input_layer/embedding/embedding_weights/part_6/Momentum, input_layer/embedding/embedding_weights/part_7/Momentum, input_layer/c20_embedding/embedding_weights/part_0/Momentum, input_layer/c20_embedding/embedding_weights/part_1/Momentum, input_layer/c20_embedding/embedding_weights/part_2/Momentum, input_layer/c20_embedding/embedding_weights/part_3/Momentum, input_layer/c20_embedding/embedding_weights/part_4/Momentum, input_layer/c20_embedding/embedding_weights/part_5/Momentum, input_layer/c20_embedding/embedding_weights/part_6/Momentum, input_layer/c20_embedding/embedding_weights/part_7/Momentum, input_layer/c21_embedding/embedding_weights/part_0/Momentum, input_layer/c21_embedding/embedding_weights/part_1/Momentum, input_layer/c21_embedding/embedding_weights/part_2/Momentum, input_layer/c21_embedding/embedding_weights/part_3/Momentum, input_layer/c21_embedding/embedding_weights/part_4/Momentum, input_layer/c21_embedding/embedding_weights/part_5/Momentum, input_layer/c21_embedding/embedding_weights/part_6/Momentum, input_layer/c21_embedding/embedding_weights/part_7/Momentum, input_layer/c22_embedding/embedding_weights/part_0/Momentum, input_layer/c22_embedding/embedding_weights/part_1/Momentum, input_layer/c22_embedding/embedding_weights/part_2/Momentum, input_layer/c22_embedding/embedding_weights/part_3/Momentum, input_layer/c22_embedding/embedding_weights/part_4/Momentum, input_layer/c22_embedding/embedding_weights/part_5/Momentum, input_layer/c22_embedding/embedding_weights/part_6/Momentum, input_layer/c22_embedding/embedding_weights/part_7/Momentum, bot_dnn/dnn_0/kernel/Momentum, bot_dnn/dnn_0/bias/Momentum, bot_dnn/dnn_0/bn/gamma/Momentum, bot_dnn/dnn_0/bn/beta/Momentum, bot_dnn/dnn_1/kernel/Momentum, bot_dnn/dnn_1/bias/Momentum, bot_dnn/dnn_1/bn/gamma/Momentum, bot_dnn/dnn_1/bn/beta/Momentum, bot_dnn/dnn_2/kernel/Momentum, bot_dnn/dnn_2/bias/Momentum, bot_dnn/dnn_2/bn/gamma/Momentum, bot_dnn/dnn_2/bn/beta/Momentum, top_dnn/dnn_0/kernel/Momentum, top_dnn/dnn_0/bias/Momentum, top_dnn/dnn_0/bn/gamma/Momentum, top_dnn/dnn_0/bn/beta/Momentum, top_dnn/dnn_1/kernel/Momentum, top_dnn/dnn_1/bias/Momentum, top_dnn/dnn_1/bn/gamma/Momentum, top_dnn/dnn_1/bn/beta/Momentum, top_dnn/dnn_2/kernel/Momentum, top_dnn/dnn_2/bias/Momentum, top_dnn/dnn_2/bn/gamma/Momentum, top_dnn/dnn_2/bn/beta/Momentum, top_dnn/dnn_3/kernel/Momentum, top_dnn/dnn_3/bias/Momentum, top_dnn/dnn_3/bn/gamma/Momentum, top_dnn/dnn_3/bn/beta/Momentum, output/kernel/Momentum, output/bias/Momentum, ready: None
+I0510 10:38:54.135283 140265624123200 session_manager.py:434] Waiting for model to be ready.  Ready_for_local_init_op:  Variables not initialized: global_step, input_layer/c10_embedding/embedding_weights/part_0, input_layer/c10_embedding/embedding_weights/part_1, input_layer/c10_embedding/embedding_weights/part_2, input_layer/c10_embedding/embedding_weights/part_3, input_layer/c10_embedding/embedding_weights/part_4, input_layer/c10_embedding/embedding_weights/part_5, input_layer/c10_embedding/embedding_weights/part_6, input_layer/c10_embedding/embedding_weights/part_7, input_layer/embedding/embedding_weights/part_0, input_layer/embedding/embedding_weights/part_1, input_layer/embedding/embedding_weights/part_2, input_layer/embedding/embedding_weights/part_3, input_layer/embedding/embedding_weights/part_4, input_layer/embedding/embedding_weights/part_5, input_layer/embedding/embedding_weights/part_6, input_layer/embedding/embedding_weights/part_7, input_layer/c20_embedding/embedding_weights/part_0, input_layer/c20_embedding/embedding_weights/part_1, input_layer/c20_embedding/embedding_weights/part_2, input_layer/c20_embedding/embedding_weights/part_3, input_layer/c20_embedding/embedding_weights/part_4, input_layer/c20_embedding/embedding_weights/part_5, input_layer/c20_embedding/embedding_weights/part_6, input_layer/c20_embedding/embedding_weights/part_7, input_layer/c21_embedding/embedding_weights/part_0, input_layer/c21_embedding/embedding_weights/part_1, input_layer/c21_embedding/embedding_weights/part_2, input_layer/c21_embedding/embedding_weights/part_3, input_layer/c21_embedding/embedding_weights/part_4, input_layer/c21_embedding/embedding_weights/part_5, input_layer/c21_embedding/embedding_weights/part_6, input_layer/c21_embedding/embedding_weights/part_7, input_layer/c22_embedding/embedding_weights/part_0, input_layer/c22_embedding/embedding_weights/part_1, input_layer/c22_embedding/embedding_weights/part_2, input_layer/c22_embedding/embedding_weights/part_3, input_layer/c22_embedding/embedding_weights/part_4, input_layer/c22_embedding/embedding_weights/part_5, input_layer/c22_embedding/embedding_weights/part_6, input_layer/c22_embedding/embedding_weights/part_7, bot_dnn/dnn_0/kernel, bot_dnn/dnn_0/bias, bot_dnn/dnn_0/bn/gamma, bot_dnn/dnn_0/bn/beta, bot_dnn/dnn_0/bn/moving_mean, bot_dnn/dnn_0/bn/moving_variance, bot_dnn/dnn_1/kernel, bot_dnn/dnn_1/bias, bot_dnn/dnn_1/bn/gamma, bot_dnn/dnn_1/bn/beta, bot_dnn/dnn_1/bn/moving_mean, bot_dnn/dnn_1/bn/moving_variance, bot_dnn/dnn_2/kernel, bot_dnn/dnn_2/bias, bot_dnn/dnn_2/bn/gamma, bot_dnn/dnn_2/bn/beta, bot_dnn/dnn_2/bn/moving_mean, bot_dnn/dnn_2/bn/moving_variance, top_dnn/dnn_0/kernel, top_dnn/dnn_0/bias, top_dnn/dnn_0/bn/gamma, top_dnn/dnn_0/bn/beta, top_dnn/dnn_0/bn/moving_mean, top_dnn/dnn_0/bn/moving_variance, top_dnn/dnn_1/kernel, top_dnn/dnn_1/bias, top_dnn/dnn_1/bn/gamma, top_dnn/dnn_1/bn/beta, top_dnn/dnn_1/bn/moving_mean, top_dnn/dnn_1/bn/moving_variance, top_dnn/dnn_2/kernel, top_dnn/dnn_2/bias, top_dnn/dnn_2/bn/gamma, top_dnn/dnn_2/bn/beta, top_dnn/dnn_2/bn/moving_mean, top_dnn/dnn_2/bn/moving_variance, top_dnn/dnn_3/kernel, top_dnn/dnn_3/bias, top_dnn/dnn_3/bn/gamma, top_dnn/dnn_3/bn/beta, top_dnn/dnn_3/bn/moving_mean, top_dnn/dnn_3/bn/moving_variance, output/kernel, output/bias, input_layer/c10_embedding/embedding_weights/part_0/Momentum, input_layer/c10_embedding/embedding_weights/part_1/Momentum, input_layer/c10_embedding/embedding_weights/part_2/Momentum, input_layer/c10_embedding/embedding_weights/part_3/Momentum, input_layer/c10_embedding/embedding_weights/part_4/Momentum, input_layer/c10_embedding/embedding_weights/part_5/Momentum, input_layer/c10_embedding/embedding_weights/part_6/Momentum, input_layer/c10_embedding/embedding_weights/part_7/Momentum, input_layer/embedding/embedding_weights/part_0/Momentum, input_layer/embedding/embedding_weights/part_1/Momentum, input_layer/embedding/embedding_weights/part_2/Momentum, input_layer/embedding/embedding_weights/part_3/Momentum, input_layer/embedding/embedding_weights/part_4/Momentum, input_layer/embedding/embedding_weights/part_5/Momentum, input_layer/embedding/embedding_weights/part_6/Momentum, input_layer/embedding/embedding_weights/part_7/Momentum, input_layer/c20_embedding/embedding_weights/part_0/Momentum, input_layer/c20_embedding/embedding_weights/part_1/Momentum, input_layer/c20_embedding/embedding_weights/part_2/Momentum, input_layer/c20_embedding/embedding_weights/part_3/Momentum, input_layer/c20_embedding/embedding_weights/part_4/Momentum, input_layer/c20_embedding/embedding_weights/part_5/Momentum, input_layer/c20_embedding/embedding_weights/part_6/Momentum, input_layer/c20_embedding/embedding_weights/part_7/Momentum, input_layer/c21_embedding/embedding_weights/part_0/Momentum, input_layer/c21_embedding/embedding_weights/part_1/Momentum, input_layer/c21_embedding/embedding_weights/part_2/Momentum, input_layer/c21_embedding/embedding_weights/part_3/Momentum, input_layer/c21_embedding/embedding_weights/part_4/Momentum, input_layer/c21_embedding/embedding_weights/part_5/Momentum, input_layer/c21_embedding/embedding_weights/part_6/Momentum, input_layer/c21_embedding/embedding_weights/part_7/Momentum, input_layer/c22_embedding/embedding_weights/part_0/Momentum, input_layer/c22_embedding/embedding_weights/part_1/Momentum, input_layer/c22_embedding/embedding_weights/part_2/Momentum, input_layer/c22_embedding/embedding_weights/part_3/Momentum, input_layer/c22_embedding/embedding_weights/part_4/Momentum, input_layer/c22_embedding/embedding_weights/part_5/Momentum, input_layer/c22_embedding/embedding_weights/part_6/Momentum, input_layer/c22_embedding/embedding_weights/part_7/Momentum, bot_dnn/dnn_0/kernel/Momentum, bot_dnn/dnn_0/bias/Momentum, bot_dnn/dnn_0/bn/gamma/Momentum, bot_dnn/dnn_0/bn/beta/Momentum, bot_dnn/dnn_1/kernel/Momentum, bot_dnn/dnn_1/bias/Momentum, bot_dnn/dnn_1/bn/gamma/Momentum, bot_dnn/dnn_1/bn/beta/Momentum, bot_dnn/dnn_2/kernel/Momentum, bot_dnn/dnn_2/bias/Momentum, bot_dnn/dnn_2/bn/gamma/Momentum, bot_dnn/dnn_2/bn/beta/Momentum, top_dnn/dnn_0/kernel/Momentum, top_dnn/dnn_0/bias/Momentum, top_dnn/dnn_0/bn/gamma/Momentum, top_dnn/dnn_0/bn/beta/Momentum, top_dnn/dnn_1/kernel/Momentum, top_dnn/dnn_1/bias/Momentum, top_dnn/dnn_1/bn/gamma/Momentum, top_dnn/dnn_1/bn/beta/Momentum, top_dnn/dnn_2/kernel/Momentum, top_dnn/dnn_2/bias/Momentum, top_dnn/dnn_2/bn/gamma/Momentum, top_dnn/dnn_2/bn/beta/Momentum, top_dnn/dnn_3/kernel/Momentum, top_dnn/dnn_3/bias/Momentum, top_dnn/dnn_3/bn/gamma/Momentum, top_dnn/dnn_3/bn/beta/Momentum, output/kernel/Momentum, output/bias/Momentum, ready: None
+INFO:tensorflow:Running local_init_op.
+I0510 10:39:24.785370 140265624123200 session_manager.py:500] Running local_init_op.
+INFO:tensorflow:Done running local_init_op.
+I0510 10:39:25.028026 140265624123200 session_manager.py:502] Done running local_init_op.
+2022-05-10 10:39:29.313349: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+I0510 10:39:29.932718 140232527689472 criteo_input.py:70] start epoch: 0
+2022-05-10 10:39:35.198126: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+INFO:tensorflow:loss = 0.6738823, step = 0
+I0510 10:39:38.524451 140265624123200 basic_session_run_hooks.py:262] loss = 0.6738823, step = 0
+INFO:tensorflow:lr = 1e-04,step = 0,cross_entropy_loss = 0.66841567,regularization_loss = 0.005466647,total_loss = 0.6738823
+I0510 10:39:38.524730 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 0,cross_entropy_loss = 0.66841567,regularization_loss = 0.005466647,total_loss = 0.6738823
+INFO:tensorflow:loss = 0.23698804, step = 384 (45.843 sec)
+I0510 10:40:24.367936 140265624123200 basic_session_run_hooks.py:260] loss = 0.23698804, step = 384 (45.843 sec)
+INFO:tensorflow:lr = 1e-04,step = 384,cross_entropy_loss = 0.22997215,regularization_loss = 0.007015886,total_loss = 0.23698804
+I0510 10:40:24.368459 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 384,cross_entropy_loss = 0.22997215,regularization_loss = 0.007015886,total_loss = 0.23698804
+I0510 10:40:58.411654 140238978533120 criteo_input.py:73] finish epoch: 0
+I0510 10:40:58.412179 140238978533120 criteo_input.py:70] start epoch: 1
+INFO:tensorflow:loss = 0.17884435, step = 960 (42.255 sec)
+I0510 10:41:06.623099 140265624123200 basic_session_run_hooks.py:260] loss = 0.17884435, step = 960 (42.255 sec)
+INFO:tensorflow:lr = 1e-04,step = 960,cross_entropy_loss = 0.17125086,regularization_loss = 0.00759349,total_loss = 0.17884435
+I0510 10:41:06.623467 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 960,cross_entropy_loss = 0.17125086,regularization_loss = 0.00759349,total_loss = 0.17884435
+I0510 10:41:18.278277 140232519296768 criteo_input.py:73] finish epoch: 1
+I0510 10:41:18.278922 140232519296768 criteo_input.py:70] start epoch: 2
+INFO:tensorflow:loss = 0.1625539, step = 1426 (21.420 sec)
+I0510 10:41:28.042769 140265624123200 basic_session_run_hooks.py:260] loss = 0.1625539, step = 1426 (21.420 sec)
+INFO:tensorflow:lr = 1e-04,step = 1426,cross_entropy_loss = 0.15489188,regularization_loss = 0.0076620346,total_loss = 0.1625539
+I0510 10:41:28.043325 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 1426,cross_entropy_loss = 0.15489188,regularization_loss = 0.0076620346,total_loss = 0.1625539
+INFO:tensorflow:loss = 0.15523398, step = 2029 (24.719 sec)
+I0510 10:41:52.761723 140265624123200 basic_session_run_hooks.py:260] loss = 0.15523398, step = 2029 (24.719 sec)
+INFO:tensorflow:lr = 1e-04,step = 2029,cross_entropy_loss = 0.14764181,regularization_loss = 0.0075921696,total_loss = 0.15523398
+I0510 10:41:52.762906 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 2029,cross_entropy_loss = 0.14764181,regularization_loss = 0.0075921696,total_loss = 0.15523398
+I0510 10:42:01.353103 140234540955392 criteo_input.py:73] finish epoch: 2
+I0510 10:42:01.354278 140234540955392 criteo_input.py:70] start epoch: 3
+INFO:tensorflow:loss = 0.1498598, step = 2734 (27.323 sec)
+I0510 10:42:20.084485 140265624123200 basic_session_run_hooks.py:260] loss = 0.1498598, step = 2734 (27.323 sec)
+INFO:tensorflow:lr = 1e-04,step = 2734,cross_entropy_loss = 0.14243355,regularization_loss = 0.007426248,total_loss = 0.1498598
+I0510 10:42:20.085151 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 2734,cross_entropy_loss = 0.14243355,regularization_loss = 0.007426248,total_loss = 0.1498598
+INFO:tensorflow:loss = 0.14929463, step = 3424 (26.719 sec)
+I0510 10:42:46.803231 140265624123200 basic_session_run_hooks.py:260] loss = 0.14929463, step = 3424 (26.719 sec)
+INFO:tensorflow:lr = 1e-04,step = 3424,cross_entropy_loss = 0.14203788,regularization_loss = 0.0072567468,total_loss = 0.14929463
+I0510 10:42:46.803560 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 3424,cross_entropy_loss = 0.14203788,regularization_loss = 0.0072567468,total_loss = 0.14929463
+I0510 10:42:47.606925 140234524169984 criteo_input.py:73] finish epoch: 3
+I0510 10:42:47.607841 140234524169984 criteo_input.py:70] start epoch: 4
+INFO:tensorflow:loss = 0.1465914, step = 4106 (26.316 sec)
+I0510 10:43:13.119854 140265624123200 basic_session_run_hooks.py:260] loss = 0.1465914, step = 4106 (26.316 sec)
+INFO:tensorflow:lr = 1e-04,step = 4106,cross_entropy_loss = 0.13949476,regularization_loss = 0.007096626,total_loss = 0.1465914
+I0510 10:43:13.121863 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 4106,cross_entropy_loss = 0.13949476,regularization_loss = 0.007096626,total_loss = 0.1465914
+I0510 10:43:32.714007 140237904791296 criteo_input.py:73] finish epoch: 4
+I0510 10:43:32.714772 140237904791296 criteo_input.py:70] start epoch: 5
+INFO:tensorflow:loss = 0.14418007, step = 4794 (26.665 sec)
+I0510 10:43:39.784288 140265624123200 basic_session_run_hooks.py:260] loss = 0.14418007, step = 4794 (26.665 sec)
+INFO:tensorflow:lr = 1e-04,step = 4794,cross_entropy_loss = 0.13724658,regularization_loss = 0.006933502,total_loss = 0.14418007
+I0510 10:43:39.784549 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 4794,cross_entropy_loss = 0.13724658,regularization_loss = 0.006933502,total_loss = 0.14418007
+INFO:tensorflow:loss = 0.1470431, step = 5485 (26.699 sec)
+I0510 10:44:06.483104 140265624123200 basic_session_run_hooks.py:260] loss = 0.1470431, step = 5485 (26.699 sec)
+INFO:tensorflow:lr = 1e-04,step = 5485,cross_entropy_loss = 0.14027229,regularization_loss = 0.006770801,total_loss = 0.1470431
+I0510 10:44:06.484131 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 5485,cross_entropy_loss = 0.14027229,regularization_loss = 0.006770801,total_loss = 0.1470431
+I0510 10:44:18.690317 140233584645888 criteo_input.py:73] finish epoch: 5
+I0510 10:44:18.690902 140233584645888 criteo_input.py:70] start epoch: 6
+INFO:tensorflow:loss = 0.1489201, step = 6176 (26.929 sec)
+I0510 10:44:33.411835 140265624123200 basic_session_run_hooks.py:260] loss = 0.1489201, step = 6176 (26.929 sec)
+INFO:tensorflow:lr = 1e-04,step = 6176,cross_entropy_loss = 0.1421879,regularization_loss = 0.006732215,total_loss = 0.1489201
+I0510 10:44:33.412096 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 6176,cross_entropy_loss = 0.1421879,regularization_loss = 0.006732215,total_loss = 0.1489201
+INFO:tensorflow:loss = 0.14509676, step = 6866 (26.676 sec)
+I0510 10:45:00.088284 140265624123200 basic_session_run_hooks.py:260] loss = 0.14509676, step = 6866 (26.676 sec)
+INFO:tensorflow:lr = 1e-04,step = 6866,cross_entropy_loss = 0.13844708,regularization_loss = 0.006649693,total_loss = 0.14509676
+I0510 10:45:00.088723 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 6866,cross_entropy_loss = 0.13844708,regularization_loss = 0.006649693,total_loss = 0.14509676
+I0510 10:45:04.257838 140235765700352 criteo_input.py:73] finish epoch: 6
+I0510 10:45:04.258507 140235765700352 criteo_input.py:70] start epoch: 7
+INFO:tensorflow:loss = 0.14282767, step = 7548 (26.826 sec)
+I0510 10:45:26.914632 140265624123200 basic_session_run_hooks.py:260] loss = 0.14282767, step = 7548 (26.826 sec)
+INFO:tensorflow:lr = 1e-04,step = 7548,cross_entropy_loss = 0.13626921,regularization_loss = 0.006558456,total_loss = 0.14282767
+I0510 10:45:26.915271 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 7548,cross_entropy_loss = 0.13626921,regularization_loss = 0.006558456,total_loss = 0.14282767
+I0510 10:45:51.100304 140233047774976 criteo_input.py:73] finish epoch: 7
+I0510 10:45:51.100898 140233047774976 criteo_input.py:70] start epoch: 8
+INFO:tensorflow:loss = 0.14112183, step = 8249 (27.940 sec)
+I0510 10:45:54.854521 140265624123200 basic_session_run_hooks.py:260] loss = 0.14112183, step = 8249 (27.940 sec)
+INFO:tensorflow:lr = 1e-04,step = 8249,cross_entropy_loss = 0.13465714,regularization_loss = 0.0064646923,total_loss = 0.14112183
+I0510 10:45:54.854981 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 8249,cross_entropy_loss = 0.13465714,regularization_loss = 0.0064646923,total_loss = 0.14112183
+INFO:tensorflow:loss = 0.15105347, step = 9045 (30.349 sec)
+I0510 10:46:25.203022 140265624123200 basic_session_run_hooks.py:260] loss = 0.15105347, step = 9045 (30.349 sec)
+INFO:tensorflow:lr = 1e-04,step = 9045,cross_entropy_loss = 0.14461558,regularization_loss = 0.0064378926,total_loss = 0.15105347
+I0510 10:46:25.203355 140265624123200 basic_session_run_hooks.py:254] lr = 1e-04,step = 9045,cross_entropy_loss = 0.14461558,regularization_loss = 0.0064378926,total_loss = 0.15105347

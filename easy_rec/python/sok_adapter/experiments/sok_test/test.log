@@ -1,0 +1,204 @@
+2022-05-06 08:44:23.242658: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+WARNING:tensorflow:Deprecation warnings have been disabled. Set TF_ENABLE_DEPRECATION_WARNINGS=1 to re-enable them.
+2022-05-06 08:44:24.127444: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+WARNING:tensorflow:TensorFlow will not use sklearn by default. This improves performance in some cases. To enable sklearn export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Dask by default. This improves performance in some cases. To enable Dask export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Pandas by default. This improves performance in some cases. To enable Pandas export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-06 08:44:25,414][INFO] GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"
+[2022-05-06 08:44:25,509][INFO] Try importing sparse_operation_kit ...
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+[2022-05-06 08:44:25,566][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+[2022-05-06 08:44:25,566][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+[2022-05-06 08:44:25,728][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+[2022-05-06 08:44:25,824][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+[2022-05-06 08:44:25,824][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+[2022-05-06 08:44:26,434][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+[2022-05-06 08:44:26,479][WARNING] 
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+[2022-05-06 08:44:26,521][WARNING] DataHub is not installed. You can install it by: pip install pydatahub
+[2022-05-06 08:44:26,531][WARNING] pyhive is not installed.
+2022-05-06 08:44:26.632489: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+2022-05-06 08:44:26.742754: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-06 08:44:26.743615: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-06 08:44:26.743634: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-06 08:44:26.756707: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-06 08:44:26.788754: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-06 08:44:26.793292: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-06 08:44:26.796475: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-06 08:44:26.802604: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-06 08:44:26.802802: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-06 08:44:26.805953: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-06 08:44:26.823784: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2194900000 Hz
+2022-05-06 08:44:26.828902: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x569ec30 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2022-05-06 08:44:26.828929: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2022-05-06 08:44:27.080951: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x567f710 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-05-06 08:44:27.080979: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2022-05-06 08:44:27.080983: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (1): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2022-05-06 08:44:27.082693: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-06 08:44:27.083474: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-06 08:44:27.083499: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-06 08:44:27.083540: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-06 08:44:27.083552: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-06 08:44:27.083563: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-06 08:44:27.083573: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-06 08:44:27.083591: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-06 08:44:27.083603: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-06 08:44:27.086730: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-06 08:44:28.492953: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-06 08:44:28.492990: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-06 08:44:28.492997: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-06 08:44:28.493000: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-06 08:44:28.495773: W tensorflow/core/common_runtime/gpu/gpu_bfc_allocator.cc:39] Overriding allow_growth setting because the TF_FORCE_GPU_ALLOW_GROWTH environment variable is set. Original config value was 0.
+2022-05-06 08:44:28.495812: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-06 08:44:28.497237: W tensorflow/core/common_runtime/gpu/gpu_bfc_allocator.cc:39] Overriding allow_growth setting because the TF_FORCE_GPU_ALLOW_GROWTH environment variable is set. Original config value was 0.
+2022-05-06 08:44:28.497262: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+2022-05-06 08:44:28.504901: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-06 08:44:28.505698: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-06 08:44:28.505727: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-06 08:44:28.505775: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-06 08:44:28.505789: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-06 08:44:28.505801: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-06 08:44:28.505813: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-06 08:44:28.505824: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-06 08:44:28.505837: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-06 08:44:28.508912: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-06 08:44:28.508932: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-06 08:44:28.508937: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-06 08:44:28.508940: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-06 08:44:28.508943: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-06 08:44:28.511329: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-06 08:44:28.512217: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+[2022-05-06 08:44:28,534][INFO] Modifying <tensorflow.python.keras.optimizer_v2.gradient_descent.SGD object at 0x7fbda0525fd0> 's apply_gradients
+WARNING:tensorflow:From experiments/sok_test/sparse_test.py:101: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+[2022-05-06 08:44:29,325][WARNING] From experiments/sok_test/sparse_test.py:101: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+2022-05-06 08:44:29.327168: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-06 08:44:29.327949: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-06 08:44:29.327976: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-06 08:44:29.328013: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-06 08:44:29.328025: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-06 08:44:29.328035: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-06 08:44:29.328045: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-06 08:44:29.328055: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-06 08:44:29.328066: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-06 08:44:29.331099: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-06 08:44:29.331137: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-06 08:44:29.331142: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-06 08:44:29.331146: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-06 08:44:29.331149: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-06 08:44:29.333467: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-06 08:44:29.334459: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:107] Mapping from local_replica_id to device_id:
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:109] 0 -> 0
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:109] 1 -> 1
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:84] Global seed is 2445451293
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:85] Local GPU Count: 2
+2022-05-06 08:44:29.826669: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:86] Global GPU Count: 2
+2022-05-06 08:44:30.826670: I 2022-05-06 08:44:30.826670: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:127] Global Replica Id: 1; Local Replica Id: 1
+sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:127] Global Replica Id: 0; Local Replica Id: 0
+2022-05-06 08:44:30.767533: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-06 08:44:30.808172: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:198] All peer to peer access enabled.
+WARNING:tensorflow:From experiments/sok_test/sparse_test.py:103: The name tf.global_variables_initializer is deprecated. Please use tf.compat.v1.global_variables_initializer instead.
+
+[2022-05-06 08:44:31,307][WARNING] From experiments/sok_test/sparse_test.py:103: The name tf.global_variables_initializer is deprecated. Please use tf.compat.v1.global_variables_initializer instead.
+
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:48] ==========================
+
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:49] resource_mgr_->get_local_gpu_count(): 2
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_manager.cc:132] Created embedding variable whose name is EmbeddingVariable/replica_1
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:48] ==========================
+
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:49] resource_mgr_->get_local_gpu_count(): 2
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_manager.cc:132] Created embedding variable whose name is EmbeddingVariable
+2022-05-06 08:44:31.826671: I 2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:123] Variable: EmbeddingVariable on global_replica_id: 0 start initialization
+sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:123] Variable: EmbeddingVariable on global_replica_id: 1 start initialization
+2022-05-06 202208:044:31.826671-: I 05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:140] sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:140] Variable: EmbeddingVariable on global_replica_id: 0 initialization done.
+Variable: EmbeddingVariable on global_replica_id: 1 initialization done.2022
+-05-2022-6 08:044:31.5826671: I -06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:123] Variable: EmbeddingVariable/replica_1 on global_replica_id: 0 start initialization
+sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:123] Variable: EmbeddingVariable/replica_1 on global_replica_id: 1 start initialization
+2022-05-06 08:44:31.826671: I 2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:140] Variable: EmbeddingVariable/replica_1 on global_replica_id: 0 initialization done.
+sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:140] Variable: EmbeddingVariable/replica_1 on global_replica_id: 1 initialization done.
+2022-05-06 08:44:31.826671: I sparse_operation_kit/kit_cc/kit_cc_infra/src/facade.cc:257] SparseOperationKit allocated internal memory.
+[INFO]: sparse_operation_kit is imported
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+easy_rec version: 0.4.2
+Usage: easy_rec.help()
+0.0006482985
+0.0006482912
+0.000648284
+0.00064827676
+0.00064826955
+0.0006482623
+0.0006482551
+0.00064824783
+0.0006482406
+0.0006482334

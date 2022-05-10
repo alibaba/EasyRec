@@ -1,0 +1,700 @@
+2022-05-09 04:39:29.719906: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+WARNING:tensorflow:Deprecation warnings have been disabled. Set TF_ENABLE_DEPRECATION_WARNINGS=1 to re-enable them.
+[2022-05-09 04:39:30,751][INFO] GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"
+[2022-05-09 04:39:30,831][INFO] Try importing sparse_operation_kit ...
+2022-05-09 04:39:30.844034: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+WARNING:tensorflow:TensorFlow will not use sklearn by default. This improves performance in some cases. To enable sklearn export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-09 04:39:30,908][WARNING] TensorFlow will not use sklearn by default. This improves performance in some cases. To enable sklearn export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Dask by default. This improves performance in some cases. To enable Dask export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-09 04:39:30,946][WARNING] TensorFlow will not use Dask by default. This improves performance in some cases. To enable Dask export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:TensorFlow will not use Pandas by default. This improves performance in some cases. To enable Pandas export the environment variable  TF_ALLOW_IOLIBS=1.
+[2022-05-09 04:39:30,951][WARNING] TensorFlow will not use Pandas by default. This improves performance in some cases. To enable Pandas export the environment variable  TF_ALLOW_IOLIBS=1.
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+[2022-05-09 04:39:31,215][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:28: The name tf.train.SessionRunHook is deprecated. Please use tf.estimator.SessionRunHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+[2022-05-09 04:39:31,216][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/utils/estimator_utils.py:29: The name tf.train.CheckpointSaverHook is deprecated. Please use tf.estimator.CheckpointSaverHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+[2022-05-09 04:39:31,250][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/feature_column/feature_column.py:19: The name tf.min_max_variable_partitioner is deprecated. Please use tf.compat.v1.min_max_variable_partitioner instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+[2022-05-09 04:39:31,272][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:39: The name tf.GPUOptions is deprecated. Please use tf.compat.v1.GPUOptions instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+[2022-05-09 04:39:31,272][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/main.py:40: The name tf.ConfigProto is deprecated. Please use tf.compat.v1.ConfigProto instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+[2022-05-09 04:39:31,636][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/layers/layer_norm.py:9: The name tf.layers.Layer is deprecated. Please use tf.compat.v1.layers.Layer instead.
+
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+[2022-05-09 04:39:31,653][WARNING] 
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+[2022-05-09 04:39:31,661][WARNING] DataHub is not installed. You can install it by: pip install pydatahub
+[2022-05-09 04:39:31,665][WARNING] pyhive is not installed.
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/train_eval.py:147: The name tf.app.run is deprecated. Please use tf.compat.v1.app.run instead.
+
+[2022-05-09 04:39:31,691][WARNING] From /home/ruotongw/EasyRec/easy_rec/python/train_eval.py:147: The name tf.app.run is deprecated. Please use tf.compat.v1.app.run instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:40: The name tf.gfile.Exists is deprecated. Please use tf.io.gfile.exists instead.
+
+W0509 04:39:31.691600 140102136461120 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:40: The name tf.gfile.Exists is deprecated. Please use tf.io.gfile.exists instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:45: The name tf.gfile.GFile is deprecated. Please use tf.io.gfile.GFile instead.
+
+W0509 04:39:31.691797 140102136461120 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:45: The name tf.gfile.GFile is deprecated. Please use tf.io.gfile.GFile instead.
+
+W0509 04:39:31.696799 140102136461120 main.py:282] will set sync_replicas to False, because train_distribute[2] != NoStrategy
+2022-05-09 04:39:31.697951: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+2022-05-09 04:39:31.799750: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:31.800544: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:31.800560: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:31.804887: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:31.831700: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:31.831976: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:31.832522: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:31.833403: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:31.833548: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:31.836618: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:31.851052: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2195025000 Hz
+2022-05-09 04:39:31.855686: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x422af90 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2022-05-09 04:39:31.855709: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2022-05-09 04:39:32.091455: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x1f23d50 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-05-09 04:39:32.091492: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2022-05-09 04:39:32.091496: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (1): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2022-05-09 04:39:32.093465: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:32.094259: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:32.095966: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:32.096258: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:32.096276: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:32.096289: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:32.096301: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:32.096313: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:32.096325: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:32.099450: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:32.728857: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:39:32.728890: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:39:32.728904: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:39:32.728907: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:39:32.731518: W tensorflow/core/common_runtime/gpu/gpu_bfc_allocator.cc:39] Overriding allow_growth setting because the TF_FORCE_GPU_ALLOW_GROWTH environment variable is set. Original config value was 0.
+2022-05-09 04:39:32.731555: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:39:32.733061: W tensorflow/core/common_runtime/gpu/gpu_bfc_allocator.cc:39] Overriding allow_growth setting because the TF_FORCE_GPU_ALLOW_GROWTH environment variable is set. Original config value was 0.
+2022-05-09 04:39:32.733085: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+2022-05-09 04:39:32.741875: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:32.742717: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:32.742743: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:32.742778: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:32.742790: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:32.742799: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:32.742809: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:32.742819: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:32.742829: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:32.745854: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:32.745874: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:39:32.745878: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:39:32.745882: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:39:32.745884: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:39:32.748290: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:39:32.749179: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+INFO:tensorflow:Initializing RunConfig with distribution strategies.
+I0509 04:39:32.754706 140102136461120 run_config.py:566] Initializing RunConfig with distribution strategies.
+INFO:tensorflow:Not using Distribute Coordinator.
+I0509 04:39:32.755141 140102136461120 estimator_training.py:167] Not using Distribute Coordinator.
+INFO:tensorflow:Using config: {'_model_dir': 'experiments/dlrm/taobao_ckpt', '_tf_random_seed': None, '_save_summary_steps': 1000, '_save_checkpoints_steps': 100, '_save_checkpoints_secs': None, '_session_config': gpu_options {
+  allow_growth: true
+}
+allow_soft_placement: true
+, '_keep_checkpoint_max': 10, '_keep_checkpoint_every_n_hours': 10000, '_log_step_count_steps': 10, '_train_distribute': <tensorflow.python.distribute.mirrored_strategy.MirroredStrategyV1 object at 0x7f6a605423a0>, '_device_fn': None, '_protocol': None, '_eval_distribute': <tensorflow.python.distribute.mirrored_strategy.MirroredStrategyV1 object at 0x7f6a605423a0>, '_experimental_distribute': None, '_experimental_max_worker_delay_secs': None, '_session_creation_timeout_secs': 7200, '_service': None, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f6a605427c0>, '_task_type': 'worker', '_task_id': 0, '_global_id_in_cluster': 0, '_master': '', '_evaluation_master': '', '_is_chief': True, '_num_ps_replicas': 0, '_num_worker_replicas': 1, '_distribute_coordinator_mode': None}
+I0509 04:39:32.755599 140102136461120 estimator.py:212] Using config: {'_model_dir': 'experiments/dlrm/taobao_ckpt', '_tf_random_seed': None, '_save_summary_steps': 1000, '_save_checkpoints_steps': 100, '_save_checkpoints_secs': None, '_session_config': gpu_options {
+  allow_growth: true
+}
+allow_soft_placement: true
+, '_keep_checkpoint_max': 10, '_keep_checkpoint_every_n_hours': 10000, '_log_step_count_steps': 10, '_train_distribute': <tensorflow.python.distribute.mirrored_strategy.MirroredStrategyV1 object at 0x7f6a605423a0>, '_device_fn': None, '_protocol': None, '_eval_distribute': <tensorflow.python.distribute.mirrored_strategy.MirroredStrategyV1 object at 0x7f6a605423a0>, '_experimental_distribute': None, '_experimental_max_worker_delay_secs': None, '_session_creation_timeout_secs': 7200, '_service': None, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f6a605427c0>, '_task_type': 'worker', '_task_id': 0, '_global_id_in_cluster': 0, '_master': '', '_evaluation_master': '', '_is_chief': True, '_num_ps_replicas': 0, '_num_worker_replicas': 1, '_distribute_coordinator_mode': None}
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:199: The name tf.gfile.IsDirectory is deprecated. Please use tf.io.gfile.isdir instead.
+
+W0509 04:39:32.756161 140102136461120 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/main.py:199: The name tf.gfile.IsDirectory is deprecated. Please use tf.io.gfile.isdir instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/main.py:202: The name tf.gfile.Glob is deprecated. Please use tf.io.gfile.glob instead.
+
+W0509 04:39:32.756318 140102136461120 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/main.py:202: The name tf.gfile.Glob is deprecated. Please use tf.io.gfile.glob instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:312: The name tf.gfile.Open is deprecated. Please use tf.io.gfile.GFile instead.
+
+W0509 04:39:32.760874 140102136461120 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/utils/config_util.py:312: The name tf.gfile.Open is deprecated. Please use tf.io.gfile.GFile instead.
+
+I0509 04:39:32.761064 140102136461120 config_util.py:313] Writing protobuf message file to experiments/dlrm/taobao_ckpt/pipeline.config
+I0509 04:39:32.767001 140102136461120 main.py:309] train_steps = 2500
+INFO:tensorflow:Not using Distribute Coordinator.
+I0509 04:39:32.769413 140102136461120 estimator_training.py:186] Not using Distribute Coordinator.
+INFO:tensorflow:Running training and evaluation locally (non-distributed).
+I0509 04:39:32.769641 140102136461120 training.py:612] Running training and evaluation locally (non-distributed).
+INFO:tensorflow:Start train and evaluate loop. The evaluate will happen after every checkpoint. Checkpoint frequency is determined based on RunConfig arguments: save_checkpoints_steps 100 or save_checkpoints_secs None.
+I0509 04:39:32.769960 140102136461120 training.py:695] Start train and evaluate loop. The evaluate will happen after every checkpoint. Checkpoint frequency is determined based on RunConfig arguments: save_checkpoints_steps 100 or save_checkpoints_secs None.
+I0509 04:39:32.776247 140102136461120 csv_input.py:93] train files[1]: data/test/tb_data/taobao_train_data
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.decode_csv is deprecated. Please use tf.io.decode_csv instead.
+
+W0509 04:39:32.921546 140102136461120 module_wrapper.py:137] From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.decode_csv is deprecated. Please use tf.io.decode_csv instead.
+
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.string_to_number is deprecated. Please use tf.strings.to_number instead.
+
+W0509 04:39:36.170176 140102136461120 module_wrapper.py:137] From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.string_to_number is deprecated. Please use tf.strings.to_number instead.
+
+WARNING:tensorflow:From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.assert_equal is deprecated. Please use tf.compat.v1.assert_equal instead.
+
+W0509 04:39:36.171579 140102136461120 module_wrapper.py:137] From /usr/local/lib/python3.8/dist-packages/tensorflow_core/python/autograph/converters/directives.py:119: The name tf.assert_equal is deprecated. Please use tf.compat.v1.assert_equal instead.
+
+I0509 04:39:42.398642 140102136461120 __init__.py:34] Modifying <tensorflow.python.keras.optimizer_v2.gradient_descent.SGD object at 0x7f6a6019a490> 's apply_gradients
+INFO:tensorflow:Calling model_fn.
+I0509 04:39:42.400687 140072959596288 estimator.py:1148] Calling model_fn.
+I0509 04:39:42.401299 140072959596288 feature_column.py:99] shared embeddings[num=0]
+2022-05-09 04:39:42.403270: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:42.404060: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:42.404084: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:42.404155: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:42.404168: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:42.404179: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:42.404189: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:42.404198: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:42.404208: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:42.407280: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:42.407339: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:39:42.407345: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:39:42.407348: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:39:42.407351: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:39:42.409722: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:39:42.410681: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py:369: The name tf.get_collection is deprecated. Please use tf.compat.v1.get_collection instead.
+
+W0509 04:39:42.484161 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py:369: The name tf.get_collection is deprecated. Please use tf.compat.v1.get_collection instead.
+
+I0509 04:39:43.125768 140072959596288 dnn.py:28] dnn activation function = tf.nn.relu
+I0509 04:39:43.299132 140072959596288 dlrm.py:41] arch_interaction_op = dot
+I0509 04:39:43.439629 140072959596288 dnn.py:28] dnn activation function = tf.nn.relu
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/builders/loss_builder.py:17: The name tf.losses.sigmoid_cross_entropy is deprecated. Please use tf.compat.v1.losses.sigmoid_cross_entropy instead.
+
+W0509 04:39:43.575268 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/builders/loss_builder.py:17: The name tf.losses.sigmoid_cross_entropy is deprecated. Please use tf.compat.v1.losses.sigmoid_cross_entropy instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:89: The name tf.GraphKeys is deprecated. Please use tf.compat.v1.GraphKeys instead.
+
+W0509 04:39:43.590589 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:89: The name tf.GraphKeys is deprecated. Please use tf.compat.v1.GraphKeys instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:108: The name tf.summary.scalar is deprecated. Please use tf.compat.v1.summary.scalar instead.
+
+W0509 04:39:43.591673 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:108: The name tf.summary.scalar is deprecated. Please use tf.compat.v1.summary.scalar instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:159: The name tf.train.get_or_create_global_step is deprecated. Please use tf.compat.v1.train.get_or_create_global_step instead.
+
+W0509 04:39:43.594779 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:159: The name tf.train.get_or_create_global_step is deprecated. Please use tf.compat.v1.train.get_or_create_global_step instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/core/learning_schedules.py:62: The name tf.train.exponential_decay is deprecated. Please use tf.compat.v1.train.exponential_decay instead.
+
+W0509 04:39:43.594926 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/core/learning_schedules.py:62: The name tf.train.exponential_decay is deprecated. Please use tf.compat.v1.train.exponential_decay instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:65: The name tf.train.AdamOptimizer is deprecated. Please use tf.compat.v1.train.AdamOptimizer instead.
+
+W0509 04:39:43.602223 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/builders/optimizer_builder.py:65: The name tf.train.AdamOptimizer is deprecated. Please use tf.compat.v1.train.AdamOptimizer instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:221: The name tf.trainable_variables is deprecated. Please use tf.compat.v1.trainable_variables instead.
+
+W0509 04:39:43.603163 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:221: The name tf.trainable_variables is deprecated. Please use tf.compat.v1.trainable_variables instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:224: The name tf.train.get_global_step is deprecated. Please use tf.compat.v1.train.get_global_step instead.
+
+W0509 04:39:43.603280 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:224: The name tf.train.get_global_step is deprecated. Please use tf.compat.v1.train.get_global_step instead.
+
+INFO:tensorflow:Calling model_fn.
+I0509 04:39:43.839772 140071969748736 estimator.py:1148] Calling model_fn.
+I0509 04:39:43.840182 140071969748736 feature_column.py:99] shared embeddings[num=0]
+2022-05-09 04:39:43.842208: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:43.843022: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:43.843051: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:43.843088: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:43.843099: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:43.843110: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:43.843127: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:43.843138: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:43.843148: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:43.846242: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:43.846315: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:39:43.846322: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:39:43.846326: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:39:43.846329: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:39:43.848739: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:39:43.849707: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+I0509 04:39:43.983595 140071969748736 dnn.py:28] dnn activation function = tf.nn.relu
+I0509 04:39:44.054805 140071969748736 dlrm.py:41] arch_interaction_op = dot
+I0509 04:39:44.128413 140071969748736 dnn.py:28] dnn activation function = tf.nn.relu
+INFO:tensorflow:batch_all_reduce: 22 all-reduces with algorithm = nccl, num_packs = 1, agg_small_grads_max_bytes = 0 and agg_small_grads_max_group = 10
+I0509 04:39:44.959592 140102136461120 cross_device_ops.py:743] batch_all_reduce: 22 all-reduces with algorithm = nccl, num_packs = 1, agg_small_grads_max_bytes = 0 and agg_small_grads_max_group = 10
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:281: The name tf.train.LoggingTensorHook is deprecated. Please use tf.estimator.LoggingTensorHook instead.
+
+W0509 04:39:45.600439 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:281: The name tf.train.LoggingTensorHook is deprecated. Please use tf.estimator.LoggingTensorHook instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:312: The name tf.train.Scaffold is deprecated. Please use tf.compat.v1.train.Scaffold instead.
+
+W0509 04:39:45.600911 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:312: The name tf.train.Scaffold is deprecated. Please use tf.compat.v1.train.Scaffold instead.
+
+WARNING:tensorflow:From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:317: The name tf.report_uninitialized_variables is deprecated. Please use tf.compat.v1.report_uninitialized_variables instead.
+
+W0509 04:39:45.601026 140072959596288 module_wrapper.py:137] From /home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py:317: The name tf.report_uninitialized_variables is deprecated. Please use tf.compat.v1.report_uninitialized_variables instead.
+
+INFO:tensorflow:Done calling model_fn.
+I0509 04:39:45.769949 140072959596288 estimator.py:1150] Done calling model_fn.
+INFO:tensorflow:Done calling model_fn.
+I0509 04:39:45.939640 140071969748736 estimator.py:1150] Done calling model_fn.
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:45.940258 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Create CheckpointSaverHook.
+I0509 04:39:45.949788 140102136461120 basic_session_run_hooks.py:541] Create CheckpointSaverHook.
+WARNING:tensorflow:Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:46.390288 140102136461120 meta_graph.py:445] Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:46.390562 140102136461120 meta_graph.py:445] Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+W0509 04:39:46.390741 140102136461120 meta_graph.py:445] Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+WARNING:tensorflow:Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+W0509 04:39:46.390862 140102136461120 meta_graph.py:445] Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.557111 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.559857 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.575948 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.578611 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.594677 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.597314 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.621309 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.624065 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+I0509 04:39:46.640130 140102136461120 cross_device_ops.py:425] Reduce to /replica:0/task:0/device:CPU:0 then broadcast to ('/replica:0/task:0/device:CPU:0',).
+INFO:tensorflow:Graph was finalized.
+I0509 04:39:46.959254 140102136461120 monitored_session.py:240] Graph was finalized.
+2022-05-09 04:39:46.960734: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:39:46.961519: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:39:46.961546: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:39:46.961594: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:46.961606: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:39:46.961616: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:46.961626: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:39:46.961635: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:46.961645: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:46.964706: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:39:46.964769: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:39:46.964775: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:39:46.964779: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:39:46.964781: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:39:46.967167: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:39:46.968080: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+You are using the plugin with MirroredStrategy.
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:107] Mapping from local_replica_id to device_id:
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:109] 0 -> 0
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:109] 1 -> 1
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:84] Global seed is 165661792
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:85] Local GPU Count: 2
+2022-05-09 04:39:47.071187: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:86] Global GPU Count: 2
+2022-05-09 04:39:48.071188: I 2022-05-09 04:39:48.071188: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:127] Global Replica Id: 1; Local Replica Id: 1
+sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:127] Global Replica Id: 0; Local Replica Id: 0
+2022-05-09 04:39:48.583912: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:39:48.599470: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:39:48.071188: I sparse_operation_kit/kit_cc/kit_cc_infra/src/resources/manager.cc:198] All peer to peer access enabled.
+2022-05-09 04:39:49.071189: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_manager.cc:132] Created embedding variable whose name is EmbeddingVariable/replica_1
+2022-05-09 04:39:49.071189: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_manager.cc:132] Created embedding variable whose name is EmbeddingVariable
+INFO:tensorflow:Running local_init_op.
+I0509 04:39:49.482922 140102136461120 session_manager.py:502] Running local_init_op.
+INFO:tensorflow:Done running local_init_op.
+I0509 04:39:49.557364 140102136461120 session_manager.py:504] Done running local_init_op.
+WARNING:tensorflow:Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:51.199921 140102136461120 meta_graph.py:445] Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:51.200153 140102136461120 meta_graph.py:445] Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+W0509 04:39:51.200324 140102136461120 meta_graph.py:445] Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+WARNING:tensorflow:Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+W0509 04:39:51.200494 140102136461120 meta_graph.py:445] Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+INFO:tensorflow:Saving checkpoints for 0 into experiments/dlrm/taobao_ckpt/model.ckpt.
+I0509 04:39:51.490630 140102136461120 basic_session_run_hooks.py:606] Saving checkpoints for 0 into experiments/dlrm/taobao_ckpt/model.ckpt.
+WARNING:tensorflow:Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:51.904723 140102136461120 meta_graph.py:445] Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:39:51.904952 140102136461120 meta_graph.py:445] Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+W0509 04:39:51.905116 140102136461120 meta_graph.py:445] Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+WARNING:tensorflow:Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+W0509 04:39:51.905225 140102136461120 meta_graph.py:445] Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+2022-05-09 04:39:53.342762: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:39:54.272305: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:120] Variable: EmbeddingVariable on global_replica_id: 0 start initialization
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:137] Variable: EmbeddingVariable on global_replica_id: 0 initialization done.
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:120] Variable: EmbeddingVariable/replica_1 on global_replica_id: 0 start initialization
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:137] Variable: EmbeddingVariable/replica_1 on global_replica_id: 0 initialization done.
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:120] Variable: EmbeddingVariable on global_replica_id: 1 start initialization
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:137] Variable: EmbeddingVariable on global_replica_id: 1 initialization done.
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:120] Variable: EmbeddingVariable/replica_1 on global_replica_id: 1 start initialization
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/parameters/raw_param.cc:137] Variable: EmbeddingVariable/replica_1 on global_replica_id: 1 initialization done.
+2022-05-09 04:39:54.071194: I sparse_operation_kit/kit_cc/kit_cc_infra/src/facade.cc:257] SparseOperationKit allocated internal memory.
+INFO:tensorflow:loss = 26.54829, step = 0
+I0509 04:39:54.799247 140102136461120 basic_session_run_hooks.py:262] loss = 26.54829, step = 0
+INFO:tensorflow:lr = 0.001,step = 0,cross_entropy_loss = 0.84217685,regularization_loss = 17.135775,total_loss = 17.97795
+I0509 04:39:54.799641 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 0,cross_entropy_loss = 0.84217685,regularization_loss = 17.135775,total_loss = 17.97795
+INFO:tensorflow:global_step/sec: 3.76786
+I0509 04:39:57.452638 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 3.76786
+INFO:tensorflow:loss = 25.756004, step = 10 (2.654 sec)
+I0509 04:39:57.452975 140102136461120 basic_session_run_hooks.py:260] loss = 25.756004, step = 10 (2.654 sec)
+INFO:tensorflow:lr = 0.001,step = 10,cross_entropy_loss = 0.5856942,regularization_loss = 16.829292,total_loss = 17.414986
+I0509 04:39:57.453087 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 10,cross_entropy_loss = 0.5856942,regularization_loss = 16.829292,total_loss = 17.414986
+INFO:tensorflow:global_step/sec: 16.456
+I0509 04:39:58.060264 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 16.456
+INFO:tensorflow:loss = 25.75098, step = 20 (0.608 sec)
+I0509 04:39:58.060642 140102136461120 basic_session_run_hooks.py:260] loss = 25.75098, step = 20 (0.608 sec)
+INFO:tensorflow:lr = 0.001,step = 20,cross_entropy_loss = 0.40595692,regularization_loss = 16.679853,total_loss = 17.085808
+I0509 04:39:58.060771 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 20,cross_entropy_loss = 0.40595692,regularization_loss = 16.679853,total_loss = 17.085808
+INFO:tensorflow:global_step/sec: 5.55033
+I0509 04:39:59.861961 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 5.55033
+INFO:tensorflow:loss = 26.120073, step = 30 (1.802 sec)
+I0509 04:39:59.862380 140102136461120 basic_session_run_hooks.py:260] loss = 26.120073, step = 30 (1.802 sec)
+INFO:tensorflow:lr = 0.001,step = 30,cross_entropy_loss = 0.31651473,regularization_loss = 17.222998,total_loss = 17.539513
+I0509 04:39:59.862511 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 30,cross_entropy_loss = 0.31651473,regularization_loss = 17.222998,total_loss = 17.539513
+INFO:tensorflow:global_step/sec: 4.69549
+I0509 04:40:01.991639 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 4.69549
+INFO:tensorflow:loss = 25.828941, step = 40 (2.130 sec)
+I0509 04:40:01.991980 140102136461120 basic_session_run_hooks.py:260] loss = 25.828941, step = 40 (2.130 sec)
+INFO:tensorflow:lr = 0.001,step = 40,cross_entropy_loss = 0.26934862,regularization_loss = 17.05902,total_loss = 17.328367
+I0509 04:40:01.992095 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 40,cross_entropy_loss = 0.26934862,regularization_loss = 17.05902,total_loss = 17.328367
+INFO:tensorflow:global_step/sec: 4.90614
+I0509 04:40:04.029911 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 4.90614
+INFO:tensorflow:loss = 25.851582, step = 50 (2.038 sec)
+I0509 04:40:04.030302 140102136461120 basic_session_run_hooks.py:260] loss = 25.851582, step = 50 (2.038 sec)
+INFO:tensorflow:lr = 0.001,step = 50,cross_entropy_loss = 0.24975954,regularization_loss = 17.236776,total_loss = 17.486536
+I0509 04:40:04.030457 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 50,cross_entropy_loss = 0.24975954,regularization_loss = 17.236776,total_loss = 17.486536
+INFO:tensorflow:global_step/sec: 4.86297
+I0509 04:40:06.086432 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 4.86297
+INFO:tensorflow:loss = 25.862177, step = 60 (2.057 sec)
+I0509 04:40:06.087025 140102136461120 basic_session_run_hooks.py:260] loss = 25.862177, step = 60 (2.057 sec)
+INFO:tensorflow:lr = 0.001,step = 60,cross_entropy_loss = 0.2290352,regularization_loss = 17.00165,total_loss = 17.230682
+I0509 04:40:06.087173 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 60,cross_entropy_loss = 0.2290352,regularization_loss = 17.00165,total_loss = 17.230682
+INFO:tensorflow:global_step/sec: 4.8855
+I0509 04:40:08.133207 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 4.8855
+INFO:tensorflow:loss = 25.707226, step = 70 (2.046 sec)
+I0509 04:40:08.133495 140102136461120 basic_session_run_hooks.py:260] loss = 25.707226, step = 70 (2.046 sec)
+INFO:tensorflow:lr = 0.001,step = 70,cross_entropy_loss = 0.22167428,regularization_loss = 16.910088,total_loss = 17.131762
+I0509 04:40:08.133632 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 70,cross_entropy_loss = 0.22167428,regularization_loss = 16.910088,total_loss = 17.131762
+INFO:tensorflow:global_step/sec: 4.34387
+I0509 04:40:10.435235 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 4.34387
+INFO:tensorflow:loss = 26.011574, step = 80 (2.302 sec)
+I0509 04:40:10.435607 140102136461120 basic_session_run_hooks.py:260] loss = 26.011574, step = 80 (2.302 sec)
+INFO:tensorflow:lr = 0.001,step = 80,cross_entropy_loss = 0.21962315,regularization_loss = 17.127562,total_loss = 17.347185
+I0509 04:40:10.435742 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 80,cross_entropy_loss = 0.21962315,regularization_loss = 17.127562,total_loss = 17.347185
+INFO:tensorflow:global_step/sec: 5.6204
+I0509 04:40:12.214494 140102136461120 basic_session_run_hooks.py:692] global_step/sec: 5.6204
+INFO:tensorflow:loss = 25.5159, step = 90 (1.779 sec)
+I0509 04:40:12.214836 140102136461120 basic_session_run_hooks.py:260] loss = 25.5159, step = 90 (1.779 sec)
+INFO:tensorflow:lr = 0.001,step = 90,cross_entropy_loss = 0.21873945,regularization_loss = 16.825045,total_loss = 17.043785
+I0509 04:40:12.214967 140102136461120 basic_session_run_hooks.py:254] lr = 0.001,step = 90,cross_entropy_loss = 0.21873945,regularization_loss = 16.825045,total_loss = 17.043785
+INFO:tensorflow:Saving checkpoints for 100 into experiments/dlrm/taobao_ckpt/model.ckpt.
+I0509 04:40:13.786859 140102136461120 basic_session_run_hooks.py:606] Saving checkpoints for 100 into experiments/dlrm/taobao_ckpt/model.ckpt.
+WARNING:tensorflow:Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:40:14.026973 140102136461120 meta_graph.py:445] Issue encountered when serializing variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+W0509 04:40:14.027215 140102136461120 meta_graph.py:445] Issue encountered when serializing trainable_variables.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+EmbeddingVariable.to_proto is not implemented
+WARNING:tensorflow:Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+W0509 04:40:14.027395 140102136461120 meta_graph.py:445] Issue encountered when serializing SparseOperationKitEmbeddingLayers.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'SparseEmbeddingLayerHandle' object has no attribute 'name'
+WARNING:tensorflow:Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+W0509 04:40:14.027543 140102136461120 meta_graph.py:445] Issue encountered when serializing SOK.
+Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
+'tuple' object has no attribute 'name'
+I0509 04:40:14.160488 140102136461120 csv_input.py:119] eval files[1]: data/test/tb_data/taobao_test_data
+INFO:tensorflow:Calling model_fn.
+I0509 04:40:14.495015 140057021241088 estimator.py:1148] Calling model_fn.
+I0509 04:40:14.495686 140057021241088 feature_column.py:99] shared embeddings[num=0]
+2022-05-09 04:40:14.498186: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 0 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:06:00.0
+2022-05-09 04:40:14.499048: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1666] Found device 1 with properties: 
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:07:00.0
+2022-05-09 04:40:14.499109: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2022-05-09 04:40:14.499206: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+2022-05-09 04:40:14.499221: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2022-05-09 04:40:14.499232: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2022-05-09 04:40:14.499243: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.11
+2022-05-09 04:40:14.499253: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+2022-05-09 04:40:14.499264: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+2022-05-09 04:40:14.502238: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1794] Adding visible gpu devices: 0, 1
+2022-05-09 04:40:14.502310: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Device interconnect StreamExecutor with strength 1 edge matrix:
+2022-05-09 04:40:14.502316: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1212]      0 1 
+2022-05-09 04:40:14.502320: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 0:   N Y 
+2022-05-09 04:40:14.502323: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1225] 1:   Y N 
+2022-05-09 04:40:14.504750: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:0 with 14653 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:06:00.0, compute capability: 7.0)
+2022-05-09 04:40:14.505696: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1351] Created TensorFlow device (/device:GPU:1 with 14653 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:07:00.0, compute capability: 7.0)
+INFO:tensorflow:Error reported to Coordinator: list index out of range
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/coordinator.py", line 297, in stop_on_exception
+    yield
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/mirrored_strategy.py", line 880, in run
+    self.main_result = self.main_fn(*self.main_args, **self.main_kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1149, in _call_model_fn
+    model_fn_results = self._model_fn(features=features, **kwargs)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 525, in _model_fn
+    return self._eval_model_fn(features, labels, config)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 386, in _eval_model_fn
+    model = self._model_cls(
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/dlrm.py", line 33, in __init__
+    _, self._sparse_features = self._input_layer(self._feature_dict, 'sparse')
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 174, in __call__
+    concat_features, group_features = self.single_call_input_layer(
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 219, in single_call_input_layer
+    output_features= self.sok_input_layer(features, group_columns,
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 369, in sok_input_layer
+    sok_instance = tf.get_collection("SOK")[1]
+IndexError: list index out of range
+I0509 04:40:14.586652 140057021241088 coordinator.py:217] Error reported to Coordinator: list index out of range
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/coordinator.py", line 297, in stop_on_exception
+    yield
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/mirrored_strategy.py", line 880, in run
+    self.main_result = self.main_fn(*self.main_args, **self.main_kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1149, in _call_model_fn
+    model_fn_results = self._model_fn(features=features, **kwargs)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 525, in _model_fn
+    return self._eval_model_fn(features, labels, config)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 386, in _eval_model_fn
+    model = self._model_cls(
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/dlrm.py", line 33, in __init__
+    _, self._sparse_features = self._input_layer(self._feature_dict, 'sparse')
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 174, in __call__
+    concat_features, group_features = self.single_call_input_layer(
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 219, in single_call_input_layer
+    output_features= self.sok_input_layer(features, group_columns,
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 369, in sok_input_layer
+    sok_instance = tf.get_collection("SOK")[1]
+IndexError: list index out of range
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/ruotongw/EasyRec/easy_rec/python/train_eval.py", line 147, in <module>
+    tf.app.run()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/platform/app.py", line 40, in run
+    _run(main=main, argv=argv, flags_parser=_parse_flags_tolerate_undef)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 312, in run
+    _run_main(main, args)
+  File "/usr/local/lib/python3.8/dist-packages/absl/app.py", line 258, in _run_main
+    sys.exit(main(argv))
+  File "/home/ruotongw/EasyRec/easy_rec/python/train_eval.py", line 141, in main
+    _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+  File "/home/ruotongw/EasyRec/easy_rec/python/main.py", line 324, in _train_and_evaluate_impl
+    estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
+  File "/home/ruotongw/EasyRec/easy_rec/python/compat/estimator_train.py", line 83, in train_and_evaluate
+    result = executor.run()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/training.py", line 613, in run
+    return self.run_local()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/training.py", line 710, in run_local
+    self._estimator.train(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 370, in train
+    loss = self._train_model(input_fn, hooks, saving_listeners)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1159, in _train_model
+    return self._train_model_distributed(input_fn, hooks, saving_listeners)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1221, in _train_model_distributed
+    return self._actual_train_model_distributed(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1348, in _actual_train_model_distributed
+    return self._train_with_estimator_spec(estimator_spec, worker_hooks,
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1511, in _train_with_estimator_spec
+    _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/monitored_session.py", line 750, in run
+    return self._sess.run(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/monitored_session.py", line 1255, in run
+    return self._sess.run(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/monitored_session.py", line 1360, in run
+    raise six.reraise(*original_exc_info)
+  File "/usr/local/lib/python3.8/dist-packages/six.py", line 719, in reraise
+    raise value
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/monitored_session.py", line 1345, in run
+    return self._sess.run(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/monitored_session.py", line 1421, in run
+    hook.after_run(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/basic_session_run_hooks.py", line 594, in after_run
+    if self._save(run_context.session, global_step):
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/basic_session_run_hooks.py", line 619, in _save
+    if l.after_save(session, step):
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/training.py", line 519, in after_save
+    self._evaluate(global_step_value)  # updates self.eval_result
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/training.py", line 539, in _evaluate
+    self._evaluator.evaluate_and_export())
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/training.py", line 915, in evaluate_and_export
+    metrics = self._estimator.evaluate(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 474, in evaluate
+    return self._actual_eval(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 520, in _actual_eval
+    return _evaluate()
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 504, in _evaluate
+    self._evaluate_build_graph(input_fn, hooks, checkpoint_path))
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1525, in _evaluate_build_graph
+    self._call_model_fn_eval_distributed(input_fn, self.config))
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1611, in _call_model_fn_eval_distributed
+    self._eval_distribution.extended.call_for_each_replica(
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/distribute_lib.py", line 1810, in call_for_each_replica
+    return self._call_for_each_replica(fn, args, kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/mirrored_strategy.py", line 661, in _call_for_each_replica
+    return _call_for_each_replica(self._container_strategy(), self._device_map,
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/mirrored_strategy.py", line 196, in _call_for_each_replica
+    coord.join(threads)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/coordinator.py", line 389, in join
+    six.reraise(*self._exc_info_to_raise)
+  File "/usr/local/lib/python3.8/dist-packages/six.py", line 719, in reraise
+    raise value
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/training/coordinator.py", line 297, in stop_on_exception
+    yield
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_core/python/distribute/mirrored_strategy.py", line 880, in run
+    self.main_result = self.main_fn(*self.main_args, **self.main_kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/tensorflow_estimator/python/estimator/estimator.py", line 1149, in _call_model_fn
+    model_fn_results = self._model_fn(features=features, **kwargs)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 525, in _model_fn
+    return self._eval_model_fn(features, labels, config)
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/easy_rec_estimator.py", line 386, in _eval_model_fn
+    model = self._model_cls(
+  File "/home/ruotongw/EasyRec/easy_rec/python/model/dlrm.py", line 33, in __init__
+    _, self._sparse_features = self._input_layer(self._feature_dict, 'sparse')
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 174, in __call__
+    concat_features, group_features = self.single_call_input_layer(
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 219, in single_call_input_layer
+    output_features= self.sok_input_layer(features, group_columns,
+  File "/home/ruotongw/EasyRec/easy_rec/python/layers/input_layer.py", line 369, in sok_input_layer
+    sok_instance = tf.get_collection("SOK")[1]
+IndexError: list index out of range
+[INFO]: sparse_operation_kit is imported
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+easy_rec version: 0.4.2
+Usage: easy_rec.help()
+[input] all feature names: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+[input] all feature names: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
