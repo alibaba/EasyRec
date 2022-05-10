@@ -22,8 +22,8 @@ EasyRec在MaxCompute公有云版本上的使用文档.
 pai -name easy_rec_ext -project algo_public
 -Dcmd=train
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtrain_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train
--Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Dtrain_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train'
+-Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
@@ -39,11 +39,11 @@ pai -name easy_rec_ext -project algo_public
 - -Dtables: 定义其他依赖表(可选)，如负采样的表
 - -Dcluster: 定义PS的数目和worker的数目。具体见：[PAI-TF任务参数介绍](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
 - -Deval_method: 评估方法
- - separate: 用worker(task_id=1)做评估
- - none: 不需要评估
- - master: 在master(task_id=0)上做评估
+- separate: 用worker(task_id=1)做评估
+- none: 不需要评估
+- master: 在master(task_id=0)上做评估
 - -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
- - 可以指定directory，将使用directory里面的最新的checkpoint.
+- 可以指定directory，将使用directory里面的最新的checkpoint.
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
 - -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
@@ -67,7 +67,7 @@ pai -name easy_rec_ext -project algo_public
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
@@ -135,7 +135,6 @@ pai -name easy_rec_ext -project algo_public
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dcheckpoint_path: 同评估
 - arn,buckets,ossHost同训练.
-
 
 ### 配置文件:
 

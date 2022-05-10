@@ -7,6 +7,8 @@ import tensorflow as tf
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
+from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -17,6 +19,8 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
       return tf.losses.sigmoid_cross_entropy(
           label, logits=pred, weights=loss_weight, **kwargs)
     else:
+      assert label.dtype in [tf.int32, tf.int64], \
+        "label.dtype must in [tf.int32, tf.int64] when use sparse_softmax_cross_entropy."
       return tf.losses.sparse_softmax_cross_entropy(
           labels=label, logits=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.CROSS_ENTROPY_LOSS:
@@ -27,6 +31,10 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.PAIR_WISE_LOSS:
     return pairwise_loss(pred, label)
+  elif loss_type == LossType.F1_REWEIGHTED_LOSS:
+    beta_square = kwargs['beta_square'] if 'beta_square' in kwargs else 1.0
+    return f1_reweight_sigmoid_cross_entropy(
+        pred, label, beta_square, weights=loss_weight)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

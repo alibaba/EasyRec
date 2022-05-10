@@ -166,9 +166,9 @@ from tensorflow.python.util import deprecation
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
+from easy_rec.python.compat import ops as compat_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.compat import ops as compat_ops
 from easy_rec.python.layers import utils as layer_utils
 
 _FEATURE_COLUMN_DEPRECATION_DATE = None
@@ -1056,12 +1056,6 @@ def shared_embedding_columns(categorical_columns,
     if isinstance(
         c, (fc_old._WeightedCategoricalColumn, WeightedCategoricalColumn)):  # pylint: disable=protected-access
       c = c.categorical_column
-    if not isinstance(c, type(c0)):
-      raise ValueError(
-          'To use shared_embedding_column, all categorical_columns must have '
-          'the same type, or be weighted_categorical_column of the same type. '
-          'Given column: {} of type: {} does not match given column: {} of '
-          'type: {}'.format(c0, type(c0), c, type(c)))
     if num_buckets != c._num_buckets:  # pylint: disable=protected-access
       raise ValueError(
           'To use shared_embedding_column, all categorical_columns must have '
@@ -3573,25 +3567,30 @@ class EmbeddingColumn(
 
     # Write the embedding configuration to RTP-specified collections. This will inform RTP to
     # optimize this embedding operation.
-    embedding_attrs = layer_utils.gen_embedding_attrs(column=self,
-                                                      variable=embedding_weights,
-                                                      bucket_size=self.categorical_column._num_buckets,
-                                                      combiner=self.combiner,
-                                                      is_embedding_var=self.use_embedding_variable)
+    embedding_attrs = layer_utils.gen_embedding_attrs(
+        column=self,
+        variable=embedding_weights,
+        bucket_size=self.categorical_column._num_buckets,
+        combiner=self.combiner,
+        is_embedding_var=self.use_embedding_variable)
     embedding_attrs['name'] = layer_utils.unique_name_in_collection(
-                                compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'])
-    layer_utils.update_attr_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs)
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'])
+    layer_utils.update_attr_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs)
 
     # operate embedding
-    predictions = self._get_dense_tensor_internal_helper(sparse_tensors, embedding_weights)
+    predictions = self._get_dense_tensor_internal_helper(
+        sparse_tensors, embedding_weights)
 
     # Update the information about the output and input nodes of embedding operation to the
     # previous written RTP-specific collection entry. RTP uses these informations to extract
     # the embedding subgraph.
-    layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
-                                            embedding_attrs['name'], 'tensor', predictions)
-    layer_utils.append_tensor_to_collection(compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING,
-                                            embedding_attrs['name'], 'input', sparse_tensors.id_tensor)
+    layer_utils.append_tensor_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+        'tensor', predictions)
+    layer_utils.append_tensor_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+        'input', sparse_tensors.id_tensor)
 
     return predictions
 

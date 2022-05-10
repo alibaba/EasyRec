@@ -233,12 +233,6 @@ class DSSM(EasyRecModel):
       if metric.WhichOneof('metric') == 'auc':
         assert self._loss_type == LossType.CLASSIFICATION
         metric_dict['auc'] = metrics.auc(label, self._prediction_dict['probs'])
-      elif metric.WhichOneof('metric') == 'recall_at_topk':
-        assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['recall_at_topk%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
-                        label, self._prediction_dict['probs'],
-                        metric.recall_at_topk.topk)
       elif metric.WhichOneof('metric') == 'mean_absolute_error':
         assert self._loss_type == LossType.L2_LOSS
         metric_dict['mean_absolute_error'] = metrics.mean_absolute_error(
@@ -262,20 +256,28 @@ class DSSM(EasyRecModel):
 
   def build_output_dict(self):
     output_dict = super(DSSM, self).build_output_dict()
-    output_dict['user_tower_feature'] = tf.reduce_join(tf.as_string(self.user_tower_feature), axis=-1, separator=',')
-    output_dict['item_tower_feature'] = tf.reduce_join(tf.as_string(self.item_tower_feature), axis=-1, separator=',')
+    output_dict['user_tower_feature'] = tf.reduce_join(
+        tf.as_string(self.user_tower_feature), axis=-1, separator=',')
+    output_dict['item_tower_feature'] = tf.reduce_join(
+        tf.as_string(self.item_tower_feature), axis=-1, separator=',')
     return output_dict
 
   def build_rtp_output_dict(self):
     output_dict = super(DSSM, self).build_rtp_output_dict()
     if self._user_tower_emb is None:
-      raise ValueError("User tower embedding does not exist. Please checking predict graph.")
-    output_dict['user_embedding_output'] = tf.identity(self._user_tower_emb, name='user_embedding_output')
+      raise ValueError(
+          'User tower embedding does not exist. Please checking predict graph.')
+    output_dict['user_embedding_output'] = tf.identity(
+        self._user_tower_emb, name='user_embedding_output')
     if self._item_tower_emb is None:
-      raise ValueError("Item tower embedding does not exist. Please checking predict graph.")
-    output_dict['item_embedding_output'] = tf.identity(self._item_tower_emb, name='item_embedding_output')
+      raise ValueError(
+          'Item tower embedding does not exist. Please checking predict graph.')
+    output_dict['item_embedding_output'] = tf.identity(
+        self._item_tower_emb, name='item_embedding_output')
     if self._loss_type == LossType.CLASSIFICATION:
       if 'probs' not in self._prediction_dict:
-        raise ValueError("Probs output does not exist. Please checking predict graph.")
-      output_dict['rank_predict'] = tf.identity(self._prediction_dict['probs'], name='rank_predict')
+        raise ValueError(
+            'Probs output does not exist. Please checking predict graph.')
+      output_dict['rank_predict'] = tf.identity(
+          self._prediction_dict['probs'], name='rank_predict')
     return output_dict

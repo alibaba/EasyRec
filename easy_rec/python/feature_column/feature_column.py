@@ -1,7 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
 import collections
+import logging
 
 import tensorflow as tf
 
@@ -26,10 +26,11 @@ class FeatureKeyError(KeyError):
 
 
 class SharedEmbedding(object):
-   def __init__(self, embedding_name, index, sequence_combiner=None):
-     self.embedding_name = embedding_name
-     self.index = index
-     self.sequence_combiner = sequence_combiner
+
+  def __init__(self, embedding_name, index, sequence_combiner=None):
+    self.embedding_name = embedding_name
+    self.index = index
+    self.sequence_combiner = sequence_combiner
 
 
 class FeatureColumnParser(object):
@@ -123,6 +124,8 @@ class FeatureColumnParser(object):
           self.parse_lookup_feature(config)
         elif config.feature_type == config.SequenceFeature:
           self.parse_sequence_feature(config)
+        elif config.feature_type == config.ExprFeature:
+          self.parse_expr_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -346,6 +349,22 @@ class FeatureColumnParser(object):
         else:
           self._deep_columns[feature_name] = fc
 
+  def parse_expr_feature(self, config):
+    """Generate raw features columns.
+
+    if boundaries is set, will be converted to category_column first.
+
+    Args:
+      config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
+    """
+    feature_name = config.feature_name if config.HasField('feature_name') \
+        else config.input_names[0]
+    fc = feature_column.numeric_column(feature_name, shape=(1,))
+    if self.is_wide(config):
+      self._add_wide_embedding_column(fc, config)
+    if self.is_deep(config):
+      self._deep_columns[feature_name] = fc
+
   def parse_combo_feature(self, config):
     """Generate combo feature columns.
 
@@ -475,7 +494,7 @@ class FeatureColumnParser(object):
     return SharedEmbedding(embedding_name, curr_id, None)
 
   def _get_shared_embedding_column(self, fc_handle, deep=True):
-    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index 
+    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index
     if deep:
       tmp = self._deep_share_embed_columns[embed_name][embed_id]
     else:

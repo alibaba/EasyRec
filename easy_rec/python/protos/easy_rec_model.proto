@@ -96,6 +96,7 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
-    optional bool use_sok = 16;
-    optional uint32 sok_max_nnz = 17;
+    optional F1ReweighedLoss f1_reweight_loss = 16;
+    optional bool use_sok = 17;
+    optional uint32 sok_max_nnz = 18;
 }

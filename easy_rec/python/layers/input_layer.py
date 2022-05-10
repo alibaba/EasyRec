@@ -275,7 +275,7 @@ class InputLayer(object):
             name=group_name)
         concat_features = variational_dropout(concat_features)
         group_features = tf.split(
-            concat_features, features_dimension.values(), axis=-1)
+            concat_features, list(features_dimension.values()), axis=-1)
       else:
         concat_features = tf.concat([output_features] + seq_features, axis=-1)
         group_features = [cols_to_output_tensors[x] for x in group_columns] + \

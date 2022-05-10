@@ -23,9 +23,10 @@ class BatchTFRecordInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
-    super(BatchTFRecordInput, self).__init__(data_config, feature_config,
-                                             input_path, task_index, task_num)
+               task_num=1,
+               check_mode=False):
+    super(BatchTFRecordInput, self).__init__(data_config, feature_config, input_path,
+                                             task_index, task_num, check_mode)
     assert data_config.HasField(
         'n_data_batch_tfrecord'), 'Need to set n_data_batch_tfrecord in config.'
     self._input_shapes = [x.input_shape for x in data_config.input_fields]
@@ -54,7 +55,11 @@ class BatchTFRecordInput(Input):
     return features
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     num_parallel_calls = self._data_config.num_parallel_calls

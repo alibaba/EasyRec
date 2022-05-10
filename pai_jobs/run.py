@@ -18,9 +18,8 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
-
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
-
+from easy_rec.python.tools.pre_check import run_check
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -64,7 +63,8 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
-tf.app.flags.DEFINE_string('fine_tune_checkpoint', None, 'finetune checkpoint path')
+tf.app.flags.DEFINE_string('fine_tune_checkpoint', None,
+                           'finetune checkpoint path')
 tf.app.flags.DEFINE_string('query_table', '',
                            'table used for retrieve vector neighbours')
 tf.app.flags.DEFINE_string('doc_table', '',
@@ -164,7 +164,7 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
-
+tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -285,7 +285,7 @@ def main(argv):
     assert FLAGS.eval_method in [
         'none', 'master', 'separate'
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
-   
+
     # with_evaluator is depreciated, keeped for compatibility
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
@@ -299,14 +299,15 @@ def main(argv):
         eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
+    logging.info("run.py check_mode: %s ." % FLAGS.check_mode)
     train_and_evaluate_impl(
-        pipeline_config, continue_train=FLAGS.continue_train)
+        pipeline_config, continue_train=FLAGS.continue_train, check_mode=FLAGS.check_mode)
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=(FLAGS.eval_method == "separate"))
+          has_evaluator=(FLAGS.eval_method == 'separate'))
 
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
@@ -433,11 +434,11 @@ def main(argv):
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(
-      pipeline_config,
-      export_path=FLAGS.export_dir + '/model',
-      checkpoint_path=FLAGS.checkpoint_path,
-      asset_files=FLAGS.asset_files,
-      verbose=FLAGS.verbose)
+        pipeline_config,
+        export_path=FLAGS.export_dir + '/model',
+        checkpoint_path=FLAGS.checkpoint_path,
+        asset_files=FLAGS.asset_files,
+        verbose=FLAGS.verbose)
   elif FLAGS.cmd == 'vector_retrieve':
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
@@ -467,9 +468,12 @@ def main(argv):
         m=FLAGS.knn_compress_dim)
     worker_hosts = FLAGS.worker_hosts.split(',')
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
+  elif FLAGS.cmd == 'check':
+    run_check(pipeline_config, FLAGS.tables)
   else:
     raise ValueError(
-        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve'
+    )
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
+import collections
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ import tensorflow as tf
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
+from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
@@ -240,7 +242,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict = model.build_metric_graph(self.eval_config)
       for k, v in metric_dict.items():
         metric_update_op_dict['%s/batch' % k] = v[1]
-        tf.summary.scalar('%s/batch' % k, v[1])
+        if isinstance(v[1], tf.Tensor):
+          tf.summary.scalar('%s/batch' % k, v[1])
       train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
       if estimator_utils.is_chief():
         hooks.append(

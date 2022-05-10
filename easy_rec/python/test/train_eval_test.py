@@ -4,6 +4,7 @@
 import glob
 import logging
 import os
+import sys
 import unittest
 from distutils.version import LooseVersion
 
@@ -255,24 +256,32 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
+                   'Currently graph-learn not support python3.7')
   def test_dssm_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
+                   'Currently graph-learn not support python3.7')
   def test_dssm_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_v2_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
+                   'Currently graph-learn not support python3.7')
   def test_dssm_hard_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
+                   'Currently graph-learn not support python3.7')
   def test_dssm_hard_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_v2_on_taobao.config',
@@ -373,6 +382,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_deepfm_with_eval_online(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_eval_online_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_eval_online_gauc(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_eval_online_gauc_ctr.config',
         self._test_dir)
     self.assertTrue(self._success)
 
@@ -500,6 +515,11 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/rocket_launching_feature_based.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_rocket_launching_with_rtp_input(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/rocket_launching_with_rtp_input.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dbmtl_mmoe(self):
@@ -698,6 +718,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_multi_optimizer(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_expr_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_on_taobao_for_expr.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
 

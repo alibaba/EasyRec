@@ -8,7 +8,7 @@ jobs:
     runs-on: EasyRec-unit-test
     defaults:
       run:
-        shell: bash
+        shell: bash {0}
     steps:
       - name: FetchCommit ${{ github.event.pull_request.head.sha }}
         uses: actions/checkout@v2

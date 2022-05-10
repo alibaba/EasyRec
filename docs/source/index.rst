@@ -42,6 +42,7 @@ Welcome to easy_rec's documentation!
    export
    kd
    optimize
+   pre_check
 
 .. toctree::
    :maxdepth: 2
