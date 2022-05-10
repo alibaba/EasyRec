@@ -335,57 +335,50 @@ class InputLayer(object):
           builder, trainable=True)
       inputs.append(sparse_tensor)
 
-    total_bucket_size = sum(bucket_sizes)
+    batch_size = inputs[0].dense_shape[0]
+    sok_instance = tf.get_collection("SOK")[1]
 
     # slot_num = len(inputs) = len(group_columns)
     # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
-    # need to accmulate indices and offet them.
-    offetsed_values = []
-    batch_sizes = []
-    offsetted_indices = []
+    # need to accmulate indices and offset them.
+    def sparse_sok():
+      offetsed_values = []
+      offsetted_indices = []
 
+      for i, input_sparse in enumerate(inputs):
+        offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
+        offetsed_values.append(offsetted_value)
 
-    batch_size = inputs[0].dense_shape[0]
-    for i, input_sparse in enumerate(inputs):
-      offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
-      #offsetted_value = tf.Print(offsetted_value, [offsetted_value, tf.reduce_min(offsetted_value), tf.reduce_max(offsetted_value)], message='offsetted_value')
-      offetsed_values.append(offsetted_value)
+        offsetted_indice = input_sparse.indices + tf.stack([[i * batch_size, 0]])
+        offsetted_indices.append(offsetted_indice)
 
-      offsetted_indice = input_sparse.indices + tf.stack([[i * batch_size, 0]])
-      #offsetted_indice = tf.Print(offsetted_indice, [ tf.reduce_min(offsetted_indice[:, 0]), tf.reduce_max(offsetted_indice[:, 0]), tf.reduce_min(offsetted_indice[:, 1]), tf.reduce_max(offsetted_indice[:, 1])], message='offsetted_indice')
-      offsetted_indices.append(offsetted_indice)
+      offetsed_values = tf.concat(offetsed_values, axis=0)
+      offsetted_indices = tf.concat(offsetted_indices, axis=0)
+      dense_shape = tf.concat([[batch_size * len(inputs)],
+                              tf.constant(max_nnz, shape=(1,), dtype=tf.int64)], axis=0)
 
-    offetsed_values = tf.concat(offetsed_values, axis=0)
-    offsetted_indices = tf.concat(offsetted_indices, axis=0)
-    dense_shape = tf.concat([[batch_size * len(inputs)],
-                            tf.constant(max_nnz, shape=(1,), dtype=tf.int64)], axis=0)
-    #offetsed_values = tf.Print(offetsed_values, [dense_shape, tf.reduce_max(offetsed_values)], message='dense_shape')
+      combined_input = tf.SparseTensor(
+        values=offetsed_values,
+        indices=offsetted_indices,
+        dense_shape=dense_shape
+      )
 
-    combined_input = tf.SparseTensor(
-      values=offetsed_values,
-      indices=offsetted_indices,
-      dense_shape=dense_shape
-    )
-    sok_instance = tf.get_collection("SOK")[1]
-    #self.sok_instance = sok.DistributedEmbedding(
-    #  combiner=combiner,
-    #  max_vocabulary_size_per_gpu=total_bucket_size / (workers * gpus_num),
-    #  embedding_vec_size=emb_vec_size,
-    #  slot_num=len(inputs),
-    #  max_nnz=max_nnz,
-    #  use_hashtable=False,
-    #  key_dtype=combined_input.values.dtype,
-    #)
+      # output should be [batch_size, slot_num, emb_vec_size]
+      return sok_instance(combined_input, training=self._is_training)
 
-    # output should be [batch_size, slot_num, emb_vec_size]
-    output = sok_instance(combined_input, training=self._is_training)
-    #output = tf.Print(output, [ tf.reduce_min(output), tf.reduce_max(output), tf.shape(output)], message='output_min_max')
+    def dense_sok():
+      offetsed_values = []
 
-    #slices = []
-    # for i, _ in enumerate(inputs):
-    #   output_piece = tf.slice(output, offset[i], tf.concat([batch_sizes[i].exa, max_nnz_tensor], axis=0))
-    #   slices.append(output_piece)
-    #   cols_to_output_tensors[group_columns[i]] = output_piece
+      for i, input_sparse in enumerate(inputs):
+        offsetted_value = input_sparse.values + group_columns[i].categorical_column.hash_bucket_size
+        offetsed_values.append(offsetted_value)
+
+      offetsed_values = tf.concat(offetsed_values, axis=0)
+
+      return sok_instance(offetsed_values, training=self._is_training)
+
+    output = sparse_sok()
+    #output = dense_sok()
 
     for i, _ in enumerate(inputs):
       output_piece = tf.squeeze(

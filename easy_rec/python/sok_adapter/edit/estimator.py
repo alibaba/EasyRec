@@ -1296,15 +1296,28 @@ class Estimator(object):
               iterator.get_next())
           import sparse_operation_kit as sok
           from easy_rec.python.sok_adapter import modify_apply_gradients
-          sok_init_op = sok.Init(global_batch_size=8192)
+          batch_per_worker = 4096
+          gpu_nums = 8
+          sok_init_op = sok.Init(global_batch_size=batch_per_worker * gpu_nums)
+          # Sparse embedding
           sok_instance = sok.DistributedEmbedding(
             combiner='mean',
-            max_vocabulary_size_per_gpu=2500000,
+            max_vocabulary_size_per_gpu=250000,
             embedding_vec_size=16,
             slot_num=12,
-            max_nnz=1000,
+            max_nnz=100,
             use_hashtable=False,
             key_dtype=dtypes.int64)
+
+          # Dense embedding
+          #sok_instance = sok.All2AllDenseEmbedding(
+          #  max_vocabulary_size_per_gpu=2500000,
+          #  embedding_vec_size=16,
+          #  slot_num=12,
+          #  nnz_per_slot=1,
+          #  use_hashtable=False,
+          #  key_dtype=dtypes.int64)
+
           import tensorflow
           emb_opt = tensorflow.keras.optimizers.SGD(learning_rate=1.25)
           emb_opt = modify_apply_gradients(emb_opt)
