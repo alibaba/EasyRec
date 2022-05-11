@@ -140,6 +140,10 @@ class HiveInput(Input):
       inputs[self._input_fields[x]] = fields[x]
     return inputs
 
+  def _parse_table_predict(self, *fields):
+    inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
+    return inputs
+
   def _hive_read(self):
     logging.info('start epoch[%d]' % self._num_epoch_record)
     self._num_epoch_record += 1
@@ -158,7 +162,13 @@ class HiveInput(Input):
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
       batch_size = self.this_batch_size
-      batch_defaults = [np.array([x] * batch_size) for x in record_defaults]
+      batch_defaults = []
+      for x in record_defaults:
+        if isinstance(x,str) :
+          batch_defaults.append(np.array([x] * batch_size,dtype='S500'))
+        else:
+          batch_defaults.append(np.array([x] * batch_size))
+
       row_id = 0
       batch_data_np = [x.copy() for x in batch_defaults]
 
@@ -217,21 +227,22 @@ class HiveInput(Input):
     else:
       dataset = dataset.repeat(1)
 
-    dataset = dataset.map(
+    if mode != tf.estimator.ModeKeys.PREDICT:
+      dataset = dataset.map(
         self._parse_table,
         num_parallel_calls=self._data_config.num_parallel_calls)
 
-    # preprocess is necessary to transform data
-    # so that they could be feed into FeatureColumns
-    dataset = dataset.map(
+      # preprocess is necessary to transform data
+      # so that they could be feed into FeatureColumns
+      dataset = dataset.map(
         map_func=self._preprocess,
         num_parallel_calls=self._data_config.num_parallel_calls)
-
-    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-
-    if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:
                             (self._get_features(x), self._get_labels(x)))
     else:
-      dataset = dataset.map(lambda x: (self._get_features(x)))
+      dataset = dataset.map(
+        self._parse_table_predict,
+        num_parallel_calls=self._data_config.num_parallel_calls)
+
+    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     return dataset

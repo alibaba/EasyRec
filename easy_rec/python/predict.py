@@ -45,6 +45,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
+tf.app.flags.DEFINE_bool('is_hive_input', False, help='is hive input')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -68,10 +69,12 @@ def main(argv):
         FLAGS.output_path,
         reserved_cols=FLAGS.reserved_cols,
         output_cols=FLAGS.output_cols,
+        pipeline_config=FLAGS.pipeline_config_path,
         slice_id=task_index,
         slice_num=worker_num,
         input_sep=FLAGS.input_sep,
-        output_sep=FLAGS.output_sep)
+        output_sep=FLAGS.output_sep,
+        is_on_hive=FLAGS.is_hive_input)
   else:
     logging.info('Predict by checkpoint_path.')
     assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'

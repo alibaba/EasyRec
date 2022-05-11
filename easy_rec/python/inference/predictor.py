@@ -18,16 +18,20 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.compat import exporter
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.input.input import Input
+from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 SINGLE_PLACEHOLDER_FEATURE_KEY = 'features'
-
+FinalExporter = exporter.FinalExporter
 _PREDICTOR_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
     _PREDICTOR_CLASS_MAP, have_abstract_class=True)
@@ -159,6 +163,7 @@ class PredictorImpl(object):
     input_fields_list = [input_field.input_name for input_field in input_fields]
 
     return input_fields_info, input_fields_list
+
 
   def _build_model(self):
     """Load graph from model_path and create session for this graph."""
@@ -305,6 +310,9 @@ class PredictorImpl(object):
           return results
 
 
+def _get_input_fn(data_config, feature_configs, eval_data, param):
+  pass
+
 class Predictor(PredictorInterface):
 
   def __init__(self, model_path, profiling_file=None):
@@ -344,6 +352,131 @@ class Predictor(PredictorInterface):
     """
     return list(self._outputs_map.keys())
 
+  def _get_input_fn(self,data_config,
+                    feature_configs,
+                    data_path=None,
+                    export_config=None,
+                    check_mode=False,
+                    **kwargs):
+    """Build estimator input function.
+
+    Args:
+      data_config:  dataset config
+      feature_configs: FeatureConfig
+      data_path: input_data_path
+      export_config: configuration for exporting models,
+        only used to build input_fn when exporting models
+
+    Returns:
+      subclass of Input
+    """
+    input_class_map = {y: x for x, y in data_config.InputType.items()}
+    input_cls_name = input_class_map[data_config.input_type]
+    input_class = Input.create_class(input_cls_name)
+
+    task_id, task_num = estimator_utils.get_task_index_and_num()
+    input_obj = input_class(
+      data_config,
+      feature_configs,
+      data_path,
+      task_index=task_id,
+      task_num=task_num,
+      **kwargs)
+    input_fn = input_obj.create_input(export_config)
+    return input_fn
+
+  def _get_input_object_by_name(self,pipeline_config, worker_type):
+    """"
+      get object by worker type
+
+      pipeline_config: pipeline_config
+      worker_type: train or eval
+    """
+    input_type = "{}_path".format(worker_type)
+    input_name = pipeline_config.WhichOneof(input_type)
+    _dict = {"kafka_train_input": pipeline_config.kafka_train_input,
+             "kafka_eval_input": pipeline_config.kafka_eval_input,
+             "datahub_train_input": pipeline_config.datahub_train_input,
+             "datahub_eval_input": pipeline_config.datahub_eval_input,
+             "hive_train_input": pipeline_config.hive_train_input,
+             "hive_eval_input": pipeline_config.hive_eval_input
+             }
+    if input_name in _dict:
+      return _dict[input_name]
+
+    if worker_type == "train":
+      return pipeline_config.train_input_path
+    else:
+      return pipeline_config.eval_input_path
+
+  def _create_eval_export_spec(self,pipeline_config, eval_data, check_mode=False):
+    data_config = pipeline_config.data_config
+    # feature_configs = pipeline_config.feature_configs
+    feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
+    eval_config = pipeline_config.eval_config
+    export_config = pipeline_config.export_config
+    if eval_config.num_examples > 0:
+      eval_steps = int(
+        math.ceil(float(eval_config.num_examples) / data_config.batch_size))
+      logging.info('eval_steps = %d' % eval_steps)
+    else:
+      eval_steps = None
+    input_fn_kwargs = {}
+    if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+      input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    # create eval input
+
+    export_input_fn = _get_input_fn(data_config, feature_configs, None,
+                                    export_config, **input_fn_kwargs)
+    if export_config.exporter_type == 'final':
+      exporters = [
+        FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
+      ]
+    elif export_config.exporter_type == 'latest':
+      exporters = [
+        LatestExporter(
+          name='latest',
+          serving_input_receiver_fn=export_input_fn,
+          exports_to_keep=export_config.exports_to_keep)
+      ]
+    elif export_config.exporter_type == 'best':
+      logging.info(
+        'will use BestExporter, metric is %s, the bigger the better: %d' %
+        (export_config.best_exporter_metric, export_config.metric_bigger))
+
+      def _metric_cmp_fn(best_eval_result, current_eval_result):
+        logging.info('metric: best = %s current = %s' %
+                     (str(best_eval_result), str(current_eval_result)))
+        if export_config.metric_bigger:
+          return (best_eval_result[export_config.best_exporter_metric] <
+                  current_eval_result[export_config.best_exporter_metric])
+        else:
+          return (best_eval_result[export_config.best_exporter_metric] >
+                  current_eval_result[export_config.best_exporter_metric])
+
+      exporters = [
+        BestExporter(
+          name='best',
+          serving_input_receiver_fn=export_input_fn,
+          compare_fn=_metric_cmp_fn,
+          exports_to_keep=export_config.exports_to_keep)
+      ]
+    elif export_config.exporter_type == 'none':
+      exporters = []
+    else:
+      raise ValueError('Unknown exporter type %s' % export_config.exporter_type)
+
+    # set throttle_secs to a small number, so that we can control evaluation
+    # interval steps by checkpoint saving steps
+    eval_input_fn = self._get_input_fn(data_config, feature_configs, eval_data,**input_fn_kwargs)
+    eval_spec = tf.estimator.EvalSpec(
+      name='val',
+      input_fn=eval_input_fn,
+      steps=eval_steps,
+      throttle_secs=10,
+      exporters=exporters)
+    return eval_spec
+
   def predict_impl(self,
                    input_table,
                    output_table,
@@ -351,12 +484,14 @@ class Predictor(PredictorInterface):
                    all_col_types='',
                    selected_cols='',
                    reserved_cols='',
+                   pipeline_config=None,
                    output_cols=None,
                    batch_size=1024,
                    slice_id=0,
                    slice_num=1,
                    input_sep=',',
-                   output_sep=chr(1)):
+                   output_sep=chr(1),
+                   is_on_hive=''):
     """Predict table input with loaded model.
 
     Args:
@@ -388,7 +523,20 @@ class Predictor(PredictorInterface):
           slice_id=slice_id,
           slice_num=slice_num)
     else:
-      self.predict_csv(
+      if is_on_hive :
+        self.predict_hive(
+          input_table,
+          output_table,
+          reserved_cols=reserved_cols,
+          output_cols=output_cols,
+          batch_size=batch_size,
+          slice_id=slice_id,
+          slice_num=slice_num,
+          input_sep=input_sep,
+          output_sep=output_sep,
+          pipeline_config=pipeline_config)
+      else :
+        self.predict_csv(
           input_table,
           output_table,
           reserved_cols=reserved_cols,
@@ -398,6 +546,93 @@ class Predictor(PredictorInterface):
           slice_num=slice_num,
           input_sep=input_sep,
           output_sep=output_sep)
+
+  def predict_hive(self, input_path, output_path, reserved_cols, output_cols,
+                   batch_size, slice_id, slice_num, input_sep, output_sep,pipeline_config,check_mode=False):
+
+    if reserved_cols == 'ALL_COLUMNS':
+      reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    if output_cols is None or output_cols == 'ALL_COLUMNS':
+      output_cols = sorted(self._predictor_impl.output_names)
+      logging.info('predict output cols: %s' % output_cols)
+    else:
+      # specified as score float,embedding string
+      tmp_cols = []
+      for x in output_cols.split(','):
+        if x.strip() == '':
+          continue
+        tmp_keys = x.split(' ')
+        tmp_cols.append(tmp_keys[0].strip())
+      output_cols = tmp_cols
+
+    with tf.Graph().as_default(), tf.Session() as sess:
+
+      pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+      eval_data = self._get_input_object_by_name(pipeline_config,'eval')
+
+      eval_spec = self._create_eval_export_spec(pipeline_config, eval_data)
+      dataset=eval_spec.input_fn(tf.estimator.ModeKeys.PREDICT,None)
+
+      dataset = dataset.shard(slice_num, slice_id)
+      logging.info('batch_size = %d' % batch_size)
+
+      iterator = dataset.make_one_shot_iterator()
+      all_dict = iterator.get_next()
+
+      if not gfile.Exists(output_path):
+        gfile.MakeDirs(output_path)
+      res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
+      table_writer = gfile.GFile(res_path, 'w')
+
+      input_names = self._predictor_impl.input_names
+      progress = 0
+      sum_t0, sum_t1, sum_t2 = 0, 0, 0
+      pred_cnt = 0
+      table_writer.write(output_sep.join(output_cols + reserved_cols) + '\n')
+      while True:
+        try:
+          ts0 = time.time()
+          all_vals = sess.run(all_dict)
+
+          ts1 = time.time()
+          input_vals = {k: all_vals[k] for k in input_names}
+
+          outputs = self._predictor_impl.predict(input_vals, output_cols)
+          for x in output_cols:
+            if outputs[x].dtype == np.object:
+              outputs[x] = [val.decode('utf-8') for val in outputs[x]]
+          for k in reserved_cols:
+            if all_vals[k].dtype == np.object:
+              all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
+
+          ts2 = time.time()
+          reserve_vals = [outputs[x] for x in output_cols] + \
+                         [all_vals[k] for k in reserved_cols]
+          outputs = [x for x in zip(*reserve_vals)]
+          pred_cnt += len(outputs)
+          outputs = '\n'.join(
+            [output_sep.join([str(i) for i in output]) for output in outputs])
+          table_writer.write(outputs + '\n')
+
+          ts3 = time.time()
+          progress += 1
+          sum_t0 += (ts1 - ts0)
+          sum_t1 += (ts2 - ts1)
+          sum_t2 += (ts3 - ts2)
+        except tf.errors.OutOfRangeError:
+          break
+        if progress % 100 == 0:
+          logging.info('progress: batch_num=%d sample_num=%d' %
+                       (progress, progress * batch_size))
+          logging.info('time_stats: read: %.2f predict: %.2f write: %.2f' %
+                       (sum_t0, sum_t1, sum_t2))
+      logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
+                   (sum_t0, sum_t1, sum_t2))
+      table_writer.close()
+      logging.info('Predict %s done.' % input_path)
+      logging.info('Predict size: %d.' % pred_cnt)
 
   def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
                   batch_size, slice_id, slice_num, input_sep, output_sep):
