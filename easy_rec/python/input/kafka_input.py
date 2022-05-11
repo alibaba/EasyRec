@@ -15,7 +15,7 @@ from easy_rec.python.input.kafka_dataset import KafkaDataset
 try:
   from kafka import KafkaConsumer, TopicPartition
 except ImportError as ex:
-  logging.warning('kafka-python is not installed: %s' % traceback.format_exc(ex))
+  logging.warning('kafka-python is not installed: %s' % traceback.format_exc())
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -100,10 +100,11 @@ class KafkaInput(Input):
         if six.PY3:
           kv = kv.decode('utf-8')
         k,v = kv.split(':')
+        k = int(k)
         v = int(v)
         if k not in self._task_offset_dict or v > self._task_offset_dict[k]:
-          self._offset_dict[k] = v
-      return json.dumps(self._offset_dict) 
+          self._task_offset_dict[k] = v
+      return json.dumps(self._task_offset_dict) 
        
     inputs[Input.DATA_OFFSET] = tf.py_func(_parse_offset, [message_offset], tf.string) 
     return inputs
@@ -177,7 +178,7 @@ class KafkaInput(Input):
 
       dataset = KafkaDataset(task_topics,
               servers=self._kafka.server, 
-              group=eval_kafka.group, eof=True,
+              group=eval_kafka.group, eof=False,
               config_global = list(self._kafka.config_global),
               config_topic = list(self._kafka.config_topic),
               message_key=True, message_offset=True)

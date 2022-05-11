@@ -354,22 +354,22 @@ class CheckpointSaverHook(CheckpointSaverHook):
     for l in self._listeners:  # noqa: E741
       l.before_save(session, step)
 
-    self._get_saver().save(
-        session,
-        self._save_path,
-        global_step=step,
-        write_meta_graph=self._write_graph)
-    save_dir, save_name = os.path.split(self._save_path)
-
     if self._data_offset_var is not None:
       save_data_offset = session.run(self._data_offset_var)
       data_offset_json = {}
       for x in save_data_offset:
         if x:
           data_offset_json.update(json.loads(x))
+      save_dir, _ = os.path.split(self._save_path)
       save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout) 
+
+    self._get_saver().save(
+        session,
+        self._save_path,
+        global_step=step,
+        write_meta_graph=self._write_graph)
 
     self._summary_writer.add_session_log(
         tf.SessionLog(

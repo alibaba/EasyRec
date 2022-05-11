@@ -22,7 +22,11 @@ import easy_rec
 kafka_dataset_ops_dir = easy_rec.ops_dir
 if 'PAI' in tf.__version__:
   kafka_dataset_ops_dir = os.path.join(os.path.dirname(kafka_dataset_ops_dir), '1.12_pai')
-kafka_module = tf.load_op_library(os.path.join(kafka_dataset_ops_dir, 'kafka.so'))
+kafka_module = None
+if kafka_dataset_ops_dir is not None:
+  kafka_ops_path = os.path.join(kafka_dataset_ops_dir, 'kafka.so')
+  if os.path.exists(kafka_ops_path):
+    kafka_module = tf.load_op_library(kafka_ops_path)
 
 
 @tf_export('io_kafka_dataset_v2')
