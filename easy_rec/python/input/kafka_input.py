@@ -125,7 +125,8 @@ class KafkaInput(Input):
       for k in offset_dict:
         v = offset_dict[k]
         k = int(k)
-        self._offset_dict[k] = v
+        if k not in self._offset_dict or v > self._offset_dict[k]:
+          self._offset_dict[k] = v
 
   def _get_topics(self):
     task_num = self._task_num
