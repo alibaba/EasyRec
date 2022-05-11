@@ -10,7 +10,7 @@ import os
 import tensorflow as tf
 
 import easy_rec
-from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
@@ -406,7 +406,10 @@ def main(argv):
     profiling_file = FLAGS.profiling_file if FLAGS.task_index == 0 else None
     if profiling_file is not None:
       print('profiling_file = %s ' % profiling_file)
-    predictor = Predictor(FLAGS.saved_model_dir, profiling_file=profiling_file)
+    predictor = ODPSPredictor(FLAGS.saved_model_dir,
+                              profiling_file=profiling_file,
+                              all_cols=FLAGS.all_cols,
+                              all_col_types=FLAGS.all_col_types)
     input_table, output_table = FLAGS.tables, FLAGS.outputs
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
@@ -414,9 +417,6 @@ def main(argv):
     predictor.predict_impl(
         input_table,
         output_table,
-        all_cols=FLAGS.all_cols,
-        all_col_types=FLAGS.all_col_types,
-        selected_cols=FLAGS.selected_cols,
         reserved_cols=FLAGS.reserved_cols,
         output_cols=FLAGS.output_cols,
         batch_size=FLAGS.batch_size,

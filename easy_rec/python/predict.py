@@ -8,7 +8,8 @@ import os
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
-from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.utils import pai_util
+from easy_rec.python.inference.predictor import CSVPredictor, ODPSPredictor
 from easy_rec.python.main import predict
 
 if tf.__version__ >= '2.0':
@@ -53,7 +54,9 @@ def main(argv):
 
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
-    predictor = Predictor(FLAGS.saved_model_dir)
+    predictor = CSVPredictor(FLAGS.saved_model_dir,
+                         input_sep=FLAGS.input_sep,
+                         output_sep=FLAGS.output_sep)
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
     if 'TF_CONFIG' in os.environ:
@@ -68,10 +71,9 @@ def main(argv):
         FLAGS.output_path,
         reserved_cols=FLAGS.reserved_cols,
         output_cols=FLAGS.output_cols,
+        batch_size=FLAGS.batch_size,
         slice_id=task_index,
-        slice_num=worker_num,
-        input_sep=FLAGS.input_sep,
-        output_sep=FLAGS.output_sep)
+        slice_num=worker_num)
   else:
     logging.info('Predict by checkpoint_path.')
     assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'
