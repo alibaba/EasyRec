@@ -26,15 +26,40 @@ class BinaryDataset:
       global_size=1,
   ):
     total_sample_num = 0
-    sample_num_arr = []
+    self._sample_num_arr = []
     for label_bin in label_bins:
       sample_num = os.path.getsize(label_bin) // 4
       total_sample_num += sample_num
-      sample_num_arr.append(sample_num)
+      self._sample_num_arr.append(sample_num)
     logging.info('total number samples = %d' % total_sample_num)
+    self._total_sample_num = total_sample_num
 
-    self._sampler_num_arr = sample_num_arr
+    self._batch_size = batch_size
 
+    self._compute_global_start_pos(total_sample_num, batch_size, global_rank,
+                                   global_size, drop_last)
+
+    self._label_file_arr = [None for _ in self._sample_num_arr]
+    self._dense_file_arr = [None for _ in self._sample_num_arr]
+    self._category_file_arr = [None for _ in self._sample_num_arr]
+
+    for tmp_file_id in range(self._start_file_id, self._end_file_id + 1):
+      self._label_file_arr[tmp_file_id] = os.open(label_bins[tmp_file_id],
+                                                  os.O_RDONLY)
+      self._dense_file_arr[tmp_file_id] = os.open(dense_bins[tmp_file_id],
+                                                  os.O_RDONLY)
+      self._category_file_arr[tmp_file_id] = os.open(category_bins[tmp_file_id],
+                                                     os.O_RDONLY)
+
+    self._prefetch = min(prefetch, self._num_entries)
+    self._prefetch_queue = queue.Queue()
+    self._executor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=self._prefetch)
+
+    self._os_close_func = os.close
+
+  def _compute_global_start_pos(self, total_sample_num, batch_size, global_rank,
+                                global_size, drop_last):
     # ensure all workers have the same number of samples
     avg_sample_num = (total_sample_num // global_size)
     res_num = (total_sample_num % global_size)
@@ -49,8 +74,6 @@ class BinaryDataset:
       global_start_pos = avg_sample_num * global_rank
     # global_end_pos = global_start_pos + self._num_samples
 
-    self._batch_size = batch_size
-    self._drop_last = drop_last
     self._num_entries = self._num_samples // batch_size
     self._last_batch_size = batch_size
     if not drop_last and (self._num_samples % batch_size != 0):
@@ -61,9 +84,9 @@ class BinaryDataset:
 
     start_file_id = 0
     curr_pos = 0
-    while curr_pos + sample_num_arr[start_file_id] <= global_start_pos:
+    while curr_pos + self._sample_num_arr[start_file_id] <= global_start_pos:
       start_file_id += 1
-      curr_pos += sample_num_arr[start_file_id]
+      curr_pos += self._sample_num_arr[start_file_id]
     self._start_file_id = start_file_id
     self._start_file_pos = global_start_pos - curr_pos
 
@@ -81,14 +104,16 @@ class BinaryDataset:
       if batch_id == self._num_entries:
         tmp_start_pos += self._last_batch_size
         while start_file_id < len(
-            sample_num_arr) and tmp_start_pos > sample_num_arr[start_file_id]:
-          tmp_start_pos -= sample_num_arr[start_file_id]
+            self._sample_num_arr
+        ) and tmp_start_pos > self._sample_num_arr[start_file_id]:
+          tmp_start_pos -= self._sample_num_arr[start_file_id]
           start_file_id += 1
       else:
         tmp_start_pos += batch_size
         while start_file_id < len(
-            sample_num_arr) and tmp_start_pos >= sample_num_arr[start_file_id]:
-          tmp_start_pos -= sample_num_arr[start_file_id]
+            self._sample_num_arr
+        ) and tmp_start_pos >= self._sample_num_arr[start_file_id]:
+          tmp_start_pos -= self._sample_num_arr[start_file_id]
           start_file_id += 1
 
     self._end_file_id = start_file_id
@@ -96,25 +121,6 @@ class BinaryDataset:
 
     logging.info('end_file_id = %d end_file_pos = %d' %
                  (self._end_file_id, self._end_file_pos))
-
-    self._label_file_arr = [None for _ in self._sampler_num_arr]
-    self._dense_file_arr = [None for _ in self._sampler_num_arr]
-    self._category_file_arr = [None for _ in self._sampler_num_arr]
-
-    for tmp_file_id in range(self._start_file_id, self._end_file_id + 1):
-      self._label_file_arr[tmp_file_id] = os.open(label_bins[tmp_file_id],
-                                                  os.O_RDONLY)
-      self._dense_file_arr[tmp_file_id] = os.open(dense_bins[tmp_file_id],
-                                                  os.O_RDONLY)
-      self._category_file_arr[tmp_file_id] = os.open(category_bins[tmp_file_id],
-                                                     os.O_RDONLY)
-
-    self._prefetch = min(prefetch, self._num_entries)
-    self._prefetch_queue = queue.Queue()
-    self._executor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=self._prefetch)
-
-    self._os_close_func = os.close
 
   def __del__(self):
     for f in self._label_file_arr:
@@ -158,9 +164,9 @@ class BinaryDataset:
     dense_read_arr = []
     cate_read_arr = []
     while total_read_num < self._batch_size and curr_file_id < len(
-        self._sampler_num_arr):
+        self._sample_num_arr):
       tmp_read_num = min(end_read_pos,
-                         self._sampler_num_arr[curr_file_id]) - start_read_pos
+                         self._sample_num_arr[curr_file_id]) - start_read_pos
 
       label_raw_data = os.pread(self._label_file_arr[curr_file_id],
                                 4 * tmp_read_num, start_read_pos * 4)

@@ -143,9 +143,13 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
-  export_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                  export_config, check_mode=check_mode,
-                                  **input_fn_kwargs)
+  export_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      None,
+      export_config,
+      check_mode=check_mode,
+      **input_fn_kwargs)
   if export_config.exporter_type == 'final':
     exporters = [
         FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
@@ -260,7 +264,9 @@ def _get_input_object_by_name(pipeline_config, worker_type):
   return getattr(pipeline_config, input_name)
 
 
-def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=False):
+def _train_and_evaluate_impl(pipeline_config,
+                             continue_train=False,
+                             check_mode=False):
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
@@ -292,29 +298,34 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False, check_mode=F
   train_steps = None
   if train_config.HasField('num_steps'):
     train_steps = train_config.num_steps
-  assert train_steps is not None or data_config.num_epochs > 0, "either num_steps and num_epochs must be set."
+  assert train_steps is not None or data_config.num_epochs > 0, 'either num_steps and num_epochs must be set.'
   if train_steps and data_config.num_epochs:
-    logging.info("Both num_steps and num_epochs are set.")
+    logging.info('Both num_steps and num_epochs are set.')
     is_sync = train_config.sync_replicas
     batch_size = data_config.batch_size
-    epoch_str = "sample_num * %d / %d" % (data_config.num_epochs, batch_size)
+    epoch_str = 'sample_num * %d / %d' % (data_config.num_epochs, batch_size)
     if is_sync:
       _, worker_num = estimator_utils.get_task_index_and_num()
-      epoch_str += " / " + str(worker_num)
-    logging.info("Will train min(%d, %s) steps..." % (train_steps, epoch_str))
+      epoch_str += ' / ' + str(worker_num)
+    logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
 
   input_fn_kwargs = {}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
   # create train input
-  train_input_fn = _get_input_fn(data_config, feature_configs, train_data, check_mode=check_mode,
-                                 **input_fn_kwargs)
+  train_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      train_data,
+      check_mode=check_mode,
+      **input_fn_kwargs)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
   # create eval spec
-  eval_spec = _create_eval_export_spec(pipeline_config, eval_data, check_mode=check_mode)
+  eval_spec = _create_eval_export_spec(
+      pipeline_config, eval_data, check_mode=check_mode)
   from easy_rec.python.compat import estimator_train
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')

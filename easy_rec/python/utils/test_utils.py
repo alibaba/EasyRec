@@ -233,7 +233,7 @@ def test_single_train_eval(pipeline_config_path,
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
       test_pipeline_config_path, hyperparam_str)
   if check_mode:
-    train_cmd += "--check_mode"
+    train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc.wait()
   if proc.returncode != 0:
@@ -243,8 +243,8 @@ def test_single_train_eval(pipeline_config_path,
     return post_check_func(pipeline_config)
   return True
 
-def test_single_pre_check(pipeline_config_path,
-                           test_dir):
+
+def test_single_pre_check(pipeline_config_path, test_dir):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -276,6 +276,7 @@ def test_single_pre_check(pipeline_config_path,
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
   return True
+
 
 def test_feature_selection(pipeline_config):
   model_dir = pipeline_config.model_dir
