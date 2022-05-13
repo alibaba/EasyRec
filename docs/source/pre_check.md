@@ -3,12 +3,12 @@
 为解决用户常由于脏数据或配置错误的原因，导致训练失败，开发了预检查功能。
 在训练时打开检查模式，或是训练前执行pre_check脚本，即会检查data_config配置及train_config部分配置，筛查全部数据，遇到异常则抛出相关信息，并给出修改意见。
 
-
 ### 命令
 
 #### Local
 
 方式一: 执行pre_check脚本：
+
 ```bash
 PYTHONPATH=. python easy_rec/python/tools/pre_check.py --pipeline_config_path samples/model_config/din_on_taobao.config --data_input_path data/test/check_data/csv_data_for_check
 ```
@@ -16,17 +16,19 @@ PYTHONPATH=. python easy_rec/python/tools/pre_check.py --pipeline_config_path sa
 方式二: 训练时打开检查模式（默认关闭）：
 
 该方式会影响训练速度，线上例行训练时不建议开启检查模式。
+
 ```bash
 python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/din_on_taobao.config --check_mode
 ```
+
 - pipeline_config_path config文件路径
 - data_input_path 待检查的数据路径，不指定的话为pipeline_config_path中的train_input_path及eval_input_path
 - check_mode 默认False
 
-
 #### On PAI
 
 方式一: 执行pre_check脚本：
+
 ```sql
 pai -name easy_rec_ext -project algo_public
   -Dcmd='check'
@@ -42,6 +44,7 @@ pai -name easy_rec_ext -project algo_public
 方式二: 训练时打开检查模式（默认关闭）：
 
 该方式会影响训练速度，线上例行训练时不建议开启检查模式。
+
 ```sql
 pai -name easy_rec_ext  -project algo_public
   -Dcmd='train'

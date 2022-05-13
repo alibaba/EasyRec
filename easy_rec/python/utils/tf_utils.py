@@ -4,8 +4,10 @@
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
 
 def get_tf_type(field_type):
   type_map = {

@@ -1,19 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import glob
 import logging
-import os
-import sys
-import unittest
-from distutils.version import LooseVersion
 
-import numpy as np
 import tensorflow as tf
 
-from easy_rec.python.main import predict
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':

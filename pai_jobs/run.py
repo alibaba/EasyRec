@@ -409,10 +409,11 @@ def main(argv):
     profiling_file = FLAGS.profiling_file if FLAGS.task_index == 0 else None
     if profiling_file is not None:
       print('profiling_file = %s ' % profiling_file)
-    predictor = ODPSPredictor(FLAGS.saved_model_dir,
-                              profiling_file=profiling_file,
-                              all_cols=FLAGS.all_cols,
-                              all_col_types=FLAGS.all_col_types)
+    predictor = ODPSPredictor(
+        FLAGS.saved_model_dir,
+        profiling_file=profiling_file,
+        all_cols=FLAGS.all_cols,
+        all_col_types=FLAGS.all_col_types)
     input_table, output_table = FLAGS.tables, FLAGS.outputs
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
