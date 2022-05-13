@@ -7,9 +7,8 @@ import os
 
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
-
-from easy_rec.python.utils import pai_util
-from easy_rec.python.inference.predictor import CSVPredictor, ODPSPredictor
+from easy_rec.python.utils import pai_util,config_util
+from easy_rec.python.inference.predictor import CSVPredictor, ODPSPredictor, HivePredictor
 from easy_rec.python.main import predict
 
 if tf.__version__ >= '2.0':
@@ -20,8 +19,7 @@ logging.basicConfig(
     level=logging.INFO)
 
 tf.app.flags.DEFINE_string(
-    'input_path', None, 'predict data path, if specified will '
-    'override pipeline_config.eval_input_path')
+    'input_path', None, 'predict data path')
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
 tf.app.flags.DEFINE_integer('batch_size', 1024, help='batch size')
 
@@ -54,9 +52,18 @@ def main(argv):
 
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
-    predictor = CSVPredictor(FLAGS.saved_model_dir,
-                         input_sep=FLAGS.input_sep,
-                         output_sep=FLAGS.output_sep)
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        FLAGS.pipeline_config_path, False)
+    if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+      predictor = HivePredictor(FLAGS.saved_model_dir,
+                                pipeline_config.data_config,
+                                hive_config=pipeline_config.hive_train_input,
+                                output_sep=FLAGS.output_sep)
+    else:
+      predictor = CSVPredictor(FLAGS.saved_model_dir,
+                               input_sep=FLAGS.input_sep,
+                               output_sep=FLAGS.output_sep)
+
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
     if 'TF_CONFIG' in os.environ:

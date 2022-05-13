@@ -15,6 +15,7 @@ from easy_rec.python.utils.check_utils import check_split, check_string_to_numbe
 from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -132,17 +133,6 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       return None
 
-  def get_tf_type(self, field_type):
-    type_map = {
-        DatasetConfig.INT32: tf.int32,
-        DatasetConfig.INT64: tf.int64,
-        DatasetConfig.STRING: tf.string,
-        DatasetConfig.BOOL: tf.bool,
-        DatasetConfig.FLOAT: tf.float32,
-        DatasetConfig.DOUBLE: tf.double
-    }
-    assert field_type in type_map, 'invalid type: %s' % field_type
-    return type_map[field_type]
 
   def create_multi_placeholders(self, export_config):
     """Create multiply placeholders on export, one for each feature.
@@ -185,7 +175,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
       else:
         ftype = self._input_field_types[fid]
-        tf_type = self.get_tf_type(ftype)
+        tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput

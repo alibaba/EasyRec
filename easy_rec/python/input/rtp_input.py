@@ -7,7 +7,6 @@ import tensorflow as tf
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils.check_utils import check_split, check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
