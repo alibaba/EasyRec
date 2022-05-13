@@ -34,10 +34,10 @@ hadoopUserName=hadoop
 token=ZSHTIeEkwrtZJJsN1ZZmCJJmr5jaj1wO
 ```
 
-- 使用 pai-automl-fe 提交任务
+- 使用 automlcmd 提交任务
 
 ```bash
-pai-automl-fe run -e configs/alink.env --config configs/ctr_autocross.yaml --mode emr
+automlcmd pipeline -e configs/alink.env --config configs/ctr_autocross.yaml --mode emr
 ```
 
 ### 对接EasyRec
