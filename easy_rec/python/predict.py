@@ -8,7 +8,6 @@ import os
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
-from easy_rec.python.utils import pai_util
 from easy_rec.python.inference.predictor import CSVPredictor, ODPSPredictor
 from easy_rec.python.main import predict
 
@@ -46,7 +45,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
-
+tf.app.flags.DEFINE_bool('is_rtp', False, '')
+tf.app.flags.DEFINE_string('selected_cols', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -55,8 +55,10 @@ def main(argv):
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
     predictor = CSVPredictor(FLAGS.saved_model_dir,
-                         input_sep=FLAGS.input_sep,
-                         output_sep=FLAGS.output_sep)
+                             input_sep=FLAGS.input_sep,
+                             output_sep=FLAGS.output_sep,
+                             selected_cols=FLAGS.selected_cols,
+                             is_rtp=FLAGS.is_rtp)
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
     if 'TF_CONFIG' in os.environ:
@@ -74,6 +76,7 @@ def main(argv):
         batch_size=FLAGS.batch_size,
         slice_id=task_index,
         slice_num=worker_num)
+
   else:
     logging.info('Predict by checkpoint_path.')
     assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'
