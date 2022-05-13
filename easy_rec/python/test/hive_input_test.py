@@ -5,6 +5,7 @@ import os
 import unittest
 
 import tensorflow as tf
+from google.protobuf import text_format
 
 from easy_rec.python.input.hive_input import HiveInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig

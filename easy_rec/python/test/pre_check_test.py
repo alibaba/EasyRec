@@ -36,12 +36,16 @@ class CheckTest(tf.test.TestCase):
 
   def test_csv_input_train_with_check(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dbmtl_on_taobao.config', self._test_dir, check_mode=True)
+        'samples/model_config/dbmtl_on_taobao.config',
+        self._test_dir,
+        check_mode=True)
     self.assertTrue(self._success)
 
   def test_rtp_input_train_with_check(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/taobao_fg.config', self._test_dir, check_mode=True)
+        'samples/model_config/taobao_fg.config',
+        self._test_dir,
+        check_mode=True)
     self.assertTrue(self._success)
 
   def test_csv_input_with_pre_check(self):
@@ -53,6 +57,7 @@ class CheckTest(tf.test.TestCase):
     self._success = test_utils.test_single_pre_check(
         'samples/model_config/dbmtl_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -18,3 +18,10 @@ message DatahubServer{
     required uint32 shard_num  = 6;
     required uint32 life_cycle = 7;
 }
+
+message BinaryDataInput {
+    // support gfile.Glob
+    repeated string category_path = 1;
+    repeated string dense_path = 2;
+    repeated string label_path = 3;
+}

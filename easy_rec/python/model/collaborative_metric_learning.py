@@ -2,8 +2,6 @@ import tensorflow as tf
 
 from easy_rec.python.core.metrics import metric_learning_average_precision_at_k
 from easy_rec.python.core.metrics import metric_learning_recall_at_k
-from easy_rec.python.core.distribute_metrics import distribute_metric_learning_average_precision_at_k
-from easy_rec.python.core.distribute_metrics import distribute_metric_learning_recall_at_k
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.common_layers import gelu
 from easy_rec.python.layers.common_layers import highway
@@ -12,6 +10,9 @@ from easy_rec.python.loss.multi_similarity import ms_loss
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
+
+from easy_rec.python.core.distribute_metrics import distribute_metric_learning_average_precision_at_k  # NOQA
+from easy_rec.python.core.distribute_metrics import distribute_metric_learning_recall_at_k  # NOQA
 
 from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
 
@@ -193,9 +194,9 @@ class CoMetricLearningI2I(EasyRecModel):
     if len(recall_at_k) > 0:
       metric_dict.update(
           distribute_metric_learning_recall_at_k(recall_at_k, emb, self.labels,
-                                      self.session_ids))
+                                                 self.session_ids))
     if len(precision_at_k) > 0:
       metric_dict.update(
-          distribute_metric_learning_average_precision_at_k(precision_at_k, emb,
-                                                 self.labels, self.session_ids))
+          distribute_metric_learning_average_precision_at_k(
+              precision_at_k, emb, self.labels, self.session_ids))
     return metric_dict
