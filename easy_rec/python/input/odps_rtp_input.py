@@ -60,15 +60,18 @@ class OdpsRTPInput(Input):
     print('field_delim = %s, feature_num = %d' %
           (self._data_config.separator, feature_num))
     logging.info('field_delim = %s, input_field_name = %d' %
-          (self._data_config.separator, len(record_types)))
+                 (self._data_config.separator, len(record_types)))
 
-    check_list = [tf.py_func(check_split,
-                             [fields[-1], self._data_config.separator, len(record_types)],
-                             Tout=tf.bool)
-                  ] if self._check_mode else []
+    check_list = [
+        tf.py_func(
+            check_split,
+            [fields[-1], self._data_config.separator,
+             len(record_types)],
+            Tout=tf.bool)
+    ] if self._check_mode else []
     with tf.control_dependencies(check_list):
       fields = tf.string_split(
-        fields[-1], self._data_config.separator, skip_empty=False)
+          fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(feature_fields.values, [-1, feature_num])
 
     fields = labels[len(self._label_fields):]
@@ -89,7 +92,8 @@ class OdpsRTPInput(Input):
   def _build(self, mode, params):
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
-    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
 
     selected_cols = self._data_config.selected_cols \
       if self._data_config.selected_cols else None

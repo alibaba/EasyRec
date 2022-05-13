@@ -125,7 +125,8 @@ def main(argv):
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
@@ -142,14 +143,15 @@ def main(argv):
                        fine_tune_checkpoint)
       config_util.edit_config(pipeline_config, config_json)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train, FLAGS.check_mode)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')
 
 
 if __name__ == '__main__':
   tf.app.run()
-

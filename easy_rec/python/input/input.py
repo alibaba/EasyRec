@@ -133,6 +133,12 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       return None
 
+  def should_stop(self, curr_epoch):
+    """Check whether have run enough num epochs."""
+    total_epoch = self.num_epochs
+    if self._mode != tf.estimator.ModeKeys.TRAIN:
+      total_epoch = 1
+    return total_epoch is not None and curr_epoch >= total_epoch
 
   def create_multi_placeholders(self, export_config):
     """Create multiply placeholders on export, one for each feature.
@@ -281,8 +287,6 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[k] = v
           self._appended_fields.append(k)
 
-    print('[input] all feature names: {}'.format(
-        [fc.feature_name for fc in self._feature_configs]))
     for fc in self._feature_configs:
       feature_name = fc.feature_name
       feature_type = fc.feature_type

@@ -242,6 +242,7 @@ def set_tf_config_and_get_train_worker_num_on_ds():
       easyrec_tf_config['task']['index'] = tf_config['task']['index']
     os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
 
+
 def set_tf_config_and_get_distribute_eval_worker_num_on_ds():
   assert 'TF_CONFIG' in os.environ, "'TF_CONFIG' must in os.environ"
   tf_config = json.loads(os.environ['TF_CONFIG'])

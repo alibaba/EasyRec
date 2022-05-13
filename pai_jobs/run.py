@@ -12,14 +12,15 @@ import tensorflow as tf
 import easy_rec
 from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
+from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
+
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
-from easy_rec.python.tools.pre_check import run_check
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -299,9 +300,11 @@ def main(argv):
         eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
-    logging.info("run.py check_mode: %s ." % FLAGS.check_mode)
+    logging.info('run.py check_mode: %s .' % FLAGS.check_mode)
     train_and_evaluate_impl(
-        pipeline_config, continue_train=FLAGS.continue_train, check_mode=FLAGS.check_mode)
+        pipeline_config,
+        continue_train=FLAGS.continue_train,
+        check_mode=FLAGS.check_mode)
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(

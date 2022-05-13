@@ -88,17 +88,18 @@ class SeqInputLayer(object):
 
         for idx in range(1, len(cur_hist_seqs)):
           check_op = tf.assert_equal(
-          cur_hist_seqs[0][1],
-          cur_hist_seqs[idx][1],
-          message="SequenceFeature Error: The size of %s not equal to the size of %s." % (x.hist_seq[idx], x.hist_seq[0]))
+              cur_hist_seqs[0][1],
+              cur_hist_seqs[idx][1],
+              message='SequenceFeature Error: The size of %s not equal to the size of %s.'
+              % (x.hist_seq[idx], x.hist_seq[0]))
           check_op_list.append(check_op)
 
     with tf.control_dependencies(check_op_list):
       features = {
-        'key': tf.concat(key_tensors, axis=-1),
-        'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
-        'hist_seq_len': hist_tensors[0][1]
-    }
+          'key': tf.concat(key_tensors, axis=-1),
+          'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
+          'hist_seq_len': hist_tensors[0][1]
+      }
     return features
 
   def get_wide_deep_dict(self):
