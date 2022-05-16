@@ -257,9 +257,6 @@ class NegativeSampler(BaseSampler):
     sampled_values = tf.py_func(self._get_impl, [ids], self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      # if t == tf.string:
-      #   # string convert from np array to tensor will be padded with \000, we need remove it
-      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([self._num_sample])
       result_dict[k] = v
     return result_dict
@@ -487,9 +484,6 @@ class NegativeSamplerV2(BaseSampler):
                                 self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      # if t == tf.string:
-      #   # string convert from np array to tensor will be padded with \000, we need remove it
-      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([self._num_sample])
       result_dict[k] = v
     return result_dict
@@ -580,9 +574,6 @@ class HardNegativeSampler(BaseSampler):
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types,
                        output_values[:-1]):
-      # if t == tf.string:
-      #   # string convert from np array to tensor will be padded with \000, we need remove it
-      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([None])
       result_dict[k] = v
 
@@ -682,9 +673,6 @@ class HardNegativeSamplerV2(BaseSampler):
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types,
                        output_values[:-1]):
-      # if t == tf.string:
-      #   # string convert from np array to tensor will be padded with \000, we need remove it
-      #   v = tf.regex_replace(v, '\000', '')
       v.set_shape([None])
       result_dict[k] = v
 
