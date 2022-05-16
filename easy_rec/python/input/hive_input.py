@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import tensorflow as tf
-from EasyRec.easy_rec.python.utils.hive_utils import HiveUtils
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util

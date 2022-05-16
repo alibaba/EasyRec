@@ -611,7 +611,7 @@ class CSVPredictor(Predictor):
 
   @property
   def out_of_range_exception(self):
-    return tf.errors.OutOfRangeError
+    return (tf.errors.OutOfRangeError)
 
 
 class ODPSPredictor(Predictor):
@@ -661,7 +661,7 @@ class ODPSPredictor(Predictor):
 
   @property
   def out_of_range_exception(self):
-    return tf.python_io.OutOfRangeException
+    return (tf.python_io.OutOfRangeException, tf.errors.OutOfRangeError)
 
 
 class HivePredictor(Predictor):
@@ -728,4 +728,4 @@ class HivePredictor(Predictor):
 
   @property
   def out_of_range_exception(self):
-    return tf.errors.OutOfRangeError
+    return (tf.errors.OutOfRangeError)
