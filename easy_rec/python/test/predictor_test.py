@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 import tensorflow as tf
 
+from easy_rec.python.inference.predictor import CSVPredictor
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.test_utils import RunAsSubprocess
@@ -123,36 +124,59 @@ class PredictorTest(tf.test.TestCase):
 class PredictorTestOnDS(tf.test.TestCase):
 
   def setUp(self):
-    self._test_input_path = 'data/test/inference/taobao_infer_data.txt'
+
     self._test_dir = test_utils.get_tmp_dir()
-    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    self._test_output_path = None
 
     # self.gpus = test_utils.get_available_gpus()
     # self.assertTrue(len(self.gpus) > 0, 'no available gpu on this machine')
     # logging.info('available gpus %s' % self.gpus)
     # test_utils.set_gpu_id(self.gpus[0])
-    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
+    # logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
 
   def tearDown(self):
-    if (os.path.exists(self._test_output_path)):
+    if self._test_output_path and (os.path.exists(self._test_output_path)):
       shutil.rmtree(self._test_output_path)
     test_utils.set_gpu_id(None)
 
+  @RunAsSubprocess
   def test_local_pred(self):
-    predictor = Predictor('data/test/inference/tb_multitower_export/')
+    self._test_input_path = 'data/test/inference/taobao_infer_data.txt'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    predictor = CSVPredictor(
+        'data/test/inference/tb_multitower_export/',
+        input_sep=',',
+        output_sep=';')
     predictor.predict_impl(
         self._test_input_path,
         self._test_output_path,
         reserved_cols='ALL_COLUMNS',
         output_cols='ALL_COLUMNS',
         slice_id=0,
-        slice_num=1,
-        input_sep=',',
-        output_sep=';')
-    print(self._test_output_path + '/slice_0.csv')
+        slice_num=1)
     with open(self._test_output_path + '/slice_0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
+  #
+  # @RunAsSubprocess
+  # def test_local_rtp_pred(self):
+  #   self._test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
+  #   self._test_output_path = os.path.join(self._test_dir, 'taobao_rtp_infer_result')
+  #   predictor = CSVPredictor(
+  #       'data/test/inference/tb_multitower_rtp_export/',
+  #       input_sep=';',
+  #       output_sep=';')
+  #   predictor.predict_impl(
+  #       self._test_input_path,
+  #       self._test_output_path,
+  #       reserved_cols='ALL_COLUMNS',
+  #       output_cols='ALL_COLUMNS',
+  #       slice_id=0,
+  #       slice_num=1)
+  #   with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+  #     output_res = f.readlines()
+  #     print(output_res[0])
+  #     self.assertTrue(len(output_res) == 101)
 
 
 class PredictorTestV2(tf.test.TestCase):

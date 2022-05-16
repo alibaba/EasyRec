@@ -15,9 +15,9 @@ gfile = tf.gfile
 class CheckTest(tf.test.TestCase):
 
   def setUp(self):
-    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
     self._test_dir = test_utils.get_tmp_dir()
     self._success = True
+    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
     logging.info('test dir: %s' % self._test_dir)
 
   def tearDown(self):

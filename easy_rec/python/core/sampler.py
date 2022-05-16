@@ -13,6 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   import graphlearn as gl
@@ -46,19 +47,6 @@ def _get_np_type(field_type):
       DatasetConfig.BOOL: np.bool,
       DatasetConfig.FLOAT: np.float32,
       DatasetConfig.DOUBLE: np.double
-  }
-  assert field_type in type_map, 'invalid type: %s' % field_type
-  return type_map[field_type]
-
-
-def _get_tf_type(field_type):
-  type_map = {
-      DatasetConfig.INT32: tf.int32,
-      DatasetConfig.INT64: tf.int64,
-      DatasetConfig.STRING: tf.string,
-      DatasetConfig.BOOL: tf.bool,
-      DatasetConfig.FLOAT: tf.float32,
-      DatasetConfig.DOUBLE: tf.double
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
@@ -128,7 +116,7 @@ class BaseSampler(object):
       self._attr_types.append(field.input_type)
       self._attr_gl_types.append(_get_gl_type(field.input_type))
       self._attr_np_types.append(_get_np_type(field.input_type))
-      self._attr_tf_types.append(_get_tf_type(field.input_type))
+      self._attr_tf_types.append(get_tf_type(field.input_type))
 
   @classmethod
   def instance(cls, *args, **kwargs):

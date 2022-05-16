@@ -8,6 +8,7 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -77,7 +78,7 @@ class RTPInput(Input):
       field = fields[:, x]
       fname = self._input_fields[idx]
       ftype = self._input_field_types[idx]
-      tf_type = self.get_tf_type(ftype)
+      tf_type = get_tf_type(ftype)
       if field.dtype in [tf.string]:
         check_list = [
             tf.py_func(check_string_to_number, [field, fname], Tout=tf.bool)

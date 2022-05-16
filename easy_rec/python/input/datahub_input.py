@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   import common_io
@@ -105,7 +106,7 @@ class DataHubInput(Input):
 
   def _build(self, mode, params):
     # get input type
-    list_type = [self.get_tf_type(x) for x in self._input_field_types]
+    list_type = [get_tf_type(x) for x in self._input_field_types]
     list_type = tuple(list_type)
     list_shapes = [tf.TensorShape([None]) for x in range(0, len(list_type))]
     list_shapes = tuple(list_shapes)

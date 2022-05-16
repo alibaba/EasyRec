@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -26,7 +27,7 @@ class TFRecordInput(Input):
     for x, t, d in zip(self._input_fields, self._input_field_types,
                        self._input_field_defaults):
       d = self.get_type_defaults(t, d)
-      t = self.get_tf_type(t)
+      t = get_tf_type(t)
       self.feature_desc[x] = tf.FixedLenFeature(
           dtype=t, shape=1, default_value=d)
 
