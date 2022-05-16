@@ -14,6 +14,7 @@ import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
@@ -52,6 +53,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
       input_data:  a list of numpy array, each array is a sample to be predicted
       batch_size: batch_size passed by the caller, you can also ignore this param and
         use a fixed number if you do not want to adjust batch_size in runtime
+
     Returns:
       result: a list of dict, each dict is the prediction result of one sample
         eg, {"output1": value1, "output2": value2}, the value type can be
@@ -62,15 +64,20 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
   def get_output_type(self):
     """Get output types of prediction.
 
-    in this function user should return a type dict, which indicates which type of
+    In this function user should return a type dict, which indicates which type of
     data should the output of predictor be converted to.
 
+    In this function user should return a type dict, which indicates
+    which type of data should the output of predictor be converted to
     * type json, data will be serialized to json str
+
     * type image, data will be converted to encode image binary and write to oss file,
       whose name is output_dir/${key}/${input_filename}_${idx}.jpg, where input_filename
       is extracted from url, key corresponds to the key in the dict of output_type,
       if the type of data indexed by key is a list, idx is the index of element in list, otherwhile ${idx} will be empty
+
     * type video, data will be converted to encode video binary and write to oss file,
+
     eg:  return  {
       'image': 'image',
       'feature': 'json'
@@ -119,14 +126,15 @@ class PredictorImpl(object):
     """Search pb file recursively in model directory. if multiple pb files exist, exception will be raised.
 
     If multiple pb files exist, exception will be raised.
+
     Args:
-      directory: model directory
+      directory: model directory.
 
     Returns:
       directory contain pb file
     """
     dir_list = []
-    for root, dirs, files in tf.gfile.Walk(directory):
+    for root, dirs, files in gfile.Walk(directory):
       for f in files:
         _, ext = os.path.splitext(f)
         if ext == '.pb':
@@ -140,7 +148,7 @@ class PredictorImpl(object):
 
   def _get_input_fields_from_pipeline_config(self, model_path):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
-    if not tf.gfile.Exists(pipeline_path):
+    if not gfile.Exists(pipeline_path):
       logging.warning(
           '%s not exists, default values maybe inconsistent with the values used in training.'
           % pipeline_path)
@@ -173,7 +181,7 @@ class PredictorImpl(object):
         # load model
         _, ext = os.path.splitext(model_path)
         tf.logging.info('loading model from %s' % model_path)
-        if tf.gfile.IsDirectory(model_path):
+        if gfile.IsDirectory(model_path):
           model_path = self.search_pb(model_path)
           logging.info('model find in %s' % model_path)
           self._input_fields_info, self._input_fields_list = self._get_input_fields_from_pipeline_config(
@@ -246,7 +254,7 @@ class PredictorImpl(object):
             type_name = asset_file.tensor_info.name.split(':')[0]
             asset_path = os.path.join(model_path, constants.ASSETS_DIRECTORY,
                                       asset_file.filename)
-            assert tf.gfile.Exists(
+            assert gfile.Exists(
                 asset_path), '%s is missing in saved model' % asset_path
             self._assets[type_name] = asset_path
           logging.info(self._assets)
@@ -268,6 +276,7 @@ class PredictorImpl(object):
         value is the corresponding value
       output_names:  if not None, will fetch certain outputs, if set None, will
         return all the output info according to the output info in model signature
+
     Return:
       a dict of outputs, key is the output name, value is the corresponding value
     """
@@ -305,7 +314,7 @@ class PredictorImpl(object):
           from tensorflow.python.client import timeline
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
-          with tf.gfile.GFile(self._profiling_file, 'w') as f:
+          with gfile.GFile(self._profiling_file, 'w') as f:
             f.write(ctf)
           return results
 
@@ -407,8 +416,9 @@ class Predictor(PredictorInterface):
   def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
                   batch_size, slice_id, slice_num, input_sep, output_sep):
     record_defaults = [
-        self._input_fields_info[col_name][1] for col_name in self._input_fields
+      get_type_defaults(*self._input_fields_info[col_name]) for col_name in self._input_fields
     ]
+
     if reserved_cols == 'ALL_COLUMNS':
       reserved_cols = self._input_fields
     else:
@@ -430,7 +440,7 @@ class Predictor(PredictorInterface):
       num_parallel_calls = 8
       file_paths = []
       for x in input_path.split(','):
-        file_paths.extend(tf.gfile.Glob(x))
+        file_paths.extend(gfile.Glob(x))
       assert len(file_paths) > 0, 'match no files with %s' % input_path
 
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
@@ -470,10 +480,10 @@ class Predictor(PredictorInterface):
       iterator = dataset.make_one_shot_iterator()
       all_dict = iterator.get_next()
 
-      if not tf.gfile.Exists(output_path):
-        tf.gfile.MakeDirs(output_path)
+      if not gfile.Exists(output_path):
+        gfile.MakeDirs(output_path)
       res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
-      table_writer = tf.gfile.FastGFile(res_path, 'w')
+      table_writer = gfile.GFile(res_path, 'w')
 
       input_names = self._predictor_impl.input_names
       progress = 0
@@ -661,6 +671,7 @@ class Predictor(PredictorInterface):
       input_data_dict_list: list of dict
       output_names:  if not None, will fetch certain outputs, if set None, will
       batch_size: batch_size used to predict, -1 indicates to use the real batch_size
+
     Return:
       a list of dict, each dict contain a key-value pair for output_name, output_value
     """

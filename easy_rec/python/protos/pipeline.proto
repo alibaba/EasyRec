@@ -8,6 +8,7 @@ import "easy_rec/python/protos/dataset.proto";
 import "easy_rec/python/protos/feature_config.proto";
 import "easy_rec/python/protos/easy_rec_model.proto";
 import "easy_rec/python/protos/data_source.proto";
+import "easy_rec/python/protos/hive_config.proto";
 
 // EasyRecConfig: the pipeline_config, including all sub configs
 
@@ -16,11 +17,15 @@ message EasyRecConfig {
       string train_input_path = 1;
       KafkaServer kafka_train_input = 2;
       DatahubServer datahub_train_input = 12;
+      HiveConfig hive_train_input = 101;
+      BinaryDataInput binary_train_input = 102;
   }
   oneof eval_path {
       string eval_input_path = 3;
       KafkaServer kafka_eval_input = 4;
       DatahubServer datahub_eval_input = 13;
+      HiveConfig hive_eval_input= 201;
+      BinaryDataInput binary_eval_input = 202;
   }
   required string model_dir = 5;
 

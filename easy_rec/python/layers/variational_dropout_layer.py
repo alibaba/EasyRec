@@ -1,5 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import json
+
 import numpy as np
 import tensorflow as tf
 
@@ -21,10 +23,11 @@ class VariationalDropoutLayer(object):
   def __init__(self,
                variational_dropout_config,
                features_dimension,
-               is_training=False):
+               is_training=False,
+               name=''):
     self._config = variational_dropout_config
     self.features_dimension = features_dimension
-    self.features_total_dimension = sum(self.features_dimension)
+    self.features_total_dimension = sum(self.features_dimension.values())
 
     if self.variational_dropout_wise():
       self._dropout_param_size = self.features_total_dimension
@@ -34,11 +37,15 @@ class VariationalDropoutLayer(object):
       self.drop_param_shape = [self._dropout_param_size]
     self.evaluate = not is_training
 
+    logit_p_name = 'logit_p' if name == 'all' else 'logit_p_%s' % name
     self.logit_p = tf.get_variable(
-        name='logit_p',
+        name=logit_p_name,
         shape=self.drop_param_shape,
         dtype=tf.float32,
         initializer=None)
+    tf.add_to_collection(
+        'variational_dropout',
+        json.dumps([name, list(self.features_dimension.items())]))
 
   def get_lambda(self):
     return self._config.regularization_lambda
@@ -49,8 +56,7 @@ class VariationalDropoutLayer(object):
   def build_expand_index(self, batch_size):
     # Build index_list--->[[0,0],[0,0],[0,0],[0,0],[0,1]......]
     expanded_index = []
-    for i in range(len(self.features_dimension)):
-      index_loop_count = self.features_dimension[i]
+    for i, index_loop_count in enumerate(self.features_dimension.values()):
       for m in range(index_loop_count):
         expanded_index.append([i])
     expanded_index = tf.tile(expanded_index, [batch_size, 1])

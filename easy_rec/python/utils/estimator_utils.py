@@ -276,8 +276,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
                checkpoint_basename='model.ckpt',
                scaffold=None,
                listeners=None,
-               write_graph=True,
-               separate_save=False):
+               write_graph=True):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -290,6 +289,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       listeners: List of `CheckpointSaverListener` subclass instances.
         Used for callbacks that run immediately before or after this hook saves
         the checkpoint.
+      write_graph: whether to save graph.pbtxt.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.
@@ -626,3 +626,19 @@ def is_chief():
     if 'task' in tf_config:
       return tf_config['task']['type'] in ['chief', 'master']
   return True
+
+
+def is_master():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'task' in tf_config:
+      return tf_config['task']['type'] == 'master'
+  return True
+
+
+def is_evaluator():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'task' in tf_config:
+      return tf_config['task']['type'] == 'evaluator'
+  return False

@@ -134,6 +134,7 @@ import math
 
 import numpy as np
 import six
+import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -165,8 +166,10 @@ from tensorflow.python.util import deprecation
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
+from easy_rec.python.compat import ops as compat_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.layers import utils as layer_utils
 
 _FEATURE_COLUMN_DEPRECATION_DATE = None
 _FEATURE_COLUMN_DEPRECATION = ('The old _FeatureColumn APIs are being '
@@ -1053,12 +1056,6 @@ def shared_embedding_columns(categorical_columns,
     if isinstance(
         c, (fc_old._WeightedCategoricalColumn, WeightedCategoricalColumn)):  # pylint: disable=protected-access
       c = c.categorical_column
-    if not isinstance(c, type(c0)):
-      raise ValueError(
-          'To use shared_embedding_column, all categorical_columns must have '
-          'the same type, or be weighted_categorical_column of the same type. '
-          'Given column: {} of type: {} does not match given column: {} of '
-          'type: {}'.format(c0, type(c0), c, type(c)))
     if num_buckets != c._num_buckets:  # pylint: disable=protected-access
       raise ValueError(
           'To use shared_embedding_column, all categorical_columns must have '
@@ -2982,6 +2979,451 @@ class BucketizedColumn(
     return cls(**kwargs)
 
 
+class SequenceBucketizedColumn(
+    DenseColumn,
+    CategoricalColumn,
+    fc_old._DenseColumn,  # pylint: disable=protected-access
+    fc_old._CategoricalColumn,  # pylint: disable=protected-access
+    collections.namedtuple('SequenceBucketizedColumn',
+                           ('source_column', 'boundaries'))):
+  """See `bucketized_column`."""
+
+  @property
+  def _is_v2_column(self):
+    return (isinstance(self.source_column, FeatureColumn) and
+            self.source_column._is_v2_column)  # pylint: disable=protected-access
+
+  @property
+  def name(self):
+    """See `FeatureColumn` base class."""
+    return '{}_bucketized'.format(self.source_column.name)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.source_column.raw_name
+
+  @property
+  def parse_example_spec(self):
+    """See `FeatureColumn` base class."""
+    return self.source_column.parse_example_spec
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _parse_example_spec(self):
+    return self.source_column._parse_example_spec  # pylint: disable=protected-access
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _transform_feature(self, inputs):
+    """Returns bucketized categorical `source_column` tensor."""
+    source_tensor = inputs.get(self.source_column)
+    bucketize_values = math_ops._bucketize(
+        source_tensor.values, boundaries=self.boundaries)
+    bucketize_tensor = sparse_tensor_lib.SparseTensor(
+        indices=source_tensor.indices,
+        values=bucketize_values,
+        dense_shape=source_tensor.dense_shape)
+    return bucketize_tensor
+
+  def transform_feature(self, transformation_cache, state_manager):
+    """Returns bucketized categorical `source_column` tensor."""
+    source_tensor = transformation_cache.get(self.source_column, state_manager)
+    return math_ops._bucketize(  # pylint: disable=protected-access
+        source_tensor,
+        boundaries=self.boundaries)
+
+  @property
+  def variable_shape(self):
+    """See `DenseColumn` base class."""
+    return tensor_shape.TensorShape(
+        tuple(self.source_column.shape) + (len(self.boundaries) + 1,))
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _variable_shape(self):
+    return self.variable_shape
+
+  def _get_dense_tensor_for_input_tensor(self, input_tensor):
+    return array_ops.one_hot(
+        indices=math_ops.cast(input_tensor, dtypes.int64),
+        depth=len(self.boundaries) + 1,
+        on_value=1.,
+        off_value=0.)
+
+  def get_dense_tensor(self, transformation_cache, state_manager):
+    """Returns one hot encoded dense `Tensor`."""
+    input_tensor = transformation_cache.get(self, state_manager)
+    return self._get_dense_tensor_for_input_tensor(input_tensor)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_dense_tensor(self, inputs, weight_collections=None, trainable=None):
+    del weight_collections
+    del trainable
+    input_tensor = inputs.get(self)
+    return self._get_dense_tensor_for_input_tensor(input_tensor)
+
+  @property
+  def num_buckets(self):
+    """See `CategoricalColumn` base class."""
+    # By construction, source_column is always one-dimensional.
+    return (len(self.boundaries) + 1) * self.source_column.shape[0]
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _num_buckets(self):
+    return self.num_buckets
+
+  def _get_sparse_tensors_for_input_tensor(self, input_sparse_tensor):
+    input_tensor = input_sparse_tensor.values
+    input_indices = input_sparse_tensor.indices
+    batch_size = array_ops.shape(input_tensor)[0]
+    # By construction, source_column is always one-dimensional.
+    source_dimension = self.source_column.shape[0]
+
+    i2 = array_ops.tile(math_ops.range(0, source_dimension), [batch_size])
+    # Flatten the bucket indices and unique them across dimensions
+    # E.g. 2nd dimension indices will range from k to 2*k-1 with k buckets
+    bucket_indices = (
+        array_ops.reshape(input_tensor,
+                          (-1,)) + (len(self.boundaries) + 1) * i2)
+
+    sparse_tensor = sparse_tensor_lib.SparseTensor(
+        indices=input_indices,
+        values=bucket_indices,
+        dense_shape=input_sparse_tensor.dense_shape)
+    # Compute the third dimension explicitly instead of setting it to -1, as
+    # that doesn't work for dynamically shaped tensors with 0-length at runtime.
+    # This happens for empty sequences.
+    shape = array_ops.shape(sparse_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_seq_tensor = sparse_ops.sparse_reshape(sparse_tensor, target_shape)
+    return CategoricalColumn.IdWeightPair(ret_seq_tensor, None)
+
+  def get_sparse_tensors(self, transformation_cache, state_manager):
+    """Converts dense inputs to SparseTensor so downstream code can use it."""
+    input_tensor = transformation_cache.get(self, state_manager)
+    return self._get_sparse_tensors_for_input_tensor(input_tensor)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_sparse_tensors(self,
+                          inputs,
+                          weight_collections=None,
+                          trainable=None):
+    """Converts dense inputs to SparseTensor so downstream code can use it."""
+    del weight_collections
+    del trainable
+    input_tensor = inputs.get(self)
+    return self._get_sparse_tensors_for_input_tensor(input_tensor)
+
+  @property
+  def parents(self):
+    """See 'FeatureColumn` base class."""
+    return [self.source_column]
+
+  def _get_config(self):
+    """See 'FeatureColumn` base class."""
+    config = dict(zip(self._fields, self))
+    config['source_column'] = serialize_feature_column(self.source_column)
+    return config
+
+  @classmethod
+  def _from_config(cls, config, custom_objects=None, columns_by_name=None):
+    """See 'FeatureColumn` base class."""
+    _check_config_keys(config, cls._fields)
+    kwargs = config.copy()
+    kwargs['source_column'] = deserialize_feature_column(
+        config['source_column'], custom_objects, columns_by_name)
+    return cls(**kwargs)
+
+
+class SequenceNumericColumn(
+    DenseColumn,
+    CategoricalColumn,
+    fc_old._DenseColumn,  # pylint: disable=protected-access
+    fc_old._CategoricalColumn,  # pylint: disable=protected-access
+    collections.namedtuple('SequenceNumericColumn',
+                           ('source_column', 'sequence_length'))):
+  """See `SequenceNumericColumn`."""
+
+  @property
+  def _is_v2_column(self):
+    return (isinstance(self.source_column, FeatureColumn) and
+            self.source_column._is_v2_column)  # pylint: disable=protected-access
+
+  @property
+  def name(self):
+    """See `FeatureColumn` base class."""
+    return '{}_bucketized'.format(self.source_column.name)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.source_column.raw_name
+
+  @property
+  def parse_example_spec(self):
+    """See `FeatureColumn` base class."""
+    return self.source_column.parse_example_spec
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _parse_example_spec(self):
+    return self.source_column._parse_example_spec  # pylint: disable=protected-access
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _transform_feature(self, inputs):
+    """Returns bucketized categorical `source_column` tensor."""
+    source_tensor = inputs.get(self.source_column)
+    return source_tensor
+
+  def transform_feature(self, transformation_cache, state_manager):
+    """Returns bucketized categorical `source_column` tensor."""
+    source_tensor = transformation_cache.get(self.source_column, state_manager)
+    return source_tensor
+
+  @property
+  def variable_shape(self):
+    """See `DenseColumn` base class."""
+    return tensor_shape.TensorShape(
+        tuple(self.source_column.shape) + (self.sequence_length,))
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _variable_shape(self):
+    return self.variable_shape
+
+  def _get_dense_tensor_for_input_tensor(self, input_tensor):
+    return array_ops.one_hot(
+        indices=math_ops.cast(input_tensor, dtypes.int64),
+        depth=self.sequence_length,
+        on_value=1.,
+        off_value=0.)
+
+  def get_dense_tensor(self, transformation_cache, state_manager):
+    """Returns one hot encoded dense `Tensor`."""
+    input_tensor = transformation_cache.get(self, state_manager)
+    return self._get_dense_tensor_for_input_tensor(input_tensor)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_dense_tensor(self, inputs, weight_collections=None, trainable=None):
+    del weight_collections
+    del trainable
+    input_tensor = inputs.get(self)
+    return self._get_dense_tensor_for_input_tensor(input_tensor)
+
+  def _get_sequence_dense_tensor(self, inputs):
+    input_tensor = inputs.get(self)
+    sparse_tensors = self._get_sparse_tensors_for_input_tensor(
+        input_tensor).id_tensor
+    sequence_length = fc_utils.sequence_length_from_sparse_tensor(
+        sparse_tensors)
+    sequence_length = tf.cast(sequence_length, tf.int32)
+    shape = array_ops.shape(sparse_tensors)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = tf.sparse_to_dense(sparse_tensors.indices, target_shape,
+                                    sparse_tensors.values)
+    return CategoricalColumn.IdWeightPair(ret_tensor, sequence_length)
+
+  @property
+  def num_buckets(self):
+    """See `CategoricalColumn` base class."""
+    # By construction, source_column is always one-dimensional.
+    return self.sequence_length * self.source_column.shape[0]
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _num_buckets(self):
+    return self.num_buckets
+
+  def _get_sparse_tensors_for_input_tensor(self, sparse_tensor):
+    # Compute the third dimension explicitly instead of setting it to -1, as
+    # that doesn't work for dynamically shaped tensors with 0-length at runtime.
+    # This happens for empty sequences.
+    shape = array_ops.shape(sparse_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_seq_tensor = sparse_ops.sparse_reshape(sparse_tensor, target_shape)
+    return CategoricalColumn.IdWeightPair(ret_seq_tensor, None)
+
+  def get_sparse_tensors(self, transformation_cache, state_manager):
+    """Converts dense inputs to SparseTensor so downstream code can use it."""
+    input_tensor = transformation_cache.get(self, state_manager)
+    return self._get_sparse_tensors_for_input_tensor(input_tensor)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_sparse_tensors(self,
+                          inputs,
+                          weight_collections=None,
+                          trainable=None):
+    """Converts dense inputs to SparseTensor so downstream code can use it."""
+    del weight_collections
+    del trainable
+    input_tensor = inputs.get(self)
+    return self._get_sparse_tensors_for_input_tensor(input_tensor)
+
+  @property
+  def parents(self):
+    """See 'FeatureColumn` base class."""
+    return [self.source_column]
+
+  def _get_config(self):
+    """See 'FeatureColumn` base class."""
+    config = dict(zip(self._fields, self))
+    config['source_column'] = serialize_feature_column(self.source_column)
+    return config
+
+  @classmethod
+  def _from_config(cls, config, custom_objects=None, columns_by_name=None):
+    """See 'FeatureColumn` base class."""
+    _check_config_keys(config, cls._fields)
+    kwargs = config.copy()
+    kwargs['source_column'] = deserialize_feature_column(
+        config['source_column'], custom_objects, columns_by_name)
+    return cls(**kwargs)
+
+
+class SequenceWeightedCategoricalColumn(
+    CategoricalColumn,
+    fc_old._CategoricalColumn,  # pylint: disable=protected-access
+    collections.namedtuple(
+        'SequenceWeightedCategoricalColumn',
+        ('categorical_column', 'weight_feature_key', 'dtype'))):
+  """See `weighted_categorical_column`."""
+
+  @property
+  def _is_v2_column(self):
+    return (isinstance(self.categorical_column, FeatureColumn) and
+            self.categorical_column._is_v2_column)  # pylint: disable=protected-access
+
+  @property
+  def name(self):
+    """See `FeatureColumn` base class."""
+    return '{}_weighted_by_{}'.format(self.categorical_column.name,
+                                      self.weight_feature_key)
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.categorical_column.raw_name
+
+  @property
+  def parse_example_spec(self):
+    """See `FeatureColumn` base class."""
+    config = self.categorical_column.parse_example_spec
+    if self.weight_feature_key in config:
+      raise ValueError('Parse config {} already exists for {}.'.format(
+          config[self.weight_feature_key], self.weight_feature_key))
+    config[self.weight_feature_key] = parsing_ops.VarLenFeature(self.dtype)
+    return config
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _parse_example_spec(self):
+    config = self.categorical_column._parse_example_spec  # pylint: disable=protected-access
+    if self.weight_feature_key in config:
+      raise ValueError('Parse config {} already exists for {}.'.format(
+          config[self.weight_feature_key], self.weight_feature_key))
+    config[self.weight_feature_key] = parsing_ops.VarLenFeature(self.dtype)
+    return config
+
+  @property
+  def num_buckets(self):
+    """See `DenseColumn` base class."""
+    return self.categorical_column.num_buckets
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _num_buckets(self):
+    return self.categorical_column._num_buckets  # pylint: disable=protected-access
+
+  def _transform_weight_tensor(self, weight_tensor):
+    if weight_tensor is None:
+      raise ValueError('Missing weights {}.'.format(self.weight_feature_key))
+    weight_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
+        weight_tensor)
+    if self.dtype != weight_tensor.dtype.base_dtype:
+      raise ValueError('Bad dtype, expected {}, but got {}.'.format(
+          self.dtype, weight_tensor.dtype))
+    if not isinstance(weight_tensor, sparse_tensor_lib.SparseTensor):
+      # The weight tensor can be a regular Tensor. In this case, sparsify it.
+      weight_tensor = _to_sparse_input_and_drop_ignore_values(
+          weight_tensor, ignore_value=0.0)
+    if not weight_tensor.dtype.is_floating:
+      weight_tensor = math_ops.cast(weight_tensor, dtypes.float32)
+    shape = tf.shape(weight_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    weight_tensor = sparse_ops.sparse_reshape(weight_tensor, target_shape)
+    return weight_tensor
+
+  def transform_feature(self, transformation_cache, state_manager):
+    """Applies weights to tensor generated from `categorical_column`'."""
+    weight_tensor = transformation_cache.get(self.weight_feature_key,
+                                             state_manager)
+    weight_tensor = self._transform_weight_tensor(weight_tensor)
+    return (transformation_cache.get(self.categorical_column,
+                                     state_manager), weight_tensor)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _transform_feature(self, inputs):
+    """Applies weights to tensor generated from `categorical_column`'."""
+    weight_tensor = inputs.get(self.weight_feature_key)
+    weight_tensor = self._transform_weight_tensor(weight_tensor)
+    return (inputs.get(self.categorical_column), weight_tensor)
+
+  def get_sparse_tensors(self, transformation_cache, state_manager):
+    """See `CategoricalColumn` base class."""
+    tensors = transformation_cache.get(self, state_manager)
+    return CategoricalColumn.IdWeightPair(tensors[0], tensors[1])
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_sparse_tensors(self,
+                          inputs,
+                          weight_collections=None,
+                          trainable=None):
+    del weight_collections
+    del trainable
+    tensors = inputs.get(self)
+    return CategoricalColumn.IdWeightPair(tensors[0], tensors[1])
+
+  @property
+  def parents(self):
+    """See 'FeatureColumn` base class."""
+    return [self.categorical_column, self.weight_feature_key]
+
+  def _get_config(self):
+    """See 'FeatureColumn` base class."""
+    config = dict(zip(self._fields, self))
+    config['categorical_column'] = serialize_feature_column(
+        self.categorical_column)
+    config['dtype'] = self.dtype.name
+    return config
+
+  @classmethod
+  def _from_config(cls, config, custom_objects=None, columns_by_name=None):
+    """See 'FeatureColumn` base class."""
+    _check_config_keys(config, cls._fields)
+    kwargs = config.copy()
+    kwargs['categorical_column'] = deserialize_feature_column(
+        config['categorical_column'], custom_objects, columns_by_name)
+    kwargs['dtype'] = dtypes.as_dtype(config['dtype'])
+    return cls(**kwargs)
+
+
 class EmbeddingColumn(
     DenseColumn,
     SequenceDenseColumn,
@@ -3122,8 +3564,35 @@ class EmbeddingColumn(
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
           collections=weight_collections)
-    return self._get_dense_tensor_internal_helper(sparse_tensors,
-                                                  embedding_weights)
+
+    # Write the embedding configuration to RTP-specified collections. This will inform RTP to
+    # optimize this embedding operation.
+    embedding_attrs = layer_utils.gen_embedding_attrs(
+        column=self,
+        variable=embedding_weights,
+        bucket_size=self.categorical_column._num_buckets,
+        combiner=self.combiner,
+        is_embedding_var=self.use_embedding_variable)
+    embedding_attrs['name'] = layer_utils.unique_name_in_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'])
+    layer_utils.update_attr_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs)
+
+    # operate embedding
+    predictions = self._get_dense_tensor_internal_helper(
+        sparse_tensors, embedding_weights)
+
+    # Update the information about the output and input nodes of embedding operation to the
+    # previous written RTP-specific collection entry. RTP uses these informations to extract
+    # the embedding subgraph.
+    layer_utils.append_tensor_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+        'tensor', predictions)
+    layer_utils.append_tensor_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+        'input', sparse_tensors.id_tensor)
+
+    return predictions
 
   def get_dense_tensor(self, transformation_cache, state_manager):
     """Returns tensor after doing the embedding lookup.
@@ -3202,7 +3671,9 @@ class EmbeddingColumn(
                                  trainable=None):
     if not isinstance(
         self.categorical_column,
-        (SequenceCategoricalColumn, fc_old._SequenceCategoricalColumn)):  # pylint: disable=protected-access
+        (SequenceCategoricalColumn, fc_old._SequenceCategoricalColumn,
+         SequenceBucketizedColumn, SequenceNumericColumn,
+         SequenceWeightedCategoricalColumn)):  # pylint: disable=protected-access
       raise ValueError(
           'In embedding_column: {}. '
           'categorical_column must be of type SequenceCategoricalColumn '
@@ -4527,13 +4998,21 @@ class SequenceCategoricalColumn(
 
   def transform_feature(self, transformation_cache, state_manager):
     """See `FeatureColumn` base class."""
-    return self.categorical_column.transform_feature(transformation_cache,
-                                                     state_manager)
+    ret_tensor = self.categorical_column.transform_feature(
+        transformation_cache, state_manager)
+    shape = array_ops.shape(ret_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
+    return ret_tensor
 
   @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
                           _FEATURE_COLUMN_DEPRECATION)
   def _transform_feature(self, inputs):
-    return self.categorical_column._transform_feature(inputs)  # pylint: disable=protected-access
+    ret_tensor = self.categorical_column._transform_feature(inputs)
+    shape = array_ops.shape(ret_tensor)
+    target_shape = [shape[0], shape[1], math_ops.reduce_prod(shape[2:])]
+    ret_tensor = sparse_ops.sparse_reshape(ret_tensor, target_shape)
+    return ret_tensor
 
   @property
   def num_buckets(self):

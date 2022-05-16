@@ -72,7 +72,6 @@ def process_features(feature_type,
                      pipeline_config,
                      embedding_dim,
                      incol_separator,
-                     sub_value_type=None,
                      is_sequence=False):
   feature_config = FeatureConfig()
   feature_config.input_names.append(feature_name)
@@ -87,7 +86,22 @@ def process_features(feature_type,
     feature_config.is_cache = True
   is_multi = feature.get('is_multi', False)
   # is_seq = feature.get('is_seq', False)
-  if feature_type == 'id_feature':
+  if is_sequence:
+    feature_config.feature_type = feature_config.SequenceFeature
+    feature_config.embedding_dim = curr_embed_dim
+    if feature_type == 'raw_feature':
+      feature_config.sub_feature_type = feature_config.RawFeature
+      input_field.default_val = feature.get('default_value', '0.0')
+      raw_input_dim = feature.get('value_dimension', 1)
+      if 'boundaries' in feature:
+        feature_config.boundaries.extend(feature['boundaries'])
+      if raw_input_dim > 1:
+        feature_config.raw_input_dim = raw_input_dim
+    else:
+      feature_config.sub_feature_type = feature_config.IdFeature
+      _set_hash_bucket(feature, feature_config, input_field)
+      feature_config.combiner = curr_combiner
+  elif feature_type == 'id_feature':
     if is_multi:
       feature_config.feature_type = feature_config.TagFeature
       kv_separator = feature.get('kv_separator', None)
@@ -154,8 +168,6 @@ def process_features(feature_type,
   if 'shared_name' in feature:
     feature_config.embedding_name = feature['shared_name']
   # pipeline_config.feature_configs.append(feature_config)
-  if is_sequence:
-    feature_config.feature_type = feature_config.SequenceFeature
   if pipeline_config.feature_configs:
     pipeline_config.feature_configs.append(feature_config)
   else:
@@ -229,9 +241,6 @@ def load_input_field_and_feature_config(rtp_fg,
         for sub_feature in feature['features']:
           sub_feature_type = sub_feature['feature_type']
           sub_feature_name = sub_feature['feature_name']
-          sub_value_type = None
-          if 'value_type' in sub_feature:
-            sub_value_type = sub_feature['value_type']
           all_sub_feature_name = sequence_name + '_' + sub_feature_name
           pipeline_config = process_features(
               sub_feature_type,
@@ -240,7 +249,6 @@ def load_input_field_and_feature_config(rtp_fg,
               pipeline_config,
               embedding_dim,
               incol_separator,
-              sub_value_type,
               is_sequence=True)
     except Exception as ex:
       print('Exception: %s %s' % (type(ex), str(ex)))

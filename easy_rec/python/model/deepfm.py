@@ -4,7 +4,6 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import fm
-from easy_rec.python.layers import input_layer
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.deepfm_pb2 import DeepFM as DeepFMConfig
 
@@ -43,13 +42,8 @@ class DeepFM(RankModel):
     has_final = len(model_config.deepfm.final_dnn.hidden_units) > 0
     if not has_final:
       assert model_config.deepfm.wide_output_dim == model_config.num_class
-    self._input_layer = input_layer.InputLayer(
-        feature_configs,
-        model_config.feature_groups,
-        wide_output_dim=model_config.deepfm.wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable,
-        embedding_regularizer=self._emb_reg,
-        kernel_regularizer=self._l2_reg)
+    self._wide_output_dim = model_config.deepfm.wide_output_dim
+    super(DeepFM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     # Wide
@@ -58,6 +52,7 @@ class DeepFM(RankModel):
 
     # FM
     fm_fea = fm.FM(name='fm_feature')(self._fm_features)
+    self._fm_outputs = fm_fea
 
     # Deep
     deep_layer = dnn.DNN(self._model_config.dnn, self._l2_reg, 'deep_feature',
@@ -94,3 +89,18 @@ class DeepFM(RankModel):
     self._add_to_prediction_dict(output)
 
     return self._prediction_dict
+
+  def build_feature_output_dict(self):
+    outputs = super(DeepFM, self).build_feature_output_dict()
+    outputs.update({
+        'wide_features':
+            tf.reduce_join(
+                tf.as_string(self._wide_features), axis=-1, separator=','),
+        'deep_features':
+            tf.reduce_join(
+                tf.as_string(self._deep_features), axis=-1, separator=','),
+        'fm_outputs':
+            tf.reduce_join(
+                tf.as_string(self._fm_outputs), axis=-1, separator=',')
+    })
+    return outputs

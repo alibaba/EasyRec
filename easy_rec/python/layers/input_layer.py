@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+from collections import OrderedDict
 
 import tensorflow as tf
 
@@ -38,20 +39,21 @@ class InputLayer(object):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
-    self._seq_feature_groups_config = [
-        x.sequence_features
-        for x in feature_groups_config
-        if x.HasField('sequence_features')
-    ]
+    self._seq_feature_groups_config = []
+    for x in feature_groups_config:
+      for y in x.sequence_features:
+        self._seq_feature_groups_config.append(y)
     self._group_name_to_seq_features = {
         x.group_name: x.sequence_features
         for x in feature_groups_config
-        if x.HasField('sequence_features')
+        if len(x.sequence_features) > 0
     }
     self._seq_input_layer = None
     if len(self._seq_feature_groups_config) > 0:
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
-          feature_configs, self._seq_feature_groups_config)
+          feature_configs,
+          self._seq_feature_groups_config,
+          use_embedding_variable=use_embedding_variable)
     wide_and_deep_dict = self.get_wide_deep_dict()
     self._fc_parser = FeatureColumnParser(
         feature_configs,
@@ -100,30 +102,38 @@ class InputLayer(object):
 
   def call_seq_input_layer(self,
                            features,
-                           seq_att_map_config,
+                           all_seq_att_map_config,
                            feature_name_to_output_tensors=None):
-    group_name = seq_att_map_config.group_name
-    allow_key_search = seq_att_map_config.allow_key_search
-    seq_features = self._seq_input_layer(features, group_name,
-                                         feature_name_to_output_tensors,
-                                         allow_key_search)
-    regularizers.apply_regularization(
-        self._embedding_regularizer, weights_list=[seq_features['key']])
-    regularizers.apply_regularization(
-        self._embedding_regularizer,
-        weights_list=[seq_features['hist_seq_emb']])
-    seq_dnn_config = None
-    if seq_att_map_config.HasField('seq_dnn'):
-      seq_dnn_config = seq_att_map_config.seq_dnn
-    else:
-      logging.info(
-          'seq_dnn not set in seq_att_groups, will use default settings')
-      from easy_rec.python.protos.dnn_pb2 import DNN
-      seq_dnn_config = DNN()
-      seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
-    seq_fea = self.target_attention(
-        seq_dnn_config, seq_features, name='seq_dnn')
-    return seq_fea
+    all_seq_fea = []
+    # process all sequence features
+    for seq_att_map_config in all_seq_att_map_config:
+      group_name = seq_att_map_config.group_name
+      allow_key_search = seq_att_map_config.allow_key_search
+      seq_features = self._seq_input_layer(features, group_name,
+                                           feature_name_to_output_tensors,
+                                           allow_key_search)
+      regularizers.apply_regularization(
+          self._embedding_regularizer, weights_list=[seq_features['key']])
+      regularizers.apply_regularization(
+          self._embedding_regularizer,
+          weights_list=[seq_features['hist_seq_emb']])
+      seq_dnn_config = None
+      if seq_att_map_config.HasField('seq_dnn'):
+        seq_dnn_config = seq_att_map_config.seq_dnn
+      else:
+        logging.info(
+            'seq_dnn not set in seq_att_groups, will use default settings')
+        # If not set seq_dnn, will use default settings
+        from easy_rec.python.protos.dnn_pb2 import DNN
+        seq_dnn_config = DNN()
+        seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
+      cur_target_attention_name = 'seq_dnn' + group_name
+      seq_fea = self.target_attention(
+          seq_dnn_config, seq_features, name=cur_target_attention_name)
+      all_seq_fea.append(seq_fea)
+    # concat all seq_fea
+    all_seq_fea = tf.concat(all_seq_fea, axis=1)
+    return all_seq_fea
 
   def __call__(self, features, group_name, is_combine=True):
     """Get features by group_name.
@@ -145,9 +155,10 @@ class InputLayer(object):
         group_name, ','.join([x for x in self._feature_groups]))
     feature_name_to_output_tensors = {}
     if group_name in self._group_name_to_seq_features:
-      for seq_att in self._group_name_to_seq_features[group_name].seq_att_map:
-        for k in seq_att.key:
-          feature_name_to_output_tensors[k] = None
+      for seq_feature in self._group_name_to_seq_features[group_name]:
+        for seq_att in seq_feature.seq_att_map:
+          for k in seq_att.key:
+            feature_name_to_output_tensors[k] = None
     if is_combine:
       concat_features, group_features = self.single_call_input_layer(
           features, group_name, is_combine, feature_name_to_output_tensors)
@@ -158,6 +169,9 @@ class InputLayer(object):
         concat_features = tf.concat([concat_features, seq_fea], axis=1)
       return concat_features, group_features
     else:
+      if self._variational_dropout_config is not None:
+        raise ValueError(
+            'variational dropout is not supported in not combined mode now.')
       return self.single_call_input_layer(features, group_name, is_combine)
 
   def single_call_input_layer(self,
@@ -188,7 +202,7 @@ class InputLayer(object):
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
     if is_combine:
-      cols_to_output_tensors = {}
+      cols_to_output_tensors = OrderedDict()
       output_features = feature_column.input_layer(
           features,
           group_columns,
@@ -233,21 +247,26 @@ class InputLayer(object):
           else:
             raise NotImplementedError
       if self._variational_dropout_config is not None:
-        features_dimension = [
-            cols_to_output_tensors[x].get_shape()[-1] for x in group_columns
-        ]
+        features_dimension = OrderedDict([
+            (k.raw_name, int(v.shape[-1]))
+            for k, v in cols_to_output_tensors.items()
+        ])
+        concat_features = tf.concat([output_features] + seq_features, axis=-1)
         variational_dropout = variational_dropout_layer.VariationalDropoutLayer(
-            self._variational_dropout_config, features_dimension,
-            self._is_training)
-        noisy_features = variational_dropout(output_features)
-        concat_features = tf.concat([noisy_features] + seq_features, axis=-1)
+            self._variational_dropout_config,
+            features_dimension,
+            self._is_training,
+            name=group_name)
+        concat_features = variational_dropout(concat_features)
+        group_features = tf.split(
+            concat_features, list(features_dimension.values()), axis=-1)
       else:
         concat_features = tf.concat([output_features] + seq_features, axis=-1)
+        group_features = [cols_to_output_tensors[x] for x in group_columns] + \
+                         [cols_to_output_tensors[x] for x in group_seq_columns]
+
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
-
-      group_features = [cols_to_output_tensors[x] for x in group_columns] + \
-                       [cols_to_output_tensors[x] for x in group_seq_columns]
       return concat_features, group_features
 
     else:  # return sequence feature in raw format instead of combine them

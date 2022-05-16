@@ -1,0 +1,25 @@
+syntax = "proto2";
+package protos;
+
+message HiveConfig {
+  // hive master's ip
+  required string host = 1;
+
+  // hive port
+  required uint32 port = 2 [default = 10000];
+
+  // hive username
+  required string username = 3;
+
+  // hive database
+  required string database = 4 [default = 'default'];
+
+  required string table_name = 5;
+
+  required string hash_fields = 6;
+
+  optional uint32 limit_num = 7 [default = 0];
+
+  required uint32 fetch_size = 8 [default = 512];
+
+}

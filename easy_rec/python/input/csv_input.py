@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.check_utils import check_split
 
 if tf.__version__ >= '2.0':
   ignore_errors = tf.data.experimental.ignore_errors()
@@ -20,9 +21,10 @@ class CSVInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(CSVInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num)
+                                   task_index, task_num, check_mode)
     self._with_header = data_config.with_header
     self._field_names = None
 
@@ -44,18 +46,11 @@ class CSVInput(Input):
         else:
           record_defaults.append('')
 
-    def _check_data(line):
-      sep = self._data_config.separator
-      if type(sep) != type(str):
-        sep = sep.encode('utf-8')
-      field_num = len(line[0].split(sep))
-      assert field_num == len(record_defaults), \
-          'sep[%s] maybe invalid: field_num=%d, required_num=%d' % \
-          (sep, field_num, len(record_defaults))
-      return True
-
-    check_op = tf.py_func(_check_data, [line], Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
+    check_list = [tf.py_func(check_split,
+                             [line, self._data_config.separator, len(record_defaults), self._check_mode],
+                             Tout=tf.bool)
+                  ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
       fields = tf.decode_csv(
           line,
           field_delim=self._data_config.separator,
@@ -75,8 +70,10 @@ class CSVInput(Input):
     return inputs
 
   def _build(self, mode, params):
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
     file_paths = []
-    for x in self._input_path.split(','):
+    for x in self._input_path:
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
@@ -86,7 +83,7 @@ class CSVInput(Input):
           line_str = line_str.strip()
           self._field_names = line_str.split(self._data_config.separator)
           break
-        print('field_names: %s' % line_str)
+        print('field_names: %s' % ','.join(self._field_names))
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:

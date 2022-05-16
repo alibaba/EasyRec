@@ -124,7 +124,8 @@ class PredictorTestOnDS(tf.test.TestCase):
 
   def setUp(self):
     self._test_input_path = 'data/test/inference/taobao_infer_data.txt'
-    self._test_output_path = 'data/test/inference/taobao_infer_result'
+    self._test_dir = test_utils.get_tmp_dir()
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
 
     self.gpus = test_utils.get_available_gpus()
     self.assertTrue(len(self.gpus) > 0, 'no available gpu on this machine')
@@ -137,7 +138,6 @@ class PredictorTestOnDS(tf.test.TestCase):
       shutil.rmtree(self._test_output_path)
     test_utils.set_gpu_id(None)
 
-  @RunAsSubprocess
   def test_local_pred(self):
     predictor = Predictor('data/test/inference/tb_multitower_export/')
     predictor.predict_impl(

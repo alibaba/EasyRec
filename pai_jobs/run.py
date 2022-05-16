@@ -4,11 +4,15 @@ from __future__ import print_function
 
 import json
 import logging
+# use few threads to avoid oss error
+import os
 
 import tensorflow as tf
 
 import easy_rec
 from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.inference.vector_retrieve import VectorRetrieve
+from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
@@ -17,6 +21,8 @@ from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
+os.environ['OENV_MultiWriteThreadsNum'] = '4'
+os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
 if not tf.__version__.startswith('1.12'):
   tf = tf.compat.v1
@@ -58,6 +64,31 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
+tf.app.flags.DEFINE_string('fine_tune_checkpoint', None,
+                           'finetune checkpoint path')
+tf.app.flags.DEFINE_string('query_table', '',
+                           'table used for retrieve vector neighbours')
+tf.app.flags.DEFINE_string('doc_table', '',
+                           'table used for be retrieved as indexed vectors')
+tf.app.flags.DEFINE_enum('knn_distance', 'inner_product',
+                         ['l2', 'inner_product'], 'type of knn distance')
+tf.app.flags.DEFINE_integer('knn_num_neighbours', None,
+                            'top n neighbours to be retrieved')
+tf.app.flags.DEFINE_integer('knn_feature_dims', None,
+                            'number of feature dimensions')
+tf.app.flags.DEFINE_enum(
+    'knn_index_type', 'ivfflat',
+    ['flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'],
+    'knn index type')
+tf.app.flags.DEFINE_string('knn_feature_delimiter', ',',
+                           'delimiter for feature vectors')
+tf.app.flags.DEFINE_integer('knn_nlist', 5,
+                            'number of split part on each worker')
+tf.app.flags.DEFINE_integer('knn_nprobe', 2,
+                            'number of probe part on each worker')
+tf.app.flags.DEFINE_integer(
+    'knn_compress_dim', 8,
+    'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`')
 
 # flags used for evaluate & export
 tf.app.flags.DEFINE_string(
@@ -110,6 +141,21 @@ tf.app.flags.DEFINE_integer('redis_expire', 24,
 tf.app.flags.DEFINE_string('redis_embedding_version', '',
                            'redis embedding version')
 tf.app.flags.DEFINE_integer('redis_write_kv', 1, 'whether write kv ')
+
+tf.app.flags.DEFINE_string(
+    'oss_path', None, 'write embed objects to oss folder, oss://bucket/folder')
+tf.app.flags.DEFINE_string('oss_endpoint', None, 'oss endpoint')
+tf.app.flags.DEFINE_string('oss_ak', None, 'oss ak')
+tf.app.flags.DEFINE_string('oss_sk', None, 'oss sk')
+tf.app.flags.DEFINE_integer('oss_threads', 10,
+                            '# threads access oss at the same time')
+tf.app.flags.DEFINE_integer('oss_timeout', 10,
+                            'connect to oss, time_out in seconds')
+tf.app.flags.DEFINE_integer('oss_expire', 24, 'oss expire time in hours')
+tf.app.flags.DEFINE_integer('oss_write_kv', 1,
+                            'whether to write embedding to oss')
+tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
+
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
@@ -119,6 +165,7 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
+tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -150,6 +197,14 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
 
 def main(argv):
   pai_util.set_on_pai()
+
+  # load lookup op
+  try:
+    lookup_op_path = os.path.join(easy_rec.ops_dir, 'libembed_op.so')
+    tf.load_op_library(lookup_op_path)
+  except Exception as ex:
+    print('Error: exception: %s' % str(ex))
+
   num_gpus_per_worker = FLAGS.num_gpus_per_worker
   worker_hosts = FLAGS.worker_hosts.split(',')
   num_worker = len(worker_hosts)
@@ -200,6 +255,9 @@ def main(argv):
     if pipeline_config.fg_json_path:
       fg_util.load_fg_json_to_config(pipeline_config)
 
+    if FLAGS.fine_tune_checkpoint:
+      pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
+
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
       config_util.add_boundaries_to_config(pipeline_config,
@@ -228,8 +286,11 @@ def main(argv):
     assert FLAGS.eval_method in [
         'none', 'master', 'separate'
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
+
+    # with_evaluator is depreciated, keeped for compatibility
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
+
     num_worker = set_tf_config_and_get_train_worker_num(
         FLAGS.ps_hosts,
         FLAGS.worker_hosts,
@@ -239,14 +300,18 @@ def main(argv):
         eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
+    logging.info('run.py check_mode: %s .' % FLAGS.check_mode)
     train_and_evaluate_impl(
-        pipeline_config, continue_train=FLAGS.continue_train)
+        pipeline_config,
+        continue_train=FLAGS.continue_train,
+        check_mode=FLAGS.check_mode)
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=FLAGS.with_evaluator)
+          has_evaluator=(FLAGS.eval_method == 'separate'))
+
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
     # TODO: support multi-worker evaluation
@@ -254,8 +319,11 @@ def main(argv):
       assert len(
           FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
-    # only take the first one as eval tables
-    pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
+
+    if FLAGS.eval_tables:
+      pipeline_config.eval_input_path = FLAGS.eval_tables
+    else:
+      pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
     set_tf_config_and_get_train_worker_num(
@@ -296,16 +364,40 @@ def main(argv):
     if FLAGS.redis_write_kv:
       redis_params['redis_write_kv'] = FLAGS.redis_write_kv
 
+    oss_params = {}
+    if FLAGS.oss_path:
+      oss_params['oss_path'] = FLAGS.oss_path
+    if FLAGS.oss_endpoint:
+      oss_params['oss_endpoint'] = FLAGS.oss_endpoint
+    if FLAGS.oss_ak:
+      oss_params['oss_ak'] = FLAGS.oss_ak
+    if FLAGS.oss_sk:
+      oss_params['oss_sk'] = FLAGS.oss_sk
+    if FLAGS.oss_timeout > 0:
+      oss_params['oss_timeout'] = FLAGS.oss_timeout
+    if FLAGS.oss_expire > 0:
+      oss_params['oss_expire'] = FLAGS.oss_expire
+    if FLAGS.oss_threads > 0:
+      oss_params['oss_threads'] = FLAGS.oss_threads
+    if FLAGS.oss_embedding_version:
+      redis_params['oss_embedding_version'] = FLAGS.oss_embedding_version
+    if FLAGS.oss_write_kv:
+      oss_params['oss_write_kv'] = True if FLAGS.oss_write_kv == 1 else False
+
     set_tf_config_and_get_train_worker_num(
         FLAGS.ps_hosts,
         FLAGS.worker_hosts,
         FLAGS.task_index,
         FLAGS.job_name,
         eval_method='none')
+
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
+
+    extra_params = redis_params
+    extra_params.update(oss_params)
     easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
-                    FLAGS.asset_files, FLAGS.verbose, **redis_params)
+                    FLAGS.asset_files, FLAGS.verbose, **extra_params)
   elif FLAGS.cmd == 'predict':
     check_param('tables')
     check_param('saved_model_dir')
@@ -333,8 +425,58 @@ def main(argv):
         batch_size=FLAGS.batch_size,
         slice_id=FLAGS.task_index,
         slice_num=worker_num)
+  elif FLAGS.cmd == 'export_checkpoint':
+    check_param('export_dir')
+    check_param('config')
+    set_tf_config_and_get_train_worker_num(
+        FLAGS.ps_hosts,
+        FLAGS.worker_hosts,
+        FLAGS.task_index,
+        FLAGS.job_name,
+        eval_method='none')
+    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
+    config_util.auto_expand_share_feature_configs(pipeline_config)
+    easy_rec.export_checkpoint(
+        pipeline_config,
+        export_path=FLAGS.export_dir + '/model',
+        checkpoint_path=FLAGS.checkpoint_path,
+        asset_files=FLAGS.asset_files,
+        verbose=FLAGS.verbose)
+  elif FLAGS.cmd == 'vector_retrieve':
+    check_param('knn_distance')
+    assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
+    assert FLAGS.knn_num_neighbours is not None, '`knn_num_neighbours` should not be None'
+
+    query_table, doc_table, output_table = FLAGS.query_table, FLAGS.doc_table, FLAGS.outputs
+    if not query_table:
+      tables = FLAGS.tables.split(',')
+      assert len(
+          tables
+      ) >= 1, 'at least 1 tables must be specified, but only[%d]: %s' % (
+          len(tables), FLAGS.tables)
+      query_table = tables[0]
+      doc_table = tables[1] if len(tables) > 1 else query_table
+
+    knn = VectorRetrieve(
+        query_table,
+        doc_table,
+        output_table,
+        ndim=FLAGS.knn_feature_dims,
+        distance=1 if FLAGS.knn_distance == 'inner_product' else 0,
+        delimiter=FLAGS.knn_feature_delimiter,
+        batch_size=FLAGS.batch_size,
+        index_type=FLAGS.knn_index_type,
+        nlist=FLAGS.knn_nlist,
+        nprobe=FLAGS.knn_nprobe,
+        m=FLAGS.knn_compress_dim)
+    worker_hosts = FLAGS.worker_hosts.split(',')
+    knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
+  elif FLAGS.cmd == 'check':
+    run_check(pipeline_config, FLAGS.tables)
   else:
-    raise ValueError('cmd should be one of train/evaluate/export/predict')
+    raise ValueError(
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve'
+    )
 
 
 if __name__ == '__main__':

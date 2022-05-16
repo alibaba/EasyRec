@@ -47,7 +47,7 @@ def set_tf_config_and_get_train_worker_num(
       'set_tf_config_and_get_train_worker_num: distribute_strategy = %d' %
       distribute_strategy)
   worker_hosts = worker_hosts.split(',')
-  ps_hosts = ps_hosts.split(',')
+  ps_hosts = ps_hosts.split(',') if ps_hosts else []
 
   total_worker_num = len(worker_hosts)
   train_worker_num = total_worker_num
@@ -96,7 +96,7 @@ def set_tf_config_and_get_train_worker_num(
           cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[2:]}
           if distribute_strategy != DistributionStrategy.NoStrategy:
             cluster['evaluator'] = [worker_hosts[1]]
-          if len(ps_hosts) > 1:
+          if len(ps_hosts) > 0:
             cluster['ps'] = ps_hosts
           if job_name == 'ps':
             os.environ['TF_CONFIG'] = json.dumps({
@@ -166,7 +166,7 @@ def set_tf_config_and_get_train_worker_num(
       else:
         cluster = {'chief': [worker_hosts[0]], 'worker': worker_hosts[1:]}
         train_worker_num = len(worker_hosts)
-        if len(ps_hosts) > 1:
+        if len(ps_hosts) > 0:
           cluster['ps'] = ps_hosts
         if job_name == 'ps':
           os.environ['TF_CONFIG'] = json.dumps({
@@ -237,6 +237,30 @@ def set_tf_config_and_get_train_worker_num_on_ds():
     elif tf_config['task']['type'] == 'worker':
       easyrec_tf_config['task']['type'] = tf_config['task']['type']
       easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 2
+    else:
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index']
+    os.environ['TF_CONFIG'] = json.dumps(easyrec_tf_config)
+
+
+def set_tf_config_and_get_distribute_eval_worker_num_on_ds():
+  assert 'TF_CONFIG' in os.environ, "'TF_CONFIG' must in os.environ"
+  tf_config = json.loads(os.environ['TF_CONFIG'])
+  if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
+      'evaluator' not in tf_config['cluster']):
+    easyrec_tf_config = dict()
+    easyrec_tf_config['cluster'] = {}
+    easyrec_tf_config['task'] = {}
+    easyrec_tf_config['cluster']['ps'] = tf_config['cluster']['ps']
+    easyrec_tf_config['cluster']['chief'] = [tf_config['cluster']['worker'][0]]
+    easyrec_tf_config['cluster']['worker'] = tf_config['cluster']['worker'][1:]
+
+    if tf_config['task']['type'] == 'worker' and tf_config['task']['index'] == 0:
+      easyrec_tf_config['task']['type'] = 'chief'
+      easyrec_tf_config['task']['index'] = 0
+    elif tf_config['task']['type'] == 'worker':
+      easyrec_tf_config['task']['type'] = tf_config['task']['type']
+      easyrec_tf_config['task']['index'] = tf_config['task']['index'] - 1
     else:
       easyrec_tf_config['task']['type'] = tf_config['task']['type']
       easyrec_tf_config['task']['index'] = tf_config['task']['index']

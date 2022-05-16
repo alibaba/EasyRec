@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.export_big_model import export_big_model
+from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -54,7 +55,9 @@ BestExporter = exporter.BestExporter
 def _get_input_fn(data_config,
                   feature_configs,
                   data_path=None,
-                  export_config=None):
+                  export_config=None,
+                  check_mode=False,
+                  **kwargs):
   """Build estimator input function.
 
   Args:
@@ -77,7 +80,9 @@ def _get_input_fn(data_config,
       feature_configs,
       data_path,
       task_index=task_id,
-      task_num=task_num)
+      task_num=task_num,
+      check_mode=check_mode,
+      **kwargs)
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
@@ -122,7 +127,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   return estimator, run_config
 
 
-def _create_eval_export_spec(pipeline_config, eval_data):
+def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
   data_config = pipeline_config.data_config
   # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
@@ -134,9 +139,17 @@ def _create_eval_export_spec(pipeline_config, eval_data):
     logging.info('eval_steps = %d' % eval_steps)
   else:
     eval_steps = None
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
-  export_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                  export_config)
+  export_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      None,
+      export_config,
+      check_mode=check_mode,
+      **input_fn_kwargs)
   if export_config.exporter_type == 'final':
     exporters = [
         FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
@@ -177,7 +190,8 @@ def _create_eval_export_spec(pipeline_config, eval_data):
 
   # set throttle_secs to a small number, so that we can control evaluation
   # interval steps by checkpoint saving steps
-  eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data)
+  eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
+                                **input_fn_kwargs)
   eval_spec = tf.estimator.EvalSpec(
       name='val',
       input_fn=eval_input_fn,
@@ -239,10 +253,22 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   return pipeline_config
 
 
-def _train_and_evaluate_impl(pipeline_config, continue_train=False):
+def _get_input_object_by_name(pipeline_config, worker_type):
+  """" get object by worker type.
+
+  pipeline_config: pipeline_config
+  worker_type: train or eval
+  """
+  input_type = '{}_path'.format(worker_type)
+  input_name = pipeline_config.WhichOneof(input_type)
+  return getattr(pipeline_config, input_name)
+
+
+def _train_and_evaluate_impl(pipeline_config,
+                             continue_train=False,
+                             check_mode=False):
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
-  # feature_configs = pipeline_config.feature_configs
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
 
   if train_config.train_distribute != DistributionStrategy.NoStrategy\
@@ -252,28 +278,8 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
         % pipeline_config.train_config.train_distribute)
     pipeline_config.train_config.sync_replicas = False
 
-  if pipeline_config.WhichOneof('train_path') == 'kafka_train_input':
-    train_data = pipeline_config.kafka_train_input
-  elif pipeline_config.WhichOneof('train_path') == 'datahub_train_input':
-    train_data = pipeline_config.datahub_train_input
-  else:
-    train_data = pipeline_config.train_input_path
-
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  elif pipeline_config.WhichOneof('eval_path') == 'datahub_eval_input':
-    eval_data = pipeline_config.datahub_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
-
-  export_config = pipeline_config.export_config
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    if not gfile.Exists(embed_shape_dir):
-      gfile.MakeDirs(embed_shape_dir)
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    pipeline_config.train_config.separate_save = True
+  train_data = _get_input_object_by_name(pipeline_config, 'train')
+  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
 
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
@@ -289,19 +295,38 @@ def _train_and_evaluate_impl(pipeline_config, continue_train=False):
     if gfile.Exists(master_stat_file):
       gfile.Remove(master_stat_file)
 
-  train_steps = pipeline_config.train_config.num_steps
-  if train_steps <= 0:
-    train_steps = None
-    logging.warn('will train INFINITE number of steps')
-  else:
-    logging.info('train_steps = %d' % train_steps)
+  train_steps = None
+  if train_config.HasField('num_steps'):
+    train_steps = train_config.num_steps
+  assert train_steps is not None or data_config.num_epochs > 0, "either num_steps and num_epochs must be set to an integer > 0."
+
+  if train_steps and data_config.num_epochs:
+    logging.info('Both num_steps and num_epochs are set.')
+    is_sync = train_config.sync_replicas
+    batch_size = data_config.batch_size
+    epoch_str = 'sample_num * %d / %d' % (data_config.num_epochs, batch_size)
+    if is_sync:
+      _, worker_num = estimator_utils.get_task_index_and_num()
+      epoch_str += ' / ' + str(worker_num)
+    logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
+
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+
   # create train input
-  train_input_fn = _get_input_fn(data_config, feature_configs, train_data)
+  train_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      train_data,
+      check_mode=check_mode,
+      **input_fn_kwargs)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
   # create eval spec
-  eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
+  eval_spec = _create_eval_export_spec(
+      pipeline_config, eval_data, check_mode=check_mode)
   from easy_rec.python.compat import estimator_train
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
@@ -343,11 +368,7 @@ def evaluate(pipeline_config,
     else:
       pipeline_config.eval_input_path = eval_data_path
   train_config = pipeline_config.train_config
-
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
+  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
 
   server_target = None
   if 'TF_CONFIG' in os.environ:
@@ -647,7 +668,7 @@ def export(export_dir,
            checkpoint_path='',
            asset_files=None,
            verbose=False,
-           **redis_params):
+           **extra_params):
   """Export model defined in pipeline_config_path.
 
   Args:
@@ -656,14 +677,19 @@ def export(export_dir,
        specify proto.EasyRecConfig
     checkpoint_path: if specified, will use this model instead of
        model in model_dir in pipeline_config_path
-    asset_files: extra files to add to assets, comma separated
+    asset_files: extra files to add to assets, comma separated;
+       if asset file variable in graph need to be renamed,
+       specify by new_file_name:file_path
     version: if version is defined, then will skip writing embedding to redis,
        assume that embedding is already write into redis
     verbose: dumps debug information
-    redis_params: keys related to write embedding to redis
+    extra_params: keys related to write embedding to redis/oss
        redis_url, redis_passwd, redis_threads, redis_batch_size,
        redis_timeout, redis_expire if export embedding to redis;
        redis_embedding_version: if specified, will kill export to redis
+       --
+       oss_path, oss_endpoint, oss_ak, oss_sk, oss_timeout,
+       oss_expire, oss_write_kv, oss_embedding_version
 
   Returns:
     the directory where model is exported
@@ -684,53 +710,43 @@ def export(export_dir,
   params = {'log_device_placement': verbose}
   if asset_files:
     logging.info('will add asset files: %s' % asset_files)
-    params['asset_files'] = asset_files
+    asset_file_dict = {}
+    for asset_file in asset_files.split(','):
+      asset_file = asset_file.strip()
+      if ':' not in asset_file or asset_file.startswith('oss:'):
+        _, asset_name = os.path.split(asset_file)
+      else:
+        asset_name, asset_file = asset_file.split(':', 1)
+      asset_file_dict[asset_name] = asset_file
+    params['asset_files'] = asset_file_dict
   estimator, _ = _create_estimator(pipeline_config, params=params)
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                   export_config)
+                                   export_config, **input_fn_kwargs)
+  if 'oss_path' in extra_params:
+    return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
+                                   serving_input_fn, estimator, checkpoint_path,
+                                   verbose)
 
-  if 'redis_url' in redis_params:
-    return export_big_model(export_dir, pipeline_config, redis_params,
+  if 'redis_url' in extra_params:
+    return export_big_model(export_dir, pipeline_config, extra_params,
                             serving_input_fn, estimator, checkpoint_path,
                             verbose)
 
-  # pack embedding.pb into asset_extras
-  assets_extra = None
-  if export_config.dump_embedding_shape:
-    embed_shape_dir = os.path.join(pipeline_config.model_dir,
-                                   'embedding_shapes')
-    easy_rec._global_config['dump_embedding_shape_dir'] = embed_shape_dir
-    # determine model version
-    if checkpoint_path == '':
-      tmp_ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
-    else:
-      tmp_ckpt_path = checkpoint_path
-    ckpt_ver = tmp_ckpt_path.split('-')[-1]
+  if not checkpoint_path:
+    checkpoint_path = estimator_utils.latest_checkpoint(
+        pipeline_config.model_dir)
 
-    embed_files = gfile.Glob(
-        os.path.join(pipeline_config.model_dir, 'embeddings',
-                     '*.pb.' + ckpt_ver))
-    assets_extra = {}
-    for one_file in embed_files:
-      _, one_file_name = os.path.split(one_file)
-      assets_extra[one_file_name] = one_file
-
-  if checkpoint_path != '':
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        checkpoint_path=checkpoint_path,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
-  else:
-    final_export_dir = estimator.export_savedmodel(
-        export_dir_base=export_dir,
-        serving_input_receiver_fn=serving_input_fn,
-        assets_extra=assets_extra,
-        strip_default_attrs=True)
+  final_export_dir = estimator.export_savedmodel(
+      export_dir_base=export_dir,
+      serving_input_receiver_fn=serving_input_fn,
+      checkpoint_path=checkpoint_path,
+      strip_default_attrs=True)
 
   # add export ts as version info
   saved_model = saved_model_pb2.SavedModel()
@@ -749,3 +765,40 @@ def export(export_dir,
 
   logging.info('model has been exported to %s successfully' % final_export_dir)
   return final_export_dir
+
+
+def export_checkpoint(pipeline_config=None,
+                      export_path='',
+                      checkpoint_path='',
+                      asset_files=None,
+                      verbose=False,
+                      mode=tf.estimator.ModeKeys.PREDICT):
+  """Export the EasyRec model as checkpoint."""
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
+  if pipeline_config.fg_json_path:
+    fg_util.load_fg_json_to_config(pipeline_config)
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
+  data_config = pipeline_config.data_config
+
+  input_fn_kwargs = {}
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+
+  # create estimator
+  params = {'log_device_placement': verbose}
+  if asset_files:
+    logging.info('will add asset files: %s' % asset_files)
+    params['asset_files'] = asset_files
+  estimator, _ = _create_estimator(pipeline_config, params=params)
+
+  # construct serving input fn
+  export_config = pipeline_config.export_config
+  serving_input_fn = _get_input_fn(data_config, feature_configs, None,
+                                   export_config, **input_fn_kwargs)
+  estimator.export_checkpoint(
+      export_path=export_path,
+      serving_input_receiver_fn=serving_input_fn,
+      checkpoint_path=checkpoint_path,
+      mode=mode)
+
+  logging.info('model checkpoint has been exported successfully')

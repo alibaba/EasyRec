@@ -32,9 +32,10 @@ class DataHubInput(Input):
                feature_config,
                datahub_config,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(DataHubInput, self).__init__(data_config, feature_config, '',
-                                       task_index, task_num)
+                                       task_index, task_num, check_mode)
     if DataHub is None:
       logging.error('please install datahub: ',
                     'pip install pydatahub ;Python 3.6 recommended')

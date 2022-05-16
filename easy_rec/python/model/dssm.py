@@ -36,6 +36,8 @@ class DSSM(MatchModel):
     # copy_obj so that any modification will not affect original config
     self.item_tower = copy_obj(self._model_config.item_tower)
     self.item_tower_feature, _ = self._input_layer(self._feature_dict, 'item')
+    self._user_tower_emb = None
+    self._item_tower_emb = None
 
   def build_predict_graph(self):
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
@@ -110,3 +112,31 @@ class DSSM(MatchModel):
       return ['y', 'user_emb', 'item_emb']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
+
+  def build_output_dict(self):
+    output_dict = super(DSSM, self).build_output_dict()
+    output_dict['user_tower_feature'] = tf.reduce_join(
+        tf.as_string(self.user_tower_feature), axis=-1, separator=',')
+    output_dict['item_tower_feature'] = tf.reduce_join(
+        tf.as_string(self.item_tower_feature), axis=-1, separator=',')
+    return output_dict
+
+  def build_rtp_output_dict(self):
+    output_dict = super(DSSM, self).build_rtp_output_dict()
+    if 'user_tower_emb' not in self._prediction_dict:
+      raise ValueError(
+          'User tower embedding does not exist. Please checking predict graph.')
+    output_dict['user_embedding_output'] = tf.identity(
+        self._prediction_dict['user_tower_emb'], name='user_embedding_output')
+    if 'item_tower_emb' not in self._prediction_dict:
+      raise ValueError(
+          'Item tower embedding does not exist. Please checking predict graph.')
+    output_dict['item_embedding_output'] = tf.identity(
+        self._prediction_dict['item_tower_emb'], name='item_embedding_output')
+    if self._loss_type == LossType.CLASSIFICATION:
+      if 'probs' not in self._prediction_dict:
+        raise ValueError(
+            'Probs output does not exist. Please checking predict graph.')
+      output_dict['rank_predict'] = tf.identity(
+          self._prediction_dict['probs'], name='rank_predict')
+    return output_dict

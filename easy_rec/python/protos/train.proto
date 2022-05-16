@@ -25,7 +25,7 @@ enum DistributionStrategy {
 // Next id: 25
 message TrainConfig {
     /* optimizer options */
-    optional Optimizer optimizer_config = 1;
+    repeated Optimizer optimizer_config = 1;
 
     // If greater than 0, clips gradients by this value.
     optional float gradient_clipping_by_norm = 2 [default = 0.0];
@@ -45,6 +45,12 @@ message TrainConfig {
     // Whether to synchronize replicas during training.
     // In case so, build a SyncReplicateOptimizer
     optional bool sync_replicas = 9 [default = true];
+
+    // only take effect on pai-tf when sync_replicas is set,
+    // options are:
+    //     raw, hash, multi_map, list, parallel
+    // in general, multi_map runs faster than other options.
+    optional string sparse_accumulator_type = 901 [default='multi_map'];
 
     // Number of training steps between replica startup.
     // This flag must be set to 0 if sync_replicas is set to true.
@@ -79,8 +85,6 @@ message TrainConfig {
     // Number of gpus per machine
     optional int32 num_gpus_per_worker = 21 [default = 1];
 
-    optional bool separate_save = 22 [default = false];
-
     // summary model variables or not
     optional bool summary_model_vars = 23 [default = false];
 
@@ -100,4 +104,7 @@ message TrainConfig {
 
     // write graph into graph.pbtxt and summary or not
     optional bool write_graph = 29 [default = true];
+
+    // match variable patterns to freeze
+    repeated string freeze_gradient = 30;
 }

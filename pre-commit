@@ -29,3 +29,17 @@ if [ $result -eq 0 ];then
 else
   exit 1
 fi
+
+python git-lfs/git_lfs.py push
+
+pwd
+
+gt_py36=`python --version 2>&1 | awk '{ print ($2 >= 3.6) }'`
+
+if [ $gt_py36 -eq 1 ]
+then
+  pip install pre-commit
+  pre-commit run -a
+else
+  echo "[WARNING] pre-commit is not supported, please use python >= 3.6"
+fi

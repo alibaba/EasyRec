@@ -3,12 +3,8 @@
 ### 获取EasyRec源码
 
 ```bash
-git clone git@gitlab.alibaba-inc.com:pai_biz_arch/easy-rec.git
-git submodule init
-git submodule update
-python git-lfs/git_lfs.py pull
-# 运行测试用例确保通过
-sh scripts/ci_test.sh
+git clone https://github.com/alibaba/EasyRec.git
+sh scripts/init.sh
 ```
 
 ### 编写模型proto文件
@@ -61,6 +57,9 @@ message EasyRecModel {
       MultiTower multi_tower = 6;
       CustomModel custom_model = 7;
       ...
+   }
+   ...
+}
 ```
 
 #### proto编译
@@ -320,7 +319,6 @@ scripts/ci_test.sh
 
 ```shell
 python git-lfs/git_lfs.py add data/test/your_data_files
-python git-lfs/git_lfs.py push
 git add easy_rec/python/model/custom_model.py
 git add samples/model_config/custom_model.config
 git add easy_rec/python/protos/custom_model.proto

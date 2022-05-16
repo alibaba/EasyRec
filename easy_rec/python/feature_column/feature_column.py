@@ -1,5 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import collections
 import logging
 
 import tensorflow as tf
@@ -22,6 +23,14 @@ class FeatureKeyError(KeyError):
 
   def __init__(self, feature_name):
     super(FeatureKeyError, self).__init__(feature_name)
+
+
+class SharedEmbedding(object):
+
+  def __init__(self, embedding_name, index, sequence_combiner=None):
+    self.embedding_name = embedding_name
+    self.index = index
+    self.sequence_combiner = sequence_combiner
 
 
 class FeatureColumnParser(object):
@@ -115,6 +124,8 @@ class FeatureColumnParser(object):
           self.parse_lookup_feature(config)
         elif config.feature_type == config.SequenceFeature:
           self.parse_sequence_feature(config)
+        elif config.feature_type == config.ExprFeature:
+          self.parse_expr_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -152,18 +163,18 @@ class FeatureColumnParser(object):
 
     for fc_name in self._deep_columns:
       fc = self._deep_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._deep_columns[fc_name] = self._get_shared_embedding_column(fc)
 
     for fc_name in self._wide_columns:
       fc = self._wide_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._wide_columns[fc_name] = self._get_shared_embedding_column(
             fc, deep=False)
 
     for fc_name in self._sequence_columns:
       fc = self._sequence_columns[fc_name]
-      if type(fc) == tuple:
+      if isinstance(fc, SharedEmbedding):
         self._sequence_columns[fc_name] = self._get_shared_embedding_column(fc)
 
   @property
@@ -338,6 +349,22 @@ class FeatureColumnParser(object):
         else:
           self._deep_columns[feature_name] = fc
 
+  def parse_expr_feature(self, config):
+    """Generate raw features columns.
+
+    if boundaries is set, will be converted to category_column first.
+
+    Args:
+      config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
+    """
+    feature_name = config.feature_name if config.HasField('feature_name') \
+        else config.input_names[0]
+    fc = feature_column.numeric_column(feature_name, shape=(1,))
+    if self.is_wide(config):
+      self._add_wide_embedding_column(fc, config)
+    if self.is_deep(config):
+      self._deep_columns[feature_name] = fc
+
   def parse_combo_feature(self, config):
     """Generate combo feature columns.
 
@@ -379,32 +406,74 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
-    if config.HasField('hash_bucket_size'):
-      hash_bucket_size = config.hash_bucket_size
-      fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-          config.input_names[0], hash_bucket_size, dtype=tf.string)
-    elif config.vocab_list:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_list=config.vocab_list)
-    elif config.vocab_file:
-      fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
-          config.input_names[0],
-          default_value=0,
-          vocabulary_file=config.vocab_file,
-          vocabulary_size=self._get_vocab_size(config.vocab_file))
+    sub_feature_type = config.sub_feature_type
+    assert sub_feature_type in [config.IdFeature, config.RawFeature], \
+        'Current sub_feature_type only support IdFeature and RawFeature.'
+    if sub_feature_type == config.IdFeature:
+      if config.HasField('hash_bucket_size'):
+        hash_bucket_size = config.hash_bucket_size
+        fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
+            config.input_names[0], hash_bucket_size, dtype=tf.string)
+      elif config.vocab_list:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_list=config.vocab_list)
+      elif config.vocab_file:
+        fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
+            config.input_names[0],
+            default_value=0,
+            vocabulary_file=config.vocab_file,
+            vocabulary_size=self._get_vocab_size(config.vocab_file))
+      else:
+        fc = sequence_feature_column.sequence_categorical_column_with_identity(
+            config.input_names[0], config.num_buckets, default_value=0)
     else:
-      fc = sequence_feature_column.sequence_categorical_column_with_identity(
-          config.input_names[0], config.num_buckets, default_value=0)
+      bounds = None
+      fc = sequence_feature_column.sequence_numeric_column(
+          config.input_names[0], shape=(1,))
+      if config.hash_bucket_size > 0:
+        hash_bucket_size = config.hash_bucket_size
+        assert sub_feature_type == config.IdFeature, \
+            'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
+      elif config.boundaries:
+        bounds = list(config.boundaries)
+        bounds.sort()
+      elif config.num_buckets > 1 and config.max_val > config.min_val:
+        # the feature values are already normalized into [0, 1]
+        bounds = [
+            x / float(config.num_buckets) for x in range(0, config.num_buckets)
+        ]
+        logging.info('sequence feature discrete %s into %d buckets' %
+                     (feature_name, config.num_buckets))
+      if bounds:
+        try:
+          fc = sequence_feature_column.sequence_numeric_column_with_bucketized_column(
+              fc, bounds)
+        except Exception as e:
+          tf.logging.error(
+              'sequence features bucketized_column [%s] with bounds %s error' %
+              (config.input_names[0], str(bounds)))
+          raise e
+      elif config.hash_bucket_size <= 0:
+        if config.embedding_dim > 0:
+          tmp_id_col = sequence_feature_column.sequence_categorical_column_with_identity(
+              config.input_names[0] + '_raw_proj_id',
+              config.raw_input_dim,
+              default_value=0)
+          wgt_fc = sequence_feature_column.sequence_weighted_categorical_column(
+              tmp_id_col,
+              weight_feature_key=config.input_names[0] + '_raw_proj_val',
+              dtype=tf.float32)
+          fc = wgt_fc
+        else:
+          fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
+              fc, config.sequence_length)
 
-    assert config.embedding_dim > 0
-
-    if config.HasField('sequence_combiner'):
-      fc.sequence_combiner = config.sequence_combiner
-      self._deep_columns[feature_name] = fc
-    else:
+    if config.embedding_dim > 0:
       self._add_deep_embedding_column(fc, config)
+    else:
+      self._sequence_columns[feature_name] = fc
 
   def _build_partitioner(self, max_partitions):
     if max_partitions > 1:
@@ -422,14 +491,16 @@ class FeatureColumnParser(object):
       self._deep_share_embed_columns[embedding_name].append(fc)
     else:
       self._wide_share_embed_columns[embedding_name].append(fc)
-    return (embedding_name, curr_id)
+    return SharedEmbedding(embedding_name, curr_id, None)
 
   def _get_shared_embedding_column(self, fc_handle, deep=True):
-    embed_name, embed_id = fc_handle
+    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index
     if deep:
-      return self._deep_share_embed_columns[embed_name][embed_id]
+      tmp = self._deep_share_embed_columns[embed_name][embed_id]
     else:
-      return self._wide_share_embed_columns[embed_name][embed_id]
+      tmp = self._wide_share_embed_columns[embed_name][embed_id]
+    tmp.sequence_combiner = fc_handle.sequence_combiner
+    return tmp
 
   def _add_wide_embedding_column(self, fc, config):
     """Generate wide feature columns.
@@ -477,4 +548,6 @@ class FeatureColumnParser(object):
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
     else:
+      if config.HasField('sequence_combiner'):
+        fc.sequence_combiner = config.sequence_combiner
       self._sequence_columns[feature_name] = fc

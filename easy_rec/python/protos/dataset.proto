@@ -186,13 +186,16 @@ message DatasetConfig {
         OdpsInputV3 = 9;
         RTPInput = 4;
         RTPInputV2 = 5;
-        OdpsRTPInput = 6;
+        OdpsRTPInput = 601;
+        OdpsRTPInputV2 = 602;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
+        HiveInput = 16;
+        CriteoInput = 1001;
     }
     required InputType input_type = 10;
 
@@ -249,6 +252,10 @@ message DatasetConfig {
     // n data for one feature in tfrecord
     optional uint32 n_data_batch_tfrecord = 24;
 
+    // for csv files, may optionally with an header
+    // in that case, input_name must match header name,
+    // and the number and the order of input_fields
+    // may not be the same as that in csv files.
     optional bool with_header = 25 [default = false];
 
     oneof sampler {
@@ -258,4 +265,7 @@ message DatasetConfig {
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
         NegativeSamplerInMemory negative_sampler_in_memory = 105;
     }
+    optional uint32 eval_batch_size = 1001 [default = 4096];
+
+
 }

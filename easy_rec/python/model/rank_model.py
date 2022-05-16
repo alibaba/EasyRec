@@ -1,5 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
+
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
@@ -54,9 +56,51 @@ class RankModel(EasyRecModel):
     return prediction_dict
 
   def _add_to_prediction_dict(self, output):
-    self._prediction_dict.update(
-        self._output_to_prediction_impl(
-            output, loss_type=self._loss_type, num_class=self._num_class))
+    prediction_dict = self._output_to_prediction_impl(
+        output, loss_type=self._loss_type, num_class=self._num_class)
+    self._prediction_dict.update(prediction_dict)
+
+  def build_rtp_output_dict(self):
+    """Forward tensor as `rank_predict`, which is a special node for RTP."""
+    outputs = {}
+    outputs.update(super(RankModel, self).build_rtp_output_dict())
+    rank_predict = None
+    try:
+      op = tf.get_default_graph().get_operation_by_name('rank_predict')
+      if len(op.outputs) != 1:
+        raise ValueError(
+            ('failed to build RTP rank_predict output: op {}[{}] has output ' +
+             'size {}, however 1 is expected.').format(op.name, op.type,
+                                                       len(op.outputs)))
+      rank_predict = op.outputs[0]
+    except KeyError:
+      forwarded = None
+      if self._loss_type == LossType.CLASSIFICATION:
+        if 'probs' in self._prediction_dict:
+          forwarded = self._prediction_dict['probs']
+        else:
+          raise ValueError(
+              'failed to build RTP rank_predict output: classification model ' +
+              "expect 'probs' prediction, which is not found. Please check if" +
+              ' build_predict_graph() is called.')
+      elif self._loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+        if 'y' in self._prediction_dict:
+          forwarded = self._prediction_dict['y']
+        else:
+          raise ValueError(
+              'failed to build RTP rank_predict output: regression model expect'
+              +
+              "'y' prediction, which is not found. Please check if build_predic"
+              + 't_graph() is called.')
+      else:
+        logging.warning(
+            'failed to build RTP rank_predict: unsupported loss type {}'.foramt(
+                self._loss_type))
+      if forwarded is not None:
+        rank_predict = tf.identity(forwarded, name='rank_predict')
+    if rank_predict is not None:
+      outputs['rank_predict'] = rank_predict
+    return outputs
 
   def _build_loss_impl(self,
                        loss_type,
@@ -67,6 +111,12 @@ class RankModel(EasyRecModel):
     loss_dict = {}
     if loss_type == LossType.CLASSIFICATION:
       loss_name = 'cross_entropy_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.F1_REWEIGHTED_LOSS:
+      loss_name = 'f1_reweighted_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.PAIR_WISE_LOSS:
+      loss_name = 'pairwise_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       loss_name = 'l2_loss' + suffix

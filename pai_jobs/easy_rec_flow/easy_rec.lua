@@ -31,13 +31,15 @@ function CheckOssValid(host, bucket)
 end
 
 function getEntry(script_in, entryFile_in, config, cluster, res_project, version)
-  if script_in ~= nil and string.len(script_in) > 0
-    and entryFile_in ~= nil and string.len(entryFile_in) > 0 then
+  if string.len(entryFile_in) == 0 then
+    error('entryFile is not set')
+  end
+  if script_in ~= nil and string.len(script_in) > 0 then
     script = script_in
     entryFile = entryFile_in
   else
-    script= "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
-    entryFile="run.py"
+    script = "odps://" .. res_project .. "/resources/easy_rec_ext_" .. version .. "_res.tar.gz"
+    entryFile = entryFile_in
   end
 
   return script, entryFile
@@ -77,7 +79,7 @@ function check_run_mode(cluster, gpuRequired)
   end
 end
 
-function getHyperParams(config, cmd, checkpoint_path,
+function getHyperParams(config, cmd, checkpoint_path, fine_tune_checkpoint,
                         eval_result_path, export_dir,  gpuRequired,
                         cpuRequired, memRequired, cluster, continue_train,
                         distribute_strategy, with_evaluator, eval_method,
@@ -85,9 +87,13 @@ function getHyperParams(config, cmd, checkpoint_path,
                         model_dir, hpo_param_path, hpo_metric_save_path,
                         saved_model_dir, all_cols, all_col_types,
                         reserved_cols, output_cols, model_outputs,
-                        input_table, output_table, tables, train_tables,
+                        input_table, output_table, tables, query_table,
+                        doc_table, knn_distance, knn_num_neighbours,
+                        knn_feature_dims, knn_index_type, knn_feature_delimiter,
+                        knn_nlist, knn_nprobe, knn_compress_dim, train_tables,
                         eval_tables, boundary_table, batch_size, profiling_file,
                         mask_feature_name, extra_params)
+  hyperParameters = ""
   if cmd == "predict" then
     if cluster == nil or cluster == '' then
       error('cluster must be set')
@@ -127,7 +133,42 @@ function getHyperParams(config, cmd, checkpoint_path,
     return hyperParameters, cluster, tables, output_table
   end
 
-  checkConfig(config)
+  if cmd == "vector_retrieve" then
+    if cluster == nil or cluster == '' then
+      error('cluster must be set')
+    end
+    checkTable(query_table)
+    checkTable(doc_table)
+    checkTable(output_table)
+    hyperParameters = " --cmd=" .. cmd
+    hyperParameters = hyperParameters .. " --batch_size=" .. batch_size
+    hyperParameters = hyperParameters .. " --knn_distance=" .. knn_distance
+    if knn_num_neighbours ~= nil and knn_num_neighbours ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_num_neighbours=' .. knn_num_neighbours
+    end
+    if knn_feature_dims ~= nil and knn_feature_dims ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_feature_dims=' .. knn_feature_dims
+    end
+    hyperParameters = hyperParameters .. " --knn_index_type=" .. knn_index_type
+    hyperParameters = hyperParameters .. " --knn_feature_delimiter=" .. knn_feature_delimiter
+    if knn_nlist ~= nil and knn_nlist ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nlist=' .. knn_nlist
+    end
+    if knn_nprobe ~= nil and knn_nprobe ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_nprobe=' .. knn_nprobe
+    end
+    if knn_compress_dim ~= nil and knn_compress_dim ~= '' then
+      hyperParameters = hyperParameters .. ' --knn_compress_dim=' .. knn_compress_dim
+    end
+    if extra_params ~= nil and extra_params ~= '' then
+      hyperParameters = hyperParameters .. extra_params
+    end
+    return hyperParameters, cluster, tables, output_table
+  end
+
+  if cmd ~= "custom" then
+    checkConfig(config)
+  end
 
   hyperParameters = "--config='" .. config .. "'"
 
@@ -144,7 +185,10 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. " --eval_result_path=" .. eval_result_path
     hyperParameters = hyperParameters .. " --mask_feature_name=" .. mask_feature_name
     hyperParameters = hyperParameters .. " --distribute_strategy=" .. distribute_strategy
-  elseif cmd == 'export' then
+    if eval_tables ~= "" and eval_tables ~= nil then
+      hyperParameters = hyperParameters .. " --eval_tables " .. eval_tables
+    end
+  elseif cmd == 'export' or cmd == 'export_checkpoint' then
     hyperParameters = hyperParameters .. " --checkpoint_path=" .. checkpoint_path
     hyperParameters = hyperParameters .. " --export_dir=" .. export_dir
   elseif cmd == 'train' then
@@ -154,6 +198,9 @@ function getHyperParams(config, cmd, checkpoint_path,
     hyperParameters = hyperParameters .. " --distribute_strategy=" .. distribute_strategy
     if with_evaluator ~= "" and tonumber(with_evaluator) ~= 0 then
       hyperParameters = hyperParameters .. " --with_evaluator"
+    end
+    if fine_tune_checkpoint ~= nil and fine_tune_checkpoint ~= '' then
+      hyperParameters = hyperParameters .. " --fine_tune_checkpoint=" .. fine_tune_checkpoint
     end
     if eval_method ~= 'none' and eval_method ~= 'separate' and eval_method ~= 'master' then
       error('invalid eval_method ' .. eval_method)
@@ -301,16 +348,12 @@ end
 
 function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
                      reservedCols, lifecycle, outputCol, tables,
-                     trainTables, evalTables, boundaryTable)
+                     trainTables, evalTables, boundaryTable, queryTable, docTable)
   -- all_cols, all_col_types, selected_cols, reserved_cols,
   -- create_table_sql, add_partition_sql, tables parameter to runTF
-  if cmd ~= 'train' and cmd ~= 'evaluate' and cmd ~= 'predict' and cmd ~= 'export'
-     and cmd ~= 'evaluate' then
-    error('invalid cmd: ' .. cmd .. ', should be one of train, evaluate, predict, evaluate, export')
-  end
 
   -- for export
-  if cmd == 'export' then
+  if cmd == 'export' or cmd == 'custom' or cmd == 'export_checkpoint' then
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 
@@ -327,6 +370,18 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
         table_id = table_id + 1
       end
     end
+    if inputTable == nil or inputTable == ''
+    then
+      inputTable = tmpTables[1]
+    end
+  end
+
+  if cmd == 'vector_retrieve' then
+    inputTable = queryTable
+    all_tables[queryTable] = table_id
+    table_id = table_id + 1
+    all_tables[docTable] = table_id
+    table_id = table_id + 1
   end
 
   if cmd == 'train' then
@@ -340,6 +395,8 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
+
       tmpTables = split(evalTables, ',')
       for k=1, table.getn(tmpTables) do
         v = tmpTables[k]
@@ -369,6 +426,7 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
           table_id = table_id + 1
         end
       end
+      inputTable = tmpTables[1]
     end
   end
 
@@ -398,9 +456,39 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
   -- merge all_tables into tables
   tables = {}
   for k,v in pairs(all_tables) do
-    table.insert(tables, k)
+    -- ensure order to be compatible
+    tables[v+1] = k
+    --table.insert(tables, k)
   end
+
+  if inputTable == nil or inputTable == '' then
+    error('inputTable is not defined')
+  end
+
   tables = join(tables, ',')
+
+  if cmd == 'vector_retrieve' then
+    if outputTable == nil or outputTable == '' then
+      error("outputTable is not set")
+    end
+
+    proj1, table1, partition1 = splitTableParam(outputTable)
+    out_table_name = proj1 .. "." .. table1
+    create_sql = ''
+    add_partition_sql = ''
+    if partition1 ~= nil and string.len(partition1) ~= 0 then
+      local partition_names, parition_values = parseParitionSpec(partition1)
+      create_partition_str = genCreatePartitionStr(partition_names)
+      create_sql = string.format("create table if not exists %s (query BIGINT, doc BIGINT, distance DOUBLE) partitioned by %s lifecycle %s;", out_table_name, create_partition_str, lifecycle)
+      add_partition_sql = genAddPartitionStr(partition_names, parition_values)
+      add_partition_sql = string.format("alter table %s add if not exists partition %s;", out_table_name, add_partition_sql)
+    else
+      create_sql = string.format("create table %s (query BIGINT, doc BIGINT, distance DOUBLE) lifecycle %s;", out_table_name, lifecycle)
+      add_partition_sql = string.format("desc %s;",  out_table_name)
+    end
+
+    return "", "", "", "", create_sql, add_partition_sql, tables
+  end
 
   -- analyze selected_cols excluded_cols for train, evaluate and predict
   proj0, table0, partition0 = splitTableParam(inputTable)

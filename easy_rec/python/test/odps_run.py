@@ -27,13 +27,11 @@ class TestPipelineOnOdps(tf.test.TestCase):
   """train eval export test on odps."""
 
   def test_deepfm(self):
-    start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         'deep_fm/train_deepfm_model.sql', 'deep_fm/eval_deepfm.sql',
-        'deep_fm/export_deepfm.sql', 'deep_fm/predict_deepfm.sql'
+        'deep_fm/export_deepfm.sql', 'deep_fm/predict_deepfm.sql',
+        'deep_fm/export_rtp_ckpt.sql'
     ]
     end_file = ['deep_fm/drop_table.sql']
 
@@ -42,10 +40,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_mmoe(self):
-    start_files = [
-        'mmoe/create_external_mmoe_table.sql',
-        'mmoe/create_inner_mmoe_table.sql'
-    ]
+    start_files = ['mmoe/create_inner_mmoe_table.sql']
     test_files = [
         'mmoe/train_mmoe_model.sql',
         'mmoe/eval_mmoe.sql',
@@ -59,7 +54,6 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_dssm(self):
     start_files = [
-        'dssm/create_external_dssm_table.sql',
         'dssm/create_inner_dssm_table.sql',
     ]
     test_files = [
@@ -76,10 +70,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_multi_tower(self):
-    start_files = [
-        'multi_tower/create_external_multi_tower_table.sql',
-        'multi_tower/create_inner_multil_tower_table.sql',
-    ]
+    start_files = ['multi_tower/create_inner_multi_tower_table.sql']
     test_files = [
         'multi_tower/train_multil_tower_din_model.sql',
         'multi_tower/train_multil_tower_bst_model.sql',
@@ -93,16 +84,13 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_other(self):
-    start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         # 'other_test/test_train_gpuRequired_mirrored', # 线上报错，
         # 'other_test/test_train_distribute_strategy_collective',  # 线上报错，
         'other_test/test_train_hpo_with_evaluator.sql',
-        'other_test/test_train_version.sql',
-        'other_test/test_train_distribute_strategy_ess.sql',
+        # 'other_test/test_train_version.sql',
+        # 'other_test/test_train_distribute_strategy_ess.sql',
         'other_test/test_train_before_export.sql',
         'other_test/test_eval_checkpoint_path.sql',
         'other_test/test_export_checkpoint_path.sql',
@@ -115,10 +103,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_best_exporter(self):
-    start_files = [
-        'deep_fm/create_external_deepfm_table.sql',
-        'deep_fm/create_inner_deepfm_table.sql'
-    ]
+    start_files = ['deep_fm/create_inner_deepfm_table.sql']
     test_files = [
         'other_test/test_train_best_export.sql',
     ]
@@ -172,10 +157,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
     tot.drop_table()
 
   def test_multi_value_export(self):
-    start_files = [
-        'multi_value/create_external_multi_value_table.sql',
-        'multi_value/create_inner_multi_value_table.sql',
-    ]
+    start_files = ['multi_value/create_inner_multi_value_table.sql']
     test_files = ['multi_value/train_multi_tower_model.sql']
     end_file = ['multi_value/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
@@ -184,13 +166,21 @@ class TestPipelineOnOdps(tf.test.TestCase):
 
   def test_boundary_test(self):
     start_files = [
-        'boundary/create_external_boundary_table.sql',
         'boundary/create_inner_boundary_table.sql',
     ]
     test_files = [
-        'boundary/train_multi_tower_model.sql', 'boundary/train_compat.sql'
+        'boundary/train_multi_tower_model.sql',
+        'boundary/finetune_multi_tower_model.sql', 'boundary/train_compat.sql'
     ]
     end_file = ['boundary/drop_table.sql']
+    tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
+    tot.start_test()
+    tot.drop_table()
+
+  def test_vector_retrieve(self):
+    start_files = ['vector_retrieve/create_inner_vector_table.sql']
+    test_files = ['vector_retrieve/run_vector_retrieve.sql']
+    end_file = ['vector_retrieve/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)
     tot.start_test()
     tot.drop_table()
@@ -216,6 +206,12 @@ if __name__ == '__main__':
       help='algo resource project name')
   parser.add_argument(
       '--algo_version', type=str, default=None, help='algo version')
+  parser.add_argument(
+      '--is_outer',
+      type=int,
+      default=1,
+      help='is outer pai or inner pai, the arguments are differed slightly due to history reasons'
+  )
   args, unknown_args = parser.parse_known_args()
   sys.argv = [sys.argv[0]]
   for unk_arg in unknown_args:
@@ -237,6 +233,7 @@ if __name__ == '__main__':
     odps_oss_config.arn = args.arn
   if args.bucket_name:
     odps_oss_config.bucket_name = args.bucket_name
+  odps_oss_config.is_outer = args.is_outer
 
   prepare(odps_oss_config)
   tf.test.main()
