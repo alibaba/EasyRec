@@ -322,7 +322,7 @@ class MIND(MatchModel):
     # [batch_size, num_interests, embed_dim]
     user_interests = self._prediction_dict['user_interests']
     # [?, embed_dim]
-    item_feature = self._prediction_dict['item_tower_emb']
+    item_tower_emb = self._prediction_dict['item_tower_emb']
     batch_size = tf.shape(user_interests)[0]
     # [?, 2] first dimension is the sample_id in batch
     # second dimension is the neg_id with respect to the sample
@@ -332,9 +332,9 @@ class MIND(MatchModel):
       logging.info('With hard negative examples')
       noclk_size = tf.shape(hard_neg_indices)[0]
       simple_item_emb, hard_neg_item_emb = tf.split(
-          item_feature, [-1, noclk_size], axis=0)
+          item_tower_emb, [-1, noclk_size], axis=0)
     else:
-      simple_item_emb = item_feature
+      simple_item_emb = item_tower_emb
       hard_neg_item_emb = None
 
     # batch_size num_interest sample_neg_num
