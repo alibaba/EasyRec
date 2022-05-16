@@ -37,18 +37,14 @@ class MatchModel(EasyRecModel):
       self._is_point_wise = False
       logging.info('Use list wise dssm.')
 
-    if self._model_config.WhichOneof('model') == 'dssm':
-      sub_model_config = self._model_config.dssm
-    elif self._model_config.WhichOneof('model') == 'mind':
-      sub_model_config = self._model_config.mind
-    else:
-      sub_model_config = None
+    cls_mem = self._model_config.WhichOneof('model')
+    sub_model_config = getattr(self._model_config, cls_mem)
 
     self._item_ids = None
-    if sub_model_config is not None:
-      if sub_model_config.item_id != '':
-        logging.info('item_id feature is: %s' % sub_model_config.item_id)
-        self._item_ids = features[sub_model_config.item_id]
+    assert sub_model_config is not None, 'sub_model_config undefined: model_cls = %s' % cls_mem
+    if sub_model_config.item_id != '':
+      logging.info('item_id feature is: %s' % sub_model_config.item_id)
+      self._item_ids = features[sub_model_config.item_id]
 
   def _mask_in_batch(self, logits):
     batch_size = tf.shape(logits)[0]
@@ -91,8 +87,6 @@ class MatchModel(EasyRecModel):
     #     tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
     # neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
     simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
-    # simple_user_item_sim = tf.Print(simple_user_item_sim, [tf.shape(simple_user_item_sim)],
-    #     message='simple_user_item_sim')
 
     if hard_neg_indices is None:
       return simple_user_item_sim
@@ -144,13 +138,11 @@ class MatchModel(EasyRecModel):
 
   def _build_list_wise_loss_graph(self):
     if self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
-      # hit_prob = self._prediction_dict['probs'][:, :1]
       batch_size = tf.shape(self._prediction_dict['probs'])[0]
       indices = tf.range(batch_size)
       indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
       hit_prob = tf.gather_nd(
           self._prediction_dict['probs'][:batch_size, :batch_size], indices)
-      # hit_prob = tf.Print(hit_prob, [tf.shape(hit_prob)], message='hit_prob_shape')
       self._loss_dict['cross_entropy_loss'] = -tf.reduce_mean(
           tf.log(hit_prob + 1e-12)) * self._sample_weight
       logging.info('softmax cross entropy loss is used')
@@ -158,7 +150,6 @@ class MatchModel(EasyRecModel):
       user_features = self._prediction_dict['user_tower_emb']
       pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
       pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
-      # print(pos_simi, user_features, pos_item_emb)
       # if pos_simi < 0, produce loss
       reg_pos_loss = tf.nn.relu(-pos_simi)
       self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)

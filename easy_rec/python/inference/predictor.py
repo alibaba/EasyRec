@@ -194,15 +194,6 @@ class PredictorImpl(object):
           # parse signature
           signature_def = meta_graph_def.signature_def[
               signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
-          # try:
-          #   table_init = self._graph.get_operation_by_name('init_all_tables')
-          # except KeyError as ex:
-          #   table_init = tf.tables_initializer()
-          # import pdb
-          # pdb.set_trace()
-          # self._session.run(table_init)
-          # local_init = tf.local_variables_initializer()
-          # self._session.run(local_init)
           inputs = signature_def.inputs
           # each input_info is a tuple of input_id, name, data_type
           input_info = []

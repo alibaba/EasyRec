@@ -71,10 +71,10 @@ class BaseSampler(object):
   def __init__(self, fields, num_sample, num_eval_sample=None):
     self._g = None
     self._sampler = None
-    # TODO(hongsheng.jhs): check eval mode or not?
     self._num_sample = num_sample
     self._num_eval_sample = num_eval_sample if num_eval_sample is not None else num_sample
     self._build_field_types(fields)
+    self._log_first_n = 5
 
   def set_eval_num_sample(self):
     print('set_eval_num_sample: %d %d' %
@@ -148,8 +148,10 @@ class BaseSampler(object):
       self._g.close()
 
   def _parse_nodes(self, nodes):
-    print('num_example=%d num_eval_example=%d node_num=%d' %
-          (self._num_sample, self._num_eval_sample, len(nodes.ids)))
+    if self._log_first_n > 0:
+      logging.info('num_example=%d num_eval_example=%d node_num=%d' %
+           (self._num_sample, self._num_eval_sample, len(nodes.ids)))
+      self._log_first_n -= 1
     features = []
     int_idx = 0
     float_idx = 0
