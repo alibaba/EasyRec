@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import tensorflow as tf
-from easy_rec.python.utils.hive_utils import HiveUtils
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
+from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.tf_utils import get_tf_type
+
 
 class HiveInput(Input):
   """Common IO based interface, could run at local or on data science."""

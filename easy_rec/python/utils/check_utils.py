@@ -46,16 +46,16 @@ def check_sequence(pipeline_config_path, features):
     if not seq_att_maps:
       return
     for seq_att_map in seq_att_maps:
-      assert len(seq_att_map.key) == len(seq_att_map.hist_seq),\
+      assert len(seq_att_map.key) == len(seq_att_map.hist_seq), \
           'The size of hist_seq must equal to the size of key in one seq_att_map.'
       size_list = []
       for hist_seq in seq_att_map.hist_seq:
         cur_seq_size = len(features[hist_seq].values)
         size_list.append(cur_seq_size)
       hist_seqs = ' '.join(seq_att_map.hist_seq)
-      assert len(set(size_list)) == 1,\
+      assert len(set(size_list)) == 1, \
           'SequenceFeature Error: The size in [%s] should be consistent. Please check input: [%s].' % \
-          (hist_seqs, hist_seqs)
+       (hist_seqs, hist_seqs)
 
 
 def check_env_and_input_path(pipeline_config, input_path):
