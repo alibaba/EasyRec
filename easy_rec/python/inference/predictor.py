@@ -369,6 +369,9 @@ class Predictor(PredictorInterface):
   def _get_writer(self, output_path, slice_id):
     pass
 
+  def _get_reserved_cols(self, reserved_cols):
+    pass
+
   @property
   def out_of_range_exception(self):
     return None
@@ -391,9 +394,6 @@ class Predictor(PredictorInterface):
     Args:
       input_table: table/file_path to read
       output_table: table/file_path to write
-      all_cols: union of columns
-      all_col_types: data types of the columns
-      selected_cols: included column names, comma separated, such as "a,b,c"
       reserved_cols: columns to be copy to output_table, comma separated, such as "a,b"
       output_cols: output columns, comma separated, such as "y float, embedding string",
                 the output names[y, embedding] must be in saved_model output_names
@@ -401,15 +401,7 @@ class Predictor(PredictorInterface):
       slice_id: when multiple workers write the same table, each worker should
                 be assigned different slice_id, which is usually slice_id
       slice_num: table slice number
-      input_sep: separator of input file.
-      output_sep: separator of predict result file.
     """
-    if reserved_cols == 'ALL_COLUMNS':
-      self._reserved_cols = self._input_fields
-    else:
-      self._reserved_cols = [
-          x.strip() for x in reserved_cols.split(',') if x != ''
-      ]
     if output_cols is None or output_cols == 'ALL_COLUMNS':
       self._output_cols = sorted(self._predictor_impl.output_names)
       logging.info('predict output cols: %s' % self._output_cols)
@@ -431,6 +423,7 @@ class Predictor(PredictorInterface):
           self._parse_line, num_parallel_calls=num_parallel_calls)
       iterator = dataset.make_one_shot_iterator()
       all_dict = iterator.get_next()
+      self._reserved_cols = self._get_reserved_cols(reserved_cols)
       input_names = self._predictor_impl.input_names
       table_writer = self._get_writer(output_path, slice_id)
 
@@ -444,7 +437,7 @@ class Predictor(PredictorInterface):
               split_index.append(k)
               split_vals[k] = []
             for record in feature_vals:
-              split_records = record.split('\002')
+              split_records = record.decode('utf-8').split('\002')
               for i, r in enumerate(split_records):
                 split_vals[split_index[i]].append(r)
             return {k: np.array(split_vals[k]) for k in input_names}
@@ -553,14 +546,36 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                profiling_file=None,
+               selected_cols='',
+               is_rtp=False,
                input_sep=',',
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file)
     self._input_sep = input_sep
     self._output_sep = output_sep
-    self._record_defaults = [
-        self._get_defaults(col_name) for col_name in self._input_fields
-    ]
+    self._is_rtp = is_rtp
+    if selected_cols:
+      self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    else:
+      self._selected_cols = None
+
+  def _get_reserved_cols(self, reserved_cols):
+    if reserved_cols == 'ALL_COLUMNS':
+      if self._is_rtp:
+        idx = 0
+        reserved_cols = []
+        for x in range(len(self._record_defaults) - 1):
+          if not self._selected_cols or x in self._selected_cols[:-1]:
+            reserved_cols.append(self._input_fields[idx])
+            idx += 1
+          else:
+            reserved_cols.append('no_used_%d' % x)
+        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+      else:
+        reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
 
   def _parse_line(self, line):
     check_list = [
@@ -575,8 +590,37 @@ class CSVPredictor(Predictor):
           field_delim=self._input_sep,
           record_defaults=self._record_defaults,
           name='decode_csv')
-    inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
+    if self._is_rtp:
+      inputs = {}
+      idx = 0
+      for x in range(len(self._record_defaults) - 1):
+        if not self._selected_cols or x in self._selected_cols[:-1]:
+          inputs[self._input_fields[idx]] = fields[x]
+          idx += 1
+        else:
+          inputs['no_used_%d' % x] = fields[x]
+      inputs[SINGLE_PLACEHOLDER_FEATURE_KEY] = fields[-1]
+    else:
+      inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
     return inputs
+
+  def _get_num_cols(self, file_paths):
+    # try to figure out number of fields from one file
+    num_cols = -1
+    with tf.gfile.GFile(file_paths[0], 'r') as fin:
+      num_lines = 0
+      for line_str in fin:
+        line_tok = line_str.strip().split(self._input_sep)
+        if num_cols != -1:
+          assert num_cols == len(line_tok), \
+            'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.' % \
+            (num_cols, len(line_tok), line_str)
+        num_cols = len(line_tok)
+        num_lines += 1
+        if num_lines > 10:
+          break
+    logging.info('num selected cols = %d' % num_cols)
+    return num_cols
 
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
@@ -584,6 +628,21 @@ class CSVPredictor(Predictor):
     for x in input_path.split(','):
       file_paths.extend(gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % input_path
+
+    if self._is_rtp:
+      num_cols = self._get_num_cols(file_paths)
+      self._record_defaults = ['' for _ in range(num_cols)]
+      if not self._selected_cols:
+        self._selected_cols = list(range(num_cols))
+      for col_idx in self._selected_cols[:-1]:
+        col_name = self._input_fields[col_idx]
+        default_val = self._get_defaults(col_name)
+        self._record_defaults[col_idx] = default_val
+    else:
+      self._record_defaults = [
+          self._get_defaults(col_name) for col_name in self._input_fields
+      ]
+
     dataset = tf.data.Dataset.from_tensor_slices(file_paths)
     parallel_num = min(num_parallel_calls, len(file_paths))
     dataset = dataset.interleave(
@@ -631,6 +690,10 @@ class ODPSPredictor(Predictor):
         for col_name, col_type in zip(self._all_cols, self._all_col_types)
     ]
 
+  def _get_reserved_cols(self, reserved_cols):
+    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
+
   def _parse_line(self, *fields):
     fields = list(fields)
     field_dict = {self._all_cols[i]: fields[i] for i in range(len(fields))}
@@ -671,6 +734,8 @@ class HivePredictor(Predictor):
                data_config,
                hive_config,
                profiling_file=None,
+               selected_cols='',
+               is_rtp=False,
                output_sep=chr(1)):
     super(HivePredictor, self).__init__(model_path, profiling_file)
 
@@ -682,6 +747,10 @@ class HivePredictor(Predictor):
     self._record_defaults = [
         self._get_defaults(col_name) for col_name in self._input_fields
     ]
+
+  def _get_reserved_cols(self, reserved_cols):
+    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
 
   def _parse_line(self, *fields):
     fields = list(fields)

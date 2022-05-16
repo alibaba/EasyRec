@@ -45,7 +45,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
-
+tf.app.flags.DEFINE_bool('is_rtp', False, '')
+tf.app.flags.DEFINE_string('selected_cols', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -60,10 +61,14 @@ def main(argv):
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input,
+          selected_cols=FLAGS.selected_cols,
+          is_rtp=FLAGS.is_rtp,
           output_sep=FLAGS.output_sep)
     else:
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
+          selected_cols=FLAGS.selected_cols,
+          is_rtp=FLAGS.is_rtp,
           input_sep=FLAGS.input_sep,
           output_sep=FLAGS.output_sep)
 
