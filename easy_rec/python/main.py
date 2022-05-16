@@ -25,10 +25,11 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
+from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_train_input_path
+from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
-
-from EasyRec.easy_rec.python.utils.config_util import get_eval_input_path, get_train_input_path, set_eval_input_path
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -253,6 +254,7 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   _train_and_evaluate_impl(pipeline_config, continue_train)
 
   return pipeline_config
+
 
 def _train_and_evaluate_impl(pipeline_config,
                              continue_train=False,
