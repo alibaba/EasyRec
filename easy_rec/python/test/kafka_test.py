@@ -197,22 +197,7 @@ class KafkaTest(tf.test.TestCase):
   def test_kafka_train(self):
     try:
       # start produce thread
-      def _generate():
-        producer = KafkaProducer(
-            bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
-        while not self._should_stop:
-          with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
-            for line_str in fin:
-              line_str = line_str.strip()
-              if self._should_stop:
-                break
-              if six.PY3:
-                line_str = line_str.encode('utf-8')
-              producer.send(self._test_topic, line_str)
-        producer.close()
-        logging.info('data generation thread done.')
-
-      self._producer = self._create_producer(_generate)
+      self._producer = self._create_producer(self._generate)
 
       test_utils.set_gpu_id(None)
 
@@ -223,26 +208,26 @@ class KafkaTest(tf.test.TestCase):
       self._success = False
       raise ex
 
+  def _generate(self):
+    producer = KafkaProducer(
+        bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
+    while not self._should_stop:
+      with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
+        for line_str in fin:
+          line_str = line_str.strip()
+          if self._should_stop:
+            break
+          if six.PY3:
+            line_str = line_str.encode('utf-8')
+          producer.send(self._test_topic, line_str)
+    producer.close()
+    logging.info('data generation thread done.')
+
   @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_train_chief_redundant(self):
     try:
       # start produce thread
-      def _generate():
-        producer = KafkaProducer(
-            bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
-        while not self._should_stop:
-          with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
-            for line_str in fin:
-              line_str = line_str.strip()
-              if self._should_stop:
-                break
-              if six.PY3:
-                line_str = line_str.encode('utf-8')
-              producer.send(self._test_topic, line_str)
-        producer.close()
-        logging.info('data generation thread done.')
-
-      self._producer = self._create_producer(_generate)
+      self._producer = self._create_producer(self._generate)
 
       test_utils.set_gpu_id(None)
 
@@ -259,27 +244,28 @@ class KafkaTest(tf.test.TestCase):
   def test_kafka_train_v2(self):
     try:
       # start produce thread
-      def _generate():
-        producer = KafkaProducer(
-            bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
-        while not self._should_stop:
-          with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
-            for line_str in fin:
-              line_str = line_str.strip()
-              if self._should_stop:
-                break
-              if six.PY3:
-                line_str = line_str.encode('utf-8')
-              producer.send(self._test_topic, line_str)
-        producer.close()
-        logging.info('data generation thread done.')
-
-      self._producer = self._create_producer(_generate)
+      self._producer = self._create_producer(self._generate)
 
       test_utils.set_gpu_id(None)
 
       self._success = test_utils.test_single_train_eval(
           'samples/model_config/deepfm_combo_avazu_kafka_time_offset.config', self._test_dir) 
+     
+      self.assertTrue(self._success)
+    except Exception as ex:
+      self._success = False
+      raise ex
+
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
+  def test_kafka_train_v3(self):
+    try:
+      # start produce thread
+      self._producer = self._create_producer(self._generate)
+
+      test_utils.set_gpu_id(None)
+
+      self._success = test_utils.test_single_train_eval(
+          'samples/model_config/deepfm_combo_avazu_kafka_time_offset2.config', self._test_dir) 
      
       self.assertTrue(self._success)
     except Exception as ex:

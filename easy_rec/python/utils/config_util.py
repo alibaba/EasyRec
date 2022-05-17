@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import datetime
 
 import tensorflow as tf
 from google.protobuf import json_format
@@ -354,3 +355,22 @@ def get_compatible_feature_configs(pipeline_config):
   else:
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
+
+def parse_time(time_data):
+  """Parse time string to timestamp.
+  
+  Args:
+    time_data: could be two formats: '%Y%m%d %H:%M:%S' or '%s'
+  Return:
+    timestamp: int
+  """
+
+  if isinstance(time_data, str) or isinstance(time_data, type(u'')):
+    if len(time_data) == 17:
+      return int(datetime.datetime.strptime(time_data, '%Y%m%d %H:%M:%S').strftime("%s"))
+    elif len(time_data) == 10:
+      return int(time_data)
+    else:
+      assert 'invalid time string: %s' % time_data
+  else:
+    return int(time_data)

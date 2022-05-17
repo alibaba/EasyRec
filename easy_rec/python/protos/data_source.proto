@@ -5,8 +5,14 @@ message KafkaServer {
     required string server     = 1;
     required string topic      = 2;
     required string group      = 3;
-    // in json format: {'0':10, '1':20}
-    optional string offset_info = 4;
+    oneof offset {
+       // in json format: {'0':10, '1':20}
+       string offset_info = 40;
+       // offset_time could be two formats:
+       // 1: %Y%m%d %H:%M:%S  '20220508 12:00:00'
+       // 2: %s               '1651982400'
+       string offset_time = 42;
+    }
     // kafka global config, such as: fetch.max.bytes=1024
     repeated string config_global = 5;
     // kafka topic config, such as: max.partition.fetch.bytes=1024

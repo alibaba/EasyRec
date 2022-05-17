@@ -11,6 +11,7 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.input.kafka_dataset import KafkaDataset
+from easy_rec.python.utils.config_util import parse_time
 
 try:
   from kafka import KafkaConsumer, TopicPartition
@@ -44,23 +45,30 @@ class KafkaInput(Input):
       logging.info('all partitions[%d]: %s' % (self._num_partition, partitions))
 
       # determine kafka offsets for each partition
-      if self._kafka.offset_info:
-        offset_dict = json.loads(self._kafka.offset_info)
-        if 'timestamp' in self._kafka.offset_info:
-          timestamp = offset_dict['timestamp'] 
-          input_map = { TopicPartition(partition=part_id, topic=self._kafka.topic) : timestamp * 1000 \
+      offset_type = self._kafka.WhichOneof('offset')
+      if offset_type is not None:
+        if offset_type == 'offset_time':
+          ts = parse_time(self._kafka.offset_time)
+          input_map = { TopicPartition(partition=part_id, topic=self._kafka.topic) : ts * 1000 \
               for part_id in partitions }
           part_offsets = consumer.offsets_for_times(input_map)
-          # {TopicPartition(topic=u'kafka_data_20220408', partition=0):
-          #    OffsetAndTimestamp(offset=2, timestamp=1650611437895)}
+          # part_offsets is a dictionary:
+          # {
+          #    TopicPartition(topic=u'kafka_data_20220408', partition=0):
+          #       OffsetAndTimestamp(offset=2, timestamp=1650611437895)
+          # }
           for part in part_offsets:
             self._offset_dict[part.partition] = part_offsets[part].offset
             logging.info('find offset by time, topic[%s], partition[%d], timestamp[%ss], offset[%d], offset_timestamp[%dms]' % \
-                (self._kafka.topic, part.partition, timestamp, part_offsets[part].offset, part_offsets[part].timestamp))
-        else:
+                (self._kafka.topic, part.partition, ts, part_offsets[part].offset,
+                 part_offsets[part].timestamp))
+        elif offset_type == 'offset_info':
+          offset_dict = json.loads(self._kafka.offset_info)
           for part in offset_dict:
             part_id = int(part)
             self._offset_dict[part_id] = offset_dict[part]
+        else:
+          assert 'invalid offset_type: %s' % offset_type
     self._task_offset_dict = {}  
 
   def _preprocess(self, field_dict):

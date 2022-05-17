@@ -207,6 +207,20 @@ class TrainEvalTest(tf.test.TestCase):
     final_ckpt = estimator_utils.latest_checkpoint(train_dir)
     ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
     logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
+
+  def test_dead_line_stop_signal(self):  
+    train_dir = os.path.join(self._test_dir, 'train/')
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dead_line_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
     assert ckpt_version < 1000
 
   def test_fine_tune_ckpt(self):
