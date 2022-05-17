@@ -238,8 +238,6 @@ class NegativeSampler(BaseSampler):
         'item', expand_factor, strategy='node_weight')
 
   def _get_impl(self, ids):
-    # assert len(ids) == self._batch_size
-    # tf.logging.info("ids: %s", len(ids))
     ids = np.array(ids, dtype=np.int64)
     nodes = self._sampler.get(ids)
     features = self._parse_nodes(nodes)
