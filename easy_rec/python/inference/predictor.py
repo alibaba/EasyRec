@@ -752,9 +752,33 @@ class HivePredictor(Predictor):
     self._record_defaults = [
         self._get_defaults(col_name) for col_name in self._input_fields
     ]
+    input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
+
+    if 'rtp' in input_type:
+      self._is_rtp = True
+    else:
+      self._is_rtp = False
+    if selected_cols:
+      self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    else:
+      self._selected_cols = None
 
   def _get_reserved_cols(self, reserved_cols):
-    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    if reserved_cols == 'ALL_COLUMNS':
+      if self._is_rtp:
+        idx = 0
+        reserved_cols = []
+        for x in range(len(self._record_defaults) - 1):
+          if not self._selected_cols or x in self._selected_cols[:-1]:
+            reserved_cols.append(self._input_fields[idx])
+            idx += 1
+          else:
+            reserved_cols.append('no_used_%d' % x)
+        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+      else:
+        reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     return reserved_cols
 
   def _parse_line(self, *fields):
