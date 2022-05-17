@@ -96,7 +96,7 @@ pai -name easy_rec_ext
   -Dcmd=export
   -Dexport_dir=oss://yanzhen1/easy_rec_test/export/
   -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
-  -Darn=acs:ram::1730760139076263:role/aliyunodpspaidefaultrole
+  -Darn=acs:ram::xxxx:role/aliyunodpspaidefaultrole
   -Dbuckets=oss://yanzhen1/
   -DossHost=oss-cn-beijing-internal.aliyuncs.com;
  错误

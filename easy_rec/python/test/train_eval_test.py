@@ -10,16 +10,20 @@ from distutils.version import LooseVersion
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
+try:
+  import graphlearn as gl
+except Exception:
+  gl = None
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-gfile = tf.gfile
-
 
 class TrainEvalTest(tf.test.TestCase):
 
@@ -256,32 +260,28 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
-                   'Currently graph-learn not support python3.7')
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
-                   'Currently graph-learn not support python3.7')
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_v2_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
-                   'Currently graph-learn not support python3.7')
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_hard_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf((sys.version_info.major, sys.version_info.minor) > (3, 6),
-                   'Currently graph-learn not support python3.7')
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_hard_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_v2_on_taobao.config',

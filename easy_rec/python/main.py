@@ -489,10 +489,7 @@ def distribute_evaluate(pipeline_config,
       pipeline_config.eval_input_path = eval_data_path
   train_config = pipeline_config.train_config
 
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
+  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
 
   server_target = None
   cur_job_name = None
