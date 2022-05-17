@@ -358,18 +358,12 @@ def get_compatible_feature_configs(pipeline_config):
 
 def get_train_input_path(pipeline_config):
   input_name = pipeline_config.WhichOneof('train_path')
-  if input_name == 'hive_train_input':
-    return pipeline_config.hive_train_input.table_name
-  else:
-    return getattr(pipeline_config, input_name)
+  return getattr(pipeline_config, input_name)
 
 
 def get_eval_input_path(pipeline_config):
   input_name = pipeline_config.WhichOneof('eval_path')
-  if input_name == 'hive_eval_input':
-    return pipeline_config.hive_eval_input.table_name
-  else:
-    return getattr(pipeline_config, input_name)
+  return getattr(pipeline_config, input_name)
 
 
 def set_train_input_path(pipeline_config, train_input_path):
