@@ -24,6 +24,7 @@ from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.tf_utils import get_tf_type
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -545,15 +546,20 @@ class CSVPredictor(Predictor):
 
   def __init__(self,
                model_path,
+               data_config,
                profiling_file=None,
                selected_cols='',
-               is_rtp=False,
                input_sep=',',
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file)
     self._input_sep = input_sep
     self._output_sep = output_sep
-    self._is_rtp = is_rtp
+    input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
+
+    if 'rtp' in input_type:
+      self._is_rtp = True
+    else:
+      self._is_rtp = False
     if selected_cols:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
     else:
@@ -735,7 +741,6 @@ class HivePredictor(Predictor):
                hive_config,
                profiling_file=None,
                selected_cols='',
-               is_rtp=False,
                output_sep=chr(1)):
     super(HivePredictor, self).__init__(model_path, profiling_file)
 

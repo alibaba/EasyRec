@@ -14,6 +14,8 @@ from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.test_utils import RunAsSubprocess
 
+from easy_rec.python.utils import config_util
+
 
 class PredictorTest(tf.test.TestCase):
 
@@ -138,12 +140,15 @@ class PredictorTestOnDS(tf.test.TestCase):
   def test_local_pred(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    save_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(save_model_dir, 'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config_path, False)
     predictor = CSVPredictor(
-        'data/test/inference/tb_multitower_export/',
+        save_model_dir,
+        pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
-        selected_cols='',
-        is_rtp=False)
+        selected_cols='')
 
     predictor.predict_impl(
         test_input_path,
@@ -165,12 +170,16 @@ class PredictorTestOnDS(tf.test.TestCase):
   def test_local_pred_with_part_col(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    save_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(save_model_dir, 'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config_path, False)
+
     predictor = CSVPredictor(
-        'data/test/inference/tb_multitower_export/',
+        save_model_dir,
+        pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
-        selected_cols='',
-        is_rtp=False)
+        selected_cols='')
 
     predictor.predict_impl(
         test_input_path,
@@ -191,12 +200,16 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
+    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(save_model_dir, 'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config_path, False)
+
     predictor = CSVPredictor(
-        'data/test/inference/tb_multitower_rtp_export/',
+        save_model_dir,
+        pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
-        selected_cols='0,3',
-        is_rtp=True)
+        selected_cols='0,3')
     predictor.predict_impl(
         test_input_path,
         self._test_output_path,
@@ -215,12 +228,16 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
+    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(save_model_dir, 'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config_path, False)
+
     predictor = CSVPredictor(
-        'data/test/inference/tb_multitower_rtp_export/',
+        save_model_dir,
+        pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
-        selected_cols='0,3',
-        is_rtp=True)
+        selected_cols='0,3')
     predictor.predict_impl(
         test_input_path,
         self._test_output_path,
