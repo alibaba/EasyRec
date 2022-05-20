@@ -36,7 +36,7 @@ class DNN:
   def dropout_ratio(self):
     return self._config.dropout_ratio
 
-  def __call__(self, deep_fea, hidden_layer_feature_output=False, last_no_norm=False):
+  def __call__(self, deep_fea, hidden_layer_feature_output=False, last_linear_only=False):
     hidden_units_len = len(self.hidden_units)
     if hidden_units_len == 1 and self.hidden_units[0] == 0:
       return deep_fea
@@ -50,7 +50,7 @@ class DNN:
           activation=None,
           name='%s/dnn_%d' % (self._name, i))
 
-      if i + 1 == len(self.hidden_units) and last_no_norm:
+      if i + 1 == len(self.hidden_units) and last_linear_only:
         return deep_fea
 
       if self._config.use_bn:

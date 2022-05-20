@@ -61,8 +61,8 @@ class PDN(MatchModel):
     trigger_dnn_layer = dnn.DNN(self._model_config.trigger_dnn, self._l2_reg,
                           'trigger_dnn', self._is_training)
  
-    # output N x seq_len x 1
-    trigger_out = trigger_dnn_layer(trigger_merge_fea)
+    # output: N x seq_len x d, d is usually set to 1
+    trigger_out = trigger_dnn_layer(trigger_merge_fea, last_linear_only=True)
 
     self._prediction_dict['trigger_out'] = trigger_out
 
@@ -81,7 +81,8 @@ class PDN(MatchModel):
                                 item_fea_tile], axis=2)
     sim_dnn_layer = dnn.DNN(self._model_config.sim_dnn, self._l2_reg,
                             'sim_dnn', self._is_training)
-    sim_out = sim_dnn_layer(sim_seq_concat)
+    # output: N x seq_len x 1
+    sim_out = sim_dnn_layer(sim_seq_concat, last_linear_only=True)
     
     self._prediction_dict['sim_out'] = sim_out
 
@@ -114,9 +115,9 @@ class PDN(MatchModel):
        self._model_config.HasField('direct_item_dnn'):
       direct_user_layer = dnn.DNN(self._model_config.direct_user_dnn, 'direct_user_dnn',
                                   self._is_training)
-      direct_user_out = direct_user_layer(self._user_features)
+      direct_user_out = direct_user_layer(self._user_features, last_linear_only=True)
       direct_item_layer = dnn.DNN(self._model_config.direct_item_dnn, 'direct_item_dnn',
-                                  self._is_training)
+                                  self._is_training, last_linear_only=True)
       direct_item_out = direct_item_layer(self._item_features)
 
       if self._model_config.simi_func == Similarity.COSINE:
@@ -149,7 +150,7 @@ class PDN(MatchModel):
       assert self._bias_features is not None, 'bias group must be defined'
       bias_dnn_layer = dnn.DNN(self._model_config.bias_dnn, self._l2_reg,
                                'bias_dnn', self._is_training)
-      bias_logits = bias_dnn_layer(self._bias_features)
+      bias_logits = bias_dnn_layer(self._bias_features, last_linear_only=True)
       return tf.nn.softplus(bias_logits)
     else:
       return None
