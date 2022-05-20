@@ -45,10 +45,12 @@ class DummyInput(Input):
                                           self._input_field_defaults):
       tf_type = get_tf_type(field_type)
       def_val = self.get_type_defaults(field_type, default_val=def_val)
+
       if field in self._input_vals:
         tensor = self._input_vals[field]
       else:
         tensor = tf.constant([def_val] * self._batch_size, dtype=tf_type)
+
       features[field] = tensor
     parse_dict = self._preprocess(features)
     return self._get_features(parse_dict), self._get_labels(parse_dict)

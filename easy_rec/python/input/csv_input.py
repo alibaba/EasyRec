@@ -60,7 +60,7 @@ class CSVInput(Input):
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
           name='decode_csv')
-      if self._field_names:
+      if self._field_names is not None:
         fields = [
             fields[self._field_names.index(x)] for x in self._input_fields
         ]

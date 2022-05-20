@@ -475,7 +475,6 @@ def distribute_evaluate(pipeline_config,
     logging.info('Evaluating on data: %s' % eval_data_path)
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
-
   eval_data = get_eval_input_path(pipeline_config)
 
   server_target = None

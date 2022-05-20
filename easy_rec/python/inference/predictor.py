@@ -5,11 +5,12 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import json
 import logging
 import math
 import os
 import time
-import json
+
 import numpy as np
 import six
 import tensorflow as tf
@@ -18,15 +19,14 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
+from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.tf_utils import get_tf_type
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-
-from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -153,7 +153,11 @@ class PredictorImpl(object):
 
   def _get_input_fields_from_pipeline_config(self, model_path):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
-    assert gfile.Exists(pipeline_path), '%s not exists.' % pipeline_path
+    if not gfile.Exists(pipeline_path):
+      logging.warning(
+          '%s not exists, default values maybe inconsistent with the values used in training.'
+          % pipeline_path)
+      return {}
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     input_fields = pipeline_config.data_config.input_fields
     input_fields_info = {
@@ -320,6 +324,7 @@ class Predictor(PredictorInterface):
       profiling_file:  profiling result file, default None.
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
+      fg_json_path: fg.json file
     """
     self._predictor_impl = PredictorImpl(model_path, profiling_file)
     self._inputs_map = self._predictor_impl._inputs_map
@@ -332,7 +337,7 @@ class Predictor(PredictorInterface):
     self._input_fields = self._predictor_impl._input_fields_list
     fg_json = self._get_fg_json(fg_json_path, model_path)
     self._all_input_names = get_input_name_from_fg_json(fg_json)
-    logging.info("all_input_names: %s" % self._all_input_names)
+    logging.info('all_input_names: %s' % self._all_input_names)
 
   @property
   def input_names(self):
@@ -358,11 +363,13 @@ class Predictor(PredictorInterface):
       default_val = get_type_defaults(col_type, default_val)
       logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
     else:
-      logging.info('col_name: %s is not used in predict.' % col_name)
       defaults = {'string': '', 'double': 0.0, 'bigint': 0}
       assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
           col_name, col_type)
       default_val = defaults[col_type]
+      logging.info(
+          'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
+          % (col_name, default_val))
     return default_val
 
   def _parse_line(self, line):
@@ -387,13 +394,13 @@ class Predictor(PredictorInterface):
 
   def _get_fg_json(self, fg_json_path, model_path):
     if fg_json_path and gfile.Exists(fg_json_path):
-      logging.info("load fg_json_path: ", fg_json_path)
+      logging.info('load fg_json_path: ', fg_json_path)
       with tf.gfile.GFile(fg_json_path, 'r') as fin:
         fg_json = json.loads(fin.read())
     else:
       fg_json_path = os.path.join(model_path, 'assets/fg.json')
       if gfile.Exists(fg_json_path):
-        logging.info("load fg_json_path: ", fg_json_path)
+        logging.info('load fg_json_path: ', fg_json_path)
         with tf.gfile.GFile(fg_json_path, 'r') as fin:
           fg_json = json.loads(fin.read())
       else:
@@ -416,8 +423,8 @@ class Predictor(PredictorInterface):
     """Predict table input with loaded model.
 
     Args:
-      input_table: table/file_path to read
-      output_table: table/file_path to write
+      input_path: table/file_path to read
+      output_path: table/file_path to write
       reserved_cols: columns to be copy to output_table, comma separated, such as "a,b"
       output_cols: output columns, comma separated, such as "y float, embedding string",
                 the output names[y, embedding] must be in saved_model output_names
@@ -463,10 +470,10 @@ class Predictor(PredictorInterface):
                 split_index.append(k)
                 split_vals[k] = []
             else:
-              assert self._all_input_names, "must set fg_json_path when use fg input"
+              assert self._all_input_names, 'must set fg_json_path when use fg input'
               assert fg_input_size == len(self._all_input_names), \
-                "The size of features in fg_json != the size of fg input. " \
-                "The size of features in fg_json is: %s; The size of fg input is: %s" % \
+                'The size of features in fg_json != the size of fg input. ' \
+                'The size of features in fg_json is: %s; The size of fg input is: %s' % \
                 (fg_input_size, len(self._all_input_names))
               for i, k in enumerate(self._all_input_names):
                 split_index.append(k)
@@ -497,7 +504,9 @@ class Predictor(PredictorInterface):
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
 
           ts2 = time.time()
-          reserve_vals = self._get_reserve_vals(self._reserved_cols, self._output_cols, all_vals, outputs)
+          reserve_vals = self._get_reserve_vals(self._reserved_cols,
+                                                self._output_cols, all_vals,
+                                                outputs)
           outputs = [x for x in zip(*reserve_vals)]
           self._write_line(table_writer, outputs)
 
@@ -726,7 +735,8 @@ class ODPSPredictor(Predictor):
                profiling_file=None,
                all_cols='',
                all_col_types=''):
-    super(ODPSPredictor, self).__init__(model_path, profiling_file, fg_json_path)
+    super(ODPSPredictor, self).__init__(model_path, profiling_file,
+                                        fg_json_path)
     self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
     self._all_col_types = [
         x.strip() for x in all_col_types.split(',') if x != ''
@@ -777,6 +787,7 @@ class ODPSPredictor(Predictor):
                  [outputs[x] for x in output_cols]
     return reserve_vals
 
+
 class HivePredictor(Predictor):
 
   def __init__(self,
@@ -787,7 +798,8 @@ class HivePredictor(Predictor):
                profiling_file=None,
                selected_cols='',
                output_sep=chr(1)):
-    super(HivePredictor, self).__init__(model_path, profiling_file, fg_json_path)
+    super(HivePredictor, self).__init__(model_path, profiling_file,
+                                        fg_json_path)
 
     self._data_config = data_config
     self._hive_config = hive_config

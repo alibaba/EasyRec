@@ -355,20 +355,22 @@ def get_compatible_feature_configs(pipeline_config):
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
 
+
 def get_input_name_from_fg_json(fg_json):
   if not fg_json:
     return []
   input_names = []
-  for fea in fg_json["features"]:
-    if "feature_name" in fea:
-      input_names.append(fea["feature_name"])
-    elif "sequence_name" in fea:
-      sequence_name = fea["sequence_name"]
-      for seq_fea in fea["features"]:
-        assert "feature_name" in seq_fea
-        feature_name = seq_fea["feature_name"]
+  for fea in fg_json['features']:
+    if 'feature_name' in fea:
+      input_names.append(fea['feature_name'])
+    elif 'sequence_name' in fea:
+      sequence_name = fea['sequence_name']
+      for seq_fea in fea['features']:
+        assert 'feature_name' in seq_fea
+        feature_name = seq_fea['feature_name']
       input_names.append(sequence_name + '__' + feature_name)
   return input_names
+
 
 def get_train_input_path(pipeline_config):
   input_name = pipeline_config.WhichOneof('train_path')
