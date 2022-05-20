@@ -309,7 +309,6 @@ class InputLayer(object):
     # get gpu nums
     #local_device_protos = device_lib.list_local_devices()
     #gpus_num = len([x for x in local_device_protos if x.device_type == 'GPU'])
-
     try:
       assert len(group_columns) > 0
       assert type(group_columns[0]) in allowd_column_types
@@ -327,22 +326,26 @@ class InputLayer(object):
       logging.error("SOK requires all EmbeddingColumn have the same emb_dim and combiner. max_norm is not supported")
       raise e
 
-    builder = feature_column._LazyBuilder(features)
-    inputs = []
-    for column in group_columns:
-      sparse_tensor, _ = column.categorical_column._get_sparse_tensors(  # pylint: disable=protected-access
-          builder, trainable=True)
-      inputs.append(sparse_tensor)
-
-    batch_size = inputs[0].dense_shape[0]
-    #batch_size = tf.Print(batch_size, [batch_size], message="======= BatchSize: ")
-
     sok_instance = tf.get_collection("SOK")[1]
+    inputs = []
+    batch_size = None
 
-    # slot_num = len(inputs) = len(group_columns)
-    # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
-    # need to accmulate indices and offset them.
     def sparse_sok():
+
+      builder = feature_column._LazyBuilder(features)
+      for column in group_columns:
+        sparse_tensor, _ = column.categorical_column._get_sparse_tensors(  # pylint: disable=protected-access
+            builder, trainable=True)
+        inputs.append(sparse_tensor)
+
+      # slot_num = len(inputs) = len(group_columns)
+      # try to combine slot_num SparseTensors into one big SparseTensor along the batch_size dimension, thus
+      # need to accmulate indices and offset them.
+
+      nonlocal batch_size
+      batch_size = inputs[0].dense_shape[0]
+      #batch_size = tf.Print(batch_size, [batch_size], message="======= BatchSize: ")
+
       assert self.sok_max_nnz is not None
       max_nnz = self.sok_max_nnz
       offseted_values = []
@@ -373,22 +376,35 @@ class InputLayer(object):
       return output
 
     def dense_sok():
-      offseted_values = []
+      for v in features.values():
+        if isinstance(v, tf.Tensor) and v.dtype in [tf.int32, tf.int64]:
+          inputs.append(tf.cast(v, dtype=tf.int64))
 
-      for i, input_sparse in enumerate(inputs):
-        offsetted_value = input_sparse.values
+      #builder = feature_column._LazyBuilder(features)
+      #for column in group_columns:
+      #  sparse_tensor, _ = column.categorical_column._get_sparse_tensors(  # pylint: disable=protected-access
+      #      builder, trainable=True)
+      #  inputs.append(sparse_tensor.values)
+
+      nonlocal batch_size
+      batch_size = tf.shape(inputs[0])[0]
+      offseted_values = []
+      for i, input in enumerate(inputs):
+        offsetted_value = input
         # special change for dlrm_on_criteo test
         #+ group_columns[i].categorical_column.hash_bucket_size
         offseted_values.append(offsetted_value)
 
       offseted_values = tf.expand_dims(tf.transpose(tf.stack(offseted_values)), axis=-1)
+
+      # offseted_values = tf.Print(offseted_values, [tf.reduce_min(offseted_values), tf.reduce_max(offseted_values)], message="======= offseted_values: ")
       # output should be [accu_batch_size, emb_vec_size]
       output = sok_instance(offseted_values, training=self._is_training)
       output = tf.reshape(output, [batch_size, -1, emb_vec_size])
       return output
 
-    output = sparse_sok()
-    #output = dense_sok()
+    #output = sparse_sok()
+    output = dense_sok()
 
     for i, _ in enumerate(inputs):
       output_piece = tf.squeeze(

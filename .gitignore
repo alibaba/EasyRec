@@ -12,7 +12,7 @@ protoc-3.4.0.tar.gz
 *_pb2.py
 
 # misc
-experiments
+/experiments
 log
 *.swp
 *.swo

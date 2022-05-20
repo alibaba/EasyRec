@@ -331,6 +331,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
+    return False
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
 
     for l in self._listeners:  # noqa: E741
