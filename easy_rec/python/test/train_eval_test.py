@@ -357,6 +357,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mind_on_taobao_with_time.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_pdn(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/pdn_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_deepfm_with_regression(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_reg.config', self._test_dir)

@@ -154,3 +154,6 @@ class PDN(MatchModel):
       return tf.nn.softplus(bias_logits)
     else:
       return None
+
+  def get_outputs(self):
+    return ['logits', 'probs', 'trigger_out', 'sim_out']
