@@ -9,7 +9,7 @@ import logging
 import math
 import os
 import time
-
+import json
 import numpy as np
 import six
 import tensorflow as tf
@@ -25,6 +25,8 @@ from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.tf_utils import get_tf_type
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+
+from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -310,7 +312,7 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self, model_path, profiling_file=None):
+  def __init__(self, model_path, profiling_file=None, fg_json_path=None):
     """Initialize a `Predictor`.
 
     Args:
@@ -328,6 +330,9 @@ class Predictor(PredictorInterface):
     self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
 
     self._input_fields = self._predictor_impl._input_fields_list
+    fg_json = self._get_fg_json(fg_json_path, model_path)
+    self._all_input_names = get_input_name_from_fg_json(fg_json)
+    logging.info("all_input_names: %s" % self._all_input_names)
 
   @property
   def input_names(self):
@@ -378,6 +383,24 @@ class Predictor(PredictorInterface):
     return None
 
   def _write_line(self, table_writer, outputs):
+    pass
+
+  def _get_fg_json(self, fg_json_path, model_path):
+    if fg_json_path and gfile.Exists(fg_json_path):
+      logging.info("load fg_json_path: ", fg_json_path)
+      with tf.gfile.GFile(fg_json_path, 'r') as fin:
+        fg_json = json.loads(fin.read())
+    else:
+      fg_json_path = os.path.join(model_path, 'assets/fg.json')
+      if gfile.Exists(fg_json_path):
+        logging.info("load fg_json_path: ", fg_json_path)
+        with tf.gfile.GFile(fg_json_path, 'r') as fin:
+          fg_json = json.loads(fin.read())
+      else:
+        fg_json = {}
+    return fg_json
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
     pass
 
   def predict_impl(
@@ -434,9 +457,20 @@ class Predictor(PredictorInterface):
             feature_vals = all_vals[SINGLE_PLACEHOLDER_FEATURE_KEY]
             split_index = []
             split_vals = {}
-            for i, k in enumerate(input_names):
-              split_index.append(k)
-              split_vals[k] = []
+            fg_input_size = len(feature_vals[0].decode('utf-8').split('\002'))
+            if fg_input_size == len(input_names):
+              for i, k in enumerate(input_names):
+                split_index.append(k)
+                split_vals[k] = []
+            else:
+              assert self._all_input_names, "must set fg_json_path when use fg input"
+              assert fg_input_size == len(self._all_input_names), \
+                "The size of features in fg_json != the size of fg input. " \
+                "The size of features in fg_json is: %s; The size of fg input is: %s" % \
+                (fg_input_size, len(self._all_input_names))
+              for i, k in enumerate(self._all_input_names):
+                split_index.append(k)
+                split_vals[k] = []
             for record in feature_vals:
               split_records = record.decode('utf-8').split('\002')
               for i, r in enumerate(split_records):
@@ -463,8 +497,7 @@ class Predictor(PredictorInterface):
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
 
           ts2 = time.time()
-          reserve_vals = [outputs[x] for x in self._output_cols] + \
-                         [all_vals[k] for k in self._reserved_cols]
+          reserve_vals = self._get_reserve_vals(self._reserved_cols, self._output_cols, all_vals, outputs)
           outputs = [x for x in zip(*reserve_vals)]
           self._write_line(table_writer, outputs)
 
@@ -547,11 +580,12 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
+               fg_json_path=None,
                profiling_file=None,
                selected_cols='',
                input_sep=',',
                output_sep=chr(1)):
-    super(CSVPredictor, self).__init__(model_path, profiling_file)
+    super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
     self._input_sep = input_sep
     self._output_sep = output_sep
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
@@ -674,6 +708,11 @@ class CSVPredictor(Predictor):
         [self._output_sep.join([str(i) for i in output]) for output in outputs])
     table_writer.write(outputs + '\n')
 
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [outputs[x] for x in output_cols] + \
+                   [all_vals[k] for k in reserved_cols]
+    return reserve_vals
+
   @property
   def out_of_range_exception(self):
     return (tf.errors.OutOfRangeError)
@@ -683,10 +722,11 @@ class ODPSPredictor(Predictor):
 
   def __init__(self,
                model_path,
+               fg_json_path=None,
                profiling_file=None,
                all_cols='',
                all_col_types=''):
-    super(ODPSPredictor, self).__init__(model_path, profiling_file)
+    super(ODPSPredictor, self).__init__(model_path, profiling_file, fg_json_path)
     self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
     self._all_col_types = [
         x.strip() for x in all_col_types.split(',') if x != ''
@@ -732,6 +772,10 @@ class ODPSPredictor(Predictor):
   def out_of_range_exception(self):
     return (tf.python_io.OutOfRangeException, tf.errors.OutOfRangeError)
 
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [all_vals[k] for k in reserved_cols] + \
+                 [outputs[x] for x in output_cols]
+    return reserve_vals
 
 class HivePredictor(Predictor):
 
@@ -739,10 +783,11 @@ class HivePredictor(Predictor):
                model_path,
                data_config,
                hive_config,
+               fg_json_path=None,
                profiling_file=None,
                selected_cols='',
                output_sep=chr(1)):
-    super(HivePredictor, self).__init__(model_path, profiling_file)
+    super(HivePredictor, self).__init__(model_path, profiling_file, fg_json_path)
 
     self._data_config = data_config
     self._hive_config = hive_config
@@ -823,6 +868,11 @@ class HivePredictor(Predictor):
     outputs = '\n'.join(
         [self._output_sep.join([str(i) for i in output]) for output in outputs])
     table_writer.write(outputs + '\n')
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [outputs[x] for x in output_cols] + \
+                   [all_vals[k] for k in reserved_cols]
+    return reserve_vals
 
   @property
   def out_of_range_exception(self):

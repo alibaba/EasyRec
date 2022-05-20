@@ -72,7 +72,7 @@ class OdpsRTPInput(Input):
     with tf.control_dependencies(check_list):
       fields = tf.string_split(
           fields[-1], self._data_config.separator, skip_empty=False)
-    tmp_fields = tf.reshape(feature_fields.values, [-1, feature_num])
+    tmp_fields = tf.reshape(fields.values, [-1, feature_num])
 
     fields = labels[len(self._label_fields):]
     for i in range(feature_num):

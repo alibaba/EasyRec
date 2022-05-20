@@ -46,6 +46,7 @@ tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', '', '')
+tf.app.flags.DEFINE_string('fg_json', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -59,6 +60,7 @@ def main(argv):
       predictor = HivePredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
+          fg_json_path=FLAGS.fg_json_path,
           hive_config=pipeline_config.hive_train_input,
           selected_cols=FLAGS.selected_cols,
           output_sep=FLAGS.output_sep)
@@ -66,6 +68,7 @@ def main(argv):
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
+          fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
           input_sep=FLAGS.input_sep,
           output_sep=FLAGS.output_sep)

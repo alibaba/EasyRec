@@ -166,6 +166,8 @@ tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
+tf.app.flags.DEFINE_string('fg_json_path', None, '')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -411,6 +413,7 @@ def main(argv):
       print('profiling_file = %s ' % profiling_file)
     predictor = ODPSPredictor(
         FLAGS.saved_model_dir,
+        fg_json_path=FLAGS.fg_json_path,
         profiling_file=profiling_file,
         all_cols=FLAGS.all_cols,
         all_col_types=FLAGS.all_col_types)
