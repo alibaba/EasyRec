@@ -1316,6 +1316,7 @@ class Estimator(object):
           # max_nnz = 100
 
           sok_init_op = sok.Init(global_batch_size=batch_per_worker * gpu_nums)
+
           # Sparse embedding
           # sok_instance = sok.DistributedEmbedding(
           #   combiner='mean',
