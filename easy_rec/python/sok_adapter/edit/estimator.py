@@ -1318,23 +1318,23 @@ class Estimator(object):
           sok_init_op = sok.Init(global_batch_size=batch_per_worker * gpu_nums)
 
           # Sparse embedding
-          # sok_instance = sok.DistributedEmbedding(
-          #   combiner='mean',
-          #   max_vocabulary_size_per_gpu=int((total_bucket_size / gpu_nums) + 1),
-          #   embedding_vec_size=embedding_vec_size,
-          #   slot_num=slot_num,
-          #   max_nnz=max_nnz,
-          #   use_hashtable=False,
-          #   key_dtype=dtypes.int64)
-
-          # Dense embedding
-          sok_instance = sok.All2AllDenseEmbedding(
+          sok_instance = sok.DistributedEmbedding(
+            combiner='mean',
             max_vocabulary_size_per_gpu=int((total_bucket_size / gpu_nums) + 1),
             embedding_vec_size=embedding_vec_size,
             slot_num=slot_num,
-            nnz_per_slot=1,
+            max_nnz=max_nnz,
             use_hashtable=False,
             key_dtype=dtypes.int64)
+
+          # Dense embedding
+          # sok_instance = sok.All2AllDenseEmbedding(
+          #   max_vocabulary_size_per_gpu=int((total_bucket_size / gpu_nums) + 1),
+          #   embedding_vec_size=embedding_vec_size,
+          #   slot_num=slot_num,
+          #   nnz_per_slot=1,
+          #   use_hashtable=False,
+          #   key_dtype=dtypes.int64)
 
           import tensorflow
           emb_opt = tensorflow.keras.optimizers.SGD(learning_rate=0.0001)

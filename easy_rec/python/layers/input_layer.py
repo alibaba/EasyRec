@@ -403,8 +403,8 @@ class InputLayer(object):
       output = tf.reshape(output, [batch_size, -1, emb_vec_size])
       return output
 
-    #output = sparse_sok()
-    output = dense_sok()
+    output = sparse_sok()
+    #output = dense_sok()
 
     for i, _ in enumerate(inputs):
       output_piece = tf.squeeze(

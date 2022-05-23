@@ -38,7 +38,7 @@ cd sparse_operation_kit && pip -v install .
 bash easy_rec/python/sok_adapter/edit/edit.sh
 ```
 
-Currently we are using some hack method to make SOK run, some important SOK related settings are in `easy_rec/python/sok_adapter/edit/estimator.py`. You can modify accordingly.
+Currently we are using some hack method to make SOK run, some important SOK related settings are in `easy_rec/python/sok_adapter/edit/estimator.py`. You can modify accordingly. For example, you can comment out sparse or dense sok embedding, and use `dense_sok()` or `sparse_sok()` in `easy_rec/python/layers/input_layer.py`
 
 5. setup envs
 

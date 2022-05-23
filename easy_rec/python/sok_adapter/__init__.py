@@ -4,7 +4,7 @@ import inspect
 import types
 
 import tensorflow
-from easy_rec.python.sok_adapter import nvtf_1_15_opt_1, nvtf_1_15_opt_2
+from easy_rec.python.sok_adapter import nvtf_1_15_opt_2
 
 
 class ErrorImportedSOK(object):
