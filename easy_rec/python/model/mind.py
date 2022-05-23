@@ -254,7 +254,8 @@ class MIND(MatchModel):
     loss_dict = super(MIND, self).build_loss_graph()
     if self._model_config.max_interests_simi < 1.0:
       loss_dict['reg_interest_simi'] = tf.nn.relu(
-          self._prediction_dict['interests_simi'] - self._model_config.max_interests_simi)
+          self._prediction_dict['interests_simi'] -
+          self._model_config.max_interests_simi)
     return loss_dict
 
   def _build_interest_simi(self):

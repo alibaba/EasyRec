@@ -20,7 +20,7 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
           label, logits=pred, weights=loss_weight, **kwargs)
     else:
       assert label.dtype in [tf.int32, tf.int64], \
-        "label.dtype must in [tf.int32, tf.int64] when use sparse_softmax_cross_entropy."
+        'label.dtype must in [tf.int32, tf.int64] when use sparse_softmax_cross_entropy.'
       return tf.losses.sparse_softmax_cross_entropy(
           labels=label, logits=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.CROSS_ENTROPY_LOSS:

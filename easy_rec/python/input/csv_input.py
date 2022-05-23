@@ -46,10 +46,14 @@ class CSVInput(Input):
         else:
           record_defaults.append('')
 
-    check_list = [tf.py_func(check_split,
-                             [line, self._data_config.separator, len(record_defaults), self._check_mode],
-                             Tout=tf.bool)
-                  ] if self._check_mode else []
+    check_list = [
+        tf.py_func(
+            check_split, [
+                line, self._data_config.separator,
+                len(record_defaults), self._check_mode
+            ],
+            Tout=tf.bool)
+    ] if self._check_mode else []
     with tf.control_dependencies(check_list):
       fields = tf.decode_csv(
           line,

@@ -25,6 +25,9 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
+from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_train_input_path
+from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
@@ -253,17 +256,6 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   return pipeline_config
 
 
-def _get_input_object_by_name(pipeline_config, worker_type):
-  """" get object by worker type.
-
-  pipeline_config: pipeline_config
-  worker_type: train or eval
-  """
-  input_type = '{}_path'.format(worker_type)
-  input_name = pipeline_config.WhichOneof(input_type)
-  return getattr(pipeline_config, input_name)
-
-
 def _train_and_evaluate_impl(pipeline_config,
                              continue_train=False,
                              check_mode=False):
@@ -278,8 +270,8 @@ def _train_and_evaluate_impl(pipeline_config,
         % pipeline_config.train_config.train_distribute)
     pipeline_config.train_config.sync_replicas = False
 
-  train_data = _get_input_object_by_name(pipeline_config, 'train')
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  train_data = get_train_input_path(pipeline_config)
+  eval_data = get_eval_input_path(pipeline_config)
 
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
@@ -298,7 +290,7 @@ def _train_and_evaluate_impl(pipeline_config,
   train_steps = None
   if train_config.HasField('num_steps'):
     train_steps = train_config.num_steps
-  assert train_steps is not None or data_config.num_epochs > 0, "either num_steps and num_epochs must be set to an integer > 0."
+  assert train_steps is not None or data_config.num_epochs > 0, 'either num_steps and num_epochs must be set to an integer > 0.'
 
   if train_steps and data_config.num_epochs:
     logging.info('Both num_steps and num_epochs are set.')
@@ -363,12 +355,10 @@ def evaluate(pipeline_config,
     fg_util.load_fg_json_to_config(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
-    if isinstance(eval_data_path, list):
-      pipeline_config.eval_input_path = ','.join(eval_data_path)
-    else:
-      pipeline_config.eval_input_path = eval_data_path
+    set_eval_input_path(pipeline_config, eval_data_path)
+
   train_config = pipeline_config.train_config
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  eval_data = get_eval_input_path(pipeline_config)
 
   server_target = None
   if 'TF_CONFIG' in os.environ:
@@ -483,13 +473,9 @@ def distribute_evaluate(pipeline_config,
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
-    if isinstance(eval_data_path, list):
-      pipeline_config.eval_input_path = ','.join(eval_data_path)
-    else:
-      pipeline_config.eval_input_path = eval_data_path
+    set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
-
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  eval_data = get_eval_input_path(pipeline_config)
 
   server_target = None
   cur_job_name = None
@@ -642,12 +628,9 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
     fg_util.load_fg_json_to_config(pipeline_config)
   if data_path is not None:
     logging.info('Predict on data: %s' % data_path)
-    pipeline_config.eval_input_path = data_path
+    set_eval_input_path(pipeline_config, data_path)
   train_config = pipeline_config.train_config
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
+  eval_data = get_eval_input_path(pipeline_config)
 
   distribution = strategy_builder.build(train_config)
   estimator, _ = _create_estimator(pipeline_config, distribution)

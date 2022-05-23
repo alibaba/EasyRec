@@ -8,8 +8,10 @@ import os
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
-from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.inference.predictor import CSVPredictor
+from easy_rec.python.inference.predictor import HivePredictor
 from easy_rec.python.main import predict
+from easy_rec.python.utils import config_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -18,9 +20,7 @@ logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
     level=logging.INFO)
 
-tf.app.flags.DEFINE_string(
-    'input_path', None, 'predict data path, if specified will '
-    'override pipeline_config.eval_input_path')
+tf.app.flags.DEFINE_string('input_path', None, 'predict data path')
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
 tf.app.flags.DEFINE_integer('batch_size', 1024, help='batch size')
 
@@ -45,7 +45,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
-
+tf.app.flags.DEFINE_string('selected_cols', '', '')
+tf.app.flags.DEFINE_string('fg_json', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -53,7 +54,25 @@ def main(argv):
 
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
-    predictor = Predictor(FLAGS.saved_model_dir)
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        FLAGS.pipeline_config_path, False)
+    if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+      predictor = HivePredictor(
+          FLAGS.saved_model_dir,
+          pipeline_config.data_config,
+          fg_json_path=FLAGS.fg_json_path,
+          hive_config=pipeline_config.hive_train_input,
+          selected_cols=FLAGS.selected_cols,
+          output_sep=FLAGS.output_sep)
+    else:
+      predictor = CSVPredictor(
+          FLAGS.saved_model_dir,
+          pipeline_config.data_config,
+          fg_json_path=FLAGS.fg_json_path,
+          selected_cols=FLAGS.selected_cols,
+          input_sep=FLAGS.input_sep,
+          output_sep=FLAGS.output_sep)
+
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
     if 'TF_CONFIG' in os.environ:
@@ -68,10 +87,9 @@ def main(argv):
         FLAGS.output_path,
         reserved_cols=FLAGS.reserved_cols,
         output_cols=FLAGS.output_cols,
+        batch_size=FLAGS.batch_size,
         slice_id=task_index,
-        slice_num=worker_num,
-        input_sep=FLAGS.input_sep,
-        output_sep=FLAGS.output_sep)
+        slice_num=worker_num)
   else:
     logging.info('Predict by checkpoint_path.')
     assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'

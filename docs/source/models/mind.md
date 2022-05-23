@@ -85,7 +85,7 @@ model_config:{
       # use the same numer of capsules for all users
       const_caps_num: true
     }
-    
+
     simi_pow: 20
     l2_regularization: 1e-6
     time_id_fea: "seq_ts_gap"
@@ -101,7 +101,7 @@ model_config:{
   - dnn:
     - hidden_units: dnn每一层的channel数
     - use_bn: 是否使用batch_norm, 默认是true
-- item_dnn: item侧的dnn参数, 配置同user_dnn 
+- item_dnn: item侧的dnn参数, 配置同user_dnn
   - note: item侧不能用batch_norm
 - pre_capsule_dnn: 进入capsule之前的dnn的配置
   - 可选, 配置同user_dnn和item_dnn
@@ -117,7 +117,7 @@ model_config:{
   - squash_pow: 对squash加的power, 防止squash之后的向量值变得太小
 - simi_pow: 对相似度做的倍数, 放大interests之间的差异
 - embedding_regularization: 对embedding部分加regularization，防止overfit
-- user_seq_combine: 
+- user_seq_combine:
   - CONCAT: 多个seq之间采取concat的方式融合
   - SUM: 多个seq之间采取sum的方式融合, default是SUM
 - time_id_fea: time_id feature的name, 对应feature_config里面定义的特征
@@ -128,6 +128,7 @@ model_config:{
 - 行为序列特征可以加上time_id, time_id经过1 dimension的embedding后, 在time维度进行softmax, 然后和其它sequence feature的embedding相乘
 
 - time_id取值的方式可参考:
+
   - 训练数据:  Math.round((2 * Math.log1p((labelTime - itemTime) / 60.) / Math.log(2.))) + 1
   - inference: Math.round((2 * Math.log1p((currentTime - itemTime) / 60.) / Math.log(2.))) + 1
   - 此处的时间(labelTime, itemTime, currentTime) 为seconds
@@ -136,17 +137,19 @@ model_config:{
 
 - 使用增量训练，增量训练可以防止负采样的穿越。
 
-- 使用HPO对squash_pow[0.1 - 1.0]和simi_pow[10 - 100]进行搜索调优。
+- 使用HPO对squash_pow\[0.1 - 1.0\]和simi_pow\[10 - 100\]进行搜索调优。
 
 - 要看的指标是召回率，准确率和兴趣损失，三个指标要一起看。
 
 - 使用全网的点击数据来生成训练样本，全网的行为会更加丰富，这有利于mind模型的训练。
 
 - 数据清洗:
+
   - 把那些行为太少的item直接在构造行为序列的时候就挖掉
   - 排除爬虫或者作弊用户
 
 - 数据采样:
+
   - mind模型的训练默认是以点击为目标
   - 如果业务指标是到交易，那么可以对交易的样本重采样
 
@@ -155,9 +158,11 @@ model_config:{
 [MIND_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mind_on_taobao_neg_sam.config)
 
 ### 效果评估
+
 离线的效果评估主要看在测试集上的hitrate. 可以参考文档[效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
 
 #### 评估sql
+
 ```sql
 pai -name tensorflow1120_cpu_ext
  -Dscript='oss://easyrec/deploy/easy_rec/python/tools/hitrate.py'
@@ -204,15 +209,18 @@ pai -name tensorflow1120_cpu_ext
   - 1: Inner Product similarity
 - emb_dim: user / item表征向量的维度
 - top_k: knn检索取top_k计算hitrate
-- recall_type: 
+- recall_type:
   - u2i: user to item retrieval
 
 #### 评估结果
+
 输出下面两张表
 
 - mind_hitrate_details:
+
   - 输出每一个user的hitrate = user_hits / user_recalls
   - 格式如下:
+
   ```text
      id         :  bigint
      topk_ids   :  string
@@ -221,10 +229,12 @@ pai -name tensorflow1120_cpu_ext
      bad_ids    :  string
      bad_dists  :  string
   ```
- 
+
 - mind_total_hitrate:
+
   - 输出平均hitrate = SUM(user_hits) / SUM(user_recalls)
   - 格式如下:
+
   ```text
      hitrate    :  double
   ```

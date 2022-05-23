@@ -25,6 +25,7 @@ except Exception:
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+
 class TrainEvalTest(tf.test.TestCase):
 
   def setUp(self):

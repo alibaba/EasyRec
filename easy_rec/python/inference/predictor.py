@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import json
 import logging
 import math
 import os
@@ -18,10 +19,14 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
-from easy_rec.python.utils import pai_util
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
+from easy_rec.python.utils.config_util import get_input_name_from_fg_json
+from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -153,7 +158,6 @@ class PredictorImpl(object):
           '%s not exists, default values maybe inconsistent with the values used in training.'
           % pipeline_path)
       return {}
-
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     input_fields = pipeline_config.data_config.input_fields
     input_fields_info = {
@@ -312,7 +316,7 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self, model_path, profiling_file=None):
+  def __init__(self, model_path, profiling_file=None, fg_json_path=None):
     """Initialize a `Predictor`.
 
     Args:
@@ -320,6 +324,7 @@ class Predictor(PredictorInterface):
       profiling_file:  profiling result file, default None.
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
+      fg_json_path: fg.json file
     """
     self._predictor_impl = PredictorImpl(model_path, profiling_file)
     self._inputs_map = self._predictor_impl._inputs_map
@@ -330,6 +335,9 @@ class Predictor(PredictorInterface):
     self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
 
     self._input_fields = self._predictor_impl._input_fields_list
+    fg_json = self._get_fg_json(fg_json_path, model_path)
+    self._all_input_names = get_input_name_from_fg_json(fg_json)
+    logging.info('all_input_names: %s' % self._all_input_names)
 
   @property
   def input_names(self):
@@ -349,27 +357,74 @@ class Predictor(PredictorInterface):
     """
     return list(self._outputs_map.keys())
 
-  def predict_impl(self,
-                   input_table,
-                   output_table,
-                   all_cols='',
-                   all_col_types='',
-                   selected_cols='',
-                   reserved_cols='',
-                   output_cols=None,
-                   batch_size=1024,
-                   slice_id=0,
-                   slice_num=1,
-                   input_sep=',',
-                   output_sep=chr(1)):
+  def _get_defaults(self, col_name, col_type='string'):
+    if col_name in self._input_fields_info:
+      col_type, default_val = self._input_fields_info[col_name]
+      default_val = get_type_defaults(col_type, default_val)
+      logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
+    else:
+      defaults = {'string': '', 'double': 0.0, 'bigint': 0}
+      assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
+          col_name, col_type)
+      default_val = defaults[col_type]
+      logging.info(
+          'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
+          % (col_name, default_val))
+    return default_val
+
+  def _parse_line(self, line):
+    pass
+
+  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
+                   slice_id):
+    pass
+
+  def _get_writer(self, output_path, slice_id):
+    pass
+
+  def _get_reserved_cols(self, reserved_cols):
+    pass
+
+  @property
+  def out_of_range_exception(self):
+    return None
+
+  def _write_line(self, table_writer, outputs):
+    pass
+
+  def _get_fg_json(self, fg_json_path, model_path):
+    if fg_json_path and gfile.Exists(fg_json_path):
+      logging.info('load fg_json_path: ', fg_json_path)
+      with tf.gfile.GFile(fg_json_path, 'r') as fin:
+        fg_json = json.loads(fin.read())
+    else:
+      fg_json_path = os.path.join(model_path, 'assets/fg.json')
+      if gfile.Exists(fg_json_path):
+        logging.info('load fg_json_path: ', fg_json_path)
+        with tf.gfile.GFile(fg_json_path, 'r') as fin:
+          fg_json = json.loads(fin.read())
+      else:
+        fg_json = {}
+    return fg_json
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    pass
+
+  def predict_impl(
+      self,
+      input_path,
+      output_path,
+      reserved_cols='',
+      output_cols=None,
+      batch_size=1024,
+      slice_id=0,
+      slice_num=1,
+  ):
     """Predict table input with loaded model.
 
     Args:
-      input_table: table/file_path to read
-      output_table: table/file_path to write
-      all_cols: union of columns
-      all_col_types: data types of the columns
-      selected_cols: included column names, comma separated, such as "a,b,c"
+      input_path: table/file_path to read
+      output_path: table/file_path to write
       reserved_cols: columns to be copy to output_table, comma separated, such as "a,b"
       output_cols: output columns, comma separated, such as "y float, embedding string",
                 the output names[y, embedding] must be in saved_model output_names
@@ -377,46 +432,10 @@ class Predictor(PredictorInterface):
       slice_id: when multiple workers write the same table, each worker should
                 be assigned different slice_id, which is usually slice_id
       slice_num: table slice number
-      input_sep: separator of input file.
-      output_sep: separator of predict result file.
     """
-    if pai_util.is_on_pai():
-      self.predict_table(
-          input_table,
-          output_table,
-          all_cols=all_cols,
-          all_col_types=all_col_types,
-          selected_cols=selected_cols,
-          reserved_cols=reserved_cols,
-          output_cols=output_cols,
-          batch_size=batch_size,
-          slice_id=slice_id,
-          slice_num=slice_num)
-    else:
-      self.predict_csv(
-          input_table,
-          output_table,
-          reserved_cols=reserved_cols,
-          output_cols=output_cols,
-          batch_size=batch_size,
-          slice_id=slice_id,
-          slice_num=slice_num,
-          input_sep=input_sep,
-          output_sep=output_sep)
-
-  def predict_csv(self, input_path, output_path, reserved_cols, output_cols,
-                  batch_size, slice_id, slice_num, input_sep, output_sep):
-    record_defaults = [
-      get_type_defaults(*self._input_fields_info[col_name]) for col_name in self._input_fields
-    ]
-
-    if reserved_cols == 'ALL_COLUMNS':
-      reserved_cols = self._input_fields
-    else:
-      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     if output_cols is None or output_cols == 'ALL_COLUMNS':
-      output_cols = sorted(self._predictor_impl.output_names)
-      logging.info('predict output cols: %s' % output_cols)
+      self._output_cols = sorted(self._predictor_impl.output_names)
+      logging.info('predict output cols: %s' % self._output_cols)
     else:
       # specified as score float,embedding string
       tmp_cols = []
@@ -425,179 +444,19 @@ class Predictor(PredictorInterface):
           continue
         tmp_keys = x.split(' ')
         tmp_cols.append(tmp_keys[0].strip())
-      output_cols = tmp_cols
+      self._output_cols = tmp_cols
 
     with tf.Graph().as_default(), tf.Session() as sess:
       num_parallel_calls = 8
-      file_paths = []
-      for x in input_path.split(','):
-        file_paths.extend(gfile.Glob(x))
-      assert len(file_paths) > 0, 'match no files with %s' % input_path
-
-      dataset = tf.data.Dataset.from_tensor_slices(file_paths)
-      parallel_num = min(num_parallel_calls, len(file_paths))
-      dataset = dataset.interleave(
-          tf.data.TextLineDataset,
-          cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
-      dataset = dataset.shard(slice_num, slice_id)
-      logging.info('batch_size = %d' % batch_size)
-      dataset = dataset.batch(batch_size)
-      dataset = dataset.prefetch(buffer_size=64)
-
-      def _parse_csv(line):
-
-        def _check_data(line):
-          sep = input_sep
-          if type(sep) != type(str):
-            sep = sep.encode('utf-8')
-          field_num = len(line[0].split(sep))
-          assert field_num == len(record_defaults), 'sep[%s] maybe invalid: field_num=%d, required_num=%d' \
-                                                    % (sep, field_num, len(record_defaults))
-          return True
-
-        check_op = tf.py_func(_check_data, [line], Tout=tf.bool)
-        with tf.control_dependencies([check_op]):
-          fields = tf.decode_csv(
-              line,
-              field_delim=',',
-              record_defaults=record_defaults,
-              name='decode_csv')
-
-        inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
-        return inputs
-
-      dataset = dataset.map(_parse_csv, num_parallel_calls=num_parallel_calls)
+      dataset = self._get_dataset(input_path, num_parallel_calls, batch_size,
+                                  slice_num, slice_id)
+      dataset = dataset.map(
+          self._parse_line, num_parallel_calls=num_parallel_calls)
       iterator = dataset.make_one_shot_iterator()
       all_dict = iterator.get_next()
-
-      if not gfile.Exists(output_path):
-        gfile.MakeDirs(output_path)
-      res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
-      table_writer = gfile.GFile(res_path, 'w')
-
+      self._reserved_cols = self._get_reserved_cols(reserved_cols)
       input_names = self._predictor_impl.input_names
-      progress = 0
-      sum_t0, sum_t1, sum_t2 = 0, 0, 0
-      pred_cnt = 0
-      table_writer.write(output_sep.join(output_cols + reserved_cols) + '\n')
-      while True:
-        try:
-          ts0 = time.time()
-          all_vals = sess.run(all_dict)
-
-          ts1 = time.time()
-          input_vals = {k: all_vals[k] for k in input_names}
-          outputs = self._predictor_impl.predict(input_vals, output_cols)
-
-          for x in output_cols:
-            if outputs[x].dtype == np.object:
-              outputs[x] = [val.decode('utf-8') for val in outputs[x]]
-          for k in reserved_cols:
-            if all_vals[k].dtype == np.object:
-              all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
-
-          ts2 = time.time()
-          reserve_vals = [outputs[x] for x in output_cols] + \
-                         [all_vals[k] for k in reserved_cols]
-          outputs = [x for x in zip(*reserve_vals)]
-          pred_cnt += len(outputs)
-          outputs = '\n'.join(
-              [output_sep.join([str(i) for i in output]) for output in outputs])
-          table_writer.write(outputs + '\n')
-
-          ts3 = time.time()
-          progress += 1
-          sum_t0 += (ts1 - ts0)
-          sum_t1 += (ts2 - ts1)
-          sum_t2 += (ts3 - ts2)
-        except tf.errors.OutOfRangeError:
-          break
-        if progress % 100 == 0:
-          logging.info('progress: batch_num=%d sample_num=%d' %
-                       (progress, progress * batch_size))
-          logging.info('time_stats: read: %.2f predict: %.2f write: %.2f' %
-                       (sum_t0, sum_t1, sum_t2))
-      logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
-                   (sum_t0, sum_t1, sum_t2))
-      table_writer.close()
-      logging.info('Predict %s done.' % input_path)
-      logging.info('Predict size: %d.' % pred_cnt)
-
-  def predict_table(self,
-                    input_table,
-                    output_table,
-                    all_cols,
-                    all_col_types,
-                    selected_cols,
-                    reserved_cols,
-                    output_cols=None,
-                    batch_size=1024,
-                    slice_id=0,
-                    slice_num=1):
-
-    def _get_defaults(col_name, col_type):
-      if col_name in self._input_fields_info:
-        col_type, default_val = self._input_fields_info[col_name]
-        default_val = get_type_defaults(col_type, default_val)
-        logging.info('col_name: %s, default_val: %s' % (col_name, default_val))
-      else:
-        defaults = {'string': '', 'double': 0.0, 'bigint': 0}
-        assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
-            col_name, col_type)
-        default_val = defaults[col_type]
-        logging.info(
-            'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
-            % (col_name, default_val))
-      return default_val
-
-    all_cols = [x.strip() for x in all_cols.split(',') if x != '']
-    all_col_types = [x.strip() for x in all_col_types.split(',') if x != '']
-    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
-
-    if output_cols is None:
-      output_cols = self._predictor_impl.output_names
-    else:
-      # specified as score float,embedding string
-      tmp_cols = []
-      for x in output_cols.split(','):
-        if x.strip() == '':
-          continue
-        tmp_keys = x.split(' ')
-        tmp_cols.append(tmp_keys[0].strip())
-      output_cols = tmp_cols
-
-    record_defaults = [
-        _get_defaults(col_name, col_type)
-        for col_name, col_type in zip(all_cols, all_col_types)
-    ]
-    with tf.Graph().as_default(), tf.Session() as sess:
-      num_parallel_calls = 8
-      input_table = input_table.split(',')
-      dataset = tf.data.TableRecordDataset([input_table],
-                                           record_defaults=record_defaults,
-                                           slice_id=slice_id,
-                                           slice_count=slice_num,
-                                           selected_cols=','.join(all_cols))
-
-      logging.info('batch_size = %d' % batch_size)
-      dataset = dataset.batch(batch_size)
-      dataset = dataset.prefetch(buffer_size=64)
-
-      def _parse_table(*fields):
-        fields = list(fields)
-        field_dict = {all_cols[i]: fields[i] for i in range(len(fields))}
-        return field_dict
-
-      dataset = dataset.map(_parse_table, num_parallel_calls=num_parallel_calls)
-      iterator = dataset.make_one_shot_iterator()
-      all_dict = iterator.get_next()
-
-      import common_io
-      table_writer = common_io.table.TableWriter(
-          output_table, slice_id=slice_id)
-
-      input_names = self._predictor_impl.input_names
+      table_writer = self._get_writer(output_path, slice_id)
 
       def _parse_value(all_vals):
         if self._is_multi_placeholder:
@@ -605,11 +464,22 @@ class Predictor(PredictorInterface):
             feature_vals = all_vals[SINGLE_PLACEHOLDER_FEATURE_KEY]
             split_index = []
             split_vals = {}
-            for i, k in enumerate(input_names):
-              split_index.append(k)
-              split_vals[k] = []
+            fg_input_size = len(feature_vals[0].decode('utf-8').split('\002'))
+            if fg_input_size == len(input_names):
+              for i, k in enumerate(input_names):
+                split_index.append(k)
+                split_vals[k] = []
+            else:
+              assert self._all_input_names, 'must set fg_json_path when use fg input'
+              assert fg_input_size == len(self._all_input_names), \
+                'The size of features in fg_json != the size of fg input. ' \
+                'The size of features in fg_json is: %s; The size of fg input is: %s' % \
+                (fg_input_size, len(self._all_input_names))
+              for i, k in enumerate(self._all_input_names):
+                split_index.append(k)
+                split_vals[k] = []
             for record in feature_vals:
-              split_records = record.split('\002')
+              split_records = record.decode('utf-8').split('\002')
               for i, r in enumerate(split_records):
                 split_vals[split_index[i]].append(r)
             return {k: np.array(split_vals[k]) for k in input_names}
@@ -625,25 +495,27 @@ class Predictor(PredictorInterface):
 
           ts1 = time.time()
           input_vals = _parse_value(all_vals)
-          # logging.info('input names = %s' % input_names)
-          # logging.info('input vals = %s' % input_vals)
-          outputs = self._predictor_impl.predict(input_vals, output_cols)
+          outputs = self._predictor_impl.predict(input_vals, self._output_cols)
+          for x in self._output_cols:
+            if outputs[x].dtype == np.object:
+              outputs[x] = [val.decode('utf-8') for val in outputs[x]]
+          for k in self._reserved_cols:
+            if all_vals[k].dtype == np.object:
+              all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
 
           ts2 = time.time()
-          reserve_vals = [all_vals[k] for k in reserved_cols
-                          ] + [outputs[x] for x in output_cols]
-          indices = list(range(0, len(reserve_vals)))
+          reserve_vals = self._get_reserve_vals(self._reserved_cols,
+                                                self._output_cols, all_vals,
+                                                outputs)
           outputs = [x for x in zip(*reserve_vals)]
+          self._write_line(table_writer, outputs)
 
-          table_writer.write(outputs, indices, allow_type_cast=False)
           ts3 = time.time()
           progress += 1
           sum_t0 += (ts1 - ts0)
           sum_t1 += (ts2 - ts1)
           sum_t2 += (ts3 - ts2)
-        except tf.python_io.OutOfRangeException:
-          break
-        except tf.errors.OutOfRangeError:
+        except self.out_of_range_exception:
           break
         if progress % 100 == 0:
           logging.info('progress: batch_num=%d sample_num=%d' %
@@ -653,7 +525,7 @@ class Predictor(PredictorInterface):
       logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
                    (sum_t0, sum_t1, sum_t2))
       table_writer.close()
-      logging.info('Predict %s done.' % input_table)
+      logging.info('Predict %s done.' % input_path)
 
   def predict(self, input_data_dict_list, output_names=None, batch_size=1):
     """Predict input data with loaded model.
@@ -710,3 +582,310 @@ class Predictor(PredictorInterface):
     for key in batch_input:
       batch_input[key] = np.array(batch_input[key])
     return batch_input
+
+
+class CSVPredictor(Predictor):
+
+  def __init__(self,
+               model_path,
+               data_config,
+               fg_json_path=None,
+               profiling_file=None,
+               selected_cols='',
+               input_sep=',',
+               output_sep=chr(1)):
+    super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
+    self._input_sep = input_sep
+    self._output_sep = output_sep
+    input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
+
+    if 'rtp' in input_type:
+      self._is_rtp = True
+    else:
+      self._is_rtp = False
+    if selected_cols:
+      self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    else:
+      self._selected_cols = None
+
+  def _get_reserved_cols(self, reserved_cols):
+    if reserved_cols == 'ALL_COLUMNS':
+      if self._is_rtp:
+        idx = 0
+        reserved_cols = []
+        for x in range(len(self._record_defaults) - 1):
+          if not self._selected_cols or x in self._selected_cols[:-1]:
+            reserved_cols.append(self._input_fields[idx])
+            idx += 1
+          else:
+            reserved_cols.append('no_used_%d' % x)
+        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+      else:
+        reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
+
+  def _parse_line(self, line):
+    check_list = [
+        tf.py_func(
+            check_split, [line, self._input_sep,
+                          len(self._record_defaults)],
+            Tout=tf.bool)
+    ]
+    with tf.control_dependencies(check_list):
+      fields = tf.decode_csv(
+          line,
+          field_delim=self._input_sep,
+          record_defaults=self._record_defaults,
+          name='decode_csv')
+    if self._is_rtp:
+      inputs = {}
+      idx = 0
+      for x in range(len(self._record_defaults) - 1):
+        if not self._selected_cols or x in self._selected_cols[:-1]:
+          inputs[self._input_fields[idx]] = fields[x]
+          idx += 1
+        else:
+          inputs['no_used_%d' % x] = fields[x]
+      inputs[SINGLE_PLACEHOLDER_FEATURE_KEY] = fields[-1]
+    else:
+      inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
+    return inputs
+
+  def _get_num_cols(self, file_paths):
+    # try to figure out number of fields from one file
+    num_cols = -1
+    with tf.gfile.GFile(file_paths[0], 'r') as fin:
+      num_lines = 0
+      for line_str in fin:
+        line_tok = line_str.strip().split(self._input_sep)
+        if num_cols != -1:
+          assert num_cols == len(line_tok), \
+            'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.' % \
+            (num_cols, len(line_tok), line_str)
+        num_cols = len(line_tok)
+        num_lines += 1
+        if num_lines > 10:
+          break
+    logging.info('num selected cols = %d' % num_cols)
+    return num_cols
+
+  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
+                   slice_id):
+    file_paths = []
+    for x in input_path.split(','):
+      file_paths.extend(gfile.Glob(x))
+    assert len(file_paths) > 0, 'match no files with %s' % input_path
+
+    if self._is_rtp:
+      num_cols = self._get_num_cols(file_paths)
+      self._record_defaults = ['' for _ in range(num_cols)]
+      if not self._selected_cols:
+        self._selected_cols = list(range(num_cols))
+      for col_idx in self._selected_cols[:-1]:
+        col_name = self._input_fields[col_idx]
+        default_val = self._get_defaults(col_name)
+        self._record_defaults[col_idx] = default_val
+    else:
+      self._record_defaults = [
+          self._get_defaults(col_name) for col_name in self._input_fields
+      ]
+
+    dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+    parallel_num = min(num_parallel_calls, len(file_paths))
+    dataset = dataset.interleave(
+        tf.data.TextLineDataset,
+        cycle_length=parallel_num,
+        num_parallel_calls=parallel_num)
+    dataset = dataset.shard(slice_num, slice_id)
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(buffer_size=64)
+    return dataset
+
+  def _get_writer(self, output_path, slice_id):
+    if not gfile.Exists(output_path):
+      gfile.MakeDirs(output_path)
+    res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
+    table_writer = gfile.GFile(res_path, 'w')
+    table_writer.write(
+        self._output_sep.join(self._output_cols + self._reserved_cols) + '\n')
+    return table_writer
+
+  def _write_line(self, table_writer, outputs):
+    outputs = '\n'.join(
+        [self._output_sep.join([str(i) for i in output]) for output in outputs])
+    table_writer.write(outputs + '\n')
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [outputs[x] for x in output_cols] + \
+                   [all_vals[k] for k in reserved_cols]
+    return reserve_vals
+
+  @property
+  def out_of_range_exception(self):
+    return (tf.errors.OutOfRangeError)
+
+
+class ODPSPredictor(Predictor):
+
+  def __init__(self,
+               model_path,
+               fg_json_path=None,
+               profiling_file=None,
+               all_cols='',
+               all_col_types=''):
+    super(ODPSPredictor, self).__init__(model_path, profiling_file,
+                                        fg_json_path)
+    self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
+    self._all_col_types = [
+        x.strip() for x in all_col_types.split(',') if x != ''
+    ]
+    self._record_defaults = [
+        self._get_defaults(col_name, col_type)
+        for col_name, col_type in zip(self._all_cols, self._all_col_types)
+    ]
+
+  def _get_reserved_cols(self, reserved_cols):
+    reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
+
+  def _parse_line(self, *fields):
+    fields = list(fields)
+    field_dict = {self._all_cols[i]: fields[i] for i in range(len(fields))}
+    return field_dict
+
+  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
+                   slice_id):
+    input_list = input_path.split(',')
+    dataset = tf.data.TableRecordDataset(
+        input_list,
+        record_defaults=self._record_defaults,
+        slice_id=slice_id,
+        slice_count=slice_num,
+        selected_cols=','.join(self._all_cols))
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(buffer_size=64)
+    return dataset
+
+  def _get_writer(self, output_path, slice_id):
+    import common_io
+    table_writer = common_io.table.TableWriter(output_path, slice_id=slice_id)
+    return table_writer
+
+  def _write_line(self, table_writer, outputs):
+    assert len(outputs) > 0
+    indices = list(range(0, len(outputs[0])))
+    table_writer.write(outputs, indices, allow_type_cast=False)
+
+  @property
+  def out_of_range_exception(self):
+    return (tf.python_io.OutOfRangeException, tf.errors.OutOfRangeError)
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [all_vals[k] for k in reserved_cols] + \
+                 [outputs[x] for x in output_cols]
+    return reserve_vals
+
+
+class HivePredictor(Predictor):
+
+  def __init__(self,
+               model_path,
+               data_config,
+               hive_config,
+               fg_json_path=None,
+               profiling_file=None,
+               selected_cols='',
+               output_sep=chr(1)):
+    super(HivePredictor, self).__init__(model_path, profiling_file,
+                                        fg_json_path)
+
+    self._data_config = data_config
+    self._hive_config = hive_config
+    self._eval_batch_size = data_config.eval_batch_size
+    self._fetch_size = self._hive_config.fetch_size
+    self._output_sep = output_sep
+    self._record_defaults = [
+        self._get_defaults(col_name) for col_name in self._input_fields
+    ]
+    input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
+
+    if 'rtp' in input_type:
+      self._is_rtp = True
+    else:
+      self._is_rtp = False
+    if selected_cols:
+      self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    else:
+      self._selected_cols = None
+
+  def _get_reserved_cols(self, reserved_cols):
+    if reserved_cols == 'ALL_COLUMNS':
+      if self._is_rtp:
+        idx = 0
+        reserved_cols = []
+        for x in range(len(self._record_defaults) - 1):
+          if not self._selected_cols or x in self._selected_cols[:-1]:
+            reserved_cols.append(self._input_fields[idx])
+            idx += 1
+          else:
+            reserved_cols.append('no_used_%d' % x)
+        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+      else:
+        reserved_cols = self._input_fields
+    else:
+      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
+    return reserved_cols
+
+  def _parse_line(self, *fields):
+    fields = list(fields)
+    field_dict = {self._input_fields[i]: fields[i] for i in range(len(fields))}
+    return field_dict
+
+  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
+                   slice_id):
+    _hive_read = HiveUtils(
+        data_config=self._data_config,
+        hive_config=self._hive_config,
+        selected_cols=','.join(self._input_fields),
+        record_defaults=self._record_defaults,
+        input_path=input_path,
+        mode=tf.estimator.ModeKeys.PREDICT,
+        task_index=slice_id,
+        task_num=slice_num)._hive_read
+
+    _input_field_types = [x.input_type for x in self._data_config.input_fields]
+
+    list_type = [get_tf_type(x) for x in _input_field_types]
+    list_type = tuple(list_type)
+    list_shapes = [tf.TensorShape([None]) for x in range(0, len(list_type))]
+    list_shapes = tuple(list_shapes)
+
+    dataset = tf.data.Dataset.from_generator(
+        _hive_read, output_types=list_type, output_shapes=list_shapes)
+
+    return dataset
+
+  def _get_writer(self, output_path, slice_id):
+    if not gfile.Exists(output_path):
+      gfile.MakeDirs(output_path)
+    res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
+    table_writer = gfile.GFile(res_path, 'w')
+    table_writer.write(
+        self._output_sep.join(self._output_cols + self._reserved_cols) + '\n')
+    return table_writer
+
+  def _write_line(self, table_writer, outputs):
+    outputs = '\n'.join(
+        [self._output_sep.join([str(i) for i in output]) for output in outputs])
+    table_writer.write(outputs + '\n')
+
+  def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
+    reserve_vals = [outputs[x] for x in output_cols] + \
+                   [all_vals[k] for k in reserved_cols]
+    return reserve_vals
+
+  @property
+  def out_of_range_exception(self):
+    return (tf.errors.OutOfRangeError)

@@ -1,19 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import glob
 import logging
-import os
-import sys
-import unittest
-from distutils.version import LooseVersion
 
-import numpy as np
 import tensorflow as tf
 
-from easy_rec.python.main import predict
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
@@ -24,9 +15,9 @@ gfile = tf.gfile
 class CheckTest(tf.test.TestCase):
 
   def setUp(self):
-    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
     self._test_dir = test_utils.get_tmp_dir()
     self._success = True
+    logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
     logging.info('test dir: %s' % self._test_dir)
 
   def tearDown(self):

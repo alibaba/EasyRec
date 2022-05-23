@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -25,8 +26,9 @@ class BatchTFRecordInput(Input):
                task_index=0,
                task_num=1,
                check_mode=False):
-    super(BatchTFRecordInput, self).__init__(data_config, feature_config, input_path,
-                                             task_index, task_num, check_mode)
+    super(BatchTFRecordInput,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode)
     assert data_config.HasField(
         'n_data_batch_tfrecord'), 'Need to set n_data_batch_tfrecord in config.'
     self._input_shapes = [x.input_shape for x in data_config.input_fields]
@@ -34,7 +36,7 @@ class BatchTFRecordInput(Input):
     for x, t, d, s in zip(self._input_fields, self._input_field_types,
                           self._input_field_defaults, self._input_shapes):
       d = self.get_type_defaults(t, d)
-      t = self.get_tf_type(t)
+      t = get_tf_type(t)
       self.feature_desc[x] = tf.io.FixedLenSequenceFeature(
           dtype=t, shape=s, allow_missing=True)
 

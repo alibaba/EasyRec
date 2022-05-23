@@ -354,3 +354,88 @@ def get_compatible_feature_configs(pipeline_config):
   else:
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
+
+
+def get_input_name_from_fg_json(fg_json):
+  if not fg_json:
+    return []
+  input_names = []
+  for fea in fg_json['features']:
+    if 'feature_name' in fea:
+      input_names.append(fea['feature_name'])
+    elif 'sequence_name' in fea:
+      sequence_name = fea['sequence_name']
+      for seq_fea in fea['features']:
+        assert 'feature_name' in seq_fea
+        feature_name = seq_fea['feature_name']
+      input_names.append(sequence_name + '__' + feature_name)
+  return input_names
+
+
+def get_train_input_path(pipeline_config):
+  input_name = pipeline_config.WhichOneof('train_path')
+  return getattr(pipeline_config, input_name)
+
+
+def get_eval_input_path(pipeline_config):
+  input_name = pipeline_config.WhichOneof('eval_path')
+  return getattr(pipeline_config, input_name)
+
+
+def set_train_input_path(pipeline_config, train_input_path):
+  if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+    if isinstance(train_input_path, list):
+      assert len(
+          train_input_path
+      ) <= 1, 'only support one hive_train_input.table_name when hive input'
+      pipeline_config.hive_train_input.table_name = train_input_path[0]
+    else:
+      assert len(
+          train_input_path.split(',')
+      ) <= 1, 'only support one hive_train_input.table_name when hive input'
+      pipeline_config.hive_train_input.table_name = train_input_path
+    logging.info('update hive_train_input.table_name to %s' %
+                 pipeline_config.hive_train_input.table_name)
+
+  elif pipeline_config.WhichOneof('train_path') == 'kafka_train_input':
+    if isinstance(train_input_path, list):
+      pipeline_config.kafka_train_input = ','.join(train_input_path)
+    else:
+      pipeline_config.kafka_train_input = train_input_path
+  else:
+    if isinstance(train_input_path, list):
+      pipeline_config.train_input_path = ','.join(train_input_path)
+    else:
+      pipeline_config.train_input_path = train_input_path
+    logging.info('update train_input_path to %s' %
+                 pipeline_config.train_input_path)
+  return pipeline_config
+
+
+def set_eval_input_path(pipeline_config, eval_input_path):
+  if pipeline_config.WhichOneof('eval_path') == 'hive_eval_input':
+    if isinstance(eval_input_path, list):
+      assert len(
+          eval_input_path
+      ) <= 1, 'only support one hive_eval_input.table_name when hive input'
+      pipeline_config.hive_eval_input.table_name = eval_input_path[0]
+    else:
+      assert len(
+          eval_input_path.split(',')
+      ) <= 1, 'only support one hive_eval_input.table_name when hive input'
+      pipeline_config.hive_eval_input.table_name = eval_input_path
+    logging.info('update hive_train_input.table_name to %s' %
+                 pipeline_config.hive_eval_input.table_name)
+  elif pipeline_config.WhichOneof('train_path') == 'kafka_eval_input':
+    if isinstance(eval_input_path, list):
+      pipeline_config.kafka_eval_input = ','.join(eval_input_path)
+    else:
+      pipeline_config.kafka_eval_input = eval_input_path
+  else:
+    if isinstance(eval_input_path, list):
+      pipeline_config.eval_input_path = ','.join(eval_input_path)
+    else:
+      pipeline_config.eval_input_path = eval_input_path
+    logging.info('update train_input_path to %s' %
+                 pipeline_config.eval_input_path)
+  return pipeline_config
