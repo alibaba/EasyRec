@@ -113,6 +113,9 @@ message FeatureConfig {
 
     // for expr feature
     optional string expression = 30;
+       
+    // use embedding variables
+    optional bool use_embedding_variable = 31 [default=false];
 }
 
 message FeatureConfigV2 {

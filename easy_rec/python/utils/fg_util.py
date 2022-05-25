@@ -26,7 +26,10 @@ def load_fg_json_to_config(pipeline_config):
 
   pipeline_config.data_config.ClearField('input_fields')
   pipeline_config.ClearField('feature_configs')
-  pipeline_config.feature_config.ClearField('features')
+
+  # not clear features so that we could define extra features
+  # which is not defined in fg.json
+  # pipeline_config.feature_config.ClearField('features')
 
   for input_config in fg_config.data_config.input_fields:
     in_config = DatasetConfig.Field()
