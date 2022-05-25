@@ -163,6 +163,22 @@ def edit_config(pipeline_config, edit_config_json):
     edit_config_json: edit config json
   """
 
+  def _type_convert(proto, val, parent=None):
+    if type(val) != type(proto):
+      try:
+        if isinstance(proto, bool):
+          assert val in ['True', 'true', 'False', 'false']
+          val = val in ['True', 'true']
+        else:
+          val = type(proto)(val)
+      except ValueError as ex:
+        if parent is None:
+          raise ex
+        assert isinstance(proto, int)
+        val = getattr(parent, val)
+        assert isinstance(val, int)
+    return val 
+
   def _get_attr(obj, attr, only_last=False):
     # only_last means we only return the last element in paths array
     attr_toks = [x.strip() for x in attr.split('.') if x != '']
@@ -238,14 +254,9 @@ def edit_config(pipeline_config, edit_config_json):
           for tid, update_obj in enumerate(update_objs):
             tmp, tmp_parent, _, _ = _get_attr(
                 update_obj, cond_key, only_last=True)
-            if type(cond_val) != type(tmp):
-              try:
-                cond_val = type(tmp)(cond_val)
-              except ValueError:
-                # to support for enumerations like IdFeature
-                assert isinstance(tmp, int)
-                cond_val = getattr(tmp_parent, cond_val)
-                assert isinstance(cond_val, int)
+
+            cond_val = _type_convert(tmp, cond_val, tmp_parent)
+            
             if op_func(tmp, cond_val):
               obj_id = tid
               paths.append((update_obj, update_objs, None, obj_id))
@@ -275,15 +286,11 @@ def edit_config(pipeline_config, edit_config_json):
         basic_types = [int, str, float, bool, type(u'')]
         if type(tmp_val) in basic_types:
           # simple type cast
-          try:
-            tmp_val = type(tmp_val)(param_val)
-            if tmp_name is None:
-              tmp_obj[tmp_id] = tmp_val
-            else:
-              setattr(tmp_obj, tmp_name, tmp_val)
-          except ValueError:
-            # for enumeration types
-            text_format.Merge('%s:%s' % (tmp_name, param_val), tmp_obj)
+          tmp_val = _type_convert(tmp_val, param_val, tmp_obj)
+          if tmp_name is None:
+            tmp_obj[tmp_id] = tmp_val
+          else:
+            setattr(tmp_obj, tmp_name, tmp_val)
         elif 'Scalar' in str(type(tmp_val)) and 'ClearField' in dir(tmp_obj):
           tmp_obj.ClearField(tmp_name)
           text_format.Parse('%s:%s' % (tmp_name, param_val), tmp_obj)

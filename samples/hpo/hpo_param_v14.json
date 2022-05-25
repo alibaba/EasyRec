@@ -1,0 +1,5 @@
+{
+   "param": {
+      "feature_config.features[input_names[0]=hour].feature_type": "RawFeature"
+    }
+}
