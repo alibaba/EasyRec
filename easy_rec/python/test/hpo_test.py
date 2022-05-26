@@ -9,10 +9,10 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import test_utils
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile

@@ -850,10 +850,9 @@ class HivePredictor(Predictor):
         hive_config=self._hive_config,
         selected_cols=','.join(self._input_fields),
         record_defaults=self._record_defaults,
-        input_path=input_path,
         mode=tf.estimator.ModeKeys.PREDICT,
         task_index=slice_id,
-        task_num=slice_num)._hive_read
+        task_num=slice_num).hive_read(input_path=input_path)
 
     _input_field_types = [x.input_type for x in self._data_config.input_fields]
 

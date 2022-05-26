@@ -177,7 +177,7 @@ def edit_config(pipeline_config, edit_config_json):
         assert isinstance(proto, int)
         val = getattr(parent, val)
         assert isinstance(val, int)
-    return val 
+    return val
 
   def _get_attr(obj, attr, only_last=False):
     # only_last means we only return the last element in paths array
@@ -256,7 +256,7 @@ def edit_config(pipeline_config, edit_config_json):
                 update_obj, cond_key, only_last=True)
 
             cond_val = _type_convert(tmp, cond_val, tmp_parent)
-            
+
             if op_func(tmp, cond_val):
               obj_id = tid
               paths.append((update_obj, update_objs, None, obj_id))

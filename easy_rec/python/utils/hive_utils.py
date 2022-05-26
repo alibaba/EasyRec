@@ -68,7 +68,6 @@ class HiveUtils(object):
                mode,
                selected_cols,
                record_defaults,
-               input_path=None,
                task_index=0,
                task_num=1):
 
@@ -82,7 +81,6 @@ class HiveUtils(object):
     self._num_epoch_record = 1
     self._task_index = task_index
     self._task_num = task_num
-    self._input_path = input_path.split(',')
     self._selected_cols = selected_cols
     self._record_defaults = record_defaults
 
@@ -114,11 +112,11 @@ class HiveUtils(object):
     else:
       return self._eval_batch_size
 
-  def _hive_read(self):
+  def hive_read(self, input_path):
     logging.info('start epoch[%d]' % self._num_epoch_record)
     self._num_epoch_record += 1
 
-    for table_path in self._input_path:
+    for table_path in input_path.split(','):
       table_info = self._construct_table_info(table_path,
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
@@ -159,3 +157,19 @@ class HiveUtils(object):
       cursor.close()
       conn.close()
     logging.info('finish epoch[%d]' % self._num_epoch_record)
+
+  def hive_read_line(self, input_path, hash_fields, limit_num=None):
+    table_info = self._construct_table_info(input_path, hash_fields, limit_num)
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    sql = table_info.gen_sql()
+    cursor.execute(sql)
+
+    while True:
+      data = cursor.fetchmany(size=1)
+      if len(data) == 0:
+        break
+      yield data
+
+    cursor.close()
+    conn.close()

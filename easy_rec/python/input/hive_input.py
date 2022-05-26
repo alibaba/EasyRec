@@ -62,10 +62,10 @@ class HiveInput(Input):
         hive_config=self._hive_config,
         selected_cols=','.join(self._input_fields),
         record_defaults=record_defaults,
-        input_path=self._hive_config.table_name,
         mode=mode,
         task_index=self._task_index,
-        task_num=self._task_num)._hive_read
+        task_num=self._task_num).hive_read(
+            input_path=self._hive_config.table_name)
 
     dataset = tf.data.Dataset.from_generator(
         _hive_read, output_types=list_type, output_shapes=list_shapes)
