@@ -5,13 +5,14 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
+from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
+metrics = metrics_tf
 
 
 class MatchModel(EasyRecModel):

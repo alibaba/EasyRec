@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
 
+from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -31,9 +32,9 @@ def max_f1(label, predictions):
   recall_update_ops = []
   for threshold in thresholds:
     pred = (predictions > threshold)
-    precision, precision_update_op = tf.metrics.precision(
+    precision, precision_update_op = metrics_tf.precision(
         labels=label, predictions=pred, name='precision_%s' % threshold)
-    recall, recall_update_op = tf.metrics.recall(
+    recall, recall_update_op = metrics_tf.recall(
         labels=label, predictions=pred, name='recall_%s' % threshold)
     f1_score = (2 * precision * recall) / (precision + recall + 1e-12)
     precision_update_ops.append(precision_update_op)
@@ -164,7 +165,7 @@ def metric_learning_recall_at_k(k,
                       -tf.ones_like(sim_mat))  # shape: (batch_size, batch_size)
   if isinstance(k, int):
     _, pos_top_k_idx = tf.nn.top_k(mask_pos, k)  # shape: (batch_size, k)
-    return tf.metrics.recall_at_k(
+    return metrics_tf.recall_at_k(
         labels=tf.to_int64(pos_top_k_idx), predictions=sim_mat, k=k)
   if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
     metrics = {}
@@ -172,7 +173,7 @@ def metric_learning_recall_at_k(k,
       if kk < 1:
         continue
       _, pos_top_k_idx = tf.nn.top_k(mask_pos, kk)
-      metrics['recall@' + str(kk)] = tf.metrics.recall_at_k(
+      metrics['recall@' + str(kk)] = metrics_tf.recall_at_k(
           labels=tf.to_int64(pos_top_k_idx), predictions=sim_mat, k=kk)
     return metrics
   else:
@@ -198,13 +199,13 @@ def metric_learning_average_precision_at_k(k,
     mask = tf.logical_and(sessions_equal, mask)
   label_indices = _get_matrix_mask_indices(mask)
   if isinstance(k, int):
-    return tf.metrics.average_precision_at_k(label_indices, sim_mat, k)
+    return metrics_tf.average_precision_at_k(label_indices, sim_mat, k)
   if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
     metrics = {}
     for kk in k:
       if kk < 1:
         continue
-      metrics['MAP@' + str(kk)] = tf.metrics.average_precision_at_k(
+      metrics['MAP@' + str(kk)] = metrics_tf.average_precision_at_k(
           label_indices, sim_mat, kk)
     return metrics
   else:

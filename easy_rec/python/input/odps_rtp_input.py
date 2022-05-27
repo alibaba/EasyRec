@@ -45,7 +45,7 @@ class OdpsRTPInput(Input):
     labels = fields[:-1]
 
     selected_cols = self._data_config.selected_cols \
-      if self._data_config.selected_cols else None
+        if self._data_config.selected_cols else None
     non_feature_cols = self._label_fields
     if selected_cols:
       cols = [c.strip() for c in selected_cols.split(',')]
@@ -96,7 +96,7 @@ class OdpsRTPInput(Input):
         self._input_path) > 0, 'match no files with %s' % self._input_path
 
     selected_cols = self._data_config.selected_cols \
-      if self._data_config.selected_cols else None
+        if self._data_config.selected_cols else None
     if selected_cols:
       cols = [c.strip() for c in selected_cols.split(',')]
       record_defaults = [

@@ -4,7 +4,6 @@
 import glob
 import logging
 import os
-import sys
 import unittest
 from distutils.version import LooseVersion
 

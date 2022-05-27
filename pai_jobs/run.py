@@ -341,9 +341,11 @@ def main(argv):
     set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                       FLAGS.all_col_types)
     if FLAGS.distribute_eval:
+      os.environ['distribute_eval'] = 'True'
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                                    FLAGS.eval_result_path)
     else:
+      os.environ['distribute_eval'] = 'False'
       easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                         FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':

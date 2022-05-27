@@ -40,7 +40,7 @@ def main(argv):
       feature_name = record[0][0]
       feature_info_map[feature_name] = json.loads(record[0][1])
       if 'DROP IT' in record[0][2]:
-          drop_feature_names.append(feature_name)
+        drop_feature_names.append(feature_name)
     except common_io.exception.OutOfRangeException:
       reader.close()
       break

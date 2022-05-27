@@ -35,7 +35,7 @@ class MultiTower(RankModel):
     else:
       self._f1_reweight_loss = None
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
-      'invalid model config: %s' % self._model_config.WhichOneof('model')
+        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.multi_tower
     assert isinstance(self._model_config, MultiTowerConfig)
 
