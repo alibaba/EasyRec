@@ -64,11 +64,13 @@ class HiveInput(Input):
         record_defaults=record_defaults,
         mode=mode,
         task_index=self._task_index,
-        task_num=self._task_num).hive_read(
-            input_path=self._hive_config.table_name)
+        task_num=self._task_num).hive_read
 
     dataset = tf.data.Dataset.from_generator(
-        _hive_read, output_types=list_type, output_shapes=list_shapes)
+        _hive_read,
+        output_types=list_type,
+        output_shapes=list_shapes,
+        args=(self._hive_config.table_name,))
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(

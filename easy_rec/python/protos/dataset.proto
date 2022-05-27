@@ -195,6 +195,7 @@ message DatasetConfig {
         DummyInput = 8;
         KafkaInput = 13;
         HiveInput = 16;
+        HiveRTPInput = 17;
         CriteoInput = 1001;
     }
     required InputType input_type = 10;

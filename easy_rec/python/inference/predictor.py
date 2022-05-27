@@ -26,6 +26,7 @@ from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.utils.odps_util import odps_type_to_input_type
 from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
@@ -591,7 +592,7 @@ class CSVPredictor(Predictor):
                data_config,
                fg_json_path=None,
                profiling_file=None,
-               selected_cols='',
+               selected_cols=None,
                input_sep=',',
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
@@ -796,8 +797,9 @@ class HivePredictor(Predictor):
                hive_config,
                fg_json_path=None,
                profiling_file=None,
-               selected_cols='',
-               output_sep=chr(1)):
+               output_sep=chr(1),
+               all_cols='',
+               all_col_types=''):
     super(HivePredictor, self).__init__(model_path, profiling_file,
                                         fg_json_path)
 
@@ -806,63 +808,54 @@ class HivePredictor(Predictor):
     self._eval_batch_size = data_config.eval_batch_size
     self._fetch_size = self._hive_config.fetch_size
     self._output_sep = output_sep
-    self._record_defaults = [
-        self._get_defaults(col_name) for col_name in self._input_fields
-    ]
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
-
     if 'rtp' in input_type:
       self._is_rtp = True
     else:
       self._is_rtp = False
-    if selected_cols:
-      self._selected_cols = [int(x) for x in selected_cols.split(',')]
-    else:
-      self._selected_cols = None
+    self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
+    self._all_col_types = [
+        x.strip() for x in all_col_types.split(',') if x != ''
+    ]
+    self._record_defaults = [
+        self._get_defaults(col_name, col_type)
+        for col_name, col_type in zip(self._all_cols, self._all_col_types)
+    ]
 
   def _get_reserved_cols(self, reserved_cols):
     if reserved_cols == 'ALL_COLUMNS':
-      if self._is_rtp:
-        idx = 0
-        reserved_cols = []
-        for x in range(len(self._record_defaults) - 1):
-          if not self._selected_cols or x in self._selected_cols[:-1]:
-            reserved_cols.append(self._input_fields[idx])
-            idx += 1
-          else:
-            reserved_cols.append('no_used_%d' % x)
-        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
-      else:
-        reserved_cols = self._input_fields
+      reserved_cols = self._all_cols
     else:
       reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     return reserved_cols
 
   def _parse_line(self, *fields):
     fields = list(fields)
-    field_dict = {self._input_fields[i]: fields[i] for i in range(len(fields))}
+    field_dict = {self._all_cols[i]: fields[i] for i in range(len(fields))}
     return field_dict
 
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
-    _hive_read = HiveUtils(
+    self._hive_util = HiveUtils(
         data_config=self._data_config,
         hive_config=self._hive_config,
-        selected_cols=','.join(self._input_fields),
+        selected_cols='*',
         record_defaults=self._record_defaults,
         mode=tf.estimator.ModeKeys.PREDICT,
         task_index=slice_id,
-        task_num=slice_num).hive_read(input_path=input_path)
-
-    _input_field_types = [x.input_type for x in self._data_config.input_fields]
-
-    list_type = [get_tf_type(x) for x in _input_field_types]
+        task_num=slice_num)
+    list_type = [
+        get_tf_type(odps_type_to_input_type(x)) for x in self._all_col_types
+    ]
     list_type = tuple(list_type)
     list_shapes = [tf.TensorShape([None]) for x in range(0, len(list_type))]
     list_shapes = tuple(list_shapes)
 
     dataset = tf.data.Dataset.from_generator(
-        _hive_read, output_types=list_type, output_shapes=list_shapes)
+        self._hive_util.hive_read,
+        output_types=list_type,
+        output_shapes=list_shapes,
+        args=(input_path,))
 
     return dataset
 

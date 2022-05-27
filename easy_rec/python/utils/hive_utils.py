@@ -66,8 +66,8 @@ class HiveUtils(object):
                data_config,
                hive_config,
                mode,
-               selected_cols,
-               record_defaults,
+               selected_cols='',
+               record_defaults=[],
                task_index=0,
                task_num=1):
 
@@ -78,7 +78,7 @@ class HiveUtils(object):
     self._this_batch_size = self._get_batch_size(mode)
 
     self._num_epoch = data_config.num_epochs
-    self._num_epoch_record = 1
+    self._num_epoch_record = 0
     self._task_index = task_index
     self._task_num = task_num
     self._selected_cols = selected_cols
@@ -115,6 +115,8 @@ class HiveUtils(object):
   def hive_read(self, input_path):
     logging.info('start epoch[%d]' % self._num_epoch_record)
     self._num_epoch_record += 1
+    if type(input_path) != type(str):
+      input_path = input_path.decode('utf-8')
 
     for table_path in input_path.split(','):
       table_info = self._construct_table_info(table_path,
@@ -124,7 +126,7 @@ class HiveUtils(object):
       batch_defaults = []
       for x in self._record_defaults:
         if isinstance(x, str):
-          batch_defaults.append(np.array([x] * batch_size, dtype='S500'))
+          batch_defaults.append(np.array([x] * batch_size, dtype='S2000'))
         else:
           batch_defaults.append(np.array([x] * batch_size))
 
@@ -173,3 +175,20 @@ class HiveUtils(object):
 
     cursor.close()
     conn.close()
+
+  def get_all_cols(self, input_path):
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    sql = 'desc %s' % input_path.split('/')[0]
+    cursor.execute(sql)
+    data = cursor.fetchmany()
+    col_names = []
+    cols_types = []
+    for col in data:
+      col_name = col[0].strip()
+      if col_name and (not col_name.startswith('#')) and (col_name
+                                                          not in col_names):
+        col_names.append(col_name)
+        cols_types.append(col[1].strip())
+
+    return ','.join(col_names), ','.join(cols_types)
