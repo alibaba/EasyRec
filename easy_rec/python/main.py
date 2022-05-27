@@ -448,7 +448,7 @@ def evaluate(pipeline_config,
 def distribute_evaluate(pipeline_config,
                         eval_checkpoint_path='',
                         eval_data_path=None,
-                        eval_result_filename='eval_result.txt'):
+                        eval_result_filename='distribute_eval_result.txt'):
   """Evaluate a EasyRec model defined in pipeline_config_path.
 
   Evaluate the model defined in pipeline_config_path on the eval data,
@@ -512,6 +512,7 @@ def distribute_evaluate(pipeline_config,
   estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+  ckpt_dir = os.path.dirname(ckpt_path)
 
   if server_target:
     # evaluate with parameter server
@@ -558,11 +559,11 @@ def distribute_evaluate(pipeline_config,
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_dir,
                                           metric_ops)
     else:
       cur_stop_grace_period_sesc = 10
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_dir,
                                           metric_ops)
     with MonitoredSession(
         session_creator=cur_sess_creator,
