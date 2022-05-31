@@ -767,6 +767,13 @@ class Input(six.with_metaclass(_meta_type, object)):
   def _pre_build(self, mode, params):
     pass
 
+  def _safe_shard(self, dataset):
+    if self._data_config.chief_redundant:
+      return dataset.shard(
+          max(self._task_num - 1, 1), max(self._task_index - 1, 0))
+    else:
+      return dataset.shard(self._task_num, self._task_index)
+
   def create_input(self, export_config=None):
 
     def _input_fn(mode=None, params=None, config=None):
