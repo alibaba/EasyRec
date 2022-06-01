@@ -3,6 +3,7 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.ops import math_ops
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.core import metrics as metrics_lib
@@ -45,7 +46,9 @@ class RankModel(EasyRecModel):
       else:
         probs = tf.nn.softmax(output, axis=1)
         prediction_dict['logits' + suffix] = output
-        prediction_dict['probs' + suffix] = probs
+        prediction_dict['probs'  + suffix] = probs
+        prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(output, axis=1)
+        prediction_dict['probs'  + suffix + '_y'] = math_ops.reduce_max(probs, axis=1)
         prediction_dict['y' + suffix] = tf.argmax(output, axis=1)
     elif loss_type == LossType.L2_LOSS:
       output = tf.squeeze(output, axis=1)
@@ -417,7 +420,8 @@ class RankModel(EasyRecModel):
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]
       else:
-        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
+        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix,
+                'probs' + suffix + '_y', 'logits' + suffix + '_y']
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
     else:
