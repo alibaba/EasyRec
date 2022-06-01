@@ -12,10 +12,10 @@ drop table if exists ctr_test_output;
 pai -name easy_rec_ext
 -Dcmd=predict
 -Dcluster='{"worker" : {"count":5, "cpu":1600,  "memory":40000, "gpu":100}}'
--Darn=acs:ram::1217060697188167:role/aliyunodpspaidefaultrole
+-Darn=acs:ram::xxx:role/aliyunodpspaidefaultrole
 -Dbuckets=oss://easyrec/
--Dsaved_model_dir=oss://easyrec/easy_rec_test/experiment/ctr_export/1597299619
--Dinput_table=odps://pai_online_project/tables/test_longonehot_4deepfm_20
+-Dsaved_model_dir=oss://easyrec/easy_rec_test/experiment/export/1597299619
+-Dinput_table=odps://pai_online_project/tables/ctr_test_input
 -Doutput_table=odps://pai_online_project/tables/ctr_test_output
 -Dexcluded_cols=label
 -Dreserved_cols=ALL_COLUMNS
