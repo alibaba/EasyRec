@@ -4,7 +4,6 @@ import logging
 
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import string_ops
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.core import metrics as metrics_lib
