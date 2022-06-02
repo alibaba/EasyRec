@@ -81,6 +81,12 @@ class CSVInput(Input):
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
+    assert not file_paths[0].endswith('.tar.gz'), 'could only support .csv or .gz(not .tar.gz) files.'
+
+    compression_type = 'GZIP' if file_paths[0].endswith('.gz') else ''
+    if compression_type:
+      logging.info('compression_type = %s' % compression_type)
+
     if self._with_header:
       with tf.gfile.GFile(file_paths[0], 'r') as fin:
         for line_str in fin:
@@ -94,22 +100,27 @@ class CSVInput(Input):
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+    
+      if self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         # shuffle input files
         dataset = dataset.shuffle(len(file_paths))
+
       # too many readers read the same file will cause performance issues
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(
-          lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
+          lambda x: tf.data.TextLineDataset(x,
+              compression_type=compression_type
+          ).skip(int(self._with_header)),
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
 
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
+      if not self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
@@ -119,7 +130,8 @@ class CSVInput(Input):
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(file_paths).skip(int(self._with_header))
+      dataset = tf.data.TextLineDataset(file_paths,
+          compression_type=compression_type).skip(int(self._with_header))
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)

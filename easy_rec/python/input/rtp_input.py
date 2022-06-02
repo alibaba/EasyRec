@@ -163,9 +163,14 @@ class RTPInput(Input):
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+
+      if self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         # shuffle input files
         dataset = dataset.shuffle(len(file_paths))
+
       # too many readers read the same file will cause performance issues
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
@@ -173,11 +178,10 @@ class RTPInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
+ 
+      if not self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+ 
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
