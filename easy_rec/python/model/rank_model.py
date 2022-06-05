@@ -172,10 +172,16 @@ class RankModel(EasyRecModel):
       assert loss_type == LossType.CLASSIFICATION
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
+        uids = self._feature_dict[metric.gauc.uid_field]
+        if isinstance(uids, tf.sparse.SparseTensor):
+          uids = tf.sparse_to_dense(uids.indices, 
+             uids.dense_shape, uids.values, 
+             default_value='')
+          uids = tf.reshape(uids, [-1])
         metric_dict['gauc' + suffix] = metrics_lib.gauc(
             label,
             self._prediction_dict['probs' + suffix],
-            uids=self._feature_dict[metric.gauc.uid_field],
+            uids=uids,
             reduction=metric.gauc.reduction)
       elif num_class == 2:
         label = tf.to_int64(self._labels[label_name])
