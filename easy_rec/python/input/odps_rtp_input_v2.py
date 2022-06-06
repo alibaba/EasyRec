@@ -36,6 +36,8 @@ class OdpsRTPInputV2(OdpsRTPInput):
                fg_json_path=None):
     super(OdpsRTPInputV2, self).__init__(
       data_config, feature_config, input_path, task_index, task_num)
+    if fg_json_path.startswith('!'):
+      fg_json_path = fg_json_path[1:]
     self._fg_config_path = fg_json_path
     logging.info('fg config path: {}'.format(self._fg_config_path))
     if self._fg_config_path is None:

@@ -555,6 +555,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fg_config_path: path to the RTP config file.
     """
     if fg_config is None:
+      if fg_config_path.startswith('!'):
+        fg_config_path = fg_config_path[1:]
       with gfile.GFile(fg_config_path, 'r') as f:
         fg_config = json.load(f)
     col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)
