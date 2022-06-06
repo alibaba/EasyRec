@@ -52,8 +52,11 @@ message IncrementSaveConfig {
    optional int32 dense_save_secs   = 2 [default=0];
    optional int32 sparse_save_steps = 3 [default=0];
    optional int32 dense_save_steps  = 4 [default=0];
+
+   // if open, will save increment updates to model_dir/incr_save/
+   optional bool debug_save_update = 5 [default=false];
    
-   oneof incr_update_hub {
+   oneof incr_update {
      Kafka kafka = 501;
      Datahub datahub = 502;
    }

@@ -378,6 +378,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
             max_request_size=1024 * 1024 * 64)
       else:
         self._kafka_producer = None
+      self._debug_save_update = increment_save_config.debug_save_update
     else:
       self._dense_timer = None
       self._sparse_timer = None
@@ -420,10 +421,22 @@ class CheckpointSaverHook(CheckpointSaverHook):
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
     for x in dense_train_vals:
       bytes_buf += x.tobytes()
+  
+
     if self._kafka_producer is not None:
       msg_key = 'dense_update_%d' % global_step
       send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8')) 
       logging.info('kafka send dense: %d exception: %s' % (global_step, send_res.exception))
+
+    if self._debug_save_update:
+      base_dir, _ = os.path.split(self._save_path) 
+      incr_save_dir = os.path.join(base_dir, 'incr_save/')
+      if not gfile.Exists(incr_save_dir):
+        gfile.MakeDirs(incr_save_dir)
+      save_path = os.path.join(incr_save_dir, 'dense_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+
     logging.info("global_step=%d, increment update dense variables, msg_num=%d" \
            % (global_step, msg_num))
 
@@ -464,6 +477,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
       msg_key = 'sparse_update_%d' % global_step
       send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
       logging.info('kafka send sparse: %d %s' % (global_step, send_res.exception))
+
+    if self._debug_save_update:
+      base_dir, _ = os.path.split(self._save_path) 
+      incr_save_dir = os.path.join(base_dir, 'incr_save/')
+      if not gfile.Exists(incr_save_dir):
+        gfile.MakeDirs(incr_save_dir)
+      save_path = os.path.join(incr_save_dir, 'sparse_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+
     logging.info("global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d" \
            % (global_step, msg_num, len(bytes_buf)))
 

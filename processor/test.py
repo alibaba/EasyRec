@@ -103,6 +103,11 @@ if __name__ == '__main__':
     time.sleep(1)
   
   data_bin = req.SerializeToString()
+  save_path = os.path.join(args.saved_model_dir, 'req.pb')
+  with open(save_path, 'wb') as fout:
+    fout.write(data_bin)
+  logging.info('save request to %s' % save_path)
+
   tf_predictor.saved_model_predict.restype=ctypes.c_void_p
   out_len = ctypes.c_int(0)
   res_p = tf_predictor.saved_model_predict(ctypes.c_void_p(handle), data_bin,
