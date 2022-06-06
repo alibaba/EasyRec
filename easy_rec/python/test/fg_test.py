@@ -52,6 +52,11 @@ class FGTest(tf.test.TestCase):
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_fg_train(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fg_train.config', self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
