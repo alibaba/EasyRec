@@ -59,16 +59,6 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_deepfm_with_vocab_list(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/deepfm_vocab_list_on_avazu_ctr.config',
-        self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/deepfm_vocab_list_on_avazu_ctr.config',
-        self._test_dir)
-    self.assertTrue(self._success)
-
   def test_deepfm_with_multi_class(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
@@ -87,27 +77,9 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_wide_and_deep(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/wide_and_deep_on_avazau_ctr.config',
-        self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/wide_and_deep_on_avazau_ctr.config',
-        self._test_dir)
-    self.assertTrue(self._success)
-
   def test_dlrm(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dlrm_on_taobao.config', self._test_dir)
-
-  def test_distribute_eval_dlrm(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dlrm_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/dlrm_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
 
   def test_adamw_optimizer(self):
     self._success = test_utils.test_single_train_eval(
@@ -248,24 +220,8 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/fm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_fm(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/fm_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/fm_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_din(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/din_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  def test_distribute_eval_din(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/din_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
         'samples/model_config/din_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
@@ -274,24 +230,8 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/bst_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_bst(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/bst_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/bst_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_dcn(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dcn_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  def test_distribute_eval_dcn(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dcn_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
         'samples/model_config/dcn_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
@@ -304,14 +244,6 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/autoint_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
-
-  def test_distribute_eval_autoint(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/autoint_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/autoint_on_taobao.config', self._test_dir)
-    self.assertTrue(False)
 
   def test_dssm(self):
     self._success = test_utils.test_single_train_eval(
@@ -515,11 +447,6 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_simple_multi_task(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/simple_multi_task_on_taobao.config',
-        self._test_dir)
-
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/simple_multi_task_on_taobao.config',
         self._test_dir)
@@ -642,14 +569,6 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_rocket_launching(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/rocket_launching.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  def test_distribute_eval_rocket_launching(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/rocket_launching.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
         'samples/model_config/rocket_launching.config', self._test_dir)
     self.assertTrue(self._success)
 
