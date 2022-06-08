@@ -18,6 +18,7 @@ from easy_rec.python.utils import config_util
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
 def _gen_raw_config(feature, input_field, feature_config, is_multi,
                     curr_embed_dim):
@@ -57,6 +58,9 @@ def _set_hash_bucket(feature, feature_config, input_field):
             'it is suggested to set max_partitions > 1 for large hash buckets[%s]'
             % feature['feature_name'])
         sys.exit(1)
+    if feature.get('use_embedding_variable', False):
+      feature_config.use_embedding_variable = True
+      feature_config.hash_bucket_size = MAX_HASH_BUCKET_SIZE
   elif 'vocab_file' in feature:
     feature_config.vocab_file = feature['vocab_file']
   elif 'vocab_list' in feature:
