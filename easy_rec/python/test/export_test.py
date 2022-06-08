@@ -54,7 +54,7 @@ class ExportTest(tf.test.TestCase):
       for key in keys:
         val0 = output_res[i][key]
         val1 = cmp_result[i][key]
-        diff = np.abs(val0 - val1)
+        diff = np.max(np.abs(val0 - val1))
         assert diff < tol, \
             'too much difference: %.6f for %s, tol=%.6f' \
             % (diff, key, tol)
@@ -159,6 +159,11 @@ class ExportTest(tf.test.TestCase):
             test_dir=test_dir,
             post_check_func=_post_check_func))
 
+  def test_multi_class_predict(self):
+    self._export_test('samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        extract_data_func=self._extract_data,
+        keys=['probs', 'logits', 'probs_y', 'logits_y', 'y'])
+
   def _export_test(self,
                    pipeline_config_path,
                    extract_data_func=None,
@@ -190,8 +195,8 @@ class ExportTest(tf.test.TestCase):
     export_dir_single = os.path.join(test_dir, 'train/export/final')
     export_dir_multi = os.path.join(test_dir, 'train/export/multi')
     export_cmd = """
-      python -m easy_rec.python.export 
-        --pipeline_config_path %s 
+      python -m easy_rec.python.export
+        --pipeline_config_path %s
         --export_dir %s
     """ % (config_path_multi, export_dir_multi)
     proc = test_utils.run_cmd(export_cmd,
@@ -202,9 +207,9 @@ class ExportTest(tf.test.TestCase):
     # use checkpoint to prepare result
     result_path = os.path.join(test_dir, 'result.txt')
     predict_cmd = """
-      python -m easy_rec.python.predict 
-        --pipeline_config_path %s 
-        --output_path %s 
+      python -m easy_rec.python.predict
+        --pipeline_config_path %s
+        --output_path %s
     """ % (config_path_single, result_path)
     proc = test_utils.run_cmd(predict_cmd % (),
                               '%s/log_%s.txt' % (test_dir, 'predict'))

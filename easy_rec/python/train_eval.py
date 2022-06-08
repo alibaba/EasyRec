@@ -12,6 +12,8 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
+from easy_rec.python.utils.config_util import set_eval_input_path
+from easy_rec.python.utils.config_util import set_train_input_path
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
@@ -52,6 +54,7 @@ tf.app.flags.DEFINE_bool(
 )
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
+tf.app.flags.DEFINE_bool('check_mode', False, help='is use check mode')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -63,13 +66,9 @@ def main(argv):
       pipeline_config.model_dir = FLAGS.model_dir
       logging.info('update model_dir to %s' % pipeline_config.model_dir)
     if FLAGS.train_input_path:
-      pipeline_config.train_input_path = ','.join(FLAGS.train_input_path)
-      logging.info('update train_input_path to %s' %
-                   pipeline_config.train_input_path)
+      set_train_input_path(pipeline_config, FLAGS.train_input_path)
     if FLAGS.eval_input_path:
-      pipeline_config.eval_input_path = ','.join(FLAGS.eval_input_path)
-      logging.info('update eval_input_path to %s' %
-                   pipeline_config.eval_input_path)
+      set_eval_input_path(pipeline_config, FLAGS.eval_input_path)
     if FLAGS.fine_tune_checkpoint:
       if file_io.file_exists(FLAGS.fine_tune_checkpoint):
         pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
@@ -118,7 +117,8 @@ def main(argv):
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
@@ -135,10 +135,12 @@ def main(argv):
                        fine_tune_checkpoint)
       config_util.edit_config(pipeline_config, config_json)
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train)
+      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
+                               FLAGS.check_mode)
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')
 

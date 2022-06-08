@@ -27,3 +27,10 @@ message DatahubServer{
     required string topic      = 5;
     optional string offset_info  = 6;
 }
+
+message BinaryDataInput {
+    // support gfile.Glob
+    repeated string category_path = 1;
+    repeated string dense_path = 2;
+    repeated string label_path = 3;
+}

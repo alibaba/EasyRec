@@ -1,7 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
 import collections
+import logging
 
 import tensorflow as tf
 
@@ -9,6 +9,7 @@ from easy_rec.python.builders import hyperparams_builder
 from easy_rec.python.compat.feature_column import sequence_feature_column
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.utils.proto_util import copy_obj
 
 from easy_rec.python.compat.feature_column import feature_column_v2 as feature_column  # NOQA
 
@@ -26,10 +27,11 @@ class FeatureKeyError(KeyError):
 
 
 class SharedEmbedding(object):
-   def __init__(self, embedding_name, index, sequence_combiner=None):
-     self.embedding_name = embedding_name
-     self.index = index
-     self.sequence_combiner = sequence_combiner
+
+  def __init__(self, embedding_name, index, sequence_combiner=None):
+    self.embedding_name = embedding_name
+    self.index = index
+    self.sequence_combiner = sequence_combiner
 
 
 class FeatureColumnParser(object):
@@ -65,28 +67,24 @@ class FeatureColumnParser(object):
     self._use_embedding_variable = use_embedding_variable
     self._vocab_size = {}
 
+    def _cmp_embed_config(a, b):
+      return a.embedding_dim == b.embedding_dim and a.combiner == b.combiner and\
+          a.initializer == b.initializer and a.max_partitions == b.max_partitions and\
+          a.use_embedding_variable == b.use_embedding_variable
+
     for config in self._feature_configs:
       if not config.HasField('embedding_name'):
         continue
       embed_name = config.embedding_name
-      embed_info = {
-          'embedding_dim':
-              config.embedding_dim,
-          'combiner':
-              config.combiner,
-          'initializer':
-              config.initializer if config.HasField('initializer') else None,
-          'max_partitions':
-              config.max_partitions
-      }
+
       if embed_name in self._share_embed_names:
-        assert embed_info == self._share_embed_infos[embed_name], \
+        assert _cmp_embed_config(config, self._share_embed_infos[embed_name]),\
             'shared embed info of [%s] is not matched [%s] vs [%s]' % (
-                embed_name, embed_info, self._share_embed_infos[embed_name])
+                embed_name, config, self._share_embed_infos[embed_name])
         self._share_embed_names[embed_name] += 1
       else:
         self._share_embed_names[embed_name] = 1
-        self._share_embed_infos[embed_name] = embed_info
+        self._share_embed_infos[embed_name] = copy_obj(config)
 
     # remove not shared embedding names
     not_shared = [
@@ -123,6 +121,8 @@ class FeatureColumnParser(object):
           self.parse_lookup_feature(config)
         elif config.feature_type == config.SequenceFeature:
           self.parse_sequence_feature(config)
+        elif config.feature_type == config.ExprFeature:
+          self.parse_expr_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -130,20 +130,22 @@ class FeatureColumnParser(object):
 
     for embed_name in self._share_embed_names:
       initializer = None
-      if self._share_embed_infos[embed_name]['initializer']:
+      if self._share_embed_infos[embed_name].HasField('initializer'):
         initializer = hyperparams_builder.build_initializer(
-            self._share_embed_infos[embed_name]['initializer'])
+            self._share_embed_infos[embed_name].initializer)
       partitioner = self._build_partitioner(
-          self._share_embed_infos[embed_name]['max_partitions'])
+          self._share_embed_infos[embed_name])
+      use_ev = self._use_embedding_variable or \
+          self._share_embed_infos[embed_name].use_embedding_variable
       # for handling share embedding columns
       share_embed_fcs = feature_column.shared_embedding_columns(
           self._deep_share_embed_columns[embed_name],
-          self._share_embed_infos[embed_name]['embedding_dim'],
+          self._share_embed_infos[embed_name].embedding_dim,
           initializer=initializer,
           shared_embedding_collection_name=embed_name,
-          combiner=self._share_embed_infos[embed_name]['combiner'],
+          combiner=self._share_embed_infos[embed_name].combiner,
           partitioner=partitioner,
-          use_embedding_variable=self._use_embedding_variable)
+          use_embedding_variable=use_ev)
       self._deep_share_embed_columns[embed_name] = share_embed_fcs
       # for handling wide share embedding columns
       if len(self._wide_share_embed_columns[embed_name]) == 0:
@@ -155,7 +157,7 @@ class FeatureColumnParser(object):
           shared_embedding_collection_name=embed_name + '_wide',
           combiner='sum',
           partitioner=partitioner,
-          use_embedding_variable=self._use_embedding_variable)
+          use_embedding_variable=use_ev)
       self._wide_share_embed_columns[embed_name] = share_embed_fcs
 
     for fc_name in self._deep_columns:
@@ -346,6 +348,22 @@ class FeatureColumnParser(object):
         else:
           self._deep_columns[feature_name] = fc
 
+  def parse_expr_feature(self, config):
+    """Generate raw features columns.
+
+    if boundaries is set, will be converted to category_column first.
+
+    Args:
+      config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
+    """
+    feature_name = config.feature_name if config.HasField('feature_name') \
+        else config.input_names[0]
+    fc = feature_column.numeric_column(feature_name, shape=(1,))
+    if self.is_wide(config):
+      self._add_wide_embedding_column(fc, config)
+    if self.is_deep(config):
+      self._deep_columns[feature_name] = fc
+
   def parse_combo_feature(self, config):
     """Generate combo feature columns.
 
@@ -456,13 +474,13 @@ class FeatureColumnParser(object):
     else:
       self._sequence_columns[feature_name] = fc
 
-  def _build_partitioner(self, max_partitions):
-    if max_partitions > 1:
-      if self._use_embedding_variable:
+  def _build_partitioner(self, config):
+    if config.max_partitions > 1:
+      if self._use_embedding_variable or config.use_embedding_variable:
         # pai embedding_variable should use fixed_size_partitioner
-        return tf.fixed_size_partitioner(num_shards=max_partitions)
+        return tf.fixed_size_partitioner(num_shards=config.max_partitions)
       else:
-        return min_max_variable_partitioner(max_partitions=max_partitions)
+        return min_max_variable_partitioner(max_partitions=config.max_partitions)
     else:
       return None
 
@@ -475,7 +493,7 @@ class FeatureColumnParser(object):
     return SharedEmbedding(embedding_name, curr_id, None)
 
   def _get_shared_embedding_column(self, fc_handle, deep=True):
-    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index 
+    embed_name, embed_id = fc_handle.embedding_name, fc_handle.index
     if deep:
       tmp = self._deep_share_embed_columns[embed_name][embed_id]
     else:
@@ -504,8 +522,8 @@ class FeatureColumnParser(object):
           self._wide_output_dim,
           combiner='sum',
           initializer=initializer,
-          partitioner=self._build_partitioner(config.max_partitions),
-          use_embedding_variable=self._use_embedding_variable)
+          partitioner=self._build_partitioner(config),
+          use_embedding_variable=self._use_embedding_variable or config.use_embedding_variable)
     self._wide_columns[feature_name] = wide_fc
 
   def _add_deep_embedding_column(self, fc, config):
@@ -524,8 +542,8 @@ class FeatureColumnParser(object):
           config.embedding_dim,
           combiner=config.combiner,
           initializer=initializer,
-          partitioner=self._build_partitioner(config.max_partitions),
-          use_embedding_variable=self._use_embedding_variable)
+          partitioner=self._build_partitioner(config),
+          use_embedding_variable=self._use_embedding_variable or config.use_embedding_variable)
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
     else:

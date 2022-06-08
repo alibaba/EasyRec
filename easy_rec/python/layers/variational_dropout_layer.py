@@ -43,9 +43,9 @@ class VariationalDropoutLayer(object):
         shape=self.drop_param_shape,
         dtype=tf.float32,
         initializer=None)
-    tf.add_to_collection('variational_dropout',
-                         json.dumps([name,
-                                     self.features_dimension.items()]))
+    tf.add_to_collection(
+        'variational_dropout',
+        json.dumps([name, list(self.features_dimension.items())]))
 
   def get_lambda(self):
     return self._config.regularization_lambda

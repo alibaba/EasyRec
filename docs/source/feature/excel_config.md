@@ -10,7 +10,7 @@
   - wide_and_deep同deepfm
 
 ```bash
-python easy_rec.python.tools.create_config_from_excel --model_type multi_tower --excel_path multi_tower_template.xls --output_path multi_tower.config
+python -m easy_rec.python.tools.create_config_from_excel --model_type multi_tower --excel_path multi_tower_template.xls --output_path multi_tower.config
 ```
 
 - model_type

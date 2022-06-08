@@ -17,6 +17,13 @@ message Capsule {
   optional float routing_logits_scale = 5 [default=20];
   // routing logits initial stddev
   optional float routing_logits_stddev = 6 [default=1.0];
+  // squash power
+  optional float squash_pow = 7 [default=1.0];
+  // output ratio
+  optional float scale_ratio = 8 [default=1.0];
+  // constant interest number
+  // in default, use log(seq_len)
+  optional bool const_caps_num = 9 [default=false];
 }
 
 message MIND {
@@ -27,13 +34,15 @@ message MIND {
   // preprocessing dnn before entering capsule layer
   optional DNN pre_capsule_dnn = 101;
 
-  // dnn layers applied on concated results of
-  // capsule output and user_context(none sequence features)
+  // dnn layers applied on user_context(none sequence features)
   required DNN user_dnn = 102;
+
+  // concat user and capsule dnn
+  required DNN concat_dnn = 103;
 
   // method to combine several user sequences
   // such as item_ids, category_ids
-  optional UserSeqCombineMethod user_seq_combine = 103 [default=SUM];
+  optional UserSeqCombineMethod user_seq_combine = 104 [default=SUM];
 
   // dnn layers applied on item features
   required DNN item_dnn = 2;
@@ -44,7 +53,21 @@ message MIND {
   // the better
   optional float simi_pow = 4 [default=10];
 
-  optional Similarity simi_func = 6 [default=COSINE];
+  optional Similarity simi_func = 5 [default=COSINE];
+
+  // add a layer for scaling the similarity
+  optional bool scale_simi = 6 [default=true];
 
   required float l2_regularization = 7 [default = 1e-4];
+
+  optional string time_id_fea = 8;
+
+  optional string item_id = 9;
+
+  optional bool ignore_in_batch_neg_sam = 10 [default = false];
+
+  // if small than 1.0, then a loss will be added to
+  // limit the maximal interest similarities, but
+  // in experiments, setup such a loss leads to low hitrate.
+  optional float max_interests_simi = 11 [default = 1.0];
 }

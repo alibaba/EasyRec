@@ -36,6 +36,7 @@ message FeatureConfig {
         ComboFeature = 3;
         LookupFeature = 4;
         SequenceFeature = 5;
+        ExprFeature = 6;
     }
 
     enum FieldType {
@@ -113,6 +114,12 @@ message FeatureConfig {
 
     // sequence length
     optional uint32 sequence_length = 27 [default = 1];
+
+    // for expr feature
+    optional string expression = 30;
+       
+    // use embedding variables
+    optional bool use_embedding_variable = 31 [default=false];
 }
 
 message FeatureConfigV2 {

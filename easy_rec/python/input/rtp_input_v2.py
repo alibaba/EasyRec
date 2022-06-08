@@ -22,9 +22,10 @@ class RTPInputV2(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(RTPInputV2, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num)
+                                     task_index, task_num, check_mode)
 
   def _parse_rtp(self, lines):
     tf_types = [tf.string for x in self._input_field_types]
@@ -82,16 +83,26 @@ class RTPInputV2(Input):
     return inputs
 
   def _build(self, mode, params):
-    file_paths = tf.gfile.Glob(self._input_path)
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    file_paths = []
+    for x in self._input_path:
+      file_paths.extend(tf.gfile.Glob(x))
+    assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+
+      if self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         # shuffle input files
         dataset = dataset.shuffle(len(file_paths))
+
       # too many readers read the same file will cause performance issues
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
@@ -99,11 +110,10 @@ class RTPInputV2(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
+
+      if not self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,

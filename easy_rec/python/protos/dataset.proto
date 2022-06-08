@@ -18,6 +18,22 @@ message NegativeSampler {
     optional uint32 num_eval_sample = 6 [default=0];
 }
 
+message NegativeSamplerInMemory {
+    // sample data path
+    // itemid weight attrs
+    required string input_path = 1;
+    // number of negative sample
+    required uint32 num_sample = 2;
+    // field names of attrs in train data or eval data
+    repeated string attr_fields = 3;
+    // field name of item_id in train data or eval data
+    required string item_id_field = 4;
+
+    optional string attr_delimiter = 5 [default=":"];
+
+    optional uint32 num_eval_sample = 6 [default=0];
+}
+
 // Weighted Random Sampling ItemID not with Edge
 message NegativeSamplerV2 {
     // user data path
@@ -153,10 +169,15 @@ message DatasetConfig {
     optional uint32 prefetch_size = 7 [default = 32];
 
     // shard dataset to 1/num_workers in distribute mode
-    optional bool shard = 8 [default = false];
+    // this param is not used anymore
+    optional bool shard = 801 [default = false];
+
+    // shard by file, not by sample, valid only for CSVInput
+    optional bool file_shard = 802 [default = false];
 
     enum InputType {
         // csv format input, could be used in local or hdfs
+        // support .gz compression(but not .tar.gz files)
         CSVInput = 10;
         // @Depreciated
         CSVInputV2 = 11;
@@ -170,15 +191,16 @@ message DatasetConfig {
         OdpsInputV3 = 9;
         RTPInput = 4;
         RTPInputV2 = 5;
-        OdpsRTPInput = 6;
-        OdpsRTPInputV2 = 16;
+        OdpsRTPInput = 601;
+        OdpsRTPInputV2 = 602;
         TFRecordInput = 7;
         BatchTFRecordInput = 14;
         // for the purpose to debug performance bottleneck of
         // input pipelines
         DummyInput = 8;
         KafkaInput = 13;
-        HiveInput = 17;
+        HiveInput = 16;
+        CriteoInput = 1001;
     }
     required InputType input_type = 10;
 
@@ -246,6 +268,7 @@ message DatasetConfig {
         NegativeSamplerV2 negative_sampler_v2 = 102;
         HardNegativeSampler hard_negative_sampler = 103;
         HardNegativeSamplerV2 hard_negative_sampler_v2 = 104;
+        NegativeSamplerInMemory negative_sampler_in_memory = 105;
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
 

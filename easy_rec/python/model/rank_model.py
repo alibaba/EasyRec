@@ -1,7 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import tensorflow as tf
+from tensorflow.python.ops import math_ops
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.core import metrics as metrics_lib
@@ -45,7 +47,9 @@ class RankModel(EasyRecModel):
       else:
         probs = tf.nn.softmax(output, axis=1)
         prediction_dict['logits' + suffix] = output
-        prediction_dict['probs' + suffix] = probs
+        prediction_dict['probs'  + suffix] = probs
+        prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(output, axis=1)
+        prediction_dict['probs'  + suffix + '_y'] = math_ops.reduce_max(probs, axis=1)
         prediction_dict['y' + suffix] = tf.argmax(output, axis=1)
     elif loss_type == LossType.L2_LOSS:
       output = tf.squeeze(output, axis=1)
@@ -61,16 +65,17 @@ class RankModel(EasyRecModel):
     self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):
-    """Forward tensor as `rank_predict`, which is a special node for RTP"""
+    """Forward tensor as `rank_predict`, which is a special node for RTP."""
     outputs = {}
     outputs.update(super(RankModel, self).build_rtp_output_dict())
     rank_predict = None
     try:
       op = tf.get_default_graph().get_operation_by_name('rank_predict')
       if len(op.outputs) != 1:
-        raise ValueError(("failed to build RTP rank_predict output: op {}[{}] has output "
-                        + "size {}, however 1 is expected.").format(
-                          op.name, op.type, len(op.outputs)))
+        raise ValueError(
+            ('failed to build RTP rank_predict output: op {}[{}] has output ' +
+             'size {}, however 1 is expected.').format(op.name, op.type,
+                                                       len(op.outputs)))
       rank_predict = op.outputs[0]
     except KeyError:
       forwarded = None
@@ -78,19 +83,23 @@ class RankModel(EasyRecModel):
         if 'probs' in self._prediction_dict:
           forwarded = self._prediction_dict['probs']
         else:
-          raise ValueError("failed to build RTP rank_predict output: classification model "
-                         + "expect 'probs' prediction, which is not found. Please check if"
-                         + " build_predict_graph() is called.")
+          raise ValueError(
+              'failed to build RTP rank_predict output: classification model ' +
+              "expect 'probs' prediction, which is not found. Please check if" +
+              ' build_predict_graph() is called.')
       elif self._loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
         if 'y' in self._prediction_dict:
           forwarded = self._prediction_dict['y']
         else:
-          raise ValueError("failed to build RTP rank_predict output: regression model expect"
-                         + "'y' prediction, which is not found. Please check if build_predic"
-                         + "t_graph() is called.")
+          raise ValueError(
+              'failed to build RTP rank_predict output: regression model expect'
+              +
+              "'y' prediction, which is not found. Please check if build_predic"
+              + 't_graph() is called.')
       else:
-        logging.warning("failed to build RTP rank_predict: unsupported loss type {}".foramt(
-            self._loss_type))
+        logging.warning(
+            'failed to build RTP rank_predict: unsupported loss type {}'.foramt(
+                self._loss_type))
       if forwarded is not None:
         rank_predict = tf.identity(forwarded, name='rank_predict')
     if rank_predict is not None:
@@ -106,6 +115,12 @@ class RankModel(EasyRecModel):
     loss_dict = {}
     if loss_type == LossType.CLASSIFICATION:
       loss_name = 'cross_entropy_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.F1_REWEIGHTED_LOSS:
+      loss_name = 'f1_reweighted_loss' + suffix
+      pred = self._prediction_dict['logits' + suffix]
+    elif loss_type == LossType.PAIR_WISE_LOSS:
+      loss_name = 'pairwise_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       loss_name = 'l2_loss' + suffix
@@ -413,7 +428,8 @@ class RankModel(EasyRecModel):
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]
       else:
-        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix]
+        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix,
+                'probs' + suffix + '_y', 'logits' + suffix + '_y']
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
     else:

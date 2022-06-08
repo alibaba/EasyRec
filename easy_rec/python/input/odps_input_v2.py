@@ -20,9 +20,10 @@ class OdpsInputV2(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(OdpsInputV2, self).__init__(data_config, feature_config, input_path,
-                                      task_index, task_num)
+                                      task_index, task_num, check_mode)
 
   def _parse_table(self, *fields):
     fields = list(fields)
@@ -33,8 +34,9 @@ class OdpsInputV2(Input):
 
   def _build(self, mode, params):
     if type(self._input_path) != list:
-      self._input_path = [x for x in self._input_path.split(',')]
-
+      self._input_path = self._input_path.split(',')
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
     # check data_config are consistent with odps tables
     odps_util.check_input_field_and_types(self._data_config)
 

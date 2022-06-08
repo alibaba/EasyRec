@@ -229,6 +229,10 @@
                 </li>
 
                 <li>
+                  <a href="#protos.NegativeSamplerInMemory"><span class="badge">M</span>NegativeSamplerInMemory</a>
+                </li>
+
+                <li>
                   <a href="#protos.NegativeSamplerV2"><span class="badge">M</span>NegativeSamplerV2</a>
                 </li>
 
@@ -250,6 +254,10 @@
           <li>
             <a href="#easy_rec%2fpython%2fprotos%2fdata_source.proto">easy_rec/python/protos/data_source.proto</a>
             <ul>
+
+                <li>
+                  <a href="#protos.BinaryDataInput"><span class="badge">M</span>BinaryDataInput</a>
+                </li>
 
                 <li>
                   <a href="#protos.DatahubServer"><span class="badge">M</span>DatahubServer</a>
@@ -306,6 +314,21 @@
 
                 <li>
                   <a href="#protos.DeepFM"><span class="badge">M</span>DeepFM</a>
+                </li>
+
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fdlrm.proto">easy_rec/python/protos/dlrm.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#protos.DLRM"><span class="badge">M</span>DLRM</a>
                 </li>
 
 
@@ -581,6 +604,10 @@
                 </li>
 
                 <li>
+                  <a href="#protos.FeatureConfig.FieldType"><span class="badge">E</span>FeatureConfig.FieldType</a>
+                </li>
+
+                <li>
                   <a href="#protos.WideOrDeep"><span class="badge">E</span>WideOrDeep</a>
                 </li>
 
@@ -596,6 +623,21 @@
 
                 <li>
                   <a href="#protos.FM"><span class="badge">M</span>FM</a>
+                </li>
+
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fhive_config.proto">easy_rec/python/protos/hive_config.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#protos.HiveConfig"><span class="badge">M</span>HiveConfig</a>
                 </li>
 
 
@@ -673,6 +715,10 @@
 
                 <li>
                   <a href="#protos.CircleLoss"><span class="badge">M</span>CircleLoss</a>
+                </li>
+
+                <li>
+                  <a href="#protos.F1ReweighedLoss"><span class="badge">M</span>F1ReweighedLoss</a>
                 </li>
 
                 <li>
@@ -838,6 +884,17 @@
                 <li>
                   <a href="#protos.TransformerLearningRate"><span class="badge">M</span>TransformerLearningRate</a>
                 </li>
+
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fpdn.proto">easy_rec/python/protos/pdn.proto</a>
+            <ul>
 
 
 
@@ -1371,6 +1428,16 @@ and undertake the gradient computation of the chief node Default: false</pre></t
                 </tr>
 
                 <tr>
+                  <td>with_header</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>for csv files, may optionally with an header
+in that case, input_name must match header name,
+and the number and the order of input_fields
+may not be the same as that in csv files. Default: false</pre></td>
+                </tr>
+
+                <tr>
                   <td>negative_sampler</td>
                   <td><a href="#protos.NegativeSampler">NegativeSampler</a></td>
                   <td>optional</td>
@@ -1396,6 +1463,20 @@ and undertake the gradient computation of the chief node Default: false</pre></t
                   <td><a href="#protos.HardNegativeSamplerV2">HardNegativeSamplerV2</a></td>
                   <td>optional</td>
                   <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>negative_sampler_in_memory</td>
+                  <td><a href="#protos.NegativeSamplerInMemory">NegativeSamplerInMemory</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>eval_batch_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 4096</pre></td>
                 </tr>
 
             </tbody>
@@ -1705,6 +1786,66 @@ itemid weight attrs </pre></td>
 
 
 
+        <h3 id="protos.NegativeSamplerInMemory">NegativeSamplerInMemory</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>input_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>sample data path
+itemid weight attrs </pre></td>
+                </tr>
+
+                <tr>
+                  <td>num_sample</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>number of negative sample </pre></td>
+                </tr>
+
+                <tr>
+                  <td>attr_fields</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>field names of attrs in train data or eval data </pre></td>
+                </tr>
+
+                <tr>
+                  <td>item_id_field</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>field name of item_id in train data or eval data </pre></td>
+                </tr>
+
+                <tr>
+                  <td>attr_delimiter</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: :</pre></td>
+                </tr>
+
+                <tr>
+                  <td>num_eval_sample</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
         <h3 id="protos.NegativeSamplerV2">NegativeSamplerV2</h3>
         <pre>Weighted Random Sampling ItemID not with Edge</pre>
 
@@ -1901,7 +2042,13 @@ userid itemid weight </pre></td>
 
               <tr>
                 <td>OdpsRTPInput</td>
-                <td>6</td>
+                <td>601</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>OdpsRTPInputV2</td>
+                <td>602</td>
                 <td><pre></pre></td>
               </tr>
 
@@ -1930,6 +2077,18 @@ input pipelines</pre></td>
                 <td><pre></pre></td>
               </tr>
 
+              <tr>
+                <td>HiveInput</td>
+                <td>16</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>CriteoInput</td>
+                <td>1001</td>
+                <td><pre></pre></td>
+              </tr>
+
           </tbody>
         </table>
 
@@ -1943,6 +2102,44 @@ input pipelines</pre></td>
         <h2 id="easy_rec/python/protos/data_source.proto">easy_rec/python/protos/data_source.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
+
+
+        <h3 id="protos.BinaryDataInput">BinaryDataInput</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>category_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre>support gfile.Glob </pre></td>
+                </tr>
+
+                <tr>
+                  <td>dense_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>label_path</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
 
 
         <h3 id="protos.DatahubServer">DatahubServer</h3>
@@ -2301,6 +2498,79 @@ input pipelines</pre></td>
 
 
       <div class="file-heading">
+        <h2 id="easy_rec/python/protos/dlrm.proto">easy_rec/python/protos/dlrm.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+        <h3 id="protos.DLRM">DLRM</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>top_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>bot_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>arch_interaction_op</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>options are: dot and cat Default: dot</pre></td>
+                </tr>
+
+                <tr>
+                  <td>arch_interaction_itself</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>whether a feature will interact with itself Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>arch_with_dense_feature</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>whether to include dense features after interaction Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1e-05</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="file-heading">
         <h2 id="easy_rec/python/protos/dnn.proto">easy_rec/python/protos/dnn.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
@@ -2509,6 +2779,20 @@ input pipelines</pre></td>
                   <td><a href="#bool">bool</a></td>
                   <td>optional</td>
                   <td><pre>add a layer for scaling the similarity Default: true</pre></td>
+                </tr>
+
+                <tr>
+                  <td>item_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>ignore_in_batch_neg_sam</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre> Default: false</pre></td>
                 </tr>
 
             </tbody>
@@ -3009,6 +3293,13 @@ input pipelines</pre></td>
                 </tr>
 
                 <tr>
+                  <td>dlrm</td>
+                  <td><a href="#protos.DLRM">DLRM</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
                   <td>dssm</td>
                   <td><a href="#protos.DSSM">DSSM</a></td>
                   <td>optional</td>
@@ -3141,6 +3432,13 @@ common filters are Adam, Momentum, etc. </pre></td>
                   <td>losses</td>
                   <td><a href="#protos.Loss">Loss</a></td>
                   <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>f1_reweight_loss</td>
+                  <td><a href="#protos.F1ReweighedLoss">F1ReweighedLoss</a></td>
+                  <td>optional</td>
                   <td><pre> </pre></td>
                 </tr>
 
@@ -3692,18 +3990,6 @@ none: do not perform export Default: final</pre></td>
                 </tr>
 
                 <tr>
-                  <td>dump_embedding_shape</td>
-                  <td><a href="#bool">bool</a></td>
-                  <td>optional</td>
-                  <td><pre>for large embedding models to serve on eas
-embedding lookup is done outside of tensorflow graph;
-so the tensorflow graph contains only the dnn graphs(the attention part included);
-the lookuped results are passed to dnn graphs via embedding placeholders;
-we dump embedding placeholder shapes, so that embedding
-placeholders could be built. Default: false</pre></td>
-                </tr>
-
-                <tr>
                   <td>best_exporter_metric</td>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
@@ -3773,6 +4059,27 @@ return True if should stop </pre></td>
                   <td><a href="#bool">bool</a></td>
                   <td>optional</td>
                   <td><pre>is placeholder named by input Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>filter_inputs</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>filter out inputs, only keep effective ones Default: true</pre></td>
+                </tr>
+
+                <tr>
+                  <td>export_features</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>export the original feature values as string Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>export_rtp_outputs</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>export the outputs required by RTP Default: false</pre></td>
                 </tr>
 
             </tbody>
@@ -4000,6 +4307,27 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><pre>sequence feature combiner </pre></td>
                 </tr>
 
+                <tr>
+                  <td>sub_feature_type</td>
+                  <td><a href="#protos.FeatureConfig.FeatureType">FeatureConfig.FeatureType</a></td>
+                  <td>optional</td>
+                  <td><pre>sub feature type for sequence feature Default: IdFeature</pre></td>
+                </tr>
+
+                <tr>
+                  <td>sequence_length</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>sequence length Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>expression</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>for expr feature </pre></td>
+                </tr>
+
             </tbody>
           </table>
 
@@ -4065,7 +4393,7 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                 <tr>
                   <td>sequence_features</td>
                   <td><a href="#protos.SeqAttGroupConfig">SeqAttGroupConfig</a></td>
-                  <td>optional</td>
+                  <td>repeated</td>
                   <td><pre> </pre></td>
                 </tr>
 
@@ -4281,6 +4609,59 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                 <td><pre></pre></td>
               </tr>
 
+              <tr>
+                <td>ExprFeature</td>
+                <td>6</td>
+                <td><pre></pre></td>
+              </tr>
+
+          </tbody>
+        </table>
+
+        <h3 id="protos.FeatureConfig.FieldType">FeatureConfig.FieldType</h3>
+        <pre></pre>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+
+              <tr>
+                <td>INT32</td>
+                <td>0</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>INT64</td>
+                <td>1</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>STRING</td>
+                <td>2</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>FLOAT</td>
+                <td>4</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>DOUBLE</td>
+                <td>5</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>BOOL</td>
+                <td>6</td>
+                <td><pre></pre></td>
+              </tr>
+
           </tbody>
         </table>
 
@@ -4340,6 +4721,93 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><a href="#float">float</a></td>
                   <td>optional</td>
                   <td><pre> Default: 0.0001</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/hive_config.proto">easy_rec/python/protos/hive_config.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+        <h3 id="protos.HiveConfig">HiveConfig</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>host</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>hive master&#39;s ip </pre></td>
+                </tr>
+
+                <tr>
+                  <td>port</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>hive port Default: 10000</pre></td>
+                </tr>
+
+                <tr>
+                  <td>username</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>hive username </pre></td>
+                </tr>
+
+                <tr>
+                  <td>database</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>hive database Default: default</pre></td>
+                </tr>
+
+                <tr>
+                  <td>table_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>hash_fields</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>limit_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+
+                <tr>
+                  <td>fetch_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 512</pre></td>
                 </tr>
 
             </tbody>
@@ -4708,6 +5176,37 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
 
 
 
+        <h3 id="protos.F1ReweighedLoss">F1ReweighedLoss</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>f1_beta_square</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>label_smoothing</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
         <h3 id="protos.Loss">Loss</h3>
         <pre></pre>
 
@@ -4893,6 +5392,12 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                 <td><pre></pre></td>
               </tr>
 
+              <tr>
+                <td>F1_REWEIGHTED_LOSS</td>
+                <td>9</td>
+                <td><pre></pre></td>
+              </tr>
+
           </tbody>
         </table>
 
@@ -4960,6 +5465,28 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><pre>routing logits initial stddev Default: 1</pre></td>
                 </tr>
 
+                <tr>
+                  <td>squash_pow</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>squash power Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>scale_ratio</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre>output ratio Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>const_caps_num</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>constant interest number
+in default, use log(seq_len) Default: false</pre></td>
+                </tr>
+
             </tbody>
           </table>
 
@@ -4988,8 +5515,14 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td>user_dnn</td>
                   <td><a href="#protos.DNN">DNN</a></td>
                   <td>required</td>
-                  <td><pre>dnn layers applied on concated results of
-capsule output and user_context(none sequence features) </pre></td>
+                  <td><pre>dnn layers applied on user_context(none sequence features) </pre></td>
+                </tr>
+
+                <tr>
+                  <td>concat_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre>concat user and capsule dnn </pre></td>
                 </tr>
 
                 <tr>
@@ -5030,10 +5563,45 @@ the better Default: 10</pre></td>
                 </tr>
 
                 <tr>
+                  <td>scale_simi</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>add a layer for scaling the similarity Default: true</pre></td>
+                </tr>
+
+                <tr>
                   <td>l2_regularization</td>
                   <td><a href="#float">float</a></td>
                   <td>required</td>
                   <td><pre> Default: 0.0001</pre></td>
+                </tr>
+
+                <tr>
+                  <td>time_id_fea</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>item_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>ignore_in_batch_neg_sam</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>max_interests_simi</td>
+                  <td><a href="#float">float</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: 1</pre></td>
                 </tr>
 
             </tbody>
@@ -6146,6 +6714,20 @@ the better Default: 10</pre></td>
 
 
       <div class="file-heading">
+        <h2 id="easy_rec/python/protos/pdn.proto">easy_rec/python/protos/pdn.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+
+
+
+
+
+
+
+
+      <div class="file-heading">
         <h2 id="easy_rec/python/protos/pipeline.proto">easy_rec/python/protos/pipeline.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
@@ -6183,6 +6765,20 @@ the better Default: 10</pre></td>
                 </tr>
 
                 <tr>
+                  <td>hive_train_input</td>
+                  <td><a href="#protos.HiveConfig">HiveConfig</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>binary_train_input</td>
+                  <td><a href="#protos.BinaryDataInput">BinaryDataInput</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
                   <td>eval_input_path</td>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
@@ -6199,6 +6795,20 @@ the better Default: 10</pre></td>
                 <tr>
                   <td>datahub_eval_input</td>
                   <td><a href="#protos.DatahubServer">DatahubServer</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>hive_eval_input</td>
+                  <td><a href="#protos.HiveConfig">HiveConfig</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>binary_eval_input</td>
+                  <td><a href="#protos.BinaryDataInput">BinaryDataInput</a></td>
                   <td>optional</td>
                   <td><pre> </pre></td>
                 </tr>
@@ -6847,6 +7457,16 @@ In case so, build a SyncReplicateOptimizer Default: true</pre></td>
                 </tr>
 
                 <tr>
+                  <td>sparse_accumulator_type</td>
+                  <td><a href="#string">string</a></td>
+                  <td>optional</td>
+                  <td><pre>only take effect on pai-tf when sync_replicas is set,
+options are:
+    raw, hash, multi_map, list, parallel
+in general, multi_map runs faster than other options. Default: multi_map</pre></td>
+                </tr>
+
+                <tr>
                   <td>startup_delay_steps</td>
                   <td><a href="#float">float</a></td>
                   <td>optional</td>
@@ -6917,13 +7537,6 @@ This flag must be set to 0 if sync_replicas is set to true. Default: 15</pre></t
                   <td><a href="#int32">int32</a></td>
                   <td>optional</td>
                   <td><pre>Number of gpus per machine Default: 1</pre></td>
-                </tr>
-
-                <tr>
-                  <td>separate_save</td>
-                  <td><a href="#bool">bool</a></td>
-                  <td>optional</td>
-                  <td><pre> Default: false</pre></td>
                 </tr>
 
                 <tr>
