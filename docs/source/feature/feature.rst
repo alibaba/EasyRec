@@ -420,6 +420,7 @@ rank模型中配置相应字段：
 **这个配在model_config下面，跟model_class平级**
 
 .. code:: sql
+
     pai -name easy_rec_ext
       -Dcmd='custom'
       -DentryFile='easy_rec/python/tools/feature_selection.py'
