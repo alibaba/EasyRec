@@ -283,7 +283,8 @@ def edit_config(pipeline_config, edit_config_json):
       tmp_paths = _get_attr(update_obj, param_key)
       # update a set of objs
       for tmp_val, tmp_obj, tmp_name, tmp_id in tmp_paths:
-        basic_types = [int, str, float, bool, type(u'')]
+        # list and dict are not basic types, must be handle separately
+        basic_types = [long, int, str, float, double, bool, type(u'')]
         if type(tmp_val) in basic_types:
           # simple type cast
           tmp_val = _type_convert(tmp_val, param_val, tmp_obj)
