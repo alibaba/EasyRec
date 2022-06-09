@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import numpy as np
 
 import tensorflow as tf
 from google.protobuf import json_format
@@ -284,7 +285,9 @@ def edit_config(pipeline_config, edit_config_json):
       # update a set of objs
       for tmp_val, tmp_obj, tmp_name, tmp_id in tmp_paths:
         # list and dict are not basic types, must be handle separately
-        basic_types = [long, int, str, float, double, bool, type(u'')]
+        basic_types = [long, int, str, float, np.float32, np.float64, np.char,
+                       np.uint8, np.int8, np.float16, np.int16, np.uint16,
+                       np.str, bool, type(u'')]
         if type(tmp_val) in basic_types:
           # simple type cast
           tmp_val = _type_convert(tmp_val, param_val, tmp_obj)
