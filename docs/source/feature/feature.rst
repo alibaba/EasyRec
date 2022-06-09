@@ -434,7 +434,7 @@ rank模型中配置相应字段：
   - topk: 输出top_k重要的特征
   - visualize: 输出重要性可视化的图 
   - fg_path: [RTP-FG](./rtp_fg.md) json配置文件, 可选
-- arn: [rolearn](https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole) to access oss.
+- arn: `rolearn <https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole>`_ to access oss.
 
 
 分隔符
