@@ -398,6 +398,7 @@ ExprFeature：表达式特征
 -  expression: 表达式。
     - 目前支持"<", "<=", "==", ">", "<=", "+", "-", "*", "/", "&" , "|"运算符。
     - 当前版本未定义"&","|"的符号优先级，建议使用括号保证优先级。
+    - customized normalization: "tf.math.log1p(user_age) / 10.0"
 
 特征选择
 ----------------------------------------------------------------
@@ -428,13 +429,13 @@ rank模型中配置相应字段：
       -Darn='{oss_arn}'
       -DossHost='oss-{region}-internal.aliyuncs.com';
       
-- extra_params:
-  - config_path: EasyRec config path
-  - output_dir: 输出目录
-  - topk: 输出top_k重要的特征
-  - visualize: 输出重要性可视化的图 
-  - fg_path: `RTP-FG <./rtp_fg.md>`_ json配置文件, 可选
-- arn: `rolearn <https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole>`_ to access oss.
+-  extra_params:
+   -  config_path: EasyRec config path
+   -  output_dir: 输出目录
+   -  topk: 输出top_k重要的特征
+   -  visualize: 输出重要性可视化的图 
+   -  fg_path: `RTP-FG <./rtp_fg.md>`_ json配置文件, 可选
+-  arn: `rolearn <https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole>`_ to access oss.
 
 
 分隔符
