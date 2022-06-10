@@ -9,6 +9,8 @@ import json
 import logging
 import os
 import re
+import numpy as np
+import six
 
 import tensorflow as tf
 from google.protobuf import json_format
@@ -155,6 +157,17 @@ def save_pipeline_config(pipeline_config,
   save_message(pipeline_config, pipeline_config_path)
 
 
+def _get_basic_types():
+  dtypes = [bool, int, str, float, type(u''),
+            np.float16, np.float32, np.float64, np.char, np.byte, 
+            np.uint8, np.int8, np.int16, np.uint16, np.uint32,
+            np.int32, np.uint64, np.int64, np.bool, np.str]
+  if six.PY2:
+    dtypes.append(long)
+  
+  return dtypes
+
+
 def edit_config(pipeline_config, edit_config_json):
   """Update params specified by automl.
 
@@ -284,7 +297,7 @@ def edit_config(pipeline_config, edit_config_json):
       # update a set of objs
       for tmp_val, tmp_obj, tmp_name, tmp_id in tmp_paths:
         # list and dict are not basic types, must be handle separately
-        basic_types = [long, int, str, float, double, bool, type(u'')]
+        basic_types = _get_basic_types()
         if type(tmp_val) in basic_types:
           # simple type cast
           tmp_val = _type_convert(tmp_val, param_val, tmp_obj)
