@@ -6,7 +6,7 @@ COPY docker/sources_18.04.list /etc/apt/sources.list
 RUN md5sum /etc/apt/sources.list
 
 RUN apt-get update
-RUN apt-get install apt-utils inetutils-ping wget curl telnet vim strace libpq-dev curl libsasl2-dev gcc g++ -y
+RUN apt-get install apt-utils inetutils-ping wget curl telnet vim strace libpq-dev curl libsasl2-dev gcc g++ unzip openjdk-8-jdk -y
 
 RUN mkdir /EasyRec
 COPY requirements /EasyRec/requirements
@@ -18,6 +18,9 @@ COPY MANIFEST.in /EasyRec/
 COPY README.md /EasyRec/
 COPY scripts /EasyRec/scripts
 
+RUN curl "https://odps-repo.oss-cn-hangzhou.aliyuncs.com/odpscmd/latest/odpscmd_public.zip" -o /EasyRec/odpscmd_public.zip
+RUN mkdir /usr/local/odps_clt/ && cd /usr/local/odps_clt/ && unzip /EasyRec/odpscmd_public.zip
+RUN ln -s /usr/local/odps_clt/bin/odpscmd /usr/local/bin/odpscmd
 
 RUN pip3 install pystack-debugger idna kafka-python -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
 RUN pip3 install -r /EasyRec/requirements/runtime.txt   -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com

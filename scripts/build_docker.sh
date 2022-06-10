@@ -7,8 +7,15 @@ then
   exit 1
 fi
 
-export PYTHONPATH=.
-version=`python -c "import easy_rec; print(easy_rec.__version__)" | tail -1`
+version=`grep "__version__" easy_rec/version.py | awk '{ if($1 == "__version__") print $NF}'`
+# strip "'"
+version=${version//\'/}
 echo "EasyRec Version: $version"
+
+if [ -z "$version" ]
+then
+  echo "Failed to get EasyRec version"
+  exit 1
+fi
 
 sudo docker build --net=host . -f docker/Dockerfile -t  datascience-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-${version}
