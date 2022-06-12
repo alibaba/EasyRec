@@ -1,3 +1,5 @@
+#!/bin/bash 
+
 LOG_DIR="logs/"
 
 START_GPU=0
@@ -9,12 +11,12 @@ HOST='localhost'
 usage() {
   echo "Usage: `basename $0` -c criteo.config -s gpu_id -p start_port \
 -m model_dir -f fine_tune_ckpt -W worker_num -P ps_num -E extra_args \
--H hostname -N exp_name"
+-H hostname -L logdir -N exp_name"
 }
 
 args="--continue_train"
 
-while getopts "c:s:p:m:f:P:W:E:H:N:" arg; do
+while getopts "c:s:p:m:f:P:W:E:H:L:N:" arg; do
   case $arg in
     c)
       PIPELINE_CONFIG=$OPTARG 
@@ -42,6 +44,9 @@ while getopts "c:s:p:m:f:P:W:E:H:N:" arg; do
       ;;
     H)
       HOST=$OPTARG
+      ;;
+    L)
+      LOG_DIR=$OPTARG
       ;;
     N)
       EXP=$OPTARG
@@ -90,9 +95,9 @@ echo "start port: ${START_PORT}"
 echo "worker_num: ${WORKER_NUM}"
 echo "ps_num: ${PS_NUM}"
 echo "host: ${HOST}"
-echo "more args: ${args}"
 echo "exp: ${EXP}"
-
+echo "logdir: ${LOG_DIR}"
+echo "more args: ${args}"
 
 ps_hosts="\"$HOST:$START_PORT\""
 for ps_id in `seq 1 $((PS_NUM-1))`
