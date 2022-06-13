@@ -169,10 +169,15 @@ message DatasetConfig {
     optional uint32 prefetch_size = 7 [default = 32];
 
     // shard dataset to 1/num_workers in distribute mode
-    optional bool shard = 8 [default = false];
+    // this param is not used anymore
+    optional bool shard = 801 [default = false];
+
+    // shard by file, not by sample, valid only for CSVInput
+    optional bool file_shard = 802 [default = false];
 
     enum InputType {
         // csv format input, could be used in local or hdfs
+        // support .gz compression(but not .tar.gz files)
         CSVInput = 10;
         // @Depreciated
         CSVInputV2 = 11;

@@ -31,7 +31,7 @@ class HiveRTPInput(Input):
     self._fetch_size = self._hive_config.fetch_size
 
     self._num_epoch = data_config.num_epochs
-    self._num_epoch_record = 1
+    self._num_epoch_record = 0
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
 

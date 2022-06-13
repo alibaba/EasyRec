@@ -219,6 +219,11 @@ def main(argv):
                                      len(FLAGS.worker_hosts.split(',')))
     pipeline_config = config_util.get_configs_from_pipeline_file(config, False)
 
+    # should be in front of edit_config_json step
+    # otherwise data_config and feature_config are not ready
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
+
   if FLAGS.edit_config_json:
     print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
     config_json = json.loads(FLAGS.edit_config_json)
@@ -253,9 +258,6 @@ def main(argv):
 
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
-
-    if pipeline_config.fg_json_path:
-      fg_util.load_fg_json_to_config(pipeline_config)
 
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint

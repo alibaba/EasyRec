@@ -29,7 +29,6 @@ class HiveInput(Input):
     self._fetch_size = self._hive_config.fetch_size
 
     self._num_epoch = data_config.num_epochs
-    self._num_epoch_record = 1
 
   def _parse_table(self, *fields):
     fields = list(fields)

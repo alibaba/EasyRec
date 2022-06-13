@@ -13,6 +13,7 @@ from easy_rec.python.inference.predictor import HivePredictor
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils.hive_utils import HiveUtils
+from easy_rec.python.utils import numpy_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -114,7 +115,7 @@ def main(argv):
       logging.info('will save predict result to %s' % FLAGS.output_path)
       with tf.gfile.GFile(FLAGS.output_path, 'wb') as fout:
         for k in pred_result:
-          fout.write(str(k).replace("u'", '"').replace("'", '"') + '\n')
+          fout.write(json.dumps(k, cls=numpy_utils.NumpyEncoder) + '\n')
 
 
 if __name__ == '__main__':

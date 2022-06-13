@@ -28,6 +28,7 @@ from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.odps_util import odps_type_to_input_type
 from easy_rec.python.utils.tf_utils import get_tf_type
+from easy_rec.python.utils import numpy_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -500,6 +501,8 @@ class Predictor(PredictorInterface):
           for x in self._output_cols:
             if outputs[x].dtype == np.object:
               outputs[x] = [val.decode('utf-8') for val in outputs[x]]
+            elif len(outputs[x].shape) > 1:
+              outputs[x] = [json.dumps(val, cls=numpy_utils.NumpyEncoder) for val in outputs[x]]
           for k in self._reserved_cols:
             if all_vals[k].dtype == np.object:
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
