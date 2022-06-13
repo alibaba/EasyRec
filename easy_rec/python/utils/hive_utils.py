@@ -66,9 +66,8 @@ class HiveUtils(object):
                data_config,
                hive_config,
                mode,
-               selected_cols,
-               record_defaults,
-               input_path=None,
+               selected_cols='',
+               record_defaults=[],
                task_index=0,
                task_num=1):
 
@@ -79,10 +78,9 @@ class HiveUtils(object):
     self._this_batch_size = self._get_batch_size(mode)
 
     self._num_epoch = data_config.num_epochs
-    self._num_epoch_record = 1
+    self._num_epoch_record = 0
     self._task_index = task_index
     self._task_num = task_num
-    self._input_path = input_path.split(',')
     self._selected_cols = selected_cols
     self._record_defaults = record_defaults
 
@@ -114,11 +112,13 @@ class HiveUtils(object):
     else:
       return self._eval_batch_size
 
-  def _hive_read(self):
+  def hive_read(self, input_path):
     logging.info('start epoch[%d]' % self._num_epoch_record)
     self._num_epoch_record += 1
+    if type(input_path) != type(str):
+      input_path = input_path.decode('utf-8')
 
-    for table_path in self._input_path:
+    for table_path in input_path.split(','):
       table_info = self._construct_table_info(table_path,
                                               self._hive_config.hash_fields,
                                               self._hive_config.limit_num)
@@ -126,7 +126,7 @@ class HiveUtils(object):
       batch_defaults = []
       for x in self._record_defaults:
         if isinstance(x, str):
-          batch_defaults.append(np.array([x] * batch_size, dtype='S500'))
+          batch_defaults.append(np.array([x] * batch_size, dtype='S2000'))
         else:
           batch_defaults.append(np.array([x] * batch_size))
 
@@ -159,3 +159,36 @@ class HiveUtils(object):
       cursor.close()
       conn.close()
     logging.info('finish epoch[%d]' % self._num_epoch_record)
+
+  def hive_read_line(self, input_path, hash_fields, limit_num=None):
+    table_info = self._construct_table_info(input_path, hash_fields, limit_num)
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    sql = table_info.gen_sql()
+    cursor.execute(sql)
+
+    while True:
+      data = cursor.fetchmany(size=1)
+      if len(data) == 0:
+        break
+      yield data
+
+    cursor.close()
+    conn.close()
+
+  def get_all_cols(self, input_path):
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    sql = 'desc %s' % input_path.split('/')[0]
+    cursor.execute(sql)
+    data = cursor.fetchmany()
+    col_names = []
+    cols_types = []
+    for col in data:
+      col_name = col[0].strip()
+      if col_name and (not col_name.startswith('#')) and (col_name
+                                                          not in col_names):
+        col_names.append(col_name)
+        cols_types.append(col[1].strip())
+
+    return ','.join(col_names), ','.join(cols_types)

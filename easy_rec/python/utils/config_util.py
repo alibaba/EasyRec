@@ -190,7 +190,7 @@ def edit_config(pipeline_config, edit_config_json):
         assert isinstance(proto, int)
         val = getattr(parent, val)
         assert isinstance(val, int)
-    return val 
+    return val
 
   def _get_attr(obj, attr, only_last=False):
     # only_last means we only return the last element in paths array
@@ -269,7 +269,7 @@ def edit_config(pipeline_config, edit_config_json):
                 update_obj, cond_key, only_last=True)
 
             cond_val = _type_convert(tmp, cond_val, tmp_parent)
-            
+
             if op_func(tmp, cond_val):
               obj_id = tid
               paths.append((update_obj, update_objs, None, obj_id))
@@ -445,9 +445,9 @@ def set_eval_input_path(pipeline_config, eval_input_path):
           eval_input_path.split(',')
       ) <= 1, 'only support one hive_eval_input.table_name when hive input'
       pipeline_config.hive_eval_input.table_name = eval_input_path
-    logging.info('update hive_train_input.table_name to %s' %
+    logging.info('update hive_eval_input.table_name to %s' %
                  pipeline_config.hive_eval_input.table_name)
-  elif pipeline_config.WhichOneof('train_path') == 'kafka_eval_input':
+  elif pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     if isinstance(eval_input_path, list):
       pipeline_config.kafka_eval_input = ','.join(eval_input_path)
     else:
@@ -457,6 +457,6 @@ def set_eval_input_path(pipeline_config, eval_input_path):
       pipeline_config.eval_input_path = ','.join(eval_input_path)
     else:
       pipeline_config.eval_input_path = eval_input_path
-    logging.info('update train_input_path to %s' %
+    logging.info('update eval_input_path to %s' %
                  pipeline_config.eval_input_path)
   return pipeline_config

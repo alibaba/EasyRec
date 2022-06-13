@@ -693,7 +693,7 @@ def export(export_dir,
     asset_file_dict = {}
     for asset_file in asset_files.split(','):
       asset_file = asset_file.strip()
-      if ':' not in asset_file or asset_file.startswith('oss:'):
+      if ':' not in asset_file or asset_file.startswith('oss:') or asset_file.startswith('hdfs:'):
         _, asset_name = os.path.split(asset_file)
       else:
         asset_name, asset_file = asset_file.split(':', 1)
