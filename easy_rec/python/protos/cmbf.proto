@@ -1,0 +1,31 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message CMBF {
+    // The number of heads
+    required uint32 multi_head_num = 1 [default = 1];
+    // The dimension of text heads
+    required uint32 text_head_size = 2;
+    // The dimension of image heads
+    required uint32 image_head_size = 3;
+    // The number of image regions of image feature, take effect when there is only one image feature
+    required uint32 image_region_num = 4 [default = 1];
+    // The number of self attention layers for image features
+    required uint32 image_self_attention_layer_num = 5 [default = 1];
+    // The number of self attention layers for text features
+    required uint32 text_self_attention_layer_num = 6 [default = 1];
+    // The number of cross modal layers
+    required uint32 cross_modal_layer_num = 7 [default = 1];
+    // The dimension of image cross modal heads
+    required uint32 image_cross_head_size = 8;
+    // The dimension of text cross modal heads
+    required uint32 text_cross_head_size = 9;
+    // Dropout probability for hidden layers
+    required float hidden_dropout_prob = 10 [default = 0.0];
+    // Dropout probability of the attention probabilities
+    required float attention_probs_dropout_prob = 11 [default = 0.0];
+
+    required DNN final_dnn = 12;
+}
