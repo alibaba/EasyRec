@@ -81,7 +81,8 @@ class CSVInput(Input):
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
-    assert not file_paths[0].endswith('.tar.gz'), 'could only support .csv or .gz(not .tar.gz) files.'
+    assert not file_paths[0].endswith(
+        '.tar.gz'), 'could only support .csv or .gz(not .tar.gz) files.'
 
     compression_type = 'GZIP' if file_paths[0].endswith('.gz') else ''
     if compression_type:
@@ -100,7 +101,7 @@ class CSVInput(Input):
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
-    
+
       if self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
 
@@ -112,9 +113,9 @@ class CSVInput(Input):
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(
-          lambda x: tf.data.TextLineDataset(x,
-              compression_type=compression_type
-          ).skip(int(self._with_header)),
+          lambda x: tf.data.TextLineDataset(
+              x, compression_type=compression_type).skip(
+                  int(self._with_header)),
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
 
@@ -130,7 +131,8 @@ class CSVInput(Input):
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(file_paths,
+      dataset = tf.data.TextLineDataset(
+          file_paths,
           compression_type=compression_type).skip(int(self._with_header))
       dataset = dataset.repeat(1)
 

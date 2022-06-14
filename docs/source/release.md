@@ -7,7 +7,7 @@ sh pai_jobs/deploy_ext.sh -V ${VERSION} -G
 ls -lh pai_jobs/easy_rec_ext_${VERSION}_res.tar.gz
 ```
 
-将资源包pai_jobs/easy_rec_ext_${VERSION}_res.tar.gz上传至ODPS
+将资源包pai_jobs/easy_rec_ext\_${VERSION}\_res.tar.gz上传至ODPS
 
 ![newresource.png](../images/release/newresource.png)
 

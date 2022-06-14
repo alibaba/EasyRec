@@ -176,6 +176,27 @@ class HiveUtils(object):
     cursor.close()
     conn.close()
 
+  def run_sql(self, sql):
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    return data
+
+  def is_table_or_partition_exist(self,
+                                  table_name,
+                                  partition_name=None,
+                                  partition_val=None):
+    if partition_name and partition_val:
+      sql = f'show partitions {table_name} partition({partition_name}={partition_val})'
+    else:
+      sql = f'desc {table_name}'
+    try:
+      self.run_sql(sql)
+      return True
+    except:
+      return False
+
   def get_all_cols(self, input_path):
     conn = self._construct_hive_connect()
     cursor = conn.cursor()

@@ -20,6 +20,8 @@ from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils import numpy_utils
+from easy_rec.python.utils import tf_utils
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
 from easy_rec.python.utils.config_util import get_input_name_from_fg_json
@@ -28,7 +30,6 @@ from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.odps_util import odps_type_to_input_type
 from easy_rec.python.utils.tf_utils import get_tf_type
-from easy_rec.python.utils import numpy_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -394,6 +395,9 @@ class Predictor(PredictorInterface):
   def _write_line(self, table_writer, outputs):
     pass
 
+  def load_to_table(self, output_path):
+    pass
+
   def _get_fg_json(self, fg_json_path, model_path):
     if fg_json_path and gfile.Exists(fg_json_path):
       logging.info('load fg_json_path: ', fg_json_path)
@@ -498,11 +502,15 @@ class Predictor(PredictorInterface):
           ts1 = time.time()
           input_vals = _parse_value(all_vals)
           outputs = self._predictor_impl.predict(input_vals, self._output_cols)
+          ##
           for x in self._output_cols:
             if outputs[x].dtype == np.object:
               outputs[x] = [val.decode('utf-8') for val in outputs[x]]
             elif len(outputs[x].shape) > 1:
-              outputs[x] = [json.dumps(val, cls=numpy_utils.NumpyEncoder) for val in outputs[x]]
+              outputs[x] = [
+                  json.dumps(val, cls=numpy_utils.NumpyEncoder)
+                  for val in outputs[x]
+              ]
           for k in self._reserved_cols:
             if all_vals[k].dtype == np.object:
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
@@ -529,6 +537,7 @@ class Predictor(PredictorInterface):
       logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
                    (sum_t0, sum_t1, sum_t2))
       table_writer.close()
+      self.load_to_table(output_path)
       logging.info('Predict %s done.' % input_path)
 
   def predict(self, input_data_dict_list, output_names=None, batch_size=1):
@@ -710,7 +719,7 @@ class CSVPredictor(Predictor):
   def _get_writer(self, output_path, slice_id):
     if not gfile.Exists(output_path):
       gfile.MakeDirs(output_path)
-    res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
+    res_path = os.path.join(output_path, 'part-%d.csv' % slice_id)
     table_writer = gfile.GFile(res_path, 'w')
     table_writer.write(
         self._output_sep.join(self._output_cols + self._reserved_cols) + '\n')
@@ -859,16 +868,30 @@ class HivePredictor(Predictor):
         output_types=list_type,
         output_shapes=list_shapes,
         args=(input_path,))
-
     return dataset
 
+  def get_output_table(self, output_path):
+    partition_name, partition_val = None, None
+    if len(output_path.split('/')) == 2:
+      table_name, partition = output_path.split('/')
+      partition_name, partition_val = partition.split('=')
+    else:
+      table_name = output_path
+    return table_name, partition_name, partition_val
+
   def _get_writer(self, output_path, slice_id):
-    if not gfile.Exists(output_path):
-      gfile.MakeDirs(output_path)
-    res_path = os.path.join(output_path, 'slice_%d.csv' % slice_id)
+    table_name, partition_name, partition_val = self.get_output_table(
+        output_path)
+    is_exist = self._hive_util.is_table_or_partition_exist(
+        table_name, partition_name, partition_val)
+    assert not is_exist, f'{output_path} is already exists. Please drop it.'
+
+    output_path = output_path.replace('.', '/')
+    self._hdfs_path = f'hdfs://{self._hive_config.host}:9000/user/easy_rec/{output_path}'
+    if not gfile.Exists(self._hdfs_path):
+      gfile.MakeDirs(self._hdfs_path)
+    res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
     table_writer = gfile.GFile(res_path, 'w')
-    table_writer.write(
-        self._output_sep.join(self._output_cols + self._reserved_cols) + '\n')
     return table_writer
 
   def _write_line(self, table_writer, outputs):
@@ -880,6 +903,32 @@ class HivePredictor(Predictor):
     reserve_vals = [outputs[x] for x in output_cols] + \
                    [all_vals[k] for k in reserved_cols]
     return reserve_vals
+
+  def load_to_table(self, output_path):
+    schema = ''
+    for output_col_name in self._output_cols:
+      tf_type = self._predictor_impl._outputs_map[output_col_name].dtype
+      col_type = tf_utils.get_col_type(tf_type)
+      schema += f'{output_col_name} {col_type},'
+
+    for output_col_name in self._reserved_cols:
+      assert output_col_name in self._all_cols, f'Column: {output_col_name} not exists.'
+      idx = self._all_cols.index(output_col_name)
+      output_col_types = self._all_col_types[idx]
+      schema += f'{output_col_name} {output_col_types},'
+    schema = schema.rstrip(',')
+
+    table_name, partition_name, partition_val = self.get_output_table(
+        output_path)
+    if partition_name and partition_val:
+      sql = f'create table if not exists {table_name} ({schema}) PARTITIONED BY ({partition_name} string)'
+      self._hive_util.run_sql(sql)
+      sql = f"LOAD DATA INPATH '{self._hdfs_path}/*' INTO TABLE {table_name} " \
+            f'PARTITION ({partition_name}={partition_val})'
+      self._hive_util.run_sql(sql)
+    else:
+      sql = f"create external table if not exists {table_name} ({schema}) location '{self._hdfs_path}'"
+      self._hive_util.run_sql(sql)
 
   @property
   def out_of_range_exception(self):

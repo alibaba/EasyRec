@@ -177,10 +177,10 @@ class RTPInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
- 
+
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
- 
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,

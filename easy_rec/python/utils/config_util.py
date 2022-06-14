@@ -9,9 +9,9 @@ import json
 import logging
 import os
 import re
+
 import numpy as np
 import six
-
 import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
@@ -22,6 +22,21 @@ from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
+
+def search_pipeline_config(directory):
+  dir_list = []
+  for root, dirs, files in tf.gfile.Walk(directory):
+    for f in files:
+      _, ext = os.path.splitext(f)
+      if ext == '.config':
+        dir_list.append(root)
+  if len(dir_list) == 0:
+    raise ValueError('config is not found in directory %s' % directory)
+  elif len(dir_list) > 1:
+    raise ValueError('config saved model found in directory %s' % directory)
+
+  return dir_list[0]
 
 
 def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
@@ -158,13 +173,15 @@ def save_pipeline_config(pipeline_config,
 
 
 def _get_basic_types():
-  dtypes = [bool, int, str, float, type(u''),
-            np.float16, np.float32, np.float64, np.char, np.byte, 
-            np.uint8, np.int8, np.int16, np.uint16, np.uint32,
-            np.int32, np.uint64, np.int64, np.bool, np.str]
+  dtypes = [
+      bool, int, str, float,
+      type(u''), np.float16, np.float32, np.float64, np.char, np.byte, np.uint8,
+      np.int8, np.int16, np.uint16, np.uint32, np.int32, np.uint64, np.int64,
+      np.bool, np.str
+  ]
   if six.PY2:
     dtypes.append(long)
-  
+
   return dtypes
 
 

@@ -46,9 +46,11 @@ class RankModel(EasyRecModel):
       else:
         probs = tf.nn.softmax(output, axis=1)
         prediction_dict['logits' + suffix] = output
-        prediction_dict['probs'  + suffix] = probs
-        prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(output, axis=1)
-        prediction_dict['probs'  + suffix + '_y'] = math_ops.reduce_max(probs, axis=1)
+        prediction_dict['probs' + suffix] = probs
+        prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(
+            output, axis=1)
+        prediction_dict['probs' + suffix + '_y'] = math_ops.reduce_max(
+            probs, axis=1)
         prediction_dict['y' + suffix] = tf.argmax(output, axis=1)
     elif loss_type == LossType.L2_LOSS:
       output = tf.squeeze(output, axis=1)
@@ -177,9 +179,8 @@ class RankModel(EasyRecModel):
         label = tf.to_int64(self._labels[label_name])
         uids = self._feature_dict[metric.gauc.uid_field]
         if isinstance(uids, tf.sparse.SparseTensor):
-          uids = tf.sparse_to_dense(uids.indices, 
-             uids.dense_shape, uids.values, 
-             default_value='')
+          uids = tf.sparse_to_dense(
+              uids.indices, uids.dense_shape, uids.values, default_value='')
           uids = tf.reshape(uids, [-1])
         metric_dict['gauc' + suffix] = metrics_lib.gauc(
             label,
@@ -426,8 +427,10 @@ class RankModel(EasyRecModel):
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]
       else:
-        return ['y' + suffix, 'probs' + suffix, 'logits' + suffix,
-                'probs' + suffix + '_y', 'logits' + suffix + '_y']
+        return [
+            'y' + suffix, 'probs' + suffix, 'logits' + suffix,
+            'probs' + suffix + '_y', 'logits' + suffix + '_y'
+        ]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
     else:
