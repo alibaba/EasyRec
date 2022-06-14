@@ -162,7 +162,7 @@ class PredictorTestOnDS(tf.test.TestCase):
                    'brand;user_id;cms_segid;cms_group_id;final_gender_code;age_level;pvalue_level;' \
                    'shopping_level;occupation;new_user_class_level;tag_category_list;tag_brand_list;price'
 
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
@@ -193,7 +193,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_num=1)
     header_truth = 'probs;clk;buy;user_id;adgroup_id'
 
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
@@ -223,7 +223,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_id=0,
         slice_num=1)
     header_truth = 'logits;probs;clk;no_used_1;no_used_2;features'
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
@@ -253,7 +253,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_id=0,
         slice_num=1)
     header_truth = 'logits;probs;clk;features;no_used_1'
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)

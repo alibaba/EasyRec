@@ -502,7 +502,6 @@ class Predictor(PredictorInterface):
           ts1 = time.time()
           input_vals = _parse_value(all_vals)
           outputs = self._predictor_impl.predict(input_vals, self._output_cols)
-          ##
           for x in self._output_cols:
             if outputs[x].dtype == np.object:
               outputs[x] = [val.decode('utf-8') for val in outputs[x]]
@@ -870,7 +869,7 @@ class HivePredictor(Predictor):
         args=(input_path,))
     return dataset
 
-  def get_output_table(self, output_path):
+  def get_table_info(self, output_path):
     partition_name, partition_val = None, None
     if len(output_path.split('/')) == 2:
       table_name, partition = output_path.split('/')
@@ -880,14 +879,14 @@ class HivePredictor(Predictor):
     return table_name, partition_name, partition_val
 
   def _get_writer(self, output_path, slice_id):
-    table_name, partition_name, partition_val = self.get_output_table(
+    table_name, partition_name, partition_val = self.get_table_info(
         output_path)
     is_exist = self._hive_util.is_table_or_partition_exist(
         table_name, partition_name, partition_val)
-    assert not is_exist, f'{output_path} is already exists. Please drop it.'
+    assert not is_exist, '%s is already exists. Please drop it.' % output_path
 
     output_path = output_path.replace('.', '/')
-    self._hdfs_path = f'hdfs://{self._hive_config.host}:9000/user/easy_rec/{output_path}'
+    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s' % (self._hive_config.host, output_path)
     if not gfile.Exists(self._hdfs_path):
       gfile.MakeDirs(self._hdfs_path)
     res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
@@ -909,25 +908,27 @@ class HivePredictor(Predictor):
     for output_col_name in self._output_cols:
       tf_type = self._predictor_impl._outputs_map[output_col_name].dtype
       col_type = tf_utils.get_col_type(tf_type)
-      schema += f'{output_col_name} {col_type},'
+      schema += output_col_name + ' ' + col_type + ','
 
     for output_col_name in self._reserved_cols:
-      assert output_col_name in self._all_cols, f'Column: {output_col_name} not exists.'
+      assert output_col_name in self._all_cols, 'Column: %s not exists.' % output_col_name
       idx = self._all_cols.index(output_col_name)
       output_col_types = self._all_col_types[idx]
-      schema += f'{output_col_name} {output_col_types},'
+      schema += output_col_name + ' ' + output_col_types + ','
     schema = schema.rstrip(',')
 
-    table_name, partition_name, partition_val = self.get_output_table(
+    table_name, partition_name, partition_val = self.get_table_info(
         output_path)
     if partition_name and partition_val:
-      sql = f'create table if not exists {table_name} ({schema}) PARTITIONED BY ({partition_name} string)'
+      sql = "create table if not exists %s (%s) PARTITIONED BY (%s string)" % \
+            (table_name, schema, partition_name)
       self._hive_util.run_sql(sql)
-      sql = f"LOAD DATA INPATH '{self._hdfs_path}/*' INTO TABLE {table_name} " \
-            f'PARTITION ({partition_name}={partition_val})'
+      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s PARTITION (%s=%s)" % \
+            (self._hdfs_path, table_name, partition_name, partition_val)
       self._hive_util.run_sql(sql)
     else:
-      sql = f"create external table if not exists {table_name} ({schema}) location '{self._hdfs_path}'"
+      sql = "create external table if not exists %s (%s) location '%s'" % \
+            (table_name, schema, self._hdfs_path)
       self._hive_util.run_sql(sql)
 
   @property
