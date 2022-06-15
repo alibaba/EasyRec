@@ -30,12 +30,12 @@ def search_pipeline_config(directory):
     for f in files:
       _, ext = os.path.splitext(f)
       if ext == '.config':
-        dir_list.append(root)
+        dir_list.append(os.path.join(root, f))
   if len(dir_list) == 0:
     raise ValueError('config is not found in directory %s' % directory)
   elif len(dir_list) > 1:
     raise ValueError('config saved model found in directory %s' % directory)
-
+  logging.info("use pipeline config: %s" % dir_list[0])
   return dir_list[0]
 
 

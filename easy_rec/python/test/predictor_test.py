@@ -15,7 +15,6 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.test_utils import RunAsSubprocess
 
-
 class PredictorTest(tf.test.TestCase):
 
   def setUp(self):
@@ -39,6 +38,7 @@ class PredictorTest(tf.test.TestCase):
         inputs.append(row[2:])
       output_res = predictor.predict(inputs, batch_size=32)
       self.assertTrue(len(output_res) == 100)
+
 
   @RunAsSubprocess
   def test_lookup_pred(self):
@@ -139,13 +139,13 @@ class PredictorTestOnDS(tf.test.TestCase):
   def test_local_pred(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
-    save_model_dir = 'data/test/inference/tb_multitower_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
@@ -168,17 +168,29 @@ class PredictorTestOnDS(tf.test.TestCase):
       self.assertEqual(output_res[0].strip(), header_truth)
 
   @RunAsSubprocess
+  def test_local_pred_without_config(self):
+    test_input_path = 'data/test/inference/taobao_infer_data.txt'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    self._success = test_utils.test_single_predict(
+        self._test_dir, test_input_path, self._test_output_path, saved_model_dir)
+    self.assertTrue(self._success)
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(len(output_res) == 101)
+
+  @RunAsSubprocess
   def test_local_pred_with_part_col(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
-    save_model_dir = 'data/test/inference/tb_multitower_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
@@ -203,14 +215,14 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
-    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
@@ -233,14 +245,14 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
-    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
