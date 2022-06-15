@@ -31,3 +31,5 @@ RUN pip3 install http://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0
 RUN cd /EasyRec && python setup.py install
 RUN rm -rf /EasyRec
 RUN python -c "import easy_rec; easy_rec.help(); import pyhive; import datahub; import kafka"
+
+COPY docker/hadoop_env.sh /opt/hadoop_env.sh
