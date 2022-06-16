@@ -12,8 +12,8 @@ from easy_rec.python.inference.predictor import CSVPredictor
 from easy_rec.python.inference.predictor import HivePredictor
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
-from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils import numpy_utils
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -56,8 +56,13 @@ def main(argv):
 
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
+    if FLAGS.pipeline_config_path:
+      pipeline_config_path = FLAGS.pipeline_config_path
+    else:
+      pipeline_config_path = config_util.search_pipeline_config(
+          FLAGS.saved_model_dir)
     pipeline_config = config_util.get_configs_from_pipeline_file(
-        FLAGS.pipeline_config_path, False)
+        pipeline_config_path, False)
     if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,

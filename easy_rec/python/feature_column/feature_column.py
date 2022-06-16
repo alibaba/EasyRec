@@ -484,7 +484,7 @@ class FeatureColumnParser(object):
     else:
       return None
 
-  def _add_shared_embedding_column(self, embedding_name, fc, deep=True):    
+  def _add_shared_embedding_column(self, embedding_name, fc, deep=True):
     if deep:
       curr_id = len(self._deep_share_embed_columns[embedding_name])
       self._deep_share_embed_columns[embedding_name].append(fc)

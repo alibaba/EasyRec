@@ -160,7 +160,8 @@ class ExportTest(tf.test.TestCase):
             post_check_func=_post_check_func))
 
   def test_multi_class_predict(self):
-    self._export_test('samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+    self._export_test(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
         extract_data_func=self._extract_data,
         keys=['probs', 'logits', 'probs_y', 'logits_y', 'y'])
 

@@ -16,9 +16,9 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers

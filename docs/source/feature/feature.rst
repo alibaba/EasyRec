@@ -422,7 +422,7 @@ rank模型中配置相应字段：
 -  embedding\_wise\_variational\_dropout: 变分dropout层维度是否为embedding维度（true：embedding维度；false：feature维度；默认false）
 -  `启动训练 <../train.md>`_
 
-查看特征重要性: 
+查看特征重要性:
 
 .. code:: sql
 
@@ -433,12 +433,12 @@ rank模型中配置相应字段：
       -Dbuckets='oss://{oss_bucket}/'
       -Darn='acs:ram::xxx:role/aliyunodpspaidefaultrole'
       -DossHost='oss-{region}-internal.aliyuncs.com';
-      
+
 -  extra_params:
     - config_path: EasyRec config path
     - output_dir: 输出目录
     - topk: 输出top_k重要的特征
-    - visualize: 输出重要性可视化的图 
+    - visualize: 输出重要性可视化的图
     - fg_path: `RTP-FG <./rtp_fg.md>`_ json配置文件, 可选
 -  arn: `rolearn <https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole>`_ to access oss.
 -  version: EasyRec version, 默认stable

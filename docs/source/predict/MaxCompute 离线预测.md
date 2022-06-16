@@ -52,11 +52,11 @@ pai -name easy_rec_ext
     - 其他类型: 暂不支持
   - 二分类模型(要求num_class=1)，导出字段:logits、probs，对应: sigmoid之前的值/概率
   - 回归模型，导出字段: y，对应: 预测值
-  - 多分类模型(num_class > 1)，导出字段: 
-    - logits: string(json), softmax之前的vector, shape[num_class]
-    - probs: string(json), softmax之后的vector, shape[num_class]
-    - logits_y: logits[y], float, 类别y对应的softmax之前的概率 
-    - probs_y: probs[y], float, 类别y对应的概率
+  - 多分类模型(num_class > 1)，导出字段:
+    - logits: string(json), softmax之前的vector, shape\[num_class\]
+    - probs: string(json), softmax之后的vector, shape\[num_class\]
+    - logits_y: logits\[y\], float, 类别y对应的softmax之前的概率
+    - probs_y: probs\[y\], float, 类别y对应的概率
     - y: 类别id, = argmax(probs_y), int, 概率最大的类别
     - 示例:
     ```sql
@@ -70,7 +70,7 @@ pai -name easy_rec_ext
     - 输出信息:
     ```text
        MetaGraphDef with tag-set: 'serve' contains the following SignatureDefs:
-       
+
        signature_def['serving_default']:
          The given SavedModel SignatureDef contains the following input(s):
            inputs['adgroup_id'] tensor_info:
@@ -89,11 +89,11 @@ pai -name easy_rec_ext
              dtype: DT_FLOAT
              shape: (-1)
              name: Sigmoid:0
-       Method name is: tensorflow/serving/predict 
+       Method name is: tensorflow/serving/predict
     ```
-      - 可以看到导出的字段包括:
-        - logits, float
-        - probs, float
+    - 可以看到导出的字段包括:
+      - logits, float
+      - probs, float
 - model_outputs: 导出saved_model时模型的导出字段，可以不指定，默认和output_cols一致
   - 如果output_cols和model_outputs不一致时需要指定，如:
     ```sql
