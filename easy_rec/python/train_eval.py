@@ -14,7 +14,7 @@ from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.config_util import set_train_input_path
-
+from easy_rec.python.utils.config_util import process_neg_sampler_data_path
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -86,6 +86,20 @@ def main(argv):
     if FLAGS.odps_config:
       os.environ['ODPS_CONFIG_FILE_PATH'] = FLAGS.odps_config
 
+    if FLAGS.edit_config_json:
+      config_json = json.loads(FLAGS.edit_config_json)
+      fine_tune_checkpoint = config_json.get(
+          'train_config.fine_tune_checkpoint', None)
+      if fine_tune_checkpoint:
+          if not file_io.file_exists(fine_tune_checkpoint):
+              assert FLAGS.ignore_finetune_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % fine_tune_checkpoint
+              config_json.pop('train_config.fine_tune_checkpoint', None)
+              logging.info('fine_tune_checkpoint(%s) is not exists. Drop it.' %
+                           fine_tune_checkpoint)
+      config_util.edit_config(pipeline_config, config_json)
+
+    process_neg_sampler_data_path(pipeline_config)
+
     if FLAGS.is_on_ds:
       set_tf_config_and_get_train_worker_num_on_ds()
       if pipeline_config.train_config.fine_tune_checkpoint:
@@ -126,20 +140,6 @@ def main(argv):
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
           has_evaluator=False)
-    elif FLAGS.edit_config_json:
-      config_json = json.loads(FLAGS.edit_config_json)
-      fine_tune_checkpoint = config_json.get(
-          'train_config.fine_tune_checkpoint', None)
-      if fine_tune_checkpoint:
-        if not file_io.file_exists(fine_tune_checkpoint):
-          assert FLAGS.ignore_finetune_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % fine_tune_checkpoint
-          config_json.pop('train_config.fine_tune_checkpoint', None)
-          logging.info('fine_tune_checkpoint(%s) is not exists. Drop it.' %
-                       fine_tune_checkpoint)
-      config_util.edit_config(pipeline_config, config_json)
-      config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,
-                               FLAGS.check_mode)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
       _train_and_evaluate_impl(pipeline_config, FLAGS.continue_train,

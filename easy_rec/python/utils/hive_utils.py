@@ -197,6 +197,22 @@ class HiveUtils(object):
     except:
       return False
 
+  def get_table_location(self, input_path):
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    partition = ''
+    if len(input_path.split('/')) == 2:
+      table_name, partition = input_path.split('/')
+    else:
+      table_name = input_path
+    sql = 'desc formatted %s' % table_name
+    cursor.execute(sql)
+    data = cursor.fetchmany()
+    for line in data:
+      if line[0].startswith('Location'):
+        return line[1].strip() + '/' + partition
+    return None
+
   def get_all_cols(self, input_path):
     conn = self._construct_hive_connect()
     cursor = conn.cursor()
