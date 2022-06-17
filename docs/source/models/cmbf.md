@@ -37,6 +37,8 @@ model_config: {
   }
   feature_groups: {
     group_name: 'text'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
     feature_names: 'gender'
     feature_names: 'age'
     feature_names: 'occupation'
@@ -45,7 +47,13 @@ model_config: {
     feature_names: 'movie_year_bin'
     wide_deep: DEEP
   }
+  feature_groups: {
+    group_name: 'text_seq'
+    feature_names: 'title'
+    wide_deep: DEEP
+  }
   cmbf {
+    image_feature_dim: 64
     multi_head_num: 2
     image_head_size: 8
     text_head_size: 8
@@ -69,8 +77,9 @@ model_config: {
   - 配置一个名为`text`的feature_group，包含需要做跨模态attention的所有特征，这些特征的`embedding_dim`必须相同。
   - [可选] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
 
-- cmbf: cmbf 模型相关的参数
+- cmbf: CMBF 模型相关的参数
 
+  - image_feature_dim: 在单模态学习模块之前做图像特征维度调整，调整到该参数指定的维度
   - multi_head_num: 单模态学习模块和跨模态融合模块中的 head 数量，默认为1
   - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
   - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size

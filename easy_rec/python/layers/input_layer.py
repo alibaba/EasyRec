@@ -14,6 +14,7 @@ from easy_rec.python.layers import seq_input_layer
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.utils import shape_utils
 
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
@@ -278,6 +279,8 @@ class InputLayer(object):
       for fc in group_seq_columns:
         with tf.variable_scope('input_layer/' + fc.categorical_column.name):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
+          if fc.max_seq_len > 0:
+            tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(tmp_embedding, tmp_seq_len, fc.max_seq_len)
           seq_features.append((tmp_embedding, tmp_seq_len))
           embedding_reg_lst.append(tmp_embedding)
       regularizers.apply_regularization(

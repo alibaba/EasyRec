@@ -34,7 +34,7 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     beta_square = kwargs['beta_square'] if 'beta_square' in kwargs else 1.0
     return f1_reweight_sigmoid_cross_entropy(
-        pred, label, beta_square, weights=loss_weight)
+        label, pred, beta_square, weights=loss_weight)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

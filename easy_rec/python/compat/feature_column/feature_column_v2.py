@@ -817,7 +817,8 @@ def embedding_column(categorical_column,
                      max_norm=None,
                      trainable=True,
                      partitioner=None,
-                     use_embedding_variable=False):
+                     use_embedding_variable=False,
+                     max_seq_len=-1):
   """`DenseColumn` that converts from sparse, categorical input.
 
   Use this when your inputs are sparse, but you want to convert them to a dense
@@ -878,6 +879,7 @@ def embedding_column(categorical_column,
       `None`.
     max_norm: If not `None`, embedding values are l2-normalized to this value.
     trainable: Whether or not the embedding is trainable. Default is True.
+    max_seq_len: Max sequence length. Default is -1.
 
   Returns:
     `DenseColumn` that converts from sparse input.
@@ -913,7 +915,8 @@ def embedding_column(categorical_column,
       max_norm=max_norm,
       trainable=trainable,
       partitioner=partitioner,
-      use_embedding_variable=use_embedding_variable)
+      use_embedding_variable=use_embedding_variable,
+      max_seq_len=max_seq_len)
 
 
 def shared_embedding_columns(categorical_columns,
@@ -3433,7 +3436,7 @@ class EmbeddingColumn(
         'EmbeddingColumn',
         ('categorical_column', 'dimension', 'combiner', 'initializer',
          'ckpt_to_load_from', 'tensor_name_in_ckpt', 'max_norm', 'trainable',
-         'partitioner', 'use_embedding_variable'))):
+         'partitioner', 'use_embedding_variable', 'max_seq_len'))):
   """See `embedding_column`."""
 
   @property
