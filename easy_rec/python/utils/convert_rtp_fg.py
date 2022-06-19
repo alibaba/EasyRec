@@ -86,7 +86,7 @@ def process_features(feature_type,
   input_field.input_name = feature_name
   curr_embed_dim = feature.get('embedding_dimension',
                                feature.get('embedding_dim', embedding_dim))
-  curr_combiner = feature.get('combiner', 'mean')
+  curr_combiner = feature.get('combiner', 'sum')
   if feature.get('is_cache', False):
     logging.info('will cache %s' % feature_name)
     feature_config.is_cache = True
