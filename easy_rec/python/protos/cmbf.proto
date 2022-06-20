@@ -29,5 +29,14 @@ message CMBF {
     // Dropout probability of the attention probabilities
     required float attention_probs_dropout_prob = 12 [default = 0.0];
 
-    required DNN final_dnn = 13;
+    // Whether to add embeddings for different text sequence features
+    required bool use_token_type = 13 [default = false];
+    // Whether to add position embeddings for the position of each token in the text sequence
+    required bool use_position_embeddings = 14 [default = true];
+    // Maximum sequence length that might ever be used with this model
+    required uint32 max_position_embeddings = 15 [default = 0];
+    // Dropout probability for text sequence embeddings
+    required float text_seq_emb_dropout_prob = 16 [default = 0.1];
+
+    required DNN final_dnn = 17;
 }

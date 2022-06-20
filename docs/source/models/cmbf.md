@@ -6,7 +6,7 @@ Cross-Modal-Based Fusion Recommendation Algorithm（CMBF）是一个能够捕获
 
 注意：CMBF 模型要求所有文本侧（feature group=text）输入特征的 embedding_dim 保持一致。
 
-![CMFB_framework](https://cdn.jsdelivr.net/gh/yangxudong/blogimg@master/rec/CMFB_framework.jpg)
+![CMFB_framework_v2](https://cdn.jsdelivr.net/gh/yangxudong/blogimg@master/rec/CMFB_framework_v2.jpg)
 
 CMBF主要有4个模块：
 1. 预处理模块：提取图片和文本特征
