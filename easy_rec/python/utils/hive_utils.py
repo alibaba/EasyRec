@@ -48,11 +48,11 @@ class TableInfo(object):
     str_fields = ','.join(fields)
     if not part:
       sql += """
-    where hash(concat({}))%{}={}
+    where abs(hash(concat({})))%{}={}
     """.format(str_fields, self.task_num, self.task_index)
     else:
       sql += """
-    where {} and hash(concat({}))%{}={}
+    where {} and abs(hash(concat({})))%{}={}
     """.format(part, str_fields, self.task_num, self.task_index)
     if self.limit_num is not None and self.limit_num > 0:
       sql += ' limit {}'.format(self.limit_num)
