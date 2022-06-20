@@ -621,6 +621,7 @@ def embedding_postprocessor(input_tensor,
     token_type_vocab_size: int. The vocabulary size of `token_type_ids`.
     token_type_embedding_name: string. The name of the embedding table variable
       for token type ids.
+    reuse_token_type: bool. Whether to reuse token type embedding variable.
     use_position_embeddings: bool. Whether to add position embeddings for the
       position of each token in the sequence.
     position_embedding_name: string. The name of the embedding table variable

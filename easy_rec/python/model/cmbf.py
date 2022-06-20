@@ -76,6 +76,7 @@ class CMBF(RankModel):
     self._model_config = self._model_config.cmbf
     assert isinstance(self._model_config, CMBFConfig)
 
+    max_seq_len = 0
     txt_fea_emb_dim_list = []
     img_fea_emb_dim_list = []
     for feature_config in feature_configs:
@@ -86,12 +87,26 @@ class CMBF(RankModel):
         txt_fea_emb_dim_list.append(feature_config.embedding_dim)
       if fea_name in img_feature_names:
         img_fea_emb_dim_list.append(feature_config.raw_input_dim)
+      if fea_name in txt_seq_feature_names:
+        if feature_config.HasField('max_seq_len'):
+          assert feature_config.max_seq_len > 0, \
+            'feature config `max_seq_len` must be greater than 0 for feature: ' + fea_name
+          if feature_config.max_seq_len > max_seq_len:
+            max_seq_len = feature_config.max_seq_len
 
     txt_tower_feature_num = self._general_feature_num + len(txt_seq_feature_names)
     assert len(set(txt_fea_emb_dim_list)) <= 1 and len(txt_fea_emb_dim_list) == txt_tower_feature_num, \
       'CMBF requires that all `general` and `text` feature dimensions must be consistent.'
     assert len(set(img_fea_emb_dim_list)) <= 1 and len(img_fea_emb_dim_list) == self._img_feature_num, \
       'CMBF requires that all `image` feature dimensions must be consistent.'
+
+    if self._model_config.use_position_embeddings:
+      assert self._model_config.max_position_embeddings > 0, \
+        'model config `max_position_embeddings` must be greater than 0. ' \
+        'It must be set when `use_position_embeddings` is true (default)'
+      assert self._model_config.max_position_embeddings >= max_seq_len, \
+        'model config `max_position_embeddings` must be greater than or equal to the maximum of all feature config ' \
+        '`max_seq_len`, which is %d' % max_seq_len
 
     self._img_emb_size = img_fea_emb_dim_list[0] if img_fea_emb_dim_list else 0
     self._txt_emb_size = txt_fea_emb_dim_list[0] if txt_fea_emb_dim_list else 0
@@ -299,7 +314,7 @@ class CMBF(RankModel):
       # avg pooling
       emb_sum = tf.reduce_sum(temp_emb, axis=1, keepdims=True)  # shape: [batch_size, 1, hidden_size]
       count = tf.reduce_sum(mask, axis=1, keepdims=True)  # shape: [batch_size, 1, 1]
-      seq_emb = emb_sum / count
+      seq_emb = emb_sum / count  # shape: [batch_size, 1, hidden_size]
 
       text_seq_emb.append(seq_emb)
       begin = begin + size
