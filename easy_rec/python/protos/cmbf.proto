@@ -10,8 +10,8 @@ message CMBF {
     required uint32 text_head_size = 2;
     // The dimension of image heads
     required uint32 image_head_size = 3;
-    // The number of image regions of image feature, take effect when there is only one image feature
-    required uint32 image_region_num = 4 [default = 1];
+    // The number of spatial CNN filters of image feature, take effect when there is only one image feature
+    required uint32 image_feature_slice_num = 4 [default = 1];
     // Do dimension reduce to this size for image feature before single modal learning module
     required uint32 image_feature_dim = 5;
     // The number of self attention layers for image features
