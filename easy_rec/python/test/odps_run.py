@@ -76,6 +76,7 @@ class TestPipelineOnOdps(tf.test.TestCase):
         'multi_tower/train_multil_tower_bst_model.sql',
         'multi_tower/eval_multil_tower.sql',
         'multi_tower/export_multil_tower.sql',
+        'multi_tower/export_again_multi_tower.sql',
         'multi_tower/predict_multil_tower.sql',
     ]
     end_file = ['multi_tower/drop_multil_tower_table.sql']
