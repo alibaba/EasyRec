@@ -75,7 +75,7 @@ model_config: {
     cross_modal_layer_num: 3
     image_cross_head_size: 8
     text_cross_head_size: 16
-    max_position_embeddings: 8
+    max_position_embeddings: 16
     use_token_type: true
     final_dnn: {
       hidden_units: 256
@@ -107,6 +107,12 @@ model_config: {
   - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1
   - image_cross_head_size: 跨模模态学习模块中的图像tower，multi-headed attention的每个head的size
   - text_cross_head_size: 跨模模态学习模块中的文本tower，multi-headed attention的每个head的size
+  - attention_probs_dropout_prob: self/cross attention模块attention权重的dropout概率
+  - hidden_dropout_prob: multi-headed attention模块中FC layer的dropout概率
+  - use_token_type: bool，default is false；是否使用token type embedding区分不同的text sequence feature
+  - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
+  - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
+  - text_seq_emb_dropout_prob: 文本序列embedding的dropout概率
   - final_dnn: 输出模块的MLP网络配置
 
 - embedding_regularization: 对embedding部分加regularization，防止overfit
