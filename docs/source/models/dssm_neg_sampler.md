@@ -91,7 +91,7 @@ model_config:{
 ```
 
 - eval_config: 评估配置，目前只支持recall_at_topk
-- data_config: 数据配置，其中需要配置负采样Sampler，负采样Sampler的配置详见[负采样配置](%E8%B4%9F%E9%87%87%E6%A0%B7%E9%85%8D%E7%BD%AE)
+- data_config: 数据配置，其中需要配置负采样Sampler，负采样Sampler的配置详见[负采样配置](dssm_neg_sampler.md#id3)
 - model_class: 'DSSM', 不需要修改
 - feature_groups: 需要两个feature_group: user和item, **group name不能变**
 - dssm: dssm相关的参数，必须配置user_tower和item_tower
