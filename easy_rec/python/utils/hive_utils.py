@@ -189,13 +189,22 @@ class HiveUtils(object):
                                   partition_val=None):
     if partition_name and partition_val:
       sql = 'show partitions %s partition(%s=%s)' % (table_name, partition_name, partition_val)
+      try:
+        res = self.run_sql(sql)
+        if not res:
+          return False
+        else:
+          return True
+      except:
+        return False
+
     else:
       sql = 'desc %s' % table_name
-    try:
-      self.run_sql(sql)
-      return True
-    except:
-      return False
+      try:
+        self.run_sql(sql)
+        return True
+      except:
+        return False
 
   def get_all_cols(self, input_path):
     conn = self._construct_hive_connect()
