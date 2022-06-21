@@ -55,6 +55,7 @@ tf.app.flags.DEFINE_bool(
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
 tf.app.flags.DEFINE_bool('check_mode', False, help='is use check mode')
+tf.app.flags.DEFINE_string('selected_cols', None, help='')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -62,6 +63,8 @@ def main(argv):
   if FLAGS.pipeline_config_path is not None:
     pipeline_config = config_util.get_configs_from_pipeline_file(
         FLAGS.pipeline_config_path, False)
+    if FLAGS.selected_cols:
+      pipeline_config.data_config.selected_cols = FLAGS.selected_cols
     if FLAGS.model_dir:
       pipeline_config.model_dir = FLAGS.model_dir
       logging.info('update model_dir to %s' % pipeline_config.model_dir)

@@ -29,7 +29,6 @@ class HiveInput(Input):
     self._fetch_size = self._hive_config.fetch_size
 
     self._num_epoch = data_config.num_epochs
-    self._num_epoch_record = 1
 
   def _parse_table(self, *fields):
     fields = list(fields)
@@ -62,13 +61,15 @@ class HiveInput(Input):
         hive_config=self._hive_config,
         selected_cols=','.join(self._input_fields),
         record_defaults=record_defaults,
-        input_path=self._hive_config.table_name,
         mode=mode,
         task_index=self._task_index,
-        task_num=self._task_num)._hive_read
+        task_num=self._task_num).hive_read
 
     dataset = tf.data.Dataset.from_generator(
-        _hive_read, output_types=list_type, output_shapes=list_shapes)
+        _hive_read,
+        output_types=list_type,
+        output_shapes=list_shapes,
+        args=(self._hive_config.table_name,))
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(

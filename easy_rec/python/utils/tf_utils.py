@@ -20,3 +20,16 @@ def get_tf_type(field_type):
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
+
+
+def get_col_type(tf_type):
+  type_map = {
+      tf.int32: 'BIGINT',
+      tf.int64: 'BIGINT',
+      tf.string: 'STRING',
+      tf.float32: 'FLOAT',
+      tf.double: 'DOUBLE',
+      tf.bool: 'BOOLEAN'
+  }
+  assert tf_type in type_map, 'invalid type: %s' % tf_type
+  return type_map[tf_type]

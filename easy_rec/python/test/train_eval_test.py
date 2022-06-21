@@ -751,8 +751,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_gzip_data(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/din_on_gzip_data.config',
-        self._test_dir)
+        'samples/model_config/din_on_gzip_data.config', self._test_dir)
     self.assertTrue(self._success)
 
 

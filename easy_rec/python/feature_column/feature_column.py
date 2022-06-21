@@ -133,8 +133,7 @@ class FeatureColumnParser(object):
       if self._share_embed_infos[embed_name].HasField('initializer'):
         initializer = hyperparams_builder.build_initializer(
             self._share_embed_infos[embed_name].initializer)
-      partitioner = self._build_partitioner(
-          self._share_embed_infos[embed_name])
+      partitioner = self._build_partitioner(self._share_embed_infos[embed_name])
       use_ev = self._use_embedding_variable or \
           self._share_embed_infos[embed_name].use_embedding_variable
       # for handling share embedding columns
@@ -480,15 +479,17 @@ class FeatureColumnParser(object):
         # pai embedding_variable should use fixed_size_partitioner
         return tf.fixed_size_partitioner(num_shards=config.max_partitions)
       else:
-        return min_max_variable_partitioner(max_partitions=config.max_partitions)
+        return min_max_variable_partitioner(
+            max_partitions=config.max_partitions)
     else:
       return None
 
   def _add_shared_embedding_column(self, embedding_name, fc, deep=True):
-    curr_id = len(self._deep_share_embed_columns[embedding_name])
     if deep:
+      curr_id = len(self._deep_share_embed_columns[embedding_name])
       self._deep_share_embed_columns[embedding_name].append(fc)
     else:
+      curr_id = len(self._wide_share_embed_columns[embedding_name])
       self._wide_share_embed_columns[embedding_name].append(fc)
     return SharedEmbedding(embedding_name, curr_id, None)
 
@@ -523,7 +524,8 @@ class FeatureColumnParser(object):
           combiner='sum',
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          use_embedding_variable=self._use_embedding_variable or config.use_embedding_variable)
+          use_embedding_variable=self._use_embedding_variable or
+          config.use_embedding_variable)
     self._wide_columns[feature_name] = wide_fc
 
   def _add_deep_embedding_column(self, fc, config):
@@ -545,6 +547,7 @@ class FeatureColumnParser(object):
           partitioner=self._build_partitioner(config),
           use_embedding_variable=self._use_embedding_variable or config.use_embedding_variable,
           max_seq_len=config.max_seq_len if config.HasField('max_seq_len') else -1)
+
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
     else:

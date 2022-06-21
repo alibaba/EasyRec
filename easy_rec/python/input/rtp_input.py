@@ -48,7 +48,6 @@ class RTPInput(Input):
     ]
     self._num_cols = -1
     self._feature_col_id = self._selected_cols[-1]
-    print('rtp input : ', self._input_path)
     logging.info('rtp separator = %s' % self._rtp_separator)
 
   def _parse_csv(self, line):
@@ -178,10 +177,10 @@ class RTPInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
- 
+
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
- 
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
