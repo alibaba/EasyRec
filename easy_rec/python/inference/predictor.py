@@ -904,15 +904,6 @@ class HivePredictor(Predictor):
                    [all_vals[k] for k in reserved_cols]
     return reserve_vals
 
-  def _check_worker_success(self, slice_num):
-    while (True):
-      for id in range(slice_num):
-        res_path = os.path.join(self._hdfs_path, 'SUCCESS-%s' % id)
-        if not gfile.Exists(res_path):
-          time.sleep(10)
-          self._check_worker_success(slice_num)
-      return True
-
   def load_to_table(self, output_path, slice_num, slice_id):
     res_path = os.path.join(self._hdfs_path, 'SUCCESS-%s' % slice_id)
     success_writer = gfile.GFile(res_path, 'w')
@@ -920,7 +911,11 @@ class HivePredictor(Predictor):
 
     if slice_id != 0:
       return
-    self._check_worker_success(slice_num)
+
+    for id in range(slice_num):
+      res_path = os.path.join(self._hdfs_path, 'SUCCESS-%s' % id)
+      while not gfile.Exists(res_path):
+        time.sleep(10)
 
     table_name, partition_name, partition_val = self.get_table_info(
       output_path)
