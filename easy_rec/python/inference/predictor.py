@@ -395,7 +395,7 @@ class Predictor(PredictorInterface):
   def _write_line(self, table_writer, outputs):
     pass
 
-  def load_to_table(self, output_path):
+  def load_to_table(self, output_path, slice_num, slice_id):
     pass
 
   def _get_fg_json(self, fg_json_path, model_path):
@@ -519,6 +519,7 @@ class Predictor(PredictorInterface):
                                                 self._output_cols, all_vals,
                                                 outputs)
           outputs = [x for x in zip(*reserve_vals)]
+          logging.info('predict size: %s' % len(outputs))
           self._write_line(table_writer, outputs)
 
           ts3 = time.time()
@@ -536,7 +537,7 @@ class Predictor(PredictorInterface):
       logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
                    (sum_t0, sum_t1, sum_t2))
       table_writer.close()
-      self.load_to_table(output_path)
+      self.load_to_table(output_path, slice_num, slice_id)
       logging.info('Predict %s done.' % input_path)
 
   def predict(self, input_data_dict_list, output_names=None, batch_size=1):
@@ -886,7 +887,7 @@ class HivePredictor(Predictor):
     assert not is_exist, '%s is already exists. Please drop it.' % output_path
 
     output_path = output_path.replace('.', '/')
-    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s' % (self._hive_config.host, output_path)
+    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (self._hive_config.host, output_path)
     if not gfile.Exists(self._hdfs_path):
       gfile.MakeDirs(self._hdfs_path)
     res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
@@ -903,7 +904,21 @@ class HivePredictor(Predictor):
                    [all_vals[k] for k in reserved_cols]
     return reserve_vals
 
-  def load_to_table(self, output_path):
+  def load_to_table(self, output_path, slice_num, slice_id):
+    res_path = os.path.join(self._hdfs_path, 'SUCCESS-%s' % slice_id)
+    success_writer = gfile.GFile(res_path, 'w')
+    success_writer.write('')
+
+    if slice_id != 0:
+      return
+
+    for id in range(slice_num):
+      res_path = os.path.join(self._hdfs_path, 'SUCCESS-%s' % id)
+      while not gfile.Exists(res_path):
+        time.sleep(10)
+
+    table_name, partition_name, partition_val = self.get_table_info(
+      output_path)
     schema = ''
     for output_col_name in self._output_cols:
       tf_type = self._predictor_impl._outputs_map[output_col_name].dtype
@@ -914,11 +929,10 @@ class HivePredictor(Predictor):
       assert output_col_name in self._all_cols, 'Column: %s not exists.' % output_col_name
       idx = self._all_cols.index(output_col_name)
       output_col_types = self._all_col_types[idx]
-      schema += output_col_name + ' ' + output_col_types + ','
+      if output_col_name != partition_name:
+        schema += output_col_name + ' ' + output_col_types + ','
     schema = schema.rstrip(',')
 
-    table_name, partition_name, partition_val = self.get_table_info(
-        output_path)
     if partition_name and partition_val:
       sql = "create table if not exists %s (%s) PARTITIONED BY (%s string)" % \
             (table_name, schema, partition_name)
@@ -927,8 +941,11 @@ class HivePredictor(Predictor):
             (self._hdfs_path, table_name, partition_name, partition_val)
       self._hive_util.run_sql(sql)
     else:
-      sql = "create external table if not exists %s (%s) location '%s'" % \
-            (table_name, schema, self._hdfs_path)
+      sql = "create table if not exists %s (%s)" % \
+            (table_name, schema)
+      self._hive_util.run_sql(sql)
+      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s" % \
+            (self._hdfs_path, table_name)
       self._hive_util.run_sql(sql)
 
   @property
