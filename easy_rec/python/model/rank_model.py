@@ -175,9 +175,10 @@ class RankModel(EasyRecModel):
                          label_name,
                          num_class=1,
                          suffix=''):
+    binary_loss_set = {LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS}
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
 
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
@@ -194,7 +195,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'gauc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         uids = self._feature_dict[metric.gauc.uid_field]
@@ -217,7 +218,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'session_auc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['gauc' + suffix] = metrics_lib.session_auc(
@@ -235,7 +236,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'max_f1':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['f1' + suffix] = metrics_lib.max_f1(
@@ -247,7 +248,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'recall_at_topk':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       assert num_class > 1
       label = tf.to_int64(self._labels[label_name])
       metric_dict['recall_at_topk' + suffix] = tf.metrics.recall_at_k(
@@ -271,9 +272,7 @@ class RankModel(EasyRecModel):
         metric_dict['mean_squared_error' +
                     suffix] = tf.metrics.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
-      elif num_class == 1 and loss_type in [LossType.CLASSIFICATION,
-                                            LossType.F1_REWEIGHTED_LOSS,
-                                            LossType.PAIR_WISE_LOSS]:
+      elif num_class == 1 and loss_type in binary_loss_set:
         metric_dict['mean_squared_error' +
                     suffix] = tf.metrics.mean_squared_error(
                         label, self._prediction_dict['probs' + suffix])
@@ -310,8 +309,9 @@ class RankModel(EasyRecModel):
     else:
       from easy_rec.python.core import metrics_impl_tf as distribute_metrics_tf
     metric_dict = {}
+    binary_loss_set = {LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS}
     if metric.WhichOneof('metric') == 'auc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['auc' + suffix] = distribute_metrics_tf.auc(
@@ -323,7 +323,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'gauc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['gauc' + suffix] = distribute_metrics_tf.gauc(
@@ -341,7 +341,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'session_auc':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['gauc' + suffix] = distribute_metrics_tf.session_auc(
@@ -359,7 +359,7 @@ class RankModel(EasyRecModel):
       else:
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'max_f1':
-      assert loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]
+      assert loss_type in binary_loss_set
       if num_class == 1:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['f1' + suffix] = distribute_metrics_tf.max_f1(
@@ -385,9 +385,7 @@ class RankModel(EasyRecModel):
                     suffix] = distribute_metrics_tf.mean_absolute_error(
                         label, self._prediction_dict['y' + suffix])
 
-      elif num_class == 1 and loss_type in [LossType.CLASSIFICATION,
-                                            LossType.F1_REWEIGHTED_LOSS,
-                                            LossType.PAIR_WISE_LOSS]:
+      elif num_class == 1 and loss_type in binary_loss_set:
         metric_dict['mean_absolute_error' +
                     suffix] = distribute_metrics_tf.mean_absolute_error(
                         label, self._prediction_dict['probs' + suffix])
@@ -399,9 +397,7 @@ class RankModel(EasyRecModel):
         metric_dict['mean_squared_error' +
                     suffix] = distribute_metrics_tf.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
-      elif num_class == 1 and loss_type in [LossType.CLASSIFICATION,
-                                            LossType.F1_REWEIGHTED_LOSS,
-                                            LossType.PAIR_WISE_LOSS]:
+      elif num_class == 1 and loss_type in binary_loss_set:
         metric_dict['mean_squared_error' +
                     suffix] = distribute_metrics_tf.mean_squared_error(
                         label, self._prediction_dict['probs' + suffix])
@@ -413,9 +409,7 @@ class RankModel(EasyRecModel):
         metric_dict['root_mean_squared_error' +
                     suffix] = distribute_metrics_tf.root_mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
-      elif num_class == 1 and loss_type in [LossType.CLASSIFICATION,
-                                            LossType.F1_REWEIGHTED_LOSS,
-                                            LossType.PAIR_WISE_LOSS]:
+      elif num_class == 1 and loss_type in binary_loss_set:
         metric_dict['root_mean_squared_error' +
                     suffix] = distribute_metrics_tf.root_mean_squared_error(
                         label, self._prediction_dict['probs' + suffix])
