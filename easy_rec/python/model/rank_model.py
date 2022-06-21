@@ -27,7 +27,7 @@ class RankModel(EasyRecModel):
                                     labels, is_training)
     self._loss_type = self._model_config.loss_type
     self._num_class = self._model_config.num_class
-
+    self._losses = self._model_config.losses
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
 
@@ -118,12 +118,16 @@ class RankModel(EasyRecModel):
                        num_class=1,
                        suffix=''):
     loss_dict = {}
+    loss_args = {}
     if loss_type == LossType.CLASSIFICATION:
       loss_name = 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type == LossType.F1_REWEIGHTED_LOSS:
       loss_name = 'f1_reweighted_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
+      if self._base_model_config.HasField('f1_reweight_loss'):
+        loss_args['beta_square'] = self._base_model_config.f1_reweight_loss.f1_beta_square
+        loss_args['label_smoothing'] = self._base_model_config.f1_reweight_loss.label_smoothing
     elif loss_type == LossType.PAIR_WISE_LOSS:
       loss_name = 'pairwise_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
@@ -135,16 +139,26 @@ class RankModel(EasyRecModel):
 
     loss_dict[loss_name] = loss_builder.build(loss_type,
                                               self._labels[label_name], pred,
-                                              loss_weight, num_class)
+                                              loss_weight, num_class, **loss_args)
     return loss_dict
 
   def build_loss_graph(self):
-    self._loss_dict.update(
-        self._build_loss_impl(
-            self._loss_type,
-            label_name=self._label_name,
-            loss_weight=self._sample_weight,
-            num_class=self._num_class))
+    loss_dict = {}
+    if len(self._losses) == 0:
+      loss_dict = self._build_loss_impl(self._loss_type,
+                                        label_name=self._label_name,
+                                        loss_weight=self._sample_weight,
+                                        num_class=self._num_class)
+    else:
+      for loss in self._losses:
+        loss_ops = self._build_loss_impl(loss.loss_type,
+                                         label_name=self._label_name,
+                                         loss_weight=self._sample_weight,
+                                         num_class=self._num_class)
+        for loss_name, loss_value in loss_ops.items():
+          loss_dict[loss_name] = loss_value * loss.weight
+
+    self._loss_dict.update(loss_dict)
 
     # build kd loss
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
