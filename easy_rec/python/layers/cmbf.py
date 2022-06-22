@@ -159,9 +159,12 @@ class CMBF(object):
         general_features = tf.layers.dense(general_features, hidden_size, activation=tf.nn.relu, name='txt_projection')
       txt_features = tf.reshape(general_features, shape=[-1, self._general_feature_num, hidden_size])
 
-      batch_size = tf.shape(txt_features)[0]
       all_txt_features.append(txt_features)
-      input_masks.append(tf.ones(shape=[batch_size, self._general_feature_num], dtype=tf.int32))
+      batch_size = tf.shape(txt_features)[0]
+      one_col = tf.expand_dims(tf.ones(shape=[batch_size], dtype=tf.int32), axis=-1)
+      one_row = tf.ones(shape=[1, self._general_feature_num], dtype=tf.int32)
+      mask = one_col * one_row
+      input_masks.append(mask)
 
     input_mask = None
     attention_mask = None
