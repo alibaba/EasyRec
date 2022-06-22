@@ -161,16 +161,16 @@ class CMBF(object):
 
       all_txt_features.append(txt_features)
       batch_size = tf.shape(txt_features)[0]
-      one_col = tf.expand_dims(tf.ones(shape=[batch_size], dtype=tf.int32), axis=-1)
-      one_row = tf.ones(shape=[1, self._general_feature_num], dtype=tf.int32)
-      mask = one_col * one_row
+      mask = tf.ones(shape=tf.stack([batch_size, self._general_feature_num]), dtype=tf.int32)
       input_masks.append(mask)
 
     input_mask = None
     attention_mask = None
     if self._txt_seq_features is not None:
       def dynamic_mask(x, max_len):
-        return tf.concat([tf.ones(shape=[x], dtype=tf.int32), tf.zeros(shape=[max_len - x], dtype=tf.int32)], axis=0)
+        ones = tf.ones(shape=tf.stack([x]), dtype=tf.int32)
+        zeros = tf.zeros(shape=tf.stack([max_len - x]), dtype=tf.int32)
+        return tf.concat([ones, zeros], axis=0)
 
       token_type_vocab_size = len(self._txt_seq_features)
       for i, (seq_fea, seq_len) in enumerate(self._txt_seq_features):
@@ -183,7 +183,7 @@ class CMBF(object):
         seq_fea = multihead_cross_attention.embedding_postprocessor(
           seq_fea,
           use_token_type=self._model_config.use_token_type,
-          token_type_ids=tf.ones(shape=[batch_size, max_seq_len], dtype=tf.int32) * i,
+          token_type_ids=tf.ones(shape=tf.stack([batch_size, max_seq_len]), dtype=tf.int32) * i,
           token_type_vocab_size=token_type_vocab_size,
           reuse_token_type=tf.AUTO_REUSE,
           use_position_embeddings=self._model_config.use_position_embeddings,
