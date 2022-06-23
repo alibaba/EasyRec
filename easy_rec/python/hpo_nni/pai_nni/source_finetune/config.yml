@@ -1,0 +1,16 @@
+searchSpaceFile: search_space.json
+trialCommand: python3 ./run_finetune.py --odps_config=../config/odps_config.ini --oss_config=../config/.ossutilconfig --easyrec_cmd_config=../config/easyrec_cmd_config_finetune --metric_config=../config/metric_config --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-20
+trialConcurrency: 3
+maxTrialNumber: 10
+tuner:
+  name: TPE
+  classArgs:
+    optimize_mode: maximize
+trainingService:
+  platform: local
+assessor:
+   codeDirectory: ../code
+   className: custom_assessor.CustomizedAssessor
+   classArgs:
+      optimize_mode: maximize
+      start_step: 5

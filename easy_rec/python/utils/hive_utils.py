@@ -181,7 +181,8 @@ class HiveUtils(object):
                                   partition_name=None,
                                   partition_val=None):
     if partition_name and partition_val:
-      sql = 'show partitions %s partition(%s=%s)' % (table_name, partition_name, partition_val)
+      sql = 'show partitions %s partition(%s=%s)' % (table_name, partition_name,
+                                                     partition_val)
       try:
         res = self.run_sql(sql)
         if not res:

@@ -15,6 +15,7 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.test_utils import RunAsSubprocess
 
+
 class PredictorTest(tf.test.TestCase):
 
   def setUp(self):
@@ -38,7 +39,6 @@ class PredictorTest(tf.test.TestCase):
         inputs.append(row[2:])
       output_res = predictor.predict(inputs, batch_size=32)
       self.assertTrue(len(output_res) == 100)
-
 
   @RunAsSubprocess
   def test_lookup_pred(self):
@@ -172,8 +172,10 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
     saved_model_dir = 'data/test/inference/tb_multitower_export/'
-    self._success = test_utils.test_single_predict(
-        self._test_dir, test_input_path, self._test_output_path, saved_model_dir)
+    self._success = test_utils.test_single_predict(self._test_dir,
+                                                   test_input_path,
+                                                   self._test_output_path,
+                                                   saved_model_dir)
     self.assertTrue(self._success)
     with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
