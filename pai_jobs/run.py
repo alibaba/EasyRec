@@ -162,7 +162,8 @@ tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
 tf.app.flags.DEFINE_string('model_dir', None, 'model directory')
-tf.app.flags.DEFINE_bool('clear_model', False, 'remove model directory if exists')
+tf.app.flags.DEFINE_bool('clear_model', False,
+                         'remove model directory if exists')
 tf.app.flags.DEFINE_string('hpo_param_path', None,
                            'hyperparameter tuning param path')
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,

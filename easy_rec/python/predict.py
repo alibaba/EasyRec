@@ -66,8 +66,8 @@ def main(argv):
     if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,
-          hive_config=pipeline_config.hive_train_input,
-          mode=tf.estimator.ModeKeys.PREDICT).get_all_cols(FLAGS.input_path)
+          hive_config=pipeline_config.hive_train_input).get_all_cols(
+              FLAGS.input_path)
       predictor = HivePredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,

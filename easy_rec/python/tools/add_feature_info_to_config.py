@@ -38,8 +38,7 @@ def main(argv):
         data_config=pipeline_config.data_config,
         hive_config=pipeline_config.hive_train_input,
         selected_cols=sels,
-        record_defaults=['', '', ''],
-        mode=tf.estimator.ModeKeys.PREDICT)
+        record_defaults=['', '', ''])
     reader = hive_util.hive_read_line(FLAGS.config_table, sels)
     for record in reader:
       feature_name = record[0][0]
