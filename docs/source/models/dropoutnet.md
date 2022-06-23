@@ -123,3 +123,4 @@ model_config {
 ### 参考论文
 
 [DropoutNet.pdf](https://papers.nips.cc/paper/2017/file/dbd22ba3bd0df8f385bdac3e9f8be207-Paper.pdf)
+[冷启动推荐模型DropoutNet深度解析与改进](https://zhuanlan.zhihu.com/p/474671484)

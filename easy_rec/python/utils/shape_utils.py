@@ -388,3 +388,18 @@ def assert_rank(tensor, expected_rank, name=None):
         'For the tensor `%s` in scope `%s`, the actual rank '
         '`%d` (shape = %s) is not equal to the expected rank `%s`' %
         (name, scope_name, actual_rank, str(tensor.shape), str(expected_rank)))
+
+
+def truncate_sequence(seq_emb, seq_len, limited_len):
+  def truncate(seq_embed, seq_length):
+    seq_embed = tf.slice(seq_embed, [0, 0, 0], [shape[0], limited_len, shape[2]])
+    seq_length = tf.where(tf.greater(seq_length, limited_len), tf.ones_like(seq_length) * limited_len, seq_length)
+    return seq_embed, seq_length
+
+  def keep(seq_embed, seq_length):
+    return seq_embed, seq_length
+
+  shape = get_shape_list(seq_emb)
+  max_seq_len = shape[1]
+
+  return tf.cond(max_seq_len > limited_len, lambda: truncate(seq_emb, seq_len), lambda: keep(seq_emb, seq_len))
