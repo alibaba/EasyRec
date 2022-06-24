@@ -280,7 +280,8 @@ class InputLayer(object):
         with tf.variable_scope('input_layer/' + fc.categorical_column.name):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
           if fc.max_seq_length > 0:
-            tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(tmp_embedding, tmp_seq_len, fc.max_seq_length)
+            tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(
+                tmp_embedding, tmp_seq_len, fc.max_seq_length)
           seq_features.append((tmp_embedding, tmp_seq_len))
           embedding_reg_lst.append(tmp_embedding)
       regularizers.apply_regularization(

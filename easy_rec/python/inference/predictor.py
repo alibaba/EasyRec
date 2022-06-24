@@ -880,14 +880,14 @@ class HivePredictor(Predictor):
     return table_name, partition_name, partition_val
 
   def _get_writer(self, output_path, slice_id):
-    table_name, partition_name, partition_val = self.get_table_info(
-        output_path)
+    table_name, partition_name, partition_val = self.get_table_info(output_path)
     is_exist = self._hive_util.is_table_or_partition_exist(
         table_name, partition_name, partition_val)
     assert not is_exist, '%s is already exists. Please drop it.' % output_path
 
     output_path = output_path.replace('.', '/')
-    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (self._hive_config.host, output_path)
+    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (
+        self._hive_config.host, output_path)
     if not gfile.Exists(self._hdfs_path):
       gfile.MakeDirs(self._hdfs_path)
     res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
@@ -917,8 +917,7 @@ class HivePredictor(Predictor):
       while not gfile.Exists(res_path):
         time.sleep(10)
 
-    table_name, partition_name, partition_val = self.get_table_info(
-      output_path)
+    table_name, partition_name, partition_val = self.get_table_info(output_path)
     schema = ''
     for output_col_name in self._output_cols:
       tf_type = self._predictor_impl._outputs_map[output_col_name].dtype
@@ -934,14 +933,14 @@ class HivePredictor(Predictor):
     schema = schema.rstrip(',')
 
     if partition_name and partition_val:
-      sql = "create table if not exists %s (%s) PARTITIONED BY (%s string)" % \
+      sql = 'create table if not exists %s (%s) PARTITIONED BY (%s string)' % \
             (table_name, schema, partition_name)
       self._hive_util.run_sql(sql)
       sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s PARTITION (%s=%s)" % \
             (self._hdfs_path, table_name, partition_name, partition_val)
       self._hive_util.run_sql(sql)
     else:
-      sql = "create table if not exists %s (%s)" % \
+      sql = 'create table if not exists %s (%s)' % \
             (table_name, schema)
       self._hive_util.run_sql(sql)
       sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s" % \

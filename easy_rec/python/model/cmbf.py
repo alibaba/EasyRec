@@ -2,9 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.layers import dnn
 from easy_rec.python.layers import cmbf
+from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.cmbf_pb2 import CMBF as CMBFConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -32,14 +33,12 @@ class CMBF(RankModel):
                features,
                labels=None,
                is_training=False):
-    super(CMBF, self).__init__(model_config, feature_configs, features,
-                               labels, is_training)
+    super(CMBF, self).__init__(model_config, feature_configs, features, labels,
+                               is_training)
     assert self._model_config.WhichOneof('model') == 'cmbf', \
       'invalid model config: %s' % self._model_config.WhichOneof('model')
 
-    self._cmbf_layer = cmbf.CMBF(model_config,
-                                 feature_configs,
-                                 features,
+    self._cmbf_layer = cmbf.CMBF(model_config, feature_configs, features,
                                  self._model_config.cmbf.config,
                                  self._input_layer)
     self._model_config = self._model_config.cmbf

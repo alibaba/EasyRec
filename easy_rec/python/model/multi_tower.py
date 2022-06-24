@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
