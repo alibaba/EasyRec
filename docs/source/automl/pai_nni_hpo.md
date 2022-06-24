@@ -51,7 +51,7 @@ trainingService:
   platform: local
 assessor:
    codeDirectory: ../code
-   className: custom_assessor.CustomizedAssessor
+   className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 2
@@ -60,7 +60,7 @@ assessor:
 #### odps账号信息文件
 
 ```
-project_name=easy_rec_test
+project_name=xxx
 access_id=xxx
 access_key=xxx
 end_point=http://service.odps.aliyun.com/api
@@ -210,21 +210,24 @@ learning_rate {
       }
 ```
 
+支持手动修改，也支持代码修改配置，修改效果如下：
+![image.png](../../images/automl/modify_lr.jpg)
+
+#### 使用代码修改配置(可选)
+
 支持本地上pipeline文件修改
 
 ```bash
-cd source_finetune
+cd easy_rec/python/hpo_nni/pai_nni/code
 python modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
 ```
 
 也支持oss上pipeline文件直接修改
 
 ```bash
-cd source_finetune
+cd easy_rec/python/hpo_nni/pai_nni/code
 python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/yj374186/pipeline889.config --save_path=oss://easyrec/yj374186/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
-
-![image.png](../../images/automl/modify_lr.jpg)
 
 如果用户想要看是否有更优参数，可以看下级目录启动调优。
 
@@ -250,7 +253,7 @@ trainingService:
   platform: local
 assessor:
    codeDirectory: ../code
-   className: custom_assessor.CustomizedAssessor
+   className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 2
@@ -326,7 +329,8 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承pai_nni/code/custom_assessor.CustomizedAssessor trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
+注意继承pai_nni/code/pai_custom_assessor.PaiCustomizedAssessor
+trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
 
 ```
 def trial_end(self, trial_job_id, success):

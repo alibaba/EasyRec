@@ -10,7 +10,7 @@ trainingService:
   platform: local
 assessor:
    codeDirectory: ../code
-   className: custom_assessor.CustomizedAssessor
+   className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 5

@@ -1,5 +1,3 @@
-import logging
-
 from nni.algorithms.hpo.medianstop_assessor import MedianstopAssessor
 from nni.assessor import AssessResult
 from nni.utils import extract_scalar_history
@@ -8,10 +6,8 @@ from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import create_odps
 from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
-logger = logging.getLogger('Customized Assessor')
 
-
-class CustomizedAssessor(MedianstopAssessor):
+class PAIAssessor(MedianstopAssessor):
 
   def assess_trial(self, trial_job_id, trial_history):
     print('trial access', trial_job_id, trial_history)
