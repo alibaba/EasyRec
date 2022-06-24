@@ -2,6 +2,10 @@
 
 ## GetStarted
 
+注意NNI仅支持python>=3.7,因此请配置python>=3.7的环境
+
+It is tested and supported on Ubuntu >= 18.04, Windows 10 >= 21H2, and macOS >= 11.
+
 ### 下载安装easyrec
 
 ```bash
@@ -11,19 +15,12 @@ bash scripts/init.sh
 python setup.py install
 ```
 
-### 下载安装依赖包
-
-```bash
-cd easy_rec/python/hpo_nni/pai_nni
-pip install -r requirements.txt
-```
-
 ## 启动调优
 
 ### 启动命令
 
 ```bash
-cd source_begin
+cd easy_rec/python/hpo_nni/pai_nni/source_begin
 nnictl create --config config.yml --port=8780
 ```
 

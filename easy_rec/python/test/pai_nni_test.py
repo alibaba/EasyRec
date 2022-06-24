@@ -4,16 +4,18 @@
 import json
 import logging
 import os
+import platform
 import unittest
 from argparse import Namespace
 
-from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
-from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
-from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
+if platform.python_version() >= '3.7':
+  from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
+  from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
+  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
+  from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
-from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import get_learning_rate  # NOQA
-from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import modify_config  # NOQA
+  from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import get_learning_rate  # NOQA
+  from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import modify_config  # NOQA
 
 
 class PAINNITest(unittest.TestCase):
@@ -65,4 +67,5 @@ class PAINNITest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  if platform.python_version() >= '3.7':
+    unittest.main()
