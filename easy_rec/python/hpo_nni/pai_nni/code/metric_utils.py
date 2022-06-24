@@ -101,9 +101,8 @@ def get_bucket(ori_filepath, oss_config=None):
   oss_pattern = re.compile(r'oss://([^/]+)/(.+)')
   m = oss_pattern.match(ori_filepath)
   if not m:
-    raise IOError(
-        f'invalid oss path: "{ori_filepath}", should be "oss://<bucket_name>/path"'
-    )
+    raise IOError('invalid oss path: ' + ori_filepath +
+                  ' should be oss://<bucket_name>/path')
   bucket_name, path = m.groups()
   path = path.replace('//', '/')
   bucket_name = bucket_name.split('.')[0]
