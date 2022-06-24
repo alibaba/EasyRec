@@ -93,6 +93,7 @@ def modify_config(args):
   if args.pipeline_config_path.startswith('oss://'):
     os.remove(pipeline_config_path)
 
+
 def get_learning_rate(pipeline_config_path):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
@@ -106,14 +107,15 @@ def get_learning_rate(pipeline_config_path):
       return learning_rate.learning_rate
 
     elif hasattr(learning_rate, 'initial_learning_rate'):
-      return learning_rate.initial_learning_rate 
+      return learning_rate.initial_learning_rate
 
     elif hasattr(learning_rate, 'learning_rate_base'):
       return learning_rate.learning_rate_base
   return None
 
+
 if __name__ == '__main__':
   args = get_params()
-  print('args:',args)
+  print('args:', args)
   modify_config(args)
-  print("final learning_rate:",get_learning_rate(args.save_path))
+  print('final learning_rate:', get_learning_rate(args.save_path))
