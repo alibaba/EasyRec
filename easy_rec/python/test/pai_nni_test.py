@@ -9,7 +9,7 @@ from argparse import Namespace
 
 from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
 from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
 from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import get_learning_rate  # NOQA
@@ -18,7 +18,7 @@ from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import modify_c
 
 class PAINNITest(unittest.TestCase):
 
-  def __init__(self, methodName='PAINNITest'):
+  def __init__(self, methodName='HPOTest'):
     super(PAINNITest, self).__init__(methodName=methodName)
     filepath = os.path.dirname(
         os.path.dirname(
@@ -32,7 +32,10 @@ class PAINNITest(unittest.TestCase):
         'easy_rec/python/hpo_nni/pai_nni/config/pipeline_finetune.config')
     self.easyrec_cmd_config = os.path.join(
         filepath,
-        'easy_rec/python/hpo_nni/pai_nni/config/easyrec_cmd_config_begin')
+        'easy_rec/python/hpo_nni/pai_nni/config/easyrec_cmd_config_finetune')
+    self.easyrec_cmd_test_config = os.path.join(
+        filepath,
+        'easy_rec/python/hpo_nni/pai_nni/config/easyrec_cmd_config_test')
 
   def test_get_metric(self):
     vals = get_result(None, self._metric_data_path)
@@ -52,8 +55,12 @@ class PAINNITest(unittest.TestCase):
     modify_config(args)
     self.assertAlmostEqual(get_learning_rate(self.save_path), 1e-6)
 
-  def test_parse_config(self):
-    config = parse_config(self.easyrec_cmd_config)
+  def test_parse_easyrec_config(self):
+    config = parse_easyrec_config(self.easyrec_cmd_test_config)
+    assert config['-name'] == 'easy_rec_ext'
+
+  def test_parse_easyrec_config_2(self):
+    config = parse_easyrec_config(self.easyrec_cmd_config)
     assert config['-name'] == 'easy_rec_ext'
 
 

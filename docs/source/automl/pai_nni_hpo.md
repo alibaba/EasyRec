@@ -87,6 +87,8 @@ accessKeySecret= xxx
 
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 
+推荐按照以下方式将相关参数以key=value的方式写入config
+
 ```
 -name=easy_rec_ext
 -project=algo_public

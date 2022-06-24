@@ -128,8 +128,10 @@ class RankModel(EasyRecModel):
       loss_name = 'f1_reweighted_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
       if self._base_model_config.HasField('f1_reweight_loss'):
-        loss_args['beta_square'] = self._base_model_config.f1_reweight_loss.f1_beta_square
-        loss_args['label_smoothing'] = self._base_model_config.f1_reweight_loss.label_smoothing
+        loss_args[
+            'beta_square'] = self._base_model_config.f1_reweight_loss.f1_beta_square
+        loss_args[
+            'label_smoothing'] = self._base_model_config.f1_reweight_loss.label_smoothing
     elif loss_type == LossType.PAIR_WISE_LOSS:
       loss_name = 'pairwise_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
@@ -141,22 +143,25 @@ class RankModel(EasyRecModel):
 
     loss_dict[loss_name] = loss_builder.build(loss_type,
                                               self._labels[label_name], pred,
-                                              loss_weight, num_class, **loss_args)
+                                              loss_weight, num_class,
+                                              **loss_args)
     return loss_dict
 
   def build_loss_graph(self):
     loss_dict = {}
     if len(self._losses) == 0:
-      loss_dict = self._build_loss_impl(self._loss_type,
-                                        label_name=self._label_name,
-                                        loss_weight=self._sample_weight,
-                                        num_class=self._num_class)
+      loss_dict = self._build_loss_impl(
+          self._loss_type,
+          label_name=self._label_name,
+          loss_weight=self._sample_weight,
+          num_class=self._num_class)
     else:
       for loss in self._losses:
-        loss_ops = self._build_loss_impl(loss.loss_type,
-                                         label_name=self._label_name,
-                                         loss_weight=self._sample_weight,
-                                         num_class=self._num_class)
+        loss_ops = self._build_loss_impl(
+            loss.loss_type,
+            label_name=self._label_name,
+            loss_weight=self._sample_weight,
+            num_class=self._num_class)
         for loss_name, loss_value in loss_ops.items():
           loss_dict[loss_name] = loss_value * loss.weight
 
@@ -175,7 +180,10 @@ class RankModel(EasyRecModel):
                          label_name,
                          num_class=1,
                          suffix=''):
-    binary_loss_set = {LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS}
+    binary_loss_set = {
+        LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
+        LossType.PAIR_WISE_LOSS
+    }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
       assert loss_type in binary_loss_set
@@ -309,7 +317,10 @@ class RankModel(EasyRecModel):
     else:
       from easy_rec.python.core import metrics_impl_tf as distribute_metrics_tf
     metric_dict = {}
-    binary_loss_set = {LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS}
+    binary_loss_set = {
+        LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
+        LossType.PAIR_WISE_LOSS
+    }
     if metric.WhichOneof('metric') == 'auc':
       assert loss_type in binary_loss_set
       if num_class == 1:
@@ -446,7 +457,10 @@ class RankModel(EasyRecModel):
     return metric_dict
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
-    if loss_type in [LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS]:
+    if loss_type in [
+        LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
+        LossType.PAIR_WISE_LOSS
+    ]:
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]
       else:

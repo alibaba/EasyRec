@@ -66,3 +66,22 @@ def parse_config(config_path):
         val = try_parse(line_str[(tmp_id + 1):].strip())
         config[key] = val
   return config
+
+
+def parse_easyrec_config(config_path):
+  assert os.path.exists(config_path)
+  config = {}
+  with open(config_path, 'r') as fin:
+    for line_str in fin:
+      line_str = line_str.strip()
+      if len(line_str) == 0:
+        continue
+      if line_str[0] == '#':
+        continue
+      for x in line_str.split(' '):
+        if '=' in x:
+          tmp_id = x.find('=')
+          key = x[:tmp_id].strip()
+          val = try_parse(x[(tmp_id + 1):].strip())
+          config[key] = val
+  return config

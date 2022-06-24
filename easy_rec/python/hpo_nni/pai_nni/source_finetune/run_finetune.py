@@ -9,6 +9,7 @@ from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import create_odps
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import run_command
 from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
 
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     cnt = 0
     while (datestart <= dateend):
       print(datestart.strftime('%Y%m%d'))
-      easyrec_cmd_config = parse_config(args.easyrec_cmd_config)
+      easyrec_cmd_config = parse_easyrec_config(args.easyrec_cmd_config)
 
       # update parameter
       pre_edit = eval(easyrec_cmd_config.get('-Dedit_config_json', '{}'))

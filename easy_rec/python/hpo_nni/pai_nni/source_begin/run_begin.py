@@ -8,6 +8,7 @@ from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import report_result
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import create_odps
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import run_command
 from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     if args.oss_config is None:
       args.oss_config = os.path.join(os.environ['HOME'], '.ossutilconfig')
 
-    easyrec_cmd_config = parse_config(args.easyrec_cmd_config)
+    easyrec_cmd_config = parse_easyrec_config(args.easyrec_cmd_config)
 
     # get parameters form tuner
     tuner_params = nni.get_next_parameter()
