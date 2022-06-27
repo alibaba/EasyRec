@@ -184,9 +184,11 @@ model_config: {
   dbmtl {
     bottom_cmbf {
       multi_head_num: 2
-      image_head_size: 8
+      image_multi_head_num: 2
+      text_multi_head_num: 2
+      image_feature_patch_num: 8
+      image_head_size: 32
       text_head_size: 8
-      image_feature_dim: 64
       image_self_attention_layer_num: 2
       text_self_attention_layer_num: 2
       cross_modal_layer_num: 3

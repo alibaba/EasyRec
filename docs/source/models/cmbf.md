@@ -69,6 +69,8 @@ model_config: {
   }
   cmbf {
     multi_head_num: 2
+    image_multi_head_num: 2
+    text_multi_head_num: 2
     image_head_size: 8
     text_head_size: 8
     image_feature_dim: 64
