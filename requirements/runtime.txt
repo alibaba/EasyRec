@@ -1,7 +1,11 @@
 future
 matplotlib
+nni
+oss2
 pandas
 psutil
+pyodps
 PyYAML
 scikit-learn
+tensorflow
 xlrd >= 0.9.0

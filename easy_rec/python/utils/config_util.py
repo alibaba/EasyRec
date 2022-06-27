@@ -35,7 +35,7 @@ def search_pipeline_config(directory):
     raise ValueError('config is not found in directory %s' % directory)
   elif len(dir_list) > 1:
     raise ValueError('config saved model found in directory %s' % directory)
-  logging.info("use pipeline config: %s" % dir_list[0])
+  logging.info('use pipeline config: %s' % dir_list[0])
   return dir_list[0]
 
 

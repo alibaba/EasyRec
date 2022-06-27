@@ -277,6 +277,7 @@ def test_single_pre_check(pipeline_config_path, test_dir):
     return False
   return True
 
+
 def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
   gpus = get_available_gpus()
   if len(gpus) > 0:
@@ -293,6 +294,7 @@ def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
     logging.error('predict failed')
     return False
   return True
+
 
 def test_feature_selection(pipeline_config):
   model_dir = pipeline_config.model_dir

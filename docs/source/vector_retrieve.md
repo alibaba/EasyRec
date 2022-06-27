@@ -94,6 +94,7 @@ pai -name easy_rec_ext -project algo_public_dev
 ```
 
 FQA: 遇到以下错误怎么办？
+
 ```
 File "run.py", line 517, in main
   raise ValueError('cmd should be one of train/evaluate/export/predict')
@@ -105,6 +106,7 @@ ValueError: cmd should be one of train/evaluate/export/predict
 解决方案：从 [Github](https://github.com/alibaba/EasyRec)
 的master分支拉取最新代码，使用`bash pai_jobs/deploy_ext.sh -V ${version}`命令打一个最新的资源包`easy_rec_ext_${version}_res.tar.gz`，
 上传到MaxCompute作为Archive资源，最后，在上述命令中加两个如下的参数即可解决。
+
 ```
 -Dversion='${version}'
 -Dres_project=${maxcompute_project}

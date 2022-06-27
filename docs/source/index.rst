@@ -59,6 +59,7 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: AUTOML
 
+   automl/pai_nni_hpo
    automl/hpo_pai
    automl/hpo_emr
    automl/auto_cross_emr

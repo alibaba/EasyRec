@@ -1,6 +1,5 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import collections
 import logging
 
 import tensorflow as tf
@@ -545,8 +544,10 @@ class FeatureColumnParser(object):
           combiner=config.combiner,
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          use_embedding_variable=self._use_embedding_variable or config.use_embedding_variable)
-      fc.max_seq_length = config.max_seq_len if config.HasField('max_seq_len') else -1
+          use_embedding_variable=self._use_embedding_variable or
+          config.use_embedding_variable)
+      fc.max_seq_length = config.max_seq_len if config.HasField(
+          'max_seq_len') else -1
 
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc

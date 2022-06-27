@@ -243,7 +243,7 @@ model_config: {
     - multi_head_num: 单模态学习模块和跨模态融合模块中的 head 数量，默认为1
     - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
     - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size
-    - image_feature_slice_num: [可选，默认值为1] 表示CNN的filter个数。当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_slice_num * embedding_size`。
+    - image_feature_slice_num: \[可选，默认值为1\] 表示CNN的filter个数。当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_slice_num * embedding_size`。
     - image_self_attention_layer_num: 单模态学习模块中的图像tower，multi-headed self-attention的层数
     - text_self_attention_layer_num: 单模态学习模块中的文本tower，multi-headed self-attention的层数
     - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1

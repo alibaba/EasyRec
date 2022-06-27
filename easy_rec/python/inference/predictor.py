@@ -477,10 +477,10 @@ class Predictor(PredictorInterface):
                 split_vals[k] = []
             else:
               assert self._all_input_names, 'must set fg_json_path when use fg input'
-              assert fg_input_size == len(self._all_input_names), \
-                'The size of features in fg_json != the size of fg input. ' \
-                'The size of features in fg_json is: %s; The size of fg input is: %s' % \
-                (fg_input_size, len(self._all_input_names))
+              assert fg_input_size == len(self._all_input_names), (
+                  'The size of features in fg_json != the size of fg input. '
+                  'The size of features in fg_json is: %s; The size of fg input is: %s'
+                  % (fg_input_size, len(self._all_input_names)))
               for i, k in enumerate(self._all_input_names):
                 split_index.append(k)
                 split_vals[k] = []
@@ -674,9 +674,9 @@ class CSVPredictor(Predictor):
       for line_str in fin:
         line_tok = line_str.strip().split(self._input_sep)
         if num_cols != -1:
-          assert num_cols == len(line_tok), \
-            'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.' % \
-            (num_cols, len(line_tok), line_str)
+          assert num_cols == len(line_tok), (
+              'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.'
+              % (num_cols, len(line_tok), line_str))
         num_cols = len(line_tok)
         num_lines += 1
         if num_lines > 10:
@@ -797,7 +797,7 @@ class ODPSPredictor(Predictor):
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
     reserve_vals = [all_vals[k] for k in reserved_cols] + \
-                 [outputs[x] for x in output_cols]
+                   [outputs[x] for x in output_cols]
     return reserve_vals
 
 
@@ -880,14 +880,14 @@ class HivePredictor(Predictor):
     return table_name, partition_name, partition_val
 
   def _get_writer(self, output_path, slice_id):
-    table_name, partition_name, partition_val = self.get_table_info(
-        output_path)
+    table_name, partition_name, partition_val = self.get_table_info(output_path)
     is_exist = self._hive_util.is_table_or_partition_exist(
         table_name, partition_name, partition_val)
     assert not is_exist, '%s is already exists. Please drop it.' % output_path
 
     output_path = output_path.replace('.', '/')
-    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (self._hive_config.host, output_path)
+    self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (
+        self._hive_config.host, output_path)
     if not gfile.Exists(self._hdfs_path):
       gfile.MakeDirs(self._hdfs_path)
     res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
@@ -917,8 +917,7 @@ class HivePredictor(Predictor):
       while not gfile.Exists(res_path):
         time.sleep(10)
 
-    table_name, partition_name, partition_val = self.get_table_info(
-      output_path)
+    table_name, partition_name, partition_val = self.get_table_info(output_path)
     schema = ''
     for output_col_name in self._output_cols:
       tf_type = self._predictor_impl._outputs_map[output_col_name].dtype
@@ -934,14 +933,14 @@ class HivePredictor(Predictor):
     schema = schema.rstrip(',')
 
     if partition_name and partition_val:
-      sql = "create table if not exists %s (%s) PARTITIONED BY (%s string)" % \
+      sql = 'create table if not exists %s (%s) PARTITIONED BY (%s string)' % \
             (table_name, schema, partition_name)
       self._hive_util.run_sql(sql)
       sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s PARTITION (%s=%s)" % \
             (self._hdfs_path, table_name, partition_name, partition_val)
       self._hive_util.run_sql(sql)
     else:
-      sql = "create table if not exists %s (%s)" % \
+      sql = 'create table if not exists %s (%s)' % \
             (table_name, schema)
       self._hive_util.run_sql(sql)
       sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s" % \

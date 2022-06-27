@@ -247,7 +247,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_cmbf(self):
     self._success = test_utils.test_single_train_eval(
-      'samples/model_config/cmbf_on_movielens.config', self._test_dir)
+        'samples/model_config/cmbf_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_cmbf_with_multi_loss(self):
@@ -257,17 +257,20 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_cmbf_has_other_feature(self):
     self._success = test_utils.test_single_train_eval(
-      'samples/model_config/cmbf_on_movielens_has_other_feature.config', self._test_dir)
+        'samples/model_config/cmbf_on_movielens_has_other_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_cmbf_only_text_feature(self):
     self._success = test_utils.test_single_train_eval(
-      'samples/model_config/cmbf_on_movielens_only_text_feature.config', self._test_dir)
+        'samples/model_config/cmbf_on_movielens_only_text_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_cmbf_only_image_feature(self):
     self._success = test_utils.test_single_train_eval(
-      'samples/model_config/cmbf_on_movielens_only_image_feature.config', self._test_dir)
+        'samples/model_config/cmbf_on_movielens_only_image_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_dssm(self):
