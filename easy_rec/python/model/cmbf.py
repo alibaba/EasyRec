@@ -18,14 +18,6 @@ class CMBF(RankModel):
   This is almost an exact implementation of the original CMBF model.
   See the original paper:
   https://www.mdpi.com/1424-8220/21/16/5275
-
-  Image feature tower can be one of:
-  1. multiple image embeddings, each corresponding to video frames or ROIs(region of interest)
-  2. one conventional image embedding extracted by an image model
-  3. one big image embedding composed by multiple results of spatial convolutions(feature maps before CNN pooling layer)
-
-  If image embedding size is not equal to configured `image_feature_dim` argument,
-  do dimension reduce to this size before single modal learning module
   """
 
   def __init__(self,

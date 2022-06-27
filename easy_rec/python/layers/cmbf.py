@@ -10,6 +10,12 @@ if tf.__version__ >= '2.0':
 
 
 class CMBF(object):
+  """CMBF: Cross-Modal-Based Fusion Recommendation Algorithm.
+
+  This is almost an exact implementation of the original CMBF model.
+  See the original paper:
+  https://www.mdpi.com/1424-8220/21/16/5275
+  """
 
   def __init__(self, model_config, feature_configs, features, cmbf_config,
                input_layer):
@@ -93,9 +99,11 @@ class CMBF(object):
     self._img_emb_size = img_fea_emb_dim_list[0] if img_fea_emb_dim_list else 0
     self._txt_emb_size = txt_fea_emb_dim_list[0] if txt_fea_emb_dim_list else 0
     self._head_num = cmbf_config.multi_head_num
+    self._img_head_num = cmbf_config.image_multi_head_num
+    self._txt_head_num = cmbf_config.text_multi_head_num
     self._txt_head_size = cmbf_config.text_head_size
     self._img_head_size = cmbf_config.image_head_size
-    self._img_slice_num = cmbf_config.image_feature_slice_num
+    self._img_patch_num = cmbf_config.image_feature_patch_num
     self._img_self_attention_layer_num = cmbf_config.image_self_attention_layer_num
     self._txt_self_attention_layer_num = cmbf_config.text_self_attention_layer_num
     self._cross_modal_layer_num = cmbf_config.cross_modal_layer_num
@@ -108,9 +116,18 @@ class CMBF(object):
       assert self._img_emb_size > 0, '`image` feature dimensions must be greater than 0, set by `raw_input_dim`'
 
   def image_self_attention_tower(self):
+    """The input of image self attention tower can be one of:
+
+    1. multiple image embeddings, each corresponding to a patch, or a ROI(region of interest), or a frame of video
+    2. one big image embedding composed by stacking multiple image embeddings
+    3. one conventional image embedding extracted by an image model
+
+    If image embedding size is not equal to configured `image_feature_dim` argument,
+    do dimension reduce to this size before single modal learning module
+    """
     if self._img_features is None:
       return None
-    hidden_size = self._img_head_size * self._head_num
+    hidden_size = self._img_head_size * self._img_head_num
     image_features = self._img_features
     img_fea_num = self._img_feature_num
     if img_fea_num > 1:  # in case of video frames or ROIs (Region Of Interest)
@@ -121,15 +138,14 @@ class CMBF(object):
         image_features = tf.layers.dense(
             image_features,
             hidden_size,
-            activation=tf.nn.relu,
             name='img_projection')
       image_features = tf.reshape(
           image_features, shape=[-1, self._img_feature_num, hidden_size])
     elif img_fea_num == 1:
-      if self._img_slice_num > 1:  # image feature dimension: slice_num * emb_size
-        img_fea_num = self._img_slice_num
-        img_emb_size = self._img_emb_size // self._img_slice_num
-        assert img_emb_size * self._img_slice_num == self._img_emb_size, (
+      if self._img_patch_num > 1:  # image feature dimension: patch_num * emb_size
+        img_fea_num = self._img_patch_num
+        img_emb_size = self._img_emb_size // self._img_patch_num
+        assert img_emb_size * self._img_patch_num == self._img_emb_size, (
             'image feature dimension must equal to `image_feature_slice_num * embedding_size_per_region`'
         )
         self._img_emb_size = img_emb_size
@@ -140,7 +156,6 @@ class CMBF(object):
           image_features = tf.layers.dense(
               image_features,
               hidden_size,
-              activation=tf.nn.relu,
               name='img_projection')
         image_features = tf.reshape(
             image_features, shape=[-1, img_fea_num, hidden_size])
@@ -150,7 +165,6 @@ class CMBF(object):
           image_features = tf.layers.dense(
               image_features,
               img_fea_num,
-              activation=tf.nn.relu,
               name='img_projection')
         # convert each element of image feature to a feature vector
         img_mapping_matrix = tf.get_variable(
@@ -172,7 +186,7 @@ class CMBF(object):
     return img_attention_fea
 
   def text_self_attention_tower(self):
-    hidden_size = self._txt_head_size * self._head_num
+    hidden_size = self._txt_head_size * self._txt_head_num
     txt_features = None
     all_txt_features = []
     input_masks = []
@@ -186,7 +200,6 @@ class CMBF(object):
         general_features = tf.layers.dense(
             general_features,
             hidden_size,
-            activation=tf.nn.relu,
             name='txt_projection')
       txt_features = tf.reshape(
           general_features, shape=[-1, self._general_feature_num, hidden_size])
@@ -215,7 +228,6 @@ class CMBF(object):
           seq_fea = tf.layers.dense(
               seq_fea,
               hidden_size,
-              activation=tf.nn.relu,
               name='txt_seq_projection_%d' % i)
           seq_fea = tf.reshape(seq_fea, shape=[-1, max_seq_len, hidden_size])
 

@@ -7,14 +7,18 @@ message HighWayTower {
 }
 
 message CMBFTower {
-    // The number of heads
+    // The number of heads of cross modal fusion layer
     required uint32 multi_head_num = 1 [default = 1];
+    // The number of heads of image feature learning layer
+    required uint32 image_multi_head_num = 101 [default = 1];
+    // The number of heads of text feature learning layer
+    required uint32 text_multi_head_num = 102 [default = 1];
     // The dimension of text heads
     required uint32 text_head_size = 2;
     // The dimension of image heads
     required uint32 image_head_size = 3;
-    // The number of spatial CNN filters of image feature, take effect when there is only one image feature
-    required uint32 image_feature_slice_num = 4 [default = 1];
+    // The number of patches of image feature, take effect when there is only one image feature
+    required uint32 image_feature_patch_num = 4 [default = 1];
     // Do dimension reduce to this size for image feature before single modal learning module
     required uint32 image_feature_dim = 5 [default = 0];
     // The number of self attention layers for image features

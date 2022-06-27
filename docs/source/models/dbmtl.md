@@ -240,10 +240,12 @@ model_config: {
 - dbmtl
   - bottom_cmbf: 跨模态融合模型CMBF的相关配置，请参考[CMBF模型](cmbf.md)配置。
     - image_feature_dim: 在单模态学习模块之前做图像特征维度调整，调整到该参数指定的维度
-    - multi_head_num: 单模态学习模块和跨模态融合模块中的 head 数量，默认为1
+    - multi_head_num: 跨模态融合模块中的 head 数量，默认为1
+    - image_multi_head_num: 图像单模态学习模块中的 head 数量，默认为1
+    - text_multi_head_num: 文本单模态学习模块中的 head 数量，默认为1
     - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
     - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size
-    - image_feature_slice_num: \[可选，默认值为1\] 表示CNN的filter个数。当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_slice_num * embedding_size`。
+    - image_feature_patch_num: \[可选，默认值为1\] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
     - image_self_attention_layer_num: 单模态学习模块中的图像tower，multi-headed self-attention的层数
     - text_self_attention_layer_num: 单模态学习模块中的文本tower，multi-headed self-attention的层数
     - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1
