@@ -3,6 +3,7 @@
 import math
 import tensorflow as tf
 from easy_rec.python.utils.shape_utils import get_shape_list
+from easy_rec.python.layers.common_layers import gelu
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -224,6 +225,7 @@ def transformer_encoder(input_tensor,
                         num_hidden_layers=12,
                         num_attention_heads=12,
                         intermediate_size=3072,
+                        intermediate_act_fn=gelu,
                         hidden_dropout_prob=0.1,
                         attention_probs_dropout_prob=0.1,
                         initializer_range=0.02,
@@ -242,6 +244,8 @@ def transformer_encoder(input_tensor,
     num_attention_heads: int. Number of attention heads in the Transformer.
     intermediate_size: int. The size of the "intermediate" (a.k.a., feed
       forward) layer.
+    intermediate_act_fn: function. The non-linear activation function to apply
+      to the output of the intermediate/feed-forward layer.
     hidden_dropout_prob: float. Dropout probability for the hidden layers.
     attention_probs_dropout_prob: float. Dropout probability of the attention
       probabilities.
@@ -312,7 +316,7 @@ def transformer_encoder(input_tensor,
         intermediate_output = tf.layers.dense(
           attention_output,
           intermediate_size,
-          activation=tf.nn.relu,
+          activation=intermediate_act_fn,
           kernel_initializer=create_initializer(initializer_range))
 
       # Down-project back to `hidden_size` then add the residual.

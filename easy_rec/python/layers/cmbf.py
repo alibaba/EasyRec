@@ -137,7 +137,7 @@ class CMBF(object):
       hidden_size=hidden_size,  # head_num * size_per_head
       num_hidden_layers=self._img_self_attention_layer_num,
       num_attention_heads=self._head_num,
-      intermediate_size=hidden_size * 2,
+      intermediate_size=hidden_size * 4,
       hidden_dropout_prob=self._model_config.hidden_dropout_prob,
       attention_probs_dropout_prob=self._model_config.attention_probs_dropout_prob,
       name='image_self_attention'
@@ -211,7 +211,7 @@ class CMBF(object):
       num_hidden_layers=self._txt_self_attention_layer_num,
       num_attention_heads=self._head_num,
       attention_mask=attention_mask,
-      intermediate_size=hidden_size * 2,
+      intermediate_size=hidden_size * 4,
       hidden_dropout_prob=self._model_config.hidden_dropout_prob,
       attention_probs_dropout_prob=self._model_config.attention_probs_dropout_prob,
       name='text_self_attention'
@@ -266,9 +266,9 @@ class CMBF(object):
         num_attention_heads=self._head_num,
         right_input_mask=input_mask,
         left_size_per_head=self._model_config.image_cross_head_size,
-        left_intermediate_size=2 * self._model_config.image_cross_head_size * self._head_num,
+        left_intermediate_size=4 * self._model_config.image_cross_head_size * self._head_num,
         right_size_per_head=self._model_config.text_cross_head_size,
-        right_intermediate_size=2 * self._model_config.text_cross_head_size * self._head_num,
+        right_intermediate_size=4 * self._model_config.text_cross_head_size * self._head_num,
         hidden_dropout_prob=self._model_config.hidden_dropout_prob,
         attention_probs_dropout_prob=self._model_config.attention_probs_dropout_prob
       )

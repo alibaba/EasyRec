@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
+from easy_rec.python.layers import cmbf
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.protos.dbmtl_pb2 import DBMTL as DBMTLConfig
 
@@ -26,11 +27,20 @@ class DBMTL(MultiTaskModel):
     self._model_config = self._model_config.dbmtl
     assert isinstance(self._model_config, DBMTLConfig)
 
-    self._features, _ = self._input_layer(self._feature_dict, 'all')
+    if self._model_config.HasField('bottom_cmbf'):
+      self._cmbf_layer = cmbf.CMBF(model_config,
+                                   feature_configs,
+                                   features,
+                                   self._model_config.bottom_cmbf,
+                                   self._input_layer)
+    else:
+      self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
-    if self._model_config.HasField('bottom_dnn'):
+    if self._model_config.HasField('bottom_cmbf'):
+      bottom_fea = self._cmbf_layer()
+    elif self._model_config.HasField('bottom_dnn'):
       bottom_dnn = dnn.DNN(
           self._model_config.bottom_dnn,
           self._l2_reg,

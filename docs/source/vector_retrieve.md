@@ -3,7 +3,7 @@
 ## Pai 命令
 
 ```sql
-pai -name easy_rec_ext -project algo_public
+pai -name easy_rec_ext -project algo_public_dev
 -Dcmd=vector_retrieve
 -Dquery_table=odps://pai_online_project/tables/query_vector_table
 -Ddoc_table=odps://pai_online_project/tables/doc_vector_table
@@ -74,7 +74,6 @@ VALUES
 ```sql
 pai -name easy_rec_ext -project algo_public_dev
 -Dcmd='vector_retrieve'
--DentryFile='run.py'
 -Dquery_table='odps://${project}/tables/query_table/pt=20190410'
 -Ddoc_table='odps://${project}/tables/doc_table/pt=20190410'
 -Doutput_table='odps://${project}/tables/knn_result_table/pt=20190410'
@@ -92,7 +91,23 @@ pai -name easy_rec_ext -project algo_public_dev
         \"cpu\" : 600
     }
 }';
-;
+```
+
+FQA: 遇到以下错误怎么办？
+```
+File "run.py", line 517, in main
+  raise ValueError('cmd should be one of train/evaluate/export/predict')
+ValueError: cmd should be one of train/evaluate/export/predict
+```
+
+这个错误是因为包含`向量近邻检索`的最新的EasyRec版本暂时还没有正式发布。
+
+解决方案：从 [Github](https://github.com/alibaba/EasyRec)
+的master分支拉取最新代码，使用`bash pai_jobs/deploy_ext.sh -V ${version}`命令打一个最新的资源包`easy_rec_ext_${version}_res.tar.gz`，
+上传到MaxCompute作为Archive资源，最后，在上述命令中加两个如下的参数即可解决。
+```
+-Dversion='${version}'
+-Dres_project=${maxcompute_project}
 ```
 
 ### 4. 查看结果

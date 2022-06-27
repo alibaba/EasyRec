@@ -29,16 +29,15 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
 * F1_REWEIGHTED_LOSS 的参数配置
 
-  可以调节二分类模型recall/precision相对权重的损失函数
-
-```
+  可以调节二分类模型recall/precision相对权重的损失函数，配置如下：
+  ```
   {
     loss_type: F1_REWEIGHTED_LOSS
     f1_reweight_loss {
       f1_beta_square: 0.5625
     }
   }
-```
+  ```
 
   - f1_beta_square: 大于1的值会导致模型更关注recall，小于1的值会导致模型更关注precision
   - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
@@ -75,3 +74,6 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
     f1_beta_square: 0.5625
   }
 ```
+
+排序模型同时使用多个损失函数的完整示例：
+[cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)

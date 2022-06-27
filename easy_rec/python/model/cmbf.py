@@ -19,7 +19,7 @@ class CMBF(RankModel):
 
   Image feature tower can be one of:
   1. multiple image embeddings, each corresponding to video frames or ROIs(region of interest)
-  2. one conventional image embedding extracted by a image model
+  2. one conventional image embedding extracted by an image model
   3. one big image embedding composed by multiple results of spatial convolutions(feature maps before CNN pooling layer)
 
   If image embedding size is not equal to configured `image_feature_dim` argument,

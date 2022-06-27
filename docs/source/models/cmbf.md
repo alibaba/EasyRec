@@ -119,7 +119,7 @@ model_config: {
 
 ### 示例Config
 
-[CMBF_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/cmbf.config)
+[CMBF_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_on_movielens.config)
 
 ### 参考论文
 
