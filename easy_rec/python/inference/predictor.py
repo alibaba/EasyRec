@@ -535,8 +535,7 @@ class Predictor(PredictorInterface):
                        (sum_t0, sum_t1, sum_t2))
       logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
                    (sum_t0, sum_t1, sum_t2))
-      if table_writer:
-        table_writer.close()
+      table_writer.close()
       self.load_to_table(output_path, slice_num, slice_id)
       logging.info('Predict %s done.' % input_path)
 
