@@ -4,6 +4,7 @@ import math
 
 import tensorflow as tf
 
+from easy_rec.python.layers.common_layers import gelu
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -17,10 +18,12 @@ def create_initializer(initializer_range=0.02):
 
 def dropout(input_tensor, dropout_prob):
   """Perform dropout.
+
   Args:
     input_tensor: float Tensor.
     dropout_prob: Python float. The probability of dropping out a value (NOT of
       *keeping* a dimension as in `tf.nn.dropout`).
+
   Returns:
     A version of `input_tensor` with dropout applied.
   """
@@ -45,8 +48,14 @@ def attention_layer(from_tensor,
                     batch_size=None,
                     from_seq_length=None,
                     to_seq_length=None):
-  """Performs multi-headed attention from `from_tensor` to `to_tensor`. This is an implementation of multi-headed attention based on "Attention is all you Need". If `from_tensor` and `to_tensor` are the same, then this is self-attention. Each timestep in `from_tensor` attends to the corresponding sequence in `to_tensor`, and returns a fixed-width vector. This function first projects `from_tensor` into a "query" tensor and `to_tensor` into "key" and "value" tensors. These are (effectively) a list of tensors of length `num_attention_heads`, where each tensor is of shape.
+  """Performs multi-headed attention from `from_tensor` to `to_tensor`.
 
+  This is an implementation of multi-headed attention based on "Attention is all you Need".
+  If `from_tensor` and `to_tensor` are the same, then this is self-attention.
+  Each timestep in `from_tensor` attends to the corresponding sequence in `to_tensor`,
+  and returns a fixed-width vector.
+  This function first projects `from_tensor` into a "query" tensor and `to_tensor` into "key" and "value" tensors.
+  These are (effectively) a list of tensors of length `num_attention_heads`, where each tensor is of shape:
   [batch_size, seq_length, size_per_head].
   Then, the query and key tensors are dot-producted and scaled. These are
   softmaxed to obtain attention probabilities. The value tensors are then
@@ -54,6 +63,7 @@ def attention_layer(from_tensor,
   tensor and returned.
   In practice, the multi-headed attention are done with transposes and
   reshapes rather than actual separate tensors.
+
   Args:
     from_tensor: float Tensor of shape [batch_size, from_seq_length,
       from_width].
@@ -80,11 +90,13 @@ def attention_layer(from_tensor,
       of the 3D version of the `from_tensor`.
     to_seq_length: (Optional) If the input is 2D, this might be the seq length
       of the 3D version of the `to_tensor`.
+
   Returns:
     float Tensor of shape [batch_size, from_seq_length,
       num_attention_heads * size_per_head]. (If `do_return_2d_tensor` is
       true, this will be of shape [batch_size * from_seq_length,
       num_attention_heads * size_per_head]).
+
   Raises:
     ValueError: Any of the arguments or tensor shapes are invalid.
   """
@@ -220,6 +232,7 @@ def transformer_encoder(input_tensor,
                         num_hidden_layers=12,
                         num_attention_heads=12,
                         intermediate_size=3072,
+                        intermediate_act_fn=gelu,
                         hidden_dropout_prob=0.1,
                         attention_probs_dropout_prob=0.1,
                         initializer_range=0.02,
@@ -239,15 +252,19 @@ def transformer_encoder(input_tensor,
     num_attention_heads: int. Number of attention heads in the Transformer.
     intermediate_size: int. The size of the "intermediate" (a.k.a., feed
       forward) layer.
+    intermediate_act_fn: function. The non-linear activation function to apply
+      to the output of the intermediate/feed-forward layer.
     hidden_dropout_prob: float. Dropout probability for the hidden layers.
     attention_probs_dropout_prob: float. Dropout probability of the attention
       probabilities.
     initializer_range: float. Range of the initializer (stddev of truncated
       normal).
     name: scope name prefix
+
   Returns:
     float Tensor of shape [batch_size, seq_length, hidden_size], the final
     hidden layer of the Transformer.
+
   Raises:
     ValueError: A Tensor shape or parameter is invalid.
   """
@@ -309,7 +326,7 @@ def transformer_encoder(input_tensor,
         intermediate_output = tf.layers.dense(
             attention_output,
             intermediate_size,
-            activation=tf.nn.relu,
+            activation=intermediate_act_fn,
             kernel_initializer=create_initializer(initializer_range))
 
       # Down-project back to `hidden_size` then add the residual.
@@ -338,7 +355,8 @@ def cross_attention_block(from_tensor,
                           attention_probs_dropout_prob=0.1,
                           initializer_range=0.02,
                           name=''):
-  """Multi-headed cross attention block
+  """Multi-headed cross attention block.
+
     Args:
     from_tensor: float Tensor of shape [batch_size, from_seq_length,
       from_width].
@@ -360,9 +378,11 @@ def cross_attention_block(from_tensor,
     initializer_range: float. Range of the initializer (stddev of truncated
       normal).
     name: scope name prefix
+
   Returns:
     float Tensor of shape [batch_size, seq_length, hidden_size], the final
     hidden layer of the Transformer.
+
   Raises:
     ValueError: A Tensor shape or parameter is invalid.
   """
@@ -447,7 +467,8 @@ def cross_attention_tower(left_tensor,
                           attention_probs_dropout_prob=0.1,
                           initializer_range=0.02,
                           name=''):
-  """Multi-headed, multi layer cross attention block
+  """Multi-headed, multi layer cross attention block.
+
     Args:
     left_tensor: float Tensor of shape [batch_size, left_seq_length,
       from_width].
@@ -470,10 +491,12 @@ def cross_attention_tower(left_tensor,
     initializer_range: float. Range of the initializer (stddev of truncated
       normal).
     name: scope name prefix
+
   Returns:
     tuple of float Tensors of shape ([batch_size, left_seq_length, hidden_size],
       [batch_size, right_seq_length, hidden_size]),
       where hidden_size = num_attention_heads * size_per_head
+
   Raises:
     ValueError: A Tensor shape or parameter is invalid.
   """
@@ -575,6 +598,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   Args:
     from_tensor: 2D or 3D Tensor of shape [batch_size, from_seq_length, ...].
     to_mask: int32 Tensor of shape [batch_size, to_seq_length].
+
   Returns:
     float Tensor of shape [batch_size, from_seq_length, to_seq_length].
   """
@@ -634,8 +658,10 @@ def embedding_postprocessor(input_tensor,
       used with this model. This can be longer than the sequence length of
       input_tensor, but cannot be shorter.
     dropout_prob: float. Dropout probability applied to the final output tensor.
+
   Returns:
     float tensor with same shape as `input_tensor`.
+
   Raises:
     ValueError: One of the tensor shapes or input values is invalid.
   """

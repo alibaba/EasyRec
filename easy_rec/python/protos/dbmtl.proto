@@ -3,8 +3,11 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/tower.proto";
+import "easy_rec/python/protos/layer.proto";
 
 message DBMTL {
+    // shared bottom cmbf layer
+    optional CMBFTower bottom_cmbf = 101;
     // shared bottom dnn layer
     optional DNN bottom_dnn = 1;
     // mmoe expert dnn layer definition

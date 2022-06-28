@@ -17,7 +17,6 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
-  #tf = tf.compat.v1
   import tensorflow.compat.v1 as tf
 
 gfile = tf.gfile
