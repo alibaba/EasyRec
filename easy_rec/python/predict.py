@@ -9,8 +9,10 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.inference.predictor import CSVPredictor
+from easy_rec.python.inference.predictor import HiveParquetPredictor
 from easy_rec.python.inference.predictor import HivePredictor
 from easy_rec.python.main import predict
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
@@ -68,14 +70,27 @@ def main(argv):
           data_config=pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input).get_all_cols(
               FLAGS.input_path)
-      predictor = HivePredictor(
-          FLAGS.saved_model_dir,
-          pipeline_config.data_config,
-          fg_json_path=FLAGS.fg_json_path,
-          hive_config=pipeline_config.hive_train_input,
-          output_sep=FLAGS.output_sep,
-          all_cols=all_cols,
-          all_col_types=all_col_types)
+      input_type = pipeline_config.data_config.input_type
+      input_type_name = DatasetConfig.InputType.Name(input_type)
+      if input_type_name == 'HiveParquetInput':
+        predictor = HiveParquetPredictor(
+            FLAGS.saved_model_dir,
+            pipeline_config.data_config,
+            fg_json_path=FLAGS.fg_json_path,
+            hive_config=pipeline_config.hive_train_input,
+            output_sep=FLAGS.output_sep,
+            all_cols=all_cols,
+            all_col_types=all_col_types)
+      else:
+        predictor = HivePredictor(
+            FLAGS.saved_model_dir,
+            pipeline_config.data_config,
+            fg_json_path=FLAGS.fg_json_path,
+            hive_config=pipeline_config.hive_train_input,
+            output_sep=FLAGS.output_sep,
+            all_cols=all_cols,
+            all_col_types=all_col_types)
+
     else:
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
