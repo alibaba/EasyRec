@@ -1,0 +1,4 @@
+{
+    "train_config.optimizer_config[0].adam_optimizer.learning_rate.constant_learning_rate.learning_rate":{"_type":"choice","_value":[1e-6,1e-7]}
+
+}

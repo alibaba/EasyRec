@@ -1,5 +1,7 @@
 # PAI-HPO
 
+该方法即将下线，我们推荐使用[新版PAI-NNI-HPO](../automl/pai_nni_hpo.md)
+
 ### GetStarted
 
 #### 下载安装automl包

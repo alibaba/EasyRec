@@ -2,12 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import json
 import logging
 # use few threads to avoid oss error
 import os
 
 import tensorflow as tf
+import yaml
 from tensorflow.python.platform import gfile
 
 import easy_rec
@@ -230,7 +230,7 @@ def main(argv):
 
   if FLAGS.edit_config_json:
     print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
-    config_json = json.loads(FLAGS.edit_config_json)
+    config_json = yaml.safe_load(FLAGS.edit_config_json)
     config_util.edit_config(pipeline_config, config_json)
 
   if FLAGS.model_dir:
@@ -292,7 +292,7 @@ def main(argv):
     if FLAGS.hpo_param_path:
       logging.info('hpo_param_path = %s' % FLAGS.hpo_param_path)
       with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
-        hpo_config = json.load(fin)
+        hpo_config = yaml.safe_load(fin)
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
     config_util.auto_expand_share_feature_configs(pipeline_config)
