@@ -278,37 +278,13 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_dssm(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/dssm_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_dropoutnet(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dropoutnet_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_dropoutnet(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dropoutnet_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/dropoutnet_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_metric_learning(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  def test_distribute_eval_metric_learning(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
         'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
@@ -404,14 +380,6 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mind_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_mind(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/mind_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/mind_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_mind_with_time_id(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mind_on_taobao_with_time.config', self._test_dir)
@@ -456,14 +424,6 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mmoe_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_distribute_eval_mmoe(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/mmoe_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
-        'samples/model_config/mmoe_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_mmoe_deprecated(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_taobao_deprecated.config', self._test_dir)
@@ -482,14 +442,6 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_essm(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/esmm_on_taobao.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  def test_distribute_eval_essm(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/esmm_on_taobao.config', self._test_dir)
-
-    self._success = test_utils.test_distributed_eval(
         'samples/model_config/esmm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
