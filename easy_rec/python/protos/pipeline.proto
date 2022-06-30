@@ -45,5 +45,15 @@ message EasyRecConfig {
 
   optional ExportConfig export_config = 15;
 
+  // Json file[RTP FG] to define input data and features:
+  // * In easy_rec.python.utils.fg_util.load_fg_json_to_config:
+  //   data_config and feature_config will be generated
+  //   based on fg_json.
+  // * After generation, a prefix '!' is added:
+  //   fg_json_path = '!' + fg_json_path
+  //   indicates config update is already done, and should not
+  //   be updated anymore. In this way, we make load_fg_json_to_config
+  //   function reentrant.
+  // This step is done before edit_config_json to take effect.
   optional string fg_json_path = 16;
 }

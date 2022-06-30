@@ -2,12 +2,13 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import json
 import logging
 # use few threads to avoid oss error
 import os
 
 import tensorflow as tf
+import yaml
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.inference.predictor import ODPSPredictor
@@ -103,6 +104,7 @@ tf.app.flags.DEFINE_bool('distribute_eval', False,
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
+tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -160,6 +162,8 @@ tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
 tf.app.flags.DEFINE_string('model_dir', None, 'model directory')
+tf.app.flags.DEFINE_bool('clear_model', False,
+                         'remove model directory if exists')
 tf.app.flags.DEFINE_string('hpo_param_path', None,
                            'hyperparameter tuning param path')
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
@@ -221,9 +225,14 @@ def main(argv):
                                      len(FLAGS.worker_hosts.split(',')))
     pipeline_config = config_util.get_configs_from_pipeline_file(config, False)
 
+    # should be in front of edit_config_json step
+    # otherwise data_config and feature_config are not ready
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
+
   if FLAGS.edit_config_json:
     print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
-    config_json = json.loads(FLAGS.edit_config_json)
+    config_json = yaml.safe_load(FLAGS.edit_config_json)
     config_util.edit_config(pipeline_config, config_json)
 
   if FLAGS.model_dir:
@@ -232,6 +241,14 @@ def main(argv):
     print('[run.py] update model_dir to %s' % pipeline_config.model_dir)
     assert pipeline_config.model_dir.startswith(
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
+
+  if FLAGS.config:
+    if not pipeline_config.model_dir.endswith('/'):
+      pipeline_config.model_dir += '/'
+
+  if FLAGS.clear_model:
+    if gfile.IsDirectory(pipeline_config.model_dir):
+      gfile.DeleteRecursively(pipeline_config.model_dir)
 
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
@@ -256,9 +273,6 @@ def main(argv):
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
 
-    if pipeline_config.fg_json_path:
-      fg_util.load_fg_json_to_config(pipeline_config)
-
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
 
@@ -280,7 +294,7 @@ def main(argv):
     if FLAGS.hpo_param_path:
       logging.info('hpo_param_path = %s' % FLAGS.hpo_param_path)
       with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
-        hpo_config = json.load(fin)
+        hpo_config = yaml.safe_load(fin)
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
     config_util.auto_expand_share_feature_configs(pipeline_config)
@@ -406,9 +420,16 @@ def main(argv):
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
+    export_dir = FLAGS.export_dir
+    if not export_dir.endswith('/'):
+      export_dir = export_dir + '/'
+    if FLAGS.clear_export:
+      if gfile.IsDirectory(export_dir):
+        gfile.DeleteRecursively(export_dir)
+
     extra_params = redis_params
     extra_params.update(oss_params)
-    easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
+    easy_rec.export(export_dir, pipeline_config, FLAGS.checkpoint_path,
                     FLAGS.asset_files, FLAGS.verbose, **extra_params)
   elif FLAGS.cmd == 'predict':
     check_param('tables')

@@ -4,10 +4,10 @@ import json
 import logging
 import os
 
-import common_io
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -29,21 +29,38 @@ FLAGS = tf.app.flags.FLAGS
 def main(argv):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       FLAGS.template_config_path)
-
-  reader = common_io.table.TableReader(
-      FLAGS.config_table, selected_cols='feature,feature_info,message')
+  sels = 'feature,feature_info,message'
   feature_info_map = {}
   drop_feature_names = []
-  while True:
-    try:
-      record = reader.read()
+
+  if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+    hive_util = HiveUtils(
+        data_config=pipeline_config.data_config,
+        hive_config=pipeline_config.hive_train_input,
+        selected_cols=sels,
+        record_defaults=['', '', ''],
+        mode=tf.estimator.ModeKeys.PREDICT)
+    reader = hive_util.hive_read_line(FLAGS.config_table, sels)
+    for record in reader:
       feature_name = record[0][0]
       feature_info_map[feature_name] = json.loads(record[0][1])
       if 'DROP IT' in record[0][2]:
         drop_feature_names.append(feature_name)
-    except common_io.exception.OutOfRangeException:
-      reader.close()
-      break
+
+  else:
+    import common_io
+    reader = common_io.table.TableReader(FLAGS.config_table, selected_cols=sels)
+    while True:
+      try:
+        record = reader.read()
+        feature_name = record[0][0]
+        feature_info_map[feature_name] = json.loads(record[0][1])
+        if 'DROP IT' in record[0][2]:
+          drop_feature_names.append(feature_name)
+      except common_io.exception.OutOfRangeException:
+        reader.close()
+        break
+
   for feature_config in config_util.get_compatible_feature_configs(
       pipeline_config):
     feature_name = feature_config.input_names[0]

@@ -16,6 +16,7 @@ import "easy_rec/python/protos/dbmtl.proto";
 import "easy_rec/python/protos/ple.proto";
 import "easy_rec/python/protos/simple_multi_task.proto";
 import "easy_rec/python/protos/dcn.proto";
+import "easy_rec/python/protos/cmbf.proto";
 import "easy_rec/python/protos/autoint.proto";
 import "easy_rec/python/protos/mind.proto";
 import "easy_rec/python/protos/loss.proto";
@@ -60,6 +61,7 @@ message EasyRecModel {
         DCN dcn = 106;
         AutoInt autoint = 107;
         DLRM dlrm = 108;
+        CMBF cmbf = 109;
 
         DSSM dssm = 201;
         MIND mind = 202;

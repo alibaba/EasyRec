@@ -447,7 +447,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           # raw values to a vector, it maybe better implemented
           # by a ProjectionColumn later
           logging.info(
-              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimentsion raw feature'
+              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimension raw feature'
               % input_0)
           parsed_dict[input_0] = tf.sparse_to_dense(
               parsed_dict[input_0].indices,
@@ -481,7 +481,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           # raw values to a vector, it maybe better implemented
           # by a ProjectionColumn later
           logging.info(
-              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as three dimentsion raw feature'
+              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as three dimension raw feature'
               % input_0)
           parsed_dict[input_0] = tf.sparse_to_dense(
               parsed_dict[input_0].indices, [
@@ -766,6 +766,13 @@ class Input(six.with_metaclass(_meta_type, object)):
 
   def _pre_build(self, mode, params):
     pass
+
+  def _safe_shard(self, dataset):
+    if self._data_config.chief_redundant:
+      return dataset.shard(
+          max(self._task_num - 1, 1), max(self._task_index - 1, 0))
+    else:
+      return dataset.shard(self._task_num, self._task_index)
 
   def create_input(self, export_config=None):
 

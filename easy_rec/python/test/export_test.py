@@ -54,7 +54,7 @@ class ExportTest(tf.test.TestCase):
       for key in keys:
         val0 = output_res[i][key]
         val1 = cmp_result[i][key]
-        diff = np.abs(val0 - val1)
+        diff = np.max(np.abs(val0 - val1))
         assert diff < tol, \
             'too much difference: %.6f for %s, tol=%.6f' \
             % (diff, key, tol)
@@ -158,6 +158,12 @@ class ExportTest(tf.test.TestCase):
             pipeline_config_path,
             test_dir=test_dir,
             post_check_func=_post_check_func))
+
+  def test_multi_class_predict(self):
+    self._export_test(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        extract_data_func=self._extract_data,
+        keys=['probs', 'logits', 'probs_y', 'logits_y', 'y'])
 
   def _export_test(self,
                    pipeline_config_path,

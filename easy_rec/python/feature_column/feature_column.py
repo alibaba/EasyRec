@@ -484,10 +484,11 @@ class FeatureColumnParser(object):
       return None
 
   def _add_shared_embedding_column(self, embedding_name, fc, deep=True):
-    curr_id = len(self._deep_share_embed_columns[embedding_name])
     if deep:
+      curr_id = len(self._deep_share_embed_columns[embedding_name])
       self._deep_share_embed_columns[embedding_name].append(fc)
     else:
+      curr_id = len(self._wide_share_embed_columns[embedding_name])
       self._wide_share_embed_columns[embedding_name].append(fc)
     return SharedEmbedding(embedding_name, curr_id, None)
 
@@ -545,6 +546,9 @@ class FeatureColumnParser(object):
           partitioner=self._build_partitioner(config),
           use_embedding_variable=self._use_embedding_variable or
           config.use_embedding_variable)
+      fc.max_seq_length = config.max_seq_len if config.HasField(
+          'max_seq_len') else -1
+
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
     else:

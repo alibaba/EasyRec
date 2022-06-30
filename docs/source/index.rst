@@ -36,6 +36,7 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: TRAIN & EVAL & EXPORT
 
+   loss
    train
    incremental_train
    eval
@@ -52,11 +53,13 @@ Welcome to easy_rec's documentation!
    predict/Local 离线预测
    predict/在线预测
    feature/rtp_native
+   vector_retrieve
 
 .. toctree::
    :maxdepth: 2
    :caption: AUTOML
 
+   automl/pai_nni_hpo
    automl/hpo_pai
    automl/hpo_emr
    automl/auto_cross_emr

@@ -16,3 +16,11 @@
    rocket_launching
    regression
    multi_cls
+
+多模态排序模型
+========
+
+.. toctree::
+   :maxdepth: 2
+
+   cmbf

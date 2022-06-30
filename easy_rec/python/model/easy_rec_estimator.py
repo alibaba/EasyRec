@@ -14,6 +14,7 @@ from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
 
@@ -462,7 +463,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # save train pipeline.config for debug purpose
     pipeline_path = os.path.join(self._model_dir, 'pipeline.config')
-    if tf.gfile.Exists(pipeline_path):
+    if gfile.Exists(pipeline_path):
       tf.add_to_collection(
           tf.GraphKeys.ASSET_FILEPATHS,
           tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'))
@@ -506,7 +507,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fg_config_path: path to the RTP config file.
     """
     if fg_config is None:
-      with tf.gfile.GFile(fg_config_path, 'r') as f:
+      if fg_config_path.startswith('!'):
+        fg_config_path = fg_config_path[1:]
+      with gfile.GFile(fg_config_path, 'r') as f:
         fg_config = json.load(f)
     col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)
     if len(col) == 0:
