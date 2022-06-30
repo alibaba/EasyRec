@@ -14,17 +14,10 @@ if tf.__version__ >= '2.0':
 
 class CMBF(RankModel):
   """CMBF: Cross-Modal-Based Fusion Recommendation Algorithm.
+
   This is almost an exact implementation of the original CMBF model.
   See the original paper:
   https://www.mdpi.com/1424-8220/21/16/5275
-
-  Image feature tower can be one of:
-  1. multiple image embeddings, each corresponding to video frames or ROIs(region of interest)
-  2. one conventional image embedding extracted by a image model
-  3. one big image embedding composed by multiple results of spatial convolutions(feature maps before CNN pooling layer)
-
-  If image embedding size is not equal to configured `image_feature_dim` argument,
-  do dimension reduce to this size before single modal learning module
   """
 
   def __init__(self,
@@ -35,8 +28,8 @@ class CMBF(RankModel):
                is_training=False):
     super(CMBF, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert self._model_config.WhichOneof('model') == 'cmbf', \
-      'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'cmbf', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
 
     self._cmbf_layer = cmbf.CMBF(model_config, feature_configs, features,
                                  self._model_config.cmbf.config,

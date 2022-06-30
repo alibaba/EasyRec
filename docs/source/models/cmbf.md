@@ -19,9 +19,9 @@ CMBF主要有4个模块（如上图）：
 视觉特征提取模块通常是一个CNN-based的模型，用来提取图像或视频特征，以便后续接入transformer模块。
 视觉特征的输入（对应配置名为`image`的`feature group`）可以是以下三种情况之一:
 
-1. multiple image embeddings, each corresponding to video frames or ROIs(region of interest)
-1. one conventional image embedding extracted by an image model
-1. one big image embedding composed by multiple results of spatial convolutions(feature maps before CNN pooling layer)
+1. 多个图像特征向量，每个特征向量对应原始图像的一个分片（patch）或一个兴趣区域 (region of interest) ，或者对应视频的某一帧；
+2. 一个大的复合特征向量，即上述多个图像特征向量铺平（flat）之后的结果，这时需要知道`image_feature_patch_num`参数；
+3. 一个常规的由某个图像模型提取的图像特征。
 
 文本型特征包括两部分：
 
@@ -69,6 +69,8 @@ model_config: {
   }
   cmbf {
     multi_head_num: 2
+    image_multi_head_num: 2
+    text_multi_head_num: 2
     image_head_size: 8
     text_head_size: 8
     image_feature_dim: 64
@@ -101,10 +103,12 @@ model_config: {
 - cmbf: CMBF 模型相关的参数
 
   - image_feature_dim: 在单模态学习模块之前做图像特征维度调整，调整到该参数指定的维度
-  - multi_head_num: 单模态学习模块和跨模态融合模块中的 head 数量，默认为1
+  - multi_head_num: 跨模态融合模块中的 head 数量，默认为1
+  - image_multi_head_num: 图像单模态学习模块中的 head 数量，默认为1
+  - text_multi_head_num: 文本单模态学习模块中的 head 数量，默认为1
   - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
   - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size
-  - image_feature_slice_num: \[可选，默认值为1\] 表示CNN的filter个数。当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_slice_num * embedding_size`。
+  - image_feature_patch_num: \[可选，默认值为1\] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
   - image_self_attention_layer_num: 单模态学习模块中的图像tower，multi-headed self-attention的层数
   - text_self_attention_layer_num: 单模态学习模块中的文本tower，multi-headed self-attention的层数
   - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1
@@ -122,7 +126,7 @@ model_config: {
 
 ### 示例Config
 
-[CMBF_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/cmbf.config)
+[CMBF_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_on_movielens.config)
 
 ### 参考论文
 

@@ -477,9 +477,10 @@ class Predictor(PredictorInterface):
                 split_vals[k] = []
             else:
               assert self._all_input_names, 'must set fg_json_path when use fg input'
-              assert fg_input_size == len(self._all_input_names), \
-                'The size of features in fg_json != the size of fg input. The size of features in fg_json is: %s; ' \
-                'The size of fg input is: %s' % (fg_input_size, len(self._all_input_names))
+              assert fg_input_size == len(self._all_input_names), (
+                  'The size of features in fg_json != the size of fg input. '
+                  'The size of features in fg_json is: %s; The size of fg input is: %s'
+                  % (fg_input_size, len(self._all_input_names)))
               for i, k in enumerate(self._all_input_names):
                 split_index.append(k)
                 split_vals[k] = []
@@ -673,9 +674,9 @@ class CSVPredictor(Predictor):
       for line_str in fin:
         line_tok = line_str.strip().split(self._input_sep)
         if num_cols != -1:
-          assert num_cols == len(line_tok), \
-            'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.' % \
-            (num_cols, len(line_tok), line_str)
+          assert num_cols == len(line_tok), (
+              'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.'
+              % (num_cols, len(line_tok), line_str))
         num_cols = len(line_tok)
         num_lines += 1
         if num_lines > 10:
@@ -796,7 +797,7 @@ class ODPSPredictor(Predictor):
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
     reserve_vals = [all_vals[k] for k in reserved_cols] + \
-                 [outputs[x] for x in output_cols]
+                   [outputs[x] for x in output_cols]
     return reserve_vals
 
 

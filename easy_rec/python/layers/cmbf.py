@@ -10,6 +10,12 @@ if tf.__version__ >= '2.0':
 
 
 class CMBF(object):
+  """CMBF: Cross-Modal-Based Fusion Recommendation Algorithm.
+
+  This is almost an exact implementation of the original CMBF model.
+  See the original paper:
+  https://www.mdpi.com/1424-8220/21/16/5275
+  """
 
   def __init__(self, model_config, feature_configs, features, cmbf_config,
                input_layer):
@@ -35,19 +41,19 @@ class CMBF(object):
     assert has_feature, 'there must be one of the feature groups: [image, text, general, other]'
 
     self._general_feature_num, self._img_feature_num = 0, 0
-    general_feature_names, img_feature_names, txt_seq_feature_names = set(
-    ), set(), set()
+    general_feature_names, txt_seq_feature_names = set(), set()
+    img_feature_names = set()
     for fea_group in model_config.feature_groups:
       if fea_group.group_name == 'general':
         self._general_feature_num = len(fea_group.feature_names)
         general_feature_names = set(fea_group.feature_names)
-        assert self._general_feature_num == len(general_feature_names), \
-          'there are duplicate features in `general` feature group'
+        assert self._general_feature_num == len(general_feature_names), (
+            'there are duplicate features in `general` feature group')
       elif fea_group.group_name == 'image':
         self._img_feature_num = len(fea_group.feature_names)
         img_feature_names = set(fea_group.feature_names)
-        assert self._img_feature_num == len(img_feature_names), \
-          'there are duplicate features in `image` feature group'
+        assert self._img_feature_num == len(img_feature_names), (
+            'there are duplicate features in `image` feature group')
       elif fea_group.group_name == 'text':
         txt_seq_feature_names = set(fea_group.feature_names)
 
@@ -64,32 +70,40 @@ class CMBF(object):
         img_fea_emb_dim_list.append(feature_config.raw_input_dim)
       if fea_name in txt_seq_feature_names:
         if feature_config.HasField('max_seq_len'):
-          assert feature_config.max_seq_len > 0, \
-            'feature config `max_seq_len` must be greater than 0 for feature: ' + fea_name
+          assert feature_config.max_seq_len > 0, (
+              'feature config `max_seq_len` must be greater than 0 for feature: '
+              + fea_name)
           if feature_config.max_seq_len > max_seq_len:
             max_seq_len = feature_config.max_seq_len
 
     txt_tower_feature_num = self._general_feature_num + len(
         txt_seq_feature_names)
-    assert len(set(txt_fea_emb_dim_list)) <= 1 and len(txt_fea_emb_dim_list) == txt_tower_feature_num, \
-      'CMBF requires that all `general` and `text` feature dimensions must be consistent.'
-    assert len(set(img_fea_emb_dim_list)) <= 1 and len(img_fea_emb_dim_list) == self._img_feature_num, \
-      'CMBF requires that all `image` feature dimensions must be consistent.'
+    assert len(
+        set(txt_fea_emb_dim_list)
+    ) <= 1 and len(txt_fea_emb_dim_list) == txt_tower_feature_num, (
+        'CMBF requires that all `general` and `text` feature dimensions must be consistent.'
+    )
+    assert len(
+        set(img_fea_emb_dim_list)
+    ) <= 1 and len(img_fea_emb_dim_list) == self._img_feature_num, (
+        'CMBF requires that all `image` feature dimensions must be consistent.')
 
     if cmbf_config.use_position_embeddings:
-      assert cmbf_config.max_position_embeddings > 0, \
-        'model config `max_position_embeddings` must be greater than 0. ' \
-        'It must be set when `use_position_embeddings` is true (default)'
-      assert cmbf_config.max_position_embeddings >= max_seq_len, \
-        'model config `max_position_embeddings` must be greater than or equal to the maximum of all feature config ' \
-        '`max_seq_len`, which is %d' % max_seq_len
+      assert cmbf_config.max_position_embeddings > 0, (
+          'model config `max_position_embeddings` must be greater than 0. '
+          'It must be set when `use_position_embeddings` is true (default)')
+      assert cmbf_config.max_position_embeddings >= max_seq_len, (
+          'model config `max_position_embeddings` must be greater than or equal to the maximum of all feature config '
+          '`max_seq_len`, which is %d' % max_seq_len)
 
     self._img_emb_size = img_fea_emb_dim_list[0] if img_fea_emb_dim_list else 0
     self._txt_emb_size = txt_fea_emb_dim_list[0] if txt_fea_emb_dim_list else 0
     self._head_num = cmbf_config.multi_head_num
+    self._img_head_num = cmbf_config.image_multi_head_num
+    self._txt_head_num = cmbf_config.text_multi_head_num
     self._txt_head_size = cmbf_config.text_head_size
     self._img_head_size = cmbf_config.image_head_size
-    self._img_slice_num = cmbf_config.image_feature_slice_num
+    self._img_patch_num = cmbf_config.image_feature_patch_num
     self._img_self_attention_layer_num = cmbf_config.image_self_attention_layer_num
     self._txt_self_attention_layer_num = cmbf_config.text_self_attention_layer_num
     self._cross_modal_layer_num = cmbf_config.cross_modal_layer_num
@@ -102,9 +116,18 @@ class CMBF(object):
       assert self._img_emb_size > 0, '`image` feature dimensions must be greater than 0, set by `raw_input_dim`'
 
   def image_self_attention_tower(self):
+    """The input of image self attention tower can be one of:
+
+    1. multiple image embeddings, each corresponding to a patch, or a ROI(region of interest), or a frame of video
+    2. one big image embedding composed by stacking multiple image embeddings
+    3. one conventional image embedding extracted by an image model
+
+    If image embedding size is not equal to configured `image_feature_dim` argument,
+    do dimension reduce to this size before single modal learning module
+    """
     if self._img_features is None:
       return None
-    hidden_size = self._img_head_size * self._head_num
+    hidden_size = self._img_head_size * self._img_head_num
     image_features = self._img_features
     img_fea_num = self._img_feature_num
     if img_fea_num > 1:  # in case of video frames or ROIs (Region Of Interest)
@@ -115,16 +138,16 @@ class CMBF(object):
         image_features = tf.layers.dense(
             image_features,
             hidden_size,
-            activation=tf.nn.relu,
             name='img_projection')
       image_features = tf.reshape(
           image_features, shape=[-1, self._img_feature_num, hidden_size])
     elif img_fea_num == 1:
-      if self._img_slice_num > 1:  # image feature dimension: slice_num * emb_size
-        img_fea_num = self._img_slice_num
-        img_emb_size = self._img_emb_size // self._img_slice_num
-        assert img_emb_size * self._img_slice_num == self._img_emb_size, \
-          'image feature dimension must equal to `image_feature_slice_num * embedding_size_per_region`'
+      if self._img_patch_num > 1:  # image feature dimension: patch_num * emb_size
+        img_fea_num = self._img_patch_num
+        img_emb_size = self._img_emb_size // self._img_patch_num
+        assert img_emb_size * self._img_patch_num == self._img_emb_size, (
+            'image feature dimension must equal to `image_feature_slice_num * embedding_size_per_region`'
+        )
         self._img_emb_size = img_emb_size
         if self._img_emb_size != hidden_size:
           # Run a linear projection of `hidden_size`
@@ -133,7 +156,6 @@ class CMBF(object):
           image_features = tf.layers.dense(
               image_features,
               hidden_size,
-              activation=tf.nn.relu,
               name='img_projection')
         image_features = tf.reshape(
             image_features, shape=[-1, img_fea_num, hidden_size])
@@ -143,7 +165,6 @@ class CMBF(object):
           image_features = tf.layers.dense(
               image_features,
               img_fea_num,
-              activation=tf.nn.relu,
               name='img_projection')
         # convert each element of image feature to a feature vector
         img_mapping_matrix = tf.get_variable(
@@ -155,7 +176,7 @@ class CMBF(object):
         hidden_size=hidden_size,  # head_num * size_per_head
         num_hidden_layers=self._img_self_attention_layer_num,
         num_attention_heads=self._head_num,
-        intermediate_size=hidden_size * 2,
+        intermediate_size=hidden_size * 4,
         hidden_dropout_prob=self._model_config.hidden_dropout_prob,
         attention_probs_dropout_prob=self._model_config
         .attention_probs_dropout_prob,
@@ -165,7 +186,7 @@ class CMBF(object):
     return img_attention_fea
 
   def text_self_attention_tower(self):
-    hidden_size = self._txt_head_size * self._head_num
+    hidden_size = self._txt_head_size * self._txt_head_num
     txt_features = None
     all_txt_features = []
     input_masks = []
@@ -179,7 +200,6 @@ class CMBF(object):
         general_features = tf.layers.dense(
             general_features,
             hidden_size,
-            activation=tf.nn.relu,
             name='txt_projection')
       txt_features = tf.reshape(
           general_features, shape=[-1, self._general_feature_num, hidden_size])
@@ -208,7 +228,6 @@ class CMBF(object):
           seq_fea = tf.layers.dense(
               seq_fea,
               hidden_size,
-              activation=tf.nn.relu,
               name='txt_seq_projection_%d' % i)
           seq_fea = tf.reshape(seq_fea, shape=[-1, max_seq_len, hidden_size])
 
@@ -244,7 +263,7 @@ class CMBF(object):
         num_hidden_layers=self._txt_self_attention_layer_num,
         num_attention_heads=self._head_num,
         attention_mask=attention_mask,
-        intermediate_size=hidden_size * 2,
+        intermediate_size=hidden_size * 4,
         hidden_dropout_prob=self._model_config.hidden_dropout_prob,
         attention_probs_dropout_prob=self._model_config
         .attention_probs_dropout_prob,
@@ -306,10 +325,10 @@ class CMBF(object):
           num_attention_heads=self._head_num,
           right_input_mask=input_mask,
           left_size_per_head=self._model_config.image_cross_head_size,
-          left_intermediate_size=2 * self._model_config.image_cross_head_size *
+          left_intermediate_size=4 * self._model_config.image_cross_head_size *
           self._head_num,
           right_size_per_head=self._model_config.text_cross_head_size,
-          right_intermediate_size=2 * self._model_config.text_cross_head_size *
+          right_intermediate_size=4 * self._model_config.text_cross_head_size *
           self._head_num,
           hidden_dropout_prob=self._model_config.hidden_dropout_prob,
           attention_probs_dropout_prob=self._model_config

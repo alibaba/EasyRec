@@ -6,7 +6,6 @@ import tensorflow as tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -23,8 +22,8 @@ class MultiTower(RankModel):
                is_training=False):
     super(MultiTower, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
-    assert self._model_config.WhichOneof('model') == 'multi_tower', \
-      'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'multi_tower', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.multi_tower
     assert isinstance(self._model_config, MultiTowerConfig)
 
