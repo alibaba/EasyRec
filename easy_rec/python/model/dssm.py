@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.protos.dssm_pb2 import DSSM as DSSMConfig
@@ -13,7 +12,6 @@ from easy_rec.python.utils.proto_util import copy_obj
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = metrics_tf
 
 
 class DSSM(MatchModel):

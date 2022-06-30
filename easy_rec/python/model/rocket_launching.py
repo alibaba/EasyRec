@@ -3,7 +3,6 @@
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
-from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.loss_pb2 import LossType
@@ -13,7 +12,6 @@ from easy_rec.python.protos.rocket_launching_pb2 import RocketLaunching as Rocke
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-metrics = metrics_tf
 
 
 class RocketLaunching(RankModel):

@@ -24,7 +24,6 @@ from easy_rec.python.compat.early_stopping import find_early_stop_var
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.compat.ops import GraphKeys
-from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
@@ -369,7 +368,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     for loss_key in loss_dict.keys():
       loss_tensor = loss_dict[loss_key]
       # add key-prefix to make loss metric key in the same family of train loss
-      metric_dict['loss/loss/' + loss_key] = metrics_tf.mean(loss_tensor)
+      metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
     tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
 
     end = time.time()
@@ -396,7 +395,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     for loss_key in loss_dict.keys():
       loss_tensor = loss_dict[loss_key]
       # add key-prefix to make loss metric key in the same family of train loss
-      metric_dict['loss/loss/' + loss_key] = metrics_tf.mean(loss_tensor)
+      metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
     tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
 
     end = time.time()

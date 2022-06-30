@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_model_dir_path
 from easy_rec.python.utils.config_util import get_train_input_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
@@ -477,6 +478,14 @@ def distribute_evaluate(pipeline_config,
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
   eval_data = get_eval_input_path(pipeline_config)
+  model_dir = get_model_dir_path(pipeline_config)
+  eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
+  if not gfile.IsDirectory(eval_tmp_results_dir):
+    logging.info('create eval tmp results dir {}'.format(eval_tmp_results_dir))
+    gfile.MakeDirs(eval_tmp_results_dir)
+  assert gfile.IsDirectory(
+      eval_tmp_results_dir), 'tmp results dir not create success.'
+  os.environ['eval_tmp_results_dir'] = eval_tmp_results_dir
 
   server_target = None
   cur_job_name = None

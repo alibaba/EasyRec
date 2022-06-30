@@ -4,6 +4,7 @@
 
 isort:skip_file
 """
+import logging
 from future import standard_library
 standard_library.install_aliases()
 
@@ -15,7 +16,7 @@ import six
 import tensorflow as tf
 from six.moves import http_client
 from six.moves import urllib
-
+import json
 if six.PY2:
   from urllib import quote
 else:
@@ -165,3 +166,19 @@ def fix_oss_dir(path):
   if path.startswith('oss://') and not path.endswith('/'):
     return path + '/'
   return path
+
+
+def save_data_to_json_path(json_path, data):
+  with tf.gfile.GFile(json_path, 'w') as fout:
+    fout.write(json.dumps(data))
+  assert tf.gfile.Exists(json_path), 'in_save_data_to_json_path, save_failed'
+
+
+def read_data_from_json_path(json_path):
+  if json_path and tf.gfile.Exists(json_path):
+    with tf.gfile.GFile(json_path, 'r') as fin:
+      data = json.loads(fin.read())
+    return data
+  else:
+    logging.info('json_path not exists, return None')
+    return None

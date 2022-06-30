@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.model.easy_rec_model import EasyRecModel
@@ -16,7 +15,6 @@ from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = metrics_tf
 
 
 def cosine_similarity(user_emb, item_emb):
@@ -188,6 +186,7 @@ class DropoutNet(EasyRecModel):
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
+    from easy_rec.python.core.easyrec_metrics import metrics_tf as metrics
     metric_dict = {}
     labels = list(self._labels.values())[0]
     sim_score = self._prediction_dict['similarity']

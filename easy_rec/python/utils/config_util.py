@@ -389,6 +389,11 @@ def get_eval_input_path(pipeline_config):
   return getattr(pipeline_config, input_name)
 
 
+def get_model_dir_path(pipeline_config):
+  model_dir = pipeline_config.model_dir
+  return model_dir
+
+
 def set_train_input_path(pipeline_config, train_input_path):
   if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
     if isinstance(train_input_path, list):

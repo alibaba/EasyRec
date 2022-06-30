@@ -4,7 +4,6 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.protos.esmm_pb2 import ESMM as ESMMConfig
@@ -13,7 +12,6 @@ from easy_rec.python.protos.loss_pb2 import LossType
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = metrics_tf
 
 
 class ESMM(MultiTaskModel):
