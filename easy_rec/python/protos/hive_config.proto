@@ -15,9 +15,4 @@ message HiveConfig {
   required string database = 4 [default = 'default'];
 
   required string table_name = 5;
-
-  optional uint32 limit_num = 6 [default = 0];
-
-  required uint32 fetch_size = 7 [default = 512];
-
 }
