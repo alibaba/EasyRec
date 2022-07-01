@@ -35,10 +35,7 @@ class HiveParquetInput(Input):
     input_hdfs_path = hive_util.get_table_location(self._hive_config.table_name)
     self._input_table_col_names, self._input_table_col_types = hive_util.get_all_cols(
         self._hive_config.table_name)
-    self._input_hdfs_path = tf.gfile.Glob(os.path.join(input_hdfs_path, '*'))
-    logging.info('input_path: %s' % self._input_hdfs_path)
-    assert len(self._input_hdfs_path
-               ) > 0, 'match no files with %s' % self._hive_config.table_name
+    self._all_hdfs_path = tf.gfile.Glob(os.path.join(input_hdfs_path, '*'))
 
     for x in self._input_fields:
       assert x in self._input_table_col_names, 'Column %s not in Table %s.' % (
@@ -48,6 +45,15 @@ class HiveParquetInput(Input):
         self.get_type_defaults(t, v)
         for t, v in zip(self._input_field_types, self._input_field_defaults)
     ]
+
+  def _file_shard(self, file_paths, task_num, task_index):
+    if self._data_config.chief_redundant:
+      task_num = max(task_num - 1, 1)
+      task_index = max(task_index - 1, 0)
+    task_file_paths = []
+    for idx in range(task_index, len(file_paths), task_num):
+        task_file_paths.append(file_paths[idx])
+    return task_file_paths
 
   def _parquet_read(self):
     for input_path in self._input_hdfs_path:
@@ -87,8 +93,20 @@ class HiveParquetInput(Input):
     list_shapes = [tf.TensorShape([None]) for x in range(0, len(list_type))]
     list_shapes = tuple(list_shapes)
 
+    if len(self._all_hdfs_path) >= 2 * self._task_num:
+        file_shard = True
+        self._input_hdfs_path = self._file_shard(self._all_hdfs_path, self._task_num, self._task_index)
+    else:
+        file_shard = False
+        self._input_hdfs_path = self._all_hdfs_path
+    logging.info('input path: %s' % self._input_hdfs_path)
+    assert len(self._input_hdfs_path) > 0, 'match no files with %s' % self._hive_config.table_name
+
     dataset = tf.data.Dataset.from_generator(
         self._parquet_read, output_types=list_type, output_shapes=list_shapes)
+
+    if not file_shard:
+        dataset = self._safe_shard(dataset)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(
