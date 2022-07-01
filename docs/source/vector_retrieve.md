@@ -42,7 +42,7 @@ pai -name easy_rec_ext -project algo_public_dev
 ```sql
 create table doc_table(pk BIGINT,vector string) partitioned by (pt string);
 
-INSERT OVERWRITE TABLE query_table PARTITION(pt='20190410')
+INSERT OVERWRITE TABLE doc_table PARTITION(pt='20190410')
 VALUES
     (1, '0.1,0.2,-0.4,0.5'),
     (2, '-0.1,0.8,0.4,0.5'),
@@ -58,7 +58,7 @@ VALUES
 ```sql
 create table query_table(pk BIGINT,vector string) partitioned by (pt string);
 
-INSERT OVERWRITE TABLE doc_table PARTITION(pt='20190410')
+INSERT OVERWRITE TABLE query_table PARTITION(pt='20190410')
 VALUES
     (1, '0.1,0.2,0.4,0.5'),
     (2, '-0.1,0.2,0.4,0.5'),
