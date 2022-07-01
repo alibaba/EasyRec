@@ -337,11 +337,11 @@ class CheckpointSaverHook(CheckpointSaverHook):
           graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def)
       self._summary_writer.add_graph(graph)
       self._summary_writer.add_meta_graph(meta_graph_def)
-    # when tf version > 1.10.0, we use defaut training strategy, which saves ckpt
-    # at first train step
-    if LooseVersion(tf.__version__) >= LooseVersion('1.10.0'):
-      # The checkpoint saved here is the state at step "global_step".
-      self._save(session, global_step)
+    # # when tf version > 1.10.0, we use defaut training strategy, which saves ckpt
+    # # at first train step
+    # if LooseVersion(tf.__version__) >= LooseVersion('1.10.0'):
+    #   # The checkpoint saved here is the state at step "global_step".
+    #   self._save(session, global_step)
     self._timer.update_last_triggered_step(global_step)
 
   def before_run(self, run_context):  # pylint: disable=unused-argument

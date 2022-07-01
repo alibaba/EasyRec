@@ -63,6 +63,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         x.default_val for x in data_config.input_fields
     ]
     self._label_fields = list(data_config.label_fields)
+    self._feature_fields = list(data_config.feature_fields)
     self._label_sep = list(data_config.label_sep)
     self._label_dim = list(data_config.label_dim)
     if len(self._label_dim) < len(self._label_fields):
@@ -136,6 +137,10 @@ class Input(six.with_metaclass(_meta_type, object)):
       return self._data_config.num_epochs
     else:
       return None
+
+  def get_feature_input_fields(self):
+    return [x for x in self._input_fields if x not in self._label_fields \
+            and x != self._data_config.sample_weight]
 
   def should_stop(self, curr_epoch):
     """Check whether have run enough num epochs."""
