@@ -137,28 +137,29 @@ class FeatureColumnParser(object):
           self._share_embed_infos[embed_name])
       use_ev = self._use_embedding_variable or \
           self._share_embed_infos[embed_name].use_embedding_variable
-      # for handling share embedding columns
-      share_embed_fcs = feature_column.shared_embedding_columns(
-          self._deep_share_embed_columns[embed_name],
-          self._share_embed_infos[embed_name].embedding_dim,
-          initializer=initializer,
-          shared_embedding_collection_name=embed_name,
-          combiner=self._share_embed_infos[embed_name].combiner,
-          partitioner=partitioner,
-          use_embedding_variable=use_ev)
-      self._deep_share_embed_columns[embed_name] = share_embed_fcs
+
+      if len(self._deep_share_embed_columns[embed_name]) > 0:
+        # for handling share embedding columns
+        share_embed_fcs = feature_column.shared_embedding_columns(
+            self._deep_share_embed_columns[embed_name],
+            self._share_embed_infos[embed_name].embedding_dim,
+            initializer=initializer,
+            shared_embedding_collection_name=embed_name,
+            combiner=self._share_embed_infos[embed_name].combiner,
+            partitioner=partitioner,
+            use_embedding_variable=use_ev)
+        self._deep_share_embed_columns[embed_name] = share_embed_fcs
       # for handling wide share embedding columns
-      if len(self._wide_share_embed_columns[embed_name]) == 0:
-        continue
-      share_embed_fcs = feature_column.shared_embedding_columns(
-          self._wide_share_embed_columns[embed_name],
-          self._wide_output_dim,
-          initializer=initializer,
-          shared_embedding_collection_name=embed_name + '_wide',
-          combiner='sum',
-          partitioner=partitioner,
-          use_embedding_variable=use_ev)
-      self._wide_share_embed_columns[embed_name] = share_embed_fcs
+      if len(self._wide_share_embed_columns[embed_name]) > 0:
+        share_embed_fcs = feature_column.shared_embedding_columns(
+            self._wide_share_embed_columns[embed_name],
+            self._wide_output_dim,
+            initializer=initializer,
+            shared_embedding_collection_name=embed_name + '_wide',
+            combiner='sum',
+            partitioner=partitioner,
+            use_embedding_variable=use_ev)
+        self._wide_share_embed_columns[embed_name] = share_embed_fcs
 
     for fc_name in self._deep_columns:
       fc = self._deep_columns[fc_name]
@@ -485,10 +486,11 @@ class FeatureColumnParser(object):
       return None
 
   def _add_shared_embedding_column(self, embedding_name, fc, deep=True):
-    curr_id = len(self._deep_share_embed_columns[embedding_name])
     if deep:
+      curr_id = len(self._deep_share_embed_columns[embedding_name])
       self._deep_share_embed_columns[embedding_name].append(fc)
     else:
+      curr_id = len(self._wide_share_embed_columns[embedding_name])
       self._wide_share_embed_columns[embedding_name].append(fc)
     return SharedEmbedding(embedding_name, curr_id, None)
 
