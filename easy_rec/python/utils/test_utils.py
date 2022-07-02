@@ -23,6 +23,7 @@ import numpy as np
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
+from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
@@ -146,6 +147,14 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
   data_config.num_epochs = 0
+  return pipeline_config
+
+
+def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+
+  logging.info('test_model_dir %s' % pipeline_config.model_dir)
   return pipeline_config
 
 
@@ -647,8 +656,8 @@ def test_distributed_eval(pipeline_config_path,
                           total_steps=50,
                           num_evaluator=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
-  pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                          total_steps)
+  pipeline_config = _load_config_for_distribute_eval(pipeline_config_path,
+                                                     test_dir)
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
@@ -705,6 +714,26 @@ def test_distributed_eval(pipeline_config_path,
           logging.info('terminate %s' % k)
           proc.terminate()
     if task_failed is not None:
-      logging.error('train %s failed' % pipeline_config_path)
+      logging.error('eval %s failed' % pipeline_config_path)
 
   return task_failed is None
+
+
+def test_distribute_eval_test(test_dir):
+  single_work_eval_path = os.path.join(test_dir, 'eval_result.txt')
+  distribute_eval_path = os.path.join(test_dir, 'distribute_eval_result.txt')
+  single_data = read_data_from_json_path(single_work_eval_path)
+  distribute_data = read_data_from_json_path(distribute_eval_path)
+  single_ret = {
+      k: single_data[k]
+      for k in single_data.keys()
+      if 'loss' not in k and 'step' not in k
+  }
+  distribute_ret = {
+      k: distribute_data[k] for k in distribute_data.keys() if 'loss' not in k
+  }
+  difference_num = 0.00001
+  for k in single_ret.keys():
+    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+      return False
+  return True

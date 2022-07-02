@@ -137,14 +137,15 @@ def _distribute_separated_auc_impl(labels,
 
   def update_pyfunc(labels, predictions, keys):
     for label, prediction, key in zip(labels, predictions, keys):
-      separated_label[key].append(label)
-      separated_prediction[key].append(prediction.astype(np.float64))
+      key = str(key)
+      separated_label[key].append(label.item())
+      separated_prediction[key].append(prediction.item())
       if reduction == 'mean':
         separated_weights[key] = 1
       elif reduction == 'mean_by_sample_num':
         separated_weights[key] += 1
       elif reduction == 'mean_by_positive_num':
-        separated_weights[key] += label
+        separated_weights[key] += label.item()
     for name, data in zip(
         ['separated_label', 'separated_prediction', 'separated_weights'],
         [separated_label, separated_prediction, separated_weights]):

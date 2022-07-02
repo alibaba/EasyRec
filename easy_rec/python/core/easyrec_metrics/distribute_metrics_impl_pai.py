@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -801,10 +800,6 @@ def auc(labels,
 
     def compute_auc(tp, fn, tn, fp, name):
       """Computes the roc-auc or pr-auc based on confusion counts."""
-      tp = tf.cast(tp, dtype=tf.float64)
-      fn = tf.cast(fn, dtype=tf.float64)
-      tn = tf.cast(tn, dtype=tf.float64)
-      fp = tf.cast(fp, dtype=tf.float64)
       if curve == 'PR':
         if summation_method == 'trapezoidal':
           logging.warning(

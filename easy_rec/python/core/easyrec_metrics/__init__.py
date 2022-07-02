@@ -10,7 +10,6 @@ if tf.__version__ >= '2.0':
 
 distribute_eval = os.environ.get('distribute_eval')
 logging.info('distribute_eval = {}'.format(distribute_eval))
-logging.info('distribute_eval_is_true = {}'.format(distribute_eval == 'True'))
 if distribute_eval == 'True':
   if pai_util.is_on_pai() or tf.__version__ <= '1.13':
     logging.info('Will use distribute pai_tf metrics impl')
@@ -19,4 +18,4 @@ if distribute_eval == 'True':
     logging.info('Will use distribute tf metrics impl')
     from easy_rec.python.core.easyrec_metrics import distribute_metrics_impl_tf as metrics_tf
 else:
-  from tf import metrics as metrics_tf
+  from tensorflow import metrics as metrics_tf
