@@ -153,7 +153,7 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
 def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
-
+  pipeline_config.model_dir = test_dir
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   return pipeline_config
 
@@ -510,6 +510,7 @@ def _ps_worker_train(pipeline_config_path,
 
 
 def _ps_worker_distribute_eval(pipeline_config_path,
+                               checkpoint_path,
                                test_dir,
                                num_worker,
                                num_evaluator=0):
@@ -529,7 +530,8 @@ def _ps_worker_distribute_eval(pipeline_config_path,
   tf_config['task'] = {'type': chief_or_master, 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
-  train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path %s --distribute_eval True' % pipeline_config_path
+  train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path {} --checkpoint_path {}  \
+    --distribute_eval True'.format(pipeline_config_path, checkpoint_path)
   procs[chief_or_master] = run_cmd(
       train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
@@ -651,7 +653,30 @@ def test_distributed_train_eval(pipeline_config_path,
   return task_failed is None
 
 
+def test_distribute_eval_test(cur_eval_path, test_dir):
+  single_work_eval_path = os.path.join(cur_eval_path, 'eval_result.txt')
+  distribute_eval_path = os.path.join(test_dir, 'distribute_eval_result.txt')
+  if not os.path.exists(distribute_eval_path):
+    return False
+  single_data = read_data_from_json_path(single_work_eval_path)
+  distribute_data = read_data_from_json_path(distribute_eval_path)
+  single_ret = {
+      k: single_data[k]
+      for k in single_data.keys()
+      if 'loss' not in k and 'step' not in k
+  }
+  distribute_ret = {
+      k: distribute_data[k] for k in distribute_data.keys() if 'loss' not in k
+  }
+  difference_num = 0.00001
+  for k in single_ret.keys():
+    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+      return False
+  return True
+
+
 def test_distributed_eval(pipeline_config_path,
+                          checkpoint_path,
                           test_dir,
                           total_steps=50,
                           num_evaluator=0):
@@ -664,11 +689,13 @@ def test_distributed_eval(pipeline_config_path,
 
   task_failed = None
   procs = None
+  is_equal = False
   try:
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_distribute_eval(test_pipeline_config_path, test_dir,
-                                         num_worker, num_evaluator)
+      procs = _ps_worker_distribute_eval(test_pipeline_config_path,
+                                         checkpoint_path, test_dir, num_worker,
+                                         num_evaluator)
     else:
       raise NotImplementedError
 
@@ -704,6 +731,8 @@ def test_distributed_eval(pipeline_config_path,
         break
       time.sleep(1)
 
+    is_equal = test_distribute_eval_test(checkpoint_path, test_dir)
+
   except Exception as e:
     logging.error('Exception: ' + str(e))
     raise e
@@ -716,24 +745,5 @@ def test_distributed_eval(pipeline_config_path,
     if task_failed is not None:
       logging.error('eval %s failed' % pipeline_config_path)
 
-  return task_failed is None
-
-
-def test_distribute_eval_test(test_dir):
-  single_work_eval_path = os.path.join(test_dir, 'eval_result.txt')
-  distribute_eval_path = os.path.join(test_dir, 'distribute_eval_result.txt')
-  single_data = read_data_from_json_path(single_work_eval_path)
-  distribute_data = read_data_from_json_path(distribute_eval_path)
-  single_ret = {
-      k: single_data[k]
-      for k in single_data.keys()
-      if 'loss' not in k and 'step' not in k
-  }
-  distribute_ret = {
-      k: distribute_data[k] for k in distribute_data.keys() if 'loss' not in k
-  }
-  difference_num = 0.00001
-  for k in single_ret.keys():
-    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
-      return False
-  return True
+  eval_success = (task_failed is None) and is_equal
+  return eval_success
