@@ -25,6 +25,9 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
+from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_train_input_path
+from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
@@ -219,7 +222,10 @@ def _check_model_dir(model_dir, continue_train):
 
 def _get_ckpt_path(pipeline_config, checkpoint_path):
   if checkpoint_path != '' and checkpoint_path is not None:
-    ckpt_path = checkpoint_path
+    if gfile.IsDirectory(checkpoint_path):
+      ckpt_path = estimator_utils.latest_checkpoint(checkpoint_path)
+    else:
+      ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
     ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
@@ -253,17 +259,6 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   return pipeline_config
 
 
-def _get_input_object_by_name(pipeline_config, worker_type):
-  """" get object by worker type.
-
-  pipeline_config: pipeline_config
-  worker_type: train or eval
-  """
-  input_type = '{}_path'.format(worker_type)
-  input_name = pipeline_config.WhichOneof(input_type)
-  return getattr(pipeline_config, input_name)
-
-
 def _train_and_evaluate_impl(pipeline_config,
                              continue_train=False,
                              check_mode=False):
@@ -278,8 +273,8 @@ def _train_and_evaluate_impl(pipeline_config,
         % pipeline_config.train_config.train_distribute)
     pipeline_config.train_config.sync_replicas = False
 
-  train_data = _get_input_object_by_name(pipeline_config, 'train')
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  train_data = get_train_input_path(pipeline_config)
+  eval_data = get_eval_input_path(pipeline_config)
 
   distribution = strategy_builder.build(train_config)
   estimator, run_config = _create_estimator(
@@ -298,7 +293,8 @@ def _train_and_evaluate_impl(pipeline_config,
   train_steps = None
   if train_config.HasField('num_steps'):
     train_steps = train_config.num_steps
-  assert train_steps is not None or data_config.num_epochs > 0, "either num_steps and num_epochs must be set to an integer > 0."
+  assert train_steps is not None or data_config.num_epochs > 0, (
+      'either num_steps and num_epochs must be set to an integer > 0.')
 
   if train_steps and data_config.num_epochs:
     logging.info('Both num_steps and num_epochs are set.')
@@ -363,12 +359,10 @@ def evaluate(pipeline_config,
     fg_util.load_fg_json_to_config(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
-    if isinstance(eval_data_path, list):
-      pipeline_config.eval_input_path = ','.join(eval_data_path)
-    else:
-      pipeline_config.eval_input_path = eval_data_path
+    set_eval_input_path(pipeline_config, eval_data_path)
+
   train_config = pipeline_config.train_config
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  eval_data = get_eval_input_path(pipeline_config)
 
   server_target = None
   if 'TF_CONFIG' in os.environ:
@@ -483,13 +477,9 @@ def distribute_evaluate(pipeline_config,
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
   if eval_data_path is not None:
     logging.info('Evaluating on data: %s' % eval_data_path)
-    if isinstance(eval_data_path, list):
-      pipeline_config.eval_input_path = ','.join(eval_data_path)
-    else:
-      pipeline_config.eval_input_path = eval_data_path
+    set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
-
-  eval_data = _get_input_object_by_name(pipeline_config, 'eval')
+  eval_data = get_eval_input_path(pipeline_config)
 
   server_target = None
   cur_job_name = None
@@ -642,12 +632,9 @@ def predict(pipeline_config, checkpoint_path='', data_path=None):
     fg_util.load_fg_json_to_config(pipeline_config)
   if data_path is not None:
     logging.info('Predict on data: %s' % data_path)
-    pipeline_config.eval_input_path = data_path
+    set_eval_input_path(pipeline_config, data_path)
   train_config = pipeline_config.train_config
-  if pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
-    eval_data = pipeline_config.kafka_eval_input
-  else:
-    eval_data = pipeline_config.eval_input_path
+  eval_data = get_eval_input_path(pipeline_config)
 
   distribution = strategy_builder.build(train_config)
   estimator, _ = _create_estimator(pipeline_config, distribution)
@@ -710,7 +697,8 @@ def export(export_dir,
     asset_file_dict = {}
     for asset_file in asset_files.split(','):
       asset_file = asset_file.strip()
-      if ':' not in asset_file or asset_file.startswith('oss:'):
+      if ':' not in asset_file or asset_file.startswith(
+          'oss:') or asset_file.startswith('hdfs:'):
         _, asset_name = os.path.split(asset_file)
       else:
         asset_name, asset_file = asset_file.split(':', 1)
@@ -725,24 +713,21 @@ def export(export_dir,
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   if 'oss_path' in extra_params:
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
-                                   serving_input_fn, estimator, checkpoint_path,
+                                   serving_input_fn, estimator, ckpt_path,
                                    verbose)
 
   if 'redis_url' in extra_params:
     return export_big_model(export_dir, pipeline_config, extra_params,
-                            serving_input_fn, estimator, checkpoint_path,
+                            serving_input_fn, estimator, ckpt_path,
                             verbose)
-
-  if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(
-        pipeline_config.model_dir)
 
   final_export_dir = estimator.export_savedmodel(
       export_dir_base=export_dir,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       strip_default_attrs=True)
 
   # add export ts as version info
@@ -792,10 +777,11 @@ def export_checkpoint(pipeline_config=None,
   export_config = pipeline_config.export_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   estimator.export_checkpoint(
       export_path=export_path,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       mode=mode)
 
   logging.info('model checkpoint has been exported successfully')

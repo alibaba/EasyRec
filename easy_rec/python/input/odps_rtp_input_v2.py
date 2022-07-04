@@ -3,7 +3,6 @@
 import json
 import logging
 
-import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
@@ -39,6 +38,8 @@ class OdpsRTPInputV2(OdpsRTPInput):
     super(OdpsRTPInputV2,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode)
+    if fg_json_path.startswith('!'):
+      fg_json_path = fg_json_path[1:]
     self._fg_config_path = fg_json_path
     logging.info('fg config path: {}'.format(self._fg_config_path))
     if self._fg_config_path is None:
@@ -52,13 +53,6 @@ class OdpsRTPInputV2(OdpsRTPInput):
     fields = list(fields)
     labels = fields[:-1]
 
-    # only for features, labels excluded
-    record_defaults = [
-        self.get_type_defaults(t, v)
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
-        if x not in self._label_fields
-    ]
     # assume that the last field is the generated feature column
     features = rtp_fg.parse_genreated_fg(self._fg_config, fields[-1])
 

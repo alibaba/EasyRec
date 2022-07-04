@@ -9,6 +9,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import test_utils
@@ -197,6 +198,22 @@ class HPOTest(tf.test.TestCase):
       if tmp_fea.input_names[0] == 'c21':
         assert len(tmp_fea.boundaries) == 25
         assert np.abs(tmp_fea.boundaries[1] - 21.0) < 1e-5
+
+  def test_edit_config_v13(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v13.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    assert not tmp_config.export_config.multi_placeholder
+
+  def test_edit_config_v14(self):
+    tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
+    tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
+    tmp_file = 'samples/hpo/hpo_param_v14.json'
+    tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
+    for i, tmp_fea in enumerate(tmp_config.feature_configs):
+      if tmp_fea.input_names[0] == 'hour':
+        assert len(tmp_fea.feature_type) == FeatureConfig.RawFeature
 
   def test_save_eval_metrics_with_env(self):
     os.environ['TF_CONFIG'] = """

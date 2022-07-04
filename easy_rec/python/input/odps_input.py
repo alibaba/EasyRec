@@ -44,7 +44,8 @@ class OdpsInput(Input):
 
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
-    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.pai_worker_queue:

@@ -4,10 +4,10 @@ import json
 import logging
 import os
 
-import common_io
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -29,18 +29,36 @@ FLAGS = tf.app.flags.FLAGS
 def main(argv):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       FLAGS.template_config_path)
-
-  reader = common_io.table.TableReader(
-      FLAGS.config_table, selected_cols='feature,feature_info')
+  sels = 'feature,feature_info,message'
   feature_info_map = {}
-  while True:
-    try:
-      record = reader.read()
+  drop_feature_names = []
+
+  if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+    hive_util = HiveUtils(
+        data_config=pipeline_config.data_config,
+        hive_config=pipeline_config.hive_train_input,
+        selected_cols=sels,
+        record_defaults=['', '', ''])
+    reader = hive_util.hive_read_line(FLAGS.config_table)
+    for record in reader:
       feature_name = record[0][0]
       feature_info_map[feature_name] = json.loads(record[0][1])
-    except common_io.exception.OutOfRangeException:
-      reader.close()
-      break
+      if 'DROP IT' in record[0][2]:
+        drop_feature_names.append(feature_name)
+
+  else:
+    import common_io
+    reader = common_io.table.TableReader(FLAGS.config_table, selected_cols=sels)
+    while True:
+      try:
+        record = reader.read()
+        feature_name = record[0][0]
+        feature_info_map[feature_name] = json.loads(record[0][1])
+        if 'DROP IT' in record[0][2]:
+          drop_feature_names.append(feature_name)
+      except common_io.exception.OutOfRangeException:
+        reader.close()
+        break
 
   for feature_config in config_util.get_compatible_feature_configs(
       pipeline_config):
@@ -76,6 +94,17 @@ def main(argv):
       learning_rate.decay_steps = feature_info_map['__DECAY_STEPS__'][
           'decay_steps']
     logging.info('modify decay_steps to %s' % learning_rate.decay_steps)
+
+  for feature_group in pipeline_config.model_config.feature_groups:
+    feature_names = feature_group.feature_names
+    reserved_features = []
+    for feature_name in feature_names:
+      if feature_name not in drop_feature_names:
+        reserved_features.append(feature_name)
+      else:
+        logging.info('drop feature: %s' % feature_name)
+    feature_group.ClearField('feature_names')
+    feature_group.feature_names.extend(reserved_features)
 
   config_dir, config_name = os.path.split(FLAGS.output_config_path)
   config_util.save_pipeline_config(pipeline_config, config_dir, config_name)

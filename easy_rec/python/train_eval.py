@@ -12,6 +12,8 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
+from easy_rec.python.utils.config_util import set_eval_input_path
+from easy_rec.python.utils.config_util import set_train_input_path
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
@@ -53,6 +55,7 @@ tf.app.flags.DEFINE_bool(
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
 tf.app.flags.DEFINE_bool('check_mode', False, help='is use check mode')
+tf.app.flags.DEFINE_string('selected_cols', None, help='')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -60,17 +63,15 @@ def main(argv):
   if FLAGS.pipeline_config_path is not None:
     pipeline_config = config_util.get_configs_from_pipeline_file(
         FLAGS.pipeline_config_path, False)
+    if FLAGS.selected_cols:
+      pipeline_config.data_config.selected_cols = FLAGS.selected_cols
     if FLAGS.model_dir:
       pipeline_config.model_dir = FLAGS.model_dir
       logging.info('update model_dir to %s' % pipeline_config.model_dir)
     if FLAGS.train_input_path:
-      pipeline_config.train_input_path = ','.join(FLAGS.train_input_path)
-      logging.info('update train_input_path to %s' %
-                   pipeline_config.train_input_path)
+      set_train_input_path(pipeline_config, FLAGS.train_input_path)
     if FLAGS.eval_input_path:
-      pipeline_config.eval_input_path = ','.join(FLAGS.eval_input_path)
-      logging.info('update eval_input_path to %s' %
-                   pipeline_config.eval_input_path)
+      set_eval_input_path(pipeline_config, FLAGS.eval_input_path)
     if FLAGS.fine_tune_checkpoint:
       if file_io.file_exists(FLAGS.fine_tune_checkpoint):
         pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint

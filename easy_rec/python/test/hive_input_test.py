@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define cv_input, the base class for cv tasks."""
+import logging
 import os
 import unittest
 
@@ -9,14 +10,13 @@ from google.protobuf import text_format
 
 from easy_rec.python.input.hive_input import HiveInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.protos.hive_config_pb2 import HiveConfig
+from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
+from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
-from easy_rec.python.utils.config_util import *
-from easy_rec.python.utils.test_utils import *
-from easy_rec.python.utils.test_utils import _load_config_for_test
 
 if tf.__version__ >= '2.0':
-  #tf = tf.compat.v1
   import tensorflow.compat.v1 as tf
 
 gfile = tf.gfile
@@ -261,11 +261,11 @@ class HiveInputTest(tf.test.TestCase):
        hive_username、hive_table_name、hive_hash_fields is available.""")
   def test_mmoe(self):
     pipeline_config_path = 'samples/emr_script/mmoe/mmoe_census_income.config'
-    gpus = get_available_gpus()
+    gpus = test_utils.get_available_gpus()
     if len(gpus) > 0:
-      set_gpu_id(gpus[0])
+      test_utils.set_gpu_id(gpus[0])
     else:
-      set_gpu_id(None)
+      test_utils.set_gpu_id(None)
 
     if not isinstance(pipeline_config_path, EasyRecConfig):
       logging.info('testing pipeline config %s' % pipeline_config_path)
@@ -275,8 +275,8 @@ class HiveInputTest(tf.test.TestCase):
     if isinstance(pipeline_config_path, EasyRecConfig):
       pipeline_config = pipeline_config_path
     else:
-      pipeline_config = _load_config_for_test(pipeline_config_path,
-                                              self._test_dir)
+      pipeline_config = test_utils._load_config_for_test(
+          pipeline_config_path, self._test_dir)
 
     pipeline_config.train_config.train_distribute = 0
     pipeline_config.train_config.num_gpus_per_worker = 1
@@ -287,7 +287,8 @@ class HiveInputTest(tf.test.TestCase):
     hyperparam_str = ''
     train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
         test_pipeline_config_path, hyperparam_str)
-    proc = run_cmd(train_cmd, '%s/log_%s.txt' % (self._test_dir, 'master'))
+    proc = test_utils.run_cmd(train_cmd,
+                              '%s/log_%s.txt' % (self._test_dir, 'master'))
     proc.wait()
     if proc.returncode != 0:
       logging.error('train %s failed' % test_pipeline_config_path)

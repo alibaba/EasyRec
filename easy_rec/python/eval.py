@@ -8,7 +8,9 @@ import six
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
-from easy_rec.python.main import evaluate, distribute_evaluate
+from easy_rec.python.main import distribute_evaluate
+from easy_rec.python.main import evaluate
+
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_distribute_eval_worker_num_on_ds  # NOQA
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -38,7 +40,7 @@ FLAGS = tf.app.flags.FLAGS
 def main(argv):
   if FLAGS.odps_config:
     os.environ['ODPS_CONFIG_FILE_PATH'] = FLAGS.odps_config
-  
+
   if FLAGS.is_on_ds and FLAGS.distribute_eval:
     set_tf_config_and_get_distribute_eval_worker_num_on_ds()
 
@@ -53,11 +55,12 @@ def main(argv):
     pipeline_config_path = FLAGS.pipeline_config_path
 
   if FLAGS.distribute_eval:
-    eval_result = distribute_evaluate(pipeline_config_path, FLAGS.checkpoint_path,
-                         FLAGS.eval_input_path)
+    eval_result = distribute_evaluate(pipeline_config_path,
+                                      FLAGS.checkpoint_path,
+                                      FLAGS.eval_input_path)
   else:
     eval_result = evaluate(pipeline_config_path, FLAGS.checkpoint_path,
-                          FLAGS.eval_input_path)
+                           FLAGS.eval_input_path)
   if eval_result is not None:
     # when distribute evaluate, only master has eval_result.
     for key in sorted(eval_result):
@@ -66,7 +69,7 @@ def main(argv):
         continue
       logging.info('%s: %s' % (key, str(eval_result[key])))
   else:
-    logging.info("Eval result in master worker.")
+    logging.info('Eval result in master worker.')
 
 
 if __name__ == '__main__':

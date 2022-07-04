@@ -13,12 +13,13 @@ if [ -n "$PULL_REQUEST_NUM" ]
 then
   # check updates
   PYTHONPATH=. python scripts/ci_test_change_files.py --pull_request_num $PULL_REQUEST_NUM --exclude_dir docs
-  if [ $? -eq 2 ]
+  flag=$?
+  if [ $flag -eq 2 ]
   then
      echo "::set-output name=ci_test_passed::0"
      exit
   fi
-  if [ $? -ne 0 ]
+  if [ $flag -ne 0 ]
   then
      # there are no code changes related to this test
      echo "::set-output name=ci_test_passed::1"

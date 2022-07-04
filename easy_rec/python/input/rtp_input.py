@@ -5,10 +5,10 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -48,7 +48,6 @@ class RTPInput(Input):
     ]
     self._num_cols = -1
     self._feature_col_id = self._selected_cols[-1]
-    print('rtp input : ', self._input_path)
     logging.info('rtp separator = %s' % self._rtp_separator)
 
   def _parse_csv(self, line):
@@ -78,7 +77,7 @@ class RTPInput(Input):
       field = fields[:, x]
       fname = self._input_fields[idx]
       ftype = self._input_field_types[idx]
-      tf_type = self.get_tf_type(ftype)
+      tf_type = get_tf_type(ftype)
       if field.dtype in [tf.string]:
         check_list = [
             tf.py_func(check_string_to_number, [field, fname], Tout=tf.bool)
@@ -163,9 +162,14 @@ class RTPInput(Input):
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+
+      if self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         # shuffle input files
         dataset = dataset.shuffle(len(file_paths))
+
       # too many readers read the same file will cause performance issues
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
@@ -173,11 +177,10 @@ class RTPInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
+
+      if not self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,

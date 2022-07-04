@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
+
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.shape_utils import get_shape_list
 
@@ -15,6 +16,7 @@ else:
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
 
 def max_f1(label, predictions):
   """Calculate the largest F1 metric under different thresholds.
@@ -134,11 +136,12 @@ def session_auc(labels, predictions, session_ids, reduction='mean'):
   """
   return _separated_auc_impl(labels, predictions, session_ids, reduction)
 
+
 def distribute_metric_learning_recall_at_k(k,
-                                embeddings,
-                                labels,
-                                session_ids=None,
-                                embed_normed=False):
+                                           embeddings,
+                                           labels,
+                                           session_ids=None,
+                                           embed_normed=False):
   """Computes the recall_at_k metric for metric learning.
 
   Args:
@@ -181,6 +184,7 @@ def distribute_metric_learning_recall_at_k(k,
   else:
     raise ValueError('k should be a `int` or a list/tuple/set of int.')
 
+
 def _get_matrix_mask_indices(matrix, num_rows=None):
   if num_rows is None:
     num_rows = get_shape_list(matrix)[0]
@@ -202,11 +206,12 @@ def _get_matrix_mask_indices(matrix, num_rows=None):
   result = tf.where(result >= 0, result, max_index_per_row)
   return result
 
+
 def distribute_metric_learning_average_precision_at_k(k,
-                                           embeddings,
-                                           labels,
-                                           session_ids=None,
-                                           embed_normed=False):
+                                                      embeddings,
+                                                      labels,
+                                                      session_ids=None,
+                                                      embed_normed=False):
   # make sure embedding should be l2-normalized
   if not embed_normed:
     embeddings = tf.nn.l2_normalize(embeddings, axis=1)
@@ -221,7 +226,8 @@ def distribute_metric_learning_average_precision_at_k(k,
     mask = tf.logical_and(sessions_equal, mask)
   label_indices = _get_matrix_mask_indices(mask)
   if isinstance(k, int):
-    return distribute_metrics_tf.average_precision_at_k(label_indices, sim_mat, k)
+    return distribute_metrics_tf.average_precision_at_k(label_indices, sim_mat,
+                                                        k)
   if any((isinstance(k, list), isinstance(k, tuple), isinstance(k, set))):
     metrics = {}
     for kk in k:

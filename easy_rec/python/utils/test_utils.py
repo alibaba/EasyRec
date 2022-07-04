@@ -278,6 +278,24 @@ def test_single_pre_check(pipeline_config_path, test_dir):
   return True
 
 
+def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
+  gpus = get_available_gpus()
+  if len(gpus) > 0:
+    set_gpu_id(gpus[0])
+  else:
+    set_gpu_id(None)
+
+  predict_cmd = 'python -m easy_rec.python.predict --input_path %s --output_path %s --saved_model_dir %s' % (
+      input_path, output_path, saved_model_dir)
+
+  proc = run_cmd(predict_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
+  proc.wait()
+  if proc.returncode != 0:
+    logging.error('predict failed')
+    return False
+  return True
+
+
 def test_feature_selection(pipeline_config):
   model_dir = pipeline_config.model_dir
   pipeline_config_path = os.path.join(model_dir, 'pipeline.config')

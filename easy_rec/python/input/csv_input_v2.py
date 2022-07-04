@@ -20,7 +20,8 @@ class CSVInputV2(Input):
   def _build(self, mode, params):
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
-    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
 
     if self._input_path[0].startswith('hdfs://'):
       # support hdfs input

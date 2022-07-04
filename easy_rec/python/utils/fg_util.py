@@ -17,6 +17,11 @@ def load_fg_json_to_config(pipeline_config):
   fg_json_path = pipeline_config.fg_json_path
   if not fg_json_path:
     return
+
+  if fg_json_path.startswith('!'):
+    # already loaded
+    return
+
   label_fields = pipeline_config.data_config.label_fields
   with tf.gfile.GFile(fg_json_path, 'r') as fin:
     rtp_fg = json.load(fin)
@@ -26,7 +31,10 @@ def load_fg_json_to_config(pipeline_config):
 
   pipeline_config.data_config.ClearField('input_fields')
   pipeline_config.ClearField('feature_configs')
-  pipeline_config.feature_config.ClearField('features')
+
+  # not clear features so that we could define extra features
+  # which is not defined in fg.json
+  # pipeline_config.feature_config.ClearField('features')
 
   for input_config in fg_config.data_config.input_fields:
     in_config = DatasetConfig.Field()
@@ -38,4 +46,8 @@ def load_fg_json_to_config(pipeline_config):
     fea_config.CopyFrom(fc)
     pipeline_config.feature_config.features.append(fea_config)
   logging.info('data_config and feature_config has been replaced by fg_json.')
+
+  # signal that it is already loaded
+  pipeline_config.fg_json_path = '!' + pipeline_config.fg_json_path
+
   return pipeline_config

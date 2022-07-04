@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   import common_io
@@ -47,7 +48,8 @@ class OdpsInputV3(Input):
     self._num_epoch += 1
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
-    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
 
     # check data_config are consistent with odps tables
     odps_util.check_input_field_and_types(self._data_config)
@@ -90,7 +92,7 @@ class OdpsInputV3(Input):
 
   def _build(self, mode, params):
     # get input type
-    list_type = [self.get_tf_type(x) for x in self._input_field_types]
+    list_type = [get_tf_type(x) for x in self._input_field_types]
     list_type = tuple(list_type)
     list_shapes = [tf.TensorShape([None]) for x in range(0, len(list_type))]
     list_shapes = tuple(list_shapes)
