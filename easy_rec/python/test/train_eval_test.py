@@ -803,14 +803,14 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/dropoutnet_distribute_eval_on_taobao.config',
         cur_eval_path, self._test_dir)
-    self.assertTrue(self._success, self._test_dir)
+    self.assertTrue(self._success)
 
   def test_distribute_eval_esmm(self):
     cur_eval_path = 'data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt'
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/esmm_distribute_eval_on_taobao.config',
         cur_eval_path, self._test_dir)
-    self.assertTrue(self._success, self._test_dir)
+    self.assertTrue(self._success)
 
 
 if __name__ == '__main__':
