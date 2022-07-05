@@ -177,6 +177,11 @@ class KafkaInput(Input):
           config_topic = list(self._kafka.config_topic),
           message_key=True,
           message_offset=True)
+ 
+      if self._data_config.shuffle:
+        dataset = dataset.shuffle(self._data_config.shuffle_buffer_size,
+          seed=2020,
+          reshuffle_each_iteration=True)
     else:
       eval_kafka = self._kafka
       assert self._kafka is not None, "kafka_eval_input is not set."
