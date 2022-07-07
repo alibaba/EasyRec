@@ -73,7 +73,11 @@ def main(argv):
     if FLAGS.eval_input_path:
       set_eval_input_path(pipeline_config, FLAGS.eval_input_path)
     if FLAGS.fine_tune_checkpoint:
-      if file_io.file_exists(FLAGS.fine_tune_checkpoint):
+      if FLAGS.fine_tune_checkpoint.endswith('/') or tf.gfile.IsDirectory(FLAGS.fine_tune_checkpoint + '/'):
+        ckpt_path = estimator_utils.latest_checkpoint(FLAGS.fine_tune_checkpoint)
+        pipeline_config.train_config.fine_tune_checkpoint = ckpt_path
+        logging.info('fine_tune_checkpoint is directory, will use the latest checkpoint: %s' % ckpt_path)
+      elif tf.gfile.Exists(FLAGS.fine_tune_checkpoint + '.meta'):
         pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
         logging.info('update fine_tune_checkpoint to %s' %
                      pipeline_config.train_config.fine_tune_checkpoint)
@@ -104,14 +108,6 @@ def main(argv):
       set_tf_config_and_get_train_worker_num_on_ds()
       if pipeline_config.train_config.fine_tune_checkpoint:
         fine_tune_ckpt_path = pipeline_config.train_config.fine_tune_checkpoint
-        if fine_tune_ckpt_path.endswith('/') or tf.gfile.IsDirectory(
-            fine_tune_ckpt_path + '/'):
-          fine_tune_ckpt_path = estimator_utils.latest_checkpoint(
-              fine_tune_ckpt_path)
-          logging.info(
-              'ckpt_path is model_dir,  will use the latest checkpoint: %s' %
-              fine_tune_ckpt_path)
-
         if fine_tune_ckpt_path.startswith('hdfs://'):
           tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
           tmpdir = os.path.join('/tmp/experiments', tmpdir)

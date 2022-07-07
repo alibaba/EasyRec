@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 LOG_DIR="logs/"
 
@@ -19,7 +19,7 @@ args="--continue_train"
 while getopts "c:s:p:m:f:P:W:E:H:L:N:" arg; do
   case $arg in
     c)
-      PIPELINE_CONFIG=$OPTARG 
+      PIPELINE_CONFIG=$OPTARG
       ;;
     s)
       START_GPU=$OPTARG
@@ -36,11 +36,11 @@ while getopts "c:s:p:m:f:P:W:E:H:L:N:" arg; do
     W)
       WORKER_NUM=$OPTARG
       ;;
-    P) 
+    P)
       PS_NUM=$OPTARG
       ;;
     E)
-      args="$args $OPTARG" 
+      args="$args $OPTARG"
       ;;
     H)
       HOST=$OPTARG
@@ -61,7 +61,7 @@ done
 shift $(($OPTIND - 1))
 
 if [ -n "$@" ]
-then 
+then
   args="$args $@"
 fi
 

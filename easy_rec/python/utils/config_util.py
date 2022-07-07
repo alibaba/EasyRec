@@ -37,7 +37,7 @@ def search_pipeline_config(directory):
     raise ValueError('config is not found in directory %s' % directory)
   elif len(dir_list) > 1:
     raise ValueError('config saved model found in directory %s' % directory)
-  logging.info("use pipeline config: %s" % dir_list[0])
+  logging.info('use pipeline config: %s' % dir_list[0])
   return dir_list[0]
 
 
@@ -498,8 +498,7 @@ def process_neg_sampler_data_path(pipeline_config):
     return None
   hive_util = HiveUtils(
     data_config=pipeline_config.data_config,
-    hive_config=pipeline_config.hive_train_input,
-    mode=tf.estimator.ModeKeys.PREDICT)
+    hive_config=pipeline_config.hive_train_input)
   sampler_type = pipeline_config.data_config.WhichOneof('sampler')
   sampler_config = getattr(pipeline_config.data_config, sampler_type)
   if hasattr(sampler_config, 'input_path'):

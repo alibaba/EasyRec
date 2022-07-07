@@ -222,7 +222,10 @@ def _check_model_dir(model_dir, continue_train):
 
 def _get_ckpt_path(pipeline_config, checkpoint_path):
   if checkpoint_path != '' and checkpoint_path is not None:
-    ckpt_path = checkpoint_path
+    if gfile.IsDirectory(checkpoint_path):
+      ckpt_path = estimator_utils.latest_checkpoint(checkpoint_path)
+    else:
+      ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
     ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
@@ -290,7 +293,8 @@ def _train_and_evaluate_impl(pipeline_config,
   train_steps = None
   if train_config.HasField('num_steps'):
     train_steps = train_config.num_steps
-  assert train_steps is not None or data_config.num_epochs > 0, 'either num_steps and num_epochs must be set to an integer > 0.'
+  assert train_steps is not None or data_config.num_epochs > 0, (
+      'either num_steps and num_epochs must be set to an integer > 0.')
 
   if train_steps and data_config.num_epochs:
     logging.info('Both num_steps and num_epochs are set.')
@@ -709,24 +713,21 @@ def export(export_dir,
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   if 'oss_path' in extra_params:
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
-                                   serving_input_fn, estimator, checkpoint_path,
+                                   serving_input_fn, estimator, ckpt_path,
                                    verbose)
 
   if 'redis_url' in extra_params:
     return export_big_model(export_dir, pipeline_config, extra_params,
-                            serving_input_fn, estimator, checkpoint_path,
+                            serving_input_fn, estimator, ckpt_path,
                             verbose)
-
-  if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(
-        pipeline_config.model_dir)
 
   final_export_dir = estimator.export_savedmodel(
       export_dir_base=export_dir,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       strip_default_attrs=True)
 
   # add export ts as version info
@@ -776,10 +777,11 @@ def export_checkpoint(pipeline_config=None,
   export_config = pipeline_config.export_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   estimator.export_checkpoint(
       export_path=export_path,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       mode=mode)
 
   logging.info('model checkpoint has been exported successfully')

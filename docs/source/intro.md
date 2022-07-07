@@ -49,6 +49,7 @@ EasyRec implements state of the art machine learning models used in common recom
 - [DSSM](models/dssm.md) / [MIND](models/mind.md) / [DropoutNet](models/dropoutnet.md) / [CoMetricLearningI2I](models/co_metric_learning_i2i.md)
 - [W&D](models/wide_and_deep.md) / [DeepFM](models/deepfm.md) / [MultiTower](models/multi_tower.md) / [DCN](models/dcn.md) / [DIN](models/din.md) / [BST](models/bst.md)
 - [MMoE](models/mmoe.md) / [ESMM](models/esmm.md) / [DBMTL](models/dbmtl.md) / [PLE](models/ple.md)
+- [CMBF](models/cmbf.md)
 - More models in development
 
 ### Easy to customize

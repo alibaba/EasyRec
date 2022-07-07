@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import collections
 import json
 import logging
 import os
@@ -14,7 +13,6 @@ import tensorflow as tf
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
-from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
