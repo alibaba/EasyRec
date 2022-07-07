@@ -136,9 +136,7 @@ class CMBF(object):
         image_features = tf.reshape(
             self._img_features, shape=[-1, self._img_emb_size])
         image_features = tf.layers.dense(
-            image_features,
-            hidden_size,
-            name='img_projection')
+            image_features, hidden_size, name='img_projection')
       image_features = tf.reshape(
           image_features, shape=[-1, self._img_feature_num, hidden_size])
     elif img_fea_num == 1:
@@ -154,18 +152,14 @@ class CMBF(object):
           image_features = tf.reshape(
               self._img_features, shape=[-1, self._img_emb_size])
           image_features = tf.layers.dense(
-              image_features,
-              hidden_size,
-              name='img_projection')
+              image_features, hidden_size, name='img_projection')
         image_features = tf.reshape(
             image_features, shape=[-1, img_fea_num, hidden_size])
       else:
         img_fea_num = self._model_config.image_feature_dim
         if img_fea_num != self._img_emb_size:
           image_features = tf.layers.dense(
-              image_features,
-              img_fea_num,
-              name='img_projection')
+              image_features, img_fea_num, name='img_projection')
         # convert each element of image feature to a feature vector
         img_mapping_matrix = tf.get_variable(
             'img_map_matrix', [1, img_fea_num, hidden_size], dtype=tf.float32)
@@ -198,9 +192,7 @@ class CMBF(object):
         general_features = tf.reshape(
             general_features, shape=[-1, self._txt_emb_size])
         general_features = tf.layers.dense(
-            general_features,
-            hidden_size,
-            name='txt_projection')
+            general_features, hidden_size, name='txt_projection')
       txt_features = tf.reshape(
           general_features, shape=[-1, self._general_feature_num, hidden_size])
 
@@ -226,9 +218,7 @@ class CMBF(object):
         if emb_size != hidden_size:
           seq_fea = tf.reshape(seq_fea, shape=[-1, emb_size])
           seq_fea = tf.layers.dense(
-              seq_fea,
-              hidden_size,
-              name='txt_seq_projection_%d' % i)
+              seq_fea, hidden_size, name='txt_seq_projection_%d' % i)
           seq_fea = tf.reshape(seq_fea, shape=[-1, max_seq_len, hidden_size])
 
         seq_fea = multihead_cross_attention.embedding_postprocessor(

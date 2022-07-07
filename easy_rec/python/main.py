@@ -721,8 +721,7 @@ def export(export_dir,
 
   if 'redis_url' in extra_params:
     return export_big_model(export_dir, pipeline_config, extra_params,
-                            serving_input_fn, estimator, ckpt_path,
-                            verbose)
+                            serving_input_fn, estimator, ckpt_path, verbose)
 
   final_export_dir = estimator.export_savedmodel(
       export_dir_base=export_dir,

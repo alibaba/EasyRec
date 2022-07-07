@@ -19,8 +19,8 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.protos import pipeline_pb2
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils import pai_util
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -480,15 +480,17 @@ def set_eval_input_path(pipeline_config, eval_input_path):
                  pipeline_config.eval_input_path)
   return pipeline_config
 
+
 def process_data_path(data_path, hive_util):
   if data_path.startswith('hdfs://'):
     return data_path
   if re.match(r'(.*)\.(.*)', data_path):
     hdfs_path = hive_util.get_table_location(data_path)
     assert hdfs_path, "Can't find hdfs path of %s" % data_path
-    logging.info("update %s to %s" % (data_path, hdfs_path))
+    logging.info('update %s to %s' % (data_path, hdfs_path))
     return hdfs_path
   return data_path
+
 
 def process_neg_sampler_data_path(pipeline_config):
   # replace neg_sampler hive table => hdfs path
@@ -497,17 +499,22 @@ def process_neg_sampler_data_path(pipeline_config):
   if not pipeline_config.data_config.HasField('sampler'):
     return None
   hive_util = HiveUtils(
-    data_config=pipeline_config.data_config,
-    hive_config=pipeline_config.hive_train_input)
+      data_config=pipeline_config.data_config,
+      hive_config=pipeline_config.hive_train_input)
   sampler_type = pipeline_config.data_config.WhichOneof('sampler')
   sampler_config = getattr(pipeline_config.data_config, sampler_type)
   if hasattr(sampler_config, 'input_path'):
-    sampler_config.input_path = process_data_path(sampler_config.input_path, hive_util)
+    sampler_config.input_path = process_data_path(sampler_config.input_path,
+                                                  hive_util)
   if hasattr(sampler_config, 'user_input_path'):
-    sampler_config.user_input_path = process_data_path(sampler_config.user_input_path, hive_util)
+    sampler_config.user_input_path = process_data_path(
+        sampler_config.user_input_path, hive_util)
   if hasattr(sampler_config, 'item_input_path'):
-    sampler_config.item_input_path = process_data_path(sampler_config.item_input_path, hive_util)
+    sampler_config.item_input_path = process_data_path(
+        sampler_config.item_input_path, hive_util)
   if hasattr(sampler_config, 'pos_edge_input_path'):
-    sampler_config.pos_edge_input_path = process_data_path(sampler_config.pos_edge_input_path, hive_util)
+    sampler_config.pos_edge_input_path = process_data_path(
+        sampler_config.pos_edge_input_path, hive_util)
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
-    sampler_config.hard_neg_edge_input_path = process_data_path(sampler_config.hard_neg_edge_input_path, hive_util)
+    sampler_config.hard_neg_edge_input_path = process_data_path(
+        sampler_config.hard_neg_edge_input_path, hive_util)

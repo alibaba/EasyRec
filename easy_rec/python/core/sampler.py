@@ -12,9 +12,10 @@ import threading
 import numpy as np
 import six
 import tensorflow as tf
+
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils import ds_util
 from easy_rec.python.utils.tf_utils import get_tf_type
-from easy_rec.python.utils import pai_util
 
 try:
   import graphlearn as gl
@@ -63,7 +64,7 @@ class BaseSampler(object):
     self._num_eval_sample = num_eval_sample if num_eval_sample is not None else num_sample
     self._build_field_types(fields)
     self._log_first_n = 5
-    self._is_on_pai = pai_util.is_on_pai()
+    self._is_on_ds = ds_util.is_on_ds()
 
   def set_eval_num_sample(self):
     print('set_eval_num_sample: %d %d' %
@@ -77,14 +78,19 @@ class BaseSampler(object):
         # ps mode
         tf_config = json.loads(os.environ['TF_CONFIG'])
         task_count = len(tf_config['cluster']['worker']) + 2
-        if self._is_on_pai:
+        if self._is_on_ds:
+          gl.set_tracker_mode(0)
+          server_hosts = [
+              host.split(':')[0] + ':888' + str(i)
+              for i, host in enumerate(tf_config['cluster']['ps'])
+          ]
+          cluster = {
+              'server': ','.join(server_hosts),
+              'client_count': task_count
+          }
+        else:
           ps_count = len(tf_config['cluster']['ps'])
           cluster = {'server_count': ps_count, 'client_count': task_count}
-        else:
-          gl.set_tracker_mode(0)
-          server_hosts = [host.split(':')[0] + ':888' + str(i) for i, host in enumerate(tf_config['cluster']['ps'])]
-          cluster = {"server": ','.join(server_hosts), "client_count": task_count}
-
         if tf_config['task']['type'] in ['chief', 'master']:
           self._g.init(cluster=cluster, job_name='client', task_index=0)
         elif tf_config['task']['type'] == 'worker':
@@ -108,7 +114,7 @@ class BaseSampler(object):
       else:
         # worker mode
         task_count = len(tf_config['cluster']['worker']) + 1
-        if self._is_on_pai:
+        if not self._is_on_ds:
           if tf_config['task']['type'] in ['chief', 'master']:
             self._g.init(task_index=0, task_count=task_count)
           elif tf_config['task']['type'] == 'worker':
@@ -118,19 +124,24 @@ class BaseSampler(object):
         else:
           gl.set_tracker_mode(0)
           if tf_config['cluster'].get('chief', ''):
-            chief_host = tf_config['cluster']['chief'][0].split(':')[0] + ':8880'
+            chief_host = tf_config['cluster']['chief'][0].split(
+                ':')[0] + ':8880'
           else:
-            chief_host = tf_config['cluster']['master'][0].split(':')[0] + ':8880'
+            chief_host = tf_config['cluster']['master'][0].split(
+                ':')[0] + ':8880'
           worker_hosts = chief_host + \
                          [host.split(':')[0] + ':888' + str(i) for i, host in enumerate(tf_config['cluster']['worker'])]
 
           if tf_config['task']['type'] in ['chief', 'master']:
-              self._g.init(task_index=0, task_count=task_count, hosts=','.join(worker_hosts))
+            self._g.init(
+                task_index=0,
+                task_count=task_count,
+                hosts=','.join(worker_hosts))
           elif tf_config['task']['type'] == 'worker':
-              self._g.init(
-                  task_index=tf_config['task']['index'] + 1,
-                  task_count=task_count,
-                  hosts=worker_hosts)
+            self._g.init(
+                task_index=tf_config['task']['index'] + 1,
+                task_count=task_count,
+                hosts=worker_hosts)
 
         # TODO(hongsheng.jhs): check cluster has evaluator or not?
     else:
@@ -699,7 +710,7 @@ def build(data_config):
   sampler_type = data_config.WhichOneof('sampler')
   print('sampler_type = %s' % sampler_type)
   sampler_config = getattr(data_config, sampler_type)
-  if not pai_util.is_on_pai():
+  if ds_util.is_on_ds():
     gl.set_field_delimiter(sampler_config.field_delimiter)
 
   if sampler_type == 'negative_sampler':

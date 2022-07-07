@@ -5,14 +5,17 @@ import logging
 import os
 
 import tensorflow as tf
+
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import ds_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
+from easy_rec.python.utils.config_util import process_neg_sampler_data_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.config_util import set_train_input_path
-from easy_rec.python.utils.config_util import process_neg_sampler_data_path
+
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -73,8 +76,7 @@ def main(argv):
 
     if FLAGS.fine_tune_checkpoint:
       ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
-          FLAGS.fine_tune_checkpoint,
-          FLAGS.ignore_finetune_ckpt_error)
+          FLAGS.fine_tune_checkpoint, FLAGS.ignore_finetune_ckpt_error)
 
       if ckpt_path:
         pipeline_config.train_config.fine_tune_checkpoint = ckpt_path
@@ -87,17 +89,19 @@ def main(argv):
 
     if FLAGS.edit_config_json:
       config_json = json.loads(FLAGS.edit_config_json)
-      fine_tune_checkpoint = config_json.get('train_config',{}).get('fine_tune_checkpoint', None)
+      fine_tune_checkpoint = config_json.get('train_config',
+                                             {}).get('fine_tune_checkpoint',
+                                                     None)
       if fine_tune_checkpoint:
         ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
-            FLAGS.fine_tune_checkpoint,
-            FLAGS.ignore_finetune_ckpt_error)
+            FLAGS.fine_tune_checkpoint, FLAGS.ignore_finetune_ckpt_error)
         config_json['train_config']['fine_tune_checkpoint'] = ckpt_path
       config_util.edit_config(pipeline_config, config_json)
 
     process_neg_sampler_data_path(pipeline_config)
 
     if FLAGS.is_on_ds:
+      ds_util.set_on_ds()
       set_tf_config_and_get_train_worker_num_on_ds()
       if pipeline_config.train_config.fine_tune_checkpoint:
         fine_tune_ckpt_path = pipeline_config.train_config.fine_tune_checkpoint
