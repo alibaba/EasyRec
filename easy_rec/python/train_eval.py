@@ -75,6 +75,7 @@ def main(argv):
       ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
           FLAGS.fine_tune_checkpoint,
           FLAGS.ignore_finetune_ckpt_error)
+
       if ckpt_path:
         pipeline_config.train_config.fine_tune_checkpoint = ckpt_path
 
@@ -86,16 +87,12 @@ def main(argv):
 
     if FLAGS.edit_config_json:
       config_json = json.loads(FLAGS.edit_config_json)
-      fine_tune_checkpoint = config_json.get(
-          'train_config.fine_tune_checkpoint', None)
+      fine_tune_checkpoint = config_json.get('train_config',{}).get('fine_tune_checkpoint', None)
       if fine_tune_checkpoint:
         ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
             FLAGS.fine_tune_checkpoint,
             FLAGS.ignore_finetune_ckpt_error)
-        if ckpt_path:
-          config_json['train_config']['fine_tune_checkpoint'] = ckpt_path
-        else:
-          config_json.pop('train_config.fine_tune_checkpoint', None)
+        config_json['train_config']['fine_tune_checkpoint'] = ckpt_path
       config_util.edit_config(pipeline_config, config_json)
 
     process_neg_sampler_data_path(pipeline_config)

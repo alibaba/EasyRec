@@ -184,8 +184,23 @@ class TrainEvalTest(tf.test.TestCase):
         post_check_func=_post_check_func)
     self.assertTrue(self._success)
 
-  def test_fine_tune_ckpt(self):
+  def test_fine_tune_latest_ckpt_path(self):
+    def _post_check_func(pipeline_config):
+      logging.info('model_dir: %s' % pipeline_config.model_dir)
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+            os.path.join(pipeline_config.model_dir, 'pipeline.config'), False)
+      logging.info('fine_tune_checkpoint: %s' % pipeline_config.train_config.fine_tune_checkpoint)
+      return pipeline_config.train_config.fine_tune_checkpoint == \
+          'data/test/mt_ckpt/model.ckpt-100'
 
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_on_taobao.config',
+        self._test_dir,
+        fine_tune_checkpoint='data/test/mt_ckpt',
+        post_check_func=_post_check_func)
+    self.assertTrue(self._success)
+
+  def test_fine_tune_ckpt(self):
     def _post_check_func(pipeline_config):
       pipeline_config.train_config.fine_tune_checkpoint = \
           estimator_utils.latest_checkpoint(pipeline_config.model_dir)
