@@ -5,8 +5,6 @@ import logging
 import os
 
 import tensorflow as tf
-from tensorflow.python.lib.io import file_io
-
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
@@ -72,17 +70,13 @@ def main(argv):
       set_train_input_path(pipeline_config, FLAGS.train_input_path)
     if FLAGS.eval_input_path:
       set_eval_input_path(pipeline_config, FLAGS.eval_input_path)
+
     if FLAGS.fine_tune_checkpoint:
-      if FLAGS.fine_tune_checkpoint.endswith('/') or tf.gfile.IsDirectory(FLAGS.fine_tune_checkpoint + '/'):
-        ckpt_path = estimator_utils.latest_checkpoint(FLAGS.fine_tune_checkpoint)
+      ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
+          FLAGS.fine_tune_checkpoint,
+          FLAGS.ignore_finetune_ckpt_error)
+      if ckpt_path:
         pipeline_config.train_config.fine_tune_checkpoint = ckpt_path
-        logging.info('fine_tune_checkpoint is directory, will use the latest checkpoint: %s' % ckpt_path)
-      elif tf.gfile.Exists(FLAGS.fine_tune_checkpoint + '.meta'):
-        pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
-        logging.info('update fine_tune_checkpoint to %s' %
-                     pipeline_config.train_config.fine_tune_checkpoint)
-      else:
-        assert FLAGS.ignore_finetune_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % FLAGS.fine_tune_checkpoint
 
     if pipeline_config.fg_json_path:
       fg_util.load_fg_json_to_config(pipeline_config)
@@ -95,11 +89,13 @@ def main(argv):
       fine_tune_checkpoint = config_json.get(
           'train_config.fine_tune_checkpoint', None)
       if fine_tune_checkpoint:
-          if not file_io.file_exists(fine_tune_checkpoint):
-              assert FLAGS.ignore_finetune_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % fine_tune_checkpoint
-              config_json.pop('train_config.fine_tune_checkpoint', None)
-              logging.info('fine_tune_checkpoint(%s) is not exists. Drop it.' %
-                           fine_tune_checkpoint)
+        ckpt_path = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
+            FLAGS.fine_tune_checkpoint,
+            FLAGS.ignore_finetune_ckpt_error)
+        if ckpt_path:
+          config_json['train_config']['fine_tune_checkpoint'] = ckpt_path
+        else:
+          config_json.pop('train_config.fine_tune_checkpoint', None)
       config_util.edit_config(pipeline_config, config_json)
 
     process_neg_sampler_data_path(pipeline_config)
