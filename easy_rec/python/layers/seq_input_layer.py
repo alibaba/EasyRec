@@ -18,7 +18,7 @@ class SeqInputLayer(object):
   def __init__(self,
                feature_configs,
                feature_groups_config,
-               use_embedding_variable=False):
+               ev_params=None):
     self._feature_groups_config = {
         x.group_name: x for x in feature_groups_config
     }
@@ -26,7 +26,7 @@ class SeqInputLayer(object):
     self._fc_parser = FeatureColumnParser(
         feature_configs,
         wide_and_deep_dict,
-        use_embedding_variable=use_embedding_variable)
+        ev_params=ev_params)
 
   def __call__(self,
                features,
