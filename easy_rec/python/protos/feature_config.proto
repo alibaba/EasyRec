@@ -28,6 +28,11 @@ message SequenceCombiner {
     }
 }
 
+message EVParams {
+    optional uint64 filter_freq = 1 [default=0]; 
+    optional uint64 steps_to_live = 2 [default=0];
+}
+
 message FeatureConfig {
     enum FeatureType {
         IdFeature = 0;
@@ -117,9 +122,9 @@ message FeatureConfig {
 
     // for expr feature
     optional string expression = 30;
-       
-    // use embedding variables
-    optional bool use_embedding_variable = 31 [default=false];
+
+    // embedding variable params
+    optional EVParams ev_params = 31;
 }
 
 message FeatureConfigV2 {
