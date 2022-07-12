@@ -116,7 +116,7 @@ class HiveUtils(object):
           return False
         else:
           return True
-      except:
+      except:  # noqa: E722
         return False
 
     else:
@@ -124,7 +124,7 @@ class HiveUtils(object):
       try:
         self.run_sql(sql)
         return True
-      except:
+      except:  # noqa: E722
         return False
 
   def get_table_location(self, input_path):

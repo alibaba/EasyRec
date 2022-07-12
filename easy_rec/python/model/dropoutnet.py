@@ -12,11 +12,9 @@ from easy_rec.python.utils.shape_utils import get_shape_list
 from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
 from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
-
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
 
 
 def cosine_similarity(user_emb, item_emb):
@@ -188,6 +186,7 @@ class DropoutNet(EasyRecModel):
     return self._loss_dict
 
   def build_metric_graph(self, eval_config):
+    from easy_rec.python.core.easyrec_metrics import metrics_tf as metrics
     metric_dict = {}
     labels = list(self._labels.values())[0]
     sim_score = self._prediction_dict['similarity']

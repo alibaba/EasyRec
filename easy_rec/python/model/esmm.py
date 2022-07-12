@@ -12,7 +12,6 @@ from easy_rec.python.protos.loss_pb2 import LossType
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
 
 
 class ESMM(MultiTaskModel):

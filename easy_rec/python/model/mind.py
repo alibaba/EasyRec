@@ -16,7 +16,6 @@ from easy_rec.python.utils.proto_util import copy_obj
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
 
 
 class MIND(MatchModel):
@@ -300,6 +299,7 @@ class MIND(MatchModel):
     return avg_interest_simi, avg_capsule_simi
 
   def build_metric_graph(self, eval_config):
+    from easy_rec.python.core.easyrec_metrics import metrics_tf as metrics
     # build interest metric
     interest_simi, capsule_simi = self._build_interest_simi()
     metric_dict = {

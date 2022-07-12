@@ -392,7 +392,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
     loss_dict['total_loss'] = loss
-    metric_dict = model.build_distribute_metric_graph(self.eval_config)
+    metric_dict = model.build_metric_graph(self.eval_config)
     for loss_key in loss_dict.keys():
       loss_tensor = loss_dict[loss_key]
       # add key-prefix to make loss metric key in the same family of train loss
