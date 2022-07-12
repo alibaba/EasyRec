@@ -147,7 +147,7 @@ class FeatureColumnParser(object):
         ev_params = self._global_ev_params
 
       # for handling share embedding columns
-      if len(self._deep_share_embed_columns[embed_name]) == 0:
+      if len(self._deep_share_embed_columns[embed_name]) > 0:
         share_embed_fcs = feature_column.shared_embedding_columns(
             self._deep_share_embed_columns[embed_name],
             self._share_embed_infos[embed_name].embedding_dim,
@@ -159,7 +159,7 @@ class FeatureColumnParser(object):
         self._deep_share_embed_columns[embed_name] = share_embed_fcs
 
       # for handling wide share embedding columns
-      if len(self._wide_share_embed_columns[embed_name]) == 0:
+      if len(self._wide_share_embed_columns[embed_name]) > 0:
         share_embed_fcs = feature_column.shared_embedding_columns(
             self._wide_share_embed_columns[embed_name],
             self._wide_output_dim,
