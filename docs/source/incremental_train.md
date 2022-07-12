@@ -37,7 +37,7 @@ pai -name easy_rec_ext -project algo_public
 -Darn=acs:ram::xxx:role/ev-ext-test-oss
 -Dbuckets=oss://easyrec/
 -DossHost=oss-cn-beijing-internal.aliyuncs.com
--Dwith_evaluator=1;
+-Deval_method='separate';
 ```
 
 增量训练：
@@ -53,7 +53,7 @@ pai -name easy_rec_ext -project algo_public
 -Dbuckets=oss://easyrec/
 -DossHost=oss-cn-beijing-internal.aliyuncs.com
 -Dedit_config_json='{"train_config.fine_tune_checkpoint": "oss://easyrec/easy_rec_test/checkpoints/${bizdate-1}/"}'
--Dwith_evaluator=1;
+-Deval_method='none';
 ```
 
 - bizdate在dataworks里面是业务日期，一般是运行日期的前一天。
