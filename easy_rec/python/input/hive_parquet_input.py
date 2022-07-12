@@ -52,7 +52,7 @@ class HiveParquetInput(Input):
       task_index = max(task_index - 1, 0)
     task_file_paths = []
     for idx in range(task_index, len(file_paths), task_num):
-        task_file_paths.append(file_paths[idx])
+      task_file_paths.append(file_paths[idx])
     return task_file_paths
 
   def _parquet_read(self):
@@ -94,19 +94,21 @@ class HiveParquetInput(Input):
     list_shapes = tuple(list_shapes)
 
     if len(self._all_hdfs_path) >= 2 * self._task_num:
-        file_shard = True
-        self._input_hdfs_path = self._file_shard(self._all_hdfs_path, self._task_num, self._task_index)
+      file_shard = True
+      self._input_hdfs_path = self._file_shard(self._all_hdfs_path,
+                                               self._task_num, self._task_index)
     else:
-        file_shard = False
-        self._input_hdfs_path = self._all_hdfs_path
+      file_shard = False
+      self._input_hdfs_path = self._all_hdfs_path
     logging.info('input path: %s' % self._input_hdfs_path)
-    assert len(self._input_hdfs_path) > 0, 'match no files with %s' % self._hive_config.table_name
+    assert len(self._input_hdfs_path
+               ) > 0, 'match no files with %s' % self._hive_config.table_name
 
     dataset = tf.data.Dataset.from_generator(
         self._parquet_read, output_types=list_type, output_shapes=list_shapes)
 
     if not file_shard:
-        dataset = self._safe_shard(dataset)
+      dataset = self._safe_shard(dataset)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(
