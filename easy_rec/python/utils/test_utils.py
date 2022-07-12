@@ -23,6 +23,7 @@ import numpy as np
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
+from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
@@ -146,6 +147,14 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
   data_config.num_epochs = 0
+  return pipeline_config
+
+
+def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+  pipeline_config.model_dir = test_dir
+  logging.info('test_model_dir %s' % pipeline_config.model_dir)
   return pipeline_config
 
 
@@ -500,6 +509,54 @@ def _ps_worker_train(pipeline_config_path,
   return procs
 
 
+def _ps_worker_distribute_eval(pipeline_config_path,
+                               checkpoint_path,
+                               test_dir,
+                               num_worker,
+                               num_evaluator=0):
+  gpus = get_available_gpus()
+  # not enough gpus, run on cpu only
+  if len(gpus) < num_worker:
+    gpus = [None] * num_worker
+  ports = _get_ports(num_worker + 1)
+  chief_or_master = 'master' if num_evaluator == 0 else 'chief'
+  cluster = {
+      chief_or_master: ['localhost:%d' % ports[0]],
+      'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
+      'ps': ['localhost:%d' % ports[-1]]
+  }
+  tf_config = {'cluster': cluster}
+  procs = {}
+  tf_config['task'] = {'type': chief_or_master, 'index': 0}
+  os.environ['TF_CONFIG'] = json.dumps(tf_config)
+  set_gpu_id(gpus[0])
+  train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path {} --checkpoint_path {}  \
+    --distribute_eval True'.format(pipeline_config_path, checkpoint_path)
+  procs[chief_or_master] = run_cmd(
+      train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, chief_or_master))
+  tf_config['task'] = {'type': 'ps', 'index': 0}
+  os.environ['TF_CONFIG'] = json.dumps(tf_config)
+  set_gpu_id('')
+  procs['ps'] = run_cmd(train_cmd,
+                        '%s/distribute_eval_log_%s.txt' % (test_dir, 'ps'))
+
+  for idx in range(num_worker - 1):
+    tf_config['task'] = {'type': 'worker', 'index': idx}
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    set_gpu_id(gpus[idx + 1])
+    worker_name = 'worker_%d' % idx
+    procs[worker_name] = run_cmd(
+        train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, worker_name))
+  if num_evaluator > 0:
+    tf_config['task'] = {'type': 'evaluator', 'index': 0}
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    set_gpu_id('')
+    procs['evaluator'] = run_cmd(
+        train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, 'evaluator'))
+
+  return procs
+
+
 def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
@@ -594,3 +651,99 @@ def test_distributed_train_eval(pipeline_config_path,
       logging.error('train %s failed' % pipeline_config_path)
 
   return task_failed is None
+
+
+def test_distribute_eval_test(cur_eval_path, test_dir):
+  single_work_eval_path = os.path.join(cur_eval_path, 'eval_result.txt')
+  distribute_eval_path = os.path.join(test_dir, 'distribute_eval_result.txt')
+  if not os.path.exists(distribute_eval_path):
+    return False
+  single_data = read_data_from_json_path(single_work_eval_path)
+  distribute_data = read_data_from_json_path(distribute_eval_path)
+  single_ret = {
+      k: single_data[k]
+      for k in single_data.keys()
+      if 'loss' not in k and 'step' not in k
+  }
+  distribute_ret = {
+      k: distribute_data[k] for k in distribute_data.keys() if 'loss' not in k
+  }
+  difference_num = 0.00001
+  for k in single_ret.keys():
+    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+      return False
+  return True
+
+
+def test_distributed_eval(pipeline_config_path,
+                          checkpoint_path,
+                          test_dir,
+                          total_steps=50,
+                          num_evaluator=0):
+  logging.info('testing pipeline config %s' % pipeline_config_path)
+  pipeline_config = _load_config_for_distribute_eval(pipeline_config_path,
+                                                     test_dir)
+  train_config = pipeline_config.train_config
+  config_util.save_pipeline_config(pipeline_config, test_dir)
+  test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
+
+  task_failed = None
+  procs = None
+  is_equal = False
+  try:
+    if train_config.train_distribute == DistributionStrategy.NoStrategy:
+      num_worker = 2
+      procs = _ps_worker_distribute_eval(test_pipeline_config_path,
+                                         checkpoint_path, test_dir, num_worker,
+                                         num_evaluator)
+    else:
+      raise NotImplementedError
+
+    # print proc info
+    assert len(procs) > 0, 'processes are empty'
+    for k, proc in procs.items():
+      logging.info('%s pid: %d' % (k, proc.pid))
+    task_finish_cnt = 0
+    task_has_finished = {k: False for k in procs.keys()}
+    while True:
+      for k, proc in procs.items():
+        if proc.poll() is None:
+          if task_failed is not None:
+            logging.error('task %s failed, %s quit' % (task_failed, k))
+            proc.terminate()
+            if k != 'ps':
+              task_has_finished[k] = True
+              task_finish_cnt += 1
+            logging.info('task_finish_cnt %d' % task_finish_cnt)
+        else:
+          if not task_has_finished[k]:
+            # process quit by itself
+            if k != 'ps':
+              task_finish_cnt += 1
+              task_has_finished[k] = True
+            logging.info('task_finish_cnt %d' % task_finish_cnt)
+            if proc.returncode != 0:
+              logging.error('%s failed' % k)
+              task_failed = k
+            else:
+              logging.info('%s run successfuly' % k)
+      if task_finish_cnt >= num_worker:
+        break
+      time.sleep(1)
+
+    is_equal = test_distribute_eval_test(checkpoint_path, test_dir)
+
+  except Exception as e:
+    logging.error('Exception: ' + str(e))
+    raise e
+  finally:
+    if procs is not None:
+      for k, proc in procs.items():
+        if proc.poll() is None:
+          logging.info('terminate %s' % k)
+          proc.terminate()
+    if task_failed is not None:
+      logging.error('eval %s failed' % pipeline_config_path)
+
+  eval_success = (task_failed is None) and is_equal
+  return eval_success

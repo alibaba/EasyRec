@@ -11,9 +11,6 @@ from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
 
-from easy_rec.python.core.distribute_metrics import distribute_metric_learning_average_precision_at_k  # NOQA
-from easy_rec.python.core.distribute_metrics import distribute_metric_learning_recall_at_k  # NOQA
-
 from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -178,25 +175,4 @@ class CoMetricLearningI2I(EasyRecModel):
       metric_dict.update(
           metric_learning_average_precision_at_k(precision_at_k, emb,
                                                  self.labels, self.session_ids))
-    return metric_dict
-
-  def build_distribute_metric_graph(self, eval_config):
-    metric_dict = {}
-    recall_at_k = []
-    precision_at_k = []
-    for metric in eval_config.metrics_set:
-      if metric.WhichOneof('metric') == 'recall_at_topk':
-        recall_at_k.append(metric.recall_at_topk.topk)
-      elif metric.WhichOneof('metric') == 'precision_at_topk':
-        precision_at_k.append(metric.precision_at_topk.topk)
-
-    emb = self._prediction_dict['float_emb']
-    if len(recall_at_k) > 0:
-      metric_dict.update(
-          distribute_metric_learning_recall_at_k(recall_at_k, emb, self.labels,
-                                                 self.session_ids))
-    if len(precision_at_k) > 0:
-      metric_dict.update(
-          distribute_metric_learning_average_precision_at_k(
-              precision_at_k, emb, self.labels, self.session_ids))
     return metric_dict

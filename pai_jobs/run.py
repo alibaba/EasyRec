@@ -203,6 +203,8 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
 
 def main(argv):
   pai_util.set_on_pai()
+  if FLAGS.distribute_eval:
+    os.environ['distribute_eval'] = 'True'
 
   # load lookup op
   try:
@@ -355,9 +357,17 @@ def main(argv):
     set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                       FLAGS.all_col_types)
     if FLAGS.distribute_eval:
+      os.environ['distribute_eval'] = 'True'
+      logging.info('will_use_distribute_eval')
+      distribute_eval = os.environ.get('distribute_eval')
+      logging.info('distribute_eval = {}'.format(distribute_eval))
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                                    FLAGS.eval_result_path)
     else:
+      os.environ['distribute_eval'] = 'False'
+      logging.info('will_use_eval')
+      distribute_eval = os.environ.get('distribute_eval')
+      logging.info('distribute_eval = {}'.format(distribute_eval))
       easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                         FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
