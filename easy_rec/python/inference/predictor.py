@@ -25,6 +25,7 @@ from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils import tf_utils
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
+from easy_rec.python.utils.config_util import search_fg_json
 from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
@@ -404,7 +405,7 @@ class Predictor(PredictorInterface):
       with tf.gfile.GFile(fg_json_path, 'r') as fin:
         fg_json = json.loads(fin.read())
     else:
-      fg_json_path = os.path.join(model_path, 'assets/fg.json')
+      fg_json_path = search_fg_json(model_path)
       if gfile.Exists(fg_json_path):
         logging.info('load fg_json_path: ', fg_json_path)
         with tf.gfile.GFile(fg_json_path, 'r') as fin:

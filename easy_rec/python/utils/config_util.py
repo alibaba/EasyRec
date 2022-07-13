@@ -395,6 +395,19 @@ def get_compatible_feature_configs(pipeline_config):
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
 
+def search_fg_json(directory):
+  dir_list = []
+  for root, dirs, files in tf.gfile.Walk(directory):
+    for f in files:
+      _, ext = os.path.splitext(f)
+      if ext == '.json':
+        dir_list.append(os.path.join(root, f))
+  if len(dir_list) == 0:
+    return None
+  elif len(dir_list) > 1:
+    raise ValueError('config saved model found in directory %s' % directory)
+  logging.info('use pipeline config: %s' % dir_list[0])
+  return dir_list[0]
 
 def get_input_name_from_fg_json(fg_json):
   if not fg_json:
