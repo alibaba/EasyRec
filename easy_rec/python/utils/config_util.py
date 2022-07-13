@@ -395,6 +395,7 @@ def get_compatible_feature_configs(pipeline_config):
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
 
+
 def search_fg_json(directory):
   dir_list = []
   for root, dirs, files in tf.gfile.Walk(directory):
@@ -408,6 +409,7 @@ def search_fg_json(directory):
     raise ValueError('fg.json found in directory %s' % directory)
   logging.info('use fg.json: %s' % dir_list[0])
   return dir_list[0]
+
 
 def get_input_name_from_fg_json(fg_json):
   if not fg_json:

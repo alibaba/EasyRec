@@ -25,8 +25,8 @@ from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils import tf_utils
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
-from easy_rec.python.utils.config_util import search_fg_json
 from easy_rec.python.utils.config_util import get_input_name_from_fg_json
+from easy_rec.python.utils.config_util import search_fg_json
 from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta

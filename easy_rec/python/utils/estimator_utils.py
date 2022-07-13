@@ -580,8 +580,8 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
       ckpt_path = latest_checkpoint(checkpoint_path)
       if ckpt_path:
         logging.info(
-          'fine_tune_checkpoint is directory, will use the latest checkpoint: %s'
-          % ckpt_path)
+            'fine_tune_checkpoint is directory, will use the latest checkpoint: %s'
+            % ckpt_path)
       else:
         assert ignore_ckpt_error, \
           'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
