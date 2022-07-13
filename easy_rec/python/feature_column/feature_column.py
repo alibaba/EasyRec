@@ -20,6 +20,7 @@ if tf.__version__ >= '2.0':
 else:
   min_max_variable_partitioner = tf.min_max_variable_partitioner
 
+MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
 class FeatureKeyError(KeyError):
 
@@ -229,6 +230,14 @@ class FeatureColumnParser(object):
       self._vocab_size[vocab_path] = vocabulary_size
       return vocabulary_size
 
+  def _get_hash_bucket_size(self, config):
+    if not config.HasField('hash_bucket_size'):
+      return -1
+    if self._global_ev_params is not None or config.HasField('ev_params'):
+      return MAX_HASH_BUCKET_SIZE
+    else:
+      return config.hash_bucket_size
+
   def parse_id_feature(self, config):
     """Generate id feature columns.
 
@@ -239,7 +248,7 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    hash_bucket_size = config.hash_bucket_size
+    hash_bucket_size = self._get_hash_bucket_size(config)
     if hash_bucket_size > 0:
       fc = feature_column.categorical_column_with_hash_bucket(
           config.input_names[0], hash_bucket_size=hash_bucket_size)
@@ -273,8 +282,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    hash_bucket_size = config.hash_bucket_size
-    if config.HasField('hash_bucket_size'):
+    hash_bucket_size = self._get_hash_bucket_size(config)
+    if hash_bucket_size > 0:
       tag_fc = feature_column.categorical_column_with_hash_bucket(
           config.input_names[0], hash_bucket_size, dtype=tf.string)
     elif config.vocab_list:
@@ -382,7 +391,7 @@ class FeatureColumnParser(object):
     """
     assert len(config.input_names) >= 2
     fc = feature_column.crossed_column(
-        config.input_names, config.hash_bucket_size, hash_key=None)
+        config.input_names, self._get_hash_bucket_size(config), hash_key=None)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)
@@ -398,7 +407,7 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
     assert config.HasField('hash_bucket_size')
-    hash_bucket_size = config.hash_bucket_size
+    hash_bucket_size = self._get_hash_bucket_size(config)
     fc = feature_column.categorical_column_with_hash_bucket(
         feature_name, hash_bucket_size, dtype=tf.string)
 
@@ -420,7 +429,7 @@ class FeatureColumnParser(object):
         'Current sub_feature_type only support IdFeature and RawFeature.'
     if sub_feature_type == config.IdFeature:
       if config.HasField('hash_bucket_size'):
-        hash_bucket_size = config.hash_bucket_size
+        hash_bucket_size = self._get_hash_bucket_size(config)
         fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
             config.input_names[0], hash_bucket_size, dtype=tf.string)
       elif config.vocab_list:
@@ -442,7 +451,7 @@ class FeatureColumnParser(object):
       fc = sequence_feature_column.sequence_numeric_column(
           config.input_names[0], shape=(1,))
       if config.hash_bucket_size > 0:
-        hash_bucket_size = config.hash_bucket_size
+        hash_bucket_size = self._get_hash_bucket_size(config)
         assert sub_feature_type == config.IdFeature, \
             'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
       elif config.boundaries:

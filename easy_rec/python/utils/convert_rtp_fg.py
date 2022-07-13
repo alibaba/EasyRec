@@ -58,10 +58,10 @@ def _set_hash_bucket(feature, feature_config, input_field):
             'it is suggested to set max_partitions > 1 for large hash buckets[%s]'
             % feature['feature_name'])
         sys.exit(1)
-    if feature.get('filter_freq', 0) > 0:
+    if feature.get('filter_freq', -1) >= 0:
       feature_config.ev_params.filter_freq = feature['filter_freq']
       feature_config.hash_bucket_size = MAX_HASH_BUCKET_SIZE
-    if feature.get('steps_to_live', 0) > 0:
+    if feature.get('steps_to_live', -1) >= 0:
       feature_config.ev_params.steps_to_live = feature['steps_to_live']
       feature_config.hash_bucket_size = MAX_HASH_BUCKET_SIZE
   elif 'vocab_file' in feature:
