@@ -406,8 +406,7 @@ class Predictor(PredictorInterface):
         fg_json = json.loads(fin.read())
     else:
       fg_json_path = search_fg_json(model_path)
-      if gfile.Exists(fg_json_path):
-        logging.info('load fg_json_path: ', fg_json_path)
+      if fg_json_path:
         with tf.gfile.GFile(fg_json_path, 'r') as fin:
           fg_json = json.loads(fin.read())
       else:

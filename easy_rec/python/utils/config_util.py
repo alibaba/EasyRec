@@ -405,8 +405,8 @@ def search_fg_json(directory):
   if len(dir_list) == 0:
     return None
   elif len(dir_list) > 1:
-    raise ValueError('config saved model found in directory %s' % directory)
-  logging.info('use pipeline config: %s' % dir_list[0])
+    raise ValueError('fg.json found in directory %s' % directory)
+  logging.info('use fg.json: %s' % dir_list[0])
   return dir_list[0]
 
 def get_input_name_from_fg_json(fg_json):
