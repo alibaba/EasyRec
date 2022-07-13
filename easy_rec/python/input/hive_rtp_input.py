@@ -48,24 +48,27 @@ class HiveRTPInput(Input):
   def _parse_csv(self, line):
     record_defaults = []
     for tid, field_name in enumerate(self._input_table_col_names):
-      if field_name in self._selected_cols:
+      if field_name in self._selected_cols[:-1]:
+        idx = self._input_fields.index(field_name)
         record_defaults.append(
-            self.get_type_defaults(self._input_field_types[tid],
-                                   self._input_field_defaults[tid]))
+            self.get_type_defaults(self._input_field_types[idx],
+                                   self._input_field_defaults[idx]))
       else:
         record_defaults.append('')
-
+    print('record_defaults: ', record_defaults)
     tmp_fields = tf.decode_csv(
         line,
         field_delim=self._rtp_separator,
         record_defaults=record_defaults,
         name='decode_csv')
+    print('tmp_fields: ', tmp_fields)
 
     fields = []
     if self._selected_cols:
       for idx, field_name in enumerate(self._input_table_col_names):
         if field_name in self._selected_cols:
           fields.append(tmp_fields[idx])
+    print('fields: ', fields)
     labels = fields[:-1]
 
     # only for features, labels and sample_weight excluded
