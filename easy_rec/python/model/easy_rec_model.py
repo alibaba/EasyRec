@@ -38,6 +38,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._is_training = is_training
     self._feature_dict = features
 
+    # embedding variable parameters
+    self._global_ev_params = None
+    if model_config.HasField('ev_params'):
+      self._global_ev_params = model_config.ev_params
+
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
@@ -83,7 +88,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         feature_configs,
         model_config.feature_groups,
         wide_output_dim=self._wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable,
+        ev_params=self._global_ev_params,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout

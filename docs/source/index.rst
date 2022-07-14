@@ -36,7 +36,6 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: TRAIN & EVAL & EXPORT
 
-   loss
    train
    incremental_train
    eval
