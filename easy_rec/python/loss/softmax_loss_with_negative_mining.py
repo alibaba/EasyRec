@@ -63,11 +63,11 @@ def softmax_loss_with_negative_mining(user_emb,
   Return:
     support vector guided softmax loss of positive labels
   """
-  assert 0 < num_negative_samples, '`num_negative_samples` should be in range [1, batch_size)'
+  assert 0 < num_negative_samples, '`num_negative_samples` should be greater than 0'
 
   batch_size = tf.shape(item_emb)[0]
   is_valid = tf.assert_less(num_negative_samples, batch_size,
-                            message='`num_negative_samples` should be in range [1, batch_size)')
+                            message='`num_negative_samples` should be less than batch_size')
   with tf.control_dependencies([is_valid]):
     if not embed_normed:
       user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
