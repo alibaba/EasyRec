@@ -29,7 +29,7 @@ message SequenceCombiner {
 }
 
 message EVParams {
-    optional uint64 filter_freq = 1 [default=0]; 
+    optional uint64 filter_freq = 1 [default=0];
     optional uint64 steps_to_live = 2 [default=0];
 }
 

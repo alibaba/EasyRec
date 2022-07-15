@@ -2581,7 +2581,7 @@ class _SharedEmbeddingColumn(
               'hood.'.format(shared_embedding_collection))
         embedding_weights = shared_embedding_collection[0]
         if embedding_weights.get_shape(
-        ) != embedding_shape and not self.ev_params is not None:
+        ) != embedding_shape and not self.ev_params is not None:  # noqa: E714
           raise ValueError(
               'Shared embedding collection {} contains variable {} of '
               'unexpected shape {}. Expected shape is {}. '
@@ -2618,8 +2618,10 @@ class _SharedEmbeddingColumn(
               trainable=self.trainable and trainable,
               partitioner=self.partitioner,
               collections=weight_collections,
-              steps_to_live=self.ev_params.steps_to_live if self.ev_params is not None else None,
-              filter_options=variables.CounterFilterOptions(self.ev_params.filter_freq))
+              steps_to_live=self.ev_params.steps_to_live
+              if self.ev_params is not None else None,
+              filter_options=variables.CounterFilterOptions(
+                  self.ev_params.filter_freq))
 
         ops.add_to_collection(self.shared_embedding_collection_name,
                               embedding_weights)
