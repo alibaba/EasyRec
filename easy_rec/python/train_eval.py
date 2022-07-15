@@ -70,7 +70,7 @@ def main(argv):
     if FLAGS.eval_input_path:
       set_eval_input_path(pipeline_config, FLAGS.eval_input_path)
     if FLAGS.fine_tune_checkpoint:
-      if file_io.file_exists(FLAGS.fine_tune_checkpoint):
+      if file_io.file_exists(FLAGS.fine_tune_checkpoint + ".meta"):
         pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
         logging.info('update fine_tune_checkpoint to %s' %
                      pipeline_config.train_config.fine_tune_checkpoint)
