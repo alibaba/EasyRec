@@ -37,7 +37,7 @@ class DBMTL(MultiTaskModel):
 
   def build_predict_graph(self):
     if self._model_config.HasField('bottom_cmbf'):
-      bottom_fea = self._cmbf_layer()
+      bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_dnn'):
       bottom_dnn = dnn.DNN(
           self._model_config.bottom_dnn,
