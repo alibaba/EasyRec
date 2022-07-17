@@ -104,6 +104,9 @@ class DataHubInput(Input):
       for x in self._feature_fields:
         assert x in self._dh_field_names, 'feature_field[%s] is not in datahub' % x
 
+      # feature column ids in datahub schema
+      self._dh_fea_ids = [ self._dh_field_names.index(x) for x in self._feature_fields ]
+
       for x in self._label_fields:
         assert x in self._dh_field_names, 'label_field[%s] is not in datahub' % x
   
@@ -112,6 +115,7 @@ class DataHubInput(Input):
         assert x in  self._dh_field_names, 'sample_weight[%s] is not in datahub' % x
 
       self._read_cnt = 32
+      self._filter_fea_func = lambda record : ''.join([record.values[x] for x in self._dh_fea_ids]).split(chr(2)) == '-1024'
 
   def _parse_record(self, *fields):
     field_dict = {}
@@ -178,6 +182,21 @@ class DataHubInput(Input):
         if ks not in self._offset_dict or v > self._offset_dict[ks]:
           self._offset_dict[ks] = v
 
+  def _is_data_empty(self, record):
+    is_empty = True
+    for fid in self._dh_fea_ids:
+      if record.values[fid] is not None and len(record.values[fid]) > 0:
+        is_empty = False
+        break
+    return is_empty
+
+  def _dump_record(self, record):
+    feas = []
+    for fid in range(record.values):
+      if fid not in self._dh_fea_ids:
+        feas.append(self._dh_field_names[fid] + ':' + record.values[fid]) 
+    return ';'.join(feas)
+
   def _datahub_generator(self):
     logging.info('start epoch[%d]' % self._num_epoch)
     self._num_epoch += 1
@@ -213,6 +232,13 @@ class DataHubInput(Input):
         if count == 0:
           continue
         for row_id, record in enumerate(get_result.records):
+          if self._is_data_empty(record):
+            logging.warning("skip empty data record: %s" % self._dump_record(record))
+            continue
+          if self._filter_fea_func is not None:
+            if self._filter_fea_func(record):
+              logging.warning("filter data record: %s" % self._dump_record(record))
+              continue
           yield tuple(list(record.values))
         if shard_id not in self._offset_dict or get_result.next_cursor > self._offset_dict[shard_id]:
           self._offset_dict[shard_id] = get_result.next_cursor
