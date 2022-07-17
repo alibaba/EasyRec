@@ -115,7 +115,12 @@ class DataHubInput(Input):
         assert x in  self._dh_field_names, 'sample_weight[%s] is not in datahub' % x
 
       self._read_cnt = 32
-      self._filter_fea_func = lambda record : ''.join([record.values[x] for x in self._dh_fea_ids]).split(chr(2)) == '-1024'
+
+      if len(self._dh_fea_ids) > 1:
+        self._filter_fea_func = lambda record : ''.join([record.values[x] for x in self._dh_fea_ids]).split(chr(2))[1] == '-1024'
+      else:
+        dh_fea_id = self._dh_fea_ids[0]
+        self._filter_fea_func = lambda record : record.values[dh_fea_id].split(self._data_config.separator)[1] == '-1024'
 
   def _parse_record(self, *fields):
     field_dict = {}
@@ -192,7 +197,7 @@ class DataHubInput(Input):
 
   def _dump_record(self, record):
     feas = []
-    for fid in range(record.values):
+    for fid in range(len(record.values)):
       if fid not in self._dh_fea_ids:
         feas.append(self._dh_field_names[fid] + ':' + record.values[fid]) 
     return ';'.join(feas)
