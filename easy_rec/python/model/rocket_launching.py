@@ -12,7 +12,6 @@ from easy_rec.python.protos.rocket_launching_pb2 import RocketLaunching as Rocke
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-metrics = tf.metrics
 
 
 class RocketLaunching(RankModel):

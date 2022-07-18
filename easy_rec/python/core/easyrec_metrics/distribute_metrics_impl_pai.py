@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -598,10 +597,10 @@ def _confusion_matrix_at_thresholds(labels,
 
   if 'tp' in includes:
     true_p = metric_variable([num_thresholds],
-                             dtypes.int64,
+                             dtypes.float32,
                              name='true_positives')
-    is_true_positive = math_ops.to_int64(
-        math_ops.logical_and(label_is_pos, pred_is_pos))
+    is_true_positive = math_ops.cast(
+        math_ops.logical_and(label_is_pos, pred_is_pos), dtypes.float32)
     if weights_tiled is not None:
       is_true_positive *= weights_tiled
     update_ops['tp'] = state_ops.assign_add(
@@ -610,10 +609,10 @@ def _confusion_matrix_at_thresholds(labels,
 
   if 'fn' in includes:
     false_n = metric_variable([num_thresholds],
-                              dtypes.int64,
+                              dtypes.float32,
                               name='false_negatives')
-    is_false_negative = math_ops.to_int64(
-        math_ops.logical_and(label_is_pos, pred_is_neg))
+    is_false_negative = math_ops.cast(
+        math_ops.logical_and(label_is_pos, pred_is_neg), dtypes.float32)
     if weights_tiled is not None:
       is_false_negative *= weights_tiled
     update_ops['fn'] = state_ops.assign_add(
@@ -622,10 +621,10 @@ def _confusion_matrix_at_thresholds(labels,
 
   if 'tn' in includes:
     true_n = metric_variable([num_thresholds],
-                             dtypes.int64,
+                             dtypes.float32,
                              name='true_negatives')
-    is_true_negative = math_ops.to_int64(
-        math_ops.logical_and(label_is_neg, pred_is_neg))
+    is_true_negative = math_ops.cast(
+        math_ops.logical_and(label_is_neg, pred_is_neg), dtypes.float32)
     if weights_tiled is not None:
       is_true_negative *= weights_tiled
     update_ops['tn'] = state_ops.assign_add(
@@ -634,10 +633,10 @@ def _confusion_matrix_at_thresholds(labels,
 
   if 'fp' in includes:
     false_p = metric_variable([num_thresholds],
-                              dtypes.int64,
+                              dtypes.float32,
                               name='false_positives')
-    is_false_positive = math_ops.to_int64(
-        math_ops.logical_and(label_is_neg, pred_is_pos))
+    is_false_positive = math_ops.cast(
+        math_ops.logical_and(label_is_neg, pred_is_pos), dtypes.float32)
     if weights_tiled is not None:
       is_false_positive *= weights_tiled
     update_ops['fp'] = state_ops.assign_add(
@@ -731,7 +730,8 @@ def auc(labels,
       tuple.
     RuntimeError: If eager execution is enabled.
   """
-  print('use_pai_auc')
+  print('use_distribute_pai_auc')
+  logging.info('use_distribute_pai_auc')
   if context.executing_eagerly():
     raise RuntimeError('tf.metrics.auc is not supported when eager execution '
                        'is enabled.')
@@ -800,10 +800,6 @@ def auc(labels,
 
     def compute_auc(tp, fn, tn, fp, name):
       """Computes the roc-auc or pr-auc based on confusion counts."""
-      tp = tf.cast(tp, dtype=tf.float64)
-      fn = tf.cast(fn, dtype=tf.float64)
-      tn = tf.cast(tn, dtype=tf.float64)
-      fp = tf.cast(fp, dtype=tf.float64)
       if curve == 'PR':
         if summation_method == 'trapezoidal':
           logging.warning(

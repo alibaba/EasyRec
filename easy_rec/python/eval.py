@@ -55,10 +55,12 @@ def main(argv):
     pipeline_config_path = FLAGS.pipeline_config_path
 
   if FLAGS.distribute_eval:
+    os.environ['distribute_eval'] = 'True'
     eval_result = distribute_evaluate(pipeline_config_path,
                                       FLAGS.checkpoint_path,
                                       FLAGS.eval_input_path)
   else:
+    os.environ['distribute_eval'] = 'False'
     eval_result = evaluate(pipeline_config_path, FLAGS.checkpoint_path,
                            FLAGS.eval_input_path)
   if eval_result is not None:

@@ -33,7 +33,7 @@ class InputLayer(object):
                feature_groups_config,
                variational_dropout_config=None,
                wide_output_dim=-1,
-               use_embedding_variable=False,
+               ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False):
@@ -54,13 +54,13 @@ class InputLayer(object):
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
           feature_configs,
           self._seq_feature_groups_config,
-          use_embedding_variable=use_embedding_variable)
+          ev_params=ev_params)
     wide_and_deep_dict = self.get_wide_deep_dict()
     self._fc_parser = FeatureColumnParser(
         feature_configs,
         wide_and_deep_dict,
         wide_output_dim,
-        use_embedding_variable=use_embedding_variable)
+        ev_params=ev_params)
 
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer

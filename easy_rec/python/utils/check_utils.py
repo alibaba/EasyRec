@@ -31,7 +31,7 @@ def check_string_to_number(field_vals, field_name):
   for val in field_vals:
     try:
       float(val)
-    except:
+    except:  # noqa: E722
       assert False, 'StringToNumber ERROR: cannot convert string_to_number, field: %s, value: %s. ' \
                     'please check data.' % (field_name, val)
   return True

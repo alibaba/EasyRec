@@ -87,9 +87,16 @@ class HiveRTPInput(Input):
           fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, feature_num])
 
+    rtp_record_defaults = [
+        str(self.get_type_defaults(t, v))
+        for x, t, v in zip(self._input_fields, self._input_field_types,
+                           self._input_field_defaults)
+        if x not in self._label_fields
+    ]
     fields = []
     for i in range(feature_num):
-      field = string_to_number(tmp_fields[:, i], record_types[i], i)
+      field = string_to_number(tmp_fields[:, i], record_types[i],
+                               rtp_record_defaults[i], i)
       fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
