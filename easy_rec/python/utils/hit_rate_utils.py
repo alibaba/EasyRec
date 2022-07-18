@@ -146,24 +146,24 @@ def reduce_hitrate(cluster, hits, count, task_index):
 
 
 def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
-  """Reduce hitrate of all workers.
+  """Reduce hitrate of one batch.
 
-    Args:
-      g: a GL Graph instance.
-      gt_record: record list of groung truth.
-      emb_dim: embedding dim.
-      num_interests: max number of interests.
-      top_k: top_k hitrate.
+  Args:
+    g: a GL Graph instance.
+    gt_record: record list of groung truth.
+    emb_dim: embedding dim.
+    num_interests: max number of interests.
+    top_k: top_k hitrate.
 
-    Returns:
-      hits: total hit counts of a batch of src ids, a scalar.
-  gt_count: total ground truth items num of a batch of src ids, a scalar.
-  src_ids: src ids, a list.
-  recall_ids: recall ids, a list.
-  recall_distances: recall distances, a list.
-      hitrates: hitrate of a batch of src_ids, a list.
-  bad_cases: bad cases, a list of list.
-  bad_dsts: distances of bad cases, a list of list.
+  Returns:
+    hits: total hit counts of a batch of src ids, a scalar.
+    gt_count: total ground truth items num of a batch of src ids, a scalar.
+    src_ids: src ids, a list.
+    recall_ids: recall ids, a list.
+    recall_distances: recall distances, a list.
+    hitrates: hitrate of a batch of src_ids, a list.
+    bad_cases: bad cases, a list of list.
+    bad_dsts: distances of bad cases, a list of list.
   """
 
   def _to_float_attrs(x):

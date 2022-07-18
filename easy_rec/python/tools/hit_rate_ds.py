@@ -78,8 +78,8 @@ def compute_hitrate(g, gt_reader, hitrate_writer, gt_table=None):
 
   for gt_record in gt_reader.hive_read_lines(gt_table, FLAGS.batch_size):
     gt_record = list(gt_record)
-    hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists \
-     = compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests, FLAGS.top_k)
+    hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists = \
+        compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests, FLAGS.top_k)
     total_hits += hits
     total_gt_count += gt_count
 
