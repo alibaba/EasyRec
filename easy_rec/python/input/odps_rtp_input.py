@@ -56,10 +56,10 @@ class OdpsRTPInput(Input):
         if x not in non_feature_cols
     ]
     record_defaults = [
-      self.get_type_defaults(t, v)
-      for x, t, v in zip(self._input_fields, self._input_field_types,
-                         self._input_field_defaults)
-      if x not in non_feature_cols
+        self.get_type_defaults(t, v)
+        for x, t, v in zip(self._input_fields, self._input_field_types,
+                           self._input_field_defaults)
+        if x not in non_feature_cols
     ]
 
     feature_num = len(record_types)

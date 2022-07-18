@@ -2618,8 +2618,10 @@ class _SharedEmbeddingColumn(
               trainable=self.trainable and trainable,
               partitioner=self.partitioner,
               collections=weight_collections,
-              steps_to_live=self.ev_params.steps_to_live if self.ev_params is not None else None,
-              filter_options=variables.CounterFilterOptions(self.ev_params.filter_freq))
+              steps_to_live=self.ev_params.steps_to_live
+              if self.ev_params is not None else None,
+              filter_options=variables.CounterFilterOptions(
+                  self.ev_params.filter_freq))
 
         ops.add_to_collection(self.shared_embedding_collection_name,
                               embedding_weights)

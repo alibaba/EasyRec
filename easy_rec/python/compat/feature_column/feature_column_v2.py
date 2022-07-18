@@ -3564,8 +3564,10 @@ class EmbeddingColumn(
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
           collections=weight_collections,
-          steps_to_live=self.ev_params.steps_to_live if self.ev_params is not None else None,
-          filter_options=variables.CounterFilterOptions(self.ev_params.filter_freq))
+          steps_to_live=self.ev_params.steps_to_live
+          if self.ev_params is not None else None,
+          filter_options=variables.CounterFilterOptions(
+              self.ev_params.filter_freq))
 
     # Write the embedding configuration to RTP-specified collections. This will inform RTP to
     # optimize this embedding operation.
