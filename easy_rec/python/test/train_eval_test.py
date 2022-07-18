@@ -783,6 +783,48 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/din_on_gzip_data.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_distribute_eval_deepfm_multi_cls(self):
+    cur_eval_path = 'data/test/distribute_eval_test/deepfm_distribute_eval_dwd_avazu_out_multi_cls'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/deepfm_distribute_eval_multi_cls_on_avazu_ctr.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_distribute_eval_deepfm_single_cls(self):
+    cur_eval_path = 'data/test/distribute_eval_test/dwd_distribute_eval_avazu_out_test_combo'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/deepfm_distribute_eval_combo_on_avazu_ctr.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_distribute_eval_dssm_pointwise_classification(self):
+    cur_eval_path = 'data/test/distribute_eval_test/dssm_distribute_eval_pointwise_classification_taobao_ckpt'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/dssm_distribute_eval_pointwise_classification_on_taobao.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_distribute_eval_dssm_reg(self):
+    cur_eval_path = 'data/test/distribute_eval_test/dssm_distribute_eval_reg_taobao_ckpt'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/dssm_distribute_eval_reg_on_taobao.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_distribute_eval_dropout(self):
+    cur_eval_path = 'data/test/distribute_eval_test/dropoutnet_distribute_eval_taobao_ckpt'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/dropoutnet_distribute_eval_on_taobao.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_distribute_eval_esmm(self):
+    cur_eval_path = 'data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/esmm_distribute_eval_on_taobao.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()

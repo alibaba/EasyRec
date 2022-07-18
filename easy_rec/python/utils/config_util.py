@@ -182,7 +182,7 @@ def _get_basic_types():
       np.bool, np.str
   ]
   if six.PY2:
-    dtypes.append(long)
+    dtypes.append(long)  # noqa: F821
 
   return dtypes
 
@@ -435,6 +435,11 @@ def get_train_input_path(pipeline_config):
 def get_eval_input_path(pipeline_config):
   input_name = pipeline_config.WhichOneof('eval_path')
   return getattr(pipeline_config, input_name)
+
+
+def get_model_dir_path(pipeline_config):
+  model_dir = pipeline_config.model_dir
+  return model_dir
 
 
 def set_train_input_path(pipeline_config, train_input_path):

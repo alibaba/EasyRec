@@ -86,7 +86,7 @@ message EasyRecModel {
 
     optional uint32 num_class = 10 [default = 1];
 
-    optional bool use_embedding_variable = 11 [default=false];
+    optional EVParams ev_params = 11;
 
     repeated KD kd = 12;
 

@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_model_dir_path
 from easy_rec.python.utils.config_util import get_train_input_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
@@ -451,7 +452,7 @@ def evaluate(pipeline_config,
 def distribute_evaluate(pipeline_config,
                         eval_checkpoint_path='',
                         eval_data_path=None,
-                        eval_result_filename='eval_result.txt'):
+                        eval_result_filename='distribute_eval_result.txt'):
   """Evaluate a EasyRec model defined in pipeline_config_path.
 
   Evaluate the model defined in pipeline_config_path on the eval data,
@@ -480,6 +481,14 @@ def distribute_evaluate(pipeline_config,
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
   eval_data = get_eval_input_path(pipeline_config)
+  model_dir = get_model_dir_path(pipeline_config)
+  eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
+  if not gfile.IsDirectory(eval_tmp_results_dir):
+    logging.info('create eval tmp results dir {}'.format(eval_tmp_results_dir))
+    gfile.MakeDirs(eval_tmp_results_dir)
+  assert gfile.IsDirectory(
+      eval_tmp_results_dir), 'tmp results dir not create success.'
+  os.environ['eval_tmp_results_dir'] = eval_tmp_results_dir
 
   server_target = None
   cur_job_name = None
@@ -515,6 +524,7 @@ def distribute_evaluate(pipeline_config,
   estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+  ckpt_dir = os.path.dirname(ckpt_path)
 
   if server_target:
     # evaluate with parameter server
@@ -561,11 +571,11 @@ def distribute_evaluate(pipeline_config,
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_dir,
                                           metric_ops)
     else:
       cur_stop_grace_period_sesc = 10
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_dir,
                                           metric_ops)
     with MonitoredSession(
         session_creator=cur_sess_creator,

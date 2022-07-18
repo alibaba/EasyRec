@@ -7,9 +7,6 @@ import logging
 import tensorflow as tf
 from absl.testing import parameterized
 
-from easy_rec.python.core.metrics import gauc
-from easy_rec.python.core.metrics import max_f1
-from easy_rec.python.core.metrics import session_auc
 from easy_rec.python.utils.test_utils import RunAsSubprocess
 
 if tf.__version__ >= '2.0':
@@ -23,6 +20,7 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
 
   @RunAsSubprocess
   def test_max_f1(self):
+    from easy_rec.python.core.metrics import max_f1
     labels = tf.constant([1, 0, 0, 1], dtype=tf.int32)
     probs = tf.constant([0.9, 0.8, 0.7, 0.6], dtype=tf.float32)
     f1, f1_update_op = max_f1(labels, probs)
@@ -35,6 +33,7 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
 
   @RunAsSubprocess
   def test_gauc_all_negative_label(self):
+    from easy_rec.python.core.metrics import gauc
     labels = tf.constant([0, 0, 0, 0], dtype=tf.int32)
     probs = tf.constant([0.9, 0.8, 0.7, 0.6], dtype=tf.float32)
     uids = tf.constant([1, 1, 1, 1], dtype=tf.int32)
@@ -50,6 +49,7 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
        ['_reduction_mean_by_positive_num', 'mean_by_positive_num', 0.6]])
   @RunAsSubprocess
   def test_gauc(self, reduction, expected):
+    from easy_rec.python.core.metrics import gauc
     labels = tf.placeholder(dtype=tf.int32, shape=(None,))
     probs = tf.placeholder(dtype=tf.float32, shape=(None,))
     uids = tf.placeholder(dtype=tf.int32, shape=(None,))
@@ -78,6 +78,7 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
        ['_reduction_mean_by_positive_num', 'mean_by_positive_num', 0.6]])
   @RunAsSubprocess
   def test_session_auc(self, reduction, expected):
+    from easy_rec.python.core.metrics import session_auc
     labels = tf.placeholder(dtype=tf.int32, shape=(None,))
     probs = tf.placeholder(dtype=tf.float32, shape=(None,))
     session_ids = tf.placeholder(dtype=tf.int32, shape=(None,))

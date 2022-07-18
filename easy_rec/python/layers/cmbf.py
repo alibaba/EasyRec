@@ -116,7 +116,7 @@ class CMBF(object):
       assert self._img_emb_size > 0, '`image` feature dimensions must be greater than 0, set by `raw_input_dim`'
 
   def image_self_attention_tower(self):
-    """The input of image self attention tower can be one of:
+    """The input of image self attention tower can be one of.
 
     1. multiple image embeddings, each corresponding to a patch, or a ROI(region of interest), or a frame of video
     2. one big image embedding composed by stacking multiple image embeddings
