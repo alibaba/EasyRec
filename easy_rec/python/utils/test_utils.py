@@ -213,7 +213,8 @@ def test_single_train_eval(pipeline_config_path,
                            hyperparam_str='',
                            total_steps=50,
                            post_check_func=None,
-                           check_mode=False):
+                           check_mode=False,
+                           fine_tune_checkpoint=None):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -241,6 +242,8 @@ def test_single_train_eval(pipeline_config_path,
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
       test_pipeline_config_path, hyperparam_str)
+  if fine_tune_checkpoint:
+    train_cmd += '--fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
     train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))

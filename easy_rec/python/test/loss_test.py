@@ -26,19 +26,20 @@ class LossTest(tf.test.TestCase):
 
   def test_softmax_loss_with_negative_mining(self):
     print('test_softmax_loss_with_negative_mining')
-    user_emb = tf.constant([[0.1, 0.5, 0.3], [0.8, -0.1, 0.3], [0.28, 0.3, 0.9],
-                            [0.37, 0.45, 0.93], [-0.7, 0.15, 0.03],
-                            [0.18, 0.9, -0.3]])
+    user_emb = tf.constant([[0.1, 0.5, 0.3], [0.8, -0.1, 0.3],
+                            [0.28, 0.3, 0.9], [0.37, 0.45, 0.93],
+                            [-0.7, 0.15, 0.03], [0.18, 0.9, -0.3]])
     item_emb = tf.constant([[0.1, -0.5, 0.3], [0.8, -0.31, 0.3],
                             [0.7, -0.45, 0.15], [0.08, -0.31, -0.9],
                             [-0.7, 0.85, 0.03], [0.18, 0.89, -0.3]])
 
     label = tf.constant([1, 1, 0, 0, 1, 1])
+    tf.random.set_random_seed(1)
     loss = softmax_loss_with_negative_mining(
-        user_emb, item_emb, label, num_negative_samples=1)
+        user_emb, item_emb, label, num_negative_samples=2)
     with self.test_session() as sess:
       loss_val = sess.run(loss)
-      self.assertAlmostEqual(loss_val, 0.5240243, delta=1e-5)
+      self.assertAlmostEqual(loss_val, 0.76977473, delta=1e-5)
 
   def test_circle_loss(self):
     print('test_circle_loss')

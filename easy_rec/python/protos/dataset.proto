@@ -16,6 +16,9 @@ message NegativeSampler {
     optional string attr_delimiter = 5 [default=":"];
 
     optional uint32 num_eval_sample = 6 [default=0];
+
+    // only works on DataScience/Local
+    optional string field_delimiter = 7 [default="\001"];
 }
 
 message NegativeSamplerInMemory {
@@ -32,6 +35,9 @@ message NegativeSamplerInMemory {
     optional string attr_delimiter = 5 [default=":"];
 
     optional uint32 num_eval_sample = 6 [default=0];
+
+    // only works on DataScience/Local
+    optional string field_delimiter = 7 [default="\001"];
 }
 
 // Weighted Random Sampling ItemID not with Edge
@@ -57,6 +63,9 @@ message NegativeSamplerV2 {
     optional string attr_delimiter = 8 [default=":"];
 
     optional uint32 num_eval_sample = 9 [default=0];
+
+    // only works on DataScience/Local
+    optional string field_delimiter = 10 [default="\001"];
 }
 
 // Weighted Random Sampling ItemID not in Batch and Sampling Hard Edge
@@ -84,6 +93,9 @@ message HardNegativeSampler {
     optional string attr_delimiter = 9 [default=":"];
 
     optional uint32 num_eval_sample = 10 [default=0];
+
+    // only works on DataScience/Local
+    optional string field_delimiter = 11 [default="\001"];
 }
 
 // Weighted Random Sampling ItemID not with Edge and Sampling Hard Edge
@@ -114,6 +126,9 @@ message HardNegativeSamplerV2 {
     optional string attr_delimiter = 10 [default=":"];
 
     optional uint32 num_eval_sample = 11 [default=0];
+
+    // only works on DataScience/Local
+    optional string field_delimiter = 12 [default="\001"];
 }
 
 message DatasetConfig {

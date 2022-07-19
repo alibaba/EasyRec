@@ -9,9 +9,9 @@ Cross-Modal-Based Fusion Recommendation Algorithm（CMBF）是一个能够捕获
 CMBF主要有4个模块（如上图）：
 
 1. 预处理模块：提取图片和文本特征
-1. 单模态学习模块：基于Transformer学习图像、文本的语义特征
-1. 跨模态融合模块：学习两个模态之间的交叉特性
-1. 输出模块：获取高阶特征并预测结果
+2. 单模态学习模块：基于Transformer学习图像、文本的语义特征
+3. 跨模态融合模块：学习两个模态之间的交叉特性
+4. 输出模块：获取高阶特征并预测结果
 
 模型支持四种类型的特征组（`feature group`），如下所述。
 不一定需要有全部四种类型的输入特征，只需要保证至少有一种类型的输入特征即可训练模型。根据输入特征类型的不同，部分网络结构可能会被`短路`（skip）掉。
@@ -68,22 +68,24 @@ model_config: {
     wide_deep: DEEP
   }
   cmbf {
-    multi_head_num: 2
-    image_multi_head_num: 2
-    text_multi_head_num: 2
-    image_head_size: 8
-    text_head_size: 8
-    image_feature_dim: 64
-    image_self_attention_layer_num: 2
-    text_self_attention_layer_num: 2
-    cross_modal_layer_num: 3
-    image_cross_head_size: 8
-    text_cross_head_size: 16
-    max_position_embeddings: 16
-    use_token_type: true
+    config {
+      multi_head_num: 2
+      text_multi_head_num: 4
+      image_multi_head_num: 3
+      image_head_size: 16
+      text_head_size: 8
+      image_feature_dim: 64
+      image_self_attention_layer_num: 2
+      text_self_attention_layer_num: 2
+      cross_modal_layer_num: 3
+      image_cross_head_size: 8
+      text_cross_head_size: 16
+      max_position_embeddings: 16
+      use_token_type: true
+    }
     final_dnn: {
-      hidden_units: 256
-      hidden_units: 64
+        hidden_units: 256
+        hidden_units: 64
     }
   }
   embedding_regularization: 1e-6
@@ -100,7 +102,7 @@ model_config: {
   - 注意：CMBF 模型要求所有文本侧（包括`text`和`general`两个特征组）输入特征的 embedding_dim 保持一致。
   - \[可选\] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
 
-- cmbf: CMBF 模型相关的参数
+- cmbf/config: CMBF 模型相关的参数
 
   - image_feature_dim: 在单模态学习模块之前做图像特征维度调整，调整到该参数指定的维度
   - multi_head_num: 跨模态融合模块中的 head 数量，默认为1
@@ -120,8 +122,9 @@ model_config: {
   - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
   - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
   - text_seq_emb_dropout_prob: 文本序列embedding的dropout概率
-  - final_dnn: 输出模块的MLP网络配置
+  - other_feature_dnn: [可选] 其他特征的MLP网络配置
 
+- cmbf/final_dnn: 输出模块的MLP网络配置
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 ### 示例Config

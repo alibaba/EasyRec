@@ -10,6 +10,7 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import distribute_evaluate
 from easy_rec.python.main import evaluate
+from easy_rec.python.utils import ds_util
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_distribute_eval_worker_num_on_ds  # NOQA
 if tf.__version__ >= '2.0':
@@ -43,8 +44,10 @@ def main(argv):
   if FLAGS.odps_config:
     os.environ['ODPS_CONFIG_FILE_PATH'] = FLAGS.odps_config
 
-  if FLAGS.is_on_ds and FLAGS.distribute_eval:
-    set_tf_config_and_get_distribute_eval_worker_num_on_ds()
+  if FLAGS.is_on_ds:
+    ds_util.set_on_ds()
+    if FLAGS.distribute_eval:
+      set_tf_config_and_get_distribute_eval_worker_num_on_ds()
 
   assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'
   if FLAGS.model_dir:
