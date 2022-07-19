@@ -38,6 +38,8 @@ if tf.__version__ >= '2.0':
 
   ConfigProto = config_pb2.ConfigProto
   GPUOptions = config_pb2.GPUOptions
+
+  tf = tf.compat.v1
 else:
   gfile = tf.gfile
   GPUOptions = tf.GPUOptions
