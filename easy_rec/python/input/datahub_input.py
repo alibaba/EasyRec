@@ -199,7 +199,7 @@ class DataHubInput(Input):
     feas = []
     for fid in range(len(record.values)):
       if fid not in self._dh_fea_ids:
-        feas.append(self._dh_field_names[fid] + ':' + record.values[fid]) 
+        feas.append(self._dh_field_names[fid] + ':' + str(record.values[fid])) 
     return ';'.join(feas)
 
   def _datahub_generator(self):
