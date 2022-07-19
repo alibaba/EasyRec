@@ -26,9 +26,9 @@ class LossTest(tf.test.TestCase):
 
   def test_softmax_loss_with_negative_mining(self):
     print('test_softmax_loss_with_negative_mining')
-    user_emb = tf.constant([[0.1, 0.5, 0.3], [0.8, -0.1, 0.3],
-                            [0.28, 0.3, 0.9], [0.37, 0.45, 0.93],
-                            [-0.7, 0.15, 0.03], [0.18, 0.9, -0.3]])
+    user_emb = tf.constant([[0.1, 0.5, 0.3], [0.8, -0.1, 0.3], [0.28, 0.3, 0.9],
+                            [0.37, 0.45, 0.93], [-0.7, 0.15, 0.03],
+                            [0.18, 0.9, -0.3]])
     item_emb = tf.constant([[0.1, -0.5, 0.3], [0.8, -0.31, 0.3],
                             [0.7, -0.45, 0.15], [0.08, -0.31, -0.9],
                             [-0.7, 0.85, 0.03], [0.18, 0.89, -0.3]])
