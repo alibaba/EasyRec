@@ -32,6 +32,8 @@ tf.app.flags.DEFINE_multi_string(
     'override pipeline_config.eval_input_path')
 tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
 tf.app.flags.DEFINE_string('odps_config', None, help='odps config path')
+tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
+                           'eval result metric file')
 tf.app.flags.DEFINE_bool('distribute_eval', False,
                          'use distribute parameter server for train and eval.')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
@@ -61,11 +63,12 @@ def main(argv):
     os.environ['distribute_eval'] = 'True'
     eval_result = distribute_evaluate(pipeline_config_path,
                                       FLAGS.checkpoint_path,
-                                      FLAGS.eval_input_path)
+                                      FLAGS.eval_input_path,
+                                      FLAGS.eval_result_path)
   else:
     os.environ['distribute_eval'] = 'False'
     eval_result = evaluate(pipeline_config_path, FLAGS.checkpoint_path,
-                           FLAGS.eval_input_path)
+                           FLAGS.eval_input_path, FLAGS.eval_result_path)
   if eval_result is not None:
     # when distribute evaluate, only master has eval_result.
     for key in sorted(eval_result):

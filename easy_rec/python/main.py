@@ -608,7 +608,7 @@ def distribute_evaluate(pipeline_config,
     print('eval_result = ', eval_result)
     logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
-      result_to_write = {}
+      result_to_write = {'eval_method': 'distribute'}
       for key in sorted(eval_result):
         # skip logging binary data
         if isinstance(eval_result[key], six.binary_type):

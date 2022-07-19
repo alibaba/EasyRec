@@ -534,7 +534,8 @@ def _ps_worker_distribute_eval(pipeline_config_path,
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path {} --checkpoint_path {}  \
-    --distribute_eval True'.format(pipeline_config_path, checkpoint_path)
+    --distribute_eval True --eval_result_path distribute_eval_result.txt'.format(
+      pipeline_config_path, checkpoint_path)
   procs[chief_or_master] = run_cmd(
       train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
