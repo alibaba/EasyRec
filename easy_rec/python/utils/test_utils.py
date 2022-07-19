@@ -27,7 +27,7 @@ from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
-TEST_TIME_OUT = 600
+TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 600))
 
 
 def get_hdfs_tmp_dir(test_dir):
@@ -41,10 +41,12 @@ def get_hdfs_tmp_dir(test_dir):
 
 def proc_wait(proc, timeout=600):
   t0 = time.time()
-  while proc.poll() is not None and time.time() - t0 < timeout:
+  while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1) 
   if proc.poll() is None:
     proc.terminate()
+  while proc.poll() is None:
+    time.sleep(1)
 
 
 def get_tmp_dir():
