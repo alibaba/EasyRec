@@ -94,7 +94,7 @@ def main(argv):
 
   for proc in procs:
     try:
-      test_utils.proc_wait(proc, timeout=int(os.environ.get('TEST_TIME_OUT', 600)))
+      test_utils.proc_wait(proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200)))
     except Exception as ex:
       fail_file, fail_name = procs[proc]
       logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))
