@@ -85,10 +85,10 @@ def main():
   input_tables = FLAGS.tables.split(',')
   if FLAGS.recall_type == 'u2i':
     i_emb_table, gt_table = input_tables
-    g = load_graph(i_emb_table)
+    g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout, FLAGS.knn_strict)
   else:
     i_emb_table, gt_table = input_tables[-2], input_tables[-1]
-    g = load_graph(i_emb_table)
+    g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout, FLAGS.knn_strict)
   hitrate_details_table, total_hitrate_table = FLAGS.outputs.split(',')
 
   cluster = tf.train.ClusterSpec({
@@ -111,7 +111,7 @@ def main():
     print('Start compute hitrate...')
     total_hits, total_gt_count = compute_hitrate(g, gt_reader, details_writer)
     var_total_hitrate, var_worker_count = reduce_hitrate(
-        cluster, total_hits, total_gt_count)
+        cluster, total_hits, total_gt_count, FLAGS.task_index)
 
     with tf.train.MonitoredTrainingSession(
         master=server.target, is_chief=(FLAGS.task_index == 0)) as sess:
