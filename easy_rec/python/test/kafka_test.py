@@ -307,6 +307,10 @@ class KafkaTest(tf.test.TestCase):
         inputs.append(line_tok)
     output_res = predictor.predict(inputs, batch_size=32)
 
+    with open('%s/predictor.out' % self._test_dir, 'w') as fout:
+      for i in range(len(output_res)):
+        fout.write(json.dumps(output_res[i]) + '\n')
+
     for i in range(len(output_res)):
       val0 = output_res[i]['probs']
       val1 = processor_out[i]['probs'] 
