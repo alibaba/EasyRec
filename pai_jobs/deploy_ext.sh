@@ -147,6 +147,8 @@ cd easy_rec_flow_ex
 sed -i -e "s/parameter name=\"version\" use=\"optional\" default=\"[0-9A-Za-z_-]\+\"/parameter name=\"version\" use=\"optional\" default=\"$VERSION\"/g" easy_rec_ext.xml
 tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
 
+git checkout easy_rec_ext.xml
+
 if [ $mode -ne 2 ]
 then
   cd ../xflow-deploy

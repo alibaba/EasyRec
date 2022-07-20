@@ -19,6 +19,7 @@ import operator
 import os
 import logging
 import time
+import datetime
 import threading
 
 from tensorflow.python.framework import dtypes
@@ -35,6 +36,7 @@ from tensorflow.python.training import training_util
 from tensorflow.python.util.tf_export import estimator_export
 
 from easy_rec.python.utils.load_class import load_by_path
+from easy_rec.python.utils.config_util import parse_time
 
 _EVENT_FILE_GLOB_PATTERN = 'events.out.tfevents.*'
 
@@ -302,7 +304,8 @@ def custom_early_stop_hook(estimator,
   if eval_dir is None:
     eval_dir = estimator.eval_dir()
 
-  if isinstance(custom_stop_func, str) or isinstance(custom_stop_func, unicode):
+  if isinstance(custom_stop_func, str) or isinstance(custom_stop_func,
+                                                     type(u'')):
     custom_stop_func = load_by_path(custom_stop_func)
 
   def _custom_stop_fn():
@@ -608,5 +611,33 @@ def oss_stop_hook(estimator,
   if estimator.config.is_chief:
     return OssStopSignalHook(estimator.model_dir, run_every_secs=run_every_secs,
        run_every_steps=run_every_steps) 
+  else:
+    return _CheckForStoppingHook()
+
+
+class DeadlineStopHook(session_run_hook.SessionRunHook):
+  def __init__(self, deadline_ts):
+    self._deadline_ts = deadline_ts
+    self._stop_var = _get_or_create_stop_var()
+    self._stop_op = None
+
+  def begin(self):
+    self._stop_op = state_ops.assign(self._stop_var, True)
+
+  def after_run(self, run_context, run_values):
+    curr_ts = time.mktime(datetime.datetime.now().timetuple())
+    if curr_ts > self._deadline_ts:
+      run_context.request_stop()
+      run_context.session.run(self._stop_op)
+
+def deadline_stop_hook(estimator, dead_line):
+  """Creates oss stop hook.
+
+  Returns a `SessionRunHook` that stops training when timestamp > deadline_ts. 
+  """
+  
+  deadline_ts = parse_time(dead_line)
+  if estimator.config.is_chief:
+    return DeadlineStopHook(deadline_ts) 
   else:
     return _CheckForStoppingHook()

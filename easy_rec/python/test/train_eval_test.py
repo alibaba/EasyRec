@@ -4,6 +4,7 @@
 import glob
 import logging
 import os
+import sys
 import unittest
 from distutils.version import LooseVersion
 
@@ -11,15 +12,20 @@ import numpy as np
 import tensorflow as tf
 import threading
 import time
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
+try:
+  import graphlearn as gl
+except Exception:
+  gl = None
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-gfile = tf.gfile
 
 
 class TrainEvalTest(tf.test.TestCase):
@@ -207,6 +213,20 @@ class TrainEvalTest(tf.test.TestCase):
     final_ckpt = estimator_utils.latest_checkpoint(train_dir)
     ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
     logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
+
+  def test_dead_line_stop_signal(self):  
+    train_dir = os.path.join(self._test_dir, 'train/')
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dead_line_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
     assert ckpt_version < 1000
 
   def test_fine_tune_ckpt(self):
@@ -285,24 +305,28 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/metric_learning_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_v2_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_hard_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_on_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_hard_neg_sampler_v2(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_hard_neg_sampler_v2_on_taobao.config',
@@ -403,6 +427,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_deepfm_with_eval_online(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_eval_online_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_eval_online_gauc(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_eval_online_gauc_ctr.config',
         self._test_dir)
     self.assertTrue(self._success)
 
@@ -535,6 +565,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_rocket_launching_feature_based(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/rocket_launching_feature_based.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_rocket_launching_with_rtp_input(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/rocket_launching_with_rtp_input.config',
         self._test_dir)
     self.assertTrue(self._success)
 
@@ -734,6 +770,24 @@ class TrainEvalTest(tf.test.TestCase):
   def test_multi_optimizer(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_expr_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_on_taobao_for_expr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_gzip_data(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/din_on_gzip_data.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_share_no_used(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/share_embedding_not_used.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
 

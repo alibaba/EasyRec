@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
+import collections
 import json
 import logging
 import os
@@ -13,9 +14,12 @@ import tensorflow as tf
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
+from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
+from tensorflow.python.training import basic_session_run_hooks
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -24,6 +28,7 @@ from easy_rec.python.compat.early_stopping import find_early_stop_var
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.compat.early_stopping import oss_stop_hook
+from easy_rec.python.compat.early_stopping import deadline_stop_hook
 from easy_rec.python.compat.ops import GraphKeys
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
@@ -39,6 +44,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
+tf.estimator.Estimator._assert_members_are_not_overridden = lambda x : x   
 class EasyRecEstimator(tf.estimator.Estimator):
 
   def __init__(self, pipeline_config, model_cls, run_config, params):
@@ -51,6 +57,33 @@ class EasyRecEstimator(tf.estimator.Estimator):
         model_dir=pipeline_config.model_dir,
         config=run_config,
         params=params)
+
+  def evaluate(self, input_fn, steps=None, hooks=None, checkpoint_path=None,
+               name=None):
+    # support for datahub/kafka offset restore
+    input_fn.input_creator.restore(checkpoint_path)
+    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks, checkpoint_path, name)
+
+  def train(self,
+            input_fn,
+            hooks=None,
+            steps=None,
+            max_steps=None,
+            saving_listeners=None):
+    # support for datahub/kafka offset restore
+    checkpoint_path = estimator_utils.latest_checkpoint(self.model_dir)
+    if checkpoint_path is not None:
+      input_fn.input_creator.restore(checkpoint_path)
+    elif self.train_config.HasField('fine_tune_checkpoint'):
+      fine_tune_ckpt = self.train_config.fine_tune_checkpoint
+      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt + '/'):
+        fine_tune_ckpt = estimator_utils.latest_checkpoint(fine_tune_ckpt)
+        print('fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s' %
+              (self.train_config.fine_tune_checkpoint, fine_tune_ckpt))
+        self.train_config.fine_tune_checkpoint = fine_tune_ckpt
+        input_fn.input_creator.restore(fine_tune_ckpt)
+    return super(EasyRecEstimator, self).train(input_fn, hooks, steps, max_steps,
+        saving_listeners)
 
   @property
   def feature_configs(self):
@@ -211,6 +244,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self.train_config.enable_oss_stop_signal:
       hooks.append(oss_stop_hook(self))
 
+    if self.train_config.HasField('dead_line'):
+      hooks.append(deadline_stop_hook(self, self.train_config.dead_line))
+
     summaries = ['global_gradient_norm']
     if self.train_config.summary_model_vars:
       summaries.extend(['gradient_norm', 'gradients'])
@@ -258,7 +294,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         summaries=summaries,
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
-        self._pipeline_config.data_config.chief_redundant,
+          self._pipeline_config.data_config.chief_redundant,
         name='', # Preventing scope prefix on all variables.
         incr_save=(self.incr_save_config is not None))
 
@@ -270,7 +306,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict = model.build_metric_graph(self.eval_config)
       for k, v in metric_dict.items():
         metric_update_op_dict['%s/batch' % k] = v[1]
-        tf.summary.scalar('%s/batch' % k, v[1])
+        if isinstance(v[1], tf.Tensor):
+          tf.summary.scalar('%s/batch' % k, v[1])
       train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
       if estimator_utils.is_chief():
         hooks.append(
@@ -292,24 +329,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # logging
     logging_dict = OrderedDict()
-    logging_dict['lr'] = learning_rate[0]
     logging_dict['step'] = tf.train.get_global_step()
+    logging_dict['lr'] = learning_rate[0]
     logging_dict.update(loss_dict)
     if metric_update_op_dict is not None:
       logging_dict.update(metric_update_op_dict)
-    tensor_order = logging_dict.keys()
-
-    def format_fn(tensor_dict):
-      stats = []
-      for k in tensor_order:
-        tensor_value = tensor_dict[k]
-        stats.append('%s = %s' % (k, tensor_value))
-      return ','.join(stats)
 
     log_step_count_steps = self.train_config.log_step_count_steps
-
-    logging_hook = tf.train.LoggingTensorHook(
-        logging_dict, every_n_iter=log_step_count_steps, formatter=format_fn)
+    logging_hook = basic_session_run_hooks.LoggingTensorHook(
+        logging_dict, every_n_iter=log_step_count_steps,
+        formatter=estimator_utils.tensor_log_format_func)
     hooks.append(logging_hook)
 
     if self.train_config.train_distribute in [
@@ -557,6 +586,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fg_config_path: path to the RTP config file.
     """
     if fg_config is None:
+      if fg_config_path.startswith('!'):
+        fg_config_path = fg_config_path[1:]
       with gfile.GFile(fg_config_path, 'r') as f:
         fg_config = json.load(f)
     col = ops.get_collection_ref(GraphKeys.RANK_SERVICE_FG_CONF)

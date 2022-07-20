@@ -6,6 +6,4 @@ isort==4.3.21
 mdformat;python_version>"3"
 mdformat-tables;python_version>"3"
 pre-commit
-pyodps
-PyYAML
 yapf

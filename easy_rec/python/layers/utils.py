@@ -12,30 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Common util functions used by layers.
-"""
+"""Common util functions used by layers."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import json
+
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops import variables
+
 try:
   from tensorflow.python.ops import kv_variable_ops
 except ImportError:
   kv_variable_ops = None
-
 
 ColumnNameInCollection = {}
 
 
 def _tensor_to_map(tensor):
   return {
-    'node_path' : tensor.name,
-    'shape' : tensor.shape.as_list() if tensor.shape else None,
-    'dtype' : tensor.dtype.name
+      'node_path': tensor.name,
+      'shape': tensor.shape.as_list() if tensor.shape else None,
+      'dtype': tensor.dtype.name
   }
 
 
@@ -64,7 +64,7 @@ def append_tensor_to_collection(collection_name, name, key, tensor):
 
 
 def _collection_item_key(col, name):
-  return "%d#%s" % (id(col), name)
+  return '%d#%s' % (id(col), name)
 
 
 def _process_item(collection_name, name, func):
@@ -77,11 +77,13 @@ def _process_item(collection_name, name, func):
   if key in ColumnNameInCollection:
     idx_found = ColumnNameInCollection[key]
     if idx_found >= len(col):
-      raise Exception("Find column name in collection failed: index out of range")
+      raise Exception(
+          'Find column name in collection failed: index out of range')
 
     item_found = json.loads(col[idx_found])
     if item_found['name'] != name:
-      raise Exception("Find column name in collection failed: item name not match")
+      raise Exception(
+          'Find column name in collection failed: item name not match')
     func(item_found)
     col[idx_found] = json.dumps(item_found)
   else:
@@ -91,6 +93,7 @@ def _process_item(collection_name, name, func):
 
 
 def append_attr_to_collection(collection_name, name, key, value):
+
   def append(item_found):
     if key not in item_found:
       item_found[key] = []
@@ -100,6 +103,7 @@ def append_attr_to_collection(collection_name, name, key, value):
 
 
 def update_attr_to_collection(collection_name, attrs):
+
   def update(item_found):
     item_found.update(attrs)
 
@@ -115,7 +119,7 @@ def unique_name_in_collection(collection_name, name):
     if key not in ColumnNameInCollection:
       break
     index += 1
-    unique_name = "%s_%d" % (name, index)
+    unique_name = '%s_%d' % (name, index)
   return unique_name
 
 
@@ -125,26 +129,32 @@ def gen_embedding_attrs(column=None,
                         combiner=None,
                         is_embedding_var=None):
   attrs = dict()
-  attrs["name"] = column.name
-  attrs["bucket_size"] = bucket_size
-  attrs["combiner"] = combiner
-  attrs["is_embedding_var"] = is_embedding_var
-  attrs["weights_op_path"] = variable.name
+  attrs['name'] = column.name
+  attrs['bucket_size'] = bucket_size
+  attrs['combiner'] = combiner
+  attrs['is_embedding_var'] = is_embedding_var
+  attrs['weights_op_path'] = variable.name
   if kv_variable_ops:
     if isinstance(variable, kv_variable_ops.EmbeddingVariable):
-      attrs["is_embedding_var"] = True
-      attrs["embedding_var_keys"] = variable._shared_name + "-keys"
-      attrs["embedding_var_values"] = variable._shared_name + "-values"
+      attrs['is_embedding_var'] = True
+      attrs['embedding_var_keys'] = variable._shared_name + '-keys'
+      attrs['embedding_var_values'] = variable._shared_name + '-values'
     elif (isinstance(variable, variables.PartitionedVariable)) and \
         (isinstance(variable._get_variable_list()[0], kv_variable_ops.EmbeddingVariable)):
-      attrs["embedding_var_keys"] = [v._shared_name + "-keys" for v in variable]
-      attrs["embedding_var_values"] = [v._shared_name + "-values" for v in variable]
+      attrs['embedding_var_keys'] = [v._shared_name + '-keys' for v in variable]
+      attrs['embedding_var_values'] = [
+          v._shared_name + '-values' for v in variable
+      ]
     else:
-      attrs["is_embedding_var"] = False
+      attrs['is_embedding_var'] = False
   else:
-    attrs["is_embedding_var"] = False
+    attrs['is_embedding_var'] = False
   return attrs
+
 
 def mark_input_src(name, src_desc):
   ops.add_to_collection(ops.GraphKeys.RANK_SERVICE_INPUT_SRC,
-                        json.dumps({'name':name, 'src':src_desc}))
+                        json.dumps({
+                            'name': name,
+                            'src': src_desc
+                        }))

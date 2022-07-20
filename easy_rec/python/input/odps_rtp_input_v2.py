@@ -1,10 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import json
 import logging
 
 import numpy as np
 import tensorflow as tf
-import json
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
 
@@ -14,6 +14,7 @@ try:
 except Exception:
   pai = None
   rtp_fg = None
+
 
 class OdpsRTPInputV2(OdpsRTPInput):
   """RTPInput for parsing rtp fg new input format on odps.
@@ -33,13 +34,17 @@ class OdpsRTPInputV2(OdpsRTPInput):
                input_path,
                task_index=0,
                task_num=1,
+               check_mode=False,
                fg_json_path=None):
-    super(OdpsRTPInputV2, self).__init__(
-      data_config, feature_config, input_path, task_index, task_num)
+    super(OdpsRTPInputV2,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode)
+    if fg_json_path.startswith('!'):
+      fg_json_path = fg_json_path[1:]
     self._fg_config_path = fg_json_path
     logging.info('fg config path: {}'.format(self._fg_config_path))
     if self._fg_config_path is None:
-      raise ValueError("fg_json_path is not set")
+      raise ValueError('fg_json_path is not set')
     with tf.gfile.GFile(self._fg_config_path, 'r') as f:
       self._fg_config = json.load(f)
 
@@ -70,31 +75,33 @@ class OdpsRTPInputV2(OdpsRTPInput):
     return inputs
 
   def create_placeholders(self, *args, **kwargs):
-    """Create serving placeholders with rtp_fg"""
+    """Create serving placeholders with rtp_fg."""
     self.check_rtp()
     self._mode = tf.estimator.ModeKeys.PREDICT
     inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
-    print("[OdpsRTPInputV2] building placeholders.")
-    print("[OdpsRTPInputV2] fg_config: {}".format(self._fg_config))
+    print('[OdpsRTPInputV2] building placeholders.')
+    print('[OdpsRTPInputV2] fg_config: {}'.format(self._fg_config))
     features = rtp_fg.parse_genreated_fg(self._fg_config, inputs_placeholder)
-    print("[OdpsRTPInputV2] built features: {}".format(features.keys()))
+    print('[OdpsRTPInputV2] built features: {}'.format(features.keys()))
     features = self._preprocess(features)
-    print("[OdpsRTPInputV2] processed features: {}".format(features.keys()))
+    print('[OdpsRTPInputV2] processed features: {}'.format(features.keys()))
     return {'features': inputs_placeholder}, features
 
   def create_multi_placeholders(self, *args, **kwargs):
-    """Create serving multi-placeholders with rtp_fg"""
-    raise NotImplementedError("create_multi_placeholders is not supported for OdpsRTPInputV2")
+    """Create serving multi-placeholders with rtp_fg."""
+    raise NotImplementedError(
+        'create_multi_placeholders is not supported for OdpsRTPInputV2')
 
   def check_rtp(self):
     if rtp_fg is None:
-      raise NotImplementedError("OdpsRTPInputV2 cannot run without rtp_fg, which is not installed")
+      raise NotImplementedError(
+          'OdpsRTPInputV2 cannot run without rtp_fg, which is not installed')
 
   def _pre_build(self, mode, params):
     try:
       # Prevent TF from replacing the shape tensor to a constant tensor. This will
-      # cause the batch size being fixed. And RTP will be not able to recogonize
+      # cause the batch size being fixed. And RTP will be not able to recognize
       # the input shape.
       tf.get_default_graph().set_shape_optimize(False)
     except AttributeError as e:
-      logging.warning("failed to disable shape optimization:", e)
+      logging.warning('failed to disable shape optimization:', e)

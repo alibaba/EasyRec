@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.utils.check_utils import check_split
 
 if tf.__version__ >= '2.0':
   ignore_errors = tf.data.experimental.ignore_errors()
@@ -20,9 +21,10 @@ class CSVInput(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(CSVInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num)
+                                   task_index, task_num, check_mode)
     self._with_header = data_config.with_header
     self._field_names = None
 
@@ -44,24 +46,21 @@ class CSVInput(Input):
         else:
           record_defaults.append('')
 
-    def _check_data(line):
-      sep = self._data_config.separator
-      if type(sep) != type(str):
-        sep = sep.encode('utf-8')
-      field_num = len(line[0].split(sep))
-      assert field_num == len(record_defaults), \
-          'sep[%s] maybe invalid: field_num=%d, required_num=%d' % \
-          (sep, field_num, len(record_defaults))
-      return True
-
-    check_op = tf.py_func(_check_data, [line], Tout=tf.bool)
-    with tf.control_dependencies([check_op]):
+    check_list = [
+        tf.py_func(
+            check_split, [
+                line, self._data_config.separator,
+                len(record_defaults), self._check_mode
+            ],
+            Tout=tf.bool)
+    ] if self._check_mode else []
+    with tf.control_dependencies(check_list):
       fields = tf.decode_csv(
           line,
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
           name='decode_csv')
-      if self._field_names:
+      if self._field_names is not None:
         fields = [
             fields[self._field_names.index(x)] for x in self._input_fields
         ]
@@ -75,10 +74,18 @@ class CSVInput(Input):
     return inputs
 
   def _build(self, mode, params):
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
     file_paths = []
-    for x in self._input_path.split(','):
+    for x in self._input_path:
       file_paths.extend(tf.gfile.Glob(x))
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
+
+    assert not file_paths[0].endswith('.tar.gz'), 'could only support .csv or .gz(not .tar.gz) files.'
+
+    compression_type = 'GZIP' if file_paths[0].endswith('.gz') else ''
+    if compression_type:
+      logging.info('compression_type = %s' % compression_type)
 
     if self._with_header:
       with tf.gfile.GFile(file_paths[0], 'r') as fin:
@@ -93,22 +100,27 @@ class CSVInput(Input):
       logging.info('train files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+    
+      if self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         # shuffle input files
         dataset = dataset.shuffle(len(file_paths))
+
       # too many readers read the same file will cause performance issues
       # as the same data will be read multiple times
       parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(
-          lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
+          lambda x: tf.data.TextLineDataset(x,
+              compression_type=compression_type
+          ).skip(int(self._with_header)),
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
 
-      if self._data_config.chief_redundant:
-        dataset = dataset.shard(
-            max(self._task_num - 1, 1), max(self._task_index - 1, 0))
-      else:
-        dataset = dataset.shard(self._task_num, self._task_index)
+      if not self._data_config.file_shard:
+        dataset = self._safe_shard(dataset)
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
@@ -118,7 +130,8 @@ class CSVInput(Input):
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(file_paths).skip(int(self._with_header))
+      dataset = tf.data.TextLineDataset(file_paths,
+          compression_type=compression_type).skip(int(self._with_header))
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)

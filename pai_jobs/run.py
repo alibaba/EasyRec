@@ -10,8 +10,9 @@ import os
 import tensorflow as tf
 
 import easy_rec
-from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
+from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
@@ -20,7 +21,6 @@ from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
-
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -64,7 +64,8 @@ tf.app.flags.DEFINE_string('train_tables', '', 'tables used for train')
 tf.app.flags.DEFINE_string('eval_tables', '', 'tables used for evaluation')
 tf.app.flags.DEFINE_string('boundary_table', '', 'tables used for boundary')
 tf.app.flags.DEFINE_string('sampler_table', '', 'tables used for sampler')
-tf.app.flags.DEFINE_string('fine_tune_checkpoint', None, 'finetune checkpoint path')
+tf.app.flags.DEFINE_string('fine_tune_checkpoint', None,
+                           'finetune checkpoint path')
 tf.app.flags.DEFINE_string('query_table', '',
                            'table used for retrieve vector neighbours')
 tf.app.flags.DEFINE_string('doc_table', '',
@@ -164,6 +165,8 @@ tf.app.flags.DEFINE_string('hpo_param_path', None,
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
                            'hyperparameter save metric path')
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
+tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
+tf.app.flags.DEFINE_string('fg_json_path', None, '')
 
 tf.app.flags.DEFINE_bool('online', False, 'for online training')
 
@@ -218,6 +221,11 @@ def main(argv):
                                      len(FLAGS.worker_hosts.split(',')))
     pipeline_config = config_util.get_configs_from_pipeline_file(config, False)
 
+    # should be in front of edit_config_json step
+    # otherwise data_config and feature_config are not ready
+    if pipeline_config.fg_json_path:
+      fg_util.load_fg_json_to_config(pipeline_config)
+
   if FLAGS.edit_config_json:
     print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
     config_json = json.loads(FLAGS.edit_config_json)
@@ -259,9 +267,6 @@ def main(argv):
     else:
       print('[run.py] online training is enabled.')
 
-    if pipeline_config.fg_json_path:
-      fg_util.load_fg_json_to_config(pipeline_config)
-
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
 
@@ -297,7 +302,7 @@ def main(argv):
     assert FLAGS.eval_method in [
         'none', 'master', 'separate'
     ], 'invalid evalaute_method: %s' % FLAGS.eval_method
-   
+
     # with_evaluator is depreciated, keeped for compatibility
     if FLAGS.with_evaluator:
       FLAGS.eval_method = 'separate'
@@ -311,14 +316,17 @@ def main(argv):
         eval_method=FLAGS.eval_method)
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
+    logging.info('run.py check_mode: %s .' % FLAGS.check_mode)
     train_and_evaluate_impl(
-        pipeline_config, continue_train=FLAGS.continue_train)
+        pipeline_config,
+        continue_train=FLAGS.continue_train,
+        check_mode=FLAGS.check_mode)
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=(FLAGS.eval_method == "separate"))
+          has_evaluator=(FLAGS.eval_method == 'separate'))
 
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
@@ -422,7 +430,12 @@ def main(argv):
     profiling_file = FLAGS.profiling_file if FLAGS.task_index == 0 else None
     if profiling_file is not None:
       print('profiling_file = %s ' % profiling_file)
-    predictor = Predictor(FLAGS.saved_model_dir, profiling_file=profiling_file)
+    predictor = ODPSPredictor(
+        FLAGS.saved_model_dir,
+        fg_json_path=FLAGS.fg_json_path,
+        profiling_file=profiling_file,
+        all_cols=FLAGS.all_cols,
+        all_col_types=FLAGS.all_col_types)
     input_table, output_table = FLAGS.tables, FLAGS.outputs
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
@@ -430,9 +443,6 @@ def main(argv):
     predictor.predict_impl(
         input_table,
         output_table,
-        all_cols=FLAGS.all_cols,
-        all_col_types=FLAGS.all_col_types,
-        selected_cols=FLAGS.selected_cols,
         reserved_cols=FLAGS.reserved_cols,
         output_cols=FLAGS.output_cols,
         batch_size=FLAGS.batch_size,
@@ -450,11 +460,11 @@ def main(argv):
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(
-      pipeline_config,
-      export_path=FLAGS.export_dir + '/model',
-      checkpoint_path=FLAGS.checkpoint_path,
-      asset_files=FLAGS.asset_files,
-      verbose=FLAGS.verbose)
+        pipeline_config,
+        export_path=FLAGS.export_dir + '/model',
+        checkpoint_path=FLAGS.checkpoint_path,
+        asset_files=FLAGS.asset_files,
+        verbose=FLAGS.verbose)
   elif FLAGS.cmd == 'vector_retrieve':
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
@@ -484,9 +494,12 @@ def main(argv):
         m=FLAGS.knn_compress_dim)
     worker_hosts = FLAGS.worker_hosts.split(',')
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
+  elif FLAGS.cmd == 'check':
+    run_check(pipeline_config, FLAGS.tables)
   else:
     raise ValueError(
-        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve')
+        'cmd should be one of train/evaluate/export/predict/export_checkpoint/vector_retrieve'
+    )
 
 
 if __name__ == '__main__':

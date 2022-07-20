@@ -84,7 +84,7 @@ message EasyRecModel {
 
     optional uint32 num_class = 10 [default = 1];
 
-    optional bool use_embedding_variable = 11 [default=false];
+    optional EVParams ev_params = 11;
 
     repeated KD kd = 12;
 
@@ -95,4 +95,6 @@ message EasyRecModel {
     optional VariationalDropoutLayer variational_dropout = 14;
 
     repeated Loss losses = 15;
+
+    optional F1ReweighedLoss f1_reweight_loss = 16;
 }

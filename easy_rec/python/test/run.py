@@ -39,7 +39,7 @@ def gather_test_cases(test_dir, pattern):
           if (case_file, case_name) not in all_tests:
             all_tests.append((case_file, case_name))
       else:
-        toks = subcase.id().split('.')[0]
+        toks = subcase.id().split('.')
         case_file = toks[0]
         case_name = '.'.join(toks[1:])
         if (case_file, case_name) not in all_tests:

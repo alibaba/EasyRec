@@ -12,14 +12,20 @@ class CSVInputV2(Input):
                feature_config,
                input_path,
                task_index=0,
-               task_num=1):
+               task_num=1,
+               check_mode=False):
     super(CSVInputV2, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num)
+                                     task_index, task_num, check_mode)
 
   def _build(self, mode, params):
-    if self._input_path.startswith('hdfs://'):
+    if type(self._input_path) != list:
+      self._input_path = self._input_path.split(',')
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
+
+    if self._input_path[0].startswith('hdfs://'):
       # support hdfs input
-      dataset = tf.data.TextLineDataset([self._input_path])
+      dataset = tf.data.TextLineDataset(self._input_path)
     else:
       num_epochs = self.num_epochs if mode == tf.estimator.ModeKeys.TRAIN else 1
       is_train = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -28,7 +34,7 @@ class CSVInputV2(Input):
           for x, v in zip(self._input_field_types, self._input_field_defaults)
       ]
       dataset = tf.data.experimental.make_csv_dataset(
-          [self._input_path],
+          self._input_path,
           self._data_config.batch_size,
           column_names=self._input_fields,
           field_delim=self._data_config.separator,

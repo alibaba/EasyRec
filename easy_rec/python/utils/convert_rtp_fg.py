@@ -18,6 +18,7 @@ from easy_rec.python.utils import config_util
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
 def _gen_raw_config(feature, input_field, feature_config, is_multi,
                     curr_embed_dim):
@@ -33,7 +34,7 @@ def _gen_raw_config(feature, input_field, feature_config, is_multi,
     feature_config.embedding_dim = curr_embed_dim
   else:
     feature_config.feature_type = feature_config.RawFeature
-    input_field.default_val = feature.get('default_value', '0.0')
+    input_field.default_val = str(feature.get('default_value', '0.0'))
     raw_input_dim = feature.get('value_dimension', 1)
     if raw_input_dim > 1:
       feature_config.raw_input_dim = raw_input_dim
@@ -57,6 +58,12 @@ def _set_hash_bucket(feature, feature_config, input_field):
             'it is suggested to set max_partitions > 1 for large hash buckets[%s]'
             % feature['feature_name'])
         sys.exit(1)
+    if feature.get('filter_freq', -1) >= 0:
+      feature_config.ev_params.filter_freq = feature['filter_freq']
+      feature_config.hash_bucket_size = MAX_HASH_BUCKET_SIZE
+    if feature.get('steps_to_live', -1) >= 0:
+      feature_config.ev_params.steps_to_live = feature['steps_to_live']
+      feature_config.hash_bucket_size = MAX_HASH_BUCKET_SIZE
   elif 'vocab_file' in feature:
     feature_config.vocab_file = feature['vocab_file']
   elif 'vocab_list' in feature:
@@ -82,7 +89,7 @@ def process_features(feature_type,
   input_field.input_name = feature_name
   curr_embed_dim = feature.get('embedding_dimension',
                                feature.get('embedding_dim', embedding_dim))
-  curr_combiner = feature.get('combiner', 'mean')
+  curr_combiner = feature.get('combiner', 'sum')
   if feature.get('is_cache', False):
     logging.info('will cache %s' % feature_name)
     feature_config.is_cache = True
@@ -122,12 +129,9 @@ def process_features(feature_type,
       _gen_raw_config(feature, input_field, feature_config, is_multi,
                       curr_embed_dim)
     else:
-      if is_multi:
-        feature_config.feature_type = feature_config.TagFeature
-        if feature.get('needWeighting', False):
-          feature_config.kv_separator = ''
-      else:
-        feature_config.feature_type = feature_config.IdFeature
+      feature_config.feature_type = feature_config.TagFeature
+      if feature.get('needWeighting', False):
+        feature_config.kv_separator = ''
       feature_config.embedding_dim = curr_embed_dim
       _set_hash_bucket(feature, feature_config, input_field)
       feature_config.combiner = curr_combiner
@@ -139,12 +143,9 @@ def process_features(feature_type,
     if feature.get('matchType', '') == 'multihit':
       is_multi = True
     if need_discrete:
-      if is_multi:
-        feature_config.feature_type = feature_config.TagFeature
-        if feature.get('needWeighting', False):
-          feature_config.kv_separator = ''
-      else:
-        feature_config.feature_type = feature_config.IdFeature
+      feature_config.feature_type = feature_config.TagFeature
+      if feature.get('needWeighting', False):
+        feature_config.kv_separator = ''
       feature_config.embedding_dim = curr_embed_dim
       _set_hash_bucket(feature, feature_config, input_field)
       feature_config.combiner = curr_combiner

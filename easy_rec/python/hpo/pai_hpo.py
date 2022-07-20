@@ -44,7 +44,7 @@ def get_tuner(data, max_parallel, max_trial_num):
       r = hpo.reader.create(**t['metric_reader'])
       t.pop('metric_reader')
     if r:
-      subtask = hpo.task.create(**t, metric_reader=r)
+      subtask = hpo.task.create(metric_reader=r, **t)
     else:
       subtask = hpo.task.create(**t)
     tasks.append(subtask)
