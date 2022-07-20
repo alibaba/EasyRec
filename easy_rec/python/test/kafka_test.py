@@ -18,6 +18,7 @@ from tensorflow.python.platform import gfile
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.input.kafka_dataset import KafkaDataset
 from easy_rec.python.utils import test_utils
+from easy_rec.python.utils import numpy_utils
 
 try:
   import kafka
@@ -287,7 +288,7 @@ class KafkaTest(tf.test.TestCase):
            --input_path data/test/rtp/taobao_test_feature.txt 
            --output_path %s/processor.out  
            --data_config processor/dataset.config 
-    """ % (export_sep_dir, self._test_dir) 
+     """ % (export_sep_dir, self._test_dir)
     proc = test_utils.run_cmd(predict_cmd, '%s/log_processor.txt' % self._test_dir)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
@@ -310,7 +311,7 @@ class KafkaTest(tf.test.TestCase):
 
     with open('%s/predictor.out' % self._test_dir, 'w') as fout:
       for i in range(len(output_res)):
-        fout.write(json.dumps(output_res[i]) + '\n')
+        fout.write(json.dumps(output_res[i], cls=numpy_utils.NumpyEncoder) + '\n')
 
     for i in range(len(output_res)):
       val0 = output_res[i]['probs']
