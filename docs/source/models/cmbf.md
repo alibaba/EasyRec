@@ -122,9 +122,10 @@ model_config: {
   - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
   - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
   - text_seq_emb_dropout_prob: 文本序列embedding的dropout概率
-  - other_feature_dnn: [可选] 其他特征的MLP网络配置
+  - other_feature_dnn: \[可选\] 其他特征的MLP网络配置
 
 - cmbf/final_dnn: 输出模块的MLP网络配置
+
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 ### 示例Config

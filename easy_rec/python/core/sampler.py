@@ -129,8 +129,10 @@ class BaseSampler(object):
           else:
             chief_host = tf_config['cluster']['master'][0].split(
                 ':')[0] + ':8880'
-          worker_hosts = chief_host + \
-                         [host.split(':')[0] + ':888' + str(i) for i, host in enumerate(tf_config['cluster']['worker'])]
+          worker_hosts = chief_host + [
+              host.split(':')[0] + ':888' + str(i)
+              for i, host in enumerate(tf_config['cluster']['worker'])
+          ]
 
           if tf_config['task']['type'] in ['chief', 'master']:
             self._g.init(

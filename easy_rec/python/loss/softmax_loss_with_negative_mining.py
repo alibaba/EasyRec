@@ -66,8 +66,10 @@ def softmax_loss_with_negative_mining(user_emb,
   assert 0 < num_negative_samples, '`num_negative_samples` should be greater than 0'
 
   batch_size = tf.shape(item_emb)[0]
-  is_valid = tf.assert_less(num_negative_samples, batch_size,
-                            message='`num_negative_samples` should be less than batch_size')
+  is_valid = tf.assert_less(
+      num_negative_samples,
+      batch_size,
+      message='`num_negative_samples` should be less than batch_size')
   with tf.control_dependencies([is_valid]):
     if not embed_normed:
       user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
@@ -94,5 +96,10 @@ def softmax_loss_with_negative_mining(user_emb,
     neg_scores = tf.slice(sim_scores, [0, 1], [-1, -1])
 
     loss = support_vector_guided_softmax_loss(
-        pos_score, neg_scores, margin=margin, t=t, smooth=gamma, weights=weights)
+        pos_score,
+        neg_scores,
+        margin=margin,
+        t=t,
+        smooth=gamma,
+        weights=weights)
   return loss
