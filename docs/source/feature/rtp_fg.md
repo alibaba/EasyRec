@@ -696,12 +696,12 @@ easyrecRequest.appendItemStr(itemIdStr, ",");
 PredictProtos.PBResponse response = client.predict(easyrecRequest);
 
 for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().entrySet()) {
-      String key = entry.getKey();
-      PredictProtos.Results value = entry.getValue();
-      System.out.print("key: " + key);
-      for (int i = 0; i < value.getScoresCount(); i++) {
-          System.out.format(" value: %.4f ", value.getScores(i));
-      }
+    String key = entry.getKey();
+    PredictProtos.Results value = entry.getValue();
+    System.out.print("key: " + key);
+    for (int i = 0; i < value.getScoresCount(); i++) {
+        System.out.format(" value: %.4f ", value.getScores(i));
+    }
 }
 ```
 
@@ -709,16 +709,12 @@ for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().e
 
 ```
 ...
-
 easyrecRequest.setDebugLevel(1);
-PredictProtos.PBResponse response = this.predict(easyrecRequest);
-for (Map.Entry<String, PredictProtos.Results> entry :
-     response.getResultsMap().entrySet()) {
-   Map<String, String> genFeas = response.getGenerateFeaturesMap();
-   for(String itemId: genFeas.keySet()) {
-     System.out.println(itemId);
-     System.out.println(genFeas.get(itemId));
-   }
+PredictProtos.PBResponse response = client.predict(easyrecRequest);
+Map<String, String> genFeas = response.getGenerateFeaturesMap();
+for(String itemId: genFeas.keySet()) {
+    System.out.println(itemId);
+    System.out.println(genFeas.get(itemId));
 }
 ```
 
