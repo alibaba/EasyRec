@@ -230,10 +230,10 @@ def main(argv):
     if pipeline_config.fg_json_path:
       fg_util.load_fg_json_to_config(pipeline_config)
 
-  if FLAGS.edit_config_json:
-    print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
-    config_json = yaml.safe_load(FLAGS.edit_config_json)
-    config_util.edit_config(pipeline_config, config_json)
+  # if FLAGS.edit_config_json:
+  #   print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
+  #   config_json = yaml.safe_load(FLAGS.edit_config_json)
+  #   config_util.edit_config(pipeline_config, config_json)
 
   if FLAGS.model_dir:
     pipeline_config.model_dir = FLAGS.model_dir
@@ -272,6 +272,13 @@ def main(argv):
 
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
     print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
+
+    if FLAGS.edit_config_json:
+      print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
+      config_json = yaml.safe_load(FLAGS.edit_config_json)
+      config_util.edit_config(pipeline_config, config_json)
+    logging.info('edit json complete')
+    logging.info(pipeline_config)
 
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint

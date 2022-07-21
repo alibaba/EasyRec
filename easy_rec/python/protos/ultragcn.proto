@@ -1,0 +1,14 @@
+syntax = "proto2";
+package protos;
+
+message ULTRAGCN {    
+  optional float l2_regularization = 2 [default=0.0];
+  optional uint32 user_num = 3 [default=1];
+  optional uint32 item_num = 4 [default=1];
+  optional uint32 output_dim = 5 [default=1];
+  optional uint32 nbr_num = 6 [default=1];
+  optional uint32 neg_num = 7 [default=1];
+  optional float neg_weight = 8 [default=0.0];
+  optional float i2i_weight = 9 [default=0.0];
+  optional float l2_weight = 10 [default=0.0];
+}

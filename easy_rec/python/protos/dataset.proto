@@ -131,6 +131,28 @@ message HardNegativeSamplerV2 {
     optional string field_delimiter = 12 [default="\001"];
 }
 
+// for graph based algorithm: ultragcn.
+message UltraGCNSampler {
+
+  optional uint32 user_num = 1 [default=10];
+
+  optional uint32 item_num = 2 [default=10];
+
+  optional uint32 output_dim = 3 [default=10];
+
+  optional uint32 nbr_num = 4 [default=10];
+
+  optional uint32 neg_num = 5 [default=10];
+
+  optional float neg_weight = 6 [default=10];
+
+  optional float i2i_weight = 7 [default=10];
+
+  optional float l2_weight = 8 [default=10];
+
+  optional string neg_sampler = 9 [default = 'random'];
+
+}
 message DatasetConfig {
     // mini batch size to use for training and evaluation.
     optional uint32 batch_size = 1 [default = 32];
@@ -218,6 +240,7 @@ message DatasetConfig {
         HiveRTPInput = 17;
         HiveParquetInput = 18;
         CriteoInput = 1001;
+        GraphInput = 19;
     }
     required InputType input_type = 10;
 
@@ -288,6 +311,7 @@ message DatasetConfig {
         NegativeSamplerInMemory negative_sampler_in_memory = 105;
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
-
+    
+    optional UltraGCNSampler ultra_gcn_sampler = 26;
 
 }

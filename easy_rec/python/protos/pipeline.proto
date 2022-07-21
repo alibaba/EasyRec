@@ -19,6 +19,7 @@ message EasyRecConfig {
       DatahubServer datahub_train_input = 12;
       HiveConfig hive_train_input = 101;
       BinaryDataInput binary_train_input = 102;
+      GraphLearnInput graph_train_input_path = 103;
   }
   oneof eval_path {
       string eval_input_path = 3;
@@ -26,6 +27,7 @@ message EasyRecConfig {
       DatahubServer datahub_eval_input = 13;
       HiveConfig hive_eval_input= 201;
       BinaryDataInput binary_eval_input = 202;
+      GraphLearnInput graph_eval_input_path = 203;
   }
   required string model_dir = 5;
 

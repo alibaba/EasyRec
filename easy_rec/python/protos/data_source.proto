@@ -25,3 +25,11 @@ message BinaryDataInput {
     repeated string dense_path = 2;
     repeated string label_path = 3;
 }
+
+message GraphLearnInput {
+    optional string user_node_input = 1;
+    optional string item_node_input = 2;
+    optional string u2i_edge_input = 3;
+    optional string i2i_edge_input = 4;
+    optional string u2u_edge_input = 5;
+}
