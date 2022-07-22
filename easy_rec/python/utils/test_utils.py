@@ -225,7 +225,8 @@ def test_single_train_eval(pipeline_config_path,
                            total_steps=50,
                            post_check_func=None,
                            check_mode=False,
-                           fine_tune_checkpoint=None):
+                           fine_tune_checkpoint=None,
+                           timeout=-1):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -258,7 +259,7 @@ def test_single_train_eval(pipeline_config_path,
   if check_mode:
     train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc,timeout=TEST_TIME_OUT if timeout < 0 else timeout)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
