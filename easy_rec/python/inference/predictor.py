@@ -142,8 +142,7 @@ class PredictorImpl(object):
     dir_list = []
     for root, dirs, files in gfile.Walk(directory):
       for f in files:
-        _, ext = os.path.splitext(f)
-        if ext == '.pb':
+        if f.endswith('saved_model.pb'):
           dir_list.append(root)
     if len(dir_list) == 0:
       raise ValueError('savedmodel is not found in directory %s' % directory)
@@ -401,7 +400,7 @@ class Predictor(PredictorInterface):
     else:
       fg_json_path = os.path.join(model_path, 'assets/fg.json')
       if gfile.Exists(fg_json_path):
-        logging.info('load fg_json_path: ', fg_json_path)
+        logging.info('load fg_json_path: ' + fg_json_path)
         with tf.gfile.GFile(fg_json_path, 'r') as fin:
           fg_json = json.loads(fin.read())
       else:

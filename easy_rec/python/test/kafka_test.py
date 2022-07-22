@@ -15,6 +15,7 @@ import tensorflow as tf
 from tensorflow.python.data.ops import iterator_ops
 from tensorflow.python.platform import gfile
 
+import easy_rec
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.input.kafka_dataset import KafkaDataset
 from easy_rec.python.utils import test_utils
@@ -265,18 +266,26 @@ class KafkaTest(tf.test.TestCase):
   @unittest.skipIf('kafka_install_dir' not in os.environ or 'oss_path' not in os.environ \
        or 'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ \
        or 'oss_sk' not in os.environ, 'Only execute when kafka is available')
-  def test_kafka_processor(self): 
+  def test_kafka_processor(self):  
+    self._test_kafka_processor('samples/model_config/taobao_fg_incr_save.config')
+
+
+  @unittest.skipIf('kafka_install_dir' not in os.environ or 'oss_path' not in os.environ \
+       or 'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ \
+       or 'oss_sk' not in os.environ, 'Only execute when kafka is available')
+  def test_kafka_processor_ev(self):  
+    self._test_kafka_processor('samples/model_config/taobao_fg_incr_save_ev.config')
+
+  def _test_kafka_processor(self, config_path): 
     self._success = False 
-    success = test_utils.test_distributed_train_eval(
-       'samples/model_config/taobao_fg_incr_save.config', self._test_dir)
+    success = test_utils.test_distributed_train_eval(config_path, self._test_dir)
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config 
            --export_dir %s/export/sep/ --oss_path=%s --oss_ak=%s --oss_sk=%s --oss_endpoint=%s
            --asset_files ./samples/rtp_fg/fg.json 
-           --checkpoint_path %s/train/model.ckpt-0
     """ % (self._test_dir, self._test_dir, os.environ['oss_path'], os.environ['oss_ak'],
-       os.environ['oss_sk'], os.environ['oss_endpoint'], self._test_dir)
+       os.environ['oss_sk'], os.environ['oss_endpoint'])
     proc = test_utils.run_cmd(export_cmd, '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
@@ -299,7 +308,8 @@ class KafkaTest(tf.test.TestCase):
         line_str = line_str.strip()
         processor_out.append(json.loads(line_str))
    
-    predictor = Predictor(os.path.join(self._test_dir, 'train/export/final')) 
+    tf.load_op_library(os.path.join(easy_rec.ops_dir, 'libembed_op.so'))
+    predictor = Predictor(os.path.join(self._test_dir, 'export/sep/')) 
     with open('data/test/rtp/taobao_test_feature.txt', 'r') as fin:
       inputs = []
       for line_str in fin:

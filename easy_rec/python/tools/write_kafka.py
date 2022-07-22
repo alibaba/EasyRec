@@ -52,6 +52,7 @@ if __name__ == '__main__':
     for line_str in fin:
       producer.send(args.topic, line_str.encode('utf-8'))
       i += 1
+      break
       if i % 100 == 0:
         logging.info('progress: %d' % i)
   producer.close()

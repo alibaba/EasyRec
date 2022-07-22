@@ -249,6 +249,12 @@ def test_single_train_eval(pipeline_config_path,
     train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc.wait()
+  # print(test_dir)
+  # print(train_cmd)
+  # while not os.path.exists(test_dir + '/train/ESTIMATOR_TRAIN_DONE'):
+  #   time.sleep(2)
+  # print('train_done')
+  # return True
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
