@@ -537,23 +537,82 @@ export_config {
 ```protobuf
 syntax = "proto3";
 
-package com.alibaba.pairec.processor;
-option cc_enable_arenas = true;
-option java_package = "com.alibaba.pairec.processor";
+option go_package = ".;easyrec";
+option java_package = "com.alibaba.pairec.processor.proto";
 option java_outer_classname = "PredictProtos";
 
+enum ArrayDataType {
+  // Not a legal value for DataType. Used to indicate a DataType field
+  // has not been set.
+  DT_INVALID = 0;
+  // Data types that all computation devices are expected to be
+  // capable to support.
+  DT_FLOAT = 1;
+  DT_DOUBLE = 2;
+  DT_INT32 = 3;
+  DT_UINT8 = 4;
+  DT_INT16 = 5;
+  DT_INT8 = 6;
+  DT_STRING = 7;
+  DT_COMPLEX64 = 8;  // Single-precision complex
+  DT_INT64 = 9;
+  DT_BOOL = 10;
+  DT_QINT8 = 11;     // Quantized int8
+  DT_QUINT8 = 12;    // Quantized uint8
+  DT_QINT32 = 13;    // Quantized int32
+  DT_BFLOAT16 = 14;  // Float32 truncated to 16 bits.  Only for cast ops.
+  DT_QINT16 = 15;    // Quantized int16
+  DT_QUINT16 = 16;   // Quantized uint16
+  DT_UINT16 = 17;
+  DT_COMPLEX128 = 18;  // Double-precision complex
+  DT_HALF = 19;
+  DT_RESOURCE = 20;
+  DT_VARIANT = 21;  // Arbitrary C++ data types
+}
+// Dimensions of an array
+message ArrayShape {
+  repeated int64 dim = 1 [packed = true];
+}
+// Protocol buffer representing an array
+message ArrayProto {
+  // Data Type.
+  ArrayDataType dtype = 1;
+  // Shape of the array.
+  ArrayShape array_shape = 2;
+  // DT_FLOAT.
+  repeated float float_val = 3 [packed = true];
+  // DT_DOUBLE.
+  repeated double double_val = 4 [packed = true];
+  // DT_INT32, DT_INT16, DT_INT8, DT_UINT8.
+  repeated int32 int_val = 5 [packed = true];
+  // DT_STRING.
+  repeated bytes string_val = 6;
+  // DT_INT64.
+  repeated int64 int64_val = 7 [packed = true];
+  // DT_BOOL.
+  repeated bool bool_val = 8 [packed = true];
+}
 // context features
 message ContextFeatures {
-  repeated string features = 1;
+  repeated PBFeature features = 1;
+}
+
+message PBFeature {
+  oneof value {
+    int32 int_feature = 1;
+    int64 long_feature = 2;
+    string string_feature = 3;
+    float float_feature = 4;
+  }
 }
 
 // PBRequest specifies the request for aggregator
 message PBRequest {
   // debug mode
-  bool debug_mode = 1;
+  int32 debug_level = 1;
 
   // user features
-  map<string, string> user_features = 2;
+  map<string, PBFeature> user_features = 2;
 
   // item ids
   repeated string item_ids = 3;
@@ -564,7 +623,6 @@ message PBRequest {
 
 // return results
 message Results {
-  # use repeated to be compatiable for multi-target models.
   repeated double scores = 1 [packed = true];
 }
 
@@ -589,16 +647,26 @@ message PBResponse {
   map<string, ContextFeatures> context_features = 4;
 
   string error_msg = 5;
-
+  
   StatusCode status_code = 6;
+
+  // item ids
+  repeated string item_ids = 7;
+
+  repeated string outputs = 8;
+
+  // all fg input features
+  map<string, string> raw_features = 9;
+
+  map<string, ArrayProto> tf_outputs = 10;
 }
 ```
 
-提供了 java 的客户端实例，[客户端 jar 包地址](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/easyrec-eas-client-0.0.1-jar-with-dependencies.jar).
+提供了 java 的客户端实例，[客户端 jar 包地址](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/easyrec-eas-client-0.0.2-jar-with-dependencies.jar).
 下载后的 jar 通过下面命令安装到本地 mvn 库里.
 
 ```
-mvn install:install-file -Dfile=easyrec-eas-client-0.0.1-jar-with-dependencies.jar -DgroupId=com.alibaba.pairec -DartifactId=easyrec-eas-client -Dversion=0.0.1 -Dpackaging=jar
+mvn install:install-file -Dfile=easyrec-eas-client-0.0.2-jar-with-dependencies.jar -DgroupId=com.alibaba.pairec -DartifactId=easyrec-eas-client -Dversion=0.0.2 -Dpackaging=jar
 ```
 
 然后在pom.xml里面加入:
@@ -607,7 +675,7 @@ mvn install:install-file -Dfile=easyrec-eas-client-0.0.1-jar-with-dependencies.j
 <dependency>
     <groupId>com.alibaba.pairec</groupId>
     <artifactId>easyrec-eas-client</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -628,12 +696,12 @@ easyrecRequest.appendItemStr(itemIdStr, ",");
 PredictProtos.PBResponse response = client.predict(easyrecRequest);
 
 for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().entrySet()) {
-      String key = entry.getKey();
-      PredictProtos.Results value = entry.getValue();
-      System.out.print("key: " + key);
-      for (int i = 0; i < value.getScoresCount(); i++) {
-          System.out.format(" value: %.4f ", value.getScores(i));
-      }
+    String key = entry.getKey();
+    PredictProtos.Results value = entry.getValue();
+    System.out.print("key: " + key);
+    for (int i = 0; i < value.getScoresCount(); i++) {
+        System.out.format(" value: %.4f ", value.getScores(i));
+    }
 }
 ```
 
@@ -641,16 +709,12 @@ for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().e
 
 ```
 ...
-
-easyrecRequest.setDebug();
+easyrecRequest.setDebugLevel(1);
 PredictProtos.PBResponse response = client.predict(easyrecRequest);
-for (Map.Entry<String, PredictProtos.Results> entry :
-     response.getResultsMap().entrySet()) {
-   Map<String, String> itemFeas = response.getItemFeatures();
-   for(String itemId: itemFeas.keySet()) {
-     System.out.println(itemId);
-     System.out.println(itemFeas.get(itemId));
-   }
+Map<String, String> genFeas = response.getGenerateFeaturesMap();
+for(String itemId: genFeas.keySet()) {
+    System.out.println(itemId);
+    System.out.println(genFeas.get(itemId));
 }
 ```
 
