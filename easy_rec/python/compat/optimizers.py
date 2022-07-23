@@ -321,7 +321,8 @@ def optimize_loss(loss,
           global_step=global_step if increment_global_step else None,
           name='train')
 
-      return control_flow_ops.with_dependencies([grad_updates] + incr_save_ops, loss)
+      with ops.control_dependencies([grad_updates]):
+        return control_flow_ops.with_dependencies(incr_save_ops, loss)
 
     if not_apply_grad_after_first_step:
       _apply_grad()

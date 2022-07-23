@@ -368,7 +368,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         with ops.control_dependencies([tf.train.get_global_step()]):
           with ops.colocate_with(sparse_var):
             sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype) 
-          sparse_indice = sparse_indice.global_indices
+          # sparse_indice = sparse_indice.global_indices
         self._sparse_indices.append(sparse_indice)
         if 'EmbeddingVariable' in str(type(sparse_var)):
           self._sparse_values.append(sparse_var.sparse_read(sparse_indice))
@@ -471,15 +471,17 @@ class CheckpointSaverHook(CheckpointSaverHook):
       logging.warning('there are no sparse updates, will skip this send: %d' % global_step)
       return
 
-
     # 1 means sparse update messages
     msg_header = [1, msg_num, global_step]
-    for i, x in enumerate(embed_ids):
-      msg_header.append(x)
-      msg_header.append(len(sparse_res[sel_ids[i]])) 
+    for i in sel_ids:
+      msg_header.append(embed_ids[i])
+      msg_header.append(len(sparse_key_res[i])) 
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
-    for tmp_id, tmp_key, tmp_val, tmp_var in zip(embed_ids, sparse_key_res,
-        sparse_val_res, sparse_train_vars):
+    for i in sel_ids:
+      tmp_id = embed_ids[i]
+      tmp_key = sparse_key_res[i]
+      tmp_val = sparse_val_res[i]
+      tmp_var = sparse_train_vars[i]
       # for non kv embedding variables, add partition offset to tmp_key
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
