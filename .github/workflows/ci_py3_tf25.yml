@@ -1,4 +1,4 @@
-name: CI Build PY3
+name: CI Build PY3 TF25
 on:
   pull_request:
     types: [opened, reopened, synchronize]
