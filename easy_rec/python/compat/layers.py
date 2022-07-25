@@ -130,8 +130,7 @@ def layer_norm(inputs,
     if scale:
       gamma_collections = get_variable_collections(variables_collections,
                                                    'gamma')
-      from tensorflow.contrib.framework.python.ops import variables
-      gamma = variables.model_variable(
+      gamma = model_variable(
           'gamma',
           shape=params_shape,
           dtype=dtype,
