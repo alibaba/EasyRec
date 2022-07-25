@@ -38,7 +38,8 @@ def softmax_loss_with_negative_mining(user_emb,
                                       weights=1.0,
                                       gamma=1.0,
                                       margin=0,
-                                      t=1):
+                                      t=1,
+                                      seed=None):
   """Compute the softmax loss based on the cosine distance explained below.
 
   Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb`
@@ -60,6 +61,10 @@ def softmax_loss_with_negative_mining(user_emb,
     gamma: smooth coefficient of softmax
     margin: the margin between positive pair and negative pair
     t: coefficient of support vector guided softmax loss
+    seed: A Python integer. Used to create a random seed for the distribution.
+      See `tf.set_random_seed`
+      for behavior.
+
   Return:
     support vector guided softmax loss of positive labels
   """
@@ -77,7 +82,7 @@ def softmax_loss_with_negative_mining(user_emb,
 
     vectors = [item_emb]
     for i in range(num_negative_samples):
-      shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32)
+      shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32, seed=seed)
       neg_item_emb = tf.roll(item_emb, shift, axis=0)
       vectors.append(neg_item_emb)
     # all_embeddings's shape: (batch_size, num_negative_samples + 1, vec_dim)
