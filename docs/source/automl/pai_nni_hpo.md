@@ -4,7 +4,7 @@
 
 注意NNI仅支持python>=3.7,因此请配置python>=3.7的环境
 
-It is tested and supported on Ubuntu >= 18.04, Windows 10 >= 21H2, and macOS >= 11.
+NNI is tested and supported on Ubuntu >= 18.04, Windows 10 >= 21H2, and macOS >= 11.
 
 ### 下载安装easyrec
 
@@ -36,10 +36,11 @@ nnictl create --config config.yml --port=8780
 config.yml是作为NNI的配置文件，将代码和搜索空间进行结合，并使用指定的环境来运行您的训练代码，具体参考此config.yml文件。在这里，您还可以还提供其他信息，例如并发度、调优算法、最大Trial数量和最大持续时间等参数。
 
 ```
+experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_begin.py --odps_config=../config/odps_config.ini --oss_config=../config/.ossutilconfig --easyrec_cmd_config=../config/easyrec_cmd_config_begin --metric_config=../config/metric_config --exp_dir=../exp
-trialConcurrency: 3
-maxTrialNumber: 10
+trialCommand: python3 ./run_begin.py --config=./config_begin --exp_dir=../exp
+trialConcurrency: 1
+maxTrialNumber: 1
 tuner:
   name: TPE
   classArgs:
@@ -54,33 +55,46 @@ assessor:
       start_step: 2
 ```
 
-#### odps账号信息文件
+##### 并发度和最大Trial数量、最大运行时间可以实时调整：
+
+建议：刚开始设置为1，调测代码成功后，可以调大并发度。
+![image.png](../../images/automl/pai_nni_modify.jpg)
+
+#### config_begin 配置文件
+
+配置文件中包含oss配置、odps配置、easyrec命令配置、超参搜索评估方法配置。
 
 ```
-project_name=xxx
-access_id=xxx
-access_key=xxx
-end_point=http://service.odps.aliyun.com/api
-# MaxCompute 服务的访问链接
-tunnel_endpoint=http://dt.odps.aliyun.com
-# MaxCompute Tunnel 服务的访问链接
-log_view_host=http://logview.odps.aliyun.com
-# 当用户执行一个作业后，客户端会返回该作业的 LogView 地址。打开该地址将会看到作业执行的详细信息
-https_check=true
-#决定是否开启 HTTPS 访问
+# oss config
+endpoint=http://oss-cn-beijing.aliyuncs.com
+accessKeyID=xxx
+accessKeySecret=xxx
+
+# odps config
+project_name=pai_rec_dev
+odps_endpoint=http://service.odps.aliyun.com/api
+
+# easyrec_cmd_config
+-name=easy_rec_ext
+-project=algo_public
+-Dversion="0.4.2"
+-Dconfig=oss://lcl-bj/eval_test/easyrec_model.config
+-Dcmd=train
+-Dtrain_tables=odps://pai_rec_dev/tables/dwd_avazu_ctr_deepmodel_train_10000
+-Deval_tables=odps://pai_rec_dev/tables/dwd_avazu_ctr_deepmodel_test_1000
+-Dcluster={"ps":{"count":1,"cpu":1000 },"worker":{"count":3,"cpu":1000,"gpu":100,"memory":40000}}
+-Darn=xxx
+-Dbuckets=oss://lcl-bj/
+-Dmodel_dir=oss://lcl-bj/eval_dist_test/
+-DossHost=oss-cn-beijing-internal.aliyuncs.com
+-Deval_method=separate
+
+# metric config
+metric_hpo={'auc':1}
+
 ```
 
-#### oss_config : oss配置文件
-
-```json
-[Credentials]
-language=ch
-endpoint = oss-cn-beijing.aliyuncs.com
-accessKeyID = xxx
-accessKeySecret= xxx
-```
-
-#### easyrec_cmd_config_begin: easyrec命令配置文件
+##### easyrec命令配置
 
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 
@@ -89,28 +103,25 @@ accessKeySecret= xxx
 ```
 -name=easy_rec_ext
 -project=algo_public
--Dscript=oss://easyrec/xxx/software/easy_rec_ext_615_res.tar.gz
--Dtrain_tables=odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_shuffle_20220529
--Deval_tables=odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify_small/dt=20220530
+-Dversion="0.4.2"
+-Dconfig=oss://lcl-bj/eval_test/easyrec_model.config
 -Dcmd=train
--Deval_method=separate
--Dconfig=oss://easyrec/xxx/pipeline.config
--Dmodel_dir=oss://easyrec/xxx/deploy/
--Dselected_cols=is_valid_play,ln_play_time,is_like,is_comment,features,content_features
--Dbuckets=oss://easyrec/
+-Dtrain_tables=odps://pai_rec_dev/tables/dwd_avazu_ctr_deepmodel_train_10000
+-Deval_tables=odps://pai_rec_dev/tables/dwd_avazu_ctr_deepmodel_test_1000
+-Dcluster={"ps":{"count":1,"cpu":1000 },"worker":{"count":3,"cpu":1000,"gpu":100,"memory":40000}}
 -Darn=xxx
+-Dbuckets=oss://lcl-bj/
+-Dmodel_dir=oss://lcl-bj/eval_dist_test/
 -DossHost=oss-cn-beijing-internal.aliyuncs.com
--Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000},"worker":{"count":12,"cpu":1600,"memory":40000}}
+-Deval_method=separate
 ```
 
-#### metric_config : 超参数评估方法
+##### metric_hpo : 超参数评估方法
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25
 
 ```json
-auc_is_valid_play=0.5
-auc_is_like=0.25
-auc_is_comment=0.25
+metric_hpo={'auc_is_valid_play':0.5,'auc_is_like':0.25,'auc_is_comment':0.25}
 ```
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25-val('loss_play_time')\*0.25
@@ -118,16 +129,13 @@ auc_is_comment=0.25
 注意：如果按照metric越大越好的方式优化，loss相关的指标权重定义为负值。
 
 ```json
-auc_is_valid_play=0.5
-auc_is_like=0.25
-auc_is_comment=0.25
-loss_play_time=-0.25
+metric_hpo={'auc_is_valid_play':0.5,'auc_is_like':0.25,'auc_is_comment':0.25, 'loss_play_time':-0.25}
 ```
 
 单目标示例：metric=val('auc_is_valid_play')\*1
 
 ```json
-auc_is_valid_play=1
+metric_hpo={'auc_is_valid_play':1}
 ```
 
 #### 配置超参搜索空间search_space.json
@@ -142,9 +150,12 @@ auc_is_valid_play=1
 "feature_configs[:].embedding_dim": {"_type": "randint", "_value": [4,16]},
 "feature_configs[0].hash_bucket_size": {"_type": "randint", "_value": [1260935, 2521870]},
 "model_config.embedding_regularization":{"_type":"uniform","_value":[0.000001, 0.0001]},
+"model_config.dbmtl.task_towers[0].dnn.hidden_units[0]":{"_type":"choice","_value":[1024,512,256,128]},
 }
 
 ```
+
+常见搜索空间可以参考：pai_nni/config/search_space.json
 
 ##### key配置注意项
 
@@ -163,6 +174,7 @@ auc_is_valid_play=1
 
   ```
 - model_config.embedding_regularization 是一个浮点数，注意使用全路径
+- model_config.dbmtl.task_towers,model_config.dbmtl.task_towers\[0\].dnn.hidden_units是一个数组，所以需要用到选择器
 
 ##### type配置注意事项
 
@@ -179,13 +191,19 @@ auc_is_valid_play=1
 
 ### 查看概要页面
 
-在这里可以看到实验相关信息，如配置文件、搜索空间、运行时长、日志路径等。NNI 还支持通过 Experiment summary 按钮下载这些信息和参数。
+点击Overview按钮，在这里可以看到实验相关信息，如配置文件、搜索空间、运行时长、日志路径等。NNI 还支持通过 Experiment summary 按钮下载这些信息和参数。
 ![image.png](../../images/automl/pai_nni_overview.jpg)
 
 ### 查看Trial详情页面
 
-您可以在此页面中看到整个实验过程中，每个trial的结果情况。
+点击Trials detail按钮，您可以在此页面中看到整个实验过程中，每个trial的结果情况。
+其中succeeded代表此次trial成功运行，earlystop表示该组参数运行结果不太好，被提前停止了。停止策略可以查看pai_nni/code/pai_assessor.PaiAssessor，当然也可以根据业务情况去修改。
 ![image.png](../../images/automl/pai_nni_detail.jpg)
+
+### 查看作业日志详情
+
+点击每个Trial No，可以看到每个参数Trial的日志、参数详情,报错和输出可以点击以下3个按钮。
+![image.png](../../images/automl/pai_nni_log.jpg)
 
 ## finetune训练（可选）
 
@@ -241,9 +259,9 @@ nnictl create --config config.yml --port=8617
 
 ```
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --odps_config=../config/odps_config.ini --oss_config=../config/.ossutilconfig --easyrec_cmd_config=../config/easyrec_cmd_config_finetune --metric_config=../config/metric_config --exp_dir=../exp --start_time=2022-05-30 --end_time=2022-06-01
-trialConcurrency: 3
-maxTrialNumber: 10
+trialCommand: python3 ./run_finetune.py --config=./config_finetune --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
+trialConcurrency: 1
+maxTrialNumber: 1
 tuner:
   name: TPE
   classArgs:
@@ -255,10 +273,12 @@ assessor:
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 2
+      start_step: 5
 ```
 
-#### easyrec_cmd_config_finetune: easyrec命令配置文件
+#### config_finetune
+
+唯一的区别在于：easyrec命令配置文件
 
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 
@@ -328,7 +348,7 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承pai_nni/code/pai_custom_assessor.PaiCustomizedAssessor
+注意继承pai_nni/code/pai_assessor.PaiAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
 
 ```
@@ -349,3 +369,12 @@ def trial_end(self, trial_job_id, success):
                 # for report result
                 set_value(trial_job_id+'_exit','1',trial_id=trial_job_id)
 ```
+
+## FAQ
+
+- 如果是用MAC安装，遇到nni启动权限问题，可以手动解决下
+  ```
+  chmod 777 /Users/liuchenglong/opt/anaconda3/envs/easyrec-nni/lib/python3.8/site-packages/nni-2.8-py3.8-macosx-10.9-x86_64.egg/nni_node/node
+  ```
+  报错如下：
+  ![image.png](../../images/automl/nni-failed1.png)

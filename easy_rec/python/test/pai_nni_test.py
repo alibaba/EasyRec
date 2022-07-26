@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import ast
 import json
 import logging
 import os
@@ -11,8 +12,9 @@ from argparse import Namespace
 if platform.python_version() >= '3.7':
   from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
   from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_easyrec_config
+  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
   from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
+  from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import parse_easyrec_cmd_config
 
   from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import get_learning_rate  # NOQA
   from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import modify_config  # NOQA
@@ -32,12 +34,11 @@ class PAINNITest(unittest.TestCase):
     self.save_path = os.path.join(
         filepath,
         'easy_rec/python/hpo_nni/pai_nni/config/pipeline_finetune.config')
-    self.easyrec_cmd_config = os.path.join(
+    self.config_begin = os.path.join(
+        filepath, 'easy_rec/python/hpo_nni/pai_nni/source_begin/config_begin')
+    self.config_finetune = os.path.join(
         filepath,
-        'easy_rec/python/hpo_nni/pai_nni/config/easyrec_cmd_config_finetune')
-    self.easyrec_cmd_test_config = os.path.join(
-        filepath,
-        'easy_rec/python/hpo_nni/pai_nni/config/easyrec_cmd_config_test')
+        'easy_rec/python/hpo_nni/pai_nni/source_finetune/config_finetune')
 
   def test_get_metric(self):
     vals = get_result(None, self._metric_data_path)
@@ -58,12 +59,25 @@ class PAINNITest(unittest.TestCase):
     self.assertAlmostEqual(get_learning_rate(self.save_path), 1e-6)
 
   def test_parse_easyrec_config(self):
-    config = parse_easyrec_config(self.easyrec_cmd_test_config)
-    assert config['-name'] == 'easy_rec_ext'
+    config = parse_config(self.config_begin)
+
+    metric_dict = ast.literal_eval(config['metric_hpo'])
+    assert metric_dict['auc'] == 1
+
+    command = parse_easyrec_cmd_config(config)
+    assert command.name == 'easy_rec_ext'
+    assert command.parameters['version'] == '0.4.2'
 
   def test_parse_easyrec_config_2(self):
-    config = parse_easyrec_config(self.easyrec_cmd_config)
-    assert config['-name'] == 'easy_rec_ext'
+    config = parse_config(self.config_finetune)
+
+    metric_dict = ast.literal_eval(config['metric_hpo'])
+    assert metric_dict['auc_is_valid_play'] == 0.5
+
+    command = parse_easyrec_cmd_config(config)
+    assert command.name == 'easy_rec_ext'
+    assert command.parameters[
+        'cluster'] == '{"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}}'
 
 
 if __name__ == '__main__':

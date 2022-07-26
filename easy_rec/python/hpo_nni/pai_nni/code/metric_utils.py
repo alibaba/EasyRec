@@ -10,8 +10,14 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.summary import summary_iterator
 
 from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
+
+
+def judge_key(metric_dict, event_res):
+  for key in metric_dict:
+    if key not in event_res.keys():
+      return False
+  return True
 
 
 def _get_best_eval_result(event_files,
@@ -20,7 +26,6 @@ def _get_best_eval_result(event_files,
                           use_best=False,
                           nni_report=True,
                           nni_report_final=False):
-
   if not event_files:
     return None
 
@@ -31,7 +36,6 @@ def _get_best_eval_result(event_files,
     report_step = get_value(trial_id + '_report_step', -1, trial_id=trial_id)
   try:
     for event_file in gfile.Glob(os.path.join(event_files)):
-      print(event_file)
       for event in summary_iterator.summary_iterator(event_file):
         if event.HasField('summary'):
           event_eval_result = {}
@@ -40,7 +44,9 @@ def _get_best_eval_result(event_files,
             if value.HasField('simple_value'):
               event_eval_result[value.tag] = value.simple_value
 
-          if len(event_eval_result) >= 2:
+          # print("start get",event_eval_result)
+          if len(event_eval_result) >= 2 and judge_key(metric_dict,
+                                                       event_eval_result):
             temp = 0
             for key in metric_dict:
               temp += metric_dict[key] * event_eval_result[key]
@@ -63,8 +69,6 @@ def _get_best_eval_result(event_files,
   except Exception as exception:
     print('the events is not ok,read the events error')
     print('exception:', exception)
-  finally:
-    print('read end')
 
   if best_eval_result and nni_report and nni_report_final:
     nni.report_final_result(best_eval_result)
@@ -77,7 +81,8 @@ def get_result(filepath,
                metric_dict={'auc': 1},
                trial_id=None,
                oss_config=None,
-               nni_report=True):
+               nni_report=True,
+               use_best=False):
   if filepath:
     copy_dir(filepath, dst_filepath, oss_config)
   full_event_file_pattern = os.path.join(dst_filepath, '*.tfevents.*')
@@ -86,16 +91,15 @@ def get_result(filepath,
       full_event_file_pattern,
       metric_dict=metric_dict,
       trial_id=trial_id,
-      nni_report=nni_report)
-  print('best_metric:', best_eval_result)
-  print('best event:', best_event)
+      nni_report=nni_report,
+      use_best=use_best)
+  print('best_metric:', best_eval_result, ' best_event:', best_event)
   return best_eval_result, best_event
 
 
 def get_bucket(ori_filepath, oss_config=None):
-  if not oss_config:
-    oss_config = os.path.join(os.environ['HOME'], '.ossutilconfig')
-  oss_config = parse_config(oss_config)
+  # oss_config is the dict,such as:
+  # {'accessKeyID':'xxx','accessKeySecret':'xxx','endpoint':'xxx'}
   auth = oss2.Auth(oss_config['accessKeyID'], oss_config['accessKeySecret'])
   cname = oss_config['endpoint']
   oss_pattern = re.compile(r'oss://([^/]+)/(.+)')
@@ -106,7 +110,7 @@ def get_bucket(ori_filepath, oss_config=None):
   bucket_name, path = m.groups()
   path = path.replace('//', '/')
   bucket_name = bucket_name.split('.')[0]
-  print(bucket_name, path)
+  print('bucket_name:', bucket_name, ' path:', path)
 
   bucket = oss2.Bucket(auth, cname, bucket_name)
 
@@ -114,7 +118,7 @@ def get_bucket(ori_filepath, oss_config=None):
 
 
 def copy_dir(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy')
+  print('start copy from', ori_filepath, 'to ', dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   for b in oss2.ObjectIterator(bucket, path, delimiter='/'):
     if not b.is_prefix():
@@ -128,13 +132,13 @@ def copy_dir(ori_filepath, dst_filepath, oss_config=None):
 
 
 def copy_file(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy')
+  print('start copy from', ori_filepath, 'to ', dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   bucket.get_object_to_file(path, dst_filepath)
 
 
 def upload_file(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy')
+  print('start copy from', ori_filepath, 'to ', dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   bucket.put_object_from_file(path, dst_filepath)
 
@@ -144,28 +148,26 @@ def report_result(filepath,
                   metric_dict,
                   trial_id=None,
                   oss_config=None,
-                  nni_report=True):
+                  nni_report=True,
+                  use_best=False):
   worker = Thread(
       target=load_loop,
       args=(filepath, dst_filepath, metric_dict, trial_id, oss_config,
-            nni_report))
+            nni_report, use_best))
   worker.start()
 
 
 def load_loop(filepath, dst_filepath, metric_dict, trial_id, oss_config,
-              nni_report):
+              nni_report, use_best):
   while True:
-    print('get result')
     best_eval_result, best_event = get_result(
         filepath,
         dst_filepath,
         metric_dict=metric_dict,
         trial_id=trial_id,
         oss_config=oss_config,
-        nni_report=nni_report)
-    print(
-        get_value(trial_id + '_exit', trial_id=trial_id),
-        get_value(trial_id + '_exit', trial_id=trial_id) == '1')
+        nni_report=nni_report,
+        use_best=use_best)
     # train end normaly
     if trial_id and get_value(trial_id + '_exit', trial_id=trial_id) == '1':
       if best_eval_result:

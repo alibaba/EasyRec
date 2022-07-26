@@ -34,7 +34,7 @@ def get_params():
 
 def modify_config(args):
   if args.pipeline_config_path.startswith('oss://'):
-    print('dfsf', args.pipeline_config_path)
+    print('pipeline_config_path:', args.pipeline_config_path)
     copy_file(args.pipeline_config_path, './temp.config')
     pipeline_config_path = './temp.config'
   else:
