@@ -4,6 +4,7 @@
 import glob
 import logging
 import os
+import six
 import unittest
 from distutils.version import LooseVersion
 
@@ -646,6 +647,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_fg_dtype(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(six.PY2, "Only run in python3")
+  def test_share_not_used(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/share_not_used.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_sequence_autoint(self):
