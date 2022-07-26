@@ -159,8 +159,9 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_best_export_on_taobao.config',
         self._test_dir,
-        total_steps=1000,
-        post_check_func=_post_check_func)
+        total_steps=800,
+        post_check_func=_post_check_func,
+        timeout=3000)
     self.assertTrue(self._success)
 
   def test_latest_ckpt(self):
