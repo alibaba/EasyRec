@@ -1,7 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
 import collections
+import logging
 
 import tensorflow as tf
 
@@ -33,7 +33,9 @@ class SharedEmbedding(object):
     self.index = index
     self.sequence_combiner = sequence_combiner
 
-EVParams = collections.namedtuple("EVParams", ["filter_freq", "steps_to_live"])
+
+EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
+
 
 class FeatureColumnParser(object):
   """Parse and generate feature columns."""
@@ -140,7 +142,8 @@ class FeatureColumnParser(object):
       partitioner = self._build_partitioner(self._share_embed_infos[embed_name])
 
       if self._share_embed_infos[embed_name].HasField('ev_params'):
-        ev_params = self._build_ev_params(self._share_embed_infos[embed_name].ev_params)
+        ev_params = self._build_ev_params(
+            self._share_embed_infos[embed_name].ev_params)
       else:
         ev_params = self._global_ev_params
 
@@ -573,5 +576,7 @@ class FeatureColumnParser(object):
 
   def _build_ev_params(self, ev_params):
     """Build embedding_variables params."""
-    ev_params = EVParams(ev_params.filter_freq, ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
+    ev_params = EVParams(
+        ev_params.filter_freq,
+        ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
     return ev_params

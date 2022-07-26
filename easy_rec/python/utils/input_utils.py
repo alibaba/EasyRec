@@ -37,21 +37,24 @@ def get_type_defaults(field_type, default_val=''):
   return type_defaults[field_type]
 
 
-def string_to_number(field, ftype, name=''):
+def string_to_number(field, ftype, default_value, name=''):
   """Type conversion for parsing rtp fg input format.
 
   Args:
     field: field to be converted.
     ftype: field dtype set in DatasetConfig.
+    default_value: default value for this field
     name: field name for
   Returns: A name for the operation (optional).
   """
-  tmp_field = field
+  default_vals = tf.tile(tf.constant([str(default_value)]), tf.shape(field))
+  field = tf.where(tf.greater(tf.strings.length(field), 0), field, default_vals)
+
   if ftype in [DatasetConfig.INT32, DatasetConfig.INT64]:
     # Int type is not supported in fg.
     # If you specify INT32, INT64 in DatasetConfig, you need to perform a cast at here.
     tmp_field = tf.string_to_number(
-        field, tf.double, name='field_as_int_%s' % name)
+        field, tf.double, name='field_as_flt_%s' % name)
     if ftype in [DatasetConfig.INT64]:
       tmp_field = tf.cast(tmp_field, tf.int64)
     else:
@@ -64,6 +67,8 @@ def string_to_number(field, ftype, name=''):
         field, tf.float64, name='field_as_flt_%s' % name)
   elif ftype in [DatasetConfig.BOOL]:
     tmp_field = tf.logical_or(tf.equal(field, 'True'), tf.equal(field, 'true'))
+  elif ftype in [DatasetConfig.STRING]:
+    tmp_field = field
   else:
-    assert 'invalid types: %s' % str(ftype)
+    assert False, 'invalid types: %s' % str(ftype)
   return tmp_field

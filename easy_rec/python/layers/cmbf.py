@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
+from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.shape_utils import get_shape_list
 
@@ -298,7 +299,7 @@ class CMBF(object):
     txt_embeddings = tf.reshape(txt_emb, shape=[-1, seq_num * shape[2]])
     return txt_embeddings
 
-  def __call__(self, *args, **kwargs):
+  def __call__(self, is_training, *args, **kwargs):
     # shape: [batch_size, image_num/image_dim, hidden_size]
     img_attention_fea = self.image_self_attention_tower()
 
@@ -346,7 +347,14 @@ class CMBF(object):
       all_fea = [txt_embeddings]
 
     if self._other_features is not None:
-      all_fea.append(self._other_features)  # e.g. statistical features
+      if self._model_config.HasField('other_feature_dnn'):
+        l2_reg = kwargs['l2_reg'] if 'l2_reg' in kwargs else 0
+        other_dnn_layer = dnn.DNN(self._model_config.other_feature_dnn, l2_reg,
+                                  'other_dnn', is_training)
+        other_fea = other_dnn_layer(self._other_features)
+        all_fea.append(other_fea)  # e.g. statistical features
+      else:
+        all_fea.append(self._other_features)  # e.g. statistical features
 
     output = tf.concat(all_fea, axis=-1)
     return output

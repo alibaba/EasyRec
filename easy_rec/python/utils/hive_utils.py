@@ -93,6 +93,22 @@ class HiveUtils(object):
     cursor.close()
     conn.close()
 
+  def hive_read_lines(self, input_path, batch_size, limit_num=None):
+    table_info = self._construct_table_info(input_path, limit_num)
+    conn = self._construct_hive_connect()
+    cursor = conn.cursor()
+    sql = table_info.gen_sql()
+    cursor.execute(sql)
+
+    while True:
+      data = cursor.fetchmany(size=batch_size)
+      if len(data) == 0:
+        break
+      yield data
+
+    cursor.close()
+    conn.close()
+
   def run_sql(self, sql):
     conn = self._construct_hive_connect()
     cursor = conn.cursor()

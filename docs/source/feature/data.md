@@ -71,7 +71,7 @@ input_fields字段:
   - 在EMR或者本地运行EasyRec，应使用RTPInput；
   - 在Odps上运行，则应使用OdpsRTPInput
 - KafkaInput & DatahubInput
-  - 实时训练需要用到的input类型  
+  - 实时训练需要用到的input类型
 
 ### separator:
 
@@ -116,4 +116,5 @@ input_fields字段:
 - 通常建议在训练前做一次[全局shuffle](../optimize.md#3shuffle)，训练过程中使用比较小的buffer_size进行shuffle或者不再shuffle
 
 ### 更多配置
+
 - [参考文档](https://easyrec.readthedocs.io/en/latest/proto.html#easy_rec%2fpython%2fprotos%2fdataset.proto)

@@ -48,24 +48,27 @@ class HiveRTPInput(Input):
   def _parse_csv(self, line):
     record_defaults = []
     for tid, field_name in enumerate(self._input_table_col_names):
-      if field_name in self._selected_cols:
+      if field_name in self._selected_cols[:-1]:
+        idx = self._input_fields.index(field_name)
         record_defaults.append(
-            self.get_type_defaults(self._input_field_types[tid],
-                                   self._input_field_defaults[tid]))
+            self.get_type_defaults(self._input_field_types[idx],
+                                   self._input_field_defaults[idx]))
       else:
         record_defaults.append('')
-
+    print('record_defaults: ', record_defaults)
     tmp_fields = tf.decode_csv(
         line,
         field_delim=self._rtp_separator,
         record_defaults=record_defaults,
         name='decode_csv')
+    print('tmp_fields: ', tmp_fields)
 
     fields = []
     if self._selected_cols:
       for idx, field_name in enumerate(self._input_table_col_names):
         if field_name in self._selected_cols:
           fields.append(tmp_fields[idx])
+    print('fields: ', fields)
     labels = fields[:-1]
 
     # only for features, labels and sample_weight excluded
@@ -87,9 +90,16 @@ class HiveRTPInput(Input):
           fields[-1], self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, feature_num])
 
+    rtp_record_defaults = [
+        str(self.get_type_defaults(t, v))
+        for x, t, v in zip(self._input_fields, self._input_field_types,
+                           self._input_field_defaults)
+        if x not in self._label_fields
+    ]
     fields = []
     for i in range(feature_num):
-      field = string_to_number(tmp_fields[:, i], record_types[i], i)
+      field = string_to_number(tmp_fields[:, i], record_types[i],
+                               rtp_record_defaults[i], i)
       fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]

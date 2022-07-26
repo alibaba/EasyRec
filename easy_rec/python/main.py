@@ -38,6 +38,8 @@ if tf.__version__ >= '2.0':
 
   ConfigProto = config_pb2.ConfigProto
   GPUOptions = config_pb2.GPUOptions
+
+  tf = tf.compat.v1
 else:
   gfile = tf.gfile
   GPUOptions = tf.GPUOptions
@@ -544,7 +546,10 @@ def distribute_evaluate(pipeline_config,
           input_feas, input_lbls, run_config)
 
     session_config = ConfigProto(
-        allow_soft_placement=True, log_device_placement=True)
+        allow_soft_placement=True,
+        log_device_placement=True,
+        device_filters=['/job:ps',
+                        '/job:worker/task:%d' % cur_task_index])
     if cur_job_name == 'master':
       metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
       model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
@@ -606,7 +611,7 @@ def distribute_evaluate(pipeline_config,
     print('eval_result = ', eval_result)
     logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
-      result_to_write = {}
+      result_to_write = {'eval_method': 'distribute'}
       for key in sorted(eval_result):
         # skip logging binary data
         if isinstance(eval_result[key], six.binary_type):
