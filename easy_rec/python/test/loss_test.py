@@ -34,12 +34,11 @@ class LossTest(tf.test.TestCase):
                             [-0.7, 0.85, 0.03], [0.18, 0.89, -0.3]])
 
     label = tf.constant([1, 1, 0, 0, 1, 1])
-    tf.random.set_random_seed(1)
     loss = softmax_loss_with_negative_mining(
-        user_emb, item_emb, label, num_negative_samples=2)
+        user_emb, item_emb, label, num_negative_samples=2, seed=1)
     with self.test_session() as sess:
       loss_val = sess.run(loss)
-      self.assertAlmostEqual(loss_val, 0.76977473, delta=1e-5)
+      self.assertAlmostEqual(loss_val, 0.48577175, delta=1e-5)
 
   def test_circle_loss(self):
     print('test_circle_loss')
