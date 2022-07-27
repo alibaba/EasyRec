@@ -25,6 +25,18 @@ def is_type_compatiable(odps_type, input_type):
       return False
 
 
+def odps_type_to_input_type(odps_type):
+  """Check that odps_type are compatiable with input_type."""
+  odps_type_map = {
+      'bigint': DatasetConfig.INT64,
+      'string': DatasetConfig.STRING,
+      'double': DatasetConfig.DOUBLE
+  }
+  assert odps_type in odps_type_map, 'only support [bigint, string, double]'
+  input_type = odps_type_map[odps_type]
+  return input_type
+
+
 def check_input_field_and_types(data_config):
   """Check compatibility of input in data_config.
 

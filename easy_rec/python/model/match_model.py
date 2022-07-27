@@ -11,7 +11,6 @@ from easy_rec.python.protos.loss_pb2 import LossType
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
 
 
 class MatchModel(EasyRecModel):
@@ -187,6 +186,7 @@ class MatchModel(EasyRecModel):
       return self._build_list_wise_metric_graph(eval_config)
 
   def _build_list_wise_metric_graph(self, eval_config):
+    from easy_rec.python.core.easyrec_metrics import metrics_tf
     logits = self._prediction_dict['logits']
     # label = tf.zeros_like(logits[:, :1], dtype=tf.int64)
     batch_size = tf.shape(logits)[0]
@@ -199,18 +199,18 @@ class MatchModel(EasyRecModel):
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
         metric_dict['recall@%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
+                    metric.recall_at_topk.topk] = metrics_tf.recall_at_k(
                         label, logits, metric.recall_at_topk.topk)
 
         logits_v2 = tf.concat([pos_item_sim[:, None], logits[:, batch_size:]],
                               axis=1)
         labels_v2 = tf.zeros_like(logits_v2[:, :1], dtype=tf.int64)
         metric_dict['recall_neg_sam@%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
+                    metric.recall_at_topk.topk] = metrics_tf.recall_at_k(
                         labels_v2, logits_v2, metric.recall_at_topk.topk)
 
         metric_dict['recall_in_batch@%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
+                    metric.recall_at_topk.topk] = metrics_tf.recall_at_k(
                         label, logits[:, :batch_size],
                         metric.recall_at_topk.topk)
       else:
@@ -218,26 +218,18 @@ class MatchModel(EasyRecModel):
     return metric_dict
 
   def _build_point_wise_metric_graph(self, eval_config):
+    from easy_rec.python.core.easyrec_metrics import metrics_tf
     metric_dict = {}
     label = list(self._labels.values())[0]
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'auc':
         assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['auc'] = metrics.auc(label, self._prediction_dict['probs'])
-      elif metric.WhichOneof('metric') == 'recall_at_topk':
-        assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['recall_at_topk%d' %
-                    metric.recall_at_topk.topk] = metrics.recall_at_k(
-                        label, self._prediction_dict['probs'],
-                        metric.recall_at_topk.topk)
+        metric_dict['auc'] = metrics_tf.auc(label,
+                                            self._prediction_dict['probs'])
       elif metric.WhichOneof('metric') == 'mean_absolute_error':
         assert self._loss_type == LossType.L2_LOSS
-        metric_dict['mean_absolute_error'] = metrics.mean_absolute_error(
-            label, self._prediction_dict['y'])
-      elif metric.WhichOneof('metric') == 'accuracy':
-        assert self._loss_type == LossType.CLASSIFICATION
-        metric_dict['accuracy'] = metrics.accuracy(
-            label, tf.argmax(self._prediction_dict['probs'], axis=1))
+        metric_dict['mean_absolute_error'] = metrics_tf.mean_absolute_error(
+            tf.to_float(label), self._prediction_dict['y'])
       else:
         ValueError('invalid metric type: %s' % str(metric))
     return metric_dict

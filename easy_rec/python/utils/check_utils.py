@@ -31,7 +31,7 @@ def check_string_to_number(field_vals, field_name):
   for val in field_vals:
     try:
       float(val)
-    except:
+    except:  # noqa: E722
       assert False, 'StringToNumber ERROR: cannot convert string_to_number, field: %s, value: %s. ' \
                     'please check data.' % (field_name, val)
   return True
@@ -55,7 +55,7 @@ def check_sequence(pipeline_config_path, features):
       hist_seqs = ' '.join(seq_att_map.hist_seq)
       assert len(set(size_list)) == 1, \
           'SequenceFeature Error: The size in [%s] should be consistent. Please check input: [%s].' % \
-       (hist_seqs, hist_seqs)
+          (hist_seqs, hist_seqs)
 
 
 def check_env_and_input_path(pipeline_config, input_path):

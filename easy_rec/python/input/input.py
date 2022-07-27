@@ -455,7 +455,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           # raw values to a vector, it maybe better implemented
           # by a ProjectionColumn later
           logging.info(
-              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimentsion raw feature'
+              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimension raw feature'
               % input_0)
           parsed_dict[input_0] = tf.sparse_to_dense(
               parsed_dict[input_0].indices,
@@ -489,7 +489,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           # raw values to a vector, it maybe better implemented
           # by a ProjectionColumn later
           logging.info(
-              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as three dimentsion raw feature'
+              'Not set boundaries or num_buckets or hash_bucket_size, %s will process as three dimension raw feature'
               % input_0)
           parsed_dict[input_0] = tf.sparse_to_dense(
               parsed_dict[input_0].indices, [

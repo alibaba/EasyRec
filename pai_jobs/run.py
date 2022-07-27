@@ -2,12 +2,13 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import json
 import logging
 # use few threads to avoid oss error
 import os
 
 import tensorflow as tf
+import yaml
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.inference.predictor import ODPSPredictor
@@ -103,6 +104,7 @@ tf.app.flags.DEFINE_bool('distribute_eval', False,
 # flags used for export
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
+tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -160,6 +162,8 @@ tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 # for automl hyper parameter tuning
 tf.app.flags.DEFINE_string('model_dir', None, 'model directory')
+tf.app.flags.DEFINE_bool('clear_model', False,
+                         'remove model directory if exists')
 tf.app.flags.DEFINE_string('hpo_param_path', None,
                            'hyperparameter tuning param path')
 tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
@@ -201,6 +205,8 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
 
 def main(argv):
   pai_util.set_on_pai()
+  if FLAGS.distribute_eval:
+    os.environ['distribute_eval'] = 'True'
 
   # load lookup op
   try:
@@ -228,7 +234,7 @@ def main(argv):
 
   if FLAGS.edit_config_json:
     print('[run.py] edit_config_json = %s' % FLAGS.edit_config_json)
-    config_json = json.loads(FLAGS.edit_config_json)
+    config_json = yaml.safe_load(FLAGS.edit_config_json)
     config_util.edit_config(pipeline_config, config_json)
 
   if FLAGS.model_dir:
@@ -240,6 +246,14 @@ def main(argv):
 
   if FLAGS.asset_files:
     pipeline_config.export_config.asset_files.extend(FLAGS.asset_files.split(','))
+
+  if FLAGS.config:
+    if not pipeline_config.model_dir.endswith('/'):
+      pipeline_config.model_dir += '/'
+
+  if FLAGS.clear_model:
+    if gfile.IsDirectory(pipeline_config.model_dir):
+      gfile.DeleteRecursively(pipeline_config.model_dir)
 
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
@@ -292,7 +306,7 @@ def main(argv):
     if FLAGS.hpo_param_path:
       logging.info('hpo_param_path = %s' % FLAGS.hpo_param_path)
       with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
-        hpo_config = json.load(fin)
+        hpo_config = yaml.safe_load(fin)
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
     config_util.auto_expand_share_feature_configs(pipeline_config)
@@ -360,9 +374,17 @@ def main(argv):
       pipeline_config.data_config.selected_col_types = ''
 
     if FLAGS.distribute_eval:
+      os.environ['distribute_eval'] = 'True'
+      logging.info('will_use_distribute_eval')
+      distribute_eval = os.environ.get('distribute_eval')
+      logging.info('distribute_eval = {}'.format(distribute_eval))
       easy_rec.distribute_evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                                    FLAGS.eval_result_path)
     else:
+      os.environ['distribute_eval'] = 'False'
+      logging.info('will_use_eval')
+      distribute_eval = os.environ.get('distribute_eval')
+      logging.info('distribute_eval = {}'.format(distribute_eval))
       easy_rec.evaluate(pipeline_config, FLAGS.checkpoint_path, None,
                         FLAGS.eval_result_path)
   elif FLAGS.cmd == 'export':
@@ -415,9 +437,16 @@ def main(argv):
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
+    export_dir = FLAGS.export_dir
+    if not export_dir.endswith('/'):
+      export_dir = export_dir + '/'
+    if FLAGS.clear_export:
+      if gfile.IsDirectory(export_dir):
+        gfile.DeleteRecursively(export_dir)
+
     extra_params = redis_params
     extra_params.update(oss_params)
-    easy_rec.export(FLAGS.export_dir, pipeline_config, FLAGS.checkpoint_path,
+    easy_rec.export(export_dir, pipeline_config, FLAGS.checkpoint_path,
                     FLAGS.asset_files, FLAGS.verbose, **extra_params)
   elif FLAGS.cmd == 'predict':
     check_param('tables')

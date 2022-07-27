@@ -15,7 +15,7 @@ message ExportConfig {
     // type of exporter [final | latest | best | none] when train_and_evaluation
     // final: performs a single export in the end of training
     // latest: regularly exports the serving graph and checkpoints
-    // latest: export the best model according to best_exporter_metric
+    // best: export the best model according to best_exporter_metric
     // none: do not perform export
     optional string exporter_type = 2 [default = 'final'];
 

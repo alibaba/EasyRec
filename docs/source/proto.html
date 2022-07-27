@@ -190,6 +190,21 @@
 
 
           <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fcmbf.proto">easy_rec/python/protos/cmbf.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#protos.CMBF"><span class="badge">M</span>CMBF</a>
+                </li>
+
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
             <a href="#easy_rec%2fpython%2fprotos%2fcollaborative_metric_learning.proto">easy_rec/python/protos/collaborative_metric_learning.proto</a>
             <ul>
 
@@ -699,6 +714,10 @@
             <ul>
 
                 <li>
+                  <a href="#protos.CMBFTower"><span class="badge">M</span>CMBFTower</a>
+                </li>
+
+                <li>
                   <a href="#protos.HighWayTower"><span class="badge">M</span>HighWayTower</a>
                 </li>
 
@@ -884,17 +903,6 @@
                 <li>
                   <a href="#protos.TransformerLearningRate"><span class="badge">M</span>TransformerLearningRate</a>
                 </li>
-
-
-
-
-            </ul>
-          </li>
-
-
-          <li>
-            <a href="#easy_rec%2fpython%2fprotos%2fpdn.proto">easy_rec/python/protos/pdn.proto</a>
-            <ul>
 
 
 
@@ -1119,6 +1127,51 @@
 
 
       <div class="file-heading">
+        <h2 id="easy_rec/python/protos/cmbf.proto">easy_rec/python/protos/cmbf.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+        <h3 id="protos.CMBF">CMBF</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>config</td>
+                  <td><a href="#protos.CMBFTower">CMBFTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="file-heading">
         <h2 id="easy_rec/python/protos/collaborative_metric_learning.proto">easy_rec/python/protos/collaborative_metric_learning.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
@@ -1309,7 +1362,15 @@ will be reused indefinitely. Default: 0</pre></td>
                   <td>shard</td>
                   <td><a href="#bool">bool</a></td>
                   <td>optional</td>
-                  <td><pre>shard dataset to 1/num_workers in distribute mode Default: false</pre></td>
+                  <td><pre>shard dataset to 1/num_workers in distribute mode
+this param is not used anymore Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>file_shard</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>shard by file, not by sample, valid only for CSVInput Default: false</pre></td>
                 </tr>
 
                 <tr>
@@ -1989,7 +2050,8 @@ userid itemid weight </pre></td>
               <tr>
                 <td>CSVInput</td>
                 <td>10</td>
-                <td><pre>csv format input, could be used in local or hdfs</pre></td>
+                <td><pre>csv format input, could be used in local or hdfs
+support .gz compression(but not .tar.gz files)</pre></td>
               </tr>
 
               <tr>
@@ -2080,6 +2142,12 @@ input pipelines</pre></td>
               <tr>
                 <td>HiveInput</td>
                 <td>16</td>
+                <td><pre></pre></td>
+              </tr>
+
+              <tr>
+                <td>HiveRTPInput</td>
+                <td>17</td>
                 <td><pre></pre></td>
               </tr>
 
@@ -2283,6 +2351,13 @@ input pipelines</pre></td>
               <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
             </thead>
             <tbody>
+
+                <tr>
+                  <td>bottom_cmbf</td>
+                  <td><a href="#protos.CMBFTower">CMBFTower</a></td>
+                  <td>optional</td>
+                  <td><pre>shared bottom cmbf layer </pre></td>
+                </tr>
 
                 <tr>
                   <td>bottom_dnn</td>
@@ -3300,6 +3375,13 @@ input pipelines</pre></td>
                 </tr>
 
                 <tr>
+                  <td>cmbf</td>
+                  <td><a href="#protos.CMBF">CMBF</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
                   <td>dssm</td>
                   <td><a href="#protos.DSSM">DSSM</a></td>
                   <td>optional</td>
@@ -4222,6 +4304,13 @@ return True if should stop </pre></td>
                 </tr>
 
                 <tr>
+                  <td>max_seq_len</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>optional</td>
+                  <td><pre>truncate sequence data to max_seq_len </pre></td>
+                </tr>
+
+                <tr>
                   <td>vocab_file</td>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
@@ -4260,7 +4349,7 @@ return True if should stop </pre></td>
                   <td>combiner</td>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
-                  <td><pre>combiner Default: mean</pre></td>
+                  <td><pre>combiner Default: sum</pre></td>
                 </tr>
 
                 <tr>
@@ -4326,6 +4415,13 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
                   <td><pre>for expr feature </pre></td>
+                </tr>
+
+                <tr>
+                  <td>use_embedding_variable</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre>use embedding variables Default: false</pre></td>
                 </tr>
 
             </tbody>
@@ -4772,7 +4868,7 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td>username</td>
                   <td><a href="#string">string</a></td>
                   <td>required</td>
-                  <td><pre>hive username </pre></td>
+                  <td><pre>hive username Default: admin</pre></td>
                 </tr>
 
                 <tr>
@@ -4784,13 +4880,6 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
 
                 <tr>
                   <td>table_name</td>
-                  <td><a href="#string">string</a></td>
-                  <td>required</td>
-                  <td><pre> </pre></td>
-                </tr>
-
-                <tr>
-                  <td>hash_fields</td>
                   <td><a href="#string">string</a></td>
                   <td>required</td>
                   <td><pre> </pre></td>
@@ -5098,6 +5187,149 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
         <h2 id="easy_rec/python/protos/layer.proto">easy_rec/python/protos/layer.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
+
+
+        <h3 id="protos.CMBFTower">CMBFTower</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>multi_head_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of heads of cross modal fusion layer Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_multi_head_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of heads of image feature learning layer Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>text_multi_head_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of heads of text feature learning layer Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>text_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The dimension of text heads </pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The dimension of image heads </pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_feature_patch_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of patches of image feature, take effect when there is only one image feature Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_feature_dim</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>Do dimension reduce to this size for image feature before single modal learning module Default: 0</pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_self_attention_layer_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of self attention layers for image features Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>text_self_attention_layer_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of self attention layers for text features Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>cross_modal_layer_num</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The number of cross modal layers Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>image_cross_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The dimension of image cross modal heads </pre></td>
+                </tr>
+
+                <tr>
+                  <td>text_cross_head_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The dimension of text cross modal heads </pre></td>
+                </tr>
+
+                <tr>
+                  <td>hidden_dropout_prob</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>Dropout probability for hidden layers Default: 0</pre></td>
+                </tr>
+
+                <tr>
+                  <td>attention_probs_dropout_prob</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>Dropout probability of the attention probabilities Default: 0</pre></td>
+                </tr>
+
+                <tr>
+                  <td>use_token_type</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre>Whether to add embeddings for different text sequence features Default: false</pre></td>
+                </tr>
+
+                <tr>
+                  <td>use_position_embeddings</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre>Whether to add position embeddings for the position of each token in the text sequence Default: true</pre></td>
+                </tr>
+
+                <tr>
+                  <td>max_position_embeddings</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>Maximum sequence length that might ever be used with this model Default: 0</pre></td>
+                </tr>
+
+                <tr>
+                  <td>text_seq_emb_dropout_prob</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>Dropout probability for text sequence embeddings Default: 0.1</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
 
 
         <h3 id="protos.HighWayTower">HighWayTower</h3>
@@ -5601,7 +5833,9 @@ the better Default: 10</pre></td>
                   <td>max_interests_simi</td>
                   <td><a href="#float">float</a></td>
                   <td>optional</td>
-                  <td><pre> Default: 1</pre></td>
+                  <td><pre>if small than 1.0, then a loss will be added to
+limit the maximal interest similarities, but
+in experiments, setup such a loss leads to low hitrate. Default: 1</pre></td>
                 </tr>
 
             </tbody>
@@ -6714,20 +6948,6 @@ the better Default: 10</pre></td>
 
 
       <div class="file-heading">
-        <h2 id="easy_rec/python/protos/pdn.proto">easy_rec/python/protos/pdn.proto</h2><a href="#title">Top</a>
-      </div>
-      <pre></pre>
-
-
-
-
-
-
-
-
-
-
-      <div class="file-heading">
         <h2 id="easy_rec/python/protos/pipeline.proto">easy_rec/python/protos/pipeline.proto</h2><a href="#title">Top</a>
       </div>
       <pre></pre>
@@ -6873,7 +7093,16 @@ the better Default: 10</pre></td>
                   <td>fg_json_path</td>
                   <td><a href="#string">string</a></td>
                   <td>optional</td>
-                  <td><pre> </pre></td>
+                  <td><pre>Json file[RTP FG] to define input data and features:
+* In easy_rec.python.utils.fg_util.load_fg_json_to_config:
+  data_config and feature_config will be generated
+  based on fg_json.
+* After generation, a prefix &#39;!&#39; is added:
+  fg_json_path = &#39;!&#39; &#43; fg_json_path
+  indicates config update is already done, and should not
+  be updated anymore. In this way, we make load_fg_json_to_config
+  function reentrant.
+This step is done before edit_config_json to take effect. </pre></td>
                 </tr>
 
             </tbody>

@@ -1,5 +1,4 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-# Split DSSM and Mind saved_model into user part and item part.
 import copy
 import logging
 import os
@@ -18,6 +17,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('model_dir', '', '')
 tf.app.flags.DEFINE_string('user_model_dir', '', '')
 tf.app.flags.DEFINE_string('item_model_dir', '', '')
+tf.app.flags.DEFINE_string('user_fg_json_path', '', '')
+tf.app.flags.DEFINE_string('item_fg_json_path', '', '')
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -93,35 +94,6 @@ def extract_sub_graph(graph_def, dest_nodes, variable_protos):
     if n in edges:
       nodes_to_keep.add(n)
       next_to_visit += edges[n]
-
-  init_all_tables = []
-  if 'init_all_tables' in edges:
-    for init in edges['init_all_tables']:
-      init = init.strip()
-      sufix = '/table_init'
-      table_name = init[:-len(sufix)]
-      if table_name in nodes_to_keep:
-        init_all_tables.append(init)
-
-  next_to_visit = list(init_all_tables)
-  while next_to_visit:
-    n = next_to_visit[0]
-
-    if n in variable_protos:
-      proto = variable_protos[n]
-      next_to_visit.append(_node_name(proto.initial_value_name))
-      next_to_visit.append(_node_name(proto.initializer_name))
-      next_to_visit.append(_node_name(proto.snapshot_name))
-      variables_to_keep.add(proto.variable_name)
-
-    del next_to_visit[0]
-    if n in nodes_to_keep:
-      continue
-    # make sure n is in edges
-    if n in edges:
-      nodes_to_keep.add(n)
-      next_to_visit += edges[n]
-
   nodes_to_keep_list = sorted(list(nodes_to_keep), key=lambda n: node_seq[n])
 
   out = graph_pb2.GraphDef()
@@ -130,7 +102,7 @@ def extract_sub_graph(graph_def, dest_nodes, variable_protos):
   out.library.CopyFrom(graph_def.library)
   out.versions.CopyFrom(graph_def.versions)
 
-  return out, variables_to_keep, init_all_tables
+  return out, variables_to_keep
 
 
 def load_meta_graph_def(model_dir):
@@ -217,7 +189,7 @@ def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
       _node_name(output_tensor_names[x]) for x in output_tensor_names.keys()
   ]
 
-  inference_graph, variables_to_keep, init_op_names = extract_sub_graph(
+  inference_graph, variables_to_keep = extract_sub_graph(
       meta_graph_def.graph_def, output_node_names, variable_protos)
 
   tf.reset_default_graph()
@@ -254,21 +226,25 @@ def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
               method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
           ))
 
-      main_ops = [graph.get_operation_by_name(x) for x in init_op_names]
       builder.add_meta_graph_and_variables(
           sess, [tf.saved_model.tag_constants.SERVING],
           signature_def_map={
               signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                   prediction_signature,
-          },
-          main_op=tf.group(main_ops) if len(main_ops) > 0 else None)
+          })
       builder.save()
   config_path = os.path.join(model_dir, 'assets/pipeline.config')
   assert tf.gfile.Exists(config_path)
   dst_path = os.path.join(part_dir, 'assets')
-  dst_config_path = os.path.join(part_dir, 'assets/pipeline.config')
+  dst_config_path = os.path.join(dst_path, 'pipeline.config')
   tf.gfile.MkDir(dst_path)
   tf.gfile.Copy(config_path, dst_config_path)
+  if part_name == 'user' and FLAGS.user_fg_json_path:
+    dst_fg_path = os.path.join(dst_path, 'fg.json')
+    tf.gfile.Copy(FLAGS.user_fg_json_path, dst_fg_path)
+  if part_name == 'item' and FLAGS.item_fg_json_path:
+    dst_fg_path = os.path.join(dst_path, 'fg.json')
+    tf.gfile.Copy(FLAGS.item_fg_json_path, dst_fg_path)
 
 
 def main(argv):

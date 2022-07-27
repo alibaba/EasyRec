@@ -165,7 +165,7 @@ model_config:{
 
 ```sql
 pai -name tensorflow1120_cpu_ext
- -Dscript='oss://easyrec/deploy/easy_rec/python/tools/hitrate.py'
+ -Dscript='oss://easyrec/deploy/easy_rec/python/tools/hit_rate_pai.py'
  -Dbuckets='oss://easyrec/'
  -Darn='acs:ram::xxx:role/aliyunodpspaidefaultrole'
  -DossHost='oss-cn-beijing-internal.aliyuncs.com'

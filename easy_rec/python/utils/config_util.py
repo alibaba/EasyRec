@@ -11,6 +11,8 @@ import os
 import re
 import datetime
 
+import numpy as np
+import six
 import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
@@ -18,9 +20,26 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.protos import pipeline_pb2
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
+from easy_rec.python.utils import pai_util
+from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
+
+def search_pipeline_config(directory):
+  dir_list = []
+  for root, dirs, files in tf.gfile.Walk(directory):
+    for f in files:
+      _, ext = os.path.splitext(f)
+      if ext == '.config':
+        dir_list.append(os.path.join(root, f))
+  if len(dir_list) == 0:
+    raise ValueError('config is not found in directory %s' % directory)
+  elif len(dir_list) > 1:
+    raise ValueError('config saved model found in directory %s' % directory)
+  logging.info('use pipeline config: %s' % dir_list[0])
+  return dir_list[0]
 
 
 def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
@@ -156,6 +175,19 @@ def save_pipeline_config(pipeline_config,
   save_message(pipeline_config, pipeline_config_path)
 
 
+def _get_basic_types():
+  dtypes = [
+      bool, int, str, float,
+      type(u''), np.float16, np.float32, np.float64, np.char, np.byte, np.uint8,
+      np.int8, np.int16, np.uint16, np.uint32, np.int32, np.uint64, np.int64,
+      np.bool, np.str
+  ]
+  if six.PY2:
+    dtypes.append(long)  # noqa: F821
+
+  return dtypes
+
+
 def edit_config(pipeline_config, edit_config_json):
   """Update params specified by automl.
 
@@ -178,7 +210,7 @@ def edit_config(pipeline_config, edit_config_json):
         assert isinstance(proto, int)
         val = getattr(parent, val)
         assert isinstance(val, int)
-    return val 
+    return val
 
   def _get_attr(obj, attr, only_last=False):
     # only_last means we only return the last element in paths array
@@ -257,7 +289,7 @@ def edit_config(pipeline_config, edit_config_json):
                 update_obj, cond_key, only_last=True)
 
             cond_val = _type_convert(tmp, cond_val, tmp_parent)
-            
+
             if op_func(tmp, cond_val):
               obj_id = tid
               paths.append((update_obj, update_objs, None, obj_id))
@@ -284,7 +316,8 @@ def edit_config(pipeline_config, edit_config_json):
       tmp_paths = _get_attr(update_obj, param_key)
       # update a set of objs
       for tmp_val, tmp_obj, tmp_name, tmp_id in tmp_paths:
-        basic_types = [int, str, float, bool, type(u'')]
+        # list and dict are not basic types, must be handle separately
+        basic_types = _get_basic_types()
         if type(tmp_val) in basic_types:
           # simple type cast
           tmp_val = _type_convert(tmp_val, param_val, tmp_obj)
@@ -382,6 +415,21 @@ def parse_time(time_data):
   else:
     return int(time_data)
 
+def search_fg_json(directory):
+  dir_list = []
+  for root, dirs, files in tf.gfile.Walk(directory):
+    for f in files:
+      _, ext = os.path.splitext(f)
+      if ext == '.json':
+        dir_list.append(os.path.join(root, f))
+  if len(dir_list) == 0:
+    return None
+  elif len(dir_list) > 1:
+    raise ValueError('fg.json found in directory %s' % directory)
+  logging.info('use fg.json: %s' % dir_list[0])
+  return dir_list[0]
+
+
 def get_input_name_from_fg_json(fg_json):
   if not fg_json:
     return []
@@ -406,6 +454,11 @@ def get_train_input_path(pipeline_config):
 def get_eval_input_path(pipeline_config):
   input_name = pipeline_config.WhichOneof('eval_path')
   return getattr(pipeline_config, input_name)
+
+
+def get_model_dir_path(pipeline_config):
+  model_dir = pipeline_config.model_dir
+  return model_dir
 
 
 def set_train_input_path(pipeline_config, train_input_path):
@@ -450,9 +503,9 @@ def set_eval_input_path(pipeline_config, eval_input_path):
           eval_input_path.split(',')
       ) <= 1, 'only support one hive_eval_input.table_name when hive input'
       pipeline_config.hive_eval_input.table_name = eval_input_path
-    logging.info('update hive_train_input.table_name to %s' %
+    logging.info('update hive_eval_input.table_name to %s' %
                  pipeline_config.hive_eval_input.table_name)
-  elif pipeline_config.WhichOneof('train_path') == 'kafka_eval_input':
+  elif pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     if isinstance(eval_input_path, list):
       pipeline_config.kafka_eval_input = ','.join(eval_input_path)
     else:
@@ -462,6 +515,45 @@ def set_eval_input_path(pipeline_config, eval_input_path):
       pipeline_config.eval_input_path = ','.join(eval_input_path)
     else:
       pipeline_config.eval_input_path = eval_input_path
-    logging.info('update train_input_path to %s' %
+    logging.info('update eval_input_path to %s' %
                  pipeline_config.eval_input_path)
   return pipeline_config
+
+
+def process_data_path(data_path, hive_util):
+  if data_path.startswith('hdfs://'):
+    return data_path
+  if re.match(r'(.*)\.(.*)', data_path):
+    hdfs_path = hive_util.get_table_location(data_path)
+    assert hdfs_path, "Can't find hdfs path of %s" % data_path
+    logging.info('update %s to %s' % (data_path, hdfs_path))
+    return hdfs_path
+  return data_path
+
+
+def process_neg_sampler_data_path(pipeline_config):
+  # replace neg_sampler hive table => hdfs path
+  if pai_util.is_on_pai():
+    return None
+  if not pipeline_config.data_config.HasField('sampler'):
+    return None
+  hive_util = HiveUtils(
+      data_config=pipeline_config.data_config,
+      hive_config=pipeline_config.hive_train_input)
+  sampler_type = pipeline_config.data_config.WhichOneof('sampler')
+  sampler_config = getattr(pipeline_config.data_config, sampler_type)
+  if hasattr(sampler_config, 'input_path'):
+    sampler_config.input_path = process_data_path(sampler_config.input_path,
+                                                  hive_util)
+  if hasattr(sampler_config, 'user_input_path'):
+    sampler_config.user_input_path = process_data_path(
+        sampler_config.user_input_path, hive_util)
+  if hasattr(sampler_config, 'item_input_path'):
+    sampler_config.item_input_path = process_data_path(
+        sampler_config.item_input_path, hive_util)
+  if hasattr(sampler_config, 'pos_edge_input_path'):
+    sampler_config.pos_edge_input_path = process_data_path(
+        sampler_config.pos_edge_input_path, hive_util)
+  if hasattr(sampler_config, 'hard_neg_edge_input_path'):
+    sampler_config.hard_neg_edge_input_path = process_data_path(
+        sampler_config.hard_neg_edge_input_path, hive_util)

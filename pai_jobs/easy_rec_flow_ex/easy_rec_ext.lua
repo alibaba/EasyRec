@@ -384,6 +384,11 @@ function parseTable(cmd, inputTable, outputTable, selectedCols, excludedCols,
     return "", "", "", "", "select 1;", "select 1;", tables
   end
 
+  -- for online train or train with oss input
+  if cmd == 'train' and (tables == nil or tables == '') and (trainTables == nil or trainTables == '') then
+    return "", "", "", "", "select 1;", "select 1;", tables
+  end
+
   -- merge all tables into all_tables
   all_tables  = {}
   table_id = 0

@@ -13,7 +13,7 @@ import tensorflow as tf
 
 try:
   import graphlearn as gl
-except:
+except:  # noqa: E722
   logging.WARN(
       'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl.'  # noqa: E501
   )

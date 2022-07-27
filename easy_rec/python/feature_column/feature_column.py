@@ -37,6 +37,9 @@ class SharedEmbedding(object):
 
 EVParams = collections.namedtuple("EVParams", ["filter_freq", "steps_to_live"])
 
+EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
+
+
 class FeatureColumnParser(object):
   """Parse and generate feature columns."""
 
@@ -143,7 +146,8 @@ class FeatureColumnParser(object):
       partitioner = self._build_partitioner(self._share_embed_infos[embed_name])
 
       if self._share_embed_infos[embed_name].HasField('ev_params'):
-        ev_params = self._build_ev_params(self._share_embed_infos[embed_name].ev_params)
+        ev_params = self._build_ev_params(
+            self._share_embed_infos[embed_name].ev_params)
       else:
         ev_params = self._global_ev_params
 
@@ -499,7 +503,8 @@ class FeatureColumnParser(object):
         # pai embedding_variable should use fixed_size_partitioner
         return tf.fixed_size_partitioner(num_shards=config.max_partitions)
       else:
-        return min_max_variable_partitioner(max_partitions=config.max_partitions)
+        return min_max_variable_partitioner(
+            max_partitions=config.max_partitions)
     else:
       return None
 
@@ -572,6 +577,8 @@ class FeatureColumnParser(object):
           initializer=initializer,
           partitioner=self._build_partitioner(config),
           ev_params=ev_params)
+      fc.max_seq_length = config.max_seq_len if config.HasField(
+          'max_seq_len') else -1
 
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc
@@ -582,5 +589,7 @@ class FeatureColumnParser(object):
 
   def _build_ev_params(self, ev_params):
     """Build embedding_variables params."""
-    ev_params = EVParams(ev_params.filter_freq, ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
+    ev_params = EVParams(
+        ev_params.filter_freq,
+        ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
     return ev_params

@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 
-import numpy as np
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
@@ -30,9 +29,9 @@ class CriteoInput(Input):
 
     if input_path is not None:
       assert len(input_path.label_path) == len(input_path.dense_path) and \
-        len(input_path.label_path) == len(input_path.category_path), \
-        'label_path_num(%d), dense_path_num(%d), category_path_num(%d) must be the same' % (\
-        len(input_path.label_path), len(input_path.dense_path), len(input_path.category_path))
+          len(input_path.label_path) == len(input_path.category_path), \
+          'label_path_num(%d), dense_path_num(%d), category_path_num(%d) must be the same' % \
+          (len(input_path.label_path), len(input_path.dense_path), len(input_path.category_path))
 
       for label_path, dense_path, category_path in zip(
           input_path.label_path, input_path.dense_path,

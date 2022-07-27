@@ -26,6 +26,7 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
 from easy_rec.python.utils.config_util import get_eval_input_path
+from easy_rec.python.utils.config_util import get_model_dir_path
 from easy_rec.python.utils.config_util import get_train_input_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
@@ -37,6 +38,8 @@ if tf.__version__ >= '2.0':
 
   ConfigProto = config_pb2.ConfigProto
   GPUOptions = config_pb2.GPUOptions
+
+  tf = tf.compat.v1
 else:
   gfile = tf.gfile
   GPUOptions = tf.GPUOptions
@@ -222,7 +225,10 @@ def _check_model_dir(model_dir, continue_train):
 
 def _get_ckpt_path(pipeline_config, checkpoint_path):
   if checkpoint_path != '' and checkpoint_path is not None:
-    ckpt_path = checkpoint_path
+    if gfile.IsDirectory(checkpoint_path):
+      ckpt_path = estimator_utils.latest_checkpoint(checkpoint_path)
+    else:
+      ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
     ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
@@ -294,7 +300,8 @@ def _train_and_evaluate_impl(pipeline_config,
   train_steps = None
   if train_config.HasField('num_steps'):
     train_steps = train_config.num_steps
-  assert train_steps is not None or data_config.num_epochs > 0, 'either num_steps and num_epochs must be set to an integer > 0.'
+  assert train_steps is not None or data_config.num_epochs > 0, (
+      'either num_steps and num_epochs must be set to an integer > 0.')
 
   if train_steps and data_config.num_epochs:
     logging.info('Both num_steps and num_epochs are set.')
@@ -464,7 +471,7 @@ def evaluate(pipeline_config,
 def distribute_evaluate(pipeline_config,
                         eval_checkpoint_path='',
                         eval_data_path=None,
-                        eval_result_filename='eval_result.txt'):
+                        eval_result_filename='distribute_eval_result.txt'):
   """Evaluate a EasyRec model defined in pipeline_config_path.
 
   Evaluate the model defined in pipeline_config_path on the eval data,
@@ -493,6 +500,14 @@ def distribute_evaluate(pipeline_config,
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
   eval_data = get_eval_input_path(pipeline_config)
+  model_dir = get_model_dir_path(pipeline_config)
+  eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
+  if not gfile.IsDirectory(eval_tmp_results_dir):
+    logging.info('create eval tmp results dir {}'.format(eval_tmp_results_dir))
+    gfile.MakeDirs(eval_tmp_results_dir)
+  assert gfile.IsDirectory(
+      eval_tmp_results_dir), 'tmp results dir not create success.'
+  os.environ['eval_tmp_results_dir'] = eval_tmp_results_dir
 
   server_target = None
   cur_job_name = None
@@ -528,6 +543,7 @@ def distribute_evaluate(pipeline_config,
   estimator, run_config = _create_estimator(pipeline_config, distribution)
   eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
   ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+  ckpt_dir = os.path.dirname(ckpt_path)
 
   if server_target:
     # evaluate with parameter server
@@ -547,7 +563,10 @@ def distribute_evaluate(pipeline_config,
           input_feas, input_lbls, run_config)
 
     session_config = ConfigProto(
-        allow_soft_placement=True, log_device_placement=True)
+        allow_soft_placement=True,
+        log_device_placement=True,
+        device_filters=['/job:ps',
+                        '/job:worker/task:%d' % cur_task_index])
     if cur_job_name == 'master':
       metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
       model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
@@ -574,11 +593,11 @@ def distribute_evaluate(pipeline_config,
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, True, ckpt_dir,
                                           metric_ops)
     else:
       cur_stop_grace_period_sesc = 10
-      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_path,
+      cur_hooks = EvaluateExitBarrierHook(cur_worker_num, False, ckpt_dir,
                                           metric_ops)
     with MonitoredSession(
         session_creator=cur_sess_creator,
@@ -609,7 +628,7 @@ def distribute_evaluate(pipeline_config,
     print('eval_result = ', eval_result)
     logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
-      result_to_write = {}
+      result_to_write = {'eval_method': 'distribute'}
       for key in sorted(eval_result):
         # skip logging binary data
         if isinstance(eval_result[key], six.binary_type):
@@ -710,7 +729,8 @@ def export(export_dir,
     asset_file_dict = {}
     for asset_file in asset_files.split(','):
       asset_file = asset_file.strip()
-      if ':' not in asset_file or asset_file.startswith('oss:'):
+      if ':' not in asset_file or asset_file.startswith(
+          'oss:') or asset_file.startswith('hdfs:'):
         _, asset_name = os.path.split(asset_file)
       else:
         asset_name, asset_file = asset_file.split(':', 1)
@@ -725,6 +745,7 @@ def export(export_dir,
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   if 'oss_path' in extra_params:
     if pipeline_config.train_config.HasField('incr_save_config'):
       incr_save_config = pipeline_config.train_config.incr_save_config
@@ -734,22 +755,17 @@ def export(export_dir,
       if incr_save_config.HasField('datahub'):
         extra_params['incr_save']['datahub'] = incr_save_config.datahub
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
-                                   serving_input_fn, estimator, checkpoint_path,
+                                   serving_input_fn, estimator, ckpt_path,
                                    verbose)
 
   if 'redis_url' in extra_params:
     return export_big_model(export_dir, pipeline_config, extra_params,
-                            serving_input_fn, estimator, checkpoint_path,
-                            verbose)
-
-  if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(
-        pipeline_config.model_dir)
+                            serving_input_fn, estimator, ckpt_path, verbose)
 
   final_export_dir = estimator.export_savedmodel(
       export_dir_base=export_dir,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       strip_default_attrs=True)
 
   # add export ts as version info
@@ -799,10 +815,11 @@ def export_checkpoint(pipeline_config=None,
   export_config = pipeline_config.export_config
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
+  ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   estimator.export_checkpoint(
       export_path=export_path,
       serving_input_receiver_fn=serving_input_fn,
-      checkpoint_path=checkpoint_path,
+      checkpoint_path=ckpt_path,
       mode=mode)
 
   logging.info('model checkpoint has been exported successfully')

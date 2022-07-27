@@ -1,0 +1,13 @@
+pai -name=easy_rec_ext -project=algo_public
+-Dscript=oss://easyrec/xxx/software/easy_rec_ext_615_res.tar.gz
+-Dtrain_tables=odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_shuffle_20220529
+-Deval_tables=odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify_small/dt=20220530
+-Dcmd=train
+-Deval_method=separate
+-Dconfig=oss://easyrec/xxx/pipeline.config
+-Dmodel_dir=oss://easyrec/xxx/deploy/
+-Dselected_cols=is_valid_play,ln_play_time,is_like,is_comment,features,content_features
+-Dbuckets=oss://easyrec/
+-Darn=xxx
+-DossHost=oss-cn-beijing-internal.aliyuncs.com
+-Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000},"worker":{"count":12,"cpu":1600,"memory":40000}}

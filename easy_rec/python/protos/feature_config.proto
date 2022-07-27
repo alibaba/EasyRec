@@ -29,7 +29,7 @@ message SequenceCombiner {
 }
 
 message EVParams {
-    optional uint64 filter_freq = 1 [default=0]; 
+    optional uint64 filter_freq = 1 [default=0];
     optional uint64 steps_to_live = 2 [default=0];
 }
 
@@ -76,6 +76,8 @@ message FeatureConfig {
 
     // delimeter to separate sequence multi-values
     optional string seq_multi_sep = 101;
+    // truncate sequence data to max_seq_len
+    optional uint32 max_seq_len = 102;
 
     optional string vocab_file = 11;
     repeated string vocab_list = 12;
@@ -90,7 +92,7 @@ message FeatureConfig {
     optional int32 max_partitions = 18 [default = 1];
 
     // combiner
-    optional string combiner = 19 [default = 'mean'];
+    optional string combiner = 19 [default = 'sum'];
 
     // embedding initializer
     optional Initializer initializer = 20;

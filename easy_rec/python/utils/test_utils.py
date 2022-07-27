@@ -23,8 +23,11 @@ import numpy as np
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
+from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
+
+TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1200))
 
 
 def get_hdfs_tmp_dir(test_dir):
@@ -35,6 +38,15 @@ def get_hdfs_tmp_dir(test_dir):
   test_rand_dir = os.path.join(test_dir, tmp_name)
   gfile.MkDir(test_rand_dir)
   return test_rand_dir
+
+def proc_wait(proc, timeout=1200):
+  t0 = time.time()
+  while proc.poll() is None and time.time() - t0 < timeout:
+    time.sleep(1) 
+  if proc.poll() is None:
+    proc.terminate()
+  while proc.poll() is None:
+    time.sleep(1)
 
 
 def get_tmp_dir():
@@ -149,6 +161,14 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
   return pipeline_config
 
 
+def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+  pipeline_config.model_dir = test_dir
+  logging.info('test_model_dir %s' % pipeline_config.model_dir)
+  return pipeline_config
+
+
 def test_datahub_train_eval(pipeline_config_path,
                             odps_oss_config,
                             test_dir,
@@ -196,7 +216,7 @@ def test_datahub_train_eval(pipeline_config_path,
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % \
       test_pipeline_config_path
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
@@ -217,7 +237,9 @@ def test_single_train_eval(pipeline_config_path,
                            hyperparam_str='',
                            total_steps=50,
                            post_check_func=None,
-                           check_mode=False):
+                           check_mode=False,
+                           fine_tune_checkpoint=None,
+                           timeout=-1):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -245,16 +267,12 @@ def test_single_train_eval(pipeline_config_path,
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
       test_pipeline_config_path, hyperparam_str)
+  if fine_tune_checkpoint:
+    train_cmd += '--fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
     train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc.wait()
-  # print(test_dir)
-  # print(train_cmd)
-  # while not os.path.exists(test_dir + '/train/ESTIMATOR_TRAIN_DONE'):
-  #   time.sleep(2)
-  # print('train_done')
-  # return True
+  proc_wait(proc,timeout=TEST_TIME_OUT if timeout < 0 else timeout)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
@@ -290,9 +308,27 @@ def test_single_pre_check(pipeline_config_path, test_dir):
       test_pipeline_config_path)
 
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
+    return False
+  return True
+
+
+def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
+  gpus = get_available_gpus()
+  if len(gpus) > 0:
+    set_gpu_id(gpus[0])
+  else:
+    set_gpu_id(None)
+
+  predict_cmd = 'python -m easy_rec.python.predict --input_path %s --output_path %s --saved_model_dir %s' % (
+      input_path, output_path, saved_model_dir)
+
+  proc = run_cmd(predict_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
+  proc_wait(proc,timeout=TEST_TIME_OUT)
+  if proc.returncode != 0:
+    logging.error('predict failed')
     return False
   return True
 
@@ -304,7 +340,7 @@ def test_feature_selection(pipeline_config):
   cmd = 'python -m easy_rec.python.tools.feature_selection --config_path %s ' \
         '--output_dir %s --topk 5 --visualize true' % (pipeline_config_path, output_dir)
   proc = run_cmd(cmd, os.path.join(model_dir, 'log_feature_selection.txt'))
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('feature selection %s failed' % pipeline_config_path)
     return False
@@ -363,7 +399,7 @@ def test_hdfs_train_eval(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   train_cmd = 'el_submit -yaml %s' % train_yaml_path
   proc = subprocess.Popen(train_cmd.split(), stderr=subprocess.STDOUT)
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     logging.error('train_yaml %s failed' % train_yaml_path)
@@ -395,7 +431,7 @@ def test_hdfs_eval(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   eval_cmd = 'el_submit -yaml %s' % eval_yaml_path
   proc = subprocess.Popen(eval_cmd.split(), stderr=subprocess.STDOUT)
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('eval %s failed' % test_pipeline_config_path)
     logging.error('eval_yaml %s failed' % eval_yaml_path)
@@ -429,7 +465,7 @@ def test_hdfs_export(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   eval_cmd = 'el_submit -yaml %s' % export_yaml_path
   proc = subprocess.Popen(eval_cmd.split(), stderr=subprocess.STDOUT)
-  proc.wait()
+  proc_wait(proc,timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('export %s failed' % test_pipeline_config_path)
     logging.error('export_yaml %s failed' % export_yaml_path)
@@ -497,6 +533,55 @@ def _ps_worker_train(pipeline_config_path,
     set_gpu_id('')
     procs['evaluator'] = run_cmd(train_cmd,
                                  '%s/log_%s.txt' % (test_dir, 'evaluator'))
+
+  return procs
+
+
+def _ps_worker_distribute_eval(pipeline_config_path,
+                               checkpoint_path,
+                               test_dir,
+                               num_worker,
+                               num_evaluator=0):
+  gpus = get_available_gpus()
+  # not enough gpus, run on cpu only
+  if len(gpus) < num_worker:
+    gpus = [None] * num_worker
+  ports = _get_ports(num_worker + 1)
+  chief_or_master = 'master' if num_evaluator == 0 else 'chief'
+  cluster = {
+      chief_or_master: ['localhost:%d' % ports[0]],
+      'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
+      'ps': ['localhost:%d' % ports[-1]]
+  }
+  tf_config = {'cluster': cluster}
+  procs = {}
+  tf_config['task'] = {'type': chief_or_master, 'index': 0}
+  os.environ['TF_CONFIG'] = json.dumps(tf_config)
+  set_gpu_id(gpus[0])
+  train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path {} --checkpoint_path {}  \
+    --distribute_eval True --eval_result_path distribute_eval_result.txt'.format(
+      pipeline_config_path, checkpoint_path)
+  procs[chief_or_master] = run_cmd(
+      train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, chief_or_master))
+  tf_config['task'] = {'type': 'ps', 'index': 0}
+  os.environ['TF_CONFIG'] = json.dumps(tf_config)
+  set_gpu_id('')
+  procs['ps'] = run_cmd(train_cmd,
+                        '%s/distribute_eval_log_%s.txt' % (test_dir, 'ps'))
+
+  for idx in range(num_worker - 1):
+    tf_config['task'] = {'type': 'worker', 'index': idx}
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    set_gpu_id(gpus[idx + 1])
+    worker_name = 'worker_%d' % idx
+    procs[worker_name] = run_cmd(
+        train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, worker_name))
+  if num_evaluator > 0:
+    tf_config['task'] = {'type': 'evaluator', 'index': 0}
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
+    set_gpu_id('')
+    procs['evaluator'] = run_cmd(
+        train_cmd, '%s/distribute_eval_log_%s.txt' % (test_dir, 'evaluator'))
 
   return procs
 
@@ -595,3 +680,99 @@ def test_distributed_train_eval(pipeline_config_path,
       logging.error('train %s failed' % pipeline_config_path)
 
   return task_failed is None
+
+
+def test_distribute_eval_test(cur_eval_path, test_dir):
+  single_work_eval_path = os.path.join(cur_eval_path, 'eval_result.txt')
+  distribute_eval_path = os.path.join(test_dir, 'distribute_eval_result.txt')
+  if not os.path.exists(distribute_eval_path):
+    return False
+  single_data = read_data_from_json_path(single_work_eval_path)
+  distribute_data = read_data_from_json_path(distribute_eval_path)
+  single_ret = {
+      k: single_data[k]
+      for k in single_data.keys()
+      if 'loss' not in k and 'step' not in k
+  }
+  distribute_ret = {
+      k: distribute_data[k] for k in distribute_data.keys() if 'loss' not in k
+  }
+  difference_num = 0.00001
+  for k in single_ret.keys():
+    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+      return False
+  return True
+
+
+def test_distributed_eval(pipeline_config_path,
+                          checkpoint_path,
+                          test_dir,
+                          total_steps=50,
+                          num_evaluator=0):
+  logging.info('testing pipeline config %s' % pipeline_config_path)
+  pipeline_config = _load_config_for_distribute_eval(pipeline_config_path,
+                                                     test_dir)
+  train_config = pipeline_config.train_config
+  config_util.save_pipeline_config(pipeline_config, test_dir)
+  test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
+
+  task_failed = None
+  procs = None
+  is_equal = False
+  try:
+    if train_config.train_distribute == DistributionStrategy.NoStrategy:
+      num_worker = 2
+      procs = _ps_worker_distribute_eval(test_pipeline_config_path,
+                                         checkpoint_path, test_dir, num_worker,
+                                         num_evaluator)
+    else:
+      raise NotImplementedError
+
+    # print proc info
+    assert len(procs) > 0, 'processes are empty'
+    for k, proc in procs.items():
+      logging.info('%s pid: %d' % (k, proc.pid))
+    task_finish_cnt = 0
+    task_has_finished = {k: False for k in procs.keys()}
+    while True:
+      for k, proc in procs.items():
+        if proc.poll() is None:
+          if task_failed is not None:
+            logging.error('task %s failed, %s quit' % (task_failed, k))
+            proc.terminate()
+            if k != 'ps':
+              task_has_finished[k] = True
+              task_finish_cnt += 1
+            logging.info('task_finish_cnt %d' % task_finish_cnt)
+        else:
+          if not task_has_finished[k]:
+            # process quit by itself
+            if k != 'ps':
+              task_finish_cnt += 1
+              task_has_finished[k] = True
+            logging.info('task_finish_cnt %d' % task_finish_cnt)
+            if proc.returncode != 0:
+              logging.error('%s failed' % k)
+              task_failed = k
+            else:
+              logging.info('%s run successfuly' % k)
+      if task_finish_cnt >= num_worker:
+        break
+      time.sleep(1)
+
+    is_equal = test_distribute_eval_test(checkpoint_path, test_dir)
+
+  except Exception as e:
+    logging.error('Exception: ' + str(e))
+    raise e
+  finally:
+    if procs is not None:
+      for k, proc in procs.items():
+        if proc.poll() is None:
+          logging.info('terminate %s' % k)
+          proc.terminate()
+    if task_failed is not None:
+      logging.error('eval %s failed' % pipeline_config_path)
+
+  eval_success = (task_failed is None) and is_equal
+  return eval_success

@@ -1,6 +1,6 @@
 # extra packages for some features
 
-cprotobuf is required by pydatahub
+# cprotobuf is required by pydatahub
 cprotobuf==0.1.9
 
 # for data input from datahub

@@ -1,10 +1,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
+
 import numpy as np
 
+
 class NumpyEncoder(json.JSONEncoder):
-  """For encode numpy arrays. """
+  """For encode numpy arrays."""
 
   def default(self, obj):
     if isinstance(obj, np.integer):

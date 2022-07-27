@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import collections
 import json
 import logging
 import os
@@ -14,8 +13,8 @@ import tensorflow as tf
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
-from tensorflow.python.framework.sparse_tensor import SparseTensor
 from tensorflow.python.ops import variables
+from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import saver
 from tensorflow.python.training import basic_session_run_hooks
@@ -453,7 +452,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
     loss_dict['total_loss'] = loss
-    metric_dict = model.build_distribute_metric_graph(self.eval_config)
+    metric_dict = model.build_metric_graph(self.eval_config)
     for loss_key in loss_dict.keys():
       loss_tensor = loss_dict[loss_key]
       # add key-prefix to make loss metric key in the same family of train loss

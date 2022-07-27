@@ -12,7 +12,6 @@ from easy_rec.python.utils.proto_util import copy_obj
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
-metrics = tf.metrics
 
 
 class DSSM(MatchModel):

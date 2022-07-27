@@ -48,7 +48,6 @@ class RTPInput(Input):
     ]
     self._num_cols = -1
     self._feature_col_id = self._selected_cols[-1]
-    print('rtp input : ', self._input_path)
     logging.info('rtp separator = %s' % self._rtp_separator)
 
   def _parse_csv(self, line):
@@ -106,9 +105,16 @@ class RTPInput(Input):
       fields = tf.string_split(
           feature_str, self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
+    rtp_record_defaults = [
+        str(self.get_type_defaults(t, v))
+        for x, t, v in zip(self._input_fields, self._input_field_types,
+                           self._input_field_defaults)
+        if x not in self._label_fields
+    ]
     fields = []
     for i in range(len(record_types)):
-      field = string_to_number(tmp_fields[:, i], record_types[i], i)
+      field = string_to_number(tmp_fields[:, i], record_types[i],
+                               rtp_record_defaults[i], i)
       fields.append(field)
 
     field_keys = [x for x in self._input_fields if x not in self._label_fields]
@@ -178,10 +184,10 @@ class RTPInput(Input):
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
           num_parallel_calls=parallel_num)
- 
+
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
- 
+
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,

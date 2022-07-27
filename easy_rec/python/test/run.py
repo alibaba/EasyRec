@@ -4,6 +4,7 @@
 
 import logging
 import os
+import sys
 import unittest
 
 import tensorflow as tf
@@ -31,6 +32,9 @@ def gather_test_cases(test_dir, pattern):
   all_tests = []
   for suite_discovered in discover:
     for test_case in suite_discovered:
+      if 'ModuleImportFailure' in str(test_case):
+        logging.error("Failed to gather case: %s" % str(test_case))
+        sys.exit(1)
       if hasattr(test_case, '__iter__'):
         for subcase in test_case:
           toks = subcase.id().split('.')
@@ -39,7 +43,7 @@ def gather_test_cases(test_dir, pattern):
           if (case_file, case_name) not in all_tests:
             all_tests.append((case_file, case_name))
       else:
-        toks = subcase.id().split('.')
+        toks = test_case.id().split('.')[0]
         case_file = toks[0]
         case_name = '.'.join(toks[1:])
         if (case_file, case_name) not in all_tests:
@@ -90,7 +94,7 @@ def main(argv):
 
   for proc in procs:
     try:
-      proc.wait()
+      test_utils.proc_wait(proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200)))
     except Exception as ex:
       fail_file, fail_name = procs[proc]
       logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))

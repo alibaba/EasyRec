@@ -139,13 +139,13 @@ class PredictorTestOnDS(tf.test.TestCase):
   def test_local_pred(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
-    save_model_dir = 'data/test/inference/tb_multitower_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
@@ -162,23 +162,37 @@ class PredictorTestOnDS(tf.test.TestCase):
                    'brand;user_id;cms_segid;cms_group_id;final_gender_code;age_level;pvalue_level;' \
                    'shopping_level;occupation;new_user_class_level;tag_category_list;tag_brand_list;price'
 
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
 
   @RunAsSubprocess
+  def test_local_pred_without_config(self):
+    test_input_path = 'data/test/inference/taobao_infer_data.txt'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    self._success = test_utils.test_single_predict(self._test_dir,
+                                                   test_input_path,
+                                                   self._test_output_path,
+                                                   saved_model_dir)
+    self.assertTrue(self._success)
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(len(output_res) == 101)
+
+  @RunAsSubprocess
   def test_local_pred_with_part_col(self):
     test_input_path = 'data/test/inference/taobao_infer_data.txt'
     self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
-    save_model_dir = 'data/test/inference/tb_multitower_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=',',
         output_sep=';',
@@ -193,7 +207,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_num=1)
     header_truth = 'probs;clk;buy;user_id;adgroup_id'
 
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
@@ -203,14 +217,14 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
-    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
@@ -223,7 +237,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_id=0,
         slice_num=1)
     header_truth = 'logits;probs;clk;no_used_1;no_used_2;features'
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
@@ -233,14 +247,14 @@ class PredictorTestOnDS(tf.test.TestCase):
     test_input_path = 'data/test/inference/taobao_infer_rtp_data.txt'
     self._test_output_path = os.path.join(self._test_dir,
                                           'taobao_test_feature_result')
-    save_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
-    pipeline_config_path = os.path.join(save_model_dir,
+    saved_model_dir = 'data/test/inference/tb_multitower_rtp_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
                                         'assets/pipeline.config')
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
 
     predictor = CSVPredictor(
-        save_model_dir,
+        saved_model_dir,
         pipeline_config.data_config,
         input_sep=';',
         output_sep=';',
@@ -253,7 +267,7 @@ class PredictorTestOnDS(tf.test.TestCase):
         slice_id=0,
         slice_num=1)
     header_truth = 'logits;probs;clk;features;no_used_1'
-    with open(self._test_output_path + '/slice_0.csv', 'r') as f:
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)

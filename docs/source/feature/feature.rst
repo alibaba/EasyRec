@@ -398,6 +398,7 @@ ExprFeature：表达式特征
 -  expression: 表达式。
     - 目前支持"<", "<=", "==", ">", "<=", "+", "-", "*", "/", "&" , "|"运算符。
     - 当前版本未定义"&","|"的符号优先级，建议使用括号保证优先级。
+    - customized normalization: "tf.math.log1p(user_age) / 10.0"
 
 特征选择
 ----------------------------------------------------------------
@@ -407,16 +408,41 @@ rank模型中配置相应字段：
 
 .. code:: protobuf
 
-    variational_dropout{
-        regularization_lambda:0.01
-        embedding_wise_variational_dropout:false
+    model_config {
+      model_class: 'MultiTower'
+      ...
+      variational_dropout{
+          regularization_lambda:0.01
+          embedding_wise_variational_dropout:false
+      }
+      ...
     }
 
 -  regularization\_lambda: 变分dropout层的正则化系数设置
 -  embedding\_wise\_variational\_dropout: 变分dropout层维度是否为embedding维度（true：embedding维度；false：feature维度；默认false）
+-  `启动训练 <../train.md>`_
 
-备注：
-**这个配在model_config下面，跟model_class平级**
+查看特征重要性:
+
+.. code:: sql
+
+    pai -name easy_rec_ext
+      -Dcmd='custom'
+      -DentryFile='easy_rec/python/tools/feature_selection.py'
+      -Dextra_params='--config_path oss://{oss_bucket}/EasyRec/deploy/fea_sel/${bizdate}/pipeline.config --output_dir oss://{oss_bucket}/EasyRec/deploy/fea_sel/${bizdate}/output --topk 1000 --visualize'
+      -Dbuckets='oss://{oss_bucket}/'
+      -Darn='acs:ram::xxx:role/aliyunodpspaidefaultrole'
+      -DossHost='oss-{region}-internal.aliyuncs.com';
+
+-  extra_params:
+    - config_path: EasyRec config path
+    - output_dir: 输出目录
+    - topk: 输出top_k重要的特征
+    - visualize: 输出重要性可视化的图
+    - fg_path: `RTP-FG <./rtp_fg.md>`_ json配置文件, 可选
+-  arn: `rolearn <https://ram.console.aliyun.com/roles/AliyunODPSPAIDefaultRole>`_ to access oss.
+-  version: EasyRec version, 默认stable
+-  res_project: EasyRec部署的project, 默认algo_public
 
 
 分隔符
