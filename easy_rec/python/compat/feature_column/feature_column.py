@@ -2521,7 +2521,7 @@ class _SharedEmbeddingColumn(
         ('categorical_column', 'dimension', 'combiner', 'initializer',
          'shared_embedding_collection_name', 'ckpt_to_load_from',
          'tensor_name_in_ckpt', 'max_norm', 'trainable', 'partitioner',
-         'use_embedding_variable'))):
+         'ev_params'))):
   """See `embedding_column`."""
 
   @property
@@ -2581,7 +2581,7 @@ class _SharedEmbeddingColumn(
               'hood.'.format(shared_embedding_collection))
         embedding_weights = shared_embedding_collection[0]
         if embedding_weights.get_shape(
-        ) != embedding_shape and not self.use_embedding_variable:
+        ) != embedding_shape and not self.ev_params is not None:  # noqa : E714
           raise ValueError(
               'Shared embedding collection {} contains variable {} of '
               'unexpected shape {}. Expected shape is {}. '
@@ -2592,7 +2592,7 @@ class _SharedEmbeddingColumn(
                              embedding_weights.name,
                              embedding_weights.get_shape(), embedding_shape))
       else:
-        if not self.use_embedding_variable:
+        if self.ev_params is None:
           embedding_weights = variable_scope.get_variable(
               name='embedding_weights',
               shape=embedding_shape,
@@ -2617,7 +2617,11 @@ class _SharedEmbeddingColumn(
               initializer=initializer,
               trainable=self.trainable and trainable,
               partitioner=self.partitioner,
-              collections=weight_collections)
+              collections=weight_collections,
+              steps_to_live=self.ev_params.steps_to_live
+              if self.ev_params is not None else None,
+              filter_options=variables.CounterFilterOptions(
+                  self.ev_params.filter_freq))
 
         ops.add_to_collection(self.shared_embedding_collection_name,
                               embedding_weights)
@@ -2629,7 +2633,7 @@ class _SharedEmbeddingColumn(
             self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
 
       # Return embedding lookup result.
-      if self.use_embedding_variable:
+      if self.ev_params is not None:
         return ev_embedding_ops.safe_embedding_lookup_sparse(
             embedding_weights=embedding_weights,
             sparse_ids=sparse_ids,

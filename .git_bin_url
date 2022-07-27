@@ -1,4 +1,5 @@
 {"leaf_path": "data/test", "sig": "656d73b4e78d0d71e98120050bc51387", "remote_path": "data/git_oss_sample_data/data_test_656d73b4e78d0d71e98120050bc51387"}
+{"leaf_path": "data/test/criteo_data", "sig": "f224ba0b1a4f66eeda096c88703d3afc", "remote_path": "data/git_oss_sample_data/data_test_criteo_data_f224ba0b1a4f66eeda096c88703d3afc"}
 {"leaf_path": "data/test/distribute_eval_test/deepfm_distribute_eval_dwd_avazu_out_multi_cls", "sig": "81fa56d54b79c75e3513725544ea5862", "remote_path": "data/git_oss_sample_data/data_test_distribute_eval_test_deepfm_distribute_eval_dwd_avazu_out_multi_cls_81fa56d54b79c75e3513725544ea5862"}
 {"leaf_path": "data/test/distribute_eval_test/dropoutnet_distribute_eval_taobao_ckpt", "sig": "9fde5d2987654f268a231a1c69db5799", "remote_path": "data/git_oss_sample_data/data_test_distribute_eval_test_dropoutnet_distribute_eval_taobao_ckpt_9fde5d2987654f268a231a1c69db5799"}
 {"leaf_path": "data/test/distribute_eval_test/dssm_distribute_eval_pointwise_classification_taobao_ckpt", "sig": "aaee9c8774ef0451a86090b344b66a04", "remote_path": "data/git_oss_sample_data/data_test_distribute_eval_test_dssm_distribute_eval_pointwise_classification_taobao_ckpt_aaee9c8774ef0451a86090b344b66a04"}
@@ -31,6 +32,7 @@
 {"leaf_path": "data/test/inference/tb_multitower_rtp_export/variables", "sig": "efe52ef308fd6452f3b67fd04cdd22bd", "remote_path": "data/git_oss_sample_data/data_test_inference_tb_multitower_rtp_export_variables_efe52ef308fd6452f3b67fd04cdd22bd"}
 {"leaf_path": "data/test/latest_ckpt_test", "sig": "d41d8cd98f00b204e9800998ecf8427e", "remote_path": "data/git_oss_sample_data/data_test_latest_ckpt_test_d41d8cd98f00b204e9800998ecf8427e"}
 {"leaf_path": "data/test/movielens_1m", "sig": "99badbeec64f2fcabe0dfa1d2bfd8fb5", "remote_path": "data/git_oss_sample_data/data_test_movielens_1m_99badbeec64f2fcabe0dfa1d2bfd8fb5"}
+{"leaf_path": "data/test/mt_ckpt", "sig": "803499f48e2df5e51ce5606e9649c6d4", "remote_path": "data/git_oss_sample_data/data_test_mt_ckpt_803499f48e2df5e51ce5606e9649c6d4"}
 {"leaf_path": "data/test/rtp", "sig": "76cda60582617ddbb7cd5a49eb68a4b9", "remote_path": "data/git_oss_sample_data/data_test_rtp_76cda60582617ddbb7cd5a49eb68a4b9"}
 {"leaf_path": "data/test/tb_data", "sig": "126c375d6aa666633fb3084aa27ff9f7", "remote_path": "data/git_oss_sample_data/data_test_tb_data_126c375d6aa666633fb3084aa27ff9f7"}
 {"leaf_path": "data/test/tb_data_with_time", "sig": "1a7648f4ae55faf37855762bccbb70cc", "remote_path": "data/git_oss_sample_data/data_test_tb_data_with_time_1a7648f4ae55faf37855762bccbb70cc"}

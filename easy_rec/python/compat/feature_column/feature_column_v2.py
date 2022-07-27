@@ -817,7 +817,7 @@ def embedding_column(categorical_column,
                      max_norm=None,
                      trainable=True,
                      partitioner=None,
-                     use_embedding_variable=False):
+                     ev_params=None):
   """`DenseColumn` that converts from sparse, categorical input.
 
   Use this when your inputs are sparse, but you want to convert them to a dense
@@ -913,7 +913,7 @@ def embedding_column(categorical_column,
       max_norm=max_norm,
       trainable=trainable,
       partitioner=partitioner,
-      use_embedding_variable=use_embedding_variable)
+      ev_params=ev_params)
 
 
 def shared_embedding_columns(categorical_columns,
@@ -926,7 +926,7 @@ def shared_embedding_columns(categorical_columns,
                              max_norm=None,
                              trainable=True,
                              partitioner=None,
-                             use_embedding_variable=False):
+                             ev_params=None):
   """List of dense columns that convert from sparse, categorical input.
 
   This is similar to `embedding_column`, except that it produces a list of
@@ -1081,7 +1081,7 @@ def shared_embedding_columns(categorical_columns,
             max_norm=max_norm,
             trainable=trainable,
             partitioner=partitioner,
-            use_embedding_variable=use_embedding_variable))
+            ev_params=ev_params))
 
   return result
 
@@ -3433,7 +3433,7 @@ class EmbeddingColumn(
         'EmbeddingColumn',
         ('categorical_column', 'dimension', 'combiner', 'initializer',
          'ckpt_to_load_from', 'tensor_name_in_ckpt', 'max_norm', 'trainable',
-         'partitioner', 'use_embedding_variable'))):
+         'partitioner', 'ev_params'))):
   """See `embedding_column`."""
 
   @property
@@ -3507,7 +3507,7 @@ class EmbeddingColumn(
           self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
 
     # Return embedding lookup result.
-    if not self.use_embedding_variable:
+    if self.ev_params is None:
       return embedding_ops.safe_embedding_lookup_sparse(
           embedding_weights=embedding_weights,
           sparse_ids=sparse_ids,
@@ -3538,7 +3538,7 @@ class EmbeddingColumn(
     if (weight_collections and
         ops.GraphKeys.GLOBAL_VARIABLES not in weight_collections):
       weight_collections.append(ops.GraphKeys.GLOBAL_VARIABLES)
-    if not self.use_embedding_variable:
+    if self.ev_params is None:
       embedding_weights = variable_scope.get_variable(
           name='embedding_weights',
           shape=embedding_shape,
@@ -3563,7 +3563,11 @@ class EmbeddingColumn(
           initializer=initializer,
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
-          collections=weight_collections)
+          collections=weight_collections,
+          steps_to_live=self.ev_params.steps_to_live
+          if self.ev_params is not None else None,
+          filter_options=variables.CounterFilterOptions(
+              self.ev_params.filter_freq))
 
     # Write the embedding configuration to RTP-specified collections. This will inform RTP to
     # optimize this embedding operation.
@@ -3572,7 +3576,7 @@ class EmbeddingColumn(
         variable=embedding_weights,
         bucket_size=self.categorical_column._num_buckets,
         combiner=self.combiner,
-        is_embedding_var=self.use_embedding_variable)
+        is_embedding_var=(self.ev_params is not None))
     embedding_attrs['name'] = layer_utils.unique_name_in_collection(
         compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'])
     layer_utils.update_attr_to_collection(

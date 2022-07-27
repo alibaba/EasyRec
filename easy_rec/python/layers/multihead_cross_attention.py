@@ -4,6 +4,7 @@ import math
 
 import tensorflow as tf
 
+from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
 from easy_rec.python.layers.common_layers import gelu
 from easy_rec.python.utils.shape_utils import get_shape_list
 
@@ -561,7 +562,7 @@ def cross_attention_tower(left_tensor,
 
 def layer_norm(input_tensor, name=None):
   """Run layer normalization on the last dimension of the tensor."""
-  return tf.contrib.layers.layer_norm(
+  return tf_layer_norm(
       inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
 
 

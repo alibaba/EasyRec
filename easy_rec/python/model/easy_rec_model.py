@@ -38,6 +38,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._is_training = is_training
     self._feature_dict = features
 
+    # embedding variable parameters
+    self._global_ev_params = None
+    if model_config.HasField('ev_params'):
+      self._global_ev_params = model_config.ev_params
+
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
@@ -83,7 +88,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         feature_configs,
         model_config.feature_groups,
         wide_output_dim=self._wide_output_dim,
-        use_embedding_variable=model_config.use_embedding_variable,
+        ev_params=self._global_ev_params,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
@@ -227,6 +232,27 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           logging.warning(
               'Variable [%s] is available in checkpoint, but '
               'incompatible shape dims with model variable.', variable_name)
+      elif 'EmbeddingVariable' in str(type(variable)):
+        print('restore embedding_variable %s' % variable_name)
+        from tensorflow.python.training import saver
+        names_to_saveables = saver.BaseSaverBuilder.OpListToDict([variable])
+        saveable_objects = []
+        for name, op in names_to_saveables.items():
+          for s in saver.BaseSaverBuilder.SaveableObjectsForOp(op, name):
+            saveable_objects.append(s)
+        init_op = saveable_objects[0].restore([ckpt_path], None)
+        variable._initializer_op = init_op
+      elif type(variable) == list and 'EmbeddingVariable' in str(type(variable[0])):
+        print('restore partitioned embedding_variable %s' % variable_name)
+        from tensorflow.python.training import saver
+        for part_var in variable:
+          names_to_saveables = saver.BaseSaverBuilder.OpListToDict([part_var])
+          saveable_objects = []
+          for name, op in names_to_saveables.items():
+            for s in saver.BaseSaverBuilder.SaveableObjectsForOp(op, name):
+              saveable_objects.append(s)
+          init_op = saveable_objects[0].restore([ckpt_path], None)
+          part_var._initializer_op = init_op
       else:
         fail_restore_vars.append(variable_name)
     for variable_name in fail_restore_vars:

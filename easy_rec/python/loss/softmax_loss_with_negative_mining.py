@@ -2,8 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.utils.shape_utils import get_shape_list
-
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -40,7 +38,8 @@ def softmax_loss_with_negative_mining(user_emb,
                                       weights=1.0,
                                       gamma=1.0,
                                       margin=0,
-                                      t=1):
+                                      t=1,
+                                      seed=None):
   """Compute the softmax loss based on the cosine distance explained below.
 
   Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb`
@@ -62,36 +61,50 @@ def softmax_loss_with_negative_mining(user_emb,
     gamma: smooth coefficient of softmax
     margin: the margin between positive pair and negative pair
     t: coefficient of support vector guided softmax loss
+    seed: A Python integer. Used to create a random seed for the distribution.
+      See `tf.set_random_seed`
+      for behavior.
+
   Return:
     support vector guided softmax loss of positive labels
   """
-  batch_size = get_shape_list(item_emb)[0]
-  assert 0 < num_negative_samples < batch_size, '`num_negative_samples` should be in range [1, batch_size)'
+  assert 0 < num_negative_samples, '`num_negative_samples` should be greater than 0'
 
-  if not embed_normed:
-    user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
-    item_emb = tf.nn.l2_normalize(item_emb, axis=-1)
+  batch_size = tf.shape(item_emb)[0]
+  is_valid = tf.assert_less(
+      num_negative_samples,
+      batch_size,
+      message='`num_negative_samples` should be less than batch_size')
+  with tf.control_dependencies([is_valid]):
+    if not embed_normed:
+      user_emb = tf.nn.l2_normalize(user_emb, axis=-1)
+      item_emb = tf.nn.l2_normalize(item_emb, axis=-1)
 
-  vectors = [item_emb]
-  for i in range(num_negative_samples):
-    shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32)
-    neg_item_emb = tf.roll(item_emb, shift, axis=0)
-    vectors.append(neg_item_emb)
-  # all_embeddings's shape: (batch_size, num_negative_samples + 1, vec_dim)
-  all_embeddings = tf.stack(vectors, axis=1)
+    vectors = [item_emb]
+    for i in range(num_negative_samples):
+      shift = tf.random_uniform([], 1, batch_size, dtype=tf.int32, seed=seed)
+      neg_item_emb = tf.roll(item_emb, shift, axis=0)
+      vectors.append(neg_item_emb)
+    # all_embeddings's shape: (batch_size, num_negative_samples + 1, vec_dim)
+    all_embeddings = tf.stack(vectors, axis=1)
 
-  mask = tf.greater(labels, 0)
-  mask_user_emb = tf.boolean_mask(user_emb, mask)
-  mask_item_emb = tf.boolean_mask(all_embeddings, mask)
-  if isinstance(weights, tf.Tensor):
-    weights = tf.boolean_mask(weights, mask)
+    mask = tf.greater(labels, 0)
+    mask_user_emb = tf.boolean_mask(user_emb, mask)
+    mask_item_emb = tf.boolean_mask(all_embeddings, mask)
+    if isinstance(weights, tf.Tensor):
+      weights = tf.boolean_mask(weights, mask)
 
-  # sim_scores's shape: (num_of_pos_label_in_batch_size, num_negative_samples + 1)
-  sim_scores = tf.keras.backend.batch_dot(
-      mask_user_emb, mask_item_emb, axes=(1, 2))
-  pos_score = tf.slice(sim_scores, [0, 0], [-1, 1])
-  neg_scores = tf.slice(sim_scores, [0, 1], [-1, -1])
+    # sim_scores's shape: (num_of_pos_label_in_batch_size, num_negative_samples + 1)
+    sim_scores = tf.keras.backend.batch_dot(
+        mask_user_emb, mask_item_emb, axes=(1, 2))
+    pos_score = tf.slice(sim_scores, [0, 0], [-1, 1])
+    neg_scores = tf.slice(sim_scores, [0, 1], [-1, -1])
 
-  loss = support_vector_guided_softmax_loss(
-      pos_score, neg_scores, margin=margin, t=t, smooth=gamma, weights=weights)
+    loss = support_vector_guided_softmax_loss(
+        pos_score,
+        neg_scores,
+        margin=margin,
+        t=t,
+        smooth=gamma,
+        weights=weights)
   return loss

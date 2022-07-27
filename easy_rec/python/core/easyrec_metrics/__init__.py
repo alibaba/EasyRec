@@ -18,4 +18,7 @@ if distribute_eval == 'True':
     logging.info('Will use distribute tf metrics impl')
     from easy_rec.python.core.easyrec_metrics import distribute_metrics_impl_tf as metrics_tf
 else:
-  from tensorflow import metrics as metrics_tf
+  if tf.__version__ >= '2.0':
+    from tensorflow.compat.v1 import metrics as metrics_tf
+  else:
+    from tensorflow import metrics as metrics_tf

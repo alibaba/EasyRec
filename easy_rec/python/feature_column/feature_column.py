@@ -1,5 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import collections
 import logging
 
 import tensorflow as tf
@@ -18,6 +19,7 @@ if tf.__version__ >= '2.0':
 else:
   min_max_variable_partitioner = tf.min_max_variable_partitioner
 
+MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
 class FeatureKeyError(KeyError):
 
@@ -33,6 +35,9 @@ class SharedEmbedding(object):
     self.sequence_combiner = sequence_combiner
 
 
+EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
+
+
 class FeatureColumnParser(object):
   """Parse and generate feature columns."""
 
@@ -40,7 +45,7 @@ class FeatureColumnParser(object):
                feature_configs,
                wide_deep_dict={},
                wide_output_dim=-1,
-               use_embedding_variable=False):
+               ev_params=None):
     """Initializes a `FeatureColumnParser`.
 
     Args:
@@ -51,7 +56,7 @@ class FeatureColumnParser(object):
         easy_rec.python.layers.input_layer.InputLayer, it is defined in
         easy_rec.python.protos.easy_rec_model_pb2.EasyRecModel.feature_groups
       wide_output_dim: output dimension for wide columns
-      use_embedding_variable: use EmbeddingVariable, which is provided by pai-tf
+      ev_params: params used by EmbeddingVariable, which is provided by pai-tf
     """
     self._feature_configs = feature_configs
     self._wide_output_dim = wide_output_dim
@@ -63,13 +68,16 @@ class FeatureColumnParser(object):
     self._share_embed_names = {}
     self._share_embed_infos = {}
 
-    self._use_embedding_variable = use_embedding_variable
     self._vocab_size = {}
+
+    self._global_ev_params = None
+    if ev_params is not None:
+      self._global_ev_params = self._build_ev_params(ev_params)
 
     def _cmp_embed_config(a, b):
       return a.embedding_dim == b.embedding_dim and a.combiner == b.combiner and\
           a.initializer == b.initializer and a.max_partitions == b.max_partitions and\
-          a.use_embedding_variable == b.use_embedding_variable
+          a.embedding_name == b.embedding_name
 
     for config in self._feature_configs:
       if not config.HasField('embedding_name'):
@@ -133,30 +141,36 @@ class FeatureColumnParser(object):
         initializer = hyperparams_builder.build_initializer(
             self._share_embed_infos[embed_name].initializer)
       partitioner = self._build_partitioner(self._share_embed_infos[embed_name])
-      use_ev = self._use_embedding_variable or \
-          self._share_embed_infos[embed_name].use_embedding_variable
+
+      if self._share_embed_infos[embed_name].HasField('ev_params'):
+        ev_params = self._build_ev_params(
+            self._share_embed_infos[embed_name].ev_params)
+      else:
+        ev_params = self._global_ev_params
+
       # for handling share embedding columns
-      share_embed_fcs = feature_column.shared_embedding_columns(
-          self._deep_share_embed_columns[embed_name],
-          self._share_embed_infos[embed_name].embedding_dim,
-          initializer=initializer,
-          shared_embedding_collection_name=embed_name,
-          combiner=self._share_embed_infos[embed_name].combiner,
-          partitioner=partitioner,
-          use_embedding_variable=use_ev)
-      self._deep_share_embed_columns[embed_name] = share_embed_fcs
+      if len(self._deep_share_embed_columns[embed_name]) > 0:
+        share_embed_fcs = feature_column.shared_embedding_columns(
+            self._deep_share_embed_columns[embed_name],
+            self._share_embed_infos[embed_name].embedding_dim,
+            initializer=initializer,
+            shared_embedding_collection_name=embed_name,
+            combiner=self._share_embed_infos[embed_name].combiner,
+            partitioner=partitioner,
+            ev_params=ev_params)
+        self._deep_share_embed_columns[embed_name] = share_embed_fcs
+
       # for handling wide share embedding columns
-      if len(self._wide_share_embed_columns[embed_name]) == 0:
-        continue
-      share_embed_fcs = feature_column.shared_embedding_columns(
-          self._wide_share_embed_columns[embed_name],
-          self._wide_output_dim,
-          initializer=initializer,
-          shared_embedding_collection_name=embed_name + '_wide',
-          combiner='sum',
-          partitioner=partitioner,
-          use_embedding_variable=use_ev)
-      self._wide_share_embed_columns[embed_name] = share_embed_fcs
+      if len(self._wide_share_embed_columns[embed_name]) > 0:
+        share_embed_fcs = feature_column.shared_embedding_columns(
+            self._wide_share_embed_columns[embed_name],
+            self._wide_output_dim,
+            initializer=initializer,
+            shared_embedding_collection_name=embed_name + '_wide',
+            combiner='sum',
+            partitioner=partitioner,
+            ev_params=ev_params)
+        self._wide_share_embed_columns[embed_name] = share_embed_fcs
 
     for fc_name in self._deep_columns:
       fc = self._deep_columns[fc_name]
@@ -217,6 +231,14 @@ class FeatureColumnParser(object):
       self._vocab_size[vocab_path] = vocabulary_size
       return vocabulary_size
 
+  def _get_hash_bucket_size(self, config):
+    if not config.HasField('hash_bucket_size'):
+      return -1
+    if self._global_ev_params is not None or config.HasField('ev_params'):
+      return MAX_HASH_BUCKET_SIZE
+    else:
+      return config.hash_bucket_size
+
   def parse_id_feature(self, config):
     """Generate id feature columns.
 
@@ -227,7 +249,7 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    hash_bucket_size = config.hash_bucket_size
+    hash_bucket_size = self._get_hash_bucket_size(config)
     if hash_bucket_size > 0:
       fc = feature_column.categorical_column_with_hash_bucket(
           config.input_names[0], hash_bucket_size=hash_bucket_size)
@@ -261,8 +283,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    hash_bucket_size = config.hash_bucket_size
-    if config.HasField('hash_bucket_size'):
+    hash_bucket_size = self._get_hash_bucket_size(config)
+    if hash_bucket_size > 0:
       tag_fc = feature_column.categorical_column_with_hash_bucket(
           config.input_names[0], hash_bucket_size, dtype=tf.string)
     elif config.vocab_list:
@@ -370,7 +392,7 @@ class FeatureColumnParser(object):
     """
     assert len(config.input_names) >= 2
     fc = feature_column.crossed_column(
-        config.input_names, config.hash_bucket_size, hash_key=None)
+        config.input_names, self._get_hash_bucket_size(config), hash_key=None)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)
@@ -386,7 +408,7 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
     assert config.HasField('hash_bucket_size')
-    hash_bucket_size = config.hash_bucket_size
+    hash_bucket_size = self._get_hash_bucket_size(config)
     fc = feature_column.categorical_column_with_hash_bucket(
         feature_name, hash_bucket_size, dtype=tf.string)
 
@@ -408,7 +430,7 @@ class FeatureColumnParser(object):
         'Current sub_feature_type only support IdFeature and RawFeature.'
     if sub_feature_type == config.IdFeature:
       if config.HasField('hash_bucket_size'):
-        hash_bucket_size = config.hash_bucket_size
+        hash_bucket_size = self._get_hash_bucket_size(config)
         fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
             config.input_names[0], hash_bucket_size, dtype=tf.string)
       elif config.vocab_list:
@@ -430,7 +452,7 @@ class FeatureColumnParser(object):
       fc = sequence_feature_column.sequence_numeric_column(
           config.input_names[0], shape=(1,))
       if config.hash_bucket_size > 0:
-        hash_bucket_size = config.hash_bucket_size
+        hash_bucket_size = self._get_hash_bucket_size(config)
         assert sub_feature_type == config.IdFeature, \
             'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
       elif config.boundaries:
@@ -474,7 +496,7 @@ class FeatureColumnParser(object):
 
   def _build_partitioner(self, config):
     if config.max_partitions > 1:
-      if self._use_embedding_variable or config.use_embedding_variable:
+      if self._global_ev_params is not None or config.HasField('ev_params'):
         # pai embedding_variable should use fixed_size_partitioner
         return tf.fixed_size_partitioner(num_shards=config.max_partitions)
       else:
@@ -517,14 +539,17 @@ class FeatureColumnParser(object):
       initializer = None
       if config.HasField('initializer'):
         initializer = hyperparams_builder.build_initializer(config.initializer)
+      if config.HasField('ev_params'):
+        ev_params = self._build_ev_params(config.ev_params)
+      else:
+        ev_params = self._global_ev_params
       wide_fc = feature_column.embedding_column(
           fc,
           self._wide_output_dim,
           combiner='sum',
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          use_embedding_variable=self._use_embedding_variable or
-          config.use_embedding_variable)
+          ev_params=ev_params)
     self._wide_columns[feature_name] = wide_fc
 
   def _add_deep_embedding_column(self, fc, config):
@@ -538,14 +563,17 @@ class FeatureColumnParser(object):
       initializer = None
       if config.HasField('initializer'):
         initializer = hyperparams_builder.build_initializer(config.initializer)
+      if config.HasField('ev_params'):
+        ev_params = self._build_ev_params(config.ev_params)
+      else:
+        ev_params = self._global_ev_params
       fc = feature_column.embedding_column(
           fc,
           config.embedding_dim,
           combiner=config.combiner,
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          use_embedding_variable=self._use_embedding_variable or
-          config.use_embedding_variable)
+          ev_params=ev_params)
       fc.max_seq_length = config.max_seq_len if config.HasField(
           'max_seq_len') else -1
 
@@ -555,3 +583,10 @@ class FeatureColumnParser(object):
       if config.HasField('sequence_combiner'):
         fc.sequence_combiner = config.sequence_combiner
       self._sequence_columns[feature_name] = fc
+
+  def _build_ev_params(self, ev_params):
+    """Build embedding_variables params."""
+    ev_params = EVParams(
+        ev_params.filter_freq,
+        ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
+    return ev_params
