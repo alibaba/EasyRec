@@ -72,13 +72,13 @@ def get_available_gpus():
   return gpus
 
 
-def run_cmd(cmd_str, log_file):
+def run_cmd(cmd_str, log_file, env=None):
   """Run a shell cmd."""
   cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
   logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
     return subprocess.Popen(
-        cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True)
+        cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True, env=env)
 
 
 def RunAsSubprocess(f):

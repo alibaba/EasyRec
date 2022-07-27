@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import sys
+import os
 import logging
 import argparse
 from kafka import KafkaProducer
@@ -18,6 +19,7 @@ if __name__ == '__main__':
   parser.add_argument('--group', type=str, default='consumer')
   parser.add_argument('--partitions', type=str, default=None)
   parser.add_argument('--timeout', type=float, default=float('inf'))
+  parser.add_argument('--save_dir', type=str, default=None)
   args = parser.parse_args()
 
   if args.topic is None:
@@ -43,4 +45,8 @@ if __name__ == '__main__':
   for x in consumer:
     logging.info("%d: key=%s\toffset=%d\ttimestamp=%d\tlen=%d" % (record_id, x.key, x.offset,
         x.timestamp, len(x.value)))
+    if args.save_dir is not None:
+      save_path = os.path.join(args.save_dir, x.key)
+      with open(save_path, 'wb') as fout:
+        fout.write(x.value)
     record_id += 1

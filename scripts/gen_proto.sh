@@ -15,5 +15,3 @@ if [ $? -ne 0 ]
 then
   exit 1
 fi
-
-cp easy_rec/python/protos/dataset_pb2.py  easy_rec/python/protos/tf_predict_pb2.py processor/

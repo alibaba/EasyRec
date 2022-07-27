@@ -278,27 +278,31 @@ class KafkaTest(tf.test.TestCase):
 
   def _test_kafka_processor(self, config_path): 
     self._success = False 
-    success = test_utils.test_distributed_train_eval(config_path, self._test_dir)
+    success = test_utils.test_distributed_train_eval(config_path, self._test_dir,
+       total_steps=500)
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config 
            --export_dir %s/export/sep/ --oss_path=%s --oss_ak=%s --oss_sk=%s --oss_endpoint=%s
            --asset_files ./samples/rtp_fg/fg.json 
+           --checkpoint_path %s/train/model.ckpt-0
     """ % (self._test_dir, self._test_dir, os.environ['oss_path'], os.environ['oss_ak'],
-       os.environ['oss_sk'], os.environ['oss_endpoint'])
+       os.environ['oss_sk'], os.environ['oss_endpoint'], self._test_dir)
     proc = test_utils.run_cmd(export_cmd, '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     files = gfile.Glob(os.path.join(self._test_dir, 'export/sep/[1-9][0-9]*'))
     export_sep_dir = files[0]
-  
+
     predict_cmd = """
         python processor/test.py --saved_model_dir %s
            --input_path data/test/rtp/taobao_test_feature.txt 
-           --output_path %s/processor.out  
-           --data_config processor/dataset.config 
-     """ % (export_sep_dir, self._test_dir)
-    proc = test_utils.run_cmd(predict_cmd, '%s/log_processor.txt' % self._test_dir)
+           --output_path %s/processor.out  --test_dir %s
+     """ % (export_sep_dir, self._test_dir, self._test_dir)
+    envs = dict(os.environ)
+    envs['PYTHONPATH'] = 'processor/'
+    proc = test_utils.run_cmd(predict_cmd, '%s/log_processor.txt' % self._test_dir,
+        env=envs)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
 
@@ -308,8 +312,7 @@ class KafkaTest(tf.test.TestCase):
         line_str = line_str.strip()
         processor_out.append(json.loads(line_str))
    
-    tf.load_op_library(os.path.join(easy_rec.ops_dir, 'libembed_op.so'))
-    predictor = Predictor(os.path.join(self._test_dir, 'export/sep/')) 
+    predictor = Predictor(os.path.join(self._test_dir, 'train/export/final/')) 
     with open('data/test/rtp/taobao_test_feature.txt', 'r') as fin:
       inputs = []
       for line_str in fin:
@@ -317,7 +320,7 @@ class KafkaTest(tf.test.TestCase):
         line_tok = line_str.split(';')[-1]
         line_tok = line_tok.split(chr(2))
         inputs.append(line_tok)
-    output_res = predictor.predict(inputs, batch_size=32)
+    output_res = predictor.predict(inputs, batch_size=1024)
 
     with open('%s/predictor.out' % self._test_dir, 'w') as fout:
       for i in range(len(output_res)):

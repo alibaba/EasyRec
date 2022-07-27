@@ -40,7 +40,7 @@ class KafkaInput(Input):
     if self._kafka is not None:
       consumer = KafkaConsumer(group_id='kafka_dataset_consumer', 
            bootstrap_servers=[self._kafka.server],
-           api_version_auto_timeout_ms=10000) # in miliseconds
+           api_version_auto_timeout_ms=60000) # in miliseconds
       partitions = consumer.partitions_for_topic(self._kafka.topic)
       self._num_partition = len(partitions)
       logging.info('all partitions[%d]: %s' % (self._num_partition, partitions))

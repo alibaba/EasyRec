@@ -342,6 +342,13 @@ class CheckpointSaverHook(CheckpointSaverHook):
     self._data_offset_var = data_offset_var
 
     if increment_save_config is not None:
+      self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
+      logging.info('KAFKA_TIMEOUT: %dms' % self._kafka_timeout_ms)
+      self._kafka_max_req_size = os.environ.get('KAFKA_MAX_REQ_SIZE', 1024 * 1024 * 64)
+      logging.info('KAFKA_MAX_REQ_SIZE: %d' % self._kafka_max_req_size)
+      self._kafka_max_msg_size = os.environ.get('KAFKA_MAX_MSG_SIZE', 1024 * 1024 * 1024)
+      logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
+
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids() 
 
@@ -378,17 +385,22 @@ class CheckpointSaverHook(CheckpointSaverHook):
         self._topic = increment_save_config.kafka.topic
         logging.info('increment save topic: %s' % self._topic)
 
-        admin_clt = KafkaAdminClient(bootstrap_servers=increment_save_config.kafka.server)
+        admin_clt = KafkaAdminClient(bootstrap_servers=increment_save_config.kafka.server,
+            request_timeout_ms=self._kafka_timeout_ms,
+            api_version_auto_timeout_ms=self._kafka_timeout_ms)
         if self._topic not in admin_clt.list_topics():
           admin_clt.create_topics(new_topics=[NewTopic(name=self._topic,
-             num_partitions=1, replication_factor=1,
-             topic_configs={'max.message.bytes':1024 * 1024 * 1024})], validate_only=False)
+               num_partitions=1, replication_factor=1,
+               topic_configs={'max.message.bytes':self._kafka_max_msg_size})],
+             validate_only=False)
         logging.info('create increment save topic: %s' % self._topic)
         admin_clt.close()
      
         servers = increment_save_config.kafka.server.split(',')
         self._kafka_producer = KafkaProducer(bootstrap_servers=servers,
-            max_request_size=1024 * 1024 * 64)
+            max_request_size=self._kafka_max_req_size, 
+            api_version_auto_timeout_ms=self._kafka_timeout_ms,
+            request_timeout_ms=self._kafka_timeout_ms)
       else:
         self._kafka_producer = None
       self._debug_save_update = increment_save_config.debug_save_update
@@ -401,7 +413,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
     if self._write_graph:
       # We do write graph and saver_def at the first call of before_run.
       # We cannot do this in begin, since we let other hooks to change graph and
-      # add variables in begin. Graph is finalized after all begin calls.
+      # add variables at begin. Graph is finalized after all begin calls.
       tf.train.write_graph(tf.get_default_graph().as_graph_def(add_shapes=True),
                            self._checkpoint_dir, 'graph.pbtxt')
       saver_def = self._get_saver().saver_def if self._get_saver() else None
@@ -424,6 +436,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
     dense_train_vals = session.run(dense_train_vars)
     logging.info("global_step=%d, increment save dense variables" % global_step)
 
+    # build msg header
     msg_num = len(dense_train_vals)
     msg_ids = [ self._dense_name_to_ids[x.op.name] for x in dense_train_vars]
     # 0 mean dense update message
@@ -431,10 +444,11 @@ class CheckpointSaverHook(CheckpointSaverHook):
     for msg_id, x in zip(msg_ids, dense_train_vals):
       msg_header.append(msg_id)
       msg_header.append(x.size)
+
+    # build msg body
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
     for x in dense_train_vals:
       bytes_buf += x.tobytes()
-  
 
     if self._kafka_producer is not None:
       msg_key = 'dense_update_%d' % global_step
@@ -463,25 +477,24 @@ class CheckpointSaverHook(CheckpointSaverHook):
     sparse_val_res = [ sparse_res[i+msg_num] for i in sel_ids ]
     sparse_train_vars = [ sparse_train_vars[i][0] for i in sel_ids ]
 
-    embed_ids = [ self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
+    sel_embed_ids = [ self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
 
     msg_num = len(sel_ids) 
- 
+
     if msg_num == 0:
       logging.warning('there are no sparse updates, will skip this send: %d' % global_step)
       return
 
+    # build msg header
     # 1 means sparse update messages
     msg_header = [1, msg_num, global_step]
-    for i in sel_ids:
-      msg_header.append(embed_ids[i])
-      msg_header.append(len(sparse_key_res[i])) 
+    for tmp_id, tmp_key in zip(sel_embed_ids, sparse_key_res):
+      msg_header.append(tmp_id)
+      msg_header.append(len(tmp_key))
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
-    for i in sel_ids:
-      tmp_id = embed_ids[i]
-      tmp_key = sparse_key_res[i]
-      tmp_val = sparse_val_res[i]
-      tmp_var = sparse_train_vars[i]
+
+    # build msg body
+    for tmp_id, tmp_key, tmp_val, tmp_var in zip(sel_embed_ids, sparse_key_res, sparse_val_res, sparse_train_vars):
       # for non kv embedding variables, add partition offset to tmp_key
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
