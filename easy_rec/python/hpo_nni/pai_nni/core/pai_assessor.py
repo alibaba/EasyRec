@@ -2,9 +2,9 @@ from nni.algorithms.hpo.medianstop_assessor import MedianstopAssessor
 from nni.assessor import AssessResult
 from nni.utils import extract_scalar_history
 
-from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import create_odps
-from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
+from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import create_odps
+from easy_rec.python.hpo_nni.pai_nni.core.utils import get_value
+from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
 
 
 class PAIAssessor(MedianstopAssessor):

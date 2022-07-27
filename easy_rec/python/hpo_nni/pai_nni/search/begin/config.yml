@@ -10,7 +10,7 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../code
+   codeDirectory: ../../core
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize

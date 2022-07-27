@@ -3,8 +3,8 @@ import logging
 
 import odps
 
-from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import try_parse
+from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
+from easy_rec.python.hpo_nni.pai_nni.core.utils import try_parse
 
 Command = collections.namedtuple('Command', ['name', 'project', 'parameters'])
 

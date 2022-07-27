@@ -9,14 +9,14 @@ import unittest
 from argparse import Namespace
 
 if platform.python_version() >= '3.7':
-  from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
-  from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_ini
-  from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
-  from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import parse_easyrec_cmd_config
+  from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import get_result
+  from easy_rec.python.hpo_nni.pai_nni.core.utils import get_value
+  from easy_rec.python.hpo_nni.pai_nni.core.utils import parse_ini
+  from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
+  from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import parse_easyrec_cmd_config
 
-  from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import get_learning_rate  # NOQA
-  from easy_rec.python.hpo_nni.pai_nni.code.modify_pipeline_config import modify_config  # NOQA
+  from easy_rec.python.hpo_nni.pai_nni.core.modify_pipeline_config import get_learning_rate  # NOQA
+  from easy_rec.python.hpo_nni.pai_nni.core.modify_pipeline_config import modify_config  # NOQA
 
 
 class PAINNITest(unittest.TestCase):
@@ -33,10 +33,10 @@ class PAINNITest(unittest.TestCase):
                                   'samples/hpo/pipeline_finetune.config')
     self.config_begin = os.path.join(
         filepath,
-        'easy_rec/python/hpo_nni/pai_nni/source_begin/config_begin.ini')
+        'easy_rec/python/hpo_nni/pai_nni/search/begin/config_begin.ini')
     self.config_finetune = os.path.join(
         filepath,
-        'easy_rec/python/hpo_nni/pai_nni/source_finetune/config_finetune.ini')
+        'easy_rec/python/hpo_nni/pai_nni/search/finetune/config_finetune.ini')
 
   def test_get_metric(self):
     vals = get_result(None, self._metric_data_path)

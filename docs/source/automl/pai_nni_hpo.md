@@ -20,7 +20,7 @@ python setup.py install
 ### 启动命令
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/source_begin
+cd easy_rec/python/hpo_nni/pai_nni/search/begin
 nnictl create --config config.yml --port=8780
 ```
 
@@ -48,7 +48,7 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../code
+   codeDirectory: ../../core
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
@@ -204,7 +204,7 @@ auc_is_valid_play=1
 ### 查看Trial详情页面
 
 点击Trials detail按钮，您可以在此页面中看到整个实验过程中，每个trial的结果情况。
-其中succeeded代表此次trial成功运行，earlystop表示该组参数运行结果不太好，被提前停止了。停止策略可以查看pai_nni/code/pai_assessor.PaiAssessor，当然也可以根据业务情况去修改。
+其中succeeded代表此次trial成功运行，earlystop表示该组参数运行结果不太好，被提前停止了。停止策略可以查看pai_nni/core/pai_assessor.PaiAssessor，当然也可以根据业务情况去修改。
 ![image.png](../../images/automl/pai_nni_detail.jpg)
 
 ### 查看作业日志详情
@@ -242,14 +242,14 @@ learning_rate {
 支持本地上pipeline文件修改
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/code
+cd easy_rec/python/hpo_nni/pai_nni/core
 python modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
 ```
 
 也支持oss上pipeline文件直接修改
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/code
+cd easy_rec/python/hpo_nni/pai_nni/core
 python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
 
@@ -258,7 +258,7 @@ python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/pipeline88
 ### 启动调优(可选)
 
 ```bash
-cd source_finetune
+cd easy_rec/python/hpo_nni/pai_nni/search/finetune
 nnictl create --config config.yml --port=8617
 ```
 
@@ -276,7 +276,7 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../code
+   codeDirectory: ../../core
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
@@ -355,7 +355,7 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承pai_nni/code/pai_assessor.PaiAssessor
+注意继承pai_nni/core/pai_assessor.PaiAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
 
 ```

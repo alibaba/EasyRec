@@ -1,9 +1,9 @@
 import argparse
 import os
 
-from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import copy_file
-from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import upload_file
-from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import copy_file
+from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import upload_file
+from easy_rec.python.hpo_nni.pai_nni.core.utils import parse_config
 from easy_rec.python.utils import config_util
 
 

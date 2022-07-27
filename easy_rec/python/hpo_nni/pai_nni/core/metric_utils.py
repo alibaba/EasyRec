@@ -9,8 +9,8 @@ import oss2
 from tensorflow.python.platform import gfile
 from tensorflow.python.summary import summary_iterator
 
-from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
+from easy_rec.python.hpo_nni.pai_nni.core.utils import get_value
+from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
 
 
 def judge_key(metric_dict, event_res):
