@@ -1,3 +1,4 @@
+import configparser
 import json
 import os
 import pathlib
@@ -74,3 +75,26 @@ def parse_config(config_path):
         val = try_parse(line_str[(tmp_id + 1):].strip())
         config[key] = val
   return config
+
+
+class myconf(configparser.ConfigParser):
+  # the origin configParser try to convert the key to lower
+  def optionxform(self, optionstr):
+    return optionstr
+
+  def as_dict(self):
+    dict_section = dict(self._sections)
+    for key in dict_section:
+      dict_section[key] = dict(dict_section[key])
+
+      # ini val is string, so need the parse it
+      for sub_key in dict_section[key]:
+        dict_section[key][sub_key] = try_parse(dict_section[key][sub_key])
+    return dict_section
+
+
+def parse_ini(file_path):
+  config = myconf()
+  config.read(file_path, encoding='utf8')
+  dict_section = config.as_dict()
+  return dict_section

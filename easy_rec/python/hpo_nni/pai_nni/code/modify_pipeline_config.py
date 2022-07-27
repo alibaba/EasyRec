@@ -3,6 +3,7 @@ import os
 
 from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import copy_file
 from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import upload_file
+from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
 from easy_rec.python.utils import config_util
 
 
@@ -12,12 +13,12 @@ def get_params():
       '--pipeline_config_path',
       type=str,
       help='pipeline config path',
-      default='../config/pipeline.config')
+      default='../../../../../samples/hpo/pipeline.config')
   parser.add_argument(
       '--save_path',
       type=str,
       help='modify pipeline config path',
-      default='../config/pipeline_finetune.config')
+      default='../../../../../samples/hpo/pipeline_finetune.config')
   parser.add_argument(
       '--learning_rate',
       type=float,
@@ -27,15 +28,16 @@ def get_params():
       '--oss_config',
       type=str,
       help='excel config path',
-      default='../config/.ossutilconfig')
+      default=os.path.join(os.path.expanduser('~'), '.ossutilconfig'))
   args, _ = parser.parse_known_args()
   return args
 
 
 def modify_config(args):
   if args.pipeline_config_path.startswith('oss://'):
+    oss_config = parse_config(args.oss_config)
     print('pipeline_config_path:', args.pipeline_config_path)
-    copy_file(args.pipeline_config_path, './temp.config')
+    copy_file(args.pipeline_config_path, './temp.config', oss_config=oss_config)
     pipeline_config_path = './temp.config'
   else:
     pipeline_config_path = args.pipeline_config_path
@@ -87,16 +89,29 @@ def modify_config(args):
       pipeline_config=pipeline_config, directory=save_dir, filename=file_name)
 
   if args.save_path.startswith('oss://'):
-    upload_file(args.save_path, './pipeline_finetune.config')
+    oss_config = parse_config(args.oss_config)
+    upload_file(
+        args.save_path, './pipeline_finetune.config', oss_config=oss_config)
     os.remove(save_path)
 
   if args.pipeline_config_path.startswith('oss://'):
     os.remove(pipeline_config_path)
 
 
-def get_learning_rate(pipeline_config_path):
+def get_learning_rate(args):
+
+  if args.save_path.startswith('oss://'):
+    oss_config = parse_config(args.oss_config)
+    print('pipeline_config_path:', args.save_path)
+    copy_file(args.save_path, './temp.config', oss_config=oss_config)
+    pipeline_config_path = './temp.config'
+  else:
+    pipeline_config_path = args.save_path
+
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
+  if args.save_path.startswith('oss://'):
+    os.remove(pipeline_config_path)
   optimizer_configs = pipeline_config.train_config.optimizer_config
   for optimizer_config in optimizer_configs:
     optimizer = optimizer_config.WhichOneof('optimizer')
@@ -118,4 +133,4 @@ if __name__ == '__main__':
   args = get_params()
   print('args:', args)
   modify_config(args)
-  print('final learning_rate:', get_learning_rate(args.save_path))
+  print('final learning_rate:', get_learning_rate(args))

@@ -1,6 +1,6 @@
 experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_begin.py --config=./config_begin --exp_dir=../exp
+trialCommand: python3 ./run_begin.py --config=./config_begin.ini --exp_dir=../exp
 trialConcurrency: 1
 maxTrialNumber: 1
 tuner:

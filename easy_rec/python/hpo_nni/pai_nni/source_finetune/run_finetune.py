@@ -1,5 +1,5 @@
 import argparse
-import ast
+import copy
 import datetime
 import json
 import logging
@@ -10,14 +10,17 @@ import nni
 from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import create_odps
 from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import run_command
-from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_ini
 from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
 
 
 def get_params():
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--config', type=str, help='config path', default='./config_finetune')
+      '--config',
+      type=str,
+      help='config path',
+      default='./config_finetune.ini.ini')
   parser.add_argument('--exp_dir', type=str, help='exp dir', default='../exp')
   parser.add_argument(
       '--start_time',
@@ -36,15 +39,21 @@ if __name__ == '__main__':
     args = get_params()
     print('args:', args)
 
-    config = parse_config(args.config)
-    metric_dict = ast.literal_eval(config['metric_hpo'])
+    config = parse_ini(args.config)
+
+    metric_dict = config['metric_config']
     print('metric dict:', metric_dict)
 
+    odps_config = config['odps_config']
+    print('odps_config:', odps_config)
+
+    oss_config = config['oss_config']
+
     o = create_odps(
-        access_id=config['accessKeyID'],
-        access_key=config['accessKeySecret'],
-        project=config['project_name'],
-        endpoint=config['odps_endpoint'])
+        access_id=oss_config['accessKeyID'],
+        access_key=oss_config['accessKeySecret'],
+        project=odps_config['project_name'],
+        endpoint=odps_config['odps_endpoint'])
 
     # get parameters form tuner
     tuner_params = nni.get_next_parameter()
@@ -54,10 +63,10 @@ if __name__ == '__main__':
     trial_id = str(nni.get_trial_id())
 
     # for early stop,kill mc instance
-    set_value('access_id', config['accessKeyID'], trial_id=trial_id)
-    set_value('access_key', config['accessKeySecret'], trial_id=trial_id)
-    set_value('project', config['project_name'], trial_id=trial_id)
-    set_value('endpoint', config['odps_endpoint'], trial_id=trial_id)
+    set_value('access_id', oss_config['accessKeyID'], trial_id=trial_id)
+    set_value('access_key', oss_config['accessKeySecret'], trial_id=trial_id)
+    set_value('project', odps_config['project_name'], trial_id=trial_id)
+    set_value('endpoint', odps_config['odps_endpoint'], trial_id=trial_id)
 
     datestart = datetime.datetime.strptime(args.start_time, '%Y-%m-%d')
     dateend = datetime.datetime.strptime(args.end_time, '%Y-%m-%d')
@@ -66,38 +75,40 @@ if __name__ == '__main__':
     cnt = 0
     while (datestart <= dateend):
       print('datestart:', datestart.strftime('%Y%m%d'))
-      config = parse_config(args.config)
+      easyrec_cmd_config = copy.deepcopy(config['easyrec_cmd_config'])
 
       # update parameter
-      pre_edit = eval(config.get('-Dedit_config_json', '{}'))
+      pre_edit = eval(easyrec_cmd_config.get('-Dedit_config_json', '{}'))
       pre_edit.update(tuner_params)
       if cnt > 0:
         pre_edit['train_config.fine_tune_checkpoint'] = os.path.join(
             pre_edit['train_config.fine_tune_checkpoint'],
             experment_id + '_' + trial_id)
       edit_json = json.dumps(pre_edit)
-      config['-Dedit_config_json'] = edit_json
-      print('-Dedit_config_json:', config['-Dedit_config_json'])
-      config['-Dtrain_tables'] = config['-Dtrain_tables'].replace(
-          '{bizdate}', datestart.strftime('%Y%m%d'))
+      easyrec_cmd_config['-Dedit_config_json'] = edit_json
+      print('-Dedit_config_json:', easyrec_cmd_config['-Dedit_config_json'])
+      easyrec_cmd_config['-Dtrain_tables'] = easyrec_cmd_config[
+          '-Dtrain_tables'].replace('{bizdate}', datestart.strftime('%Y%m%d'))
 
       next_day = datestart + datetime.timedelta(days=1)
-      config['-Deval_tables'] = config['-Deval_tables'].replace(
-          '{eval_ymd}', next_day.strftime('%Y%m%d'))
+      easyrec_cmd_config['-Deval_tables'] = easyrec_cmd_config[
+          '-Deval_tables'].replace('{eval_ymd}', next_day.strftime('%Y%m%d'))
 
       pre_day = datestart - datetime.timedelta(days=1)
-      config['-Dedit_config_json'] = config['-Dedit_config_json'].replace(
-          '{predate}', pre_day.strftime('%Y%m%d'))
+      easyrec_cmd_config['-Dedit_config_json'] = easyrec_cmd_config[
+          '-Dedit_config_json'].replace('{predate}', pre_day.strftime('%Y%m%d'))
 
-      config['-Dmodel_dir'] = config['-Dmodel_dir'].replace(
-          '{bizdate}', datestart.strftime('%Y%m%d'))
-      config['-Dmodel_dir'] = os.path.join(config['-Dmodel_dir'],
-                                           experment_id + '_' + trial_id)
+      easyrec_cmd_config['-Dmodel_dir'] = easyrec_cmd_config[
+          '-Dmodel_dir'].replace('{bizdate}', datestart.strftime('%Y%m%d'))
+      easyrec_cmd_config['-Dmodel_dir'] = os.path.join(
+          easyrec_cmd_config['-Dmodel_dir'], experment_id + '_' + trial_id)
+
+      print('easyrec_cmd_config:', easyrec_cmd_config)
 
       # trial id for early stop
-      run_command(o, config, trial_id)
+      run_command(o, easyrec_cmd_config, trial_id)
 
-      filepath = os.path.join(config['-Dmodel_dir'], 'eval_val/')
+      filepath = os.path.join(easyrec_cmd_config['-Dmodel_dir'], 'eval_val/')
       dst_filepath = os.path.join(args.exp_dir, experment_id + '_' + trial_id,
                                   datestart.strftime('%Y%m%d'))
       print('filepath:', filepath)
@@ -107,7 +118,7 @@ if __name__ == '__main__':
           dst_filepath,
           metric_dict,
           trial_id,
-          oss_config=config,
+          oss_config=oss_config,
           nni_report=False)
       if best_res:
         nni.report_intermediate_result(best_res)

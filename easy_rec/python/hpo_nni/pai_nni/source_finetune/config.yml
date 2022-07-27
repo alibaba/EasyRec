@@ -1,5 +1,5 @@
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --config=./config_finetune --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
+trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
 trialConcurrency: 1
 maxTrialNumber: 1
 tuner:

@@ -138,7 +138,7 @@ def copy_file(ori_filepath, dst_filepath, oss_config=None):
 
 
 def upload_file(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy from', ori_filepath, 'to ', dst_filepath)
+  print('start upload to', ori_filepath, 'from ', dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   bucket.put_object_from_file(path, dst_filepath)
 

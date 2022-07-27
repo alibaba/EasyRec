@@ -38,7 +38,7 @@ config.yml是作为NNI的配置文件，将代码和搜索空间进行结合，�
 ```
 experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_begin.py --config=./config_begin --exp_dir=../exp
+trialCommand: python3 ./run_begin.py --config=./config_begin.ini --exp_dir=../exp
 trialConcurrency: 1
 maxTrialNumber: 1
 tuner:
@@ -60,21 +60,21 @@ assessor:
 建议：刚开始设置为1，调测代码成功后，可以调大并发度。
 ![image.png](../../images/automl/pai_nni_modify.jpg)
 
-#### config_begin 配置文件
+#### 配置 config_begin.ini
 
 配置文件中包含oss配置、odps配置、easyrec命令配置、超参搜索评估方法配置。
 
 ```
-# oss config
+[oss_config]
 endpoint=http://oss-cn-beijing.aliyuncs.com
 accessKeyID=xxx
 accessKeySecret=xxx
 
-# odps config
+[odps_config]
 project_name=pai_rec_dev
 odps_endpoint=http://service.odps.aliyun.com/api
 
-# easyrec_cmd_config
+[easyrec_cmd_config]
 -name=easy_rec_ext
 -project=algo_public
 -Dversion="0.4.2"
@@ -89,8 +89,8 @@ odps_endpoint=http://service.odps.aliyun.com/api
 -DossHost=oss-cn-beijing-internal.aliyuncs.com
 -Deval_method=separate
 
-# metric config
-metric_hpo={'auc':1}
+[metric_config]
+auc=1
 
 ```
 
@@ -98,7 +98,7 @@ metric_hpo={'auc':1}
 
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 
-推荐按照以下方式将相关参数以key=value的方式写入config
+按照以下方式将相关参数以key=value的方式写入easyrec_cmd_config下
 
 ```
 -name=easy_rec_ext
@@ -116,12 +116,16 @@ metric_hpo={'auc':1}
 -Deval_method=separate
 ```
 
-##### metric_hpo : 超参数评估方法
+##### metric_config : 超参数评估方法
+
+按照以下方式将相关参数以key=value的方式写入metric_config下
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25
 
 ```json
-metric_hpo={'auc_is_valid_play':0.5,'auc_is_like':0.25,'auc_is_comment':0.25}
+auc_is_valid_play=0.5
+auc_is_like=0.25
+auc_is_comment=0.25
 ```
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25-val('loss_play_time')\*0.25
@@ -129,13 +133,16 @@ metric_hpo={'auc_is_valid_play':0.5,'auc_is_like':0.25,'auc_is_comment':0.25}
 注意：如果按照metric越大越好的方式优化，loss相关的指标权重定义为负值。
 
 ```json
-metric_hpo={'auc_is_valid_play':0.5,'auc_is_like':0.25,'auc_is_comment':0.25, 'loss_play_time':-0.25}
+auc_is_valid_play=0.5
+auc_is_like=0.25
+auc_is_comment=0.25
+loss_play_time=-0.25
 ```
 
 单目标示例：metric=val('auc_is_valid_play')\*1
 
 ```json
-metric_hpo={'auc_is_valid_play':1}
+auc_is_valid_play=1
 ```
 
 #### 配置超参搜索空间search_space.json
@@ -155,7 +162,7 @@ metric_hpo={'auc_is_valid_play':1}
 
 ```
 
-常见搜索空间可以参考：pai_nni/config/search_space.json
+常见搜索空间可以参考：easy_rec/samples/hpo/search_space.json
 
 ##### key配置注意项
 
@@ -243,7 +250,7 @@ python modify_pipeline_config.py --pipeline_config_path=../config/pipeline.confi
 
 ```bash
 cd easy_rec/python/hpo_nni/pai_nni/code
-python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/yj374186/pipeline889.config --save_path=oss://easyrec/yj374186/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
+python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
 
 如果用户想要看是否有更优参数，可以看下级目录启动调优。
@@ -259,7 +266,7 @@ nnictl create --config config.yml --port=8617
 
 ```
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --config=./config_finetune --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
+trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
 trialConcurrency: 1
 maxTrialNumber: 1
 tuner:
@@ -278,7 +285,7 @@ assessor:
 
 #### config_finetune
 
-唯一的区别在于：easyrec命令配置文件
+唯一的区别在于：easyrec_cmd_config
 
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 

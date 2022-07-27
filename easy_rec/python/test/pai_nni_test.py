@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import ast
 import json
 import logging
 import os
@@ -12,7 +11,7 @@ from argparse import Namespace
 if platform.python_version() >= '3.7':
   from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import get_result
   from easy_rec.python.hpo_nni.pai_nni.code.utils import get_value
-  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_config
+  from easy_rec.python.hpo_nni.pai_nni.code.utils import parse_ini
   from easy_rec.python.hpo_nni.pai_nni.code.utils import set_value
   from easy_rec.python.hpo_nni.pai_nni.code.pyodps_utils import parse_easyrec_cmd_config
 
@@ -29,16 +28,15 @@ class PAINNITest(unittest.TestCase):
             os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
     self._metric_data_path = os.path.join(filepath,
                                           'data/test/hpo_test/eval_val/')
-    self.config_path = os.path.join(
-        filepath, 'easy_rec/python/hpo_nni/pai_nni/config/pipeline.config')
-    self.save_path = os.path.join(
-        filepath,
-        'easy_rec/python/hpo_nni/pai_nni/config/pipeline_finetune.config')
+    self.config_path = os.path.join(filepath, 'samples/hpo/pipeline.config')
+    self.save_path = os.path.join(filepath,
+                                  'samples/hpo/pipeline_finetune.config')
     self.config_begin = os.path.join(
-        filepath, 'easy_rec/python/hpo_nni/pai_nni/source_begin/config_begin')
+        filepath,
+        'easy_rec/python/hpo_nni/pai_nni/source_begin/config_begin.ini')
     self.config_finetune = os.path.join(
         filepath,
-        'easy_rec/python/hpo_nni/pai_nni/source_finetune/config_finetune')
+        'easy_rec/python/hpo_nni/pai_nni/source_finetune/config_finetune.ini')
 
   def test_get_metric(self):
     vals = get_result(None, self._metric_data_path)
@@ -56,25 +54,25 @@ class PAINNITest(unittest.TestCase):
         save_path=self.save_path,
         learning_rate=1e-6)
     modify_config(args)
-    self.assertAlmostEqual(get_learning_rate(self.save_path), 1e-6)
+    self.assertAlmostEqual(get_learning_rate(args), 1e-6)
 
   def test_parse_easyrec_config(self):
-    config = parse_config(self.config_begin)
+    config = parse_ini(self.config_begin)
 
-    metric_dict = ast.literal_eval(config['metric_hpo'])
+    metric_dict = config['metric_config']
     assert metric_dict['auc'] == 1
 
-    command = parse_easyrec_cmd_config(config)
+    command = parse_easyrec_cmd_config(config['easyrec_cmd_config'])
     assert command.name == 'easy_rec_ext'
     assert command.parameters['version'] == '0.4.2'
 
   def test_parse_easyrec_config_2(self):
-    config = parse_config(self.config_finetune)
+    config = parse_ini(self.config_finetune)
 
-    metric_dict = ast.literal_eval(config['metric_hpo'])
+    metric_dict = config['metric_config']
     assert metric_dict['auc_is_valid_play'] == 0.5
 
-    command = parse_easyrec_cmd_config(config)
+    command = parse_easyrec_cmd_config(config['easyrec_cmd_config'])
     assert command.name == 'easy_rec_ext'
     assert command.parameters[
         'cluster'] == '{"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}}'
