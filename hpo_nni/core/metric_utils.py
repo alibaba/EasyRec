@@ -1,3 +1,6 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import os
 import pathlib
 import re
@@ -6,11 +9,10 @@ from threading import Thread
 
 import nni
 import oss2
+from hpo_nni.core.utils import get_value
+from hpo_nni.core.utils import set_value
 from tensorflow.python.platform import gfile
 from tensorflow.python.summary import summary_iterator
-
-from easy_rec.python.hpo_nni.pai_nni.core.utils import get_value
-from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
 
 
 def judge_key(metric_dict, event_res):
@@ -44,7 +46,6 @@ def _get_best_eval_result(event_files,
             if value.HasField('simple_value'):
               event_eval_result[value.tag] = value.simple_value
 
-          # print("start get",event_eval_result)
           if len(event_eval_result) >= 2 and judge_key(metric_dict,
                                                        event_eval_result):
             temp = 0
@@ -63,12 +64,11 @@ def _get_best_eval_result(event_files,
               if trial_id:
                 set_value(
                     trial_id + '_report_step', event.step, trial_id=trial_id)
-              print('event_eval_result:', event_eval_result, ' temp metric:',
-                    temp)
+              logging.info('event_eval_result: %s, temp metric: %s',
+                           event_eval_result, temp)
 
-  except Exception as exception:
-    print('the events is not ok,read the events error')
-    print('exception:', exception)
+  except Exception:
+    logging.warning('the events is not ok,read the events error')
 
   if best_eval_result and nni_report and nni_report_final:
     nni.report_final_result(best_eval_result)
@@ -86,14 +86,15 @@ def get_result(filepath,
   if filepath:
     copy_dir(filepath, dst_filepath, oss_config)
   full_event_file_pattern = os.path.join(dst_filepath, '*.tfevents.*')
-  print('event_file:', full_event_file_pattern)
+  logging.info('event_file: %s', full_event_file_pattern)
   best_eval_result, best_event = _get_best_eval_result(
       full_event_file_pattern,
       metric_dict=metric_dict,
       trial_id=trial_id,
       nni_report=nni_report,
       use_best=use_best)
-  print('best_metric:', best_eval_result, ' best_event:', best_event)
+  logging.info('best_metric: %s', best_eval_result)
+  logging.info('best_event: %s', best_event)
   return best_eval_result, best_event
 
 
@@ -110,7 +111,7 @@ def get_bucket(ori_filepath, oss_config=None):
   bucket_name, path = m.groups()
   path = path.replace('//', '/')
   bucket_name = bucket_name.split('.')[0]
-  print('bucket_name:', bucket_name, ' path:', path)
+  logging.info('bucket_name: %s, path: %s', bucket_name, path)
 
   bucket = oss2.Bucket(auth, cname, bucket_name)
 
@@ -118,27 +119,27 @@ def get_bucket(ori_filepath, oss_config=None):
 
 
 def copy_dir(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy from', ori_filepath, 'to ', dst_filepath)
+  logging.info('start copy from %s to %s', ori_filepath, dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   for b in oss2.ObjectIterator(bucket, path, delimiter='/'):
     if not b.is_prefix():
       file_name = b.key[b.key.rindex('/') + 1:]
       if len(file_name):
         pathlib.Path(dst_filepath).mkdir(parents=True, exist_ok=True)
-        print('downloadfile-->', b.key)
+        logging.info('downloadfile--> %s', b.key)
         bucket.get_object_to_file(b.key, os.path.join(dst_filepath, file_name))
 
-  print('copy end')
+  logging.info('copy end')
 
 
 def copy_file(ori_filepath, dst_filepath, oss_config=None):
-  print('start copy from', ori_filepath, 'to ', dst_filepath)
+  logging.info('start copy from %s to %s', ori_filepath, dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   bucket.get_object_to_file(path, dst_filepath)
 
 
 def upload_file(ori_filepath, dst_filepath, oss_config=None):
-  print('start upload to', ori_filepath, 'from ', dst_filepath)
+  logging.info('start upload to %s from %s', ori_filepath, dst_filepath)
   bucket, path = get_bucket(ori_filepath=ori_filepath, oss_config=oss_config)
   bucket.put_object_from_file(path, dst_filepath)
 
@@ -172,6 +173,6 @@ def load_loop(filepath, dst_filepath, metric_dict, trial_id, oss_config,
     if trial_id and get_value(trial_id + '_exit', trial_id=trial_id) == '1':
       if best_eval_result:
         nni.report_final_result(best_eval_result)
-      print('the job end')
+      logging.info('the job end')
       break
     time.sleep(30)

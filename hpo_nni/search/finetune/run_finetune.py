@@ -1,3 +1,5 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
 import copy
 import datetime
@@ -6,12 +8,11 @@ import logging
 import os
 
 import nni
-
-from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import get_result
-from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import create_odps
-from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import run_command
-from easy_rec.python.hpo_nni.pai_nni.core.utils import parse_ini
-from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
+from hpo_nni.core.metric_utils import get_result
+from hpo_nni.core.pyodps_utils import create_odps
+from hpo_nni.core.pyodps_utils import run_command
+from hpo_nni.core.utils import parse_ini
+from hpo_nni.core.utils import set_value
 
 
 def get_params():

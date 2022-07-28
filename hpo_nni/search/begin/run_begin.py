@@ -1,15 +1,16 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
 import json
 import logging
 import os
 
 import nni
-
-from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import report_result
-from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import create_odps
-from easy_rec.python.hpo_nni.pai_nni.core.pyodps_utils import run_command
-from easy_rec.python.hpo_nni.pai_nni.core.utils import parse_ini
-from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
+from hpo_nni.core.metric_utils import report_result
+from hpo_nni.core.pyodps_utils import create_odps
+from hpo_nni.core.pyodps_utils import run_command
+from hpo_nni.core.utils import parse_ini
+from hpo_nni.core.utils import set_value
 
 
 def get_params():
@@ -25,19 +26,19 @@ if __name__ == '__main__':
 
   try:
     args = get_params()
-    print('args:', args)
+    logging.info('args: %s', args)
     config = parse_ini(args.config)
 
     metric_dict = config['metric_config']
-    print('metric dict:', metric_dict)
+    logging.info('metric dict: %s', metric_dict)
 
     odps_config = config['odps_config']
-    print('odps_config:', odps_config)
+    logging.info('odps_config: %s', odps_config)
 
     oss_config = config['oss_config']
 
     easyrec_cmd_config = config['easyrec_cmd_config']
-    print('easyrec_cmd_config:', easyrec_cmd_config)
+    logging.info('easyrec_cmd_config: %s', easyrec_cmd_config)
 
     o = create_odps(
         access_id=oss_config['accessKeyID'],
@@ -63,15 +64,16 @@ if __name__ == '__main__':
     pre_edit.update(tuner_params)
     edit_json = json.dumps(pre_edit)
     easyrec_cmd_config['-Dedit_config_json'] = edit_json
-    print('-Dedit_config_json:', easyrec_cmd_config['-Dedit_config_json'])
+    logging.info('-Dedit_config_json: %s',
+                 easyrec_cmd_config['-Dedit_config_json'])
 
     # report metric
     easyrec_cmd_config['-Dmodel_dir'] = os.path.join(
         easyrec_cmd_config['-Dmodel_dir'], experment_id + '_' + trial_id)
     filepath = os.path.join(easyrec_cmd_config['-Dmodel_dir'], 'eval_val/')
     dst_filepath = os.path.join(args.exp_dir, experment_id + '_' + trial_id)
-    print('filepath:', filepath)
-    print('dst_file_path:', dst_filepath)
+    logging.info('filepath: %s', filepath)
+    logging.info('dst_file_path: %s', dst_filepath)
     report_result(
         filepath, dst_filepath, metric_dict, trial_id, oss_config=oss_config)
 

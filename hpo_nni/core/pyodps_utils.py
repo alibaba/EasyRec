@@ -1,10 +1,11 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import collections
 import logging
 
 import odps
-
-from easy_rec.python.hpo_nni.pai_nni.core.utils import set_value
-from easy_rec.python.hpo_nni.pai_nni.core.utils import try_parse
+from hpo_nni.core.utils import set_value
+from hpo_nni.core.utils import try_parse
 
 Command = collections.namedtuple('Command', ['name', 'project', 'parameters'])
 
@@ -31,7 +32,7 @@ def create_odps(project, access_id, access_key, endpoint, biz_id=None):
 
 
 def parse_easyrec_cmd_config(easyrec_cmd_config):
-  """兼容了easyrec pai命令的格式, 当val='x'时，默认会解析为"'x'",兼容后为'x' 当val="x"时，默认会解析为'"x"',兼容后为'x'."""
+  """When val='x', convert "'x'"->'x' when val="x",convert '"x"'->'x'."""
   name = easyrec_cmd_config['-name']
   project = easyrec_cmd_config['-project']
 
@@ -49,12 +50,11 @@ def parse_easyrec_cmd_config(easyrec_cmd_config):
 def run_command(o, easyrec_cmd_config, trial_id=None):
   # parse command
   command = parse_easyrec_cmd_config(easyrec_cmd_config=easyrec_cmd_config)
-  print('command', command)
+  logging.info('command %s', command)
   instance = o.run_xflow(
       xflow_name=command.name,
       xflow_project=command.project,
       parameters=command.parameters)
-  print('instance', instance)
   for inst_name, inst in o.iter_xflow_sub_instances(instance):
     logging.info('inst name: %s', inst_name)
     logging.info(inst.get_logview_address())

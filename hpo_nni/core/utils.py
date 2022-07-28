@@ -1,3 +1,5 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import configparser
 import json
 import os
@@ -52,12 +54,12 @@ def try_parse(v):
 
 
 def parse_config(config_path):
-  """config_path是相关配置路径,以key=value的形式组织!
+  """config_path is the path.
 
-  例如：
-  config_path内容为:
+  such as ：
+  config_path content:
       val/img_tag_tags_mean_average_precision=1
-  输出为dict:
+  Returns dict:
       {"val/img_tag_tags_mean_average_precision":1}
   """
   assert os.path.exists(config_path)
@@ -77,7 +79,7 @@ def parse_config(config_path):
   return config
 
 
-class myconf(configparser.ConfigParser):
+class MyConf(configparser.ConfigParser):
   # the origin configParser try to convert the key to lower
   def optionxform(self, optionstr):
     return optionstr
@@ -94,7 +96,7 @@ class myconf(configparser.ConfigParser):
 
 
 def parse_ini(file_path):
-  config = myconf()
+  config = MyConf()
   config.read(file_path, encoding='utf8')
   dict_section = config.as_dict()
   return dict_section

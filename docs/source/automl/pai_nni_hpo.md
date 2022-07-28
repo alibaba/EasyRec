@@ -20,8 +20,7 @@ python setup.py install
 ### 启动命令
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/search/begin
-nnictl create --config config.yml --port=8780
+nnictl create --config hpo_nni/search/begin/config.yml --port=8780
 ```
 
 其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。
@@ -162,7 +161,7 @@ auc_is_valid_play=1
 
 ```
 
-常见搜索空间可以参考：easy_rec/samples/hpo/search_space.json
+常见搜索空间可以参考：samples/hpo/search_space.json
 
 ##### key配置注意项
 
@@ -242,15 +241,13 @@ learning_rate {
 支持本地上pipeline文件修改
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/core
-python modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
+python hpo_nni/core/modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
 ```
 
 也支持oss上pipeline文件直接修改
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/core
-python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
+python hpo_nni/core/modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
 
 如果用户想要看是否有更优参数，可以看下级目录启动调优。
@@ -258,8 +255,7 @@ python modify_pipeline_config.py --pipeline_config_path=oss://easyrec/pipeline88
 ### 启动调优(可选)
 
 ```bash
-cd easy_rec/python/hpo_nni/pai_nni/search/finetune
-nnictl create --config config.yml --port=8617
+nnictl create --config hpo_nni/search/finetune/config.yml --port=8617
 ```
 
 #### config.yml
@@ -355,26 +351,30 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承pai_nni/core/pai_assessor.PaiAssessor
+注意继承hpo_nni/core/pai_assessor.PaiAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
 
 ```
-def trial_end(self, trial_job_id, success):
-        print("trial end")
-        if not success:
-            print("early stop kill instance")
-            access_id = get_value('access_id',trial_id=trial_job_id)
-            access_key = get_value('access_key',trial_id=trial_job_id)
-            project = get_value('project',trial_id=trial_job_id)
-            endpoint = get_value('endpoint',trial_id=trial_job_id)
-            instance = get_value(trial_job_id,trial_id=trial_job_id)
-            if access_id and access_key and project and endpoint and instance:
-                o = create_odps(access_id=access_id, access_key=access_key, project=project, endpoint=endpoint)
-                print("stop instance")
-                o.stop_instance(instance)
-                print("stop instance success")
-                # for report result
-                set_value(trial_job_id+'_exit','1',trial_id=trial_job_id)
+  def trial_end(self, trial_job_id, success):
+    logging.info('trial end')
+    if not success:
+      logging.info('early stop kill instance')
+      access_id = get_value('access_id', trial_id=trial_job_id)
+      access_key = get_value('access_key', trial_id=trial_job_id)
+      project = get_value('project', trial_id=trial_job_id)
+      endpoint = get_value('endpoint', trial_id=trial_job_id)
+      instance = get_value(trial_job_id, trial_id=trial_job_id)
+      if access_id and access_key and project and endpoint and instance:
+        o = create_odps(
+            access_id=access_id,
+            access_key=access_key,
+            project=project,
+            endpoint=endpoint)
+        logging.info('stop instance')
+        o.stop_instance(instance)
+        logging.info('stop instance success')
+        # for report result
+        set_value(trial_job_id + '_exit', '1', trial_id=trial_job_id)
 ```
 
 ## FAQ

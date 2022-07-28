@@ -1,9 +1,13 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
+import logging
 import os
 
-from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import copy_file
-from easy_rec.python.hpo_nni.pai_nni.core.metric_utils import upload_file
-from easy_rec.python.hpo_nni.pai_nni.core.utils import parse_config
+from hpo_nni.core.metric_utils import copy_file
+from hpo_nni.core.metric_utils import upload_file
+from hpo_nni.core.utils import parse_config
+
 from easy_rec.python.utils import config_util
 
 
@@ -13,12 +17,12 @@ def get_params():
       '--pipeline_config_path',
       type=str,
       help='pipeline config path',
-      default='../../../../../samples/hpo/pipeline.config')
+      default='./samples/hpo/pipeline.config')
   parser.add_argument(
       '--save_path',
       type=str,
       help='modify pipeline config path',
-      default='../../../../../samples/hpo/pipeline_finetune.config')
+      default='./samples/hpo/pipeline_finetune.config')
   parser.add_argument(
       '--learning_rate',
       type=float,
@@ -36,7 +40,7 @@ def get_params():
 def modify_config(args):
   if args.pipeline_config_path.startswith('oss://'):
     oss_config = parse_config(args.oss_config)
-    print('pipeline_config_path:', args.pipeline_config_path)
+    logging.info('pipeline_config_path: %s', args.pipeline_config_path)
     copy_file(args.pipeline_config_path, './temp.config', oss_config=oss_config)
     pipeline_config_path = './temp.config'
   else:
@@ -56,10 +60,11 @@ def modify_config(args):
     elif hasattr(learning_rate, 'initial_learning_rate'):
       if hasattr(learning_rate, 'min_learning_rate'):
         if args.learning_rate < learning_rate.min_learning_rate:
-          print('args.learning_rate {} < learning_rate.min_learning_rate {}, '
-                'we will use the learning_rate.min_learning_rate {}'.format(
-                    args.learning_rate, learning_rate.min_learning_rate,
-                    learning_rate.min_learning_rate))
+          logging.warning(
+              'args.learning_rate %s < learning_rate.min_learning_rate %s, '
+              'we will use the learning_rate.min_learning_rate %s',
+              args.learning_rate, learning_rate.min_learning_rate,
+              learning_rate.min_learning_rate)
         learning_rate.initial_learning_rate = max(
             args.learning_rate, learning_rate.min_learning_rate)
       else:
@@ -69,10 +74,11 @@ def modify_config(args):
 
       if hasattr(learning_rate, 'end_learning_rate'):
         if args.learning_rate < learning_rate.end_learning_rate:
-          print('args.learning_rate {} < learning_rate.end_learning_rate {},'
-                ' we will use the learning_rate.end_learning_rate {}'.format(
-                    args.learning_rate, learning_rate.end_learning_rate,
-                    learning_rate.end_learning_rate))
+          logging.warning(
+              'args.learning_rate %s < learning_rate.end_learning_rate %s,'
+              ' we will use the learning_rate.end_learning_rate %s',
+              args.learning_rate, learning_rate.end_learning_rate,
+              learning_rate.end_learning_rate)
         learning_rate.learning_rate_base = max(args.learning_rate,
                                                learning_rate.end_learning_rate)
       else:
@@ -102,7 +108,7 @@ def get_learning_rate(args):
 
   if args.save_path.startswith('oss://'):
     oss_config = parse_config(args.oss_config)
-    print('pipeline_config_path:', args.save_path)
+    logging.info('pipeline_config_path: %s', args.save_path)
     copy_file(args.save_path, './temp.config', oss_config=oss_config)
     pipeline_config_path = './temp.config'
   else:
@@ -131,6 +137,6 @@ def get_learning_rate(args):
 
 if __name__ == '__main__':
   args = get_params()
-  print('args:', args)
+  logging.info('args: %s', args)
   modify_config(args)
-  print('final learning_rate:', get_learning_rate(args))
+  logging.info('final learning_rate: %s', get_learning_rate(args))

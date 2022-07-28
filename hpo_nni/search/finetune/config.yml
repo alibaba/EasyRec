@@ -1,3 +1,4 @@
+experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
 trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
 trialConcurrency: 1
