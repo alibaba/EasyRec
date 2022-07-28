@@ -164,7 +164,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # register for increment update, such as batchnorm moving_mean and moving_variance
       global_vars = { x.name:x for x in tf.global_variables() }
       for x in update_ops:
-        if x.inputs[0].name in global_vars:
+        if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
+          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
       with tf.control_dependencies([update_op]):
