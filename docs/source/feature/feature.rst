@@ -69,7 +69,7 @@ IdFeature: 离散值特征/ID类特征
    .. math::
 
         embedding\_dim=8+x^{0.25}
-
+  - 其中，x 为不同特征取值的个数
 
 -  hash\_bucket\_size: hash bucket的大小。适用于category_id, user_id等
 
