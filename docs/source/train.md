@@ -88,7 +88,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                             |
 | CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                    |
 | MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                    |
-| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类为softmax_cross_entropy，用在二分类任务中                 |
+| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                 |
 | PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
 | F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
 
@@ -115,17 +115,12 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   }
   ```
 
-- f1_beta_square: 大于1的值会导致模型更关注recall，小于1的值会导致模型更关注precision
-
-- F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
-
-  ![f1 score](../images/other/f1_score.svg)
-
-- 更一般的，我们定义 F_beta 分数为:
-
-  ![f_beta score](../images/other/f_beta_score.svg)
-
-- f1_beta_square 即为 上述公式中的 beta 系数的平方。
+  - f1_beta_square: 大于1的值会导致模型更关注recall，小于1的值会导致模型更关注precision
+  - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
+    - ![f1 score](../images/other/f1_score.svg)
+  - 更一般的，我们定义 F_beta 分数为:
+    - ![f_beta score](../images/other/f_beta_score.svg)
+  - f1_beta_square 即为 上述公式中的 beta 系数的平方。
 
 * SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，

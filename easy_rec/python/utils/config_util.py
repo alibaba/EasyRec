@@ -423,7 +423,7 @@ def get_input_name_from_fg_json(fg_json):
       for seq_fea in fea['features']:
         assert 'feature_name' in seq_fea
         feature_name = seq_fea['feature_name']
-      input_names.append(sequence_name + '__' + feature_name)
+        input_names.append(sequence_name + '__' + feature_name)
   return input_names
 
 
