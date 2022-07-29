@@ -87,13 +87,31 @@ class MultiTaskModel(RankModel):
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))
 
-      self._loss_dict.update(
-          self._build_loss_impl(
-              task_tower_cfg.loss_type,
-              label_name=self._label_name_dict[tower_name],
-              loss_weight=loss_weight,
-              num_class=task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+      loss_dict = {}
+      losses = task_tower_cfg.losses
+      if len(losses) == 0:
+        loss_dict = self._build_loss_impl(
+          task_tower_cfg.loss_type,
+          label_name=self._label_name_dict[tower_name],
+          loss_weight=loss_weight,
+          num_class=task_tower_cfg.num_class,
+          suffix='_%s' % tower_name)
+      else:
+        for loss in losses:
+          loss_param = loss.WhichOneof("loss_param")
+          if loss_param is not None:
+            loss_param = getattr(loss, loss_param)
+          loss_ops = self._build_loss_impl(
+            loss.loss_type,
+            label_name=self._label_name_dict[tower_name],
+            loss_weight=loss_weight,
+            num_class=task_tower_cfg.num_class,
+            suffix='_%s' % tower_name,
+            loss_param=loss_param)
+          for loss_name, loss_value in loss_ops.items():
+            loss_dict[loss_name] = loss_value * loss.weight
+
+      self._loss_dict.update(loss_dict)
 
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
                                               self._labels)

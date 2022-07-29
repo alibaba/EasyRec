@@ -98,5 +98,4 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
-    optional F1ReweighedLoss f1_reweight_loss = 16;
 }

@@ -444,6 +444,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mmoe_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_mmoe_with_multi_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_on_taobao_with_multi_loss.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_mmoe_deprecated(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_taobao_deprecated.config', self._test_dir)
@@ -455,9 +460,14 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_essm(self):
+  def test_esmm(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/esmm_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_esmm_with_multi_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/esmm_on_taobao_with_multi_loss.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_tag_kv_input(self):
@@ -473,6 +483,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dbmtl_cmbf(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_cmbf_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_with_multi_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_taobao_with_multi_loss.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_early_stop(self):
