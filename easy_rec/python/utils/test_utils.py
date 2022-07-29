@@ -39,10 +39,11 @@ def get_hdfs_tmp_dir(test_dir):
   gfile.MkDir(test_rand_dir)
   return test_rand_dir
 
+
 def proc_wait(proc, timeout=1200):
   t0 = time.time()
   while proc.poll() is None and time.time() - t0 < timeout:
-    time.sleep(1) 
+    time.sleep(1)
   if proc.poll() is None:
     proc.terminate()
   while proc.poll() is None:
@@ -203,7 +204,7 @@ def test_datahub_train_eval(pipeline_config_path,
   train_cmd = 'python3 -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
       test_pipeline_config_path, hyperparam_str)
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
@@ -259,7 +260,7 @@ def test_single_train_eval(pipeline_config_path,
   if check_mode:
     train_cmd += '--check_mode'
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc,timeout=TEST_TIME_OUT if timeout < 0 else timeout)
+  proc_wait(proc, timeout=TEST_TIME_OUT if timeout < 0 else timeout)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
@@ -295,7 +296,7 @@ def test_single_pre_check(pipeline_config_path, test_dir):
       test_pipeline_config_path)
 
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     return False
@@ -313,7 +314,7 @@ def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
       input_path, output_path, saved_model_dir)
 
   proc = run_cmd(predict_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('predict failed')
     return False
@@ -327,7 +328,7 @@ def test_feature_selection(pipeline_config):
   cmd = 'python -m easy_rec.python.tools.feature_selection --config_path %s ' \
         '--output_dir %s --topk 5 --visualize true' % (pipeline_config_path, output_dir)
   proc = run_cmd(cmd, os.path.join(model_dir, 'log_feature_selection.txt'))
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('feature selection %s failed' % pipeline_config_path)
     return False
@@ -386,7 +387,7 @@ def test_hdfs_train_eval(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   train_cmd = 'el_submit -yaml %s' % train_yaml_path
   proc = subprocess.Popen(train_cmd.split(), stderr=subprocess.STDOUT)
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('train %s failed' % test_pipeline_config_path)
     logging.error('train_yaml %s failed' % train_yaml_path)
@@ -418,7 +419,7 @@ def test_hdfs_eval(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   eval_cmd = 'el_submit -yaml %s' % eval_yaml_path
   proc = subprocess.Popen(eval_cmd.split(), stderr=subprocess.STDOUT)
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('eval %s failed' % test_pipeline_config_path)
     logging.error('eval_yaml %s failed' % eval_yaml_path)
@@ -452,7 +453,7 @@ def test_hdfs_export(pipeline_config_path,
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   eval_cmd = 'el_submit -yaml %s' % export_yaml_path
   proc = subprocess.Popen(eval_cmd.split(), stderr=subprocess.STDOUT)
-  proc_wait(proc,timeout=TEST_TIME_OUT)
+  proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
     logging.error('export %s failed' % test_pipeline_config_path)
     logging.error('export_yaml %s failed' % export_yaml_path)

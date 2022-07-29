@@ -1,0 +1,3 @@
+{
+    "model_config.embedding_regularization":{"_type":"uniform","_value":[0.000001, 0.0001]}
+}
