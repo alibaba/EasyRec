@@ -497,7 +497,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       oss_timeout=oss_params.get('oss_timeout', 1500),
       meta_graph_def=meta_graph_def,
       norm_name_to_ids=norm_name_to_ids,
-      incr_update_params=oss_params.get('incr_save', None),
+      incr_update_params=oss_params.get('incr_update', None),
       debug_dir=export_dir if verbose else '')
   meta_graph_editor.edit_graph_for_oss()
   tf.reset_default_graph()
@@ -520,12 +520,26 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       tf.constant(
           dense_train_vars_path, dtype=tf.string, name=constant.DENSE_UPDATE_VARIABLES))
 
-  kafka_params_file = os.path.join(export_dir, "kafka.txt")
-  with GFile(kafka_params_file, 'w') as fout:
-    json.dump(json.loads(json_format.MessageToJson(oss_params['incr_save']['kafka'],
-        preserving_proto_field_name=True)), fout, indent=2)
+  asset_file = 'incr_update.txt'
+  asset_file_path = os.path.join(export_dir, asset_file)
+  with GFile(asset_file_path, 'w') as fout:
+    incr_update = oss_params['incr_update']
+    incr_update_json = { }
+    if 'kafka' in incr_update:
+      incr_update_json['storage'] = 'kafka'
+      incr_update_json['kafka'] = json.loads(json_format.MessageToJson(incr_update['kafka'],
+        preserving_proto_field_name=True))
+    elif 'datahub' in incr_update:
+      incr_update_json['storage'] = 'datahub'
+      incr_update_json['datahub'] = json.loads(json_format.MessageToJson(incr_update['datahub'],
+        preserving_proto_field_name=True))
+    elif 'fs' in incr_update:
+      incr_update_json['storage'] = 'fs'
+      incr_update_json['fs'] = {'incr_save_dir':incr_update['fs'].mount_path}
+    json.dump(incr_update_json, fout, indent=2)
+
   ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
-      tf.constant(kafka_params_file, dtype=tf.string, name="kafka.txt"))
+      tf.constant(asset_file_path, dtype=tf.string, name=asset_file))
 
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)

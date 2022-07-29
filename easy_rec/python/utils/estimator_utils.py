@@ -381,6 +381,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
           self._sparse_values.append(sparse_var.sparse_read(sparse_indice))
         else:
           self._sparse_values.append(array_ops.gather(sparse_var, sparse_indice)) 
+
+      self._kafka_producer = None
+      self._incr_save_dir = None
       if increment_save_config.HasField('kafka'):
         self._topic = increment_save_config.kafka.topic
         logging.info('increment save topic: %s' % self._topic)
@@ -401,8 +404,21 @@ class CheckpointSaverHook(CheckpointSaverHook):
             max_request_size=self._kafka_max_req_size, 
             api_version_auto_timeout_ms=self._kafka_timeout_ms,
             request_timeout_ms=self._kafka_timeout_ms)
+      elif increment_save_config.HasField('fs'):
+        fs = increment_save_config.fs
+        if fs.relative:
+          self._incr_save_dir = os.path.join(checkpoint_dir, fs.incr_save_dir)
+        else:
+          self._incr_save_dir = fs.incr_save_dir
+        if not self._incr_save_dir.endswith('/'):
+          self._incr_save_dir += '/'
+        if not gfile.IsDirectory(self._incr_save_dir):
+          gfile.MakeDirs(self._incr_save_dir)
+      elif increment_save_config.HasField('datahub'):
+        raise NotImplementedError('datahub increment saving is in development.')
       else:
-        self._kafka_producer = None
+        raise ValueError('incr_update not specified correctly, must be oneof: kafka,fs')
+        
       self._debug_save_update = increment_save_config.debug_save_update
     else:
       self._dense_timer = None
@@ -455,7 +471,15 @@ class CheckpointSaverHook(CheckpointSaverHook):
       send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8')) 
       logging.info('kafka send dense: %d exception: %s' % (global_step, send_res.exception))
 
-    if self._debug_save_update:
+    if self._incr_save_dir is not None:
+      save_path = os.path.join(self._incr_save_dir, 'dense_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+      save_flag = save_path + '.done'
+      with gfile.GFile(save_flag, 'w') as fout:
+        fout.write('dense_update_%d' % global_step)
+
+    if self._debug_save_update and self._incr_save_dir is None:
       base_dir, _ = os.path.split(self._save_path) 
       incr_save_dir = os.path.join(base_dir, 'incr_save/')
       if not gfile.Exists(incr_save_dir):
@@ -506,7 +530,15 @@ class CheckpointSaverHook(CheckpointSaverHook):
       send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
       logging.info('kafka send sparse: %d %s' % (global_step, send_res.exception))
 
-    if self._debug_save_update:
+    if self._incr_save_dir is not None:
+      save_path = os.path.join(self._incr_save_dir, 'sparse_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+      save_flag = save_path + '.done'
+      with gfile.GFile(save_flag, 'w') as fout:
+        fout.write('sparse_update_%d' % global_step)
+
+    if self._debug_save_update and self._incr_save_dir is None:
       base_dir, _ = os.path.split(self._save_path) 
       incr_save_dir = os.path.join(base_dir, 'incr_save/')
       if not gfile.Exists(incr_save_dir):

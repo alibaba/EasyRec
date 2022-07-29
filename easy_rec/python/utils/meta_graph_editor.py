@@ -81,13 +81,7 @@ class MetaGraphEditor:
     self._oss_sk = oss_sk
     self._oss_timeout = oss_timeout
    
-    self._kafka_params = None
-    if incr_update_params is not None and 'kafka' in incr_update_params:
-      self._kafka_params = incr_update_params['kafka']
-
-    self._datahub_params = None
-    if incr_update_params is not None and 'datahub' in incr_update_params:
-      self._datahub_params = incr_update_params['datahub']
+    self._incr_update_params = incr_update_params
 
     # increment update placeholders
     self._embedding_update_inputs = {}
@@ -435,7 +429,7 @@ class MetaGraphEditor:
 
     ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
 
-    if self._kafka_params:
+    if self._incr_update_params is not None:
       # all sparse variables are updated by a single custom operation
       message_ph = tf.placeholder(tf.int8, [None], name='incr_update/message') 
       embedding_update = self._lookup_op.embedding_update(

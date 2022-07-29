@@ -612,10 +612,14 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
 def test_distributed_train_eval(pipeline_config_path,
                                 test_dir,
                                 total_steps=50,
-                                num_evaluator=0):
+                                num_evaluator=0,
+                                edit_config_json=None):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
+  if edit_config_json is not None:
+    config_util.edit_config(pipeline_config, edit_config_json)
+
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')

@@ -47,6 +47,14 @@ message IncrementSaveConfig {
      required Consumer consumer = 6;
    }
 
+   message File {
+     optional string incr_save_dir = 1 [default="incr_save"];
+     // relative to model_dir
+     optional bool relative = 2 [default=true];
+     // for online inference, please set the storage.mount_path to mount_path
+     // online service will fail
+     optional string mount_path = 3 [default="/home/admin/docker_ml/workspace/incr_save/"];
+   }
 
    optional int32 sparse_save_secs  = 1 [default=0];
    optional int32 dense_save_secs   = 2 [default=0];
@@ -59,6 +67,7 @@ message IncrementSaveConfig {
    oneof incr_update {
      Kafka kafka = 501;
      Datahub datahub = 502;
+     File fs = 503;
    }
 }
 

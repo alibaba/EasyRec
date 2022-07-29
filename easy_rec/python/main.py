@@ -749,11 +749,11 @@ def export(export_dir,
   if 'oss_path' in extra_params:
     if pipeline_config.train_config.HasField('incr_save_config'):
       incr_save_config = pipeline_config.train_config.incr_save_config
-      extra_params['incr_save'] = {}
-      if incr_save_config.HasField('kafka'):
-        extra_params['incr_save']['kafka'] = incr_save_config.kafka
-      if incr_save_config.HasField('datahub'):
-        extra_params['incr_save']['datahub'] = incr_save_config.datahub
+      extra_params['incr_update'] = {}
+      incr_save_type = incr_save_config.WhichOneof('incr_update')
+      logging.info('incr_save_type=%s' % incr_save_type)
+      if incr_save_type:
+        extra_params['incr_update'][incr_save_type] = getattr(incr_save_config, incr_save_type)
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
                                    serving_input_fn, estimator, ckpt_path,
                                    verbose)
