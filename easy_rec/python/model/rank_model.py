@@ -150,11 +150,15 @@ class RankModel(EasyRecModel):
           num_class=self._num_class)
     else:
       for loss in self._losses:
+        loss_param = loss.WhichOneof("loss_param")
+        if loss_param is not None:
+          loss_param = getattr(loss, loss_param)
         loss_ops = self._build_loss_impl(
             loss.loss_type,
             label_name=self._label_name,
             loss_weight=self._sample_weight,
-            num_class=self._num_class)
+            num_class=self._num_class,
+            loss_param=loss_param)
         for loss_name, loss_value in loss_ops.items():
           loss_dict[loss_name] = loss_value * loss.weight
 
