@@ -118,7 +118,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   losses {
     loss_type: F1_REWEIGHTED_LOSS
     weight: 1.0
-    f1_reweight_loss {
+    f1_reweighted_loss {
       f1_beta_square: 0.5625
     }
   }
