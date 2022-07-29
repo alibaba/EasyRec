@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-PROCESSOR_VERSION = 'LaRec-0.9.5b-c792b5c-TF-2.5.0-Linux'
+PROCESSOR_VERSION = 'LaRec-0.9.5b-5ff9df5-TF-2.5.0-Linux'
 PROCESSOR_FILE = PROCESSOR_VERSION + '.tar.gz'
 PROCESSOR_URL = 'http://easyrec.oss-cn-beijing.aliyuncs.com/processor/' + PROCESSOR_FILE
 PROCESSOR_ENTRY_LIB = 'processor/' + PROCESSOR_VERSION + '/larec/libtf_predictor.so'
@@ -108,10 +108,15 @@ if __name__ == '__main__':
 
   sparse_step = ctypes.c_int(0)
   dense_step = ctypes.c_int(0)
+  start_ts = time.time()
   while sparse_step.value < last_step or dense_step.value < last_step:
     tf_predictor.saved_model_step(ctypes.c_void_p(handle), ctypes.byref(sparse_step),
         ctypes.byref(dense_step))
     time.sleep(1)
+    if time.time() - start_ts > 300:
+      logging.warning('could not reach last_step, sparse_step=%d dense_step=%d' % (
+          sparse_step, dense_step))
+      break
   
   data_bin = req.SerializeToString()
   save_path = os.path.join(args.saved_model_dir, 'req.pb')

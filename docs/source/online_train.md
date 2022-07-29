@@ -8,34 +8,37 @@
 #### KafkaInput
 ```protobuf
 kafka_train_input {
-server: '127.0.0.1:9092'
-topic: 'kafka_data_input'
-group: 'kafka_train'
-# timestamp in seconds
-offset_info: '{"timestamp": 1650765731}'
+  server: '127.0.0.1:9092'
+  topic: 'kafka_data_input'
+  group: 'kafka_train'
+  # timestamp in seconds
+  offset_time: '1650765731'
 }
 
 kafka_eval_input {
-server: '127.0.0.1:9092'
-topic: 'kafka_data_input'
-group: 'kafka_test'
-# timestamp in seconds
-offset_info: '{"timestamp": 1650765731}'
+  server: '127.0.0.1:9092'
+  topic: 'kafka_data_input'
+  group: 'kafka_test'
+  # timestamp in seconds
+  offset_time: '1650765731'
 }
 ```
 
 - server: kafka bootstrapped servers, 可以是多个server，中间用","分割
 - topic: 读取数据的topic
 - group: 消费kakfka数据的consumer group
-- offset_info: json字符串，描述读取topic每个partition的offset，有两种形式:
-   - 指定timestamp: 
-      - 适用于每天从离线checkpoint启动实时训练时，可以用timestamp指定要读取的offset
-      - 实现上用KafkaConsumer.offsets_for_times获取timestamp对应的offset，然后从offset处开始读取数据
-   - 指定partition offset:
-      - 例:   '{"0": 5, "1": 10}'
-      - 适用于训练失败后重启的场景
-      - 训练过程中保存checkpoint的时候，也会保存对应的offset；训练因为某些原因失败重启后，可以自动从checkpoint处恢复训练;
-   - 不指定offset_info，默认从offset=0的位置读取数据.
+- offset_time: 指定读数据的起始位置
+  - 适用于每天从离线checkpoint启动实时训练时，可以用timestamp指定要读取的offset
+  - 实现上用KafkaConsumer.offsets_for_times获取timestamp对应的offset，然后从offset处开始读取数据
+  - 可以是unix timestamp, 也可以是'%Y%m%d %H:%M:%S'格式
+- offset_info: json_format, 指定kafka offset
+  - 例:   '{"0": 5, "1": 10}'
+  - 适用于训练失败后重启的场景
+  - 训练过程中保存checkpoint的时候，也会保存对应的offset; 
+  - 训练因为某些原因失败重启后，可以自动从checkpoint处恢复训练;
+- offset_info和offset_time指定其中之一即可
+- 不指定offset_info和offset_time, 默认从起始位置读取数据.
+
 #### DatahubInput
 ```protobuf
 datahub_train_input{
@@ -63,9 +66,11 @@ datahub_eval_input{
    - 注意必须是http的，不能是https，vpc里面只通80端口，不通443端口
 - project: datahub project
 - topic: datahub topic
+- offset_time: 指定读数据的起始位置
+  - 可以是unix timestamp, 也可以是'%Y%m%d %H:%M:%S'格式, 如: "20220508 23:59:59"
 - offset_info: json字符串, 方便失败后重启
    - key: partition_id
-   - value: dict，其中必须包含 cursor字段
+   - value: dict，其中包含cursor字段
 - 权限开通: ak对应的用户必须要添加datahub访问权限
   ![online_auth.png](../images/other/online_auth.png)
 
@@ -102,8 +107,16 @@ train_config {
    - consumer:  导出模型时使用
       - offset: 读取模型参数的offset
          - 默认是0
+   - kafka实例max_message_size>=64M, 设置小了会导致大消息发送失败
+- fs:
+   - incr_save_dir: 增量更新保存位置, 默认保存在${model_dir}/incr_save
+   - relative: 默认true, 表示是相对路径(相对${model_dir})
+   - mount_path: 导出模型时用到, 表示模型挂载到eas实例的路径, 一般不用修改
 - enable_oss_stop_signal:
    - 通过在model_dir下面创建OSS_STOP_SIGNAL文件来通知训练程序退出
+- dead_line:
+   - 支持在指定时间结束训练, 格式: "20220508 23:59:59"
+
 #### 启动训练
 ```sql
 pai -name easy_rec_ext
@@ -164,15 +177,23 @@ pai -name easy_rec_ext -project algo_public
 
 #### 目录结构:
 
-- DENSE_UPDATE_VARIABLES: 
+- assets/DENSE_UPDATE_VARIABLES: 
    - 记录了dense参数名称到参数id的映射
    - 增量更新消息里面使用参数id，减少消息的大小
-- embed_name_to_ids.txt
+- assets/embed_name_to_ids.txt
    - 记录了embedding参数名称到参数id的映射
    - 增量更新消息里面使用参数id，减少消息的大小
-- fg.json: 特征处理的配置
-- kafka.txt: 同train_config.incr_save_config.kafka
-   - EAS Processor通过该配置获得 增量更新的topic和offset信息
+- assets/fg.json: 特征处理的配置
+- assets/incr_update.txt: json格式
+   - storage_type: 增量更新存储方式
+     - kafka: 存储到kafka消息队列
+     - fs: 存储到磁盘或者oss
+   - kafka: kafka consumer需要的参数 
+     - 内容同train_config.incr_save_config.kafka
+     - EAS Processor通过该配置获得 增量更新的topic和offset信息
+   - fs: 增量更新存储的路径
+     - 默认"/home/admin/docker_ml/workspace/incr_save/"
+   - kafka和fs二选一, 不能同时配置, 否则会导致更新混乱
 - saved_model.pb和variables: saved_model参数
    - 查看saved_model的输入输出:
 ```bash
@@ -201,5 +222,5 @@ saved_model_cli show --all --dir export/1650854967
 ### 部署
 
 - 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/LaRec-0.9.5b-c1b42fc-TF-2.5.0-Linux.tar.gz)
-- processor重启会恢复base版本，拉取增量更新的消息
+- processor重启会恢复base版本，重新拉取增量更新的消息
 
