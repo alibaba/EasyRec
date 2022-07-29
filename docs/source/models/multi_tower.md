@@ -38,7 +38,7 @@ model_config: {
   losses {
     loss_type: F1_REWEIGHTED_LOSS
     weight: 1.0
-    f1_reweight_loss {
+    f1_reweighted_loss {
       f1_beta_square: 1.0
     }
   }
