@@ -280,7 +280,7 @@ def main(argv):
     if gfile.IsDirectory(pipeline_config.model_dir):
       gfile.DeleteRecursively(pipeline_config.model_dir)
 
-  if FLAGS.max_wait_ckpt_t s> 0: 
+  if FLAGS.max_wait_ckpt_ts > 0:
     if FLAGS.checkpoint_path:
       _wait_ckpt(FLAGS.checkpoint_path, FLAGS.max_wait_ckpt_ts)
     else:
