@@ -46,6 +46,12 @@ class LocalIncrTest(tf.test.TestCase):
   def test_incr_save_ev(self):  
     self._test_incr_save('samples/model_config/taobao_fg_incr_save_ev_local.config')
 
+  @unittest.skipIf('oss_path' not in os.environ \
+       or 'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ \
+       or 'oss_sk' not in os.environ, 'Only execute when kafka is available')
+  def test_incr_save_share_ev(self):  
+    self._test_incr_save('samples/model_config/taobao_fg_incr_save_share_ev_local.config')
+
   def _test_incr_save(self, config_path): 
     self._success = False 
     success = test_utils.test_distributed_train_eval(config_path, self._test_dir,

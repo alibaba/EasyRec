@@ -2,6 +2,7 @@
 import logging
 import os
 
+import numpy as np
 import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.python.platform.gfile import GFile
@@ -346,9 +347,9 @@ class MetaGraphEditor:
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
       self._embed_name_to_ids = {
-          t: str(tid) for tid, t in enumerate(embed_name_uniq)
+          t: tid for tid, t in enumerate(embed_name_uniq)
       }
-    self._embed_ids = [self._embed_name_to_ids[x] for x in self._embed_names]
+    self._embed_ids = [int(self._embed_name_to_ids[x]) for x in self._embed_names]
 
     self._is_cache_from_redis = [
         proto_util.is_cache_from_redis(x, self._redis_cache_names)
@@ -409,21 +410,32 @@ class MetaGraphEditor:
         timeout=self._oss_timeout,
         combiners=self._embed_combiners,
         embedding_dims=self._embed_dims,
-        embedding_names=self._embed_ids,
+        embedding_ids=self._embed_ids,
         embedding_is_kv=self._embed_is_kv,
         shared_name='embedding_lookup_res',
         name='embedding_lookup_fused/lookup')
+
+    N = np.max([int(x) for x in self._embed_ids]) + 1
+    uniq_embed_ids = [ x for x in range(N) ]
+    uniq_embed_dims = [ 0 for x in range(N) ]
+    uniq_embed_combiners = [ 'mean' for x in range(N) ]
+    uniq_embed_is_kvs = [ 0 for x in range(N) ]
+    for embed_id, embed_combiner, embed_is_kv, embed_dim in zip(self._embed_ids, 
+        self._embed_combiners, self._embed_is_kv, self._embed_dims):
+      uniq_embed_combiners[embed_id] = embed_combiner
+      uniq_embed_is_kvs[embed_id] = embed_is_kv
+      uniq_embed_dims[embed_id] = embed_dim
 
     lookup_init_op = self._lookup_op.oss_init(
         osspath=self._oss_path,
         endpoint=self._oss_endpoint,
         ak=self._oss_ak,
         sk=self._oss_sk,
-        combiners=self._embed_combiners,
-        embedding_dims=self._embed_dims,
-        embedding_names=self._embed_ids,
-        embedding_is_kv=self._embed_is_kv,
-        N=len(self._embed_is_kv),
+        combiners=uniq_embed_combiners,
+        embedding_dims=uniq_embed_dims,
+        embedding_ids=uniq_embed_ids,
+        embedding_is_kv=uniq_embed_is_kvs,
+        N=N,
         shared_name='embedding_lookup_res',
         name='embedding_lookup_fused/init')
 

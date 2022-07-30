@@ -560,8 +560,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
             tf.constant(asset_file, dtype=tf.string, name=asset_name))
 
     if self._pipeline_config.HasField('fg_json_path'):
+      fg_path = self._pipeline_config.fg_json_path
+      if fg_path[0] == '!':
+        fg_path = fg_path[1:]
       ops.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS,
-            tf.constant(asset_file, dtype=tf.string, name='fg.json'))
+            tf.constant(fg_path, dtype=tf.string, name='fg.json'))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,
