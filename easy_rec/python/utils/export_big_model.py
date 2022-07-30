@@ -64,7 +64,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
     logging.warning('load libwrite_sparse_kv.so failed: %s' % str(ex))
     sparse_kv_module = None
   if not checkpoint_path:
-    checkpoint_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
+    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -254,7 +254,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
   with GFile(embed_name_to_id_file, 'w') as fout:
     for tmp_norm_name in norm_name_to_ids:
       fout.write('%s\t%s\n' % (tmp_norm_name, norm_name_to_ids[tmp_norm_name]))
-  tf.add_to_collection(
+  ops.add_to_collection(
       tf.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
@@ -316,7 +316,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   kv_module = tf.load_op_library(write_kv_lib_path)
 
   if not checkpoint_path:
-    checkpoint_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
+    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -514,7 +514,8 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       tf.constant(
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
 
-  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path), constant.DENSE_UPDATE_VARIABLES)
+  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path),
+      constant.DENSE_UPDATE_VARIABLES)
   ops.add_to_collection(
       ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
@@ -540,6 +541,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
 
   ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(asset_file_path, dtype=tf.string, name=asset_file))
+
 
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)

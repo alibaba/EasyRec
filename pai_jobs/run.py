@@ -5,6 +5,7 @@ from __future__ import print_function
 import logging
 # use few threads to avoid oss error
 import os
+import time
 
 import tensorflow as tf
 import yaml
@@ -18,6 +19,7 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
+from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
 
@@ -105,6 +107,8 @@ tf.app.flags.DEFINE_bool('distribute_eval', False,
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
 tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
+tf.app.flags.DEFINE_integer('max_wait_ckpt_ts', 0,
+                           'max wait time in seconds for checkpoints')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -202,6 +206,27 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
   print('[run.py] data_config.selected_col_types = "%s"' %
         pipeline_config.data_config.selected_col_types)
 
+def _wait_ckpt(ckpt_path, max_wait_ts):
+  logging.info('will wait %s seconds for checkpoint' % max_wait_ts)
+  start_ts = time.time()
+  if '/model.ckpt-' not in ckpt_path:
+    while time.time() - start_ts < max_wait_ts:
+      tmp_ckpt = estimator_utils.latest_checkpoint(ckpt_path)
+      if tmp_ckpt is None:
+        logging.info('wait for checkpoint in directory[%s]' % ckpt_path)
+        time.sleep(30)
+      else:
+        logging.info('find checkpoint[%s] in directory[%s]' % (tmp_ckpt, ckpt_path))
+        break 
+  else:
+    while time.time() - start_ts < max_wait_ts:
+      if gfile.Exists(ckpt_path + '.index'):
+        logging.info('wait for checkpoint[%s]' % ckpt_path)
+        time.sleep(30)
+      else:
+        logging.info('find checkpoint[%s]' % ckpt_path)
+        break
+
 
 def main(argv):
   pai_util.set_on_pai()
@@ -255,6 +280,12 @@ def main(argv):
     if gfile.IsDirectory(pipeline_config.model_dir):
       gfile.DeleteRecursively(pipeline_config.model_dir)
 
+  if FLAGS.max_wait_ckpt_ts > 0: 
+    if FLAGS.checkpoint_path:
+      _wait_ckpt(FLAGS.checkpoint_path, FLAGS.max_wait_ckpt_ts)
+    else:
+      _wait_ckpt(pipeline_config.model_dir, FLAGS.max_wait_ckpt_ts)
+
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
 
@@ -305,7 +336,7 @@ def main(argv):
     # update params specified by automl if hpo_param_path is specified
     if FLAGS.hpo_param_path:
       logging.info('hpo_param_path = %s' % FLAGS.hpo_param_path)
-      with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
+      with gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
         hpo_config = yaml.safe_load(fin)
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
@@ -443,6 +474,9 @@ def main(argv):
     if FLAGS.clear_export:
       if gfile.IsDirectory(export_dir):
         gfile.DeleteRecursively(export_dir)
+
+    if FLAGS.export_max_wait_ts > 0 and FLAGS.checkpoint_path:
+      _wait_ckpt(FLAGS.checkpoint_path, FLAGS.export_max_wait_ts)
 
     extra_params = redis_params
     extra_params.update(oss_params)

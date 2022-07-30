@@ -154,7 +154,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
                       collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
                       trainable=False)
       update_offset = tf.assign(data_offset_var[task_index], features[Input.DATA_OFFSET])
-      tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
+      ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
     else: 
       data_offset_var = None
 
@@ -525,7 +525,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     # save train pipeline.config for debug purpose
     pipeline_path = os.path.join(self._model_dir, 'pipeline.config')
     if gfile.Exists(pipeline_path):
-      tf.add_to_collection(
+      ops.add_to_collection(
           tf.GraphKeys.ASSET_FILEPATHS,
           tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'))
     else:
@@ -541,11 +541,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
         all_vars = { x.op.name:x for x in  tf.global_variables() }
         for var_name, var_id in var_name_id_lst:
           assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
-          tf.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
 
     # add more asset files
     if len(export_config.asset_files) > 0:
       for asset_file in export_config.asset_files:
+        if asset_file.startswith('!'):
+          asset_file = asset_file[1:]
         _, asset_name = os.path.split(asset_file)
         ops.add_to_collection(
             ops.GraphKeys.ASSET_FILEPATHS,
@@ -553,9 +555,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
     elif 'asset_files' in params:
       for asset_name in params['asset_files']:
         asset_file = params['asset_files'][asset_name]
-        tf.add_to_collection(
+        ops.add_to_collection(
             tf.GraphKeys.ASSET_FILEPATHS,
             tf.constant(asset_file, dtype=tf.string, name=asset_name))
+
+    if self._pipeline_config.HasField('fg_json_path'):
+      ops.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS,
+            tf.constant(asset_file, dtype=tf.string, name='fg.json'))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,
