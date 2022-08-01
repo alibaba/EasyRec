@@ -465,11 +465,6 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/esmm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
-  def test_esmm_with_multi_loss(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/esmm_on_taobao_with_multi_loss.config', self._test_dir)
-    self.assertTrue(self._success)
-
   def test_tag_kv_input(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/kv_tag.config', self._test_dir)
