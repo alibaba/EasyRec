@@ -129,7 +129,7 @@ auc_is_comment=0.25
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25-val('loss_play_time')\*0.25
 
-注意：如果onfig.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
+注意：如果config.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
 
 ```json
 auc_is_valid_play=0.5
@@ -352,29 +352,17 @@ search_space.json：
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
 注意继承hpo_nni/core/pai_assessor.PaiAssessor
-trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
+trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉,并删除中间文件。
 
 ```
   def trial_end(self, trial_job_id, success):
     logging.info('trial end')
+    # user_cancelled or early_stopped
     if not success:
-      logging.info('early stop kill instance')
-      access_id = get_value('access_id', trial_id=trial_job_id)
-      access_key = get_value('access_key', trial_id=trial_job_id)
-      project = get_value('project', trial_id=trial_job_id)
-      endpoint = get_value('endpoint', trial_id=trial_job_id)
-      instance = get_value(trial_job_id, trial_id=trial_job_id)
-      if access_id and access_key and project and endpoint and instance:
-        o = create_odps(
-            access_id=access_id,
-            access_key=access_key,
-            project=project,
-            endpoint=endpoint)
-        logging.info('stop instance')
-        o.stop_instance(instance)
-        logging.info('stop instance success')
-        # for report result
-        set_value(trial_job_id + '_exit', '1', trial_id=trial_job_id)
+      # kill mc instance
+      kill_instance(trial_job_id=trial_job_id)
+      # remove json file
+      remove_filepath(trial_id=trial_job_id)
 ```
 
 ## FAQ
