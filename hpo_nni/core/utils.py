@@ -23,6 +23,11 @@ def get_filepath(trial_id=None):
   return outfile
 
 
+def remove_filepath(trial_id=None):
+  file = get_filepath(trial_id=trial_id)
+  os.remove(file)
+
+
 def set_value(key, value, trial_id=None):
   outfile = get_filepath(trial_id=trial_id)
   with open(outfile, 'r') as f:

@@ -56,7 +56,7 @@ assessor:
 
 ##### 并发度和最大Trial数量、最大运行时间可以实时调整：
 
-建议：刚开始设置为1，调测代码成功后，可以调大并发度。
+建议：刚开始设置为1，调测代码成功后，可以先调大最大运行次数Max trial No.，再调大并发度Concurrency。
 ![image.png](../../images/automl/pai_nni_modify.jpg)
 
 #### 配置 config_begin.ini
@@ -129,7 +129,7 @@ auc_is_comment=0.25
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25-val('loss_play_time')\*0.25
 
-注意：如果按照metric越大越好的方式优化，loss相关的指标权重定义为负值。
+注意：如果onfig.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
 
 ```json
 auc_is_valid_play=0.5
@@ -311,7 +311,7 @@ assessor:
   - {eval_ymd} 必须保留，将会在代码中根据第二天日期进行替换
   - {predate} 必须保留，将会在代码中根据前一天日期进行替换
 
-#### run.py 参数说明
+#### run_finetune.py 参数说明
 
 表示从20220530finetune到20220617，根据这些天的平均结果衡量超参数的优劣。
 
@@ -380,8 +380,17 @@ trial_end函数，该函数是用来当一个实验被停止时，会去将maxco
 ## FAQ
 
 - 如果是用MAC安装，遇到nni启动权限问题，可以手动解决下
+
   ```
   chmod 777 /Users/liuchenglong/opt/anaconda3/envs/easyrec-nni/lib/python3.8/site-packages/nni-2.8-py3.8-macosx-10.9-x86_64.egg/nni_node/node
   ```
+
   报错如下：
   ![image.png](../../images/automl/nni-failed1.png)
+
+- 如果实验异常，可以查看具体的日志.
+  找到配置的实验目录experimentWorkingDirectory，可以去{exp_dir}/{nni_exp_id}/log下查看nni-manager的日志；{exp_dir}/{nni_exp_id}/trials查看所有实验的日志.
+  ![image.png](../../images/automl/nni_exp_log.jpg)
+  也可以在实验启动的UI上查看日志
+  ![image.png](../../images/automl/nni_manager_log.jpg)
+  ![image.png](../../images/automl/nni_manager_log2.jpg)

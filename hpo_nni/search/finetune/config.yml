@@ -1,8 +1,10 @@
 experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
 trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
-trialConcurrency: 1
-maxTrialNumber: 1
+trialConcurrency: 2
+maxTrialNumber: 10
+debug: true
+logLevel: debug
 tuner:
   name: TPE
   classArgs:
@@ -14,4 +16,4 @@ assessor:
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 5
+      start_step: 1

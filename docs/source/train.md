@@ -88,7 +88,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                             |
 | CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                    |
 | MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                    |
-| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                 |
+| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                  |
 | PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
 | F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
 
