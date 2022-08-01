@@ -13,7 +13,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
+def build(loss_type, label, pred, loss_weight=1.0, num_class=1, loss_param=None, **kwargs):
   if loss_type == LossType.CLASSIFICATION:
     if num_class == 1:
       return tf.losses.sigmoid_cross_entropy(
@@ -32,13 +32,12 @@ def build(loss_type, label, pred, loss_weight=1.0, num_class=1, **kwargs):
   elif loss_type == LossType.PAIR_WISE_LOSS:
     return pairwise_loss(label, pred)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
-    beta_square = kwargs['beta_square'] if 'beta_square' in kwargs else 1.0
-    label_smoothing = kwargs[
-        'label_smoothing'] if 'label_smoothing' in kwargs else 0
+    f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
+    label_smoothing = 0 if loss_param is None else loss_param.label_smoothing
     return f1_reweight_sigmoid_cross_entropy(
         label,
         pred,
-        beta_square,
+        f1_beta_square,
         weights=loss_weight,
         label_smoothing=label_smoothing)
   else:

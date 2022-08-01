@@ -32,6 +32,8 @@ message TaskTower {
     optional float in_task_space_weight = 11 [default = 1.0];
     // the loss weight for sample out the task space
     optional float out_task_space_weight = 12 [default = 1.0];
+    // multiple losses
+    repeated Loss losses = 13;
 };
 
 
@@ -64,4 +66,6 @@ message BayesTaskTower {
     // required uint32 prediction_level = 13;
     // prediction weights
     // optional float prediction_weight = 14 [default = 1.0];
+    // multiple losses
+    repeated Loss losses = 15;
 };
