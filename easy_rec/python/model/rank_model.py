@@ -134,10 +134,13 @@ class RankModel(EasyRecModel):
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
 
-    loss_dict[loss_name] = loss_builder.build(loss_type,
-                                              self._labels[label_name], pred,
-                                              loss_weight, num_class,
-                                              loss_param=loss_param)
+    loss_dict[loss_name] = loss_builder.build(
+        loss_type,
+        self._labels[label_name],
+        pred,
+        loss_weight,
+        num_class,
+        loss_param=loss_param)
     return loss_dict
 
   def build_loss_graph(self):
@@ -150,7 +153,7 @@ class RankModel(EasyRecModel):
           num_class=self._num_class)
     else:
       for loss in self._losses:
-        loss_param = loss.WhichOneof("loss_param")
+        loss_param = loss.WhichOneof('loss_param')
         if loss_param is not None:
           loss_param = getattr(loss, loss_param)
         loss_ops = self._build_loss_impl(
