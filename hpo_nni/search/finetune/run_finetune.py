@@ -10,8 +10,10 @@ import os
 import nni
 from hpo_nni.core.metric_utils import get_result
 from hpo_nni.core.pyodps_utils import create_odps
+from hpo_nni.core.pyodps_utils import kill_instance
 from hpo_nni.core.pyodps_utils import run_command
 from hpo_nni.core.utils import parse_ini
+from hpo_nni.core.utils import remove_filepath
 from hpo_nni.core.utils import set_value
 
 
@@ -133,3 +135,9 @@ if __name__ == '__main__':
   except Exception:
     logging.exception('run finetune error')
     exit(1)
+
+  finally:
+    # kill mc instance
+    kill_instance(trial_job_id=trial_id)
+    # remove json
+    remove_filepath(trial_id=trial_id)

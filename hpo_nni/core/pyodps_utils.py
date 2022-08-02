@@ -4,8 +4,10 @@ import collections
 import logging
 
 import odps
+from hpo_nni.core.utils import get_value
 from hpo_nni.core.utils import set_value
 from hpo_nni.core.utils import try_parse
+from odps.models import Instance
 
 Command = collections.namedtuple('Command', ['name', 'project', 'parameters'])
 
@@ -63,6 +65,24 @@ def run_command(o, easyrec_cmd_config, trial_id=None):
     if inst_name == 'train' and trial_id:
       set_value(trial_id, str(inst), trial_id=trial_id)
 
-  # for report result
-  if trial_id:
-    set_value(trial_id + '_exit', '1', trial_id=trial_id)
+
+def kill_instance(trial_job_id):
+  logging.info('kill instance')
+  access_id = get_value('access_id', trial_id=trial_job_id)
+  access_key = get_value('access_key', trial_id=trial_job_id)
+  project = get_value('project', trial_id=trial_job_id)
+  endpoint = get_value('endpoint', trial_id=trial_job_id)
+  instance = get_value(trial_job_id, trial_id=trial_job_id)
+  if access_id and access_key and project and endpoint and instance:
+    o = create_odps(
+        access_id=access_id,
+        access_key=access_key,
+        project=project,
+        endpoint=endpoint)
+
+    instance_o = o.get_instance(instance)
+    logging.info('instance.status %s', instance_o.status.value)
+    if instance_o.status != Instance.Status.TERMINATED:
+      logging.info('stop instance')
+      o.stop_instance(instance)
+      logging.info('stop instance success')

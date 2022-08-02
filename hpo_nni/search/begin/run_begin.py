@@ -8,6 +8,7 @@ import os
 import nni
 from hpo_nni.core.metric_utils import report_result
 from hpo_nni.core.pyodps_utils import create_odps
+from hpo_nni.core.pyodps_utils import kill_instance
 from hpo_nni.core.pyodps_utils import run_command
 from hpo_nni.core.utils import parse_ini
 from hpo_nni.core.utils import set_value
@@ -80,10 +81,12 @@ if __name__ == '__main__':
     # trial id for early stop
     run_command(o, easyrec_cmd_config, trial_id)
 
-    # kill the report_result
-    set_value(trial_id + '_exit', '1', trial_id=trial_id)
-
   except Exception:
     logging.exception('run begin error')
-    set_value(trial_id + '_exit', '1', trial_id=trial_id)
     exit(1)
+
+  finally:
+    # kill mc instance
+    kill_instance(trial_job_id=trial_id)
+    # for kill report result
+    set_value(trial_id + '_exit', '1', trial_id=trial_id)

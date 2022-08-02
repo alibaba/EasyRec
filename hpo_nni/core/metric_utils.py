@@ -10,6 +10,7 @@ from threading import Thread
 import nni
 import oss2
 from hpo_nni.core.utils import get_value
+from hpo_nni.core.utils import remove_filepath
 from hpo_nni.core.utils import set_value
 from tensorflow.python.platform import gfile
 from tensorflow.python.summary import summary_iterator
@@ -173,6 +174,8 @@ def load_loop(filepath, dst_filepath, metric_dict, trial_id, oss_config,
     if trial_id and get_value(trial_id + '_exit', trial_id=trial_id) == '1':
       if best_eval_result:
         nni.report_final_result(best_eval_result)
+      # remove the json file
+      remove_filepath(trial_id=trial_id)
       logging.info('the job end')
       break
     time.sleep(30)
