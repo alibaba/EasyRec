@@ -92,7 +92,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
 | F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
 
-* 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
+- 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
   - 目前只在DropoutNet模型中可用，可参考《 [冷启动推荐模型DropoutNet深度解析与改进](https://zhuanlan.zhihu.com/p/475117993) 》。
 

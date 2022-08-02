@@ -13,7 +13,13 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def build(loss_type, label, pred, loss_weight=1.0, num_class=1, loss_param=None, **kwargs):
+def build(loss_type,
+          label,
+          pred,
+          loss_weight=1.0,
+          num_class=1,
+          loss_param=None,
+          **kwargs):
   if loss_type == LossType.CLASSIFICATION:
     if num_class == 1:
       return tf.losses.sigmoid_cross_entropy(

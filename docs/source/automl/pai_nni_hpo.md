@@ -377,9 +377,13 @@ trial_end函数，该函数是用来当一个实验被停止时，会去将maxco
   ![image.png](../../images/automl/nni-failed1.png)
 
 - 如果实验异常，可以查看具体的日志.
-  找到配置的实验目录experimentWorkingDirectory，可以去{exp_dir}/{nni_exp_id}/log下查看nni-manager的日志；{exp_dir}/{nni_exp_id}/trials查看所有实验的日志.
-  ![image.png](../../images/automl/nni_exp_log.jpg)
-  也可以在实验启动的UI上查看日志
+
+  - 找到配置的实验目录experimentWorkingDirectory，可以去{exp_dir}/{nni_exp_id}/log下查看nni-manager的日志；{exp_dir}/{nni_exp_id}/trials查看所有实验的日志.
+
+    ![image.png](../../images/automl/nni_exp_log.jpg)
+
+  - 可以在实验启动的UI上查看日志
+
   ![image.png](../../images/automl/nni_manager_log.jpg)
   ![image.png](../../images/automl/nni_manager_log2.jpg)
 
