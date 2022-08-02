@@ -1,8 +1,8 @@
 experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
 trialCommand: python3 ./run_begin.py --config=./config_begin.ini --exp_dir=../exp
-trialConcurrency: 2
-maxTrialNumber: 10
+trialConcurrency: 1
+maxTrialNumber: 1
 tuner:
   name: TPE
   classArgs:
@@ -16,4 +16,4 @@ assessor:
    className: pai_assessor.PAIAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 1
+      start_step: 2

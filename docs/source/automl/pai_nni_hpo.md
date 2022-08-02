@@ -382,3 +382,5 @@ trial_end函数，该函数是用来当一个实验被停止时，会去将maxco
   也可以在实验启动的UI上查看日志
   ![image.png](../../images/automl/nni_manager_log.jpg)
   ![image.png](../../images/automl/nni_manager_log2.jpg)
+
+- 建议使用长周期的服务器去启动，如果是自己的笔记本，建议保持电脑待机
