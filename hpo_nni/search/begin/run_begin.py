@@ -86,7 +86,7 @@ if __name__ == '__main__':
     exit(1)
 
   finally:
-    # for kill report result
-    set_value(trial_id + '_exit', '1', trial_id=trial_id)
     # kill mc instance
     kill_instance(trial_job_id=trial_id)
+    # for kill report result
+    set_value(trial_id + '_exit', '1', trial_id=trial_id)
