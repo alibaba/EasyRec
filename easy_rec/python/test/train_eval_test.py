@@ -645,9 +645,9 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_with_sample_weight.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf(
-      LooseVersion(tf.__version__) != LooseVersion('2.3.0'),
-      'MultiWorkerMirroredStrategy need tf version == 2.3')
+  # @unittest.skipIf(
+  #     LooseVersion(tf.__version__) != LooseVersion('2.3.0'),
+  #     'MultiWorkerMirroredStrategy need tf version == 2.3')
   def test_train_with_multi_worker_mirror(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_multi_worker_mirrored_strategy_on_taobao.config',
