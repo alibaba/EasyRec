@@ -68,13 +68,18 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
-  def target_attention(self, dnn_config, deep_fea, name):
+  def target_attention(self,
+                       dnn_config,
+                       deep_fea,
+                       name,
+                       only_sequence_feature=False):
     cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len']
 
     seq_max_len = tf.shape(hist_id_col)[1]
     emb_dim = hist_id_col.shape[2]
 
+    cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,
                          tf.shape(hist_id_col))  # (B, seq_max_len, emb_dim)
@@ -96,6 +101,8 @@ class InputLayer(object):
     scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
     hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, emb_dim]
     hist_din_emb = tf.reshape(hist_din_emb, [-1, emb_dim])  # [B, emb_dim]
+    if only_sequence_feature:
+      return hist_din_emb
     din_output = tf.concat([hist_din_emb, cur_id], axis=1)
     return din_output
 
@@ -108,6 +115,7 @@ class InputLayer(object):
     for seq_att_map_config in all_seq_att_map_config:
       group_name = seq_att_map_config.group_name
       allow_key_search = seq_att_map_config.allow_key_search
+      only_sequence_feature = seq_att_map_config.only_sequence_feature
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search)
@@ -128,7 +136,10 @@ class InputLayer(object):
         seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
       cur_target_attention_name = 'seq_dnn' + group_name
       seq_fea = self.target_attention(
-          seq_dnn_config, seq_features, name=cur_target_attention_name)
+          seq_dnn_config,
+          seq_features,
+          name=cur_target_attention_name,
+          only_sequence_feature=only_sequence_feature)
       all_seq_fea.append(seq_fea)
     # concat all seq_fea
     all_seq_fea = tf.concat(all_seq_fea, axis=1)
