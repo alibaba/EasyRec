@@ -8,6 +8,8 @@ import "easy_rec/python/protos/layer.proto";
 message DBMTL {
     // shared bottom cmbf layer
     optional CMBFTower bottom_cmbf = 101;
+    // shared bottom uniter layer
+    optional UniterTower bottom_uniter = 102;
     // shared bottom dnn layer
     optional DNN bottom_dnn = 1;
     // mmoe expert dnn layer definition
