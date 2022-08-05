@@ -356,6 +356,7 @@ model_config: {
 
 - dbmtl
   - bottom_uniter: 多模态融合模型UNITER的相关配置，请参考[UNITER模型](uniter.md)配置。
+
     - num_attention_heads: 跨模态融合模块中的 head 数量
     - hidden_size: transformer模块的隐层单元数，必须是`num_attention_heads`的整数倍。
     - num_hidden_layers: transformer模块中的self-attention层数，建议设在1到5之间，默认为1

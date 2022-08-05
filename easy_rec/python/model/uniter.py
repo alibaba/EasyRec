@@ -2,8 +2,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.layers import uniter
 from easy_rec.python.layers import dnn
+from easy_rec.python.layers import uniter
 from easy_rec.python.model.rank_model import RankModel
 
 from easy_rec.python.protos.uniter_pb2 import Uniter as UNITERConfig  # NOQA
@@ -13,10 +13,10 @@ if tf.__version__ >= '2.0':
 
 
 class Uniter(RankModel):
-  """UNITER: UNiversal Image-TExt Representation Learning
+  """UNITER: UNiversal Image-TExt Representation Learning.
 
   See the original paper:
-  paper: https://arxiv.org/abs/1909.11740
+  https://arxiv.org/abs/1909.11740
   """
 
   def __init__(self,
@@ -25,14 +25,14 @@ class Uniter(RankModel):
                features,
                labels=None,
                is_training=False):
-    super(Uniter, self).__init__(model_config, feature_configs, features, labels,
-                               is_training)
+    super(Uniter, self).__init__(model_config, feature_configs, features,
+                                 labels, is_training)
     assert self._model_config.WhichOneof('model') == 'uniter', (
         'invalid model config: %s' % self._model_config.WhichOneof('model'))
 
     self._uniter_layer = uniter.Uniter(model_config, feature_configs, features,
-                                 self._model_config.uniter.config,
-                                 self._input_layer)
+                                       self._model_config.uniter.config,
+                                       self._input_layer)
     self._model_config = self._model_config.uniter
 
   def build_predict_graph(self):

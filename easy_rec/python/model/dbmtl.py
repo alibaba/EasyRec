@@ -2,10 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.layers import uniter
 from easy_rec.python.layers import cmbf
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
+from easy_rec.python.layers import uniter
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.protos.dbmtl_pb2 import DBMTL as DBMTLConfig
 
@@ -33,7 +33,8 @@ class DBMTL(MultiTaskModel):
                                    self._model_config.bottom_cmbf,
                                    self._input_layer)
     elif self._model_config.HasField('bottom_uniter'):
-      self._uniter_layer = uniter.Uniter(model_config, feature_configs, features,
+      self._uniter_layer = uniter.Uniter(model_config, feature_configs,
+                                         features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
     else:

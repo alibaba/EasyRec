@@ -126,4 +126,3 @@ model_config: {
 ### 参考论文
 
 [UNITER: UNiversal Image-TExt Representation Learning](https://arxiv.org/pdf/1909.11740.pdf)
-

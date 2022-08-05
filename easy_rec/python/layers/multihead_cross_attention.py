@@ -3,7 +3,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import math
+
 import six
 import tensorflow as tf
 
@@ -751,8 +753,7 @@ def get_activation(activation_string):
     ValueError: The `activation_string` does not correspond to a known
       activation.
   """
-
-  # We assume that anything that"s not a string is already an activation
+  # We assume that anything that's not a string is already an activation
   # function, so we just return it.
   if not isinstance(activation_string, six.string_types):
     return activation_string
@@ -761,15 +762,15 @@ def get_activation(activation_string):
     return None
 
   act = activation_string.lower()
-  if act == "linear":
+  if act == 'linear':
     return None
-  elif act == "relu":
+  elif act == 'relu':
     return tf.nn.relu
-  elif act == "gelu":
+  elif act == 'gelu':
     return gelu
-  elif act == "tanh":
+  elif act == 'tanh':
     return tf.tanh
-  elif act == "swish":
+  elif act == 'swish':
     return tf.nn.swish
   else:
-    raise ValueError("Unsupported activation: %s" % act)
+    raise ValueError('Unsupported activation: %s' % act)
