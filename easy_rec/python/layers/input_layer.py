@@ -8,7 +8,7 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
-from easy_rec.python.layers import SequenceFeatureLayer
+from easy_rec.python.layers import sequence_feature_layer
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
@@ -38,11 +38,9 @@ class InputLayer(object):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
-    self.sequence_feature_layer = SequenceFeatureLayer(feature_configs,
-                                                       feature_groups_config,
-                                                       ev_params,
-                                                       embedding_regularizer,
-                                                       is_training)
+    self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
+        feature_configs, feature_groups_config, ev_params,
+        embedding_regularizer, is_training)
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:

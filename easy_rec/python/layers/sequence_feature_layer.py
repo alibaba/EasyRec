@@ -27,22 +27,35 @@ class SequenceFeatureLayer(object):
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
           feature_configs, self._seq_feature_groups_config, ev_params=ev_params)
     self._embedding_regularizer = embedding_regularizer
+    self._is_training = is_training
 
-  def target_attention(self, dnn_config, deep_fea, name, need_key_feature=True):
-    cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[
-        'hist_seq_emb'], deep_fea['hist_seq_len']
+  def target_attention(self,
+                       dnn_config,
+                       deep_fea,
+                       name,
+                       need_key_feature=True,
+                       allow_key_transform=False):
+    cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
+        'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
+            'aux_hist_seq_emb_list']
 
     seq_max_len = tf.shape(hist_id_col)[1]
-    emb_dim = hist_id_col.shape[2]
+    seq_emb_dim = hist_id_col.shape[2]
+    cur_id_dim = tf.shape(cur_id)[-1]
 
     cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
+
+    if allow_key_transform and (cur_id_dim != seq_emb_dim):
+      cur_id = tf.layers.dense(
+          cur_id, seq_emb_dim, name='sequence_key_transform_layer')
+
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,
-                         tf.shape(hist_id_col))  # (B, seq_max_len, emb_dim)
+                         tf.shape(hist_id_col))  # (B, seq_max_len, seq_emb_dim)
 
     din_net = tf.concat(
         [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
-        axis=-1)  # (B, seq_max_len, emb_dim*4)
+        axis=-1)  # (B, seq_max_len, seq_emb_dim*4)
 
     din_layer = dnn.DNN(dnn_config, None, name, self._is_training)
     din_net = din_layer(din_net)
@@ -55,8 +68,16 @@ class SequenceFeatureLayer(object):
 
     # Scale
     scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
-    hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, emb_dim]
-    hist_din_emb = tf.reshape(hist_din_emb, [-1, emb_dim])  # [B, emb_dim]
+    hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, seq_emb_dim]
+    hist_din_emb = tf.reshape(hist_din_emb,
+                              [-1, seq_emb_dim])  # [B, seq_emb_dim]
+    if len(aux_hist_emb_list) > 0:
+      all_hist_dim_emb = [hist_din_emb]
+      for hist_col in aux_hist_emb_list:
+        cur_aux_hist = tf.matmul(scores, hist_col)
+        outputs = tf.reshape(cur_aux_hist, [-1, seq_emb_dim])
+        all_hist_dim_emb.append(outputs)
+      hist_din_emb = tf.concat(all_hist_dim_emb, axis=1)
     if not need_key_feature:
       return hist_din_emb
     din_output = tf.concat([hist_din_emb, cur_id], axis=1)
@@ -73,6 +94,7 @@ class SequenceFeatureLayer(object):
       group_name = seq_att_map_config.group_name
       allow_key_search = seq_att_map_config.allow_key_search
       need_key_feature = seq_att_map_config.need_key_feature
+      allow_key_transform = seq_att_map_config.allow_key_transform
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search)
@@ -96,7 +118,8 @@ class SequenceFeatureLayer(object):
           seq_dnn_config,
           seq_features,
           name=cur_target_attention_name,
-          need_key_feature=need_key_feature)
+          need_key_feature=need_key_feature,
+          allow_key_transform=allow_key_transform)
       all_seq_fea.append(seq_fea)
     # concat all seq_fea
     all_seq_fea = tf.concat(all_seq_fea, axis=1)
