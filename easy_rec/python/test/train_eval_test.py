@@ -853,16 +853,15 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_dssm_neg_sampler_only_sequence_feature(self):
+  def test_dssm_neg_sampler_need_key_feature(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_neg_sampler_only_sequence_feature.config',
+        'samples/model_config/dssm_neg_sampler_need_key_feature.config',
         self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_dbmtl_on_multi_numeric_boundary_only_sequence_feature(self):
+  def test_dbmtl_on_multi_numeric_boundary_need_key_feature(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dbmtl_on_multi_numeric_boundary_only_sequence_feature_taobao.config',
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_need_key_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 
