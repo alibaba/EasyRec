@@ -1,8 +1,13 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
+import logging
 import os
 
-from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import copy_file
-from easy_rec.python.hpo_nni.pai_nni.code.metric_utils import upload_file
+from hpo_nni.core.metric_utils import copy_file
+from hpo_nni.core.metric_utils import upload_file
+from hpo_nni.core.utils import parse_config
+
 from easy_rec.python.utils import config_util
 
 
@@ -12,12 +17,12 @@ def get_params():
       '--pipeline_config_path',
       type=str,
       help='pipeline config path',
-      default='../config/pipeline.config')
+      default='./samples/hpo/pipeline.config')
   parser.add_argument(
       '--save_path',
       type=str,
       help='modify pipeline config path',
-      default='../config/pipeline_finetune.config')
+      default='./samples/hpo/pipeline_finetune.config')
   parser.add_argument(
       '--learning_rate',
       type=float,
@@ -27,15 +32,16 @@ def get_params():
       '--oss_config',
       type=str,
       help='excel config path',
-      default='../config/.ossutilconfig')
+      default=os.path.join(os.path.expanduser('~'), '.ossutilconfig'))
   args, _ = parser.parse_known_args()
   return args
 
 
 def modify_config(args):
   if args.pipeline_config_path.startswith('oss://'):
-    print('dfsf', args.pipeline_config_path)
-    copy_file(args.pipeline_config_path, './temp.config')
+    oss_config = parse_config(args.oss_config)
+    logging.info('pipeline_config_path: %s', args.pipeline_config_path)
+    copy_file(args.pipeline_config_path, './temp.config', oss_config=oss_config)
     pipeline_config_path = './temp.config'
   else:
     pipeline_config_path = args.pipeline_config_path
@@ -54,10 +60,11 @@ def modify_config(args):
     elif hasattr(learning_rate, 'initial_learning_rate'):
       if hasattr(learning_rate, 'min_learning_rate'):
         if args.learning_rate < learning_rate.min_learning_rate:
-          print('args.learning_rate {} < learning_rate.min_learning_rate {}, '
-                'we will use the learning_rate.min_learning_rate {}'.format(
-                    args.learning_rate, learning_rate.min_learning_rate,
-                    learning_rate.min_learning_rate))
+          logging.warning(
+              'args.learning_rate %s < learning_rate.min_learning_rate %s, '
+              'we will use the learning_rate.min_learning_rate %s',
+              args.learning_rate, learning_rate.min_learning_rate,
+              learning_rate.min_learning_rate)
         learning_rate.initial_learning_rate = max(
             args.learning_rate, learning_rate.min_learning_rate)
       else:
@@ -67,10 +74,11 @@ def modify_config(args):
 
       if hasattr(learning_rate, 'end_learning_rate'):
         if args.learning_rate < learning_rate.end_learning_rate:
-          print('args.learning_rate {} < learning_rate.end_learning_rate {},'
-                ' we will use the learning_rate.end_learning_rate {}'.format(
-                    args.learning_rate, learning_rate.end_learning_rate,
-                    learning_rate.end_learning_rate))
+          logging.warning(
+              'args.learning_rate %s < learning_rate.end_learning_rate %s,'
+              ' we will use the learning_rate.end_learning_rate %s',
+              args.learning_rate, learning_rate.end_learning_rate,
+              learning_rate.end_learning_rate)
         learning_rate.learning_rate_base = max(args.learning_rate,
                                                learning_rate.end_learning_rate)
       else:
@@ -87,16 +95,29 @@ def modify_config(args):
       pipeline_config=pipeline_config, directory=save_dir, filename=file_name)
 
   if args.save_path.startswith('oss://'):
-    upload_file(args.save_path, './pipeline_finetune.config')
+    oss_config = parse_config(args.oss_config)
+    upload_file(
+        args.save_path, './pipeline_finetune.config', oss_config=oss_config)
     os.remove(save_path)
 
   if args.pipeline_config_path.startswith('oss://'):
     os.remove(pipeline_config_path)
 
 
-def get_learning_rate(pipeline_config_path):
+def get_learning_rate(args):
+
+  if args.save_path.startswith('oss://'):
+    oss_config = parse_config(args.oss_config)
+    logging.info('pipeline_config_path: %s', args.save_path)
+    copy_file(args.save_path, './temp.config', oss_config=oss_config)
+    pipeline_config_path = './temp.config'
+  else:
+    pipeline_config_path = args.save_path
+
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
+  if args.save_path.startswith('oss://'):
+    os.remove(pipeline_config_path)
   optimizer_configs = pipeline_config.train_config.optimizer_config
   for optimizer_config in optimizer_configs:
     optimizer = optimizer_config.WhichOneof('optimizer')
@@ -116,6 +137,6 @@ def get_learning_rate(pipeline_config_path):
 
 if __name__ == '__main__':
   args = get_params()
-  print('args:', args)
+  logging.info('args: %s', args)
   modify_config(args)
-  print('final learning_rate:', get_learning_rate(args.save_path))
+  logging.info('final learning_rate: %s', get_learning_rate(args))

@@ -647,7 +647,7 @@ message PBResponse {
   map<string, ContextFeatures> context_features = 4;
 
   string error_msg = 5;
-  
+
   StatusCode status_code = 6;
 
   // item ids

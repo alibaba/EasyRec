@@ -9,11 +9,11 @@ import logging
 import os
 import re
 import time
-from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache

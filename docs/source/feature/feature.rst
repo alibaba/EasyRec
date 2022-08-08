@@ -69,7 +69,7 @@ IdFeature: 离散值特征/ID类特征
    .. math::
 
         embedding\_dim=8+x^{0.25}
-
+  - 其中，x 为不同特征取值的个数
 
 -  hash\_bucket\_size: hash bucket的大小。适用于category_id, user_id等
 
@@ -270,6 +270,7 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     sequence_features: {
       group_name: "seq_fea"
       allow_key_search: true
+      need_key_feature:true
       seq_att_map: {
         key: "brand"
         key: "cate_id"
@@ -281,6 +282,8 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 
 -  sequence_features: 序列特征组的名称
 -  allow_key_search: 当 key 对应的特征没有在 feature_groups 里面时，需要设置为 true, 将会复用对应特征的 embedding.
+-  need_key_feature : 默认为 true, 指过完 target attention 之后的特征会和 key 对应的特征 concat 之后返回。
+   设置为 false 时，将会只返回过完 target attention 之后的特征。
 -  seq_att_map: 具体细节可以参考排序里的 DIN 模型。
 -  NOTE：SequenceFeature一般放在 user 组里面。
 

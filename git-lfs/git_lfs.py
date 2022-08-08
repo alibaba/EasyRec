@@ -306,6 +306,7 @@ if __name__ == '__main__':
       subprocess.check_output(['tar', '-czf', tar_out_path] + leaf_files)
       save_path = '%s/%s' % (git_oss_data_dir, file_name_with_sig)
       oss_bucket.put_object_from_file(save_path, tar_out_path)
+      oss_bucket.put_object_acl(save_path, oss2.OBJECT_ACL_PUBLIC_READ)
       git_bin_url[leaf_path] = (new_sig, save_path)
       logging.info('pushed %s' % leaf_path)
       updated = True

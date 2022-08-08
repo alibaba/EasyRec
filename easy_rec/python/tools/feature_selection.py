@@ -12,6 +12,9 @@ from tensorflow.python.framework.meta_graph import read_meta_graph_file
 
 from easy_rec.python.utils import config_util
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 import matplotlib  # NOQA
 matplotlib.use('Agg')  # NOQA
 import matplotlib.pyplot as plt  # NOQA
