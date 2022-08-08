@@ -865,6 +865,24 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_dbmtl_on_multi_numeric_boundary_allow_key_transform(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_allow_key_transform.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_boundary_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_on_sequence_feature_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_on_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
