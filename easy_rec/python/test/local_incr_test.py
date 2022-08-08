@@ -55,7 +55,7 @@ class LocalIncrTest(tf.test.TestCase):
   def _test_incr_save(self, config_path): 
     self._success = False 
     success = test_utils.test_distributed_train_eval(config_path, self._test_dir,
-       total_steps=500, edit_config_json={"train_config.incr_save_config.fs.mount_path":os.path.join(self._test_dir, "train/incr_save/")})
+       total_steps=1000, edit_config_json={"train_config.incr_save_config.fs.mount_path":os.path.join(self._test_dir, "train/incr_save/")})
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config 
@@ -109,21 +109,6 @@ class LocalIncrTest(tf.test.TestCase):
       assert diff < 1e-4, 'too much difference[%.6f] >= 1e-4' % diff
     self._success = True
          
-  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
-  def test_kafka_train_v3(self):
-    try:
-      # start produce thread
-      self._producer = self._create_producer(self._generate)
-
-      test_utils.set_gpu_id(None)
-
-      self._success = test_utils.test_single_train_eval(
-          'samples/model_config/deepfm_combo_avazu_kafka_time_offset2.config', self._test_dir) 
-     
-      self.assertTrue(self._success)
-    except Exception as ex:
-      self._success = False
-      raise ex
 
 if __name__ == '__main__':
   tf.test.main()

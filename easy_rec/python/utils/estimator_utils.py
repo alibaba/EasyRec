@@ -16,7 +16,7 @@ import six
 import threading
 import tensorflow as tf
 from tensorflow.python.framework import ops
-from easy_rec.python.ops.incr_record import get_sparse_indices
+from easy_rec.python.ops.incr_record import get_sparse_indices,kv_resource_incr_gather
 from tensorflow.python.ops import array_ops
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
@@ -378,7 +378,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
           # sparse_indice = sparse_indice.global_indices
         self._sparse_indices.append(sparse_indice)
         if 'EmbeddingVariable' in str(type(sparse_var)):
-          self._sparse_values.append(sparse_var.sparse_read(sparse_indice))
+          self._sparse_values.append(kv_resource_incr_gather(sparse_var._handle, sparse_indice,
+                  np.zeros(sparse_var.shape.as_list(), dtype=np.float32)))
+          # sparse_var.sparse_read(sparse_indice))
         else:
           self._sparse_values.append(array_ops.gather(sparse_var, sparse_indice)) 
 

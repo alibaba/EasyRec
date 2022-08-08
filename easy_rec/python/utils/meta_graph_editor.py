@@ -401,26 +401,42 @@ class MetaGraphEditor:
     for i in range(len(lookup_input_values)):
       if lookup_input_values[i].dtype == tf.int32:
         lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
-    N = len(lookup_input_indices)
-    self._lookup_outs = [ None for _ in range(N) ]
-    for i in range(N):
-      i_1 = i + 1
-      self._lookup_outs[i] = self._lookup_op.oss_read_kv(
-          lookup_input_indices[i:i_1],
-          lookup_input_values[i:i_1],
-          lookup_input_shapes[i:i_1],
-          lookup_input_weights[i:i_1],
-          osspath=self._oss_path,
-          endpoint=self._oss_endpoint,
-          ak=self._oss_ak,
-          sk=self._oss_sk,
-          timeout=self._oss_timeout,
-          combiners=self._embed_combiners[i:i_1],
-          embedding_dims=self._embed_dims[i:i_1],
-          embedding_ids=self._embed_ids[i:i_1],
-          embedding_is_kv=self._embed_is_kv[i:i_1],
-          shared_name='embedding_lookup_res',
-          name='embedding_lookup_fused/lookup')[0]
+    # N = len(lookup_input_indices)
+    # self._lookup_outs = [ None for _ in range(N) ]
+    # for i in range(N):
+    #   i_1 = i + 1
+    #   self._lookup_outs[i] = self._lookup_op.oss_read_kv(
+    #       lookup_input_indices[i:i_1],
+    #       lookup_input_values[i:i_1],
+    #       lookup_input_shapes[i:i_1],
+    #       lookup_input_weights[i:i_1],
+    #       osspath=self._oss_path,
+    #       endpoint=self._oss_endpoint,
+    #       ak=self._oss_ak,
+    #       sk=self._oss_sk,
+    #       timeout=self._oss_timeout,
+    #       combiners=self._embed_combiners[i:i_1],
+    #       embedding_dims=self._embed_dims[i:i_1],
+    #       embedding_ids=self._embed_ids[i:i_1],
+    #       embedding_is_kv=self._embed_is_kv[i:i_1],
+    #       shared_name='embedding_lookup_res',
+    #       name='embedding_lookup_fused/lookup')[0]
+    self._lookup_outs = self._lookup_op.oss_read_kv(
+            lookup_input_indices,
+            lookup_input_values,
+            lookup_input_shapes,
+            lookup_input_weights,
+            osspath=self._oss_path,
+            endpoint=self._oss_endpoint,
+            ak=self._oss_ak,
+            sk=self._oss_sk,
+            timeout=self._oss_timeout,
+            combiners=self._embed_combiners,
+            embedding_dims=self._embed_dims,
+            embedding_ids=self._embed_ids,
+            embedding_is_kv=self._embed_is_kv,
+            shared_name='embedding_lookup_res',
+            name='embedding_lookup_fused/lookup')
 
     N = np.max([int(x) for x in self._embed_ids]) + 1
     uniq_embed_ids = [ x for x in range(N) ]

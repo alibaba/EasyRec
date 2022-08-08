@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-PROCESSOR_VERSION = 'LaRec-0.9.5b-02f726b-TF-2.5.0-Linux'
+PROCESSOR_VERSION = 'LaRec-0.9.5b-6e85355-TF-2.5.0-Linux'
 PROCESSOR_FILE = PROCESSOR_VERSION + '.tar.gz'
 PROCESSOR_URL = 'http://easyrec.oss-cn-beijing.aliyuncs.com/processor/' + PROCESSOR_FILE
 PROCESSOR_ENTRY_LIB = 'processor/' + PROCESSOR_VERSION + '/larec/libtf_predictor.so'

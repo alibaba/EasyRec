@@ -819,6 +819,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           inputs, features = self.create_multi_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
+          import pdb
+          pdb.set_trace()
           inputs, features = self.create_placeholders(export_config)
           print('built feature placeholders. features: {}'.format(
               features.keys()))
