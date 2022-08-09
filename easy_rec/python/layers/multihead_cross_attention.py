@@ -1,7 +1,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import math
 
+import six
 import tensorflow as tf
 
 from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
@@ -731,3 +736,41 @@ def layer_norm_and_dropout(input_tensor, dropout_prob, name=None):
   output_tensor = layer_norm(input_tensor, name)
   output_tensor = dropout(output_tensor, dropout_prob)
   return output_tensor
+
+
+def get_activation(activation_string):
+  """Maps a string to a Python function, e.g., "relu" => `tf.nn.relu`.
+
+  Args:
+    activation_string: String name of the activation function.
+
+  Returns:
+    A Python function corresponding to the activation function. If
+    `activation_string` is None, empty, or "linear", this will return None.
+    If `activation_string` is not a string, it will return `activation_string`.
+
+  Raises:
+    ValueError: The `activation_string` does not correspond to a known
+      activation.
+  """
+  # We assume that anything that's not a string is already an activation
+  # function, so we just return it.
+  if not isinstance(activation_string, six.string_types):
+    return activation_string
+
+  if not activation_string:
+    return None
+
+  act = activation_string.lower()
+  if act == 'linear':
+    return None
+  elif act == 'relu':
+    return tf.nn.relu
+  elif act == 'gelu':
+    return gelu
+  elif act == 'tanh':
+    return tf.tanh
+  elif act == 'swish':
+    return tf.nn.swish
+  else:
+    raise ValueError('Unsupported activation: %s' % act)

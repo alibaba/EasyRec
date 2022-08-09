@@ -265,6 +265,23 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/autoint_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_text_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_text_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_image_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_image_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_cmbf(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/cmbf_on_movielens.config', self._test_dir)
@@ -479,6 +496,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dbmtl_cmbf(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_cmbf_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_uniter_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dbmtl_with_multi_loss(self):
