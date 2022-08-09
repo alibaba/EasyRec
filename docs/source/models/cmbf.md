@@ -39,6 +39,8 @@ CMBF主要有4个模块（如上图）：
 
 ![cross-model-fusion-layer](https://cdn.jsdelivr.net/gh/yangxudong/blogimg@master/rec/cross-model-fusion-layer.jpg)
 
+CMBF模型在多目标学习任务重的应用请参考 [DBMTL+CMBF](dbmtl.md)。
+
 ### 配置说明
 
 ```protobuf
