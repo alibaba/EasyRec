@@ -135,6 +135,7 @@ message FeatureGroupConfig {
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
     repeated SeqAttGroupConfig sequence_features = 4;
+    optional bool negative_sampler = 5 [default = false];
 }
 
 message SeqAttMap {

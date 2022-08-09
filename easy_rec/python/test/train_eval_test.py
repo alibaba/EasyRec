@@ -5,11 +5,11 @@ import glob
 import logging
 import os
 import unittest
-from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -902,6 +902,13 @@ class TrainEvalTest(tf.test.TestCase):
   def test_deepfm_on_sequence_feature_aux_hist_seq(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_multi_tower_recall_neg_sampler_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_recall_neg_sampler_sequence_feature.config',
         self._test_dir)
     self.assertTrue(self._success)
 
