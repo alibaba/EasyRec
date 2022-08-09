@@ -9,7 +9,7 @@ DBMTL构建了多个目标之间的贝叶斯网络，显式建模了多个目标
 
 ![dbmtl_mmoe.png](../../images/models/dbmtl_mmoe.png)
 
-在多模态（图像、视频、文本）推荐场景，DBMTL支持使用[CMBF模型](cmbf.md)作为底层的`shared layer`，以便充分利用多模态特征，取到更好的推荐效果。
+在多模态（图像、视频、文本）推荐场景，DBMTL支持使用[CMBF模型](cmbf.md)或[UNITER模型](uniter.md)作为底层的`shared layer`，以便充分利用多模态特征，取到更好的推荐效果。
 
 ### 配置说明
 
