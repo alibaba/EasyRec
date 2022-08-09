@@ -1,0 +1,21 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+
+message RecallTower {
+  required string id = 1;
+  required DNN dnn = 2;
+};
+
+
+message MultiTowerRecall {
+    required RecallTower user_tower = 1;
+    required RecallTower item_tower = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+    required DNN final_dnn = 4;
+    optional string item_id = 9;
+    required bool ignore_in_batch_neg_sam = 10 [default = false];
+}
