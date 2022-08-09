@@ -55,7 +55,7 @@ class LocalIncrTest(tf.test.TestCase):
   def _test_incr_save(self, config_path): 
     self._success = False 
     success = test_utils.test_distributed_train_eval(config_path, self._test_dir,
-       total_steps=1000, edit_config_json={"train_config.incr_save_config.fs.mount_path":os.path.join(self._test_dir, "train/incr_save/")})
+       total_steps=100, edit_config_json={"train_config.incr_save_config.fs.mount_path":os.path.join(self._test_dir, "train/incr_save/")})
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config 
