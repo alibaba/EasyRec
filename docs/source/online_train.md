@@ -221,6 +221,6 @@ saved_model_cli show --all --dir export/1650854967
                - incr_update/sparse/embedding_update
 ### 部署
 
-- 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/LaRec-0.9.5b-c1b42fc-TF-2.5.0-Linux.tar.gz)
+- 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/LaRec-0.9.5b-b890f69-TF-2.5.0-Linux.tar.gz)
 - processor重启会恢复base版本，重新拉取增量更新的消息
 
