@@ -2,9 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
+from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.shape_utils import get_shape_list
-from easy_rec.python.layers import dnn
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -84,15 +84,20 @@ class CMBF(object):
             max_seq_len = feature_config.max_seq_len
 
     unique_dim_num = len(set(txt_fea_emb_dim_list))
-    assert unique_dim_num <= 1 and len(txt_fea_emb_dim_list) == self._txt_feature_num, (
-        'CMBF requires that all `text` feature dimensions must be consistent.'
-    )
+    assert unique_dim_num <= 1 and len(
+        txt_fea_emb_dim_list
+    ) == self._txt_feature_num, (
+        'CMBF requires that all `text` feature dimensions must be consistent.')
     unique_dim_num = len(set(general_emb_dim_list))
-    assert unique_dim_num <= 1 and len(general_emb_dim_list) == self._general_feature_num, (
+    assert unique_dim_num <= 1 and len(
+        general_emb_dim_list
+    ) == self._general_feature_num, (
         'CMBF requires that all `general` feature dimensions must be consistent.'
     )
     unique_dim_num = len(set(img_fea_emb_dim_list))
-    assert unique_dim_num <= 1 and len(img_fea_emb_dim_list) == self._img_feature_num, (
+    assert unique_dim_num <= 1 and len(
+        img_fea_emb_dim_list
+    ) == self._img_feature_num, (
         'CMBF requires that all `image` feature dimensions must be consistent.')
 
     if cmbf_config.use_position_embeddings:
@@ -105,7 +110,8 @@ class CMBF(object):
 
     self._img_emb_size = img_fea_emb_dim_list[0] if img_fea_emb_dim_list else 0
     self._txt_emb_size = txt_fea_emb_dim_list[0] if txt_fea_emb_dim_list else 0
-    self._general_emb_size = general_emb_dim_list[0] if general_emb_dim_list else 0
+    self._general_emb_size = general_emb_dim_list[
+        0] if general_emb_dim_list else 0
     self._head_num = cmbf_config.multi_head_num
     self._img_head_num = cmbf_config.image_multi_head_num
     self._txt_head_num = cmbf_config.text_multi_head_num
@@ -146,7 +152,7 @@ class CMBF(object):
         image_features = tf.layers.dense(
             image_features, hidden_size, name='img_projection')
       image_features = tf.reshape(
-        image_features, shape=[-1, img_fea_num, hidden_size])
+          image_features, shape=[-1, img_fea_num, hidden_size])
       return image_features
 
     hidden_size = self._img_head_size * self._img_head_num

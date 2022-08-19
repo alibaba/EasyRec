@@ -34,7 +34,6 @@ CMBF主要有4个模块（如上图）：
 其他特征：不参与`单模态学习模块`和`跨模态融合模块`的输入特征，直接与`跨模态融合模块`的结果拼接后，接入后续的MLP，通常是一些统计类特征。
 （对应配置名为`other`的`feature group`）
 
-
 单模块学习模块采用标准的transformer结构，如下：
 ![CMBF_feature_learning](https://cdn.jsdelivr.net/gh/yangxudong/blogimg@master/rec/CMBF_feature_learning.jpg)
 **Tips**: 当只有一个图像特征时，可通过配置参数`image_self_attention_layer_num = 0`来跳过图像特征的单模块学习阶段。
