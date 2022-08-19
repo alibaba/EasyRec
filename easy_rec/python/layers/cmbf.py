@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
+from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.shape_utils import get_shape_list
 from easy_rec.python.layers import dnn

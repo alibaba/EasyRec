@@ -22,6 +22,9 @@ if six.PY2:
 else:
   from urllib.parse import quote
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 EASY_REC_RES_DIR = 'easy_rec_user_resources'
 HTTP_MAX_NUM_RETRY = 5
 HTTP_MAX_TIMEOUT = 600

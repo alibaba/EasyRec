@@ -1,0 +1,11 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/dnn.proto";
+
+message Uniter {
+    required UniterTower config = 1;
+
+    required DNN final_dnn = 2;
+}

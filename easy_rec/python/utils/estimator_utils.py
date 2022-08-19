@@ -9,11 +9,11 @@ import logging
 import os
 import re
 import time
-from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.training.summary_io import SummaryWriterCache
@@ -569,6 +569,29 @@ def get_ckpt_version(ckpt_path):
     ckpt_name = ext
   toks = ckpt_name.split('-')
   return int(toks[-1])
+
+
+def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
+                                               ignore_ckpt_error):
+  ckpt_path = None
+  if checkpoint_path.endswith('/') or tf.gfile.IsDirectory(checkpoint_path +
+                                                           '/'):
+    if tf.gfile.Exists(checkpoint_path):
+      ckpt_path = latest_checkpoint(checkpoint_path)
+      if ckpt_path:
+        logging.info(
+            'fine_tune_checkpoint is directory, will use the latest checkpoint: %s'
+            % ckpt_path)
+      else:
+        assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
+    else:
+      assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
+  elif tf.gfile.Exists(checkpoint_path + '.meta'):
+    ckpt_path = checkpoint_path
+    logging.info('update fine_tune_checkpoint to %s' % checkpoint_path)
+  else:
+    assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
+  return ckpt_path
 
 
 def latest_checkpoint(model_dir):
