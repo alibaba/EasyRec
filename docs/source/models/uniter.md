@@ -22,7 +22,7 @@ UNITER (UNiversal Image-TExt Representation Learning) 模型是基于Transformer
 模型支持四种类型的特征组（`feature group`），如下所述。
 不一定需要有全部四种类型的输入特征，只需要保证至少有一种类型的输入特征即可训练模型。根据输入特征类型的不同，部分网络结构可能会被`短路`（skip）掉。
 
-视觉特征提取模块通常是一个CNN-based的模型，用来提取图像或视频特征，以便后续接入transformer模块。
+视觉特征提取模块通常是一个CNN-based/Transformer-based的模型，用来提取图像或视频特征，以便后续接入transformer模块。
 
 文本型特征包括两部分：
 
@@ -30,7 +30,7 @@ UNITER (UNiversal Image-TExt Representation Learning) 模型是基于Transformer
 - 不定长文本序列特征，例如 物品的`title`、`description`等；（对应配置名为`text`的`feature group`）
   每个特征需要转换为相同维度的embedding，以便接入后续的transformer模块。
 
-其他特征：不参与`单模态学习模块`和`跨模态融合模块`的输入特征，直接与`跨模态融合模块`的结果拼接后，接入后续的MLP，通常是一些统计类特征。
+其他特征：直接与`UNITER模块`的结果拼接后，接入后续的MLP，通常是一些统计类特征。
 （对应配置名为`other`的`feature group`）
 
 UNITER模型在多目标学习任务重的应用请参考 [DBMTL+UNITER](dbmtl.md)。
