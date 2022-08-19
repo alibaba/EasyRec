@@ -18,13 +18,13 @@ message CMBFTower {
     // The dimension of text heads
     required uint32 text_head_size = 2;
     // The dimension of image heads
-    required uint32 image_head_size = 3;
+    required uint32 image_head_size = 3 [default = 64];
     // The number of patches of image feature, take effect when there is only one image feature
     required uint32 image_feature_patch_num = 4 [default = 1];
     // Do dimension reduce to this size for image feature before single modal learning module
     required uint32 image_feature_dim = 5 [default = 0];
     // The number of self attention layers for image features
-    required uint32 image_self_attention_layer_num = 6 [default = 1];
+    required uint32 image_self_attention_layer_num = 6 [default = 0];
     // The number of self attention layers for text features
     required uint32 text_self_attention_layer_num = 7 [default = 1];
     // The number of cross modal layers
