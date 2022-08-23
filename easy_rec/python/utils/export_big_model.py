@@ -514,33 +514,34 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       tf.constant(
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
 
-  dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path),
-      constant.DENSE_UPDATE_VARIABLES)
-  ops.add_to_collection(
-      ops.GraphKeys.ASSET_FILEPATHS,
-      tf.constant(
-          dense_train_vars_path, dtype=tf.string, name=constant.DENSE_UPDATE_VARIABLES))
+  if 'incr_update' in oss_params:
+    dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path),
+        constant.DENSE_UPDATE_VARIABLES)
+    ops.add_to_collection(
+        ops.GraphKeys.ASSET_FILEPATHS,
+        tf.constant(
+            dense_train_vars_path, dtype=tf.string, name=constant.DENSE_UPDATE_VARIABLES))
 
-  asset_file = 'incr_update.txt'
-  asset_file_path = os.path.join(export_dir, asset_file)
-  with GFile(asset_file_path, 'w') as fout:
-    incr_update = oss_params['incr_update']
-    incr_update_json = { }
-    if 'kafka' in incr_update:
-      incr_update_json['storage'] = 'kafka'
-      incr_update_json['kafka'] = json.loads(json_format.MessageToJson(incr_update['kafka'],
-        preserving_proto_field_name=True))
-    elif 'datahub' in incr_update:
-      incr_update_json['storage'] = 'datahub'
-      incr_update_json['datahub'] = json.loads(json_format.MessageToJson(incr_update['datahub'],
-        preserving_proto_field_name=True))
-    elif 'fs' in incr_update:
-      incr_update_json['storage'] = 'fs'
-      incr_update_json['fs'] = {'incr_save_dir':incr_update['fs'].mount_path}
-    json.dump(incr_update_json, fout, indent=2)
+    asset_file = 'incr_update.txt'
+    asset_file_path = os.path.join(export_dir, asset_file)
+    with GFile(asset_file_path, 'w') as fout:
+      incr_update = oss_params['incr_update']
+      incr_update_json = { }
+      if 'kafka' in incr_update:
+        incr_update_json['storage'] = 'kafka'
+        incr_update_json['kafka'] = json.loads(json_format.MessageToJson(incr_update['kafka'],
+          preserving_proto_field_name=True))
+      elif 'datahub' in incr_update:
+        incr_update_json['storage'] = 'datahub'
+        incr_update_json['datahub'] = json.loads(json_format.MessageToJson(incr_update['datahub'],
+          preserving_proto_field_name=True))
+      elif 'fs' in incr_update:
+        incr_update_json['storage'] = 'fs'
+        incr_update_json['fs'] = {'incr_save_dir':incr_update['fs'].mount_path}
+      json.dump(incr_update_json, fout, indent=2)
 
-  ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
-      tf.constant(asset_file_path, dtype=tf.string, name=asset_file))
+    ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
+        tf.constant(asset_file_path, dtype=tf.string, name=asset_file))
 
 
   export_dir = os.path.join(export_dir,
@@ -568,25 +569,28 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
           outputs=tensor_info_outputs,
           method_name=signature_constants.PREDICT_METHOD_NAME))
 
-  incr_update_inputs = meta_graph_editor.sparse_update_inputs
-  incr_update_outputs = meta_graph_editor.sparse_update_outputs
-  incr_update_inputs.update(meta_graph_editor.dense_update_inputs)
-  incr_update_outputs.update(meta_graph_editor.dense_update_outputs)
-  tensor_info_incr_update_inputs = {}
-  tensor_info_incr_update_outputs = {}
-  for tmp_key in incr_update_inputs:
-    tmp = graph.get_tensor_by_name(incr_update_inputs[tmp_key].name)
-    tensor_info_incr_update_inputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
-  for tmp_key in incr_update_outputs:
-    tmp = graph.get_tensor_by_name(incr_update_outputs[tmp_key].name)
-    tensor_info_incr_update_outputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
-  incr_update_signature = (
-      tf.saved_model.signature_def_utils.build_signature_def(
-          inputs=tensor_info_incr_update_inputs,
-          outputs=tensor_info_incr_update_outputs,
-          method_name=signature_constants.PREDICT_METHOD_NAME))
+  if 'incr_update' in oss_params:
+    incr_update_inputs = meta_graph_editor.sparse_update_inputs
+    incr_update_outputs = meta_graph_editor.sparse_update_outputs
+    incr_update_inputs.update(meta_graph_editor.dense_update_inputs)
+    incr_update_outputs.update(meta_graph_editor.dense_update_outputs)
+    tensor_info_incr_update_inputs = {}
+    tensor_info_incr_update_outputs = {}
+    for tmp_key in incr_update_inputs:
+      tmp = graph.get_tensor_by_name(incr_update_inputs[tmp_key].name)
+      tensor_info_incr_update_inputs[tmp_key] = \
+          tf.saved_model.utils.build_tensor_info(tmp)
+    for tmp_key in incr_update_outputs:
+      tmp = graph.get_tensor_by_name(incr_update_outputs[tmp_key].name)
+      tensor_info_incr_update_outputs[tmp_key] = \
+          tf.saved_model.utils.build_tensor_info(tmp)
+    incr_update_signature = (
+        tf.saved_model.signature_def_utils.build_signature_def(
+            inputs=tensor_info_incr_update_inputs,
+            outputs=tensor_info_incr_update_outputs,
+            method_name=signature_constants.PREDICT_METHOD_NAME))
+  else:
+    incr_update_signature = None
 
   session_config = ConfigProto(
       allow_soft_placement=True, log_device_placement=True)
@@ -596,12 +600,14 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
     saver.restore(sess, checkpoint_path)
     main_op = tf.group([Scaffold.default_local_init_op(), 
        ops.get_collection(EMBEDDING_INITIALIZERS)]) 
+    incr_update_sig_map = {
+       signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature
+    }
+    if incr_update_signature is not None:
+      incr_update_sig_map[INCR_UPDATE_SIGNATURE_KEY] = incr_update_signature
     builder.add_meta_graph_and_variables(
         sess, [tf.saved_model.tag_constants.SERVING],
-        signature_def_map={
-            signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature,
-            INCR_UPDATE_SIGNATURE_KEY: incr_update_signature
-        },
+        signature_def_map=incr_update_sig_map,
         assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
         saver=saver,
         main_op=main_op,

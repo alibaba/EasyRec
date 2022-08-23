@@ -19,7 +19,10 @@ except ImportError as ex:
   logging.warning('kafka-python is not installed[%s]. You can install it by: pip install kafka-python' % traceback.format_exc())
 
 if tf.__version__ >= '2.0':
+  ignore_errors = tf.data.experimental.ignore_errors()
   tf = tf.compat.v1
+else:
+  ignore_errors = tf.contrib.data.ignore_errors()
 
 
 class KafkaInput(Input):
@@ -201,6 +204,8 @@ class KafkaInput(Input):
     dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(
         self._parse_csv, num_parallel_calls=num_parallel_calls)
+    if self._data_config.ignore_error:
+      dataset = dataset.apply(ignore_errors)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     dataset = dataset.map(
         map_func=self._preprocess, num_parallel_calls=num_parallel_calls)

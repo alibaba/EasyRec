@@ -392,7 +392,7 @@ class ExportTest(tf.test.TestCase):
         pipeline_config_path,
         test_data_path,
         self._extract_rtp_data,
-        total_steps=1000)
+        total_steps=100)
 
   def _test_big_model_export_to_oss(self,
                                     pipeline_config_path,
