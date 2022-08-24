@@ -143,7 +143,7 @@ class MatchModel(EasyRecModel):
       hit_prob = tf.gather_nd(
           self._prediction_dict['probs'][:batch_size, :batch_size], indices)
       self._loss_dict['cross_entropy_loss'] = -tf.reduce_mean(
-          tf.log(hit_prob + 1e-12)) * self._sample_weight
+          tf.log(hit_prob + 1e-12)) * tf.squeeze(self._sample_weight)
       logging.info('softmax cross entropy loss is used')
 
       user_features = self._prediction_dict['user_tower_emb']
