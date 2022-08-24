@@ -364,7 +364,7 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承hpo_nni/core/pai_assessor.PaiAssessor
+注意继承hpo_tools/core/assessor/pai_assessor.PaiAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉,并删除中间文件。
 
 ```
