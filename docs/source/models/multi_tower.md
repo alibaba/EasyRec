@@ -35,12 +35,12 @@ model_config: {
     feature_names: 'tag_brand_list'
     wide_deep: DEEP
   }
-  f1_reweight_loss {
-    f1_beta_square: 1.0
-  }
   losses {
     loss_type: F1_REWEIGHTED_LOSS
     weight: 1.0
+    f1_reweighted_loss {
+      f1_beta_square: 1.0
+    }
   }
   losses {
     loss_type: PAIR_WISE_LOSS
@@ -84,9 +84,9 @@ model_config: {
 - f1_reweight_loss: 可以调节二分类模型`recall/precision`相对权重的损失函数
   - f1_beta_square: 大于1的值会导致模型更关注`recall`，小于1的值会导致模型更关注`precision`
   - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
-    ![](../../images/other/f1_score.svg)
+    - ![](../../images/other/f1_score.svg)
   - 更一般的，我们定义 `F_beta` 分数为:
-    ![](../../images/other/f_beta_score.svg)
+    - ![](../../images/other/f_beta_score.svg)
   - f1_beta_square 即为 上述公式中的 beta 系数的平方。
 - towers:
   - 每个feature_group对应了一个tower, tower的input必须和feature_groups的group_name对应

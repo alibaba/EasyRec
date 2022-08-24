@@ -74,6 +74,14 @@ class SeqInputLayer(object):
                     builder))
         hist_tensors.extend(cur_hist_seqs)
 
+        aux_hist_emb_list = []
+        for aux_hist_seq in x.aux_hist_seq:
+          seq_fc = feature_column_dict[aux_hist_seq]
+          with tf.variable_scope(seq_fc._var_scope_name):
+            aux_hist_embedding, _ = feature_column_dict[
+                aux_hist_seq]._get_sequence_dense_tensor(builder)
+          aux_hist_emb_list.append(aux_hist_embedding)
+
         if tf_summary:
           for hist_embed, hist_seq_len in hist_tensors:
             tf.summary.histogram(
@@ -93,7 +101,8 @@ class SeqInputLayer(object):
       features = {
           'key': tf.concat(key_tensors, axis=-1),
           'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
-          'hist_seq_len': hist_tensors[0][1]
+          'hist_seq_len': hist_tensors[0][1],
+          'aux_hist_seq_emb_list': aux_hist_emb_list
       }
     return features
 

@@ -4,11 +4,11 @@
 import glob
 import logging
 import os
-import six
 import unittest
 from distutils.version import LooseVersion
 
 import numpy as np
+import six
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
@@ -265,6 +265,23 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/autoint_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_text_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_text_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_image_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_image_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_cmbf(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/cmbf_on_movielens.config', self._test_dir)
@@ -444,6 +461,12 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mmoe_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_mmoe_with_multi_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_on_taobao_with_multi_loss.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_mmoe_deprecated(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_taobao_deprecated.config', self._test_dir)
@@ -455,7 +478,7 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  def test_essm(self):
+  def test_esmm(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/esmm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
@@ -473,6 +496,17 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dbmtl_cmbf(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_cmbf_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_with_multi_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_taobao_with_multi_loss.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_early_stop(self):
@@ -649,7 +683,7 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf(six.PY2, "Only run in python3")
+  @unittest.skipIf(six.PY2, 'Only run in python3')
   def test_share_not_used(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/share_not_used.config', self._test_dir)
@@ -831,6 +865,51 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/esmm_distribute_eval_on_taobao.config',
         cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_neg_sampler_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_neg_sampler_sequence_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_neg_sampler_need_key_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_neg_sampler_need_key_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_need_key_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_need_key_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_allow_key_transform(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_allow_key_transform.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_boundary_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_on_sequence_feature_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_on_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_multi_tower_recall_neg_sampler_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_recall_neg_sampler_sequence_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
 

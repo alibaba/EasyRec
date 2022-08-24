@@ -242,7 +242,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             saveable_objects.append(s)
         init_op = saveable_objects[0].restore([ckpt_path], None)
         variable._initializer_op = init_op
-      elif type(variable) == list and 'EmbeddingVariable' in str(type(variable[0])):
+      elif type(variable) == list and 'EmbeddingVariable' in str(
+          type(variable[0])):
         print('restore partitioned embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
         for part_var in variable:

@@ -42,6 +42,7 @@ class CMBF(object):
     assert has_feature, 'there must be one of the feature groups: [image, text, general, other]'
 
     self._general_feature_num, self._img_feature_num = 0, 0
+    self._txt_feature_num = 0
     general_feature_names, txt_seq_feature_names = set(), set()
     img_feature_names = set()
     for fea_group in model_config.feature_groups:
@@ -57,19 +58,24 @@ class CMBF(object):
             'there are duplicate features in `image` feature group')
       elif fea_group.group_name == 'text':
         txt_seq_feature_names = set(fea_group.feature_names)
+        self._txt_feature_num = len(fea_group.feature_names)
+        assert self._txt_feature_num == len(txt_seq_feature_names), (
+            'there are duplicate features in `text` feature group')
 
     max_seq_len = 0
     txt_fea_emb_dim_list = []
+    general_emb_dim_list = []
     img_fea_emb_dim_list = []
     for feature_config in feature_configs:
       fea_name = feature_config.input_names[0]
       if feature_config.HasField('feature_name'):
         fea_name = feature_config.feature_name
-      if fea_name in general_feature_names or fea_name in txt_seq_feature_names:
-        txt_fea_emb_dim_list.append(feature_config.embedding_dim)
       if fea_name in img_feature_names:
         img_fea_emb_dim_list.append(feature_config.raw_input_dim)
+      if fea_name in general_feature_names:
+        general_emb_dim_list.append(feature_config.embedding_dim)
       if fea_name in txt_seq_feature_names:
+        txt_fea_emb_dim_list.append(feature_config.embedding_dim)
         if feature_config.HasField('max_seq_len'):
           assert feature_config.max_seq_len > 0, (
               'feature config `max_seq_len` must be greater than 0 for feature: '
@@ -77,16 +83,21 @@ class CMBF(object):
           if feature_config.max_seq_len > max_seq_len:
             max_seq_len = feature_config.max_seq_len
 
-    txt_tower_feature_num = self._general_feature_num + len(
-        txt_seq_feature_names)
-    assert len(
-        set(txt_fea_emb_dim_list)
-    ) <= 1 and len(txt_fea_emb_dim_list) == txt_tower_feature_num, (
-        'CMBF requires that all `general` and `text` feature dimensions must be consistent.'
+    unique_dim_num = len(set(txt_fea_emb_dim_list))
+    assert unique_dim_num <= 1 and len(
+        txt_fea_emb_dim_list
+    ) == self._txt_feature_num, (
+        'CMBF requires that all `text` feature dimensions must be consistent.')
+    unique_dim_num = len(set(general_emb_dim_list))
+    assert unique_dim_num <= 1 and len(
+        general_emb_dim_list
+    ) == self._general_feature_num, (
+        'CMBF requires that all `general` feature dimensions must be consistent.'
     )
-    assert len(
-        set(img_fea_emb_dim_list)
-    ) <= 1 and len(img_fea_emb_dim_list) == self._img_feature_num, (
+    unique_dim_num = len(set(img_fea_emb_dim_list))
+    assert unique_dim_num <= 1 and len(
+        img_fea_emb_dim_list
+    ) == self._img_feature_num, (
         'CMBF requires that all `image` feature dimensions must be consistent.')
 
     if cmbf_config.use_position_embeddings:
@@ -99,6 +110,8 @@ class CMBF(object):
 
     self._img_emb_size = img_fea_emb_dim_list[0] if img_fea_emb_dim_list else 0
     self._txt_emb_size = txt_fea_emb_dim_list[0] if txt_fea_emb_dim_list else 0
+    self._general_emb_size = general_emb_dim_list[
+        0] if general_emb_dim_list else 0
     self._head_num = cmbf_config.multi_head_num
     self._img_head_num = cmbf_config.image_multi_head_num
     self._txt_head_num = cmbf_config.text_multi_head_num
@@ -128,9 +141,21 @@ class CMBF(object):
     """
     if self._img_features is None:
       return None
-    hidden_size = self._img_head_size * self._img_head_num
     image_features = self._img_features
     img_fea_num = self._img_feature_num
+    if self._img_self_attention_layer_num <= 0:
+      hidden_size = self._model_config.multi_head_num * self._model_config.image_cross_head_size
+      if self._img_emb_size != hidden_size:
+        # Run a linear projection of `hidden_size`
+        image_features = tf.reshape(
+            self._img_features, shape=[-1, self._img_emb_size])
+        image_features = tf.layers.dense(
+            image_features, hidden_size, name='img_projection')
+      image_features = tf.reshape(
+          image_features, shape=[-1, img_fea_num, hidden_size])
+      return image_features
+
+    hidden_size = self._img_head_size * self._img_head_num
     if img_fea_num > 1:  # in case of video frames or ROIs (Region Of Interest)
       if self._img_emb_size != hidden_size:
         # Run a linear projection of `hidden_size`
@@ -139,7 +164,7 @@ class CMBF(object):
         image_features = tf.layers.dense(
             image_features, hidden_size, name='img_projection')
       image_features = tf.reshape(
-          image_features, shape=[-1, self._img_feature_num, hidden_size])
+          image_features, shape=[-1, img_fea_num, hidden_size])
     elif img_fea_num == 1:
       if self._img_patch_num > 1:  # image feature dimension: patch_num * emb_size
         img_fea_num = self._img_patch_num
@@ -177,7 +202,7 @@ class CMBF(object):
         .attention_probs_dropout_prob,
         name='image_self_attention'
     )  # shape: [batch_size, image_seq_num/image_feature_dim, hidden_size]
-    print('img_attention_fea:', img_attention_fea.shape)
+    # print('img_attention_fea:', img_attention_fea.shape)
     return img_attention_fea
 
   def text_self_attention_tower(self):
@@ -188,10 +213,10 @@ class CMBF(object):
 
     if self._general_features is not None:
       general_features = self._general_features
-      if self._txt_emb_size != hidden_size:
+      if self._general_emb_size != hidden_size:
         # Run a linear projection of `hidden_size`
         general_features = tf.reshape(
-            general_features, shape=[-1, self._txt_emb_size])
+            general_features, shape=[-1, self._general_emb_size])
         general_features = tf.layers.dense(
             general_features, hidden_size, name='txt_projection')
       txt_features = tf.reshape(

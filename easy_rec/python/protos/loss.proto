@@ -18,6 +18,12 @@ enum LossType {
 message Loss {
   required LossType loss_type = 1;
   required float weight = 2 [default = 1.0];
+  oneof loss_param {
+    F1ReweighedLoss f1_reweighted_loss = 101;
+    SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
+    CircleLoss circle_loss = 103;
+    MultiSimilarityLoss multi_simi_loss = 104;
+  }
 };
 
 message SoftmaxCrossEntropyWithNegativeMining {
