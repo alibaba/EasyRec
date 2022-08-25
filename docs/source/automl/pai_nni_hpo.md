@@ -53,11 +53,13 @@ tuner:
   name: TPE
   classArgs:
     optimize_mode: maximize
+debug: true
+logLevel: debug
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 2
@@ -274,10 +276,13 @@ nnictl create --config finetune/config.yml --port=8617
 #### config.yml
 
 ```
+experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
+trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
 trialConcurrency: 1
 maxTrialNumber: 1
+debug: true
+logLevel: debug
 tuner:
   name: TPE
   classArgs:
@@ -285,11 +290,11 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 5
+      start_step: 2
 ```
 
 #### config_finetune
@@ -364,7 +369,7 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承hpo_tools/core/assessor/pai_assessor.PaiAssessor
+注意继承hpo_tools/core/assessor/maxcompute_assessor.MaxComputeAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉,并删除中间文件。
 
 ```
