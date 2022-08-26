@@ -669,6 +669,7 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_with_sample_weight.config', self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_dssm_neg_sampler_with_sample_weight(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_neg_sampler_with_sample_weight.config',
