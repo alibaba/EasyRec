@@ -15,12 +15,21 @@ bash scripts/init.sh
 python setup.py install
 ```
 
+### 下载安装hpo-tools
+
+```
+pip install https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/hpo_tools-0.1.0-py3-none-any.whl
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/download_examples.py
+python download_examples.py
+cd examples/search/maxcompute_easyrec
+```
+
 ## 启动调优
 
 ### 启动命令
 
 ```bash
-nnictl create --config hpo_nni/search/begin/config.yml --port=8780
+nnictl create --config begin/config.yml --port=8780
 ```
 
 其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。
@@ -44,11 +53,13 @@ tuner:
   name: TPE
   classArgs:
     optimize_mode: maximize
+debug: true
+logLevel: debug
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 2
@@ -118,6 +129,10 @@ auc=1
 ##### metric_config : 超参数评估方法
 
 按照以下方式将相关参数以key=value的方式写入metric_config下
+
+easyrec的日志如下图，那么key可以配置成auc_is_valid_play等等
+
+![image.png](../../images/automl/easyrec_metric.jpg)
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25
 
@@ -241,13 +256,13 @@ learning_rate {
 支持本地上pipeline文件修改
 
 ```bash
-python hpo_nni/core/modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
+python finetune/modify_pipeline_config.py --pipeline_config_path=./samples/pipeline.config --save_path=./samples/pipeline_finetune.config --learning_rate=1e-6
 ```
 
 也支持oss上pipeline文件直接修改
 
 ```bash
-python hpo_nni/core/modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
+python finetune/modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
 
 如果用户想要看是否有更优参数，可以看下级目录启动调优。
@@ -255,16 +270,19 @@ python hpo_nni/core/modify_pipeline_config.py  --pipeline_config_path=oss://easy
 ### 启动调优(可选)
 
 ```bash
-nnictl create --config hpo_nni/search/finetune/config.yml --port=8617
+nnictl create --config finetune/config.yml --port=8617
 ```
 
 #### config.yml
 
 ```
+experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
+trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
 trialConcurrency: 1
 maxTrialNumber: 1
+debug: true
+logLevel: debug
 tuner:
   name: TPE
   classArgs:
@@ -272,11 +290,11 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 5
+      start_step: 2
 ```
 
 #### config_finetune
@@ -351,7 +369,7 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承hpo_nni/core/pai_assessor.PaiAssessor
+注意继承hpo_tools/core/assessor/maxcompute_assessor.MaxComputeAssessor
 trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉,并删除中间文件。
 
 ```
