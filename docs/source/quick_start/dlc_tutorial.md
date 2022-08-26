@@ -1,5 +1,5 @@
 # DLC Tutorial
-PAI-DLC（Deep Learning Containers）是基于阿里巴巴容器服务ACK（Alibaba Cloud Container Service for Kubernetes）的深度学习训练平台，为您提供灵活、稳定、易用和极致性能的深度学习训练环境。使用文档详见：[https://help.aliyun.com/document_detail/165124.html](https://help.aliyun.com/document_detail/165124.html)
+[PAI-DLC](https://help.aliyun.com/document_detail/165124.html)（Deep Learning Containers）是基于阿里巴巴容器服务ACK（Alibaba Cloud Container Service for Kubernetes）的深度学习训练平台，为您提供灵活、稳定、易用和极致性能的深度学习训练环境。
 # 使用流程
 ## 上传数据到OSS
 假如要使用DLC运行EasyRec，首先需要将EasyRec的训练数据和配置文件上传到Aliyun OSS。
@@ -17,7 +17,7 @@ mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9
 ![dlc_4.png](../../images/quick_start/easy_rec_dlc_4.png)
 ## 创建DLC任务
 ### 配置任务
-进入[PAI控制台](https://pai.console.aliyun.com/?regionId=cn-beijing)，并选择需要使用的工作空间，点击模型开发和训练/容器训练(DLC)，点击创建任务。
+进入[PAI控制台](https://pai.console.aliyun.com)，并选择需要使用的工作空间，点击模型开发和训练/容器训练(DLC)，点击创建任务。
 选择运行镜像，以及数据集，并输入执行命令：
 ![dlc_5.png](../../images/quick_start/easy_rec_dlc_5.png)
 执行命令如下：
