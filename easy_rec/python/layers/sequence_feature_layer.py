@@ -200,7 +200,4 @@ class SequenceFeatureLayer(object):
             need_key_feature=need_key_feature,
             allow_key_transform=allow_key_transform)
       all_seq_fea.append(seq_fea)
-    # concat all seq_fea
-    all_seq_fea = tf.concat(all_seq_fea, axis=-1)
-    concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
-    return concat_features
+    return concat_features, all_seq_fea
