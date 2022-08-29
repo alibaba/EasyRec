@@ -31,7 +31,7 @@ from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
 from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
-    tf = tf.compat.v1
+  tf = tf.compat.v1
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 
@@ -196,4 +196,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+  main()
