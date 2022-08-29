@@ -116,6 +116,7 @@ def main():
   total_hitrate_result = FLAGS.total_hitrate_result
   i_emb_table = FLAGS.item_emb_table
   gt_table = FLAGS.gt_table
+
   pipeline_config = config_util.get_configs_from_pipeline_file(
       FLAGS.pipeline_config_path)
   logging.info("i_emb_table %s",i_emb_table)
@@ -147,6 +148,7 @@ def main():
     worker_hosts = ','.join(worker_hosts)
     g.init(task_index=task_index, task_count=worker_count, hosts=worker_hosts)
     # Your model, use g to do some operation, such as sampling
+
     if gt_table.startswith('hdfs:'):
       gt_file = tf.gfile.GFile(gt_table,'r')
       list1 , gt_all = [] , []
