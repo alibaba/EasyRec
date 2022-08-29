@@ -107,7 +107,6 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 
 def main():
-
   tf_config = json.loads(os.environ['TF_CONFIG'])
   worker_count = len(tf_config['cluster']['worker'])
   task_index = tf_config['task']['index']
