@@ -96,7 +96,7 @@ fi
 cp -R $root_dir/easy_rec ./easy_rec
 sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
-tar -cvzhf $RES_PATH easy_rec run.py yaml
+tar -cvzhf $RES_PATH easy_rec run.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]
