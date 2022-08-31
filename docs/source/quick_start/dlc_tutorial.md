@@ -3,7 +3,7 @@
 
 # 使用流程
 ## 上传数据到OSS
-使用DLC运行EasyRec，首先需要将EasyRec的训练数据和配置文件上传到Aliyun OSS。
+使用DLC运行EasyRec，首先需要将EasyRec的[训练数据](http://easyrec.oss-cn-beijing.aliyuncs.com/demo/dwd_avazu_ctr_deepmodel_10w.csv)和[配置文件](http://easyrec.oss-cn-beijing.aliyuncs.com/demo/wide_and_deep_on_avazau_ctr.config)上传到Aliyun OSS。
 ![dlc_1.png](../../images/quick_start/easyrec_dlc_1.png)
 
 ## 创建数据集
@@ -24,7 +24,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path /mnt/data/dlc_demo/w
 - 可以通过edit_config_json修改配置，避免频繁修改配置文件，如train_config.num_steps等信息
 - 注意:这里仅仅是训练的demo, 所以使用train_config.num_steps, 实际实验时不建议设置train_config.num_steps,建议设置data_config.num_epochs, 实际实验时也不建议设置eval_config.num_examples, 不设置时默认评估整个测试集.
 
-### 使用ODPS表作为输入:
+#### 使用ODPS表作为输入:
 ```bash
 cat  << EOF >> odps_conf
 access_id=xxxx
