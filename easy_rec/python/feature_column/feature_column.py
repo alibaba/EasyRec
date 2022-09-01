@@ -35,10 +35,7 @@ class SharedEmbedding(object):
     self.index = index
     self.sequence_combiner = sequence_combiner
 
-EVParams = collections.namedtuple("EVParams", ["filter_freq", "steps_to_live"])
-
 EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
-
 
 class FeatureColumnParser(object):
   """Parse and generate feature columns."""
