@@ -6,7 +6,7 @@
 
 ![intro.png](docs/images/intro.png)
 
-### EasyRec is an easy to use framework for Recommendation
+### EasyRec is an easy-to-use framework for Recommendation
 
 EasyRec implements state of the art deep learning models used in common recommendation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
 
