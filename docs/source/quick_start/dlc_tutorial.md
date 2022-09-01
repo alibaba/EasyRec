@@ -84,7 +84,9 @@ dlc submit tfjob \
     --evaluators=1 \
     --evaluator_image=mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9 \
     --evaluator_spec=ecs.g6.2xlarge
+    --interactive
 ```
+- interactive会等待任务退出, dlc命令才退出, 否则dlc会一直等待.
 通过dlc命令提交的任务也可以在 任务列表 中查看.
 
 ### 查看tensorboard
