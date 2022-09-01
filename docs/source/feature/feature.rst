@@ -232,8 +232,8 @@ NOTE:
 SequenceFeature：行为序列类特征
 ----------------------------------------------------------------
 
-Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征为"item\_id1\|item\_id2\|item\_id3",
-其中\|为分隔符，如:
+Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征为"item_id1|item_id2|item_id3",
+其中|为分隔符，如:
 
 .. code:: protobuf
 
@@ -247,8 +247,8 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     }
   }
 
--  embedding\_dim: embedding的dimension
--  hash\_bucket\_size: 同离散值特征
+-  embedding_dim: embedding的dimension
+-  hash_bucket_size: 同离散值特征
 -  sub_feature_type: 用于描述序列特征里子特征的类型，目前支持 IdFeature 和 RawFeature 两种形式，默认为 IdFeature
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
