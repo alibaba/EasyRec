@@ -117,6 +117,8 @@ class MatchModel(EasyRecModel):
     return user_item_sim
 
   def sim(self, user_emb, item_emb):
+    user_emb = tf.identity(user_emb, 'user_tower_emb')
+    item_emb = tf.identity(item_emb, 'item_tower_emb')
     if self._is_point_wise:
       return self._point_wise_sim(user_emb, item_emb)
     else:
