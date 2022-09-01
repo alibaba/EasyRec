@@ -1,7 +1,6 @@
 # DLC Tutorial
 [PAI-DLC](https://help.aliyun.com/document_detail/165124.html)（Deep Learning Containers）是基于阿里巴巴容器服务ACK（Alibaba Cloud Container Service for Kubernetes）的深度学习训练平台，为您提供灵活、稳定、易用和极致性能的深度学习训练环境。
 
-# 使用流程
 ## 上传数据到OSS
 使用DLC运行EasyRec，首先需要将EasyRec的[训练数据](http://easyrec.oss-cn-beijing.aliyuncs.com/demo/dwd_avazu_ctr_deepmodel_10w.csv)和[配置文件](http://easyrec.oss-cn-beijing.aliyuncs.com/demo/wide_and_deep_on_avazau_ctr.config)上传到Aliyun OSS。
 ![dlc_1.png](../../images/quick_start/easyrec_dlc_1.png)
