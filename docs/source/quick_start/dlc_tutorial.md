@@ -38,6 +38,26 @@ python -m easy_rec.python.train_eval --pipeline_config_path /mnt/data/dlc_demo/w
 ```
 - data_config.input_type: 加载输入数据的类是OdpsInputV3, 目前只支持OdpsInputV3.
 
+#### 评估
+```bash
+python -m easy_rec.python.eval --pipeline_config_path /mnt/data/dlc_demo/wide_and_deep_v3/pipeline.config --eval_input_path /mnt/data/dlc_demo/dwd_avazu_ctr_deepmodel_10w.csv
+```
+- checkpoint_path: 指定要评估的checkpoint, 默认评估model_dir下面最新的checkpoint
+- eval_input_path: 评估的输入路径, 如果是Odps表的话, 需要配置odps_conf文件，并且设置环境变量: export ODPS_CONFIG_FILE_PATH=odps_conf
+- distribute_eval: 是否使用分布式预测，如果使用分布式预测, 在配置任务资源时需要设置ps.
+- eval_result_path: 评估指标的保存位置
+
+#### 预测
+```bash
+python -m easy_rec.python.tools.predict_and_chk --saved_model_dir /mnt/data/dlc_demo/wide_and_deep_v3/export/final --input_path /mnt/data/dlc_demo/dwd_avazu_ctr_deepmodel_10w.csv  --label_id 0 --separator "," --save_path /mnt/data/dlc_demo/wide_and_deep_v3/predict.out
+```
+- saved_model_dir: saved_model目录
+- input_path: 需要预测的文件
+- label_id: label column id, 可以指定多个, 比如: --label_id 0 1 2
+- separator: 输入的分隔符
+- save_path: 预测结果的保存目录
+- 注意: 目前只支持单worker预测,多worker预测适配中; odps表预测适配中.
+
 ### 配置任务资源
 任务的资源配置选择进阶模式，我们选择了1个Chief、1个Worker、一个PS、一个Evaluator的配置。
 ![dlc_7.png](../../images/quick_start/easyrec_dlc_7.png)
