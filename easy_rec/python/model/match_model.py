@@ -117,8 +117,13 @@ class MatchModel(EasyRecModel):
     return user_item_sim
 
   def sim(self, user_emb, item_emb):
+    # Name the outputs of the user tower and the item tower, i.e. the inputs of the
+    # simularity operation.
+    # Explicit names of these nodes are necessary for some online recall systems like
+    # BasicEngine to split up the predicting graph into different clusters.
     user_emb = tf.identity(user_emb, 'user_tower_emb')
     item_emb = tf.identity(item_emb, 'item_tower_emb')
+
     if self._is_point_wise:
       return self._point_wise_sim(user_emb, item_emb)
     else:
