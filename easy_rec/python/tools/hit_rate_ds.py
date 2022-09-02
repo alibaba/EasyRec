@@ -109,9 +109,9 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
   file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
+  batch_list, i = [], 0
   for file_path in file_paths:
     with tf.gfile.GFile(file_path, 'r') as fin:
-      batch_list, i = [], 0
       for gt in fin:
         i += 1
         gt_list = gt.strip().split(gt_file_sep)
@@ -121,8 +121,8 @@ def gt_hdfs(gt_table, batch_size, gt_file_sep):
         if i >= batch_size:
           yield batch_list
           batch_list, i = [], 0
-      if i != 0:
-        yield batch_list
+  if i != 0:
+    yield batch_list
 
 
 def main():
@@ -130,8 +130,6 @@ def main():
   worker_count = len(tf_config['cluster']['worker'])
   task_index = tf_config['task']['index']
   job_name = tf_config['task']['type']
-  logging.info('gt_table_field_sep %s', FLAGS.gt_table_field_sep)
-  logging.info('item_emb_table_field_sep %s', FLAGS.item_emb_table_field_sep)
 
   hitrate_details_result = FLAGS.hitrate_details_result
   total_hitrate_result = FLAGS.total_hitrate_result
