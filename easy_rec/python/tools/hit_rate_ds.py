@@ -55,6 +55,9 @@ tf.app.flags.DEFINE_integer('knn_metric', '0', '0(l2) or 1(ip).')
 tf.app.flags.DEFINE_bool('knn_strict', False, 'use exact search.')
 tf.app.flags.DEFINE_integer('timeout', '60', 'timeout')
 tf.app.flags.DEFINE_integer('num_interests', 1, 'max number of interests')
+tf.app.flags.DEFINE_string('gt_table_field_sep', '\u0001', 'gt_table_field_sep')
+tf.app.flags.DEFINE_string('item_emb_table_field_sep', '\u0001',
+                           'item_emb_table_field_sep')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
 
 FLAGS = tf.app.flags.FLAGS
@@ -76,9 +79,7 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
   total_hits = 0.0
   total_gt_count = 0.0
 
-
   for gt_record in gt_all:
-    logging.info("gt_record %s",gt_record)
     gt_record = list(gt_record)
     hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists = \
         compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests, FLAGS.top_k)
@@ -106,11 +107,31 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
   return total_hits, total_gt_count
 
 
+def gt_hdfs(gt_table, batch_size, gt_file_sep):
+  file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
+  for file_path in file_paths:
+    with tf.gfile.GFile(file_path, 'r') as fin:
+      batch_list, i = [], 0
+      for gt in fin:
+        i += 1
+        gt_list = gt.strip().split(gt_file_sep)
+        # make id , emb_num to int
+        gt_list[0], gt_list[3] = int(gt_list[0]), int(gt_list[3])
+        batch_list.append(tuple(i for i in gt_list))
+        if i >= batch_size:
+          yield batch_list
+          batch_list, i = [], 0
+      if i != 0:
+        yield batch_list
+
+
 def main():
   tf_config = json.loads(os.environ['TF_CONFIG'])
   worker_count = len(tf_config['cluster']['worker'])
   task_index = tf_config['task']['index']
   job_name = tf_config['task']['type']
+  logging.info('gt_table_field_sep %s', FLAGS.gt_table_field_sep)
+  logging.info('item_emb_table_field_sep %s', FLAGS.item_emb_table_field_sep)
 
   hitrate_details_result = FLAGS.hitrate_details_result
   total_hitrate_result = FLAGS.total_hitrate_result
@@ -119,18 +140,18 @@ def main():
 
   pipeline_config = config_util.get_configs_from_pipeline_file(
       FLAGS.pipeline_config_path)
-  logging.info("i_emb_table %s",i_emb_table)
+  logging.info('i_emb_table %s', i_emb_table)
   logging.info(i_emb_table.startswith('hdfs:'))
   if not i_emb_table.startswith('hdfs:'):
     hive_utils = HiveUtils(
-          data_config=pipeline_config.data_config,
-          hive_config=pipeline_config.hive_train_input)
+        data_config=pipeline_config.data_config,
+        hive_config=pipeline_config.hive_train_input)
     i_emb_table = hive_utils.get_table_location(i_emb_table)
   logging.info('i_emb_table_hdfs_path: %s', i_emb_table)
   g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout,
                  FLAGS.knn_strict)
   gl.set_tracker_mode(0)
-  gl.set_field_delimiter('\u0001')
+  gl.set_field_delimiter(FLAGS.item_emb_table_field_sep)
 
   cluster = tf.train.ClusterSpec({
       'ps': tf_config['cluster']['ps'],
@@ -150,19 +171,7 @@ def main():
     # Your model, use g to do some operation, such as sampling
 
     if gt_table.startswith('hdfs:'):
-      gt_file = tf.gfile.GFile(gt_table,'r')
-      list1 , gt_all = [] , []
-      i = 0
-      for gt in gt_file:
-        i+=1
-        list2 = gt.strip().split('\t')
-        list2[0] ,list2[3] = int(list2[0]) , int(list2[3])
-        list1.append(tuple(i for i in list2))
-        if i >= FLAGS.batch_size:
-          gt_all.append(list1)
-          list1 , i = [] , 0
-      if i !=0 :
-        gt_all.append(list1)
+      gt_all = gt_hdfs(gt_table, FLAGS.batch_size, FLAGS.gt_table_field_sep)
     else:
       gt_reader = HiveUtils(
           data_config=pipeline_config.data_config,
