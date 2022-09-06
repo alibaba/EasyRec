@@ -94,12 +94,15 @@ class InputLayer(object):
       concat_features, group_features = self.single_call_input_layer(
           features, group_name, is_combine, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
-        concat_features = self.sequence_feature_layer(
+        concat_features, all_seq_fea = self.sequence_feature_layer(
             features,
             concat_features,
             self._group_name_to_seq_features[group_name],
             feature_name_to_output_tensors,
             negative_sampler=negative_sampler)
+        group_features.extend(all_seq_fea)
+        all_seq_fea = tf.concat(all_seq_fea, axis=-1)
+        concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
       return concat_features, group_features
     else:
       if self._variational_dropout_config is not None:
