@@ -2,6 +2,9 @@
 
 实时训练ODL(Online Deep Learning)让模型快速迭代，适应新的样本分布，并快速学习到新的item信息。针对大促、信息流等场景会比较大的增益。
 
+### 样本
+实时训练需要先准备好 [实时样本](./feature/odl_sample.md)
+
 ![online_train.png](../images/other/online_train.png)
 ### 输入
 实时训练从消息中间件接收流式样本输入，目前支持的输入包括KafkaInput和DataHubInput

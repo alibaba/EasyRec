@@ -3,8 +3,7 @@
 
 在上一节介绍了输入数据包括MaxCompute表、csv文件、hdfs文件、OSS文件等，表或文件的一列对应一个特征。
 
-在数据中可以有一个或者多个label字段，而特征比较丰富，支持的类型包括IdFeature，RawFeature，TagFeature，SequenceFeature,
-ComboFeature。
+在数据中可以有一个或者多个label字段，而特征比较丰富，支持的类型包括IdFeature，RawFeature，TagFeature，SequenceFeature, ComboFeature.
 
 各种特征共用字段
 ----------------------------------------------------------------

@@ -18,6 +18,7 @@ Welcome to easy_rec's documentation!
    :caption: DATA & FEATURE
 
    feature/data
+   feature/odl_sample.md
    feature/feature
    feature/excel_config
    feature/rtp_fg
