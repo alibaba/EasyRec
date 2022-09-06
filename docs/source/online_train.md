@@ -28,7 +28,7 @@ kafka_eval_input {
   server: '127.0.0.1:9092'
   topic: 'kafka_data_input'
   group: 'kafka_test'
-  # timestamp in seconds
+  # start read time in kafka for evaluation
   offset_time: '20220907 00:00:00'
 }
 ```
@@ -212,13 +212,13 @@ train_config {
   pai -name easy_rec_ext -project algo_public
   -Dconfig=oss://bucket-bj/configs/deepfm/online.config
   -Dcmd=export
-  -Dexport_dir=oss://bucket-bj/easy_rec_test/export
+  -Dexport_dir=oss://bucket-bj/easy_rec_test/export/${bizdate}/
   -Dcluster='{"worker" : {"count":1, "cpu":1000, "memory":40000}}'
   -Darn=acs:ram::xxx:role/ev-ext-test-oss
   -Dbuckets=oss://bucket-bj/
   -DossHost=oss-cn-beijing-internal.aliyuncs.com
-  -Dcheckpoint_path='oss://bucket-bj/checkpoints/20220420/offline/'
-  -Dextra_params='--oss_path=oss://bucket-bj/export_embedding_step_0 --oss_ak=LTAIXXXXXXXX --oss_sk=vJkxxxxxxx --oss_endpoint=oss-cn-beijing.aliyuncs.com --asset_files oss://bucket-bj/config/fg.json'
+  -Dcheckpoint_path='oss://bucket-bj/checkpoints/${bizdate}/offline/'
+  -Dextra_params='--oss_path=oss://bucket-bj/embedding/${bizdate}/ --oss_ak=LTAIXXXXXXXX --oss_sk=vJkxxxxxxx --oss_endpoint=oss-cn-beijing.aliyuncs.com --asset_files oss://bucket-bj/config/fg.json'
 ```
 - checkpoint_path: 导出离线训练的checkpoint作为base模型
 - extra_params: 增量更新相关的参数, embedding参数和dense参数分开导出
@@ -230,7 +230,7 @@ train_config {
 - 其他参数参考MaxCompute离线训练
 ### DLC导出
 ```sql
-  #TODO
+  python -m easy_rec.python.export --pipeline_config_path=/mnt/data/configs/deepfm.config --export_dir=/mnt/data/online/${bizdate}/ --oss_path=oss://bucket-bj/embedding/${bizdate}/ --oss_ak=LTAIXXXXXXXX --oss_sk=vJkxxxxxxx --oss_endpoint=oss-cn-beijing.aliyuncs.com --asset_files oss://bucket-bj/config/fg.json
 ```
 
 ### 导出模型
