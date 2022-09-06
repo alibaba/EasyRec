@@ -2,7 +2,7 @@
 
 ## 前置条件
 - 服务开通: 
-   - 除了MaxCompute, OSS, Dataworks, PAI, Hologres, 需要额外开通Flink, Datahub(或者Kafka) 
+   - 除了MaxCompute, OSS, Dataworks, Hologres, 需要额外开通Flink, Datahub(或者Kafka) 
    - 产品具体开通手册，参考PAI-REC最佳实践里面的[开通手册](https://pairec.yuque.com/staff-nodpws/kwr84w/wz2og0)
 
 - 离线链路:
@@ -21,14 +21,13 @@
       - item_id, 商品id
       - 其他信息，可选
 - 特征埋点(callback)
-   - 需要推荐引擎[如PAIRec]开启callback落特征功能, 将特征保存在holo表
+   - 需要推荐引擎[如PAI-REC]开启callback落特征功能, 将特征保存在holo表
 
 ## 样本生成
 
 1. 样本Events聚合(OnlineSampleAggr):
    - 上传资源包: rec-realtime-0.8-SNAPSHOT.jar
-
-               ![image.png](../../images/odl_events_aggr.png)
+     ![image.png](../../images/odl_events_aggr.png)
 
    - flink配置:
      ```sql
@@ -128,7 +127,7 @@
 - 使用oss挂载的方式加载模型，可以加快更新速度
 
 ## A/B实验
-- 推荐引擎: 在推荐引擎[如PaiRec]里面配置一个新的实验，更新[Eas服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
+- 推荐引擎: 在推荐引擎[如PAI-REC]里面配置一个新的实验，更新[PAI-EAS服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
 - 和离线训练相同, 包含:
    - 天级报表
    - 小时级报表
