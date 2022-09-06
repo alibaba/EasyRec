@@ -5,10 +5,6 @@
    - 除了MaxCompute, OSS, Dataworks, Hologres, 需要额外开通Flink, Datahub(或者Kafka) 
    - 产品具体开通手册，参考PAI-REC最佳实践里面的[开通手册](https://pairec.yuque.com/staff-nodpws/kwr84w/wz2og0)
 
-- 离线链路:
-   - 已经走通 基于 EasyRec 的离线推荐链路
-   - 能够产出天级模型 或者 小时级模型
-
 ## 数据准备
 - 用户行为实时流
    - 通过datahub接入
