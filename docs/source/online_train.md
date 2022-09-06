@@ -4,6 +4,11 @@
 
 ![online_train.png](../images/other/online_train.png)
 
+### 前置条件
+- 离线链路:
+   - 已经走通 基于 EasyRec 的离线推荐链路
+   - 能够产出天级模型 或者 小时级模型
+
 ### 样本
 实时训练需要先准备好 [实时样本](./feature/odl_sample.md)
 
