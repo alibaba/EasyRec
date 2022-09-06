@@ -176,7 +176,6 @@ tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 tf.app.flags.DEFINE_string('fg_json_path', None, '')
 
-tf.app.flags.DEFINE_bool('online', False, 'for online training')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -289,28 +288,25 @@ def main(argv):
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
 
-    if not FLAGS.train_tables:
+    if not FLAGS.train_tables and FLAGS.tables:
       tables = FLAGS.tables.split(',')
       assert len(
           tables
       ) >= 2, 'at least 2 tables must be specified, but only[%d]: %s' % (
           len(tables), FLAGS.tables)
 
-    if not FLAGS.online:
-      if FLAGS.train_tables:
-        pipeline_config.train_input_path = FLAGS.train_tables
-      else:
-        pipeline_config.train_input_path = FLAGS.tables.split(',')[0]
+    if FLAGS.train_tables:
+      pipeline_config.train_input_path = FLAGS.train_tables
+    elif FLAGS.tables:
+      pipeline_config.train_input_path = FLAGS.tables.split(',')[0]
 
-      if FLAGS.eval_tables:
-        pipeline_config.eval_input_path = FLAGS.eval_tables
-      else:
-        pipeline_config.eval_input_path = FLAGS.tables.split(',')[1]
+    if FLAGS.eval_tables:
+      pipeline_config.eval_input_path = FLAGS.eval_tables
+    elif FLAGS.tables:
+      pipeline_config.eval_input_path = FLAGS.tables.split(',')[1]
 
-      print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
-      print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
-    else:
-      print('[run.py] online training is enabled.')
+    print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
+    print('[run.py] eval_tables: %s' % pipeline_config.eval_input_path)
 
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
@@ -323,7 +319,7 @@ def main(argv):
     if FLAGS.sampler_table:
       pipeline_config.data_config.negative_sampler.input_path = FLAGS.sampler_table
 
-    if not FLAGS.online:
+    if FLAGS.train_tables or FLAGS.tables:
       # parse selected_cols
       set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                         FLAGS.all_col_types)
@@ -383,7 +379,7 @@ def main(argv):
 
     if FLAGS.eval_tables:
       pipeline_config.eval_input_path = FLAGS.eval_tables
-    else:
+    elif FLAGS.tables:
       pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
@@ -396,7 +392,7 @@ def main(argv):
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
-    if not FLAGS.online:
+    if FLAGS.eval_tables or FLAGS.tables:
       # parse selected_cols
       set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
                         FLAGS.all_col_types)

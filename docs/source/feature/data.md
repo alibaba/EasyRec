@@ -1,4 +1,4 @@
-# 数据[样本]
+# 离线样本
 
 EasyRec作为阿里云PAI的推荐算法包，可以无缝对接MaxCompute的数据表，也可以读取OSS中的大文件，还支持E-MapReduce环境中的HDFS文件，也支持local环境中的csv文件。
 
