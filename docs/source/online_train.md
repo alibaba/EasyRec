@@ -90,15 +90,22 @@ datahub_eval_input{
 - 权限开通: ak对应的用户必须要添加datahub访问权限
   ![online_auth.png](../images/other/online_auth.png)
 - 数据格式:
-```
-  request_id    STRING
-  userid        STRING
-  item_id       STRING
-  ln_play_time  DOUBLE
-  is_valid_play BIGINT
-  feature       STRING
-  request_time  BIGINT
-```
+  ```
+    request_id    STRING
+    user_id       STRING
+    item_id       STRING
+    ln_play_time  DOUBLE
+    is_valid_play BIGINT
+    feature       STRING
+    request_time  BIGINT
+  ```
+  - request_id: 请求id
+  - user_id: 用户id
+  - item_id: 商品id
+  - ln_play_time: 观看时长label
+  - is_valid_play: 有效播放label
+  - feature: 样本特征 
+  - request_time: 请求时间戳
 - 推荐使用datahub保存实时训练样本,有两个优势:
   - 有schema, 方便数据读取和解析
   - 一键保存到odps表,方便数据分析

@@ -1,0 +1,101 @@
+{
+   ...,
+   "DatahubConfs": { 
+     "aliyun-main-page-callback": {
+       "AccessId": "LTAIxxxxx",
+       "AccessKey": "Q82Mxxxxx",
+       "Endpoint": "http://dh-cn-beijing-int-vpc.aliyuncs.com",
+       "ProjectName": "odl_sample",
+       "TopicName": "odl_callback_log"
+     }
+   },
+   ...,
+   "CallBackConfs": {
+     "main_page": {
+       "DataSource": {
+         "Name": "aliyun-main-page-callback",
+         "Type": "datahub"
+       },
+       "RankConf": {
+         "RankAlgoList": [
+           "callback_fg"
+         ],
+         "ContextFeatures": [
+           "none"
+         ],
+         "Processor": "EasyRec"
+       }
+     }
+   },
+   ...,
+   "FeatureConfs": {
+     "main_page_callback": {
+       "AsynLoadFeature": true,
+       "FeatureLoadConfs": [
+         {
+          "FeatureDaoConf": {
+            "AdapterType": "hologres",
+            "HologresName": "holo-data-source-name",
+            "FeatureKey": "user:uid",
+            "UserFeatureKeyName": "userid",
+            "HologresTableName": "user_feature_holo_table_name",
+            "UserSelectFields": "*",
+            "FeatureStore": "user"
+          },
+          "Features": [
+            {
+              "FeatureType": "new_feature",
+              "FeatureName": "hour",
+              "Normalizer": "hour_in_day",
+              "FeatureStore": "user"
+            },
+            {
+              "FeatureType": "new_feature",
+              "FeatureName": "week_day",
+              "Normalizer": "weekday",
+              "FeatureStore": "user"
+            }
+          ]
+         },
+         {
+          "FeatureDaoConf": {
+            "AdapterType": "hologres",
+            "HologresName": "holo-data-source-name",
+            "FeatureKey": "user:uid",
+            "UserFeatureKeyName": "user_id",
+            "ItemFeatureKeyName": "item_id",
+            "TimestampFeatureKeyName": "timestamp",
+            "EventFeatureKeyName": "event",
+            "PlayTimeFeatureKeyName": "play_time",
+            "HologresTableName": "online_events_table",
+            "FeatureType": "sequence_feature",
+            "SequenceOfflineTableName": "offline_events_table",
+            "SequencePlayTime": "",
+            "SequenceLength": 50,
+            "SequenceDelim": ";",
+            "SequenceDimFields": "",
+            "SequenceName": "click_50_seq",
+            "FeatureStore": "user",
+            "SequenceEvent": "click,download"
+          },
+          "Features": []
+         }
+       ] 
+     }
+   },
+   ...,   
+   "AlgoConfs": [
+     {
+       "Name": "callback_fg",
+       "Type": "EAS",
+       "EasConf": {
+         "Processor": "EasyRec",
+         "Timeout": 600,
+         "ResponseFuncName": "easyrecMutValResponseFunc",
+         "Url": "http://xxx.vpc.cn-beijing.pai-eas.aliyuncs.com/api/predict/callback_fg",
+         "Auth": "xxxxx"
+       }
+     }
+   ],
+   ...
+}
