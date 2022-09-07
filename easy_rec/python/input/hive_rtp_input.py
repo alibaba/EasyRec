@@ -46,6 +46,9 @@ class HiveRTPInput(Input):
         self._hive_config.table_name)
 
   def _parse_csv(self, line):
+    non_feature_cols = self._label_fields
+    if self._selected_cols:
+      non_feature_cols = self._selected_cols[:-1]
     record_defaults = []
     for tid, field_name in enumerate(self._input_table_col_names):
       if field_name in self._selected_cols[:-1]:
@@ -74,7 +77,7 @@ class HiveRTPInput(Input):
     # only for features, labels and sample_weight excluded
     record_types = [
         t for x, t in zip(self._input_fields, self._input_field_types)
-        if x not in self._label_fields
+        if x not in non_feature_cols
     ]
     feature_num = len(record_types)
 
@@ -94,7 +97,7 @@ class HiveRTPInput(Input):
         str(self.get_type_defaults(t, v))
         for x, t, v in zip(self._input_fields, self._input_field_types,
                            self._input_field_defaults)
-        if x not in self._label_fields
+        if x not in non_feature_cols
     ]
     fields = []
     for i in range(feature_num):
