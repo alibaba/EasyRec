@@ -196,7 +196,7 @@ train_config {
   ```
 
 #### DataScience训练
-- [参考文档]()
+- [参考文档](https://help.aliyun.com/document_detail/414253.html)
 
 ### 停止训练
 - Signal停止:
