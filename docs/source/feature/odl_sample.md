@@ -84,33 +84,55 @@
         ![image.png](../../images/odl_label_gen.png)
 
 3. 样本join全埋点特征
-  ```sql
-    create temporary view sample_view as
-    select a.request_id, a.userid, a.svid, a.ln_play_time, a.is_valid_play, feature, b.request_time
-    from  sv_sample_with_lbl a
-    inner join (
-         select * from (
-          select request_id, item_id as svid, request_time, generate_features as feature, ts,
-            row_number() over(partition by request_id, item_id order by proctime() asc) as rn
-          from video_feed_callback_log
-          where `module` = 'item' and (generate_features is not null and generate_features <> '')
-         ) where rn = 1
-    ) b
-    on a.request_id = b.request_id and a.svid = b.svid
-    where a.ts between b.ts - INTERVAL '30' SECONDS  and b.ts + INTERVAL '30' MINUTE;
-  ```
-  - 全埋点特征需要做去重, 防止因为重复调用造成样本重复
-  - flink配置开启ttl, 控制state大小:
-    ```sql
-      table.exec.state.ttl: '2400000'
-    ```
-  - 存储引擎开启gemini kv分离(generate_features字段值很大):
-    ```sql
-      state.backend.gemini.kv.separate.mode: GLOBAL_ENABLE
-      state.backend.gemini.kv.separate.value.size.threshold: '500'
-    ```
+   ```sql
+     create temporary view sample_view as
+     select a.request_id, a.userid, a.item_id, a.ln_play_time, a.is_valid_play, feature, b.request_time
+     from  sv_sample_with_lbl a
+     inner join (
+          select * from (
+           select request_id, item_id, request_time, generate_features as feature, ts,
+             row_number() over(partition by request_id, item_id order by proctime() asc) as rn
+           from video_feed_callback_log
+           where `module` = 'item' and (generate_features is not null and generate_features <> '')
+          ) where rn = 1
+     ) b
+     on a.request_id = b.request_id and a.item_id = b.item_id
+     where a.ts between b.ts - INTERVAL '30' SECONDS  and b.ts + INTERVAL '30' MINUTE;
+   ```
+   - 全埋点特征需要做去重, 防止因为重复调用造成样本重复
+   - flink配置开启ttl, 控制state大小:
+     ```sql
+       table.exec.state.ttl: '2400000'
+     ```
+   - 存储引擎开启gemini kv分离(generate_features字段值很大):
+     ```sql
+       state.backend.gemini.kv.separate.mode: GLOBAL_ENABLE
+       state.backend.gemini.kv.separate.value.size.threshold: '500'
+     ```
 
 4. 实时样本写入Datahub / Kafka
+   ```sql
+     create temporary table odl_sample_with_fea_and_lbl(
+       `request_id`    string,
+       `userid`        string,
+       `item_id`          string,
+       `ln_play_time`  double,
+       `is_valid_play` bigint,
+       `feature`       string,
+       `request_time`  bigint
+     ) WITH (
+       'connector' = 'datahub',
+       'endPoint' = 'http://dh-cn-beijing-int-vpc.aliyuncs.com/',
+       'project' = 'odl_sample',
+       'topic' = 'odl_sample_with_fea_and_lbl',
+       'subId' = '16562305xxxxxx',
+       'accessId' = 'LTAIxxxxxxx',
+       'accessKey' = 'Q82mxxxxxxxx'
+     );
+     insert into sv_sample_with_fea_and_lbl
+     select * from sample_view;
+   ```
+   - subId: datahub subscription id
 
 ## 实时训练
 - 启动训练: [文档](../online_train.md)
