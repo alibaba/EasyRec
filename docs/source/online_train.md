@@ -8,9 +8,8 @@
 - 离线链路:
    - 已经走通 基于 EasyRec 的离线推荐链路
    - 能够产出天级模型 或者 小时级模型
-
-## 样本
-实时训练需要先准备好 [实时样本](./feature/odl_sample.md)
+- 实时样本:
+   - 实时训练需要构建实时样本流，[参考](./feature/odl_sample.md)
 
 ## 输入
 实时训练从消息中间件接收流式样本输入，目前支持的输入包括KafkaInput和DataHubInput
@@ -236,12 +235,13 @@ train_config {
    - asset_files: 把fg.json加入到asset_file里面，EAS Processor依赖fg.json生成特征
 - 其他参数参考MaxCompute离线训练
 ### DLC导出
-```sql
+```bash
   python -m easy_rec.python.export --pipeline_config_path=/mnt/data/configs/deepfm.config --export_dir=/mnt/data/online/${bizdate}/ --oss_path=oss://bucket-bj/embedding/${bizdate}/ --oss_ak=LTAIXXXXXXXX --oss_sk=vJkxxxxxxx --oss_endpoint=oss-cn-beijing.aliyuncs.com --asset_files oss://bucket-bj/config/fg.json
 ```
 
-### 导出模型
-#### 目录结构:
+### Online模型
+导出的模型为SavedModel, 支持增量更新
+#### 目录:
 - assets/DENSE_UPDATE_VARIABLES: 
    - 记录了dense参数名称到参数id的映射
    - 增量更新消息里面使用参数id，减少消息的大小
@@ -266,7 +266,7 @@ train_config {
   saved_model_cli show --all --dir export/1650854967
 ```
 包含两组signature:
-- serving_default: 定义了inference需要的输入输出
+- serving_default: 定义了在线打分(inference)需要的输入输出
    - inputs: 每个特征对应一个输入
    - outputs: 对于deepfm模型，输出probs和logits，其他模型参考对应的文档
 - incr_update_sig: 定义了增量更新需要的输入输出
@@ -286,5 +286,12 @@ train_config {
          - incr_update/sparse/embedding_update
 
 ## 部署
+- 配置和离线模型相同, [参考文档](./rtp_fg.md)
 - 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/LaRec-0.9.5b-b890f69-TF-2.5.0-Linux.tar.gz)
+- 为了保证性能，需要设置time_key，以实现item特征的增量更新功能
+- 使用OSS / NAS挂载的方式加载模型，可以加快更新速度
 - processor重启会恢复base版本，重新拉取增量更新的消息
+
+## A/B实验
+- 推荐引擎: 在推荐引擎[如PAI-REC]里面配置一个新的实验，更新[PAI-EAS服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
+- 报表: 天级报表, 小时级报表

@@ -1,11 +1,17 @@
-# 实时样本
+# 样本
 
-## 前置条件
+## 离线样本
+- 离线样本可以使用SQL在MaxCompute或者Hive/Spark平台上构造. 
+- 可以使用 [推荐算法定制](https://pairec.yuque.com/books/share/72cb101c-e89d-453b-be81-0fadf09db4dd?#) 来自动生成离线特征 和 离线样本的流程.
+
+## 实时样本
+
+### 前置条件
 - 服务开通: 
    - 除了MaxCompute, OSS, Dataworks, Hologres, 需要额外开通Flink, Datahub(或者Kafka) 
    - 产品具体开通手册，参考PAI-REC最佳实践里面的[开通手册](https://pairec.yuque.com/staff-nodpws/kwr84w/wz2og0)
 
-## 数据准备
+### 数据准备
 - 用户行为实时流
    - 通过datahub接入
    - 包含字段:
@@ -19,7 +25,7 @@
 - 特征埋点(callback)
    - 需要推荐引擎[如PAI-REC]开启callback落特征功能, 将特征保存在holo表
 
-## 样本生成
+### 样本生成
 
 1. 样本Events聚合(OnlineSampleAggr):
    - 上传资源包: [rec-realtime-0.8-SNAPSHOT.jar](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/rec-realtime-0.8-SNAPSHOT.jar)
@@ -68,14 +74,10 @@
          - wait-positive-secs: 等待正样本的时间, 单位是seconds
       - datahub topic schema:
          - inputTopic: user_behavior_log
-           | request_id | user_id | item_id | play_time | event  |  ts    | scene  | ... |
-           | ---------- | ------- | ------- | --------- | ------ | ------ | ------ | --- |
-           |   string   |  string |  string |   double  | string | bigint | string | ... |
+           ![odl_feature_table](../../images/odl_feature_table_1.png)
          - sinkTopic: odl_sample_aggr
-           | request_id | user_id | item_id | events |
-           | ---------- | ------- | ------- | ------ |
-           |   string   |  string | string  | string | 
-           - events数据格式:
+           <p><img style="height:75px" src="../_images/odl_feature_table_2.png"></img>
+         - events数据格式:
            ```json
            [
             {"duration":6493,"eventTime":1659667790,"eventType":"play","properties":{"scene":"main"}},
@@ -126,7 +128,7 @@
        - 单独部署EAS callback服务的原因是避免影响EAS打分服务的性能
        - EAS callback对rt的要求低于EAS打分服务
      - 通过[PAI-REC推荐引擎](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/intro/callback_api.html?highlight=callback)写入Datahub
-       - PAI-REC[配置](./pai_rec_callback_conf.json)
+       - PAI-REC[配置](./pai_rec_callback_conf.md)
      - Custom推荐引擎:
        - 调用EAS服务获取全埋点特征, 调用方式[参考文档](./rtp_fg.md#id10)
          - 请求的item list为下发列表,不是排序阶段的列表
@@ -175,19 +177,7 @@
    ```
    - subId: datahub subscription id
 
-## 实时训练
-- 启动训练: [文档](../online_train.md)
-
-## 部署EAS服务
-- 配置和离线训练相同, [参考文档](./rtp_fg.md)
-- 为了保证性能，需要设置time_key，以实现item特征的增量更新功能
-- 使用OSS / NAS挂载的方式加载模型，可以加快更新速度
-
-## A/B实验
-- 推荐引擎: 在推荐引擎[如PAI-REC]里面配置一个新的实验，更新[PAI-EAS服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
-- 报表: 天级报表, 小时级报表
-
-## 数据诊断
+### 数据诊断
 - 实时样本需要关注下面的信息和离线是否一致:
   - 样本总量: 因为样本延迟和全埋点特征join不上，导致样本量下降，需要增加interval join的区间和state ttl
   - 正负样本比例: 因为正样本延迟到达导致的延迟下发导致在线正样本占比偏低, 增加wait-positive-secs
@@ -197,3 +187,6 @@
   - 实时样本落到maxcompute, 和离线的数据作对比
   - EasyRec训练的summary里面查看label的正负样本比
     ![image.png](../../images/odl_label_sum.png)
+
+### 实时训练
+- 启动训练: [文档](../online_train.md)

@@ -94,8 +94,10 @@ Welcome to easy_rec's documentation!
    metrics
    faq
    tf_on_yarn
+   emr_tensorboard
    get_role_arn
    benchmark
+   mnist_demo
 
 
 Indices and tables
