@@ -89,22 +89,12 @@ datahub_eval_input{
 - 权限开通: ak对应的用户必须要添加datahub访问权限
   ![online_auth.png](../images/other/online_auth.png)
 - 数据格式:
-  ```
-    request_id    STRING
-    user_id       STRING
-    item_id       STRING
-    ln_play_time  DOUBLE
-    is_valid_play BIGINT
-    feature       STRING
-    request_time  BIGINT
-  ```
-  - request_id: 请求id
-  - user_id: 用户id
-  - item_id: 商品id
-  - ln_play_time: 观看时长label
-  - is_valid_play: 有效播放label
-  - feature: 样本特征 
-  - request_time: 请求时间戳
+  <table class="docutils" border=1>
+    <tr><th>request_id</th><th>user_id</th><th>item_id</th><th>ln_play_time</th><th>is_valid_play</th><th>feature</th><th>request_time</th></tr>
+    <tr><td>string    </td><td>string </td><td>string </td><td>double      </td><td>bigint       </td><td>string </td><td>bigint      </td></tr>
+    <tr><td>请求id    </td><td>用户id </td><td>商品id </td><td>观看时长label</td><td>有效播放label</td><td>样本特征</td><td>请求时间戳</td></tr>
+  </table>
+
 - 推荐使用datahub保存实时训练样本,有两个优势:
   - 有schema, 方便数据读取和解析
   - 一键保存到odps表,方便数据分析
@@ -183,7 +173,7 @@ train_config {
 ```
  - edit_config_json: 修改config
     - fine_tune_checkpoint: 从离线训练的checkpoint进行初始化
-    - train_config.incr_save_config.fs: {}, 表示保存增量更新到文件系统(OSS/NAS).
+    - train_config.incr_save_config.fs: {}, 表示保存增量更新到文件系统(OSS/NAS)
     - datahub_train_input.offset_time: 修改增量训练读取数据的起始位点
  - 注意: cluster里面不能指定GPU, GPU集群无法访问vpc网络
  - 其他参数参考[MaxCompute离线训练](./train.md#on-pai)
