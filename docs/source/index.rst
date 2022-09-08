@@ -92,11 +92,11 @@ Welcome to easy_rec's documentation!
 
    reference
    metrics
+   benchmark
    faq
+   get_role_arn
    tf_on_yarn
    emr_tensorboard
-   get_role_arn
-   benchmark
    mnist_demo
 
 

@@ -74,9 +74,15 @@
          - wait-positive-secs: 等待正样本的时间, 单位是seconds
       - datahub topic schema:
          - inputTopic: user_behavior_log
-           ![odl_feature_table](../../images/odl_feature_table_1.png)
+           <table class="docutils" border=1>
+           <tr><th> request_id </th><th> user_id </th><th> item_id </th><th> play_time </th><th> event  </th><th>  ts    </th><th> scene  </th><th> ... </th> 
+           <tr><td>   string   </td><td>  string </td><td>  string </td><td>   double  </td><td> string </td><td> bigint </td><td> string </td><td> ... </td> 
+           </table>
          - sinkTopic: odl_sample_aggr
-           <p><img style="height:75px" src="../_images/odl_feature_table_2.png"></img>
+           <table class="docutils" border=1>
+            <tr> <th>request_id </th><th> user_id </th><th> item_id </th><th> events </th></tr> 
+            <tr> <td>  string   </td><td>  string </td><td> string  </td><td> string </td></tr> 
+           </table>
          - events数据格式:
            ```json
            [
