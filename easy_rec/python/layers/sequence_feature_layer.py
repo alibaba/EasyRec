@@ -44,15 +44,15 @@ class SequenceFeatureLayer(object):
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
     batch_size = tf.shape(hist_id_col)[0]
+    neg_num = tf.shape(cur_id)[1]
 
     pos_feature = cur_id[:batch_size]
     neg_feature = cur_id[batch_size:]
     cur_id = tf.concat([
         pos_feature[:, tf.newaxis, :],
-        tf.tile(neg_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
+        tf.tile(neg_feature[tf.newaxis, :, :], multiples=[1, neg_num, 1])
     ],
                        axis=1)  # noqa: E126
-    neg_num = tf.shape(cur_id)[1]
     hist_id_col = tf.tile(hist_id_col[:, :, :], multiples=[neg_num, 1, 1])
     concat_features = tf.tile(
         concat_features[:, tf.newaxis, :], multiples=[1, neg_num, 1])
