@@ -99,7 +99,7 @@ class HiveRTPInput(Input):
                            self._input_field_defaults)
         if x not in non_feature_cols
     ]
-    fields = []
+    fields = labels[len(self._label_fields):]
     for i in range(feature_num):
       field = string_to_number(tmp_fields[:, i], record_types[i],
                                rtp_record_defaults[i], i)
