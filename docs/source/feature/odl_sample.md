@@ -23,7 +23,26 @@
       - item_id, 商品id
       - 其他信息，可选
 - 特征埋点(callback)
-   - 需要推荐引擎[如PAI-REC]开启callback落特征功能, 将特征保存在holo表
+  - 需要部署EAS callback服务, 服务配置和[EAS打分服务](./rtp_fg.html#id9)一致
+    - 单独部署EAS callback服务的原因是避免影响EAS打分服务的性能
+    - EAS callback对rt的要求低于EAS打分服务
+  - 通过[PAI-REC推荐引擎](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/intro/callback_api.html)写入Datahub
+    - PAI-REC[配置](./pai_rec_callback_conf.md)
+    - 特征保存在Datahub topic: odl_callback_log, schema:
+    <table class="docutils" border=1>
+    <tr><th>request_id</th><th>request_time</th><th>module</th><th>user_id</th><th>item_id</th><th>scene</th><th>context_features</th><th>generate_features</th><th>raw_features</th><th>request_info</th><th>item_features</th><th>user_features</th><th>callback_log</th></tr>
+    <tr><td>string</td><td>bigint</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td><td>string</td></tr>
+    <tr><td>请求id</td><td>请求时间</td><td>算法id</td><td>用户id</td><td>商品id</td><td>场景</td><td>context特征</td><td>FG生成的特征</td><td>原始特征</td><td>请求信息</td><td>商品特征</td><td>用户特征</td><td>callback日志</td></tr>
+    </table>
+ 
+    - request_id, user_id, item_id, request_time, generate_features 是后续需要的字段
+  - Custom推荐引擎:
+    - 调用EAS服务获取全埋点特征, 调用方式[参考文档](./rtp_fg.html#id10)
+      - 请求的item list为下发列表,不是排序阶段的列表
+      - EasyrecRequest.setDebugLevel(3), 生成EasyRec训练所需要的特征
+    - 通过PBResponse.getGenerateFeaturesMap获取生成的特征
+    - 特征写入Datahub topic: odl_callback_log
+
 
 ### 样本生成
 
@@ -129,18 +148,7 @@
      on a.request_id = b.request_id and a.item_id = b.item_id
      where a.ts between b.ts - INTERVAL '30' SECONDS  and b.ts + INTERVAL '30' MINUTE;
    ```
-   - 全埋点特征表odl_callback_log
-     - 需要部署EAS callback服务, 服务配置和[EAS打分服务](./rtp_fg.md#id9)一致
-       - 单独部署EAS callback服务的原因是避免影响EAS打分服务的性能
-       - EAS callback对rt的要求低于EAS打分服务
-     - 通过[PAI-REC推荐引擎](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/intro/callback_api.html?highlight=callback)写入Datahub
-       - PAI-REC[配置](./pai_rec_callback_conf.md)
-     - Custom推荐引擎:
-       - 调用EAS服务获取全埋点特征, 调用方式[参考文档](./rtp_fg.md#id10)
-         - 请求的item list为下发列表,不是排序阶段的列表
-         - EasyrecRequest.setDebugLevel(3)
-       - 通过PBResponse.getGenerateFeaturesMap获取生成的特征
-       - 特征写入Datahub topic: odl_callback_log.
+
    - odl_callback_log需要做去重, 防止因为重复调用造成样本重复
    - flink配置开启ttl(millisecond), 控制state大小:
      ```sql
