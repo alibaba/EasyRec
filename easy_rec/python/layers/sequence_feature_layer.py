@@ -44,19 +44,23 @@ class SequenceFeatureLayer(object):
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
     batch_size = tf.shape(hist_id_col)[0]
-    neg_num = tf.shape(cur_id)[1]
 
     pos_feature = cur_id[:batch_size]
     neg_feature = cur_id[batch_size:]
     cur_id = tf.concat([
         pos_feature[:, tf.newaxis, :],
-        tf.tile(neg_feature[tf.newaxis, :, :], multiples=[1, neg_num, 1])
+        tf.tile(neg_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
     ],
                        axis=1)  # noqa: E126
-    hist_id_col = tf.tile(hist_id_col[:, :, :], multiples=[neg_num, 1, 1])
+    neg_num_add_1 = tf.shape(cur_id)[1]
+    hist_id_col_tmp = tf.tile(
+        hist_id_col[:, :, :], multiples=[1, neg_num_add_1, 1])
+    hist_id_col = tf.reshape(
+        hist_id_col_tmp, [batch_size * neg_num_add_1, seq_max_len, seq_emb_dim])
+
     concat_features = tf.tile(
-        concat_features[:, tf.newaxis, :], multiples=[1, neg_num, 1])
-    seq_len = tf.tile(seq_len, multiples=[neg_num])
+        concat_features[:, tf.newaxis, :], multiples=[1, neg_num_add_1, 1])
+    seq_len = tf.tile(seq_len, multiples=[neg_num_add_1])
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(
@@ -65,26 +69,34 @@ class SequenceFeatureLayer(object):
     cur_ids = tf.tile(cur_id, [1, 1, seq_max_len])
     cur_ids = tf.reshape(
         cur_ids,
-        tf.shape(hist_id_col))  # (B, neg_num, seq_max_len, seq_emb_dim)
+        tf.shape(hist_id_col))  # (B * neg_num_add_1, seq_max_len, seq_emb_dim)
 
     din_net = tf.concat(
         [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
-        axis=-1)  # (B, seq_max_len, seq_emb_dim*4)
+        axis=-1)  # (B * neg_num_add_1, seq_max_len, seq_emb_dim*4)
 
-    din_layer = dnn.DNN(dnn_config, None, name, self._is_training)
+    din_layer = dnn.DNN(
+        dnn_config,
+        None,
+        name,
+        self._is_training,
+        last_layer_no_activation=True)
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 
     seq_len = tf.expand_dims(seq_len, 1)
     mask = tf.sequence_mask(seq_len)
     padding = tf.ones_like(scores) * (-2**32 + 1)
-    scores = tf.where(mask, scores, padding)  # [B*neg_num, 1, seq_max_len]
+    scores = tf.where(mask, scores,
+                      padding)  # [B*neg_num_add_1, 1, seq_max_len]
 
     # Scale
-    scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
-    hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, seq_emb_dim]
-    hist_din_emb = tf.reshape(
-        hist_din_emb, [batch_size, neg_num, seq_emb_dim])  # [B, seq_emb_dim]
+    scores = tf.nn.softmax(scores)  # (B * neg_num_add_1, 1, seq_max_len)
+    hist_din_emb = tf.matmul(scores,
+                             hist_id_col)  # [B * neg_num_add_1, 1, seq_emb_dim]
+    hist_din_emb = tf.reshape(hist_din_emb,
+                              [batch_size, neg_num_add_1, seq_emb_dim
+                               ])  # [B * neg_num_add_1, seq_emb_dim]
     if len(aux_hist_emb_list) > 0:
       all_hist_dim_emb = [hist_din_emb]
       for hist_col in aux_hist_emb_list:
@@ -125,7 +137,12 @@ class SequenceFeatureLayer(object):
         [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
         axis=-1)  # (B, seq_max_len, seq_emb_dim*4)
 
-    din_layer = dnn.DNN(dnn_config, None, name, self._is_training)
+    din_layer = dnn.DNN(
+        dnn_config,
+        None,
+        name,
+        self._is_training,
+        last_layer_no_activation=True)
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 

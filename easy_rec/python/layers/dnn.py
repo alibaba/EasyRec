@@ -62,7 +62,7 @@ class DNN:
             training=self._is_training,
             trainable=True,
             name='%s/dnn_%d/bn' % (self._name, i))
-      if (i + 1 < hidden_units_len) and not self._last_layer_no_activation:
+      if (i + 1 < hidden_units_len) or not self._last_layer_no_activation:
         deep_fea = self.activation(
             deep_fea, name='%s/dnn_%d/act' % (self._name, i))
       if len(self.dropout_ratio) > 0 and self._is_training:
