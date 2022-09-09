@@ -30,6 +30,7 @@ class MultiTowerBST(RankModel):
     self._seq_input_layer = seq_input_layer.SeqInputLayer(
         feature_configs,
         model_config.seq_att_groups,
+        embedding_regularizer=self._emb_reg,
         ev_params=self._global_ev_params)
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
