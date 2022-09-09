@@ -130,16 +130,22 @@ class CSVInput(Input):
       dataset = dataset.repeat(self.num_epochs)
     elif self._task_num > 1:  # For distribute evaluate
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+      parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(lambda x: tf.data.TextLineDataset(
-          x, compression_type=compression_type).skip(int(self._with_header)))
+          x, compression_type=compression_type).skip(int(self._with_header)),
+          cycle_length=parallel_num,
+          num_parallel_calls=parallel_num)
       dataset = self._safe_shard(dataset)
       dataset = dataset.repeat(1)
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+      parallel_num = min(num_parallel_calls, len(file_paths))
       dataset = dataset.interleave(lambda x: tf.data.TextLineDataset(
-          x, compression_type=compression_type).skip(int(self._with_header)))
+          x, compression_type=compression_type).skip(int(self._with_header)),
+          cycle_length=parallel_num,
+          num_parallel_calls=parallel_num)
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)
