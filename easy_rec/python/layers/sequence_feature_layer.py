@@ -25,7 +25,10 @@ class SequenceFeatureLayer(object):
     self._seq_input_layer = None
     if len(self._seq_feature_groups_config) > 0:
       self._seq_input_layer = seq_input_layer.SeqInputLayer(
-          feature_configs, self._seq_feature_groups_config, ev_params=ev_params)
+          feature_configs,
+          self._seq_feature_groups_config,
+          embedding_regularizer=embedding_regularizer,
+          ev_params=ev_params)
     self._embedding_regularizer = embedding_regularizer
     self._is_training = is_training
 
@@ -80,7 +83,8 @@ class SequenceFeatureLayer(object):
         None,
         name,
         self._is_training,
-        last_layer_no_activation=True)
+        last_layer_no_activation=True,
+        last_layer_no_batch_norm=True)
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 
@@ -142,7 +146,8 @@ class SequenceFeatureLayer(object):
         None,
         name,
         self._is_training,
-        last_layer_no_activation=True)
+        last_layer_no_activation=True,
+        last_layer_no_batch_norm=True)
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 
@@ -185,8 +190,9 @@ class SequenceFeatureLayer(object):
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search)
-      regularizers.apply_regularization(
-          self._embedding_regularizer, weights_list=[seq_features['key']])
+
+      # apply regularization for sequence feature key in seq_input_layer.
+
       regularizers.apply_regularization(
           self._embedding_regularizer,
           weights_list=[seq_features['hist_seq_emb']])

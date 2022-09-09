@@ -28,6 +28,7 @@ class MultiTowerDIN(RankModel):
     self._seq_input_layer = seq_input_layer.SeqInputLayer(
         feature_configs,
         model_config.seq_att_groups,
+        embedding_regularizer=self._emb_reg,
         ev_params=self._global_ev_params)
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
@@ -51,8 +52,9 @@ class MultiTowerDIN(RankModel):
     for tower_id in range(self._din_tower_num):
       tower = self._model_config.din_towers[tower_id]
       tower_feature = self._seq_input_layer(self._feature_dict, tower.input)
-      regularizers.apply_regularization(
-          self._emb_reg, weights_list=[tower_feature['key']])
+
+      # apply regularization for sequence feature key in seq_input_layer.
+
       regularizers.apply_regularization(
           self._emb_reg, weights_list=[tower_feature['hist_seq_emb']])
       self._din_tower_features.append(tower_feature)

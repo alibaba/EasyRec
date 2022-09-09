@@ -17,7 +17,8 @@ class DNN:
                l2_reg,
                name='dnn',
                is_training=False,
-               last_layer_no_activation=False):
+               last_layer_no_activation=False,
+               last_layer_no_batch_norm=False):
     """Initializes a `DNN` Layer.
 
     Args:
@@ -26,6 +27,7 @@ class DNN:
       name: scope of the DNN, so that the parameters could be separated from other dnns
       is_training: train phase or not, impact batchnorm and dropout
       last_layer_no_activation: in last layer, use or not use activation
+      last_layer_no_batch_norm: in last layer, use or not use batch norm
     """
     self._config = dnn_config
     self._l2_reg = l2_reg
@@ -34,6 +36,7 @@ class DNN:
     logging.info('dnn activation function = %s' % self._config.activation)
     self.activation = load_by_path(self._config.activation)
     self._last_layer_no_activation = last_layer_no_activation
+    self._last_layer_no_batch_norm = last_layer_no_batch_norm
 
   @property
   def hidden_units(self):
@@ -56,7 +59,8 @@ class DNN:
           kernel_regularizer=self._l2_reg,
           activation=None,
           name='%s/dnn_%d' % (self._name, i))
-      if self._config.use_bn:
+      if self._config.use_bn and ((i + 1 < hidden_units_len) or
+                                  not self._last_layer_no_batch_norm):
         deep_fea = tf.layers.batch_normalization(
             deep_fea,
             training=self._is_training,
