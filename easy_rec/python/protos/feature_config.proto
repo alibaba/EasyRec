@@ -139,11 +139,13 @@ message FeatureGroupConfig {
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
     repeated SeqAttGroupConfig sequence_features = 4;
+    optional bool negative_sampler = 5 [default = false];
 }
 
 message SeqAttMap {
     repeated string key = 1;
     repeated string hist_seq = 2;
+    repeated string aux_hist_seq = 3;
 }
 
 message SeqAttGroupConfig {
@@ -152,4 +154,6 @@ message SeqAttGroupConfig {
     optional bool tf_summary = 3 [default = false];
     optional DNN seq_dnn = 4;
     optional bool allow_key_search = 5 [default = false];
+    optional bool need_key_feature = 6 [default = true];
+    optional bool allow_key_transform = 7 [default = false];
 }

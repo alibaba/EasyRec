@@ -6,7 +6,7 @@
 
 ![intro.png](docs/images/intro.png)
 
-### EasyRec is an easy to use framework for Recommendation
+### EasyRec is an easy-to-use framework for Recommendation
 
 EasyRec implements state of the art deep learning models used in common recommendation tasks: candidate generation(matching), scoring(ranking), and multi-task learning. It improves the efficiency of generating high performance models by simple configuration and hyper parameter tuning(HPO).
 
@@ -51,7 +51,7 @@ EasyRec implements state of the art deep learning models used in common recommen
 - [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) / [DropoutNet](docs/source/models/dropoutnet.md) / [CoMetricLearningI2I](docs/source/models/co_metric_learning_i2i.md)
 - [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)
 - [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
-- [CMBF](docs/source/models/cmbf.md)
+- [CMBF](docs/source/models/cmbf.md) / [UNITER](docs/source/models/uniter.md)
 - More models in development
 
 ### Easy to customize

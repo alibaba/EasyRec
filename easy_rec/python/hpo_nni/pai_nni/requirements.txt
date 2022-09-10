@@ -1,4 +1,0 @@
-nni
-oss2
-pyodps
-tensorflow

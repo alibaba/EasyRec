@@ -33,7 +33,7 @@ def gather_test_cases(test_dir, pattern):
   for suite_discovered in discover:
     for test_case in suite_discovered:
       if 'ModuleImportFailure' in str(test_case):
-        logging.error("Failed to gather case: %s" % str(test_case))
+        logging.error('Failed to gather case: %s' % str(test_case))
         sys.exit(1)
       if hasattr(test_case, '__iter__'):
         for subcase in test_case:
@@ -94,7 +94,8 @@ def main(argv):
 
   for proc in procs:
     try:
-      test_utils.proc_wait(proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200)))
+      test_utils.proc_wait(
+          proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200)))
     except Exception as ex:
       fail_file, fail_name = procs[proc]
       logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))

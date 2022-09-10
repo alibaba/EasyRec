@@ -68,7 +68,7 @@ IdFeature: 离散值特征/ID类特征
    .. math::
 
         embedding\_dim=8+x^{0.25}
-
+  - 其中，x 为不同特征取值的个数
 
 -  hash\_bucket\_size: hash bucket的大小。适用于category_id, user_id等
 
@@ -231,8 +231,8 @@ NOTE:
 SequenceFeature：行为序列类特征
 ----------------------------------------------------------------
 
-Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征为"item\_id1\|item\_id2\|item\_id3",
-其中\|为分隔符，如:
+Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征为"item_id1|item_id2|item_id3",
+其中|为分隔符，如:
 
 .. code:: protobuf
 
@@ -246,8 +246,8 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     }
   }
 
--  embedding\_dim: embedding的dimension
--  hash\_bucket\_size: 同离散值特征
+-  embedding_dim: embedding的dimension
+-  hash_bucket_size: 同离散值特征
 -  sub_feature_type: 用于描述序列特征里子特征的类型，目前支持 IdFeature 和 RawFeature 两种形式，默认为 IdFeature
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
@@ -269,17 +269,26 @@ Sequense类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
     sequence_features: {
       group_name: "seq_fea"
       allow_key_search: true
+      need_key_feature:true
+      allow_key_transform:false
       seq_att_map: {
         key: "brand"
         key: "cate_id"
         hist_seq: "tag_brand_list"
         hist_seq: "tag_category_list"
+        aux_hist_seq: "time_stamp_list"
       }
     }
   }
 
 -  sequence_features: 序列特征组的名称
 -  allow_key_search: 当 key 对应的特征没有在 feature_groups 里面时，需要设置为 true, 将会复用对应特征的 embedding.
+-  need_key_feature : 默认为 true, 指过完 target attention 之后的特征会和 key 对应的特征 concat 之后返回。
+   设置为 false 时，将会只返回过完 target attention 之后的特征。
+-  allow_key_transform: 默认为 false, 指 key 和 hist_seq 需 一一 对应，其对应的 embedding_dim 也需要相等。假如存在不相等的
+   情况，比如某个 hist_seq 和 key 对应不上，可以设置 allow_key_transform 为 true, 其将会对 key 做变换，变化为和 hist_seq 相同的维度。
+-  aux_hist_seq。在某个 hist_seq 和 key 对应不上，除了上面的方式设置 allow_key_transform 外，还可以将该序列特征设置为 aux_hist_seq, aux_hist_seq
+   是为了满足没有 key 对应的序列特征的设置。
 -  seq_att_map: 具体细节可以参考排序里的 DIN 模型。
 -  NOTE：SequenceFeature一般放在 user 组里面。
 

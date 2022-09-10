@@ -20,6 +20,7 @@ if tf.__version__ >= '2.0':
 
 MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
+
 def _gen_raw_config(feature, input_field, feature_config, is_multi,
                     curr_embed_dim):
   if 'bucketize_boundaries' in feature:
