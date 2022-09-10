@@ -20,11 +20,11 @@ from __future__ import division
 from __future__ import print_function
 
 import six
+import tensorflow as tf
 # from tensorflow.contrib import framework as contrib_framework
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
@@ -36,11 +36,9 @@ from tensorflow.python.summary import summary
 from tensorflow.python.training import moving_averages
 from tensorflow.python.training import optimizer as optimizer_
 from tensorflow.python.training import training as train
+
 from easy_rec.python.ops.incr_record import set_sparse_indices
-from easy_rec.python.utils import estimator_utils 
-import tensorflow as tf
-import logging
-import numpy as np
+from easy_rec.python.utils import estimator_utils
 
 OPTIMIZER_CLS_NAMES = {
     'Adagrad':
@@ -307,28 +305,31 @@ def optimize_loss(loss,
                      clip_ops.global_norm(list(zip(*gradients))[0]))
 
     task_index, _ = estimator_utils.get_task_index_and_num()
+
     # Create gradient updates.
     def _apply_grad():
       grad_updates = opt.apply_gradients(
           gradients,
           global_step=global_step if increment_global_step else None,
           name='train')
-  
+
       incr_save_ops = []
       if incr_save:
         for grad, var in gradients:
           if isinstance(grad, ops.IndexedSlices):
             indices = grad.indices
-            with ops.colocate_with(var), ops.control_dependencies([grad_updates]):
+            with ops.colocate_with(var), ops.control_dependencies(
+                [grad_updates]):
               incr_save_op = set_sparse_indices(indices, var_name=var.op.name)
               incr_save_ops.append(incr_save_op)
-            ops.add_to_collection('SPARSE_UPDATE_VARIABLES', (var, grad.indices.dtype))
+            ops.add_to_collection('SPARSE_UPDATE_VARIABLES',
+                                  (var, grad.indices.dtype))
           else:
             ops.add_to_collection('DENSE_UPDATE_VARIABLES', var)
         return tf.group(incr_save_ops)
       else:
         return grad_updates
-      
+
     if not_apply_grad_after_first_step:
       _apply_grad()
       train_tensor = loss

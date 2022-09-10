@@ -135,7 +135,8 @@ class RankModel(EasyRecModel):
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
 
-    tf.summary.scalar('labels/%s' % label_name, tf.reduce_mean(tf.to_float(self._labels[label_name])))
+    tf.summary.scalar('labels/%s' % label_name,
+                      tf.reduce_mean(tf.to_float(self._labels[label_name])))
     loss_dict[loss_name] = loss_builder.build(
         loss_type,
         self._labels[label_name],

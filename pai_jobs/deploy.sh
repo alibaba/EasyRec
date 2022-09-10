@@ -94,7 +94,7 @@ sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
 
 if [ ! -d "datahub" ]
-then 
+then
   wget http://easyrec.oss-cn-beijing.aliyuncs.com/third_party/pydatahub.tar.gz
   if [ $? -ne 0 ]
   then

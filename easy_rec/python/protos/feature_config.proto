@@ -105,7 +105,7 @@ message FeatureConfig {
     // normalize raw feature to [0-1]
     optional double min_val = 212 [default=0.0];
     optional double max_val = 213 [default=0.0];
- 
+
     // normalization function for raw features:
     //   such as: tf.math.log1p
     optional string normalizer_fn = 214;

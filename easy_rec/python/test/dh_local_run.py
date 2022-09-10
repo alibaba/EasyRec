@@ -37,8 +37,8 @@ class TestPipelineOnEmr(tf.test.TestCase):
     odps_cmd = OdpsCommand(odps_oss_config)
 
     self._success = test_utils.test_datahub_train_eval(
-        '%s/configs/deepfm.config' % odps_oss_config.temp_dir,
-        odps_oss_config, self._test_dir)
+        '%s/configs/deepfm.config' % odps_oss_config.temp_dir, odps_oss_config,
+        self._test_dir)
     odps_cmd.run_list(end)
     self.assertTrue(self._success)
 

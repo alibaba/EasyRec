@@ -16,34 +16,33 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.training import saver
 from tensorflow.python.training import basic_session_run_hooks
-from tensorflow.python.platform import gfile
+from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
 from easy_rec.python.compat.early_stopping import custom_early_stop_hook
+from easy_rec.python.compat.early_stopping import deadline_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
+from easy_rec.python.compat.early_stopping import oss_stop_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
-from easy_rec.python.compat.early_stopping import oss_stop_hook
-from easy_rec.python.compat.early_stopping import deadline_stop_hook
 from easy_rec.python.compat.ops import GraphKeys
+from easy_rec.python.input.input import Input
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import pai_util
-from easy_rec.python.utils import constant
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
-from easy_rec.python.input.input import Input
-from tensorflow.python.platform import gfile
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
+tf.estimator.Estimator._assert_members_are_not_overridden = lambda x: x
 
-tf.estimator.Estimator._assert_members_are_not_overridden = lambda x : x   
+
 class EasyRecEstimator(tf.estimator.Estimator):
 
   def __init__(self, pipeline_config, model_cls, run_config, params):
@@ -57,11 +56,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
         config=run_config,
         params=params)
 
-  def evaluate(self, input_fn, steps=None, hooks=None, checkpoint_path=None,
+  def evaluate(self,
+               input_fn,
+               steps=None,
+               hooks=None,
+               checkpoint_path=None,
                name=None):
     # support for datahub/kafka offset restore
     input_fn.input_creator.restore(checkpoint_path)
-    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks, checkpoint_path, name)
+    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks,
+                                                  checkpoint_path, name)
 
   def train(self,
             input_fn,
@@ -75,14 +79,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
       input_fn.input_creator.restore(checkpoint_path)
     elif self.train_config.HasField('fine_tune_checkpoint'):
       fine_tune_ckpt = self.train_config.fine_tune_checkpoint
-      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt + '/'):
+      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt +
+                                                           '/'):
         fine_tune_ckpt = estimator_utils.latest_checkpoint(fine_tune_ckpt)
-        print('fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s' %
-              (self.train_config.fine_tune_checkpoint, fine_tune_ckpt))
+        print(
+            'fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s'
+            % (self.train_config.fine_tune_checkpoint, fine_tune_ckpt))
         self.train_config.fine_tune_checkpoint = fine_tune_ckpt
         input_fn.input_creator.restore(fine_tune_ckpt)
-    return super(EasyRecEstimator, self).train(input_fn, hooks, steps, max_steps,
-        saving_listeners)
+    return super(EasyRecEstimator, self).train(input_fn, hooks, steps,
+                                               max_steps, saving_listeners)
 
   @property
   def feature_configs(self):
@@ -108,8 +114,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
   @property
   def incr_save_config(self):
-    return self.train_config.incr_save_config \
-      if self.train_config.HasField('incr_save_config') else None
+    return self.train_config.incr_save_config if self.train_config.HasField(
+        'incr_save_config') else None
 
   @property
   def export_config(self):
@@ -149,24 +155,28 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     if Input.DATA_OFFSET in features:
       task_index, task_num = estimator_utils.get_task_index_and_num()
-      data_offset_var = tf.get_variable(name=Input.DATA_OFFSET, dtype=tf.string,
-                      shape=[task_num], 
-                      collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
-                      trainable=False)
-      update_offset = tf.assign(data_offset_var[task_index], features[Input.DATA_OFFSET])
+      data_offset_var = tf.get_variable(
+          name=Input.DATA_OFFSET,
+          dtype=tf.string,
+          shape=[task_num],
+          collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
+          trainable=False)
+      update_offset = tf.assign(data_offset_var[task_index],
+                                features[Input.DATA_OFFSET])
       ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
-    else: 
+    else:
       data_offset_var = None
 
     # update op, usually used for batch-norm
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     if update_ops:
       # register for increment update, such as batchnorm moving_mean and moving_variance
-      global_vars = { x.name:x for x in tf.global_variables() }
+      global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
           logging.info('add dense update %s' % x.inputs[0].name)
-          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, global_vars[x.inputs[0].name])
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
+                                global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
       with tf.control_dependencies([update_op]):
         loss = tf.identity(loss, name='total_loss')
@@ -294,10 +304,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
         summaries=summaries,
         colocate_gradients_with_ops=True,
         not_apply_grad_after_first_step=run_config.is_chief and
-          self._pipeline_config.data_config.chief_redundant,
-        name='', # Preventing scope prefix on all variables.
+        self._pipeline_config.data_config.chief_redundant,
+        name='',  # Preventing scope prefix on all variables.
         incr_save=(self.incr_save_config is not None))
-
 
     # online evaluation
     metric_update_op_dict = None
@@ -337,7 +346,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     log_step_count_steps = self.train_config.log_step_count_steps
     logging_hook = basic_session_run_hooks.LoggingTensorHook(
-        logging_dict, every_n_iter=log_step_count_steps,
+        logging_dict,
+        every_n_iter=log_step_count_steps,
         formatter=estimator_utils.tensor_log_format_func)
     hooks.append(logging_hook)
 
@@ -356,27 +366,28 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
 
       # exclude data_offset_var
-      var_list = [ x for x in var_list if x != data_offset_var ]
+      var_list = [x for x in var_list if x != data_offset_var]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
       var_list = [x for x in var_list if x != early_stop_var]
 
       initialize_var_list = [
-          x for x in var_list if 'WorkQueue' not in str(type(x)) 
+          x for x in var_list if 'WorkQueue' not in str(type(x))
       ]
 
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
       incompatiable_shape_restore = tf.get_collection('T_E_M_P_RESTROE')
- 
+
       local_init_ops = [tf.train.Scaffold.default_local_init_op()]
       if data_offset_var is not None and estimator_utils.is_chief():
         local_init_ops.append(tf.initializers.variables([data_offset_var]))
       if early_stop_var is not None and estimator_utils.is_chief():
         local_init_ops.append(tf.initializers.variables([early_stop_var]))
       if len(incompatiable_shape_restore) > 0:
-        local_init_ops.append(tf.initializers.variables(incompatiable_shape_restore))
+        local_init_ops.append(
+            tf.initializers.variables(incompatiable_shape_restore))
 
       scaffold = tf.train.Scaffold(
           saver=tf.train.Saver(
@@ -532,16 +543,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
       print('train pipeline_path(%s) does not exist' % pipeline_path)
 
     # restore DENSE_UPDATE_VARIABLES collection
-    dense_train_var_path = os.path.join(self.model_dir, constant.DENSE_UPDATE_VARIABLES)
+    dense_train_var_path = os.path.join(self.model_dir,
+                                        constant.DENSE_UPDATE_VARIABLES)
     if gfile.Exists(dense_train_var_path):
       with gfile.GFile(dense_train_var_path, 'r') as fin:
         var_name_to_id_map = json.load(fin)
-        var_name_id_lst =  [ (x, var_name_to_id_map[x]) for x in var_name_to_id_map ]
-        var_name_id_lst.sort(key=lambda x : x[1])
-        all_vars = { x.op.name:x for x in  tf.global_variables() }
+        var_name_id_lst = [
+            (x, var_name_to_id_map[x]) for x in var_name_to_id_map
+        ]
+        var_name_id_lst.sort(key=lambda x: x[1])
+        all_vars = {x.op.name: x for x in tf.global_variables()}
         for var_name, var_id in var_name_id_lst:
           assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
-          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
+                                all_vars[var_name])
 
     # add more asset files
     if len(export_config.asset_files) > 0:
@@ -563,8 +578,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fg_path = self._pipeline_config.fg_json_path
       if fg_path[0] == '!':
         fg_path = fg_path[1:]
-      ops.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS,
-            tf.constant(fg_path, dtype=tf.string, name='fg.json'))
+      ops.add_to_collection(
+          tf.GraphKeys.ASSET_FILEPATHS,
+          tf.constant(fg_path, dtype=tf.string, name='fg.json'))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,

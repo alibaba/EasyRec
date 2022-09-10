@@ -63,7 +63,7 @@ message IncrementSaveConfig {
 
    // if open, will save increment updates to model_dir/incr_save/
    optional bool debug_save_update = 5 [default=false];
-   
+
    oneof incr_update {
      Kafka kafka = 501;
      Datahub datahub = 502;

@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import configparser
 import logging
 import os
 import time
@@ -164,13 +163,18 @@ class OdpsOSSConfig:
       logging.info('create project success!')
     except ResourceExistException:
       logging.warning('project %s already exist!' % self.dh_project)
-    except Exception as ex:
+    except Exception:
       logging.error(traceback.format_exc())
     record_schema = RecordSchema.from_lists(col_name, col_type)
     try:
       # project_name, topic_name, shard_count, life_cycle, record_schema, comment
-      self.dh.create_tuple_topic(self.dh_project, self.dh_topic, 7, 3,
-                                 record_schema, comment='EasyRecTest')
+      self.dh.create_tuple_topic(
+          self.dh_project,
+          self.dh_topic,
+          7,
+          3,
+          record_schema,
+          comment='EasyRecTest')
       logging.info('create tuple topic %s success!' % self.dh_topic)
     except ResourceExistException:
       logging.info('topic %s already exist!' % self.dh_topic)
@@ -179,7 +183,8 @@ class OdpsOSSConfig:
       logging.error(traceback.format_exc())
     try:
       self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
-      logging.info('datahub[%s,%s] shards all ready' % (self.dh_project, self.dh_topic))
+      logging.info('datahub[%s,%s] shards all ready' %
+                   (self.dh_project, self.dh_topic))
       topic_result = self.dh.get_topic(self.dh_project, self.dh_topic)
       if topic_result.record_type != RecordType.TUPLE:
         logging.error('invalid topic type: %s' % str(topic_result.record_type))
@@ -195,6 +200,7 @@ class OdpsOSSConfig:
     except Exception as ex:
       logging.error('exception: %s' % str(ex))
       logging.error(traceback.format_exc())
+
 
 def get_oss_bucket(oss_key, oss_secret, endpoint, bucket_name):
   """Build oss2.Bucket instance.

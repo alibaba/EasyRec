@@ -1,13 +1,14 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+import json
 import logging
 import os
 import time
 
 import numpy as np
-from google.protobuf import json_format
 import tensorflow as tf
+from google.protobuf import json_format
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.variables import global_variables
@@ -18,16 +19,16 @@ from tensorflow.python.platform.gfile import Remove
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training.device_setter import replica_device_setter
 from tensorflow.python.training.monitored_session import ChiefSessionCreator
-from tensorflow.python.training.saver import export_meta_graph
 from tensorflow.python.training.monitored_session import Scaffold
+from tensorflow.python.training.saver import export_meta_graph
 
 import easy_rec
-import json
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import io_util
 from easy_rec.python.utils import proto_util
-from easy_rec.python.utils import constant
-from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor, EMBEDDING_INITIALIZERS
+from easy_rec.python.utils.meta_graph_editor import EMBEDDING_INITIALIZERS
+from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor
 
 if tf.__version__ >= '2.0':
   from tensorflow.python.framework.ops import disable_eager_execution
@@ -35,7 +36,6 @@ if tf.__version__ >= '2.0':
 
 ConfigProto = config_pb2.ConfigProto
 GPUOptions = config_pb2.GPUOptions
-
 
 INCR_UPDATE_SIGNATURE_KEY = 'incr_update_sig'
 
@@ -64,7 +64,8 @@ def export_big_model(export_dir, pipeline_config, redis_params,
     logging.warning('load libwrite_sparse_kv.so failed: %s' % str(ex))
     sparse_kv_module = None
   if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
+    checkpoint_path = estimator_utils.latest_checkpoint(
+        pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -306,7 +307,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
   return
 
 
-def export_big_model_to_oss(export_dir, pipeline_config, oss_params, 
+def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
                             serving_input_fn, estimator, checkpoint_path,
                             verbose):
   for key in oss_params:
@@ -316,7 +317,8 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   kv_module = tf.load_op_library(write_kv_lib_path)
 
   if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
+    checkpoint_path = estimator_utils.latest_checkpoint(
+        pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -515,34 +517,38 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
           embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
 
   if 'incr_update' in oss_params:
-    dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path),
-        constant.DENSE_UPDATE_VARIABLES)
+    dense_train_vars_path = os.path.join(
+        os.path.dirname(checkpoint_path), constant.DENSE_UPDATE_VARIABLES)
     ops.add_to_collection(
         ops.GraphKeys.ASSET_FILEPATHS,
         tf.constant(
-            dense_train_vars_path, dtype=tf.string, name=constant.DENSE_UPDATE_VARIABLES))
+            dense_train_vars_path,
+            dtype=tf.string,
+            name=constant.DENSE_UPDATE_VARIABLES))
 
     asset_file = 'incr_update.txt'
     asset_file_path = os.path.join(export_dir, asset_file)
     with GFile(asset_file_path, 'w') as fout:
       incr_update = oss_params['incr_update']
-      incr_update_json = { }
+      incr_update_json = {}
       if 'kafka' in incr_update:
         incr_update_json['storage'] = 'kafka'
-        incr_update_json['kafka'] = json.loads(json_format.MessageToJson(incr_update['kafka'],
-          preserving_proto_field_name=True))
+        incr_update_json['kafka'] = json.loads(
+            json_format.MessageToJson(
+                incr_update['kafka'], preserving_proto_field_name=True))
       elif 'datahub' in incr_update:
         incr_update_json['storage'] = 'datahub'
-        incr_update_json['datahub'] = json.loads(json_format.MessageToJson(incr_update['datahub'],
-          preserving_proto_field_name=True))
+        incr_update_json['datahub'] = json.loads(
+            json_format.MessageToJson(
+                incr_update['datahub'], preserving_proto_field_name=True))
       elif 'fs' in incr_update:
         incr_update_json['storage'] = 'fs'
-        incr_update_json['fs'] = {'incr_save_dir':incr_update['fs'].mount_path}
+        incr_update_json['fs'] = {'incr_save_dir': incr_update['fs'].mount_path}
       json.dump(incr_update_json, fout, indent=2)
 
-    ops.add_to_collection(ops.GraphKeys.ASSET_FILEPATHS,
+    ops.add_to_collection(
+        ops.GraphKeys.ASSET_FILEPATHS,
         tf.constant(asset_file_path, dtype=tf.string, name=asset_file))
-
 
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)
@@ -598,10 +604,12 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   saver = tf.train.Saver()
   with tf.Session(target=server.target if server else '') as sess:
     saver.restore(sess, checkpoint_path)
-    main_op = tf.group([Scaffold.default_local_init_op(), 
-       ops.get_collection(EMBEDDING_INITIALIZERS)]) 
+    main_op = tf.group([
+        Scaffold.default_local_init_op(),
+        ops.get_collection(EMBEDDING_INITIALIZERS)
+    ])
     incr_update_sig_map = {
-       signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature
+        signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature
     }
     if incr_update_signature is not None:
       incr_update_sig_map[INCR_UPDATE_SIGNATURE_KEY] = incr_update_signature

@@ -1,10 +1,11 @@
 PAI-REC 全埋点配置
 
 ## 模板
+
 ```json
 {
    ...,
-   "DatahubConfs": { 
+   "DatahubConfs": {
      "aliyun-main-page-callback": {
        "AccessId": "LTAIxxxxx",
        "AccessKey": "Q82Mxxxxx",
@@ -82,10 +83,10 @@ PAI-REC 全埋点配置
           },
           "Features": []
          }
-       ] 
+       ]
      }
    },
-   ...,   
+   ...,
    "AlgoConfs": [
      {
        "Name": "callback_fg",
@@ -103,17 +104,18 @@ PAI-REC 全埋点配置
 }
 ```
 
-## 配置说明 
+## 配置说明
+
 - DatahubConfs: datahub参数配置
-- CallBackConfs: 
+- CallBackConfs:
   - main_page: 场景名称, 可以自定义
-  - DataSource: 
+  - DataSource:
     - Name: 引用DatahubConfs里面的key
   - RankConf:
     - RankAlgoList: 引用AlgoConfs定义的算法Name
     - ContextFeatures: 定义context特征, 如召回分数、召回算法等
 - FeatureConfs: 定义EAS callback服务需要的特征
-  - main_page_callback: 命名规则: 场景名称(main_page) + "_callback" 
+  - main_page_callback: 命名规则: 场景名称(main_page) + "\_callback"
     - FeatureLoadConfs: 定义请求EAS callback服务的特征
       - 离线特征:
         - FeatureDaoConf: 配置来自Hologres的一组特征
@@ -132,7 +134,7 @@ PAI-REC 全埋点配置
             - item_id text
             - event text: 行为类型, 如: click, download, ...
             - timestamp int8: event发生的时间戳
-          - SequenceOfflineTableName: 离线行为表(offline_events_table) 
+          - SequenceOfflineTableName: 离线行为表(offline_events_table)
             - Schema同实时行为表
           - EventFeatureKeyName: 对应行为表schema里面的event 字段名
           - SequenceEvent: 用户行为类型

@@ -44,9 +44,10 @@ def _gen_raw_config(feature, input_field, feature_config, is_multi,
       input_field.input_type = DatasetConfig.DOUBLE
     if 'boundaries' in feature:
       feature_config.boundaries.extend(feature['boundaries'])
-      feature_config.embedding_dim = curr_embed_dim 
+      feature_config.embedding_dim = curr_embed_dim
   if 'normalizer_fn' in feature:
     feature_config.normalizer_fn = feature['normalizer_fn']
+
 
 def _set_hash_bucket(feature, feature_config, input_field):
   if 'max_partitions' in feature:
@@ -254,9 +255,9 @@ def load_input_field_and_feature_config(rtp_fg,
               embedding_dim,
               incol_separator,
               is_sequence=True)
-    except Exception as ex:
-      logging.info('convert feature[%s] exception[%s]' % (
-          str(feature),traceback.format_exc()))
+    except Exception:
+      logging.info('convert feature[%s] exception[%s]' %
+                   (str(feature), traceback.format_exc()))
       sys.exit(1)
   return pipeline_config
 

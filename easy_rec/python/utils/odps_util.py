@@ -2,7 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Common functions used for odps input."""
 from tensorflow.python.framework import dtypes
+
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+
 
 def is_type_compatiable(odps_type, input_type):
   """Check that odps_type are compatiable with input_type."""
@@ -65,12 +67,13 @@ def check_input_field_and_types(data_config):
           'feature[%s] type error: odps %s is not compatible with input_type %s' % (
               x, tmp_type, DatasetConfig.FieldType.Name(y))
 
+
 def odps_type_2_tf_type(odps_type):
   if odps_type == 'string':
     return dtypes.string
   elif odps_type == 'bigint':
     return dtypes.int64
   elif odps_type in ['double', 'float']:
-    return dtypes.float32 
+    return dtypes.float32
   else:
     return dtypes.string

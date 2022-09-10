@@ -15,16 +15,16 @@
 """Kafka Dataset."""
 
 import logging
+import traceback
 
 from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
-import traceback
 
 try:
   from easy_rec.python.ops import gen_kafka_ops
-except ImportError as ex:
+except ImportError:
   logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc())
 
 

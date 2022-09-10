@@ -28,7 +28,7 @@ _meta_type = get_register_class_meta(_INPUT_CLASS_MAP, have_abstract_class=True)
 
 class Input(six.with_metaclass(_meta_type, object)):
 
-  DATA_OFFSET = 'DATA_OFFSET' 
+  DATA_OFFSET = 'DATA_OFFSET'
 
   def __init__(self,
                data_config,
@@ -139,8 +139,10 @@ class Input(six.with_metaclass(_meta_type, object)):
       return None
 
   def get_feature_input_fields(self):
-    return [x for x in self._input_fields if x not in self._label_fields \
-            and x != self._data_config.sample_weight]
+    return [
+        x for x in self._input_fields
+        if x not in self._label_fields and x != self._data_config.sample_weight
+    ]
 
   def should_stop(self, curr_epoch):
     """Check whether have run enough num epochs."""
@@ -573,7 +575,8 @@ class Input(six.with_metaclass(_meta_type, object)):
 
         if fc.HasField('normalizer_fn'):
           logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
-          parsed_dict[input_0] = load_by_path(fc.normalizer_fn)(parsed_dict[input_0])
+          parsed_dict[input_0] = load_by_path(fc.normalizer_fn)(
+              parsed_dict[input_0])
 
         if not fc.boundaries and fc.num_buckets <= 1 and \
             self._data_config.sample_weight != input_0:

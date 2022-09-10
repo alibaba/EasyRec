@@ -1,12 +1,11 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import sys
-import os
-import logging
 import argparse
-from kafka import KafkaProducer
-from kafka import KafkaConsumer, KafkaProducer, KafkaAdminClient
-from kafka.admin import NewTopic
+import logging
+import os
+import sys
+
+from kafka import KafkaConsumer
 from kafka.structs import TopicPartition
 
 logging.basicConfig(
@@ -25,26 +24,30 @@ if __name__ == '__main__':
   if args.topic is None:
     logging.error('--topic is not set')
     sys.exit(1)
- 
+
   servers = args.servers.split(',')
-  consumer = KafkaConsumer(group_id=args.group, bootstrap_servers=servers,
+  consumer = KafkaConsumer(
+      group_id=args.group,
+      bootstrap_servers=servers,
       consumer_timeout_ms=args.timeout * 1000)
 
   if args.partitions is not None:
-    partitions = [ int(x) for x in args.partitions.split(',') ]
+    partitions = [int(x) for x in args.partitions.split(',')]
   else:
     partitions = consumer.partitions_for_topic(args.topic)
   logging.info('partitions: %s' % partitions)
 
-  topics = [ TopicPartition(topic=args.topic, partition=part_id) \
-             for part_id in partitions ]
+  topics = [
+      TopicPartition(topic=args.topic, partition=part_id)
+      for part_id in partitions
+  ]
   consumer.assign(topics)
   consumer.seek_to_beginning()
-  
+
   record_id = 0
   for x in consumer:
-    logging.info("%d: key=%s\toffset=%d\ttimestamp=%d\tlen=%d" % (record_id, x.key, x.offset,
-        x.timestamp, len(x.value)))
+    logging.info('%d: key=%s\toffset=%d\ttimestamp=%d\tlen=%d' %
+                 (record_id, x.key, x.offset, x.timestamp, len(x.value)))
     if args.save_dir is not None:
       save_path = os.path.join(args.save_dir, x.key)
       with open(save_path, 'wb') as fout:

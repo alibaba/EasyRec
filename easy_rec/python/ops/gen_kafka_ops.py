@@ -5,7 +5,6 @@ Original C++ source file: kafka_ops_deprecated.cc
 """
 
 import os
-import logging
 
 import six as _six
 import tensorflow as tf
@@ -13,21 +12,23 @@ from tensorflow.python import pywrap_tensorflow as _pywrap_tensorflow
 from tensorflow.python.eager import context as _context
 from tensorflow.python.eager import core as _core
 from tensorflow.python.eager import execute as _execute
-
 # Needed to trigger the call to _set_call_cpp_shape_fn.
 from tensorflow.python.framework import dtypes as _dtypes
 from tensorflow.python.framework import ops as _ops
 from tensorflow.python.util.tf_export import tf_export
+
 import easy_rec
 
 kafka_dataset_ops_dir = easy_rec.ops_dir
 if 'PAI' in tf.__version__:
-  kafka_dataset_ops_dir = os.path.join(os.path.dirname(kafka_dataset_ops_dir), '1.12_pai')
+  kafka_dataset_ops_dir = os.path.join(
+      os.path.dirname(kafka_dataset_ops_dir), '1.12_pai')
 kafka_module = None
 if kafka_dataset_ops_dir is not None:
   kafka_ops_path = os.path.join(kafka_dataset_ops_dir, 'kafka.so')
   if os.path.exists(kafka_ops_path):
     kafka_module = tf.load_op_library(kafka_ops_path)
+
 
 @tf_export('io_kafka_dataset_v2')
 def io_kafka_dataset_v2(topics,

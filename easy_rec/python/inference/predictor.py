@@ -158,7 +158,8 @@ class PredictorImpl(object):
         dir_list = sorted(dir_list, key=lambda x: int(x.split('/')[-1]))
         return dir_list[-1]
       else:
-        raise ValueError('multiple saved model found in directory %s' % directory)
+        raise ValueError('multiple saved model found in directory %s' %
+                         directory)
 
     return dir_list[0]
 
@@ -327,7 +328,11 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self, model_path, profiling_file=None, fg_json_path=None, use_latest=True):
+  def __init__(self,
+               model_path,
+               profiling_file=None,
+               fg_json_path=None,
+               use_latest=True):
     """Initialize a `Predictor`.
 
     Args:

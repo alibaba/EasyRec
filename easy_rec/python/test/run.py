@@ -35,6 +35,10 @@ def gather_test_cases(test_dir, pattern):
       if 'ModuleImportFailure' in str(test_case):
         logging.error('Failed to gather case: %s' % str(test_case))
         sys.exit(1)
+      if '_FailedTest' in str(test_case):
+        logging.error('Failed to gather case: %s' % str(test_case))
+        logging.error('Detail message: %s' % test_case.debug())
+        sys.exit(1)
       if hasattr(test_case, '__iter__'):
         for subcase in test_case:
           toks = subcase.id().split('.')
@@ -70,7 +74,8 @@ def main(argv):
   if not os.path.isdir(test_dir):
     os.makedirs(test_dir)
   test_log_dir = os.path.join(test_dir, 'logs')
-  os.makedirs(test_log_dir)
+  if not os.path.exists(test_log_dir):
+    os.makedirs(test_log_dir)
   logging.info('Total number of cases: %d test_dir: %s' %
                (len(all_tests), test_dir))
   procs = {}

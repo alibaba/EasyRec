@@ -3,12 +3,12 @@
 import argparse
 import json
 import logging
-import sys
 import os
-import easy_rec
+import sys
 
 import numpy as np
 
+import easy_rec
 from easy_rec.python.inference.predictor import Predictor
 
 try:

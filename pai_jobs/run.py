@@ -16,10 +16,10 @@ from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
-from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
 
@@ -108,7 +108,7 @@ tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
 tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
 tf.app.flags.DEFINE_integer('max_wait_ckpt_ts', 0,
-                           'max wait time in seconds for checkpoints')
+                            'max wait time in seconds for checkpoints')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -176,7 +176,6 @@ tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 tf.app.flags.DEFINE_string('fg_json_path', None, '')
 
-
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -205,6 +204,7 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
   print('[run.py] data_config.selected_col_types = "%s"' %
         pipeline_config.data_config.selected_col_types)
 
+
 def _wait_ckpt(ckpt_path, max_wait_ts):
   logging.info('will wait %s seconds for checkpoint' % max_wait_ts)
   start_ts = time.time()
@@ -215,8 +215,9 @@ def _wait_ckpt(ckpt_path, max_wait_ts):
         logging.info('wait for checkpoint in directory[%s]' % ckpt_path)
         time.sleep(30)
       else:
-        logging.info('find checkpoint[%s] in directory[%s]' % (tmp_ckpt, ckpt_path))
-        break 
+        logging.info('find checkpoint[%s] in directory[%s]' %
+                     (tmp_ckpt, ckpt_path))
+        break
   else:
     while time.time() - start_ts < max_wait_ts:
       if gfile.Exists(ckpt_path + '.index'):
@@ -269,7 +270,8 @@ def main(argv):
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
 
   if FLAGS.asset_files:
-    pipeline_config.export_config.asset_files.extend(FLAGS.asset_files.split(','))
+    pipeline_config.export_config.asset_files.extend(
+        FLAGS.asset_files.split(','))
 
   if FLAGS.config:
     if not pipeline_config.model_dir.endswith('/'):

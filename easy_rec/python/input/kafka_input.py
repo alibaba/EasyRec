@@ -1,11 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
-import sys
-import traceback
 import json
-import six
+import logging
+import traceback
 
+import six
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
@@ -15,8 +14,10 @@ from easy_rec.python.utils.config_util import parse_time
 
 try:
   from kafka import KafkaConsumer, TopicPartition
-except ImportError as ex:
-  logging.warning('kafka-python is not installed[%s]. You can install it by: pip install kafka-python' % traceback.format_exc())
+except ImportError:
+  logging.warning(
+      'kafka-python is not installed[%s]. You can install it by: pip install kafka-python'
+      % traceback.format_exc())
 
 if tf.__version__ >= '2.0':
   ignore_errors = tf.data.experimental.ignore_errors()
@@ -41,9 +42,10 @@ class KafkaInput(Input):
     self._kafka = kafka_config
     self._offset_dict = {}
     if self._kafka is not None:
-      consumer = KafkaConsumer(group_id='kafka_dataset_consumer', 
-           bootstrap_servers=[self._kafka.server],
-           api_version_auto_timeout_ms=60000) # in miliseconds
+      consumer = KafkaConsumer(
+          group_id='kafka_dataset_consumer',
+          bootstrap_servers=[self._kafka.server],
+          api_version_auto_timeout_ms=60000)  # in miliseconds
       partitions = consumer.partitions_for_topic(self._kafka.topic)
       self._num_partition = len(partitions)
       logging.info('all partitions[%d]: %s' % (self._num_partition, partitions))
@@ -53,8 +55,10 @@ class KafkaInput(Input):
       if offset_type is not None:
         if offset_type == 'offset_time':
           ts = parse_time(self._kafka.offset_time)
-          input_map = { TopicPartition(partition=part_id, topic=self._kafka.topic) : ts * 1000 \
-              for part_id in partitions }
+          input_map = {
+              TopicPartition(partition=part_id, topic=self._kafka.topic):
+              ts * 1000 for part_id in partitions
+          }
           part_offsets = consumer.offsets_for_times(input_map)
           # part_offsets is a dictionary:
           # {
@@ -63,9 +67,10 @@ class KafkaInput(Input):
           # }
           for part in part_offsets:
             self._offset_dict[part.partition] = part_offsets[part].offset
-            logging.info('find offset by time, topic[%s], partition[%d], timestamp[%ss], offset[%d], offset_timestamp[%dms]' % \
-                (self._kafka.topic, part.partition, ts, part_offsets[part].offset,
-                 part_offsets[part].timestamp))
+            logging.info(
+                'Find offset by time, topic[%s], partition[%d], timestamp[%ss], offset[%d], offset_timestamp[%dms]'
+                % (self._kafka.topic, part.partition, ts,
+                   part_offsets[part].offset, part_offsets[part].timestamp))
         elif offset_type == 'offset_info':
           offset_dict = json.loads(self._kafka.offset_info)
           for part in offset_dict:
@@ -73,7 +78,7 @@ class KafkaInput(Input):
             self._offset_dict[part_id] = offset_dict[part]
         else:
           assert 'invalid offset_type: %s' % offset_type
-    self._task_offset_dict = {}  
+    self._task_offset_dict = {}
 
   def _preprocess(self, field_dict):
     output_dict = super(KafkaInput, self)._preprocess(field_dict)
@@ -83,7 +88,7 @@ class KafkaInput(Input):
       output_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
 
     # for _get_features to include DATA_OFFSET
-    if Input.DATA_OFFSET not in self._appended_fields: 
+    if Input.DATA_OFFSET not in self._appended_fields:
       self._appended_fields.append(Input.DATA_OFFSET)
 
     return output_dict
@@ -111,20 +116,20 @@ class KafkaInput(Input):
       for kv in message_offset:
         if six.PY3:
           kv = kv.decode('utf-8')
-        k,v = kv.split(':')
+        k, v = kv.split(':')
         k = int(k)
         v = int(v)
         if k not in self._task_offset_dict or v > self._task_offset_dict[k]:
           self._task_offset_dict[k] = v
-      return json.dumps(self._task_offset_dict) 
-       
-    inputs[Input.DATA_OFFSET] = tf.py_func(_parse_offset, [message_offset], tf.string) 
-    return inputs
+      return json.dumps(self._task_offset_dict)
 
+    inputs[Input.DATA_OFFSET] = tf.py_func(_parse_offset, [message_offset],
+                                           tf.string)
+    return inputs
 
   def restore(self, checkpoint_path):
     if checkpoint_path is None:
-      return 
+      return
 
     offset_path = checkpoint_path + '.offset'
     if not gfile.Exists(offset_path):
@@ -144,8 +149,8 @@ class KafkaInput(Input):
     task_num = self._task_num
     task_index = self._task_index
     if self._data_config.chief_redundant and self._mode == tf.estimator.ModeKeys.TRAIN:
-      task_index = max(task_index-1, 0)
-      task_num = max(task_num-1, 1)
+      task_index = max(task_index - 1, 0)
+      task_num = max(task_num - 1, 1)
 
     topics = []
     self._task_offset_dict = {}
@@ -155,51 +160,55 @@ class KafkaInput(Input):
         topics.append('%s:%d:%d' % (self._kafka.topic, part_id, offset))
         self._task_offset_dict[part_id] = offset
     logging.info('assigned topic partitions: %s' % (','.join(topics)))
-    assert len(topics) > 0, 'no partitions are assigned for this task(%d/%d)' % (
-       self._task_index, self._task_num)
+    assert len(
+        topics) > 0, 'no partitions are assigned for this task(%d/%d)' % (
+            self._task_index, self._task_num)
     return topics
 
   def _build(self, mode, params):
     num_parallel_calls = self._data_config.num_parallel_calls
     task_topics = self._get_topics()
     if mode == tf.estimator.ModeKeys.TRAIN:
-      assert self._kafka is not None, "kafka_train_input is not set."
+      assert self._kafka is not None, 'kafka_train_input is not set.'
       train_kafka = self._kafka
       logging.info(
           'train kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
-          %
-          (train_kafka.server, train_kafka.topic, self._task_num,
-           self._task_index, task_topics))
+          % (train_kafka.server, train_kafka.topic, self._task_num,
+             self._task_index, task_topics))
 
       dataset = KafkaDataset(
           task_topics,
           servers=train_kafka.server,
           group=train_kafka.group,
           eof=False,
-          config_global = list(self._kafka.config_global),
-          config_topic = list(self._kafka.config_topic),
+          config_global=list(self._kafka.config_global),
+          config_topic=list(self._kafka.config_topic),
           message_key=True,
           message_offset=True)
- 
+
       if self._data_config.shuffle:
-        dataset = dataset.shuffle(self._data_config.shuffle_buffer_size,
-          seed=2020,
-          reshuffle_each_iteration=True)
+        dataset = dataset.shuffle(
+            self._data_config.shuffle_buffer_size,
+            seed=2020,
+            reshuffle_each_iteration=True)
     else:
       eval_kafka = self._kafka
-      assert self._kafka is not None, "kafka_eval_input is not set."
- 
+      assert self._kafka is not None, 'kafka_eval_input is not set.'
+
       logging.info(
           'eval kafka server: %s topic: %s task_num: %d task_index: %d topics: %s'
           % (eval_kafka.server, eval_kafka.topic, self._task_num,
              self._task_index, task_topics))
 
-      dataset = KafkaDataset(task_topics,
-              servers=self._kafka.server, 
-              group=eval_kafka.group, eof=False,
-              config_global = list(self._kafka.config_global),
-              config_topic = list(self._kafka.config_topic),
-              message_key=True, message_offset=True)
+      dataset = KafkaDataset(
+          task_topics,
+          servers=self._kafka.server,
+          group=eval_kafka.group,
+          eof=False,
+          config_global=list(self._kafka.config_global),
+          config_topic=list(self._kafka.config_topic),
+          message_key=True,
+          message_offset=True)
 
     dataset = dataset.batch(self._data_config.batch_size)
     dataset = dataset.map(

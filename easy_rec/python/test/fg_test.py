@@ -58,11 +58,13 @@ class FGTest(tf.test.TestCase):
         'samples/model_config/fg_train.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf('-PAI' not in tf.__version__, 'Only test when pai-tf is used.')
+  @unittest.skipIf('-PAI' not in tf.__version__,
+                   'Only test when pai-tf is used.')
   def test_fg_train_ev(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/fg_train_ev.config', self._test_dir)
     self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()

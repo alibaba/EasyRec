@@ -119,7 +119,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
 
   run_config = tf.estimator.RunConfig(
       model_dir=pipeline_config.model_dir,
-      log_step_count_steps=None, # train_config.log_step_count_steps,
+      log_step_count_steps=None,  # train_config.log_step_count_steps,
       save_summary_steps=train_config.save_summary_steps,
       save_checkpoints_steps=save_checkpoints_steps,
       save_checkpoints_secs=save_checkpoints_secs,
@@ -284,8 +284,7 @@ def _train_and_evaluate_impl(pipeline_config,
   if train_config.is_profiling:
     params['log_device_placement'] = True
   estimator, run_config = _create_estimator(
-      pipeline_config, distribution=distribution,
-      params=params)
+      pipeline_config, distribution=distribution, params=params)
 
   master_stat_file = os.path.join(pipeline_config.model_dir, 'master.stat')
   version_file = os.path.join(pipeline_config.model_dir, 'version')
@@ -322,7 +321,7 @@ def _train_and_evaluate_impl(pipeline_config,
   if final_ckpt is not None:
     final_offset_path = final_ckpt + '.offset'
     logging.info('restore offset_info from %s' % final_offset_path)
-    if gfile.Exists(final_offset_path): 
+    if gfile.Exists(final_offset_path):
       with gfile.GFile(final_offset_path) as fin:
         offset_info = json.load(fin)
       if train_data:
@@ -753,7 +752,8 @@ def export(export_dir,
       incr_save_type = incr_save_config.WhichOneof('incr_update')
       logging.info('incr_save_type=%s' % incr_save_type)
       if incr_save_type:
-        extra_params['incr_update'][incr_save_type] = getattr(incr_save_config, incr_save_type)
+        extra_params['incr_update'][incr_save_type] = getattr(
+            incr_save_config, incr_save_type)
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
                                    serving_input_fn, estimator, ckpt_path,
                                    verbose)

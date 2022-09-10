@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import collections
 import logging
-import collections
 
 import tensorflow as tf
 
@@ -36,7 +35,9 @@ class SharedEmbedding(object):
     self.index = index
     self.sequence_combiner = sequence_combiner
 
+
 EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
+
 
 class FeatureColumnParser(object):
   """Parse and generate feature columns."""

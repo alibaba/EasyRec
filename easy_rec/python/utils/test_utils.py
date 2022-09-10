@@ -197,13 +197,13 @@ def test_datahub_train_eval(pipeline_config_path,
   pipeline_config.train_config.num_gpus_per_worker = 1
   pipeline_config.train_config.sync_replicas = False
 
-  pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id 
+  pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id
   pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
   pipeline_config.datahub_train_input.region = odps_oss_config.dh_endpoint
   pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
   pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
 
-  pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id 
+  pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id
   pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
   pipeline_config.datahub_eval_input.region = odps_oss_config.dh_endpoint
   pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
