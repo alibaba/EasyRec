@@ -37,7 +37,8 @@ class TestPipelineOnEmr(tf.test.TestCase):
     odps_cmd = OdpsCommand(odps_oss_config)
 
     self._success = test_utils.test_datahub_train_eval(
-        '%s/configs/deepfm.config' % odps_oss_config.temp_dir, self._test_dir)
+        '%s/configs/deepfm.config' % odps_oss_config.temp_dir, odps_oss_config,
+        self._test_dir)
     odps_cmd.run_list(end)
     self.assertTrue(self._success)
 
@@ -48,8 +49,6 @@ if __name__ == '__main__':
       '--odps_config', type=str, default=None, help='odps config path')
   parser.add_argument(
       '--oss_config', type=str, default=None, help='ossutilconfig path')
-  parser.add_argument(
-      '--datahub_config', type=str, default=None, help='datahub_config')
   parser.add_argument(
       '--bucket_name', type=str, default=None, help='test oss bucket name')
   parser.add_argument('--arn', type=str, default=None, help='oss rolearn')
@@ -73,8 +72,6 @@ if __name__ == '__main__':
   if args.odps_config:
     odps_oss_config.load_odps_config(args.odps_config)
     os.environ['ODPS_CONFIG_FILE_PATH'] = args.odps_config
-  if args.datahub_config:
-    odps_oss_config.load_dh_config(args.datahub_config)
   if args.oss_config:
     odps_oss_config.load_oss_config(args.oss_config)
   if args.odpscmd:
@@ -89,7 +86,6 @@ if __name__ == '__main__':
     odps_oss_config.arn = args.arn
   if args.bucket_name:
     odps_oss_config.bucket_name = args.bucket_name
-  print(args)
   prepare(odps_oss_config)
   start = [
       'deep_fm/create_external_deepfm_table.sql',

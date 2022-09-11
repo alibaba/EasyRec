@@ -16,6 +16,7 @@ from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.utils.load_class import load_by_path
 from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
@@ -26,6 +27,8 @@ _meta_type = get_register_class_meta(_INPUT_CLASS_MAP, have_abstract_class=True)
 
 
 class Input(six.with_metaclass(_meta_type, object)):
+
+  DATA_OFFSET = 'DATA_OFFSET'
 
   def __init__(self,
                data_config,
@@ -60,6 +63,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         x.default_val for x in data_config.input_fields
     ]
     self._label_fields = list(data_config.label_fields)
+    self._feature_fields = list(data_config.feature_fields)
     self._label_sep = list(data_config.label_sep)
     self._label_dim = list(data_config.label_dim)
     if len(self._label_dim) < len(self._label_fields):
@@ -133,6 +137,12 @@ class Input(six.with_metaclass(_meta_type, object)):
       return self._data_config.num_epochs
     else:
       return None
+
+  def get_feature_input_fields(self):
+    return [
+        x for x in self._input_fields
+        if x not in self._label_fields and x != self._data_config.sample_weight
+    ]
 
   def should_stop(self, curr_epoch):
     """Check whether have run enough num epochs."""
@@ -562,6 +572,12 @@ class Input(six.with_metaclass(_meta_type, object)):
         if fc.max_val > fc.min_val:
           parsed_dict[input_0] = (parsed_dict[input_0] - fc.min_val) /\
                                  (fc.max_val - fc.min_val)
+
+        if fc.HasField('normalizer_fn'):
+          logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
+          parsed_dict[input_0] = load_by_path(fc.normalizer_fn)(
+              parsed_dict[input_0])
+
         if not fc.boundaries and fc.num_buckets <= 1 and \
             self._data_config.sample_weight != input_0:
           # may need by wide model and deep model to project
@@ -767,6 +783,9 @@ class Input(six.with_metaclass(_meta_type, object)):
   def _pre_build(self, mode, params):
     pass
 
+  def restore(self, checkpoint_path):
+    pass
+
   def _safe_shard(self, dataset):
     if self._data_config.chief_redundant:
       return dataset.shard(
@@ -808,4 +827,5 @@ class Input(six.with_metaclass(_meta_type, object)):
               features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
 
+    _input_fn.input_creator = self
     return _input_fn

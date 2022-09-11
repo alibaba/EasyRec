@@ -280,6 +280,8 @@ message DatasetConfig {
     // may not be the same as that in csv files.
     optional bool with_header = 25 [default = false];
 
+    repeated string feature_fields = 26;
+
     oneof sampler {
         NegativeSampler negative_sampler = 101;
         NegativeSamplerV2 negative_sampler_v2 = 102;

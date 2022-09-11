@@ -3,6 +3,7 @@
 import json
 import logging
 import sys
+import traceback
 
 import tensorflow as tf
 from google.protobuf import text_format
@@ -44,6 +45,8 @@ def _gen_raw_config(feature, input_field, feature_config, is_multi,
     if 'boundaries' in feature:
       feature_config.boundaries.extend(feature['boundaries'])
       feature_config.embedding_dim = curr_embed_dim
+  if 'normalizer_fn' in feature:
+    feature_config.normalizer_fn = feature['normalizer_fn']
 
 
 def _set_hash_bucket(feature, feature_config, input_field):
@@ -88,7 +91,7 @@ def process_features(feature_type,
   input_field.input_name = feature_name
   curr_embed_dim = feature.get('embedding_dimension',
                                feature.get('embedding_dim', embedding_dim))
-  curr_combiner = feature.get('combiner', 'mean')
+  curr_combiner = feature.get('combiner', 'sum')
   if feature.get('is_cache', False):
     logging.info('will cache %s' % feature_name)
     feature_config.is_cache = True
@@ -252,9 +255,9 @@ def load_input_field_and_feature_config(rtp_fg,
               embedding_dim,
               incol_separator,
               is_sequence=True)
-    except Exception as ex:
-      print('Exception: %s %s' % (type(ex), str(ex)))
-      print(feature)
+    except Exception:
+      logging.info('convert feature[%s] exception[%s]' %
+                   (str(feature), traceback.format_exc()))
       sys.exit(1)
   return pipeline_config
 

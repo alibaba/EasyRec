@@ -4,12 +4,14 @@
 import glob
 import logging
 import os
+import threading
+import time
 import unittest
+from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
-from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -185,6 +187,49 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir,
         post_check_func=_post_check_func)
     self.assertTrue(self._success)
+
+  def test_oss_stop_signal(self):
+    train_dir = os.path.join(self._test_dir, 'train/')
+
+    def _watch_func():
+      while True:
+        tmp_ckpt = estimator_utils.latest_checkpoint(train_dir)
+        if tmp_ckpt is not None:
+          version = estimator_utils.get_ckpt_version(tmp_ckpt)
+          if version > 30:
+            break
+        time.sleep(1)
+      stop_file = os.path.join(train_dir, 'OSS_STOP_SIGNAL')
+      with open(stop_file, 'w') as fout:
+        fout.write('OSS_STOP_SIGNAL')
+
+    watch_th = threading.Thread(target=_watch_func)
+    watch_th.start()
+
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/taobao_fg_signal_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    watch_th.join()
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
+
+  def test_dead_line_stop_signal(self):
+    train_dir = os.path.join(self._test_dir, 'train/')
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dead_line_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
 
   def test_fine_tune_latest_ckpt_path(self):
 
@@ -524,6 +569,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_early_stop_dis(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_early_stop_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_latest_export_with_asset(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/din_on_taobao_latest_export.config',
         self._test_dir)
     self.assertTrue(self._success)
 
@@ -872,6 +923,11 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/esmm_distribute_eval_on_taobao.config',
         cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_share_no_used(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/share_embedding_not_used.config', self._test_dir)
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
