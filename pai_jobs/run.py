@@ -313,6 +313,10 @@ def main(argv):
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
 
+    if pipeline_config.train_config.HasField('fine_tune_checkpoint'):
+      pipeline_config.train_config.fine_tune_checkpoint = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
+          pipeline_config.train_config.fine_tune_checkpoint, False)
+
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
       config_util.add_boundaries_to_config(pipeline_config,
