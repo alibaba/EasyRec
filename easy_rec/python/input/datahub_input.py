@@ -192,7 +192,7 @@ class DataHubInput(Input):
     if not gfile.Exists(offset_path):
       return
 
-    logging.info('will restore kafka offset from  %s' % offset_path)
+    logging.info('will restore datahub offset from  %s' % offset_path)
     with gfile.GFile(offset_path, 'r') as fin:
       offset_dict = json.load(fin)
       for k in offset_dict:
