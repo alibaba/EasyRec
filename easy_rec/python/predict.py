@@ -46,7 +46,6 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'output_cols', 'ALL_COLUMNS',
     'output columns, such as: score float. multiple columns are separated by ,')
-tf.app.flags.DEFINE_string('input_sep', ',', 'separator of predict result file')
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', None, '')
@@ -97,7 +96,6 @@ def main(argv):
           pipeline_config.data_config,
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
-          input_sep=FLAGS.input_sep,
           output_sep=FLAGS.output_sep)
 
     logging.info('input_path = %s, output_path = %s' %
