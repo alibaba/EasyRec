@@ -739,10 +739,9 @@ class CSVPredictor(Predictor):
     dataset = tf.data.Dataset.from_tensor_slices(file_paths)
     parallel_num = min(num_parallel_calls, len(file_paths))
     dataset = dataset.interleave(
-              lambda x: tf.data.TextLineDataset(x).skip(
-                      int(self._with_header)),
-              cycle_length=parallel_num,
-              num_parallel_calls=parallel_num)
+        lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
+        cycle_length=parallel_num,
+        num_parallel_calls=parallel_num)
     dataset = dataset.shard(slice_num, slice_id)
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size=64)
