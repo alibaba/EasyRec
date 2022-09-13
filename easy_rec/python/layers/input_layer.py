@@ -40,7 +40,7 @@ class InputLayer(object):
     }
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
         feature_configs, feature_groups_config, ev_params,
-        embedding_regularizer, is_training)
+        embedding_regularizer, kernel_regularizer, is_training)
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:

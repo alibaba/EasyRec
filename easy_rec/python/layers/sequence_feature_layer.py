@@ -17,6 +17,7 @@ class SequenceFeatureLayer(object):
                feature_groups_config,
                ev_params=None,
                embedding_regularizer=None,
+               kernel_regularizer=None,
                is_training=False):
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
@@ -30,6 +31,7 @@ class SequenceFeatureLayer(object):
           embedding_regularizer=embedding_regularizer,
           ev_params=ev_params)
     self._embedding_regularizer = embedding_regularizer
+    self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
 
   def negative_sampler_target_attention(self,
@@ -80,7 +82,7 @@ class SequenceFeatureLayer(object):
 
     din_layer = dnn.DNN(
         dnn_config,
-        None,
+        self._kernel_regularizer,
         name,
         self._is_training,
         last_layer_no_activation=True,
@@ -143,7 +145,7 @@ class SequenceFeatureLayer(object):
 
     din_layer = dnn.DNN(
         dnn_config,
-        None,
+        self._kernel_regularizer,
         name,
         self._is_training,
         last_layer_no_activation=True,

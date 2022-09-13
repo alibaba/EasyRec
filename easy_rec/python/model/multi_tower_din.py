@@ -79,7 +79,8 @@ class MultiTowerDIN(RankModel):
         self._l2_reg,
         name,
         self._is_training,
-        last_layer_no_activation=True)
+        last_layer_no_activation=True,
+        last_layer_no_batch_norm=True)
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 
