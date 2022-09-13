@@ -53,4 +53,7 @@ message ExportConfig {
 
     // export the outputs required by RTP
     optional bool export_rtp_outputs = 14 [default = false];
+
+    // export asset files
+    repeated string asset_files = 15;
 }

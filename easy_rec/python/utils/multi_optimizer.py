@@ -38,6 +38,9 @@ class MultiOptimizer(optimizer.Optimizer):
         update_ops.append(opt.apply_gradients(tmp, None))
     return tf.group(update_ops)
 
+  def open_auto_record(self, flag=True):
+    super(MultiOptimizer, self).open_auto_record(flag)
+
   def get_slot(self, var, name):
     raise NotImplementedError('not implemented')
     # for opt in self._opts:

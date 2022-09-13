@@ -2,13 +2,20 @@
 import logging
 import os
 
+import numpy as np
 import tensorflow as tf
 from google.protobuf import text_format
+from tensorflow.python.framework import ops
 from tensorflow.python.platform.gfile import GFile
+# from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
+from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import proto_util
+
+EMBEDDING_INITIALIZERS = 'embedding_initializers'
 
 
 class MetaGraphEditor:
@@ -27,6 +34,7 @@ class MetaGraphEditor:
                oss_timeout=0,
                meta_graph_def=None,
                norm_name_to_ids=None,
+               incr_update_params=None,
                debug_dir=''):
     self._lookup_op = tf.load_op_library(lookup_lib_path)
     self._debug_dir = debug_dir
@@ -73,6 +81,31 @@ class MetaGraphEditor:
     self._oss_ak = oss_ak
     self._oss_sk = oss_sk
     self._oss_timeout = oss_timeout
+
+    self._incr_update_params = incr_update_params
+
+    # increment update placeholders
+    self._embedding_update_inputs = {}
+    self._embedding_update_outputs = {}
+
+    self._dense_update_inputs = {}
+    self._dense_update_outputs = {}
+
+  @property
+  def sparse_update_inputs(self):
+    return self._embedding_update_inputs
+
+  @property
+  def sparse_update_outputs(self):
+    return self._embedding_update_outputs
+
+  @property
+  def dense_update_inputs(self):
+    return self._dense_update_inputs
+
+  @property
+  def dense_update_outputs(self):
+    return self._dense_update_outputs
 
   @property
   def graph_def(self):
@@ -314,9 +347,11 @@ class MetaGraphEditor:
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
       self._embed_name_to_ids = {
-          t: str(tid) for tid, t in enumerate(embed_name_uniq)
+          t: tid for tid, t in enumerate(embed_name_uniq)
       }
-    self._embed_ids = [self._embed_name_to_ids[x] for x in self._embed_names]
+    self._embed_ids = [
+        int(self._embed_name_to_ids[x]) for x in self._embed_names
+    ]
 
     self._is_cache_from_redis = [
         proto_util.is_cache_from_redis(x, self._redis_cache_names)
@@ -332,22 +367,25 @@ class MetaGraphEditor:
   def add_lookup_op(self, lookup_input_indices, lookup_input_values,
                     lookup_input_shapes, lookup_input_weights):
     logging.info('add custom lookup operation to lookup embeddings from redis')
+    self._lookup_outs = [None for i in range(len(lookup_input_values))]
     for i in range(len(lookup_input_values)):
       if lookup_input_values[i].dtype == tf.int32:
         lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
-    self._lookup_outs = self._lookup_op.kv_lookup(
-        lookup_input_indices,
-        lookup_input_values,
-        lookup_input_shapes,
-        lookup_input_weights,
-        url=self._redis_url,
-        password=self._redis_passwd,
-        timeout=self._redis_timeout,
-        combiners=self._embed_combiners,
-        embedding_dims=self._embed_dims,
-        embedding_names=self._embed_ids,
-        cache=self._is_cache_from_redis,
-        version=self._meta_graph_version)
+    for i in range(len(self._lookup_outs)):
+      i_1 = i + 1
+      self._lookup_outs[i] = self._lookup_op.kv_lookup(
+          lookup_input_indices[i:i_1],
+          lookup_input_values[i:i_1],
+          lookup_input_shapes[i:i_1],
+          lookup_input_weights[i:i_1],
+          url=self._redis_url,
+          password=self._redis_passwd,
+          timeout=self._redis_timeout,
+          combiners=self._embed_combiners[i:i_1],
+          embedding_dims=self._embed_dims[i:i_1],
+          embedding_names=self._embed_ids[i:i_1],
+          cache=self._is_cache_from_redis,
+          version=self._meta_graph_version)[0]
 
     meta_graph_def = tf.train.export_meta_graph()
 
@@ -365,6 +403,26 @@ class MetaGraphEditor:
     for i in range(len(lookup_input_values)):
       if lookup_input_values[i].dtype == tf.int32:
         lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
+    # N = len(lookup_input_indices)
+    # self._lookup_outs = [ None for _ in range(N) ]
+    # for i in range(N):
+    #   i_1 = i + 1
+    #   self._lookup_outs[i] = self._lookup_op.oss_read_kv(
+    #       lookup_input_indices[i:i_1],
+    #       lookup_input_values[i:i_1],
+    #       lookup_input_shapes[i:i_1],
+    #       lookup_input_weights[i:i_1],
+    #       osspath=self._oss_path,
+    #       endpoint=self._oss_endpoint,
+    #       ak=self._oss_ak,
+    #       sk=self._oss_sk,
+    #       timeout=self._oss_timeout,
+    #       combiners=self._embed_combiners[i:i_1],
+    #       embedding_dims=self._embed_dims[i:i_1],
+    #       embedding_ids=self._embed_ids[i:i_1],
+    #       embedding_is_kv=self._embed_is_kv[i:i_1],
+    #       shared_name='embedding_lookup_res',
+    #       name='embedding_lookup_fused/lookup')[0]
     self._lookup_outs = self._lookup_op.oss_read_kv(
         lookup_input_indices,
         lookup_input_values,
@@ -377,8 +435,60 @@ class MetaGraphEditor:
         timeout=self._oss_timeout,
         combiners=self._embed_combiners,
         embedding_dims=self._embed_dims,
-        embedding_names=self._embed_ids,
-        embedding_is_kv=self._embed_is_kv)
+        embedding_ids=self._embed_ids,
+        embedding_is_kv=self._embed_is_kv,
+        shared_name='embedding_lookup_res',
+        name='embedding_lookup_fused/lookup')
+
+    N = np.max([int(x) for x in self._embed_ids]) + 1
+    uniq_embed_ids = [x for x in range(N)]
+    uniq_embed_dims = [0 for x in range(N)]
+    uniq_embed_combiners = ['mean' for x in range(N)]
+    uniq_embed_is_kvs = [0 for x in range(N)]
+    for embed_id, embed_combiner, embed_is_kv, embed_dim in zip(
+        self._embed_ids, self._embed_combiners, self._embed_is_kv,
+        self._embed_dims):
+      uniq_embed_combiners[embed_id] = embed_combiner
+      uniq_embed_is_kvs[embed_id] = embed_is_kv
+      uniq_embed_dims[embed_id] = embed_dim
+
+    lookup_init_op = self._lookup_op.oss_init(
+        osspath=self._oss_path,
+        endpoint=self._oss_endpoint,
+        ak=self._oss_ak,
+        sk=self._oss_sk,
+        combiners=uniq_embed_combiners,
+        embedding_dims=uniq_embed_dims,
+        embedding_ids=uniq_embed_ids,
+        embedding_is_kv=uniq_embed_is_kvs,
+        N=N,
+        shared_name='embedding_lookup_res',
+        name='embedding_lookup_fused/init')
+
+    ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
+
+    if self._incr_update_params is not None:
+      # all sparse variables are updated by a single custom operation
+      message_ph = tf.placeholder(tf.int8, [None], name='incr_update/message')
+      embedding_update = self._lookup_op.embedding_update(
+          message=message_ph,
+          shared_name='embedding_lookup_res',
+          name='embedding_lookup_fused/embedding_update')
+      self._embedding_update_inputs['incr_update/sparse/message'] = message_ph
+      self._embedding_update_outputs[
+          'incr_update/sparse/embedding_update'] = embedding_update
+
+      # dense variables are updated one by one
+      dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
+      for x in ops.get_collection(constant.DENSE_UPDATE_VARIABLES):
+        dense_var_id = dense_name_to_ids[x.op.name]
+        dense_input_name = 'incr_update/dense/%d/input' % dense_var_id
+        dense_output_name = 'incr_update/dense/%d/output' % dense_var_id
+        dense_update_input = tf.placeholder(
+            tf.float32, x.get_shape(), name=dense_input_name)
+        self._dense_update_inputs[dense_input_name] = dense_update_input
+        dense_assign_op = tf.assign(x, dense_update_input)
+        self._dense_update_outputs[dense_output_name] = dense_assign_op
 
     meta_graph_def = tf.train.export_meta_graph()
 

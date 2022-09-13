@@ -172,11 +172,6 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     name2var_map = self._get_restore_vars(ckpt_var_map_path)
     logging.info('start to restore from %s' % ckpt_path)
 
-    if ckpt_path.endswith('/') or tf.gfile.IsDirectory(ckpt_path + '/'):
-      ckpt_path = estimator_utils.latest_checkpoint(ckpt_path)
-      print('ckpt_path is model_dir,  will use the latest checkpoint: %s' %
-            ckpt_path)
-
     ckpt_reader = tf.train.NewCheckpointReader(ckpt_path)
     ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
     if not include_global_step:

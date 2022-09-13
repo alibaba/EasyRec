@@ -392,7 +392,7 @@ class ExportTest(tf.test.TestCase):
         pipeline_config_path,
         test_data_path,
         self._extract_rtp_data,
-        total_steps=1000)
+        total_steps=100)
 
   def _test_big_model_export_to_oss(self,
                                     pipeline_config_path,
@@ -446,7 +446,7 @@ class ExportTest(tf.test.TestCase):
         --input_path %s
         --output_path %s
     """ % (config_path, test_data_path, result_path)
-    proc = test_utils.run_cmd(predict_cmd % (),
+    proc = test_utils.run_cmd(predict_cmd,
                               '%s/log_%s.txt' % (test_dir, 'predict'))
     proc.wait()
     self.assertTrue(proc.returncode == 0)

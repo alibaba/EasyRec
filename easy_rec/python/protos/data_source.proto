@@ -5,18 +5,34 @@ message KafkaServer {
     required string server     = 1;
     required string topic      = 2;
     required string group      = 3;
-    required uint32 partitions = 4;
-    repeated uint32 offset     = 5;
+    oneof offset {
+       // in json format: {'0':10, '1':20}
+       string offset_info = 40;
+       // offset_time could be two formats:
+       // 1: %Y%m%d %H:%M:%S  '20220508 12:00:00'
+       // 2: %s               '1651982400'
+       string offset_time = 42;
+    }
+    // kafka global config, such as: fetch.max.bytes=1024
+    repeated string config_global = 5;
+    // kafka topic config, such as: max.partition.fetch.bytes=1024
+    repeated string config_topic = 6;
 }
 
 message DatahubServer{
     required string akId       = 1;
     required string akSecret   = 2;
-    required string region     = 3;
+    required string endpoint     = 3;
     required string project    = 4;
     required string topic      = 5;
-    required uint32 shard_num  = 6;
-    required uint32 life_cycle = 7;
+    oneof offset {
+       // in json format: {"0":{"cursor": ""}, "1":{"cursor":""}}
+       string offset_info = 60;
+       // offset_time could be two formats:
+       // 1: %Y%m%d %H:%M:%S  "20220508 12:00:00"
+       // 2: %s               "1651982400"
+       string offset_time = 62;
+    }
 }
 
 message BinaryDataInput {

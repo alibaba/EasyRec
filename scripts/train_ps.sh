@@ -28,9 +28,9 @@ then
   shift 1
 fi
 
-ps_hosts="localhost:2227"
-chief_hosts="localhost:2223"
-worker_hosts="localhost:2224"
+ps_hosts="localhost:2327"
+chief_hosts="localhost:2323"
+worker_hosts="localhost:2324"
 gpus=""
 
 echo "ps_hosts=${ps_hosts}"

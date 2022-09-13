@@ -5,6 +5,7 @@ from __future__ import print_function
 import logging
 # use few threads to avoid oss error
 import os
+import time
 
 import tensorflow as tf
 import yaml
@@ -15,6 +16,7 @@ from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
@@ -105,6 +107,8 @@ tf.app.flags.DEFINE_bool('distribute_eval', False,
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
 tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
+tf.app.flags.DEFINE_integer('max_wait_ckpt_ts', 0,
+                            'max wait time in seconds for checkpoints')
 tf.app.flags.DEFINE_boolean('continue_train', True,
                             'use the same model to continue train or not')
 
@@ -201,6 +205,29 @@ def set_selected_cols(pipeline_config, selected_cols, all_cols, all_col_types):
         pipeline_config.data_config.selected_col_types)
 
 
+def _wait_ckpt(ckpt_path, max_wait_ts):
+  logging.info('will wait %s seconds for checkpoint' % max_wait_ts)
+  start_ts = time.time()
+  if '/model.ckpt-' not in ckpt_path:
+    while time.time() - start_ts < max_wait_ts:
+      tmp_ckpt = estimator_utils.latest_checkpoint(ckpt_path)
+      if tmp_ckpt is None:
+        logging.info('wait for checkpoint in directory[%s]' % ckpt_path)
+        time.sleep(30)
+      else:
+        logging.info('find checkpoint[%s] in directory[%s]' %
+                     (tmp_ckpt, ckpt_path))
+        break
+  else:
+    while time.time() - start_ts < max_wait_ts:
+      if gfile.Exists(ckpt_path + '.index'):
+        logging.info('wait for checkpoint[%s]' % ckpt_path)
+        time.sleep(30)
+      else:
+        logging.info('find checkpoint[%s]' % ckpt_path)
+        break
+
+
 def main(argv):
   pai_util.set_on_pai()
   if FLAGS.distribute_eval:
@@ -242,6 +269,10 @@ def main(argv):
     assert pipeline_config.model_dir.startswith(
         'oss://'), 'invalid model_dir format: %s' % pipeline_config.model_dir
 
+  if FLAGS.asset_files:
+    pipeline_config.export_config.asset_files.extend(
+        FLAGS.asset_files.split(','))
+
   if FLAGS.config:
     if not pipeline_config.model_dir.endswith('/'):
       pipeline_config.model_dir += '/'
@@ -250,10 +281,16 @@ def main(argv):
     if gfile.IsDirectory(pipeline_config.model_dir):
       gfile.DeleteRecursively(pipeline_config.model_dir)
 
+  if FLAGS.max_wait_ckpt_ts > 0:
+    if FLAGS.checkpoint_path:
+      _wait_ckpt(FLAGS.checkpoint_path, FLAGS.max_wait_ckpt_ts)
+    else:
+      _wait_ckpt(pipeline_config.model_dir, FLAGS.max_wait_ckpt_ts)
+
   if FLAGS.cmd == 'train':
     assert FLAGS.config, 'config should not be empty when training!'
 
-    if not FLAGS.train_tables:
+    if not FLAGS.train_tables and FLAGS.tables:
       tables = FLAGS.tables.split(',')
       assert len(
           tables
@@ -262,12 +299,12 @@ def main(argv):
 
     if FLAGS.train_tables:
       pipeline_config.train_input_path = FLAGS.train_tables
-    else:
+    elif FLAGS.tables:
       pipeline_config.train_input_path = FLAGS.tables.split(',')[0]
 
     if FLAGS.eval_tables:
       pipeline_config.eval_input_path = FLAGS.eval_tables
-    else:
+    elif FLAGS.tables:
       pipeline_config.eval_input_path = FLAGS.tables.split(',')[1]
 
     print('[run.py] train_tables: %s' % pipeline_config.train_input_path)
@@ -275,6 +312,10 @@ def main(argv):
 
     if FLAGS.fine_tune_checkpoint:
       pipeline_config.train_config.fine_tune_checkpoint = FLAGS.fine_tune_checkpoint
+
+    if pipeline_config.train_config.HasField('fine_tune_checkpoint'):
+      pipeline_config.train_config.fine_tune_checkpoint = estimator_utils.get_latest_checkpoint_from_checkpoint_path(
+          pipeline_config.train_config.fine_tune_checkpoint, False)
 
     if FLAGS.boundary_table:
       logging.info('Load boundary_table: %s' % FLAGS.boundary_table)
@@ -284,16 +325,20 @@ def main(argv):
     if FLAGS.sampler_table:
       pipeline_config.data_config.negative_sampler.input_path = FLAGS.sampler_table
 
-    # parse selected_cols
-    set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                      FLAGS.all_col_types)
+    if FLAGS.train_tables or FLAGS.tables:
+      # parse selected_cols
+      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
+                        FLAGS.all_col_types)
+    else:
+      pipeline_config.data_config.selected_cols = ''
+      pipeline_config.data_config.selected_col_types = ''
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
 
     # update params specified by automl if hpo_param_path is specified
     if FLAGS.hpo_param_path:
       logging.info('hpo_param_path = %s' % FLAGS.hpo_param_path)
-      with tf.gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
+      with gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
         hpo_config = yaml.safe_load(fin)
         hpo_params = hpo_config['param']
         config_util.edit_config(pipeline_config, hpo_params)
@@ -340,7 +385,7 @@ def main(argv):
 
     if FLAGS.eval_tables:
       pipeline_config.eval_input_path = FLAGS.eval_tables
-    else:
+    elif FLAGS.tables:
       pipeline_config.eval_input_path = FLAGS.tables.split(',')[0]
 
     distribute_strategy = DistributionStrategyMap[FLAGS.distribute_strategy]
@@ -353,9 +398,14 @@ def main(argv):
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
-    # parse selected_cols
-    set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                      FLAGS.all_col_types)
+    if FLAGS.eval_tables or FLAGS.tables:
+      # parse selected_cols
+      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
+                        FLAGS.all_col_types)
+    else:
+      pipeline_config.data_config.selected_cols = ''
+      pipeline_config.data_config.selected_col_types = ''
+
     if FLAGS.distribute_eval:
       os.environ['distribute_eval'] = 'True'
       logging.info('will_use_distribute_eval')

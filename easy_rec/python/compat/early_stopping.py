@@ -15,8 +15,12 @@
 """Utilities for early stopping."""
 
 import collections
+import datetime
+import logging
 import operator
 import os
+import threading
+import time
 
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -31,6 +35,7 @@ from tensorflow.python.training import session_run_hook
 from tensorflow.python.training import training_util
 from tensorflow.python.util.tf_export import estimator_export
 
+from easy_rec.python.utils.config_util import parse_time
 from easy_rec.python.utils.load_class import load_by_path
 
 _EVENT_FILE_GLOB_PATTERN = 'events.out.tfevents.*'
@@ -549,3 +554,94 @@ class _CheckForStoppingHook(session_run_hook.SessionRunHook):
     if should_early_stop:
       tf_logging.info('Early stopping requested, suspending run.')
       run_context.request_stop()
+
+
+class OssStopSignalHook(session_run_hook.SessionRunHook):
+
+  def __init__(self, model_dir, run_every_secs=10, run_every_steps=None):
+    self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
+    self._stop = False
+    self._check_run = True
+    self._timer = basic_session_run_hooks.SecondOrStepTimer(
+        every_secs=run_every_secs, every_steps=run_every_steps)
+    sleep_time = run_every_secs if run_every_secs is not None else 1
+    self._curr_step = 0
+
+    def _check_stop():
+      while self._check_run:
+        if self._timer.should_trigger_for_step(self._curr_step):
+          self._timer.update_last_triggered_step(self._curr_step)
+          if gfile.Exists(self._stop_sig_file):
+            self._stop = True
+            logging.info('OssStopSignalHook: stop on signal %s' %
+                         self._stop_sig_file)
+            break
+        else:
+          time.sleep(sleep_time)
+
+    self._th = threading.Thread(target=_check_stop)
+    self._th.start()
+
+    self._global_step_tensor = None
+    self._stop_var = _get_or_create_stop_var()
+    self._stop_op = None
+
+  def begin(self):
+    self._global_step_tensor = training_util.get_global_step()
+    self._stop_op = state_ops.assign(self._stop_var, True)
+
+  def before_run(self, run_context):
+    return session_run_hook.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):
+    if self._stop:
+      run_context.request_stop()
+      run_context.session.run(self._stop_op)
+    self._curr_step = run_values.results
+
+  def end(self, session):
+    self._check_run = False
+    self._th.join()
+
+
+def oss_stop_hook(estimator, run_every_secs=10, run_every_steps=None):
+  """Creates oss stop hook.
+
+  Returns a `SessionRunHook` that stops training when model_dir/OSS_STOP_SIGNAL is created.
+  """
+  if estimator.config.is_chief:
+    return OssStopSignalHook(
+        estimator.model_dir,
+        run_every_secs=run_every_secs,
+        run_every_steps=run_every_steps)
+  else:
+    return _CheckForStoppingHook()
+
+
+class DeadlineStopHook(session_run_hook.SessionRunHook):
+
+  def __init__(self, deadline_ts):
+    self._deadline_ts = deadline_ts
+    self._stop_var = _get_or_create_stop_var()
+    self._stop_op = None
+
+  def begin(self):
+    self._stop_op = state_ops.assign(self._stop_var, True)
+
+  def after_run(self, run_context, run_values):
+    curr_ts = time.mktime(datetime.datetime.now().timetuple())
+    if curr_ts > self._deadline_ts:
+      run_context.request_stop()
+      run_context.session.run(self._stop_op)
+
+
+def deadline_stop_hook(estimator, dead_line):
+  """Creates oss stop hook.
+
+  Returns a `SessionRunHook` that stops training when timestamp > deadline_ts.
+  """
+  deadline_ts = parse_time(dead_line)
+  if estimator.config.is_chief:
+    return DeadlineStopHook(deadline_ts)
+  else:
+    return _CheckForStoppingHook()

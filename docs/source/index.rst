@@ -18,6 +18,7 @@ Welcome to easy_rec's documentation!
    :caption: DATA & FEATURE
 
    feature/data
+   feature/odl_sample.md
    feature/feature
    feature/excel_config
    feature/rtp_fg
@@ -39,6 +40,7 @@ Welcome to easy_rec's documentation!
    loss
    train
    incremental_train
+   online_train
    eval
    export
    kd
@@ -91,10 +93,12 @@ Welcome to easy_rec's documentation!
 
    reference
    metrics
-   faq
-   tf_on_yarn
-   get_role_arn
    benchmark
+   faq
+   get_role_arn
+   tf_on_yarn
+   emr_tensorboard
+   mnist_demo
 
 
 Indices and tables

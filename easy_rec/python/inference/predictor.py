@@ -100,7 +100,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
 
 class PredictorImpl(object):
 
-  def __init__(self, model_path, profiling_file=None):
+  def __init__(self, model_path, profiling_file=None, use_latest=False):
     """Impl class for predictor.
 
     Args:
@@ -108,6 +108,8 @@ class PredictorImpl(object):
       profiling_file:  profiling result file, default None.
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
+      use_latest: use latest saved_model.pb if multiple ones are found,
+        else raise an exception.
     """
     self._inputs_map = {}
     self._outputs_map = {}
@@ -116,6 +118,7 @@ class PredictorImpl(object):
     self._model_path = model_path
     self._input_names = []
     self._is_multi_placeholder = True
+    self._use_latest = use_latest
 
     self._build_model()
 
@@ -145,13 +148,18 @@ class PredictorImpl(object):
     dir_list = []
     for root, dirs, files in gfile.Walk(directory):
       for f in files:
-        _, ext = os.path.splitext(f)
-        if ext == '.pb':
+        if f.endswith('saved_model.pb'):
           dir_list.append(root)
     if len(dir_list) == 0:
       raise ValueError('savedmodel is not found in directory %s' % directory)
     elif len(dir_list) > 1:
-      raise ValueError('multiple saved model found in directory %s' % directory)
+      if self._use_latest:
+        logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
+        dir_list = sorted(dir_list, key=lambda x: int(x.split('/')[-1]))
+        return dir_list[-1]
+      else:
+        raise ValueError('multiple saved model found in directory %s' %
+                         directory)
 
     return dir_list[0]
 
@@ -320,7 +328,11 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self, model_path, profiling_file=None, fg_json_path=None):
+  def __init__(self,
+               model_path,
+               profiling_file=None,
+               fg_json_path=None,
+               use_latest=True):
     """Initialize a `Predictor`.
 
     Args:
@@ -329,8 +341,9 @@ class Predictor(PredictorInterface):
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
       fg_json_path: fg.json file
+      use_latest: use latest saved_model.pb if multiple one exists.
     """
-    self._predictor_impl = PredictorImpl(model_path, profiling_file)
+    self._predictor_impl = PredictorImpl(model_path, profiling_file, use_latest)
     self._inputs_map = self._predictor_impl._inputs_map
     self._outputs_map = self._predictor_impl._outputs_map
     self._profiling_file = profiling_file
