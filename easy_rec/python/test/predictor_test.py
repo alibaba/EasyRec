@@ -147,7 +147,39 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=',',
+        output_sep=';',
+        selected_cols='')
+
+    predictor.predict_impl(
+        test_input_path,
+        self._test_output_path,
+        reserved_cols='ALL_COLUMNS',
+        output_cols='ALL_COLUMNS',
+        slice_id=0,
+        slice_num=1)
+    header_truth = 'logits;probs;clk;buy;pid;adgroup_id;cate_id;campaign_id;customer;'\
+                   'brand;user_id;cms_segid;cms_group_id;final_gender_code;age_level;pvalue_level;' \
+                   'shopping_level;occupation;new_user_class_level;tag_category_list;tag_brand_list;price'
+
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(len(output_res) == 101)
+      self.assertEqual(output_res[0].strip(), header_truth)
+
+  @RunAsSubprocess
+  def test_local_pred_with_header(self):
+    test_input_path = 'data/test/inference/taobao_infer_data_with_header.txt'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
+                                        'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        pipeline_config_path, False)
+    pipeline_config.data_config.with_header = True
+
+    predictor = CSVPredictor(
+        saved_model_dir,
+        pipeline_config.data_config,
         output_sep=';',
         selected_cols='')
 
@@ -194,7 +226,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=',',
         output_sep=';',
         selected_cols='')
 
@@ -226,7 +257,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=';',
         output_sep=';',
         selected_cols='0,3')
     predictor.predict_impl(
@@ -256,7 +286,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=';',
         output_sep=';',
         selected_cols='0,3')
     predictor.predict_impl(
