@@ -620,15 +620,17 @@ class CSVPredictor(Predictor):
                selected_cols=None,
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
-    self._input_sep = data_config.separator
     self._output_sep = output_sep
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
     self._with_header = data_config.with_header
 
     if 'rtp' in input_type:
       self._is_rtp = True
+      self._input_sep = data_config.rtp_separator
     else:
       self._is_rtp = False
+      self._input_sep = data_config.separator
+
     if selected_cols:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
     else:
