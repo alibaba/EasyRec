@@ -1,0 +1,23 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+
+message YouTubeTower {
+  required string id = 1;
+  optional DNN dnn = 2;
+};
+
+
+message YouTubeDNN {
+    required YouTubeTower user_tower = 1;
+    required YouTubeTower item_tower = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+    optional Similarity simi_func = 4 [default=COSINE];
+    // add a layer for scaling the similarity
+    optional bool scale_simi = 5 [default = true];
+    optional string item_id = 9;
+    required bool ignore_in_batch_neg_sam = 10 [default = false];
+}
