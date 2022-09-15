@@ -30,6 +30,7 @@ class MultiTowerBST(RankModel):
     self._seq_input_layer = seq_input_layer.SeqInputLayer(
         feature_configs,
         model_config.seq_att_groups,
+        embedding_regularizer=self._emb_reg,
         ev_params=self._global_ev_params)
     assert self._model_config.WhichOneof('model') == 'multi_tower', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
@@ -60,10 +61,18 @@ class MultiTowerBST(RankModel):
       self._bst_tower_features.append(tower_feature)
 
   def dnn_net(self, net, dnn_units, name):
+    dnn_units_len = len(dnn_units)
     with tf.variable_scope(name_or_scope=name, reuse=tf.AUTO_REUSE):
       for idx, units in enumerate(dnn_units):
-        net = tf.layers.dense(
-            net, units=units, activation=tf.nn.relu, name='%s_%d' % (name, idx))
+        if idx + 1 < dnn_units_len:
+          net = tf.layers.dense(
+              net,
+              units=units,
+              activation=tf.nn.relu,
+              name='%s_%d' % (name, idx))
+        else:
+          net = tf.layers.dense(
+              net, units=units, activation=None, name='%s_%d' % (name, idx))
     return net
 
   def attention_net(self, net, dim, cur_seq_len, seq_size, name):
