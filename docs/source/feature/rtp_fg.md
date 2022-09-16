@@ -241,11 +241,11 @@ tunnel upload taobao_test_input.txt taobao_test_input -fd=';';
 
 #### 生成样本
 
-- 下载rtp_fg [jar ](https://easyrec.oss-cn-beijing.aliyuncs.com/deploy/fg_on_odps-1.3.57-jar-with-dependencies.jar)包
+- 下载rtp_fg [jar ](https://easyrec.oss-cn-beijing.aliyuncs.com/deploy/fg_on_odps-1.3.59-jar-with-dependencies.jar)包
 - 生成特征
 
 ```sql
-add jar target/fg_on_odps-1.3.57-jar-with-dependencies.jar -f;
+add jar target/fg_on_odps-1.3.59-jar-with-dependencies.jar -f;
 add file fg.json -f;
 
 set odps.sql.planner.mode=sql;
@@ -254,10 +254,10 @@ set odps.sql.counters.dynamic.limit=true;
 
 drop table if exists taobao_fg_train_out;
 create table taobao_fg_train_out(label bigint, user_id string, item_id string,  features string);
-jar -resources fg_on_odps-1.3.57-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.57-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_train_input -o taobao_fg_train_out -f fg.json;
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_train_input -o taobao_fg_train_out -f fg.json;
 drop table if exists taobao_fg_test_out;
 create table taobao_fg_test_out(label bigint, user_id string, item_id string,  features string);
-jar -resources fg_on_odps-1.3.57-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.57-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f fg.json;
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f fg.json;
 
 --下载查看数据(可选)
 tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
@@ -410,7 +410,7 @@ pai -name tensorflow1120_cpu_ext
 - 表C使用增量incre_fg.json生成表incre_fea_table, incre_fg.json定义了新增的特征
 
 ```
-  jar -resources fg_on_odps-1.3.57-jar-with-dependencies.jar,incre_fg.json -classpath fg_on_odps-1.3.57-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f incre_fg.json;
+  jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,incre_fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f incre_fg.json;
 ```
 
 - 生成新的样本表D:
