@@ -975,6 +975,13 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_multi_tower_recall_neg_sampler_only_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()

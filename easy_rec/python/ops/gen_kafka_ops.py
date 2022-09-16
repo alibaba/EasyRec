@@ -25,6 +25,7 @@ if easy_rec.ops_dir is not None:
   if os.path.exists(kafka_ops_path):
     kafka_module = tf.load_op_library(kafka_ops_path)
 
+
 @tf_export('io_kafka_dataset_v2')
 def io_kafka_dataset_v2(topics,
                         servers,
