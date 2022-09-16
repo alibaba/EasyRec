@@ -2,8 +2,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-import sys
 import platform
+import sys
 
 import tensorflow as tf
 
