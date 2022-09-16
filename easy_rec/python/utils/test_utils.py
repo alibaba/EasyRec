@@ -85,13 +85,13 @@ def get_available_gpus():
   return gpus
 
 
-def run_cmd(cmd_str, log_file):
+def run_cmd(cmd_str, log_file, env=None):
   """Run a shell cmd."""
   cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
   logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
     return subprocess.Popen(
-        cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True)
+        cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True, env=env)
 
 
 def RunAsSubprocess(f):
@@ -171,9 +171,9 @@ def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
 
 
 def test_datahub_train_eval(pipeline_config_path,
+                            odps_oss_config,
                             test_dir,
                             process_pipeline_func=None,
-                            hyperparam_str='',
                             total_steps=50,
                             post_check_func=None):
   gpus = get_available_gpus()
@@ -196,13 +196,26 @@ def test_datahub_train_eval(pipeline_config_path,
   pipeline_config.train_config.train_distribute = 0
   pipeline_config.train_config.num_gpus_per_worker = 1
   pipeline_config.train_config.sync_replicas = False
+
+  pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id
+  pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
+  pipeline_config.datahub_train_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
+  pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
+
+  pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id
+  pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
+  pipeline_config.datahub_eval_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
+  pipeline_config.datahub_eval_input.topic = odps_oss_config.dh_topic
+
   if process_pipeline_func is not None:
     assert callable(process_pipeline_func)
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python3 -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-      test_pipeline_config_path, hyperparam_str)
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % \
+      test_pipeline_config_path
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
@@ -600,10 +613,14 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
 def test_distributed_train_eval(pipeline_config_path,
                                 test_dir,
                                 total_steps=50,
-                                num_evaluator=0):
+                                num_evaluator=0,
+                                edit_config_json=None):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
+  if edit_config_json is not None:
+    config_util.edit_config(pipeline_config, edit_config_json)
+
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')

@@ -171,7 +171,8 @@ class TestPipelineOnOdps(tf.test.TestCase):
     ]
     test_files = [
         'boundary/train_multi_tower_model.sql',
-        'boundary/finetune_multi_tower_model.sql', 'boundary/train_compat.sql'
+        'boundary/finetune_multi_tower_model.sql',
+        'boundary/finetune_multi_tower_conti.sql', 'boundary/train_compat.sql'
     ]
     end_file = ['boundary/drop_table.sql']
     tot = OdpsTest(start_files, test_files, end_file, odps_oss_config)

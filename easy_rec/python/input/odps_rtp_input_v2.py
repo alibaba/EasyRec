@@ -92,7 +92,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
   def _pre_build(self, mode, params):
     try:
       # Prevent TF from replacing the shape tensor to a constant tensor. This will
-      # cause the batch size being fixed. And RTP will be not able to recogonize
+      # cause the batch size being fixed. And RTP will be not able to recognize
       # the input shape.
       tf.get_default_graph().set_shape_optimize(False)
     except AttributeError as e:

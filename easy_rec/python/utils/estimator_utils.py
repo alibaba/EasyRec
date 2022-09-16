@@ -15,18 +15,46 @@ import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.core.framework.summary_pb2 import Summary
+from tensorflow.python.framework import errors_impl
 from tensorflow.python.framework import meta_graph
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.platform import gfile
+from tensorflow.python.training import basic_session_run_hooks
+from tensorflow.python.training import session_run_hook
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
+from easy_rec.python.ops.incr_record import get_sparse_indices
+from easy_rec.python.ops.incr_record import kv_resource_incr_gather
+from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import shape_utils
+
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
+
+try:
+  from kafka import KafkaProducer, KafkaAdminClient
+  from kafka.admin import NewTopic
+except ImportError as ex:
+  logging.warning('kafka-python is not installed: %s' % str(ex))
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-  SessionRunHook = tf.estimator.SessionRunHook
-  CheckpointSaverHook = tf.estimator.CheckpointSaverHook
-else:
-  SessionRunHook = tf.train.SessionRunHook
-  CheckpointSaverHook = tf.train.CheckpointSaverHook
+SessionRunHook = session_run_hook.SessionRunHook
+CheckpointSaverHook = basic_session_run_hooks.CheckpointSaverHook
+
+
+def tensor_log_format_func(tensor_dict):
+  prefix = ''
+  if 'step' in tensor_dict:
+    prefix = 'global step %s: ' % tensor_dict['step']
+  stats = []
+  for k in tensor_dict:
+    if k == 'step':
+      continue
+    tensor_value = tensor_dict[k]
+    stats.append('%s = %s' % (k, tensor_value))
+  return prefix + ', '.join(stats)
 
 
 class ExitBarrierHook(SessionRunHook):
@@ -111,10 +139,10 @@ class ExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -208,10 +236,10 @@ class EvaluateExitBarrierHook(SessionRunHook):
       logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
                    (is_chief, flag_file))
       if is_chief:
-        with tf.gfile.GFile(flag_file, 'w') as fout:
+        with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
       else:
-        while not tf.gfile.Exists(flag_file):
+        while not gfile.Exists(flag_file):
           time.sleep(1)
 
     from atexit import register
@@ -235,7 +263,7 @@ class ProgressHook(SessionRunHook):
     self._num_steps = num_steps
     self._is_chief = is_chief
     if self._is_chief:
-      self._progress_file = tf.gfile.GFile(filename, 'w')
+      self._progress_file = gfile.GFile(filename, 'w')
       self._progress_file.write('0.00\n')
       self._progress_interval = 0.01  # 1%
       self._last_progress_cnt = 0
@@ -276,7 +304,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
                checkpoint_basename='model.ckpt',
                scaffold=None,
                listeners=None,
-               write_graph=True):
+               write_graph=True,
+               data_offset_var=None,
+               increment_save_config=None):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -290,6 +320,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         Used for callbacks that run immediately before or after this hook saves
         the checkpoint.
       write_graph: whether to save graph.pbtxt.
+      data_offset_var: data offset variable.
+      increment_save_config: parameters for saving increment checkpoints.
 
     Raises:
       ValueError: One of `save_steps` or `save_secs` should be set.
@@ -304,13 +336,118 @@ class CheckpointSaverHook(CheckpointSaverHook):
         scaffold=scaffold,
         listeners=listeners)
     self._write_graph = write_graph
+    self._data_offset_var = data_offset_var
+
+    if increment_save_config is not None:
+      self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
+      logging.info('KAFKA_TIMEOUT: %dms' % self._kafka_timeout_ms)
+      self._kafka_max_req_size = os.environ.get('KAFKA_MAX_REQ_SIZE',
+                                                1024 * 1024 * 64)
+      logging.info('KAFKA_MAX_REQ_SIZE: %d' % self._kafka_max_req_size)
+      self._kafka_max_msg_size = os.environ.get('KAFKA_MAX_MSG_SIZE',
+                                                1024 * 1024 * 1024)
+      logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
+
+      self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
+      self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids()
+
+      with gfile.GFile(
+          os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES),
+          'w') as fout:
+        json.dump(self._dense_name_to_ids, fout, indent=2)
+
+      save_secs = increment_save_config.dense_save_secs
+      save_steps = increment_save_config.dense_save_steps
+      self._dense_timer = SecondOrStepTimer(
+          every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+      save_secs = increment_save_config.sparse_save_secs
+      save_steps = increment_save_config.sparse_save_steps
+      self._sparse_timer = SecondOrStepTimer(
+          every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None)
+
+      self._dense_timer.update_last_triggered_step(0)
+      self._sparse_timer.update_last_triggered_step(0)
+
+      self._sparse_indices = []
+      self._sparse_values = []
+      sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
+      for sparse_var, indice_dtype in sparse_train_vars:
+        with ops.control_dependencies([tf.train.get_global_step()]):
+          with ops.colocate_with(sparse_var):
+            sparse_indice = get_sparse_indices(
+                var_name=sparse_var.op.name, ktype=indice_dtype)
+          # sparse_indice = sparse_indice.global_indices
+        self._sparse_indices.append(sparse_indice)
+        if 'EmbeddingVariable' in str(type(sparse_var)):
+          self._sparse_values.append(
+              kv_resource_incr_gather(
+                  sparse_var._handle, sparse_indice,
+                  np.zeros(sparse_var.shape.as_list(), dtype=np.float32)))
+          # sparse_var.sparse_read(sparse_indice))
+        else:
+          self._sparse_values.append(
+              array_ops.gather(sparse_var, sparse_indice))
+
+      self._kafka_producer = None
+      self._incr_save_dir = None
+      if increment_save_config.HasField('kafka'):
+        self._topic = increment_save_config.kafka.topic
+        logging.info('increment save topic: %s' % self._topic)
+
+        admin_clt = KafkaAdminClient(
+            bootstrap_servers=increment_save_config.kafka.server,
+            request_timeout_ms=self._kafka_timeout_ms,
+            api_version_auto_timeout_ms=self._kafka_timeout_ms)
+        if self._topic not in admin_clt.list_topics():
+          admin_clt.create_topics(
+              new_topics=[
+                  NewTopic(
+                      name=self._topic,
+                      num_partitions=1,
+                      replication_factor=1,
+                      topic_configs={
+                          'max.message.bytes': self._kafka_max_msg_size
+                      })
+              ],
+              validate_only=False)
+        logging.info('create increment save topic: %s' % self._topic)
+        admin_clt.close()
+
+        servers = increment_save_config.kafka.server.split(',')
+        self._kafka_producer = KafkaProducer(
+            bootstrap_servers=servers,
+            max_request_size=self._kafka_max_req_size,
+            api_version_auto_timeout_ms=self._kafka_timeout_ms,
+            request_timeout_ms=self._kafka_timeout_ms)
+      elif increment_save_config.HasField('fs'):
+        fs = increment_save_config.fs
+        if fs.relative:
+          self._incr_save_dir = os.path.join(checkpoint_dir, fs.incr_save_dir)
+        else:
+          self._incr_save_dir = fs.incr_save_dir
+        if not self._incr_save_dir.endswith('/'):
+          self._incr_save_dir += '/'
+        if not gfile.IsDirectory(self._incr_save_dir):
+          gfile.MakeDirs(self._incr_save_dir)
+      elif increment_save_config.HasField('datahub'):
+        raise NotImplementedError('datahub increment saving is in development.')
+      else:
+        raise ValueError(
+            'incr_update not specified correctly, must be oneof: kafka,fs')
+
+      self._debug_save_update = increment_save_config.debug_save_update
+    else:
+      self._dense_timer = None
+      self._sparse_timer = None
 
   def after_create_session(self, session, coord):
     global_step = session.run(self._global_step_tensor)
     if self._write_graph:
       # We do write graph and saver_def at the first call of before_run.
       # We cannot do this in begin, since we let other hooks to change graph and
-      # add variables in begin. Graph is finalized after all begin calls.
+      # add variables at begin. Graph is finalized after all begin calls.
       tf.train.write_graph(tf.get_default_graph().as_graph_def(add_shapes=True),
                            self._checkpoint_dir, 'graph.pbtxt')
       saver_def = self._get_saver().saver_def if self._get_saver() else None
@@ -319,15 +456,148 @@ class CheckpointSaverHook(CheckpointSaverHook):
           graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def)
       self._summary_writer.add_graph(graph)
       self._summary_writer.add_meta_graph(meta_graph_def)
-    # when tf version > 1.10.0, we use defaut training strategy, which saves ckpt
-    # at first train step
-    if LooseVersion(tf.__version__) >= LooseVersion('1.10.0'):
-      # The checkpoint saved here is the state at step "global_step".
-      self._save(session, global_step)
+
+    # save for step 0
+    self._save(session, global_step)
+
     self._timer.update_last_triggered_step(global_step)
 
   def before_run(self, run_context):  # pylint: disable=unused-argument
     return tf.train.SessionRunArgs(self._global_step_tensor)
+
+  def _send_dense(self, global_step, session):
+    dense_train_vars = ops.get_collection(constant.DENSE_UPDATE_VARIABLES)
+    dense_train_vals = session.run(dense_train_vars)
+    logging.info('global_step=%d, increment save dense variables' % global_step)
+
+    # build msg header
+    msg_num = len(dense_train_vals)
+    msg_ids = [self._dense_name_to_ids[x.op.name] for x in dense_train_vars]
+    # 0 mean dense update message
+    msg_header = [0, msg_num, global_step]
+    for msg_id, x in zip(msg_ids, dense_train_vals):
+      msg_header.append(msg_id)
+      msg_header.append(x.size)
+
+    # build msg body
+    bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
+    for x in dense_train_vals:
+      bytes_buf += x.tobytes()
+
+    if self._kafka_producer is not None:
+      msg_key = 'dense_update_%d' % global_step
+      send_res = self._kafka_producer.send(
+          self._topic, bytes_buf, key=msg_key.encode('utf-8'))
+      logging.info('kafka send dense: %d exception: %s' %
+                   (global_step, send_res.exception))
+
+    if self._incr_save_dir is not None:
+      save_path = os.path.join(self._incr_save_dir,
+                               'dense_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+      save_flag = save_path + '.done'
+      with gfile.GFile(save_flag, 'w') as fout:
+        fout.write('dense_update_%d' % global_step)
+
+    if self._debug_save_update and self._incr_save_dir is None:
+      base_dir, _ = os.path.split(self._save_path)
+      incr_save_dir = os.path.join(base_dir, 'incr_save/')
+      if not gfile.Exists(incr_save_dir):
+        gfile.MakeDirs(incr_save_dir)
+      save_path = os.path.join(incr_save_dir, 'dense_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+
+    logging.info(
+        'global_step=%d, increment update dense variables, msg_num=%d' %
+        (global_step, msg_num))
+
+  def _send_sparse(self, global_step, session):
+    sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
+    sparse_res = session.run(self._sparse_indices + self._sparse_values)
+    msg_num = int(len(sparse_res) / 2)
+
+    sel_ids = [i for i in range(msg_num) if len(sparse_res[i]) > 0]
+    sparse_key_res = [sparse_res[i] for i in sel_ids]
+    sparse_val_res = [sparse_res[i + msg_num] for i in sel_ids]
+    sparse_train_vars = [sparse_train_vars[i][0] for i in sel_ids]
+
+    sel_embed_ids = [
+        self._sparse_name_to_ids[x.name] for x in sparse_train_vars
+    ]
+
+    msg_num = len(sel_ids)
+
+    if msg_num == 0:
+      logging.warning('there are no sparse updates, will skip this send: %d' %
+                      global_step)
+      return
+
+    # build msg header
+    # 1 means sparse update messages
+    msg_header = [1, msg_num, global_step]
+    for tmp_id, tmp_key in zip(sel_embed_ids, sparse_key_res):
+      msg_header.append(tmp_id)
+      msg_header.append(len(tmp_key))
+    bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
+
+    # build msg body
+    for tmp_id, tmp_key, tmp_val, tmp_var in zip(sel_embed_ids, sparse_key_res,
+                                                 sparse_val_res,
+                                                 sparse_train_vars):
+      # for non kv embedding variables, add partition offset to tmp_key
+      if 'EmbeddingVariable' not in str(type(tmp_var)):
+        if tmp_var._save_slice_info is not None:
+          tmp_key += tmp_var._save_slice_info.var_offset[0]
+      bytes_buf += tmp_key.tobytes()
+      bytes_buf += tmp_val.tobytes()
+    if self._kafka_producer is not None:
+      msg_key = 'sparse_update_%d' % global_step
+      send_res = self._kafka_producer.send(
+          self._topic, bytes_buf, key=msg_key.encode('utf-8'))
+      logging.info('kafka send sparse: %d %s' %
+                   (global_step, send_res.exception))
+
+    if self._incr_save_dir is not None:
+      save_path = os.path.join(self._incr_save_dir,
+                               'sparse_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+      save_flag = save_path + '.done'
+      with gfile.GFile(save_flag, 'w') as fout:
+        fout.write('sparse_update_%d' % global_step)
+
+    if self._debug_save_update and self._incr_save_dir is None:
+      base_dir, _ = os.path.split(self._save_path)
+      incr_save_dir = os.path.join(base_dir, 'incr_save/')
+      if not gfile.Exists(incr_save_dir):
+        gfile.MakeDirs(incr_save_dir)
+      save_path = os.path.join(incr_save_dir, 'sparse_update_%d' % global_step)
+      with gfile.GFile(save_path, 'wb') as fout:
+        fout.write(bytes_buf)
+
+    logging.info(
+        'global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d'
+        % (global_step, msg_num, len(bytes_buf)))
+
+  def after_run(self, run_context, run_values):
+    super(CheckpointSaverHook, self).after_run(run_context, run_values)
+    stale_global_step = run_values.results
+    global_step = -1
+    if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(
+        stale_global_step + self._steps_per_run):
+      global_step = run_context.session.run(self._global_step_tensor)
+      self._dense_timer.update_last_triggered_step(global_step)
+      self._send_dense(global_step, run_context.session)
+
+    if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(
+        stale_global_step + self._steps_per_run):
+      if global_step < 0:
+        global_step = run_context.session.run(self._global_step_tensor)
+
+      self._sparse_timer.update_last_triggered_step(global_step)
+      self._send_sparse(global_step, run_context.session)
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
@@ -336,12 +606,22 @@ class CheckpointSaverHook(CheckpointSaverHook):
     for l in self._listeners:  # noqa: E741
       l.before_save(session, step)
 
+    if self._data_offset_var is not None:
+      save_data_offset = session.run(self._data_offset_var)
+      data_offset_json = {}
+      for x in save_data_offset:
+        if x:
+          data_offset_json.update(json.loads(x))
+      save_dir, _ = os.path.split(self._save_path)
+      save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
+      with gfile.GFile(save_offset_path, 'w') as fout:
+        json.dump(data_offset_json, fout)
+
     self._get_saver().save(
         session,
         self._save_path,
         global_step=step,
         write_meta_graph=self._write_graph)
-    save_dir, save_name = os.path.split(self._save_path)
 
     self._summary_writer.add_session_log(
         tf.SessionLog(
@@ -356,6 +636,18 @@ class CheckpointSaverHook(CheckpointSaverHook):
             'listener: {}'.format(l))
         should_stop = True
     return should_stop
+
+  def end(self, session):
+    super(CheckpointSaverHook, self).end(session)
+    global_step = session.run(self._global_step_tensor)
+    if self._dense_timer is not None and \
+        global_step != self._dense_timer.last_triggered_step():
+      self._dense_timer.update_last_triggered_step(global_step)
+      self._send_dense(global_step, session)
+    if self._sparse_timer is not None and \
+        global_step != self._sparse_timer.last_triggered_step():
+      self._sparse_timer.update_last_triggered_step(global_step)
+      self._send_sparse(global_step, session)
 
 
 class NumpyCheckpointRestoreHook(SessionRunHook):
@@ -395,7 +687,7 @@ class NumpyCheckpointRestoreHook(SessionRunHook):
           vars_not_inited[var_name] = ','.join([str(s) for s in var_shape])
     self._restore_op = tf.group(assign_ops)
 
-    with tf.gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
+    with gfile.GFile(self._ckpt_path[:-4] + '_not_inited.txt', 'w') as f:
       for var_name in sorted(vars_not_inited.keys()):
         f.write('%s:%s\n' % (var_name, vars_not_inited[var_name]))
     assert not has_shape_unmatch, 'exist variable shape not match, restore failed'
@@ -516,7 +808,7 @@ class OnlineEvaluationHook(SessionRunHook):
     eval_result_file = os.path.join(self._output_dir,
                                     'online_eval_result.txt-%s' % global_step)
     logging.info('Saving online eval result to file %s' % eval_result_file)
-    with tf.gfile.GFile(eval_result_file, 'w') as ofile:
+    with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
       for key in sorted(metric_value_dict):
         # convert numpy float to python float
@@ -603,14 +895,18 @@ def latest_checkpoint(model_dir):
   Return:
     model_path: xx/model.ckpt-2000
   """
-  ckpt_metas = tf.gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
-  if len(ckpt_metas) == 0:
-    return None
+  try:
+    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
 
-  if len(ckpt_metas) > 1:
-    ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
-  ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
-  return ckpt_path
+    if len(ckpt_metas) == 0:
+      return None
+
+    if len(ckpt_metas) > 1:
+      ckpt_metas.sort(key=lambda x: get_ckpt_version(x))
+    ckpt_path = os.path.splitext(ckpt_metas[-1])[0]
+    return ckpt_path
+  except errors_impl.NotFoundError:
+    return None
 
 
 def master_to_chief():

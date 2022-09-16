@@ -1,7 +1,7 @@
 drop table if exists deepfm_output_v1_{TIME_STAMP};
 pai -name easy_rec_ext
 -Dcmd=predict
--Dcluster='{"worker" : {"count":2, "cpu":1000,  "memory":20000, "gpu":100}}'
+-Dcluster='{"worker" : {"count":2, "cpu":1000,  "memory":20000}}'
 -Darn={ROLEARN}
 -Dbuckets=oss://{OSS_BUCKET_NAME}/
 -Dsaved_model_dir=oss://{OSS_BUCKET_NAME}/{EXP_NAME}/dwd_avazu_ctr2/checkpoints5/savemodel/
