@@ -678,6 +678,10 @@
                   <a href="#protos.HighWayTower"><span class="badge">M</span>HighWayTower</a>
                 </li>
 
+                <li>
+                  <a href="#protos.UniterTower"><span class="badge">M</span>UniterTower</a>
+                </li>
+
 
 
 
@@ -776,6 +780,25 @@
 
                 <li>
                   <a href="#protos.MultiTower"><span class="badge">M</span>MultiTower</a>
+                </li>
+
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2fmulti_tower_recall.proto">easy_rec/python/protos/multi_tower_recall.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#protos.MultiTowerRecall"><span class="badge">M</span>MultiTowerRecall</a>
+                </li>
+
+                <li>
+                  <a href="#protos.RecallTower"><span class="badge">M</span>RecallTower</a>
                 </li>
 
 
@@ -1045,6 +1068,21 @@
                 <li>
                   <a href="#protos.DistributionStrategy"><span class="badge">E</span>DistributionStrategy</a>
                 </li>
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
+            <a href="#easy_rec%2fpython%2fprotos%2funiter.proto">easy_rec/python/protos/uniter.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#protos.Uniter"><span class="badge">M</span>Uniter</a>
+                </li>
+
 
 
 
@@ -2446,6 +2484,13 @@ input pipelines</pre></td>
                 </tr>
 
                 <tr>
+                  <td>bottom_uniter</td>
+                  <td><a href="#protos.UniterTower">UniterTower</a></td>
+                  <td>optional</td>
+                  <td><pre>shared bottom uniter layer </pre></td>
+                </tr>
+
+                <tr>
                   <td>bottom_dnn</td>
                   <td><a href="#protos.DNN">DNN</a></td>
                   <td>optional</td>
@@ -3103,6 +3148,20 @@ input pipelines</pre></td>
                 </tr>
 
                 <tr>
+                  <td>uniter</td>
+                  <td><a href="#protos.Uniter">Uniter</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>multi_tower_recall</td>
+                  <td><a href="#protos.MultiTowerRecall">MultiTowerRecall</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
                   <td>dssm</td>
                   <td><a href="#protos.DSSM">DSSM</a></td>
                   <td>optional</td>
@@ -3235,13 +3294,6 @@ common filters are Adam, Momentum, etc. </pre></td>
                   <td>losses</td>
                   <td><a href="#protos.Loss">Loss</a></td>
                   <td>repeated</td>
-                  <td><pre> </pre></td>
-                </tr>
-
-                <tr>
-                  <td>f1_reweight_loss</td>
-                  <td><a href="#protos.F1ReweighedLoss">F1ReweighedLoss</a></td>
-                  <td>optional</td>
                   <td><pre> </pre></td>
                 </tr>
 
@@ -4260,6 +4312,13 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><pre> </pre></td>
                 </tr>
 
+                <tr>
+                  <td>negative_sampler</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+
             </tbody>
           </table>
 
@@ -4319,6 +4378,20 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><pre> Default: false</pre></td>
                 </tr>
 
+                <tr>
+                  <td>need_key_feature</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: true</pre></td>
+                </tr>
+
+                <tr>
+                  <td>allow_key_transform</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>optional</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+
             </tbody>
           </table>
 
@@ -4345,6 +4418,13 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
 
                 <tr>
                   <td>hist_seq</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>aux_hist_seq</td>
                   <td><a href="#string">string</a></td>
                   <td>repeated</td>
                   <td><pre> </pre></td>
@@ -4984,7 +5064,7 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td>image_head_size</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td>required</td>
-                  <td><pre>The dimension of image heads </pre></td>
+                  <td><pre>The dimension of image heads Default: 64</pre></td>
                 </tr>
 
                 <tr>
@@ -5005,7 +5085,7 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td>image_self_attention_layer_num</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td>required</td>
-                  <td><pre>The number of self attention layers for image features Default: 1</pre></td>
+                  <td><pre>The number of self attention layers for image features Default: 0</pre></td>
                 </tr>
 
                 <tr>
@@ -5123,6 +5203,102 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
 
 
 
+        <h3 id="protos.UniterTower">UniterTower</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>hidden_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>Size of the encoder layers and the pooler layer </pre></td>
+                </tr>
+
+                <tr>
+                  <td>num_hidden_layers</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>Number of hidden layers in the Transformer encoder </pre></td>
+                </tr>
+
+                <tr>
+                  <td>num_attention_heads</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>Number of attention heads for each attention layer in the Transformer encoder </pre></td>
+                </tr>
+
+                <tr>
+                  <td>intermediate_size</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The size of the &#34;intermediate&#34; (i.e. feed-forward) layer in the Transformer encoder </pre></td>
+                </tr>
+
+                <tr>
+                  <td>hidden_act</td>
+                  <td><a href="#string">string</a></td>
+                  <td>required</td>
+                  <td><pre>The non-linear activation function (function or string) in the encoder and pooler.
+
+&#34;gelu&#34;, &#34;relu&#34;, &#34;tanh&#34; and &#34;swish&#34; are supported. Default: gelu</pre></td>
+                </tr>
+
+                <tr>
+                  <td>hidden_dropout_prob</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>The dropout probability for all fully connected layers in the embeddings, encoder, and pooler Default: 0.1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>attention_probs_dropout_prob</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>The dropout ratio for the attention probabilities Default: 0.1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>max_position_embeddings</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td>required</td>
+                  <td><pre>The maximum sequence length that this model might ever be used with Default: 512</pre></td>
+                </tr>
+
+                <tr>
+                  <td>use_position_embeddings</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre>Whether to add position embeddings for the position of each token in the text sequence Default: true</pre></td>
+                </tr>
+
+                <tr>
+                  <td>initializer_range</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre>The stddev of the truncated_normal_initializer for initializing all weight matrices Default: 0.02</pre></td>
+                </tr>
+
+                <tr>
+                  <td>other_feature_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>optional</td>
+                  <td><pre>dnn layers for other features </pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
 
 
 
@@ -5221,6 +5397,34 @@ in default it is not allowed to convert float/double to string Default: -1</pre>
                   <td><a href="#float">float</a></td>
                   <td>required</td>
                   <td><pre> Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>f1_reweighted_loss</td>
+                  <td><a href="#protos.F1ReweighedLoss">F1ReweighedLoss</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>softmax_loss</td>
+                  <td><a href="#protos.SoftmaxCrossEntropyWithNegativeMining">SoftmaxCrossEntropyWithNegativeMining</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>circle_loss</td>
+                  <td><a href="#protos.CircleLoss">CircleLoss</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>multi_simi_loss</td>
+                  <td><a href="#protos.MultiSimilarityLoss">MultiSimilarityLoss</a></td>
+                  <td>optional</td>
+                  <td><pre> </pre></td>
                 </tr>
 
             </tbody>
@@ -5850,6 +6054,96 @@ in experiments, setup such a loss leads to low hitrate. Default: 1</pre></td>
                   <td>bst_towers</td>
                   <td><a href="#protos.BSTTower">BSTTower</a></td>
                   <td>repeated</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/multi_tower_recall.proto">easy_rec/python/protos/multi_tower_recall.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+        <h3 id="protos.MultiTowerRecall">MultiTowerRecall</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>user_tower</td>
+                  <td><a href="#protos.RecallTower">RecallTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>item_tower</td>
+                  <td><a href="#protos.RecallTower">RecallTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>l2_regularization</td>
+                  <td><a href="#float">float</a></td>
+                  <td>required</td>
+                  <td><pre> Default: 0.0001</pre></td>
+                </tr>
+
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>ignore_in_batch_neg_sam</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td>required</td>
+                  <td><pre> Default: false</pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="protos.RecallTower">RecallTower</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
                   <td><pre> </pre></td>
                 </tr>
 
@@ -7643,12 +7937,18 @@ capable to support.</pre></td>
                   <td>out_task_space_weight</td>
                   <td><a href="#float">float</a></td>
                   <td>optional</td>
-                  <td><pre>the loss weight for sample out the task space
+                  <td><pre>the loss weight for sample out the task space Default: 1</pre></td>
+                </tr>
 
-level for prediction
+                <tr>
+                  <td>losses</td>
+                  <td><a href="#protos.Loss">Loss</a></td>
+                  <td>repeated</td>
+                  <td><pre>level for prediction
 required uint32 prediction_level = 13;
 prediction weights
-optional float prediction_weight = 14 [default = 1.0]; Default: 1</pre></td>
+optional float prediction_weight = 14 [default = 1.0];
+multiple losses </pre></td>
                 </tr>
 
             </tbody>
@@ -7736,6 +8036,13 @@ optional float prediction_weight = 14 [default = 1.0]; Default: 1</pre></td>
                   <td><a href="#float">float</a></td>
                   <td>optional</td>
                   <td><pre>the loss weight for sample out the task space Default: 1</pre></td>
+                </tr>
+
+                <tr>
+                  <td>losses</td>
+                  <td><a href="#protos.Loss">Loss</a></td>
+                  <td>repeated</td>
+                  <td><pre>multiple losses </pre></td>
                 </tr>
 
             </tbody>
@@ -8344,6 +8651,51 @@ see tf.distribute.experimental.MultiWorkerMirroredStrategy</pre></td>
 
           </tbody>
         </table>
+
+
+
+
+
+
+
+      <div class="file-heading">
+        <h2 id="easy_rec/python/protos/uniter.proto">easy_rec/python/protos/uniter.proto</h2><a href="#title">Top</a>
+      </div>
+      <pre></pre>
+
+
+        <h3 id="protos.Uniter">Uniter</h3>
+        <pre></pre>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>config</td>
+                  <td><a href="#protos.UniterTower">UniterTower</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+                <tr>
+                  <td>final_dnn</td>
+                  <td><a href="#protos.DNN">DNN</a></td>
+                  <td>required</td>
+                  <td><pre> </pre></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
 
 
 

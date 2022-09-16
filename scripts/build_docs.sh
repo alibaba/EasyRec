@@ -14,4 +14,5 @@ pip install -r requirements/docs.txt
 cd docs
 rm -rf build
 make html
+find build/html/ -name "*.html" | xargs -I {}  sed -i -e "s/\/\([a-zA-Z0-9_%-]\+\)\.md#\([a-zA-Z0-9_%-]\)/\/\1.html#\2/g" {}
 rm -rf build/html/_modules
