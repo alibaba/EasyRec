@@ -18,9 +18,8 @@ python setup.py install
 ### 下载安装hpo-tools
 
 ```
-pip install https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/hpo_tools-0.1.0-py3-none-any.whl
-wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/download_examples.py
-python download_examples.py
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
+bash install_hpo_tools.sh
 cd examples/search/maxcompute_easyrec
 ```
 
@@ -225,6 +224,27 @@ auc_is_valid_play=1
 
 点击每个Trial No，可以看到每个参数Trial的日志、参数详情,报错和输出可以点击以下3个按钮。
 ![image.png](../../images/automl/pai_nni_log.jpg)
+
+### 手动停止某组实验超参
+
+如果某些参数的结果不太好，可以进行手动停止。
+例如停止第一组参数。
+![image.png](../../images/automl/nni_stop.png)
+
+### 多目标default metric查看
+
+假设用户配置的metric_config为如下，那么UI中Default metric中显示3项；该组trial最终的metric
+
+- default=auc\*0.5+accuracy\*0.5
+- auc即为最终的auc值
+- accuracy即为最终的accuracy值
+
+```
+auc=0.5
+accuracy=0.5
+```
+
+![image.png](../../images/automl/nni_metric.png)
 
 ## finetune训练（可选）
 
