@@ -17,10 +17,14 @@ python setup.py install
 
 ### 下载安装hpo-tools
 
+bash install_hpo_tools.sh xxx
+
+第一个参数为下载examples的位置，默认下载在输入路径下面的examples下；如果没写目录，默认生成在根目录下。
+
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
-bash install_hpo_tools.sh
-cd examples/search/maxcompute_easyrec
+bash install_hpo_tools.sh ./
+cd ./examples/search/maxcompute_easyrec
 ```
 
 ## 启动调优
