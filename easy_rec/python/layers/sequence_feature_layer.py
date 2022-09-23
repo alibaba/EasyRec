@@ -111,7 +111,7 @@ class SequenceFeatureLayer(object):
         all_hist_dim_emb.append(outputs)
       hist_din_emb = tf.concat(all_hist_dim_emb, axis=1)
     if not need_key_feature:
-      return hist_din_emb
+      return hist_din_emb, concat_features
     din_output = tf.concat([hist_din_emb, cur_id], axis=2)
     return din_output, concat_features
 
