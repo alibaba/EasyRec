@@ -85,6 +85,7 @@ Welcome to easy_rec's documentation!
    :caption: DEVELOP
 
    develop
+   pycharm_vscode_docker
    release
 
 .. toctree::
