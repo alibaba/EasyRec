@@ -282,7 +282,7 @@ class NegativeSampler(BaseSampler):
     sampled_values = tf.py_func(self._get_impl, [ids], self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      v.set_shape([self._num_sample])
+      v.set_shape([None])
       result_dict[k] = v
     return result_dict
 
@@ -508,7 +508,7 @@ class NegativeSamplerV2(BaseSampler):
                                 self._attr_tf_types)
     result_dict = {}
     for k, t, v in zip(self._attr_names, self._attr_tf_types, sampled_values):
-      v.set_shape([self._num_sample])
+      v.set_shape([None])
       result_dict[k] = v
     return result_dict
 

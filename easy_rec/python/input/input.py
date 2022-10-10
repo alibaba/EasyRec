@@ -262,6 +262,49 @@ class Input(six.with_metaclass(_meta_type, object)):
     ])
 
   def _preprocess(self, field_dict):
+    """Preprocess the feature columns with negative sampling."""
+    parsed_dict = {}
+    neg_samples = self._maybe_negative_sample(field_dict)
+    if neg_samples:
+      for k, v in neg_samples.items():
+        if k in field_dict:
+          field_dict[k] = tf.concat([field_dict[k], v], axis=0)
+        else:
+          print('appended fields: %s' % k)
+          parsed_dict[k] = v
+          self._appended_fields.append(k)
+    for k, v in self._preprocess_without_negative_sample(field_dict):
+      parsed_dict[k] = v
+    return parsed_dict
+
+  def _maybe_negative_sample(self, field_dict):
+    """Negative sampling
+
+    Returns:
+      output_dict: if negative sampling is enabled, sampled fields dict is
+          returned. otherwise None is returned.
+    """
+    if self._sampler is not None and self._mode != tf.estimator.ModeKeys.PREDICT:
+      if self._mode != tf.estimator.ModeKeys.TRAIN:
+        self._sampler.set_eval_num_sample()
+      sampler_type = self._data_config.WhichOneof('sampler')
+      sampler_config = getattr(self._data_config, sampler_type)
+      item_ids = self._maybe_squeeze_input(field_dict[sampler_config.item_id_field], name='item_id')
+      if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
+        sampled = self._sampler.get(item_ids)
+      elif sampler_type == 'negative_sampler_v2':
+        user_ids = self._maybe_squeeze_input(field_dict[sampler_config.user_id_field], name='user_id')
+        sampled = self._sampler.get(user_ids, item_ids)
+      elif sampler_type.startswith('hard_negative_sampler'):
+        user_ids = self._maybe_squeeze_input(field_dict[sampler_config.user_id_field], name='user_id')
+        sampled = self._sampler.get(user_ids, item_ids)
+      else:
+        raise ValueError('Unknown sampler %s' % sampler_type)
+      return sampled
+    else:
+      return None
+
+  def _preprocess_without_negative_sample(self, field_dict, ignore_absent_fields=False):
     """Preprocess the feature columns.
 
     preprocess some feature columns, such as TagFeature or LookupFeature,
@@ -278,33 +321,19 @@ class Input(six.with_metaclass(_meta_type, object)):
     """
     parsed_dict = {}
 
-    if self._sampler is not None and self._mode != tf.estimator.ModeKeys.PREDICT:
-      if self._mode != tf.estimator.ModeKeys.TRAIN:
-        self._sampler.set_eval_num_sample()
-      sampler_type = self._data_config.WhichOneof('sampler')
-      sampler_config = getattr(self._data_config, sampler_type)
-      item_ids = field_dict[sampler_config.item_id_field]
-      if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
-        sampled = self._sampler.get(item_ids)
-      elif sampler_type == 'negative_sampler_v2':
-        user_ids = field_dict[sampler_config.user_id_field]
-        sampled = self._sampler.get(user_ids, item_ids)
-      elif sampler_type.startswith('hard_negative_sampler'):
-        user_ids = field_dict[sampler_config.user_id_field]
-        sampled = self._sampler.get(user_ids, item_ids)
-      else:
-        raise ValueError('Unknown sampler %s' % sampler_type)
-      for k, v in sampled.items():
-        if k in field_dict:
-          field_dict[k] = tf.concat([field_dict[k], v], axis=0)
-        else:
-          print('appended fields: %s' % k)
-          parsed_dict[k] = v
-          self._appended_fields.append(k)
-
     for fc in self._feature_configs:
       feature_name = fc.feature_name
       feature_type = fc.feature_type
+      absent_input_names = []
+      for input_name in fc.input_names:
+        if input_name not in field_dict:
+          absent_input_names.append(input_name)
+      if absent_input_names:
+        if ignore_absent_fields:
+          continue
+        else:
+          raise KeyError("feature [{}] lacks input [{}]".format(
+            feature_name, ", ".join(absent_input_names)))
       input_0 = fc.input_names[0]
       if feature_type == fc.TagFeature:
         input_0 = fc.input_names[0]
@@ -320,42 +349,6 @@ class Input(six.with_metaclass(_meta_type, object)):
             assert False, 'Tag Feature Error, ' \
                           'Cannot set kv_separator and multi input_names in one feature config. Feature: %s.' % input_0
           parsed_dict[input_0] = tf.string_split(field, fc.separator)
-          if fc.HasField('kv_separator'):
-            indices = parsed_dict[input_0].indices
-            tmp_kvs = parsed_dict[input_0].values
-            tmp_kvs = tf.string_split(
-                tmp_kvs, fc.kv_separator, skip_empty=False)
-            tmp_kvs = tf.reshape(tmp_kvs.values, [-1, 2])
-            tmp_ks, tmp_vs = tmp_kvs[:, 0], tmp_kvs[:, 1]
-
-            check_list = [
-                tf.py_func(
-                    check_string_to_number, [tmp_vs, input_0], Tout=tf.bool)
-            ] if self._check_mode else []
-            with tf.control_dependencies(check_list):
-              tmp_vs = tf.string_to_number(
-                  tmp_vs, tf.float32, name='kv_tag_wgt_str_2_flt_%s' % input_0)
-            parsed_dict[input_0] = tf.sparse.SparseTensor(
-                indices, tmp_ks, parsed_dict[input_0].dense_shape)
-            input_wgt = input_0 + '_WEIGHT'
-            parsed_dict[input_wgt] = tf.sparse.SparseTensor(
-                indices, tmp_vs, parsed_dict[input_0].dense_shape)
-            self._appended_fields.append(input_wgt)
-          if not fc.HasField('hash_bucket_size'):
-            check_list = [
-                tf.py_func(
-                    check_string_to_number,
-                    [parsed_dict[input_0].values, input_0],
-                    Tout=tf.bool)
-            ] if self._check_mode else []
-            with tf.control_dependencies(check_list):
-              vals = tf.string_to_number(
-                  parsed_dict[input_0].values,
-                  tf.int32,
-                  name='tag_fea_%s' % input_0)
-            parsed_dict[input_0] = tf.sparse.SparseTensor(
-                parsed_dict[input_0].indices, vals,
-                parsed_dict[input_0].dense_shape)
           if len(fc.input_names) > 1:
             input_1 = fc.input_names[1]
             field = field_dict[input_1]
@@ -387,6 +380,41 @@ class Input(six.with_metaclass(_meta_type, object)):
           if len(fc.input_names) > 1:
             input_1 = fc.input_names[1]
             parsed_dict[input_1] = field_dict[input_1]
+        if fc.HasField('kv_separator'):
+          indices = parsed_dict[input_0].indices
+          tmp_kvs = parsed_dict[input_0].values
+          tmp_kvs = tf.string_split(
+              tmp_kvs, fc.kv_separator, skip_empty=False)
+          tmp_kvs = tf.reshape(tmp_kvs.values, [-1, 2])
+          tmp_ks, tmp_vs = tmp_kvs[:, 0], tmp_kvs[:, 1]
+          check_list = [
+              tf.py_func(
+                  check_string_to_number, [tmp_vs, input_0], Tout=tf.bool)
+          ] if self._check_mode else []
+          with tf.control_dependencies(check_list):
+            tmp_vs = tf.string_to_number(
+                tmp_vs, tf.float32, name='kv_tag_wgt_str_2_flt_%s' % input_0)
+          parsed_dict[input_0] = tf.sparse.SparseTensor(
+              indices, tmp_ks, parsed_dict[input_0].dense_shape)
+          input_wgt = input_0 + '_WEIGHT'
+          parsed_dict[input_wgt] = tf.sparse.SparseTensor(
+              indices, tmp_vs, parsed_dict[input_0].dense_shape)
+          self._appended_fields.append(input_wgt)
+        if not fc.HasField('hash_bucket_size'):
+          check_list = [
+              tf.py_func(
+                  check_string_to_number,
+                  [parsed_dict[input_0].values, input_0],
+                  Tout=tf.bool)
+          ] if self._check_mode else []
+          with tf.control_dependencies(check_list):
+            vals = tf.string_to_number(
+                parsed_dict[input_0].values,
+                tf.int32,
+                name='tag_fea_%s' % input_0)
+          parsed_dict[input_0] = tf.sparse.SparseTensor(
+              parsed_dict[input_0].indices, vals,
+              parsed_dict[input_0].dense_shape)
       elif feature_type == fc.LookupFeature:
         assert feature_name is not None and feature_name != ''
         assert len(fc.input_names) == 2
@@ -708,8 +736,12 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     if self._data_config.HasField('sample_weight'):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
-        parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
-            self._data_config.sample_weight]
+        if self._data_config.sample_weight in field_dict:
+          parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
+              self._data_config.sample_weight]
+        elif not ignore_absent_fields:
+          raise KeyError("sample weight field [{}] is absent".format(
+            self._data_config.sample_weight))
     return parsed_dict
 
   def _lookup_preprocess(self, fc, field_dict):
@@ -829,3 +861,35 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     _input_fn.input_creator = self
     return _input_fn
+
+  def _maybe_squeeze_input(self, tensor, name=None):
+    default_value = None
+    if isinstance(tensor, tf.SparseTensor):
+      if tensor.dtype == tf.string:
+        default_value = ''
+      elif tensor.dtype.is_integer:
+        default_value = -1
+      else:
+        default_value = tensor.dtype.as_numpy_dtype()
+    with tf.name_scope('squeeze_input/{}'.format(name)):
+      rank = len(tensor.get_shape())
+      if rank != 1:
+        tensor_shape = tf.shape(tensor, out_type=tf.int64)
+        check_list = [tf.assert_equal(
+          tf.reduce_prod(tensor_shape[1:]),
+          tf.constant(1, dtype=tensor_shape.dtype),
+          message="{} must not have multi values".format(name))]
+        with tf.control_dependencies(check_list):
+          if isinstance(tensor, tf.SparseTensor):
+            return tf.sparse_to_dense(
+              tensor.indices[:,:1],
+              [tensor_shape[0]],
+              tensor.values,
+              default_value=default_value
+            )
+          else:
+            return tf.reshape(tensor, [tensor_shape[0]])
+      elif isinstance(tensor, tf.SparseTensor):
+        return tf.sparse.to_dense(tensor, default_value=default_value)
+      else:
+        return tensor
