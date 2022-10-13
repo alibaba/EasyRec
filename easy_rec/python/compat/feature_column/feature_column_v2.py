@@ -3595,6 +3595,10 @@ class EmbeddingColumn(
     layer_utils.append_tensor_to_collection(
         compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
         'input', sparse_tensors.id_tensor)
+    if sparse_tensors.weight_tensor is not None:
+      layer_utils.append_tensor_to_collection(
+        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+        'weighted_input', sparse_tensors.weight_tensor)
 
     return predictions
 

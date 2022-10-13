@@ -383,6 +383,11 @@ class Input(six.with_metaclass(_meta_type, object)):
         if fc.HasField('kv_separator'):
           indices = parsed_dict[input_0].indices
           tmp_kvs = parsed_dict[input_0].values
+          # filter out empty values
+          nonempty_selection = tf.where(tf.not_equal(tmp_kvs, ''))[:,0]
+          indices = tf.gather(indices, nonempty_selection)
+          tmp_kvs = tf.gather(tmp_kvs, nonempty_selection)
+          # split into keys and values
           tmp_kvs = tf.string_split(
               tmp_kvs, fc.kv_separator, skip_empty=False)
           tmp_kvs = tf.reshape(tmp_kvs.values, [-1, 2])
