@@ -52,7 +52,7 @@ def parse_requirements(fname='requirements.txt'):
 setup(
     name='easy-rec',
     version=get_version(),
-    description='An framework for deep learning on recommendation',
+    description='An easy-to-use framework for Recommendation',
     doc=readme(),
     author='EasyRec Team',
     author_email='easy_rec@alibaba-inc.com',
