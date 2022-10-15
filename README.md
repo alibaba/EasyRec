@@ -96,7 +96,7 @@ Any contributions you make are greatly appreciated!
 
 ## Cite
 
-If EasyRec is useful for your research, please cite it:
+If EasyRec is useful for your research, please cite:
 
 ```
 @article{Cheng2022EasyRecAE,
