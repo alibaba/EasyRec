@@ -9,8 +9,8 @@
 name: Upload Python Package
 
 on:
-  release:
-    types: [published]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   deploy:
@@ -19,10 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        submodules: recursive
     - name: Install dependencies
       run: |
         sh scripts/gen_proto.sh
