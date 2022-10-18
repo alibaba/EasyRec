@@ -317,8 +317,8 @@ train_config {
 
 ## 部署
 
-- 配置和离线模型相同, [参考文档](./rtp_fg.md)
-- 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/LaRec-0.9.5b-b890f69-TF-2.5.0-Linux.tar.gz)
+- 配置和离线模型相同, [参考文档](./feature/rtp_fg.md)
+- 需要使用支持增量更新的processor进行部署, [下载](http://easyrec.oss-cn-beijing.aliyuncs.com/processor/LaRec-0.9.5d-e33ced3-TF-2.5.0-Linux.tar.gz)
 - 为了保证性能，需要设置time_key，以实现item特征的增量更新功能
 - 使用OSS / NAS挂载的方式加载模型，可以加快更新速度
 - processor重启会恢复base版本，重新拉取增量更新的消息

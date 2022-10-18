@@ -5,6 +5,7 @@ import logging
 
 import tensorflow as tf
 
+from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
@@ -15,13 +16,18 @@ if tf.__version__ >= '2.0':
 
 class SeqInputLayer(object):
 
-  def __init__(self, feature_configs, feature_groups_config, ev_params=None):
+  def __init__(self,
+               feature_configs,
+               feature_groups_config,
+               embedding_regularizer=None,
+               ev_params=None):
     self._feature_groups_config = {
         x.group_name: x for x in feature_groups_config
     }
     wide_and_deep_dict = self.get_wide_deep_dict()
     self._fc_parser = FeatureColumnParser(
         feature_configs, wide_and_deep_dict, ev_params=ev_params)
+    self._embedding_regularizer = embedding_regularizer
 
   def __call__(self,
                features,
@@ -53,6 +59,10 @@ class SeqInputLayer(object):
               feature_name_to_output_tensors[key] is None and allow_key_search):
             qfc = feature_column_dict[key]
             with tf.variable_scope(qfc._var_scope_name):
+              tmp_key_tensor = feature_column_dict[key]._get_dense_tensor(
+                  builder)
+              regularizers.apply_regularization(
+                  self._embedding_regularizer, weights_list=[tmp_key_tensor])
               key_tensors.append(
                   feature_column_dict[key]._get_dense_tensor(builder))
           elif feature_name_to_output_tensors[key] is None:
