@@ -273,7 +273,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           print('appended fields: %s' % k)
           parsed_dict[k] = v
           self._appended_fields.append(k)
-    for k, v in self._preprocess_without_negative_sample(field_dict):
+    for k, v in self._preprocess_without_negative_sample(field_dict).items():
       parsed_dict[k] = v
     return parsed_dict
 
