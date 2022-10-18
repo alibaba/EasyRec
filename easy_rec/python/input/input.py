@@ -278,7 +278,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     return parsed_dict
 
   def _maybe_negative_sample(self, field_dict):
-    """Negative sampling
+    """Negative sampling.
 
     Returns:
       output_dict: if negative sampling is enabled, sampled fields dict is
@@ -289,14 +289,17 @@ class Input(six.with_metaclass(_meta_type, object)):
         self._sampler.set_eval_num_sample()
       sampler_type = self._data_config.WhichOneof('sampler')
       sampler_config = getattr(self._data_config, sampler_type)
-      item_ids = self._maybe_squeeze_input(field_dict[sampler_config.item_id_field], name='item_id')
+      item_ids = self._maybe_squeeze_input(
+          field_dict[sampler_config.item_id_field], name='item_id')
       if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
         sampled = self._sampler.get(item_ids)
       elif sampler_type == 'negative_sampler_v2':
-        user_ids = self._maybe_squeeze_input(field_dict[sampler_config.user_id_field], name='user_id')
+        user_ids = self._maybe_squeeze_input(
+            field_dict[sampler_config.user_id_field], name='user_id')
         sampled = self._sampler.get(user_ids, item_ids)
       elif sampler_type.startswith('hard_negative_sampler'):
-        user_ids = self._maybe_squeeze_input(field_dict[sampler_config.user_id_field], name='user_id')
+        user_ids = self._maybe_squeeze_input(
+            field_dict[sampler_config.user_id_field], name='user_id')
         sampled = self._sampler.get(user_ids, item_ids)
       else:
         raise ValueError('Unknown sampler %s' % sampler_type)
@@ -304,7 +307,9 @@ class Input(six.with_metaclass(_meta_type, object)):
     else:
       return None
 
-  def _preprocess_without_negative_sample(self, field_dict, ignore_absent_fields=False):
+  def _preprocess_without_negative_sample(self,
+                                          field_dict,
+                                          ignore_absent_fields=False):
     """Preprocess the feature columns.
 
     preprocess some feature columns, such as TagFeature or LookupFeature,
@@ -332,8 +337,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         if ignore_absent_fields:
           continue
         else:
-          raise KeyError("feature [{}] lacks input [{}]".format(
-            feature_name, ", ".join(absent_input_names)))
+          raise KeyError('feature [{}] lacks input [{}]'.format(
+              feature_name, ', '.join(absent_input_names)))
       input_0 = fc.input_names[0]
       if feature_type == fc.TagFeature:
         input_0 = fc.input_names[0]
@@ -376,20 +381,23 @@ class Input(six.with_metaclass(_meta_type, object)):
                                              field.dense_shape)
             parsed_dict[input_1] = field
         else:
-          parsed_dict[input_0] = field_dict[input_0]
+          # filter out empty values
+          nonempty_selection = tf.where(
+              tf.not_equal(field_dict[input_0].values, ''))[:, 0]
+          parsed_indices = tf.gather(field_dict[input_0].indices,
+                                     nonempty_selection)
+          parsed_values = tf.gather(field_dict[input_0].values,
+                                    nonempty_selection)
+          parsed_dict[input_0] = tf.sparse.SparseTensor(
+              parsed_indices, parsed_values, field_dict[input_0].dense_shape)
           if len(fc.input_names) > 1:
             input_1 = fc.input_names[1]
             parsed_dict[input_1] = field_dict[input_1]
         if fc.HasField('kv_separator'):
           indices = parsed_dict[input_0].indices
           tmp_kvs = parsed_dict[input_0].values
-          # filter out empty values
-          nonempty_selection = tf.where(tf.not_equal(tmp_kvs, ''))[:,0]
-          indices = tf.gather(indices, nonempty_selection)
-          tmp_kvs = tf.gather(tmp_kvs, nonempty_selection)
           # split into keys and values
-          tmp_kvs = tf.string_split(
-              tmp_kvs, fc.kv_separator, skip_empty=False)
+          tmp_kvs = tf.string_split(tmp_kvs, fc.kv_separator, skip_empty=False)
           tmp_kvs = tf.reshape(tmp_kvs.values, [-1, 2])
           tmp_ks, tmp_vs = tmp_kvs[:, 0], tmp_kvs[:, 1]
           check_list = [
@@ -745,8 +753,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
               self._data_config.sample_weight]
         elif not ignore_absent_fields:
-          raise KeyError("sample weight field [{}] is absent".format(
-            self._data_config.sample_weight))
+          raise KeyError('sample weight field [{}] is absent'.format(
+              self._data_config.sample_weight))
     return parsed_dict
 
   def _lookup_preprocess(self, fc, field_dict):
@@ -880,18 +888,18 @@ class Input(six.with_metaclass(_meta_type, object)):
       rank = len(tensor.get_shape())
       if rank != 1:
         tensor_shape = tf.shape(tensor, out_type=tf.int64)
-        check_list = [tf.assert_equal(
-          tf.reduce_prod(tensor_shape[1:]),
-          tf.constant(1, dtype=tensor_shape.dtype),
-          message="{} must not have multi values".format(name))]
+        check_list = [
+            tf.assert_equal(
+                tf.reduce_prod(tensor_shape[1:]),
+                tf.constant(1, dtype=tensor_shape.dtype),
+                message='{} must not have multi values'.format(name))
+        ]
         with tf.control_dependencies(check_list):
           if isinstance(tensor, tf.SparseTensor):
             return tf.sparse_to_dense(
-              tensor.indices[:,:1],
-              [tensor_shape[0]],
-              tensor.values,
-              default_value=default_value
-            )
+                tensor.indices[:, :1], [tensor_shape[0]],
+                tensor.values,
+                default_value=default_value)
           else:
             return tf.reshape(tensor, [tensor_shape[0]])
       elif isinstance(tensor, tf.SparseTensor):
