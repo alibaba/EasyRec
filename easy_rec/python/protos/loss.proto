@@ -15,6 +15,12 @@ enum LossType {
     F1_REWEIGHTED_LOSS = 9;
 }
 
+enum LossReduction {
+    MEAN = 0;
+    SUM = 1;
+    MEAN_BY_BATCH_SIZE = 2;
+}
+
 message Loss {
   required LossType loss_type = 1;
   required float weight = 2 [default = 1.0];

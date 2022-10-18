@@ -8,7 +8,7 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 
 try:
-  import pai
+  from pai.data import WorkQueue
 except Exception:
   pass
 
@@ -21,9 +21,10 @@ class OdpsInputV2(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               fg_json_path=None):
     super(OdpsInputV2, self).__init__(data_config, feature_config, input_path,
-                                      task_index, task_num, check_mode)
+                                      task_index, task_num, check_mode, fg_json_path=fg_json_path)
 
   def _parse_table(self, *fields):
     fields = list(fields)
@@ -50,7 +51,7 @@ class OdpsInputV2(Input):
         mode == tf.estimator.ModeKeys.TRAIN:
       logging.info('pai_worker_slice_num = %d' %
                    self._data_config.pai_worker_slice_num)
-      work_queue = pai.data.WorkQueue(
+      work_queue = WorkQueue(
           self._input_path,
           num_epochs=self.num_epochs,
           shuffle=self._data_config.shuffle,

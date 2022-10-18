@@ -19,6 +19,7 @@ import "easy_rec/python/protos/dcn.proto";
 import "easy_rec/python/protos/cmbf.proto";
 import "easy_rec/python/protos/uniter.proto";
 import "easy_rec/python/protos/autoint.proto";
+import "easy_rec/python/protos/dnn_opt.proto";
 import "easy_rec/python/protos/mind.proto";
 import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
@@ -71,6 +72,9 @@ message EasyRecModel {
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
+        DNNOpt dnn_opt = 206;
+        DNNOptV2 dnn_opt_v2 = 207;
+        DNNOptSeq dnn_opt_seq = 208;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
@@ -101,5 +105,7 @@ message EasyRecModel {
     optional VariationalDropoutLayer variational_dropout = 14;
 
     repeated Loss losses = 15;
+
+    optional LossReduction loss_reduction = 17 [default = MEAN];
 
 }

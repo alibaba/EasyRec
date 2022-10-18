@@ -146,7 +146,9 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
   else:
     eval_steps = None
   input_fn_kwargs = {}
-  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
+      data_config.input_type == data_config.InputType.CSVInput or \
+      data_config.input_type == data_config.InputType.OdpsInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
   export_input_fn = _get_input_fn(
@@ -313,7 +315,9 @@ def _train_and_evaluate_impl(pipeline_config,
     logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
 
   input_fn_kwargs = {}
-  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
+      data_config.input_type == data_config.InputType.CSVInput or \
+      data_config.input_type == data_config.InputType.OdpsInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
   # create train input
@@ -788,7 +792,9 @@ def export_checkpoint(pipeline_config=None,
   data_config = pipeline_config.data_config
 
   input_fn_kwargs = {}
-  if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
+  if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
+      data_config.input_type == data_config.InputType.CSVInput or \
+      data_config.input_type == data_config.InputType.OdpsInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
   # create estimator

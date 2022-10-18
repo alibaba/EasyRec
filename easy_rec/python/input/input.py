@@ -1,9 +1,13 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import json
+import sys
 from abc import abstractmethod
 from collections import OrderedDict
-
+from tkinter.messagebox import NO
+from easy_rec.python.compat.early_stopping import _summaries
+import numpy as np
 import six
 import tensorflow as tf
 
@@ -36,7 +40,8 @@ class Input(six.with_metaclass(_meta_type, object)):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               fg_json_path=None):
     self._data_config = data_config
     self._check_mode = check_mode
     logging.info('check_mode: %s ' % self._check_mode)
@@ -78,6 +83,45 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     self._input_path = input_path
 
+    self._fg_config = None
+    self._fg_module = None
+    fg_input_map = dict()
+    self._effective_fg_features = set()
+    if fg_json_path is not None and fg_json_path != '':
+      if fg_json_path.startswith('!'):
+        fg_json_path = fg_json_path[1:]
+      with tf.gfile.GFile(fg_json_path, 'r') as f:
+        self._fg_config = json.load(f)
+        for feature_config in self._fg_config['features']:
+          if 'sequence_name' in feature_config:
+            sequence_name = feature_config['sequence_name']
+            for sub_feature_config in feature_config['features']:
+              sub_feature_name = sub_feature_config['feature_name']
+              feature_name = sequence_name + '__' + sub_feature_name 
+              fg_input_map[feature_name] = [sequence_name + '__' + sub_feature_config['expression'].split(':')[-1]]
+          else:
+            feature_type = feature_config['feature_type']
+            feature_name = feature_config['feature_name']
+            if feature_type in ['id_feature', 'raw_feature']:
+              fg_input_map[feature_name] = [feature_config['expression'].split(':')[-1]]
+            elif feature_type == 'combo_feature':
+              fg_input_map[feature_name] = [k.split(':')[-1] for k in feature_config['expression']]
+            elif feature_type == 'lookup_feature':
+              fg_input_map[feature_name] = [
+                feature_config['map'].split(':')[-1],
+                feature_config['key'].split(':')[-1]
+              ]
+            elif feature_type == 'match_feature':
+              fg_input_map[feature_name] = [
+                feature_config['user'].split(':')[-1],
+                feature_config['category'].split(':')[-1],
+                feature_config['item'].split(':')[-1],
+              ]
+            else:
+              raise ValueError('Unknown feature type: %s' % feature_type)
+      self._fg_module = tf.load_op_library('/home/zxw320697/xiaowen/LaRec/build/larec/libfg_op.so')
+      # self._fg_module = tf.load_op_library('libfg_op.so')
+
     # findout effective fields
     self._effective_fields = []
 
@@ -85,13 +129,20 @@ class Input(six.with_metaclass(_meta_type, object)):
     # from the types defined in input_fields
     # it is used in create_multi_placeholders
     self._multi_value_types = {}
-
+    print('fg_input_map',fg_input_map)
     for fc in self._feature_configs:
       for input_name in fc.input_names:
-        assert input_name in self._input_fields, 'invalid input_name in %s' % str(
-            fc)
-        if input_name not in self._effective_fields:
-          self._effective_fields.append(input_name)
+        print('input_name',input_name)
+        if self._fg_config is not None and input_name in fg_input_map:
+          self._effective_fg_features.add(input_name)
+          true_input_names = fg_input_map[input_name]
+        else:
+          true_input_names = [input_name]
+        for true_input_name in true_input_names:
+          assert true_input_name in self._input_fields, 'invalid input_name in %s' % str(
+              fc)
+          if true_input_name not in self._effective_fields:
+            self._effective_fields.append(true_input_name)
 
       if fc.feature_type in [fc.TagFeature, fc.SequenceFeature]:
         if fc.hash_bucket_size > 0:
@@ -261,6 +312,174 @@ class Input(six.with_metaclass(_meta_type, object)):
         for x in self._label_fields
     ])
 
+  def _fg(self, field_dict, parsed_dict={}):
+    multi_val_sep = self._fg_config.get('multi_val_sep', '\035')
+    input_dict = {}
+    output_dict = {}
+
+    def _tf_type(in_type):
+      in_type = in_type.lower()
+      type_map = {
+        'integer': tf.int32,
+        'int32': tf.int32,
+        'int64': tf.int32,
+        'bigint': tf.int64,
+        'string': tf.string,
+        'float': tf.float32,
+        'double': tf.double
+      }
+      assert in_type in type_map, 'invalid type: %s' % in_type
+      return type_map[in_type]
+
+    def _get_input(input_name):
+      if input_name in input_dict:
+        return input_dict[input_name]
+
+      sample_type = parsed_dict.get('__sampler_type__', None)
+
+      side, key = input_name.split(':')
+      x = field_dict[key]
+      # if sample_type is not None and self._mode != tf.estimator.ModeKeys.PREDICT:
+      if sample_type is not None:
+        num_neg = parsed_dict.get('__num_neg_sample__', None)
+        batch_size = parsed_dict.get('__batch_size__', None)
+
+        if sample_type.startswith('hard_negative_sampler'):
+          raise NotImplementedError
+        else:
+          if side == 'user':
+            x = tf.reshape(tf.tile(x[:, tf.newaxis], multiples=[1, 1+num_neg]), [-1])
+          elif side == 'item':
+            x = tf.reshape(
+              tf.concat(
+                [
+                  x[:batch_size, tf.newaxis],
+                  tf.tile(x[tf.newaxis, batch_size:], multiples=[batch_size, 1])
+                ], axis=-1), [-1])
+            
+          else:
+            raise ValueError('Unknown side: %s' % side)
+      input_dict[input_name] = x if x.dtype == tf.string else tf.as_string(x)
+      return input_dict[input_name]
+
+    for feature_config in self._fg_config['features']:
+      if 'sequence_name' in feature_config:
+        sequence_name = feature_config['sequence_name'] # tag_category_list
+        sequence_delim = feature_config.get('sequence_delim', ';') # ";"
+        for sub_feature_config in feature_config['features']:
+          sub_feature_type = sub_feature_config['feature_type']  # id_feature 
+          sub_feature_name = sub_feature_config['feature_name'] # cate_id
+          feature_name = sequence_name + '__' + sub_feature_name # tag_category_list__cate_id
+          if feature_name not in self._effective_fg_features:
+            continue
+          if sub_feature_type == 'id_feature':
+            # input = sequence_name + '__' + field_dict[sub_feature_config['expression'].split(':')[-1]]
+            input = field_dict[feature_name]
+            sparse_input = tf.string_split(input,delimiter='|')
+            seq_indices = tf.segment_max(tf.add(sparse_input.indices[:,1],1),sparse_input.indices[:,0],name = None)
+            batch_size = tf.shape(input)[0]
+            pad_size = batch_size - tf.shape(seq_indices)[0]
+            seq_indices_pad = tf.pad(seq_indices, [[0, pad_size]])
+            sparse_input_values = sparse_input.values
+            x = self._fg_module.batch_sequence_id_feature_op(
+              sparse_input_values,
+              seq_indices_pad,
+              feature_name=feature_name,
+              msep=multi_val_sep,
+              default_value=feature_config.get('default_value', ''),
+              need_prefix=feature_config.get('need_prefix', False),
+              sequence_delim=sequence_delim,
+              dtype=tf.string)
+            output_dict[feature_name] = x
+            if parsed_dict.get('__sampler_type__', None) is not None:
+              num_neg = parsed_dict.get('__num_neg_sample__', None)
+              output_dict[feature_name] = tf.reshape(tf.tile(x[:, tf.newaxis], multiples=[1, 1+num_neg]), [-1])
+          elif sub_feature_type == 'raw_feature':
+            # input = sequence_name + '__' + field_dict[sub_feature_config['expression'].split(':')[-1]]
+            input = field_dict[feature_name]
+            sparse_input = tf.string_split(input,delimiter='|')
+            seq_indices = tf.segment_max(tf.add(sparse_input.indices[:,1],1),sparse_input.indices[:,0],name = None)
+            batch_size = tf.shape(input)[0]
+            pad_size = batch_size - tf.shape(seq_indices)[0]
+            seq_indices_pad = tf.pad(seq_indices, [[0, pad_size]])
+            sparse_input_values = sparse_input.values
+            output_dict[feature_name] = self._fg_module.batch_sequence_raw_feature_op(
+              sparse_input_values,
+              seq_indices_pad,
+              feature_name=feature_name,
+              msep=multi_val_sep,
+              default_value=feature_config.get('default_value', '0.0'),
+              sequence_delim=sequence_delim,
+              normalizer=feature_config.get('normalizer', ''),
+              value_dimension=feature_config.get('value_dimension', 1),
+              dtype=tf.string)
+          else:
+            raise ValueError('Unknown seq sub feature type: %s' % sub_feature_type)
+      else:
+        feature_type = feature_config['feature_type']
+        feature_name = feature_config['feature_name']
+        if feature_name not in self._effective_fg_features:
+            continue
+        if feature_type == 'id_feature':
+          output_dict[feature_name] = self._fg_module.id_feature_op(
+                _get_input(feature_config['expression']),
+                feature_name=feature_name,
+                msep=multi_val_sep,
+                default_value=feature_config.get('default_value', '0.0'),
+                need_prefix=feature_config.get('need_prefix', True),
+                dtype=tf.string)
+        elif feature_type == 'raw_feature':
+          output_dict[feature_name] = self._fg_module.raw_feature_op(
+                _get_input(feature_config['expression']),
+                feature_name=feature_name,
+                msep=multi_val_sep,
+                default_value=feature_config.get('default_value', '0.0'),
+                normalizer=feature_config.get('normalizer', ''),
+                value_dimension=feature_config.get('value_dimension', 1),
+                dtype=_tf_type(feature_config.get('value_type', 'float')))
+        elif feature_type == 'combo_feature':
+          inputs = [_get_input(k) for k in feature_config['expression']]
+          output_dict[feature_name] = self._fg_module.combo_feature_op(
+              inputs,
+              feature_name=feature_name,
+              msep=multi_val_sep,
+              default_value=feature_config.get('default_value', ''),
+              need_prefix=feature_config.get('need_prefix', True),
+              dtype='string')
+        elif feature_type == 'lookup_feature':
+          output_dict[feature_name] = self._fg_module.lookup_feature_op(
+              _get_input(feature_config['map']),
+              _get_input(feature_config['key']),
+              feature_name=feature_name,
+              msep=multi_val_sep,
+              default_value=feature_config.get('default_value', '0.0'),
+              dtype=_tf_type(feature_config.get('value_type', 'float')),
+              need_discrete=feature_config.get('needDiscrete', False),
+              need_key=feature_config.get('needKey', False),
+              need_weighting=feature_config.get('needWeighting', False),
+              value_dimension=feature_config.get('value_dimension', 1),
+              combiner=feature_config.get('combiner', 'sum'),
+              boundaries=feature_config.get('bucketize_boundaries', []),
+              normalizer=feature_config.get('normalizer', ''))
+        elif feature_type == 'match_feature':
+          output_dict[feature_name] = self._fg_module.match_feature_op(
+              _get_input(feature_config['user']),
+              _get_input(feature_config['category']),
+              _get_input(feature_config['item']),
+              feature_name=feature_name,
+              msep=multi_val_sep,
+              default_value=feature_config.get('default_value', '0.0'),
+              dtype=_tf_type(feature_config.get('value_type', 'float')),
+              need_discrete=feature_config.get('needDiscrete', False),
+              normalizer=feature_config.get('normalizer', ''),
+              match_type=feature_config.get('matchType', 'hit')
+          )
+        else:
+          raise ValueError('Unknown feature type: %s' % feature_type)
+
+    output_dict = dict(field_dict, **output_dict)
+    return output_dict
+
   def _preprocess(self, field_dict):
     """Preprocess the feature columns.
 
@@ -284,9 +503,12 @@ class Input(six.with_metaclass(_meta_type, object)):
       sampler_type = self._data_config.WhichOneof('sampler')
       sampler_config = getattr(self._data_config, sampler_type)
       item_ids = field_dict[sampler_config.item_id_field]
+
+      parsed_dict['__batch_size__'] = tf.shape(item_ids)[0]
+      parsed_dict['__sampler_type__'] = sampler_type
       if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
         sampled = self._sampler.get(item_ids)
-      elif sampler_type == 'negative_sampler_v2':
+      elif sampler_type in ['negative_sampler_v2', 'negative_sampler_v3']:
         user_ids = field_dict[sampler_config.user_id_field]
         sampled = self._sampler.get(user_ids, item_ids)
       elif sampler_type.startswith('hard_negative_sampler'):
@@ -294,6 +516,10 @@ class Input(six.with_metaclass(_meta_type, object)):
         sampled = self._sampler.get(user_ids, item_ids)
       else:
         raise ValueError('Unknown sampler %s' % sampler_type)
+
+      parsed_dict['__num_neg_sample__'] = tf.shape(sampled.values()[0])[0]
+      self._appended_fields.append('__num_neg_sample__')
+
       for k, v in sampled.items():
         if k in field_dict:
           field_dict[k] = tf.concat([field_dict[k], v], axis=0)
@@ -301,6 +527,10 @@ class Input(six.with_metaclass(_meta_type, object)):
           print('appended fields: %s' % k)
           parsed_dict[k] = v
           self._appended_fields.append(k)
+
+    if self._fg_config is not None:
+      print('has _fg_config')
+      field_dict = self._fg(field_dict, parsed_dict)
 
     for fc in self._feature_configs:
       feature_name = fc.feature_name

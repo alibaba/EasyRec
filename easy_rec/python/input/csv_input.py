@@ -22,9 +22,10 @@ class CSVInput(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               fg_json_path=None):
     super(CSVInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num, check_mode)
+                                   task_index, task_num, check_mode, fg_json_path=fg_json_path)
     self._with_header = data_config.with_header
     self._field_names = None
 

@@ -246,7 +246,7 @@ def load_input_field_and_feature_config(rtp_fg,
         for sub_feature in feature['features']:
           sub_feature_type = sub_feature['feature_type']
           sub_feature_name = sub_feature['feature_name']
-          all_sub_feature_name = sequence_name + '_' + sub_feature_name
+          all_sub_feature_name = sequence_name + '__' + sub_feature_name
           pipeline_config = process_features(
               sub_feature_type,
               all_sub_feature_name,
