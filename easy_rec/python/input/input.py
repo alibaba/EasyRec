@@ -129,10 +129,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     # from the types defined in input_fields
     # it is used in create_multi_placeholders
     self._multi_value_types = {}
-    print('fg_input_map',fg_input_map)
     for fc in self._feature_configs:
       for input_name in fc.input_names:
-        print('input_name',input_name)
         if self._fg_config is not None and input_name in fg_input_map:
           self._effective_fg_features.add(input_name)
           true_input_names = fg_input_map[input_name]
@@ -529,7 +527,6 @@ class Input(six.with_metaclass(_meta_type, object)):
           self._appended_fields.append(k)
 
     if self._fg_config is not None:
-      print('has _fg_config')
       field_dict = self._fg(field_dict, parsed_dict)
 
     for fc in self._feature_configs:
