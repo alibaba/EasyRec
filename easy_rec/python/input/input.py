@@ -119,8 +119,8 @@ class Input(six.with_metaclass(_meta_type, object)):
               ]
             else:
               raise ValueError('Unknown feature type: %s' % feature_type)
-      self._fg_module = tf.load_op_library('/home/zxw320697/xiaowen/LaRec/build/larec/libfg_op.so')
-      # self._fg_module = tf.load_op_library('libfg_op.so')
+      # self._fg_module = tf.load_op_library('/home/xxxxx/LaRec/build/larec/libfg_op.so')
+      self._fg_module = tf.load_op_library('libfg_op.so')
 
     # findout effective fields
     self._effective_fields = []

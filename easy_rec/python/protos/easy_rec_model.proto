@@ -104,6 +104,4 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
-    optional LossReduction loss_reduction = 17 [default = MEAN];
-
 }
