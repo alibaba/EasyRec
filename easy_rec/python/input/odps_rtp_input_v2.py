@@ -192,14 +192,14 @@ class OdpsRTPInputV2(OdpsRTPInput):
               raise ValueError("sequence sub feature [{}] illegal type [{}]"\
                 .format(sub_feature_name, sfc.feature_type))
             # note that, as the first dimension is batch size, all values in shape_0_list should be the same
-            shape_0 = tf.reduce_max(shape_0_list, name='shape_0')
             indices_0 = tf.concat(indices_0_list, axis=0, name='indices_0')
+            shape_0 = tf.reduce_max(shape_0_list, name='shape_0')
             # the second dimension is the sequence length
-            shape_1 = tf.constant(fc.sequence_length, dtype=shape_0.dtype, name='shape_1')
             indices_1 = tf.concat(indices_1_list, axis=0, name='indices_1')
+            shape_1 = tf.maximum(tf.add(tf.reduce_max(indices_1), 1), 0, name='shape_1')
             # shape_2 is the max number of multi-values of a single feature value
-            shape_2 = tf.reduce_max(shape_2_list, name='shape_2')
             indices_2 = tf.concat(indices_2_list, axis=0, name='indices_2')
+            shape_2 = tf.reduce_max(shape_2_list, name='shape_2')
             # values
             values = tf.concat(values_list, axis=0, name='values')
             # sort the values along the first dimension indices
