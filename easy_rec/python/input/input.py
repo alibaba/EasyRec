@@ -5,11 +5,12 @@ import json
 import sys
 from abc import abstractmethod
 from collections import OrderedDict
-from tkinter.messagebox import NO
 from easy_rec.python.compat.early_stopping import _summaries
 import numpy as np
 import six
 import tensorflow as tf
+import os
+import easy_rec
 
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -119,8 +120,8 @@ class Input(six.with_metaclass(_meta_type, object)):
               ]
             else:
               raise ValueError('Unknown feature type: %s' % feature_type)
-      # self._fg_module = tf.load_op_library('/home/xxxxx/LaRec/build/larec/libfg_op.so')
-      self._fg_module = tf.load_op_library('libfg_op.so')
+      fg_op_path = os.path.join(easy_rec.ops_dir, 'libfg_op.so')
+      self._fg_module = tf.load_op_library(fg_op_path)
 
     # findout effective fields
     self._effective_fields = []
