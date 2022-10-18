@@ -19,14 +19,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        submodules: recursive
     - name: Install dependencies
       run: |
         sh scripts/gen_proto.sh
         pip install -r requirements.txt
+        sed -i -e 's/easy-rec/pai-easy-rec/g' setup.py
     - name: Build package
       run: python setup.py sdist bdist_wheel
     - name: Publish package
