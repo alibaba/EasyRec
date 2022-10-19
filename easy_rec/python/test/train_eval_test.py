@@ -7,11 +7,11 @@ import os
 import threading
 import time
 import unittest
-from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -969,16 +969,23 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_multi_tower_recall_neg_sampler_sequence_feature(self):
+  def test_dnn_fg_recall_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/multi_tower_recall_neg_sampler_sequence_feature.config',
+        'samples/model_config/fg_fusion_train_neg_on_dnn.config',
         self._test_dir)
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_multi_tower_recall_neg_sampler_only_sequence_feature(self):
+  def test_dnn_fg_recall_neg_sampler_with_sequence_feature(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
+        'samples/model_config/fg_fusion_train_neg_seq_on_dnn.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dcn_fg_with_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fg_fusion_train_seq_on_dcn.config',
         self._test_dir)
     self.assertTrue(self._success)
 

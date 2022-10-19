@@ -67,10 +67,10 @@ class SequenceFeatureLayer(object):
 
     concat_features = tf.tile(
         concat_features[:, tf.newaxis, :], multiples=[1, neg_num_add_1, 1])
-    
+
     # seq_len = tf.tile(seq_len, multiples=[neg_num_add_1])
-    seq_len = tf.tile(seq_len[:,tf.newaxis], multiples=[1,neg_num_add_1])
-    seq_len = tf.reshape(seq_len,[neg_num_add_1 * batch_size])
+    seq_len = tf.tile(seq_len[:, tf.newaxis], multiples=[1, neg_num_add_1])
+    seq_len = tf.reshape(seq_len, [neg_num_add_1 * batch_size])
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(
@@ -95,7 +95,7 @@ class SequenceFeatureLayer(object):
         last_layer_no_batch_norm=True)
     din_net = din_layer(din_net)
     # scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
-    scores = tf.reshape(din_net, [-1, seq_max_len])  
+    scores = tf.reshape(din_net, [-1, seq_max_len])
 
     # seq_len = tf.expand_dims(seq_len, 1)
     mask = tf.sequence_mask(seq_len)

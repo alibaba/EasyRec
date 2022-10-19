@@ -23,8 +23,14 @@ class OdpsInputV2(Input):
                task_num=1,
                check_mode=False,
                fg_json_path=None):
-    super(OdpsInputV2, self).__init__(data_config, feature_config, input_path,
-                                      task_index, task_num, check_mode, fg_json_path=fg_json_path)
+    super(OdpsInputV2, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        fg_json_path=fg_json_path)
 
   def _parse_table(self, *fields):
     fields = list(fields)

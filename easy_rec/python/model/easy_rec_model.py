@@ -36,7 +36,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._base_model_config = model_config
     self._model_config = model_config
     self._mode = is_training
-    self._is_training = True if (is_training == tf.estimator.ModeKeys.TRAIN) else False
+    self._is_training = True if (is_training
+                                 == tf.estimator.ModeKeys.TRAIN) else False
     self._feature_dict = features
 
     # embedding variable parameters
