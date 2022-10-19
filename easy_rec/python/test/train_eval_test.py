@@ -979,7 +979,8 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dnn_fg_recall_neg_sampler_with_sequence_feature(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/fg_fusion_train_neg_seq_on_dnn.config',
-        self._test_dir)
+        self._test_dir,
+        total_steps=10)
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
