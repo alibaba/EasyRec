@@ -343,16 +343,18 @@ class Input(six.with_metaclass(_meta_type, object)):
       if feature_type == fc.TagFeature:
         input_0 = fc.input_names[0]
         field = field_dict[input_0]
-        # Construct the output of TagFeature according to the dimension of field_dict.
-        # When the input field exceeds 2 dimensions, convert TagFeature to 2D output.
+
+        if fc.HasField('kv_separator') and len(fc.input_names) > 1:
+          assert False, 'Tag Feature Error, ' \
+                        'Cannot set kv_separator and multi input_names in one feature config. Feature: %s.' % input_0
+
         if len(field.get_shape()) < 2 or field.get_shape()[-1] == 1:
+          # Construct the output of TagFeature according to the dimension of field_dict.
+          # When the input field exceeds 2 dimensions, convert TagFeature to 2D output.
           if len(field.get_shape()) == 0:
             field = tf.expand_dims(field, axis=0)
           elif len(field.get_shape()) == 2:
             field = tf.squeeze(field, axis=-1)
-          if fc.HasField('kv_separator') and len(fc.input_names) > 1:
-            assert False, 'Tag Feature Error, ' \
-                          'Cannot set kv_separator and multi input_names in one feature config. Feature: %s.' % input_0
           parsed_dict[input_0] = tf.string_split(field, fc.separator)
           if len(fc.input_names) > 1:
             input_1 = fc.input_names[1]
@@ -380,19 +382,27 @@ class Input(six.with_metaclass(_meta_type, object)):
                                              tf.identity(field_vals),
                                              field.dense_shape)
             parsed_dict[input_1] = field
-        else:
+        elif isinstance(field, tf.SparseTensor):
           # filter out empty values
-          nonempty_selection = tf.where(
-              tf.not_equal(field_dict[input_0].values, ''))[:, 0]
-          parsed_indices = tf.gather(field_dict[input_0].indices,
-                                     nonempty_selection)
-          parsed_values = tf.gather(field_dict[input_0].values,
-                                    nonempty_selection)
+          nonempty_selection = tf.where(tf.not_equal(field.values, ''))[:, 0]
           parsed_dict[input_0] = tf.sparse.SparseTensor(
-              parsed_indices, parsed_values, field_dict[input_0].dense_shape)
+              indices=tf.gather(field.indices, nonempty_selection),
+              values=tf.gather(field.values, nonempty_selection),
+              dense_shape=field.dense_shape)
+          if len(fc.input_names) > 1:
+            input_1 = fc.input_names[1]
+            parsed_dict[input_1] = tf.sparse.SparseTensor(
+                indices=tf.gather(field_dict[input_1].indices,
+                                  nonempty_selection),
+                values=tf.gather(field_dict[input_1].values,
+                                 nonempty_selection),
+                dense_shape=field_dict[input_1].dense_shape)
+        else:
+          parsed_dict[input_0] = field
           if len(fc.input_names) > 1:
             input_1 = fc.input_names[1]
             parsed_dict[input_1] = field_dict[input_1]
+
         if fc.HasField('kv_separator'):
           indices = parsed_dict[input_0].indices
           tmp_kvs = parsed_dict[input_0].values
