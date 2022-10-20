@@ -530,7 +530,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         raise ValueError('Unknown sampler %s' % sampler_type)
 
-      parsed_dict['__num_neg_sample__'] = tf.shape(sampled.values()[0])[0]
+      parsed_dict['__num_neg_sample__'] = tf.shape(list(sampled.values())[0])[0]
       self._appended_fields.append('__num_neg_sample__')
 
       for k, v in sampled.items():
