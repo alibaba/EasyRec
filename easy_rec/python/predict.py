@@ -16,6 +16,7 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
+from easy_rec.python.inference.embedding_predictor import EmbeddingPredictor
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -50,6 +51,7 @@ tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', None, '')
 tf.app.flags.DEFINE_string('fg_json_path', '', '')
+tf.app.flags.DEFINE_string('group_name', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -64,7 +66,7 @@ def main(argv):
           FLAGS.saved_model_dir)
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
-    if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+    if pipeline_config.WhichOneof('train_path') == 'hive_train_input' and FLAGS.group_name == "":
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input).get_all_cols(
@@ -89,14 +91,18 @@ def main(argv):
             output_sep=FLAGS.output_sep,
             all_cols=all_cols,
             all_col_types=all_col_types)
-
+    elif FLAGS.group_name != "":
+        predictor = EmbeddingPredictor(
+            FLAGS.saved_model_dir,
+            pipeline_config.data_config,
+            FLAGS.group_name)
     else:
-      predictor = CSVPredictor(
-          FLAGS.saved_model_dir,
-          pipeline_config.data_config,
-          fg_json_path=FLAGS.fg_json_path,
-          selected_cols=FLAGS.selected_cols,
-          output_sep=FLAGS.output_sep)
+        predictor = CSVPredictor(
+            FLAGS.saved_model_dir,
+            pipeline_config.data_config,
+            fg_json_path=FLAGS.fg_json_path,
+            selected_cols=FLAGS.selected_cols,
+            output_sep=FLAGS.output_sep)
 
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
