@@ -149,10 +149,12 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
   else:
     eval_steps = None
   input_fn_kwargs = {}
+  fg_json_path = None
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
       data_config.input_type == data_config.InputType.CSVInput or \
       data_config.input_type == data_config.InputType.OdpsInputV2:
-    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    # input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    fg_json_path = pipeline_config.fg_json_path
   # create eval input
   export_input_fn = _get_input_fn(
       data_config,
@@ -160,6 +162,7 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
       None,
       export_config,
       check_mode=check_mode,
+      fg_json_path=fg_json_path,
       **input_fn_kwargs)
   if export_config.exporter_type == 'final':
     exporters = [
@@ -201,8 +204,12 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
 
   # set throttle_secs to a small number, so that we can control evaluation
   # interval steps by checkpoint saving steps
-  eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
-                                **input_fn_kwargs)
+  eval_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      eval_data,
+      fg_json_path=fg_json_path,
+      **input_fn_kwargs)
   eval_spec = tf.estimator.EvalSpec(
       name='val',
       input_fn=eval_input_fn,
@@ -318,6 +325,7 @@ def _train_and_evaluate_impl(pipeline_config,
     logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
 
   input_fn_kwargs = {}
+  fg_json_path = None
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
       data_config.input_type == data_config.InputType.CSVInput or \
       data_config.input_type == data_config.InputType.OdpsInputV2:
@@ -736,10 +744,17 @@ def export(export_dir,
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
   input_fn_kwargs = {}
+  fg_json_path = None
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
-    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
-  serving_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                   export_config, **input_fn_kwargs)
+    # input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    fg_json_path = pipeline_config.fg_json_path
+  serving_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      None,
+      export_config,
+      fg_json_path=fg_json_path,
+      **input_fn_kwargs)
   ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   if 'oss_path' in extra_params:
     if pipeline_config.train_config.HasField('incr_save_config'):
@@ -797,10 +812,12 @@ def export_checkpoint(pipeline_config=None,
   data_config = pipeline_config.data_config
 
   input_fn_kwargs = {}
+  fg_json_path = None
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
       data_config.input_type == data_config.InputType.CSVInput or \
       data_config.input_type == data_config.InputType.OdpsInputV2:
-    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    # input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    fg_json_path = pipeline_config.fg_json_path
 
   # create estimator
   params = {'log_device_placement': verbose}
@@ -811,8 +828,13 @@ def export_checkpoint(pipeline_config=None,
 
   # construct serving input fn
   export_config = pipeline_config.export_config
-  serving_input_fn = _get_input_fn(data_config, feature_configs, None,
-                                   export_config, **input_fn_kwargs)
+  serving_input_fn = _get_input_fn(
+      data_config,
+      feature_configs,
+      None,
+      export_config,
+      fg_json_path=fg_json_path,
+      **input_fn_kwargs)
   ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
   estimator.export_checkpoint(
       export_path=export_path,
