@@ -137,7 +137,7 @@ class SequenceFeatureLayer(object):
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
 
-    cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
+    # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(

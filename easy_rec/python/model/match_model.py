@@ -85,6 +85,8 @@ class MatchModel(EasyRecModel):
     # pos_user_item_sim = tf.reduce_sum(
     #     tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
     # neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
+    print('user_emb',tf.shape(user_emb))
+    print('simple_item_emb',tf.shape(simple_item_emb))
     simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
 
     if hard_neg_indices is None:
