@@ -95,8 +95,6 @@ class InputLayer(object):
       concat_features, group_features = self.single_call_input_layer(
           features, group_name, is_combine, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
-        # print('negative_sampler val',negative_sampler)
-        # print('fg_config val',fg_config)
         concat_features, all_seq_fea = self.sequence_feature_layer(
             features, concat_features,
             self._group_name_to_seq_features[group_name],
