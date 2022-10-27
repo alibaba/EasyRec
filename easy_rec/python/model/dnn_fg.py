@@ -9,6 +9,8 @@ from easy_rec.python.core import metrics as metrics_lib
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 
+# from easy_rec.python.model.match_model import MatchModel
+
 from easy_rec.python.protos.dnnfg_pb2 import DNNFG as DNNFGConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -52,20 +54,17 @@ class DNNFG(RankModel):
                            [-1, 1 + num_neg, self.feature.shape[-1]])
     else:
       all_fea = self.feature
-
+    all_fea = tf.Print(all_fea, ['all_fea', tf.shape(all_fea)])
     dnn_layer = dnn.DNN(self._model_config.dnn, self._l2_reg, 'dnn',
                         self._is_training)
     all_fea = dnn_layer(all_fea)
     output = tf.layers.dense(all_fea, 1, name='output')
     output = tf.squeeze(output, axis=-1)
 
-    self._add_to_prediction_dict(output)
+    self._prediction_dict['logits'] = output
+    self._prediction_dict['probs'] = tf.nn.sigmoid(output)
 
     return self._prediction_dict
-
-  def _add_to_prediction_dict(self, y_pred):
-    self._prediction_dict['logits'] = y_pred
-    self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
 
   def build_loss_graph(self):
     logits = self._prediction_dict['logits']

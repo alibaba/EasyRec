@@ -8,7 +8,10 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 
 try:
-  from pai.data import WorkQueue
+  if tf.__version__ == '1.15':
+    from tensorflow.python.ops.work_queue import WorkQueue
+  else:
+    from pai.data import WorkQueue
 except Exception:
   pass
 
@@ -21,16 +24,9 @@ class OdpsInputV2(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False,
-               fg_json_path=None):
-    super(OdpsInputV2, self).__init__(
-        data_config,
-        feature_config,
-        input_path,
-        task_index,
-        task_num,
-        check_mode,
-        fg_json_path=fg_json_path)
+               check_mode=False):
+    super(OdpsInputV2, self).__init__(data_config, feature_config, input_path,
+                                      task_index, task_num, check_mode)
 
   def _parse_table(self, *fields):
     fields = list(fields)

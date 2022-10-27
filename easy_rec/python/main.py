@@ -63,6 +63,7 @@ def _get_input_fn(data_config,
                   data_path=None,
                   export_config=None,
                   check_mode=False,
+                  fg_json_path=None,
                   **kwargs):
   """Build estimator input function.
 
@@ -89,6 +90,8 @@ def _get_input_fn(data_config,
       task_num=task_num,
       check_mode=check_mode,
       **kwargs)
+
+  input_obj.set_fg_path(fg_json_path)
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
@@ -318,7 +321,8 @@ def _train_and_evaluate_impl(pipeline_config,
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2 or \
       data_config.input_type == data_config.InputType.CSVInput or \
       data_config.input_type == data_config.InputType.OdpsInputV2:
-    input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+    fg_json_path = pipeline_config.fg_json_path
+  # input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
   # create train input
   train_input_fn = _get_input_fn(
@@ -326,6 +330,7 @@ def _train_and_evaluate_impl(pipeline_config,
       feature_configs,
       train_data,
       check_mode=check_mode,
+      fg_json_path=fg_json_path,
       **input_fn_kwargs)
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(

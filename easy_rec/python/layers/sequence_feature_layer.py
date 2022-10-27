@@ -19,7 +19,7 @@ class SequenceFeatureLayer(object):
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False,
-               _mode=tf.estimator.ModeKeys.EVAL):
+               mode=tf.estimator.ModeKeys.EVAL):
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -34,7 +34,7 @@ class SequenceFeatureLayer(object):
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
-    self._mode = _mode
+    self.mode = mode
 
   def negative_sampler_target_attention(self,
                                         dnn_config,
@@ -46,7 +46,6 @@ class SequenceFeatureLayer(object):
     cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
             'aux_hist_seq_emb_list']
-
     seq_max_len = tf.shape(hist_id_col)[1]
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
@@ -54,6 +53,7 @@ class SequenceFeatureLayer(object):
 
     pos_feature = cur_id[:batch_size]
     neg_feature = cur_id[batch_size:]
+
     cur_id = tf.concat([
         pos_feature[:, tf.newaxis, :],
         tf.tile(neg_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
@@ -187,9 +187,13 @@ class SequenceFeatureLayer(object):
                features,
                concat_features,
                all_seq_att_map_config,
-               feature_name_to_output_tensors=None,
-               negative_sampler=False):
+               feature_name_to_output_tensors=None):
     logging.info('use sequence feature layer.')
+    negative_sampler = False
+    if (features.get('__sampler_type__', None)
+        is not None) and (features.get('_fg_cfg', None) is None):
+      negative_sampler = True
+
     all_seq_fea = []
     # process all sequence features
     for seq_att_map_config in all_seq_att_map_config:
@@ -215,9 +219,10 @@ class SequenceFeatureLayer(object):
         # If not set seq_dnn, will use default settings
         from easy_rec.python.protos.dnn_pb2 import DNN
         seq_dnn_config = DNN()
-        seq_dnn_config.hidden_units.extend([32, 1])
+        seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
       cur_target_attention_name = 'seq_dnn' + group_name
-      if negative_sampler and self._mode != tf.estimator.ModeKeys.PREDICT:
+      if negative_sampler and self.mode != tf.estimator.ModeKeys.PREDICT:
+        print('cd negative target attention', self.mode)
         seq_fea, concat_features = self.negative_sampler_target_attention(
             seq_dnn_config,
             seq_features,
@@ -226,6 +231,7 @@ class SequenceFeatureLayer(object):
             need_key_feature=need_key_feature,
             allow_key_transform=allow_key_transform)
       else:
+        print('cd target attention', self.mode)
         seq_fea = self.target_attention(
             seq_dnn_config,
             seq_features,

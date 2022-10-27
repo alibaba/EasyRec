@@ -188,7 +188,7 @@
       "sequence_name":"click_seq",
       "sequence_column":"click_seq",
       "sequence_length":50,
-      "sequence_delim":";",
+      "sequence_delim":"|",
       "attribute_delim":"|",
       "sequence_table":"item",
       "sequence_pk":"click_seq",

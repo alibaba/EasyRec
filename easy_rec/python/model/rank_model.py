@@ -37,13 +37,13 @@ class RankModel(EasyRecModel):
     prediction_dict = {}
     if loss_type == LossType.F1_REWEIGHTED_LOSS or loss_type == LossType.PAIR_WISE_LOSS:
       assert num_class == 1, 'num_class must be 1 when loss type is F1_REWEIGHTED_LOSS/PAIR_WISE_LOSS'
-      output = tf.squeeze(output, axis=1)
+      output = tf.squeeze(output, axis=-1)
       probs = tf.sigmoid(output)
       prediction_dict['logits' + suffix] = output
       prediction_dict['probs' + suffix] = probs
     elif loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
-        output = tf.squeeze(output, axis=1)
+        output = tf.squeeze(output, axis=-1)
         probs = tf.sigmoid(output)
         tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
         prediction_dict['logits' + suffix] = output
@@ -58,10 +58,10 @@ class RankModel(EasyRecModel):
             probs, axis=1)
         prediction_dict['y' + suffix] = tf.argmax(output, axis=1)
     elif loss_type == LossType.L2_LOSS:
-      output = tf.squeeze(output, axis=1)
+      output = tf.squeeze(output, axis=-1)
       prediction_dict['y' + suffix] = output
     elif loss_type == LossType.SIGMOID_L2_LOSS:
-      output = tf.squeeze(output, axis=1)
+      output = tf.squeeze(output, axis=-1)
       prediction_dict['y' + suffix] = tf.sigmoid(output)
     return prediction_dict
 

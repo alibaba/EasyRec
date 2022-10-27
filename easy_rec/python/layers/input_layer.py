@@ -35,13 +35,13 @@ class InputLayer(object):
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False,
-               _mode=tf.estimator.ModeKeys.EVAL):
+               mode=tf.estimator.ModeKeys.EVAL):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
         feature_configs, feature_groups_config, ev_params,
-        embedding_regularizer, kernel_regularizer, is_training, _mode)
+        embedding_regularizer, kernel_regularizer, is_training, mode)
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -85,7 +85,7 @@ class InputLayer(object):
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
         group_name, ','.join([x for x in self._feature_groups]))
     feature_name_to_output_tensors = {}
-    negative_sampler = self._feature_groups[group_name]._config.negative_sampler
+    # negative_sampler = self._feature_groups[group_name]._config.negative_sampler
     if group_name in self._group_name_to_seq_features:
       for seq_feature in self._group_name_to_seq_features[group_name]:
         for seq_att in seq_feature.seq_att_map:
@@ -95,12 +95,12 @@ class InputLayer(object):
       concat_features, group_features = self.single_call_input_layer(
           features, group_name, is_combine, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
+        # print('negative_sampler val',negative_sampler)
+        # print('fg_config val',fg_config)
         concat_features, all_seq_fea = self.sequence_feature_layer(
-            features,
-            concat_features,
+            features, concat_features,
             self._group_name_to_seq_features[group_name],
-            feature_name_to_output_tensors,
-            negative_sampler=negative_sampler)
+            feature_name_to_output_tensors)
         group_features.extend(all_seq_fea)
         all_seq_fea = tf.concat(all_seq_fea, axis=-1)
         concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
