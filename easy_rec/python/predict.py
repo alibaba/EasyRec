@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.inference.predictor import CSVPredictor
+from easy_rec.python.inference.predictor import EmbeddingPredictor
 from easy_rec.python.inference.predictor import HiveParquetPredictor
 from easy_rec.python.inference.predictor import HivePredictor
 from easy_rec.python.main import predict
@@ -16,7 +17,6 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
-from easy_rec.python.inference.embedding_predictor import EmbeddingPredictor
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -51,7 +51,10 @@ tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', None, '')
 tf.app.flags.DEFINE_string('fg_json_path', '', '')
-tf.app.flags.DEFINE_string('group_name', '', '')
+tf.app.flags.DEFINE_string('emb_name', '', '')
+tf.app.flags.DEFINE_string('vec_engine', '', '')
+
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -66,7 +69,7 @@ def main(argv):
           FLAGS.saved_model_dir)
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
-    if pipeline_config.WhichOneof('train_path') == 'hive_train_input' and FLAGS.group_name == "":
+    if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input).get_all_cols(
@@ -91,11 +94,15 @@ def main(argv):
             output_sep=FLAGS.output_sep,
             all_cols=all_cols,
             all_col_types=all_col_types)
-    elif FLAGS.group_name != "":
+    elif FLAGS.emb_name != "" and FLAGS.vec_engine != "":
         predictor = EmbeddingPredictor(
             FLAGS.saved_model_dir,
             pipeline_config.data_config,
-            FLAGS.group_name)
+            fg_json_path=FLAGS.fg_json_path,
+            selected_cols=FLAGS.selected_cols,
+            emb_name=FLAGS.emb_name,
+            vec_engine=FLAGS.vec_engine,
+            output_sep=FLAGS.output_sep)
     else:
         predictor = CSVPredictor(
             FLAGS.saved_model_dir,
@@ -103,6 +110,7 @@ def main(argv):
             fg_json_path=FLAGS.fg_json_path,
             selected_cols=FLAGS.selected_cols,
             output_sep=FLAGS.output_sep)
+
 
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))
