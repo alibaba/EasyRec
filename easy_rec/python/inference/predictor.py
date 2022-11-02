@@ -615,7 +615,7 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
-               vec_engine,
+               vec_engine="",
                fg_json_path=None,
                profiling_file=None,
                selected_cols=None,
