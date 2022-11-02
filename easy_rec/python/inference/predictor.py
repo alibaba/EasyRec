@@ -635,7 +635,7 @@ class CSVPredictor(Predictor):
 
     if selected_cols and self._vec_engine == "":
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
-    elif self._vec_engine in ["faiss","holo"]:
+    elif self._vec_engine in ["faiss","holo","mysql"]:
       self._selected_cols = selected_cols.split(',')
     else:
       self._selected_cols = None
@@ -726,7 +726,7 @@ class CSVPredictor(Predictor):
           break
       print('field_names: %s' % ','.join(self._field_names))
       self._all_fields = self._field_names
-    elif self._vec_engine in ["faiss","holo"]:
+    elif self._vec_engine in ["faiss","holo","mysql"]:
       self._all_fields = self._selected_cols
     else:
       self._all_fields = self._input_fields

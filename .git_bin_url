@@ -8,7 +8,10 @@
 {"leaf_path": "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt", "sig": "1d01f6218d97dfa197cbb36dd7c603f6", "remote_path": "data/git_oss_sample_data/data_test_distribute_eval_test_esmm_distribute_eval_taobao_ckpt_1d01f6218d97dfa197cbb36dd7c603f6"}
 {"leaf_path": "data/test/export", "sig": "c2e5ad1e91edb55b215ea108b9f14537", "remote_path": "data/git_oss_sample_data/data_test_export_c2e5ad1e91edb55b215ea108b9f14537"}
 {"leaf_path": "data/test/hpo_test/eval_val", "sig": "fef5f6cd659c35b713c1b8bcb97c698f", "remote_path": "data/git_oss_sample_data/data_test_hpo_test_eval_val_fef5f6cd659c35b713c1b8bcb97c698f"}
-{"leaf_path": "data/test/inference", "sig": "2f6be1c4c3a64c04c3d09fe51bedd8cf", "remote_path": "data/git_oss_sample_data/data_test_inference_2f6be1c4c3a64c04c3d09fe51bedd8cf"}
+{"leaf_path": "data/test/inference", "sig": "1fdc50384eaac19927dfda22bf0e58c8", "remote_path": "data/git_oss_sample_data/data_test_inference_1fdc50384eaac19927dfda22bf0e58c8"}
+{"leaf_path": "data/test/inference/dssm_item_model", "sig": "6c799ec15d6d5963f1933b19fb6d8f50", "remote_path": "data/git_oss_sample_data/data_test_inference_dssm_item_model_6c799ec15d6d5963f1933b19fb6d8f50"}
+{"leaf_path": "data/test/inference/dssm_item_model/assets", "sig": "43b3f70606826f5f4595a29ee0ee9e88", "remote_path": "data/git_oss_sample_data/data_test_inference_dssm_item_model_assets_43b3f70606826f5f4595a29ee0ee9e88"}
+{"leaf_path": "data/test/inference/dssm_item_model/variables", "sig": "c336511a405289fe5797a3a960972b30", "remote_path": "data/git_oss_sample_data/data_test_inference_dssm_item_model_variables_c336511a405289fe5797a3a960972b30"}
 {"leaf_path": "data/test/inference/fg_export_multi", "sig": "c6690cef053aed9e2011bbef90ef33e7", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_c6690cef053aed9e2011bbef90ef33e7"}
 {"leaf_path": "data/test/inference/fg_export_multi/assets", "sig": "7fe7a4525f5d46cc763172f5200e96e0", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_assets_7fe7a4525f5d46cc763172f5200e96e0"}
 {"leaf_path": "data/test/inference/fg_export_multi/variables", "sig": "1f9aad9744382c6d5b5f152d556d9b30", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_variables_1f9aad9744382c6d5b5f152d556d9b30"}

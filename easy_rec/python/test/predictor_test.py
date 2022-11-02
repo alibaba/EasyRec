@@ -303,7 +303,7 @@ class PredictorTestOnDS(tf.test.TestCase):
 
   @RunAsSubprocess
   def test_local_pred_embedding(self):
-      test_input_path = 'data/test/inference/taobao_item_feature_data.csv '
+      test_input_path = 'data/test/inference/taobao_item_feature_data.csv'
       self._test_output_path = os.path.join(self._test_dir, 'taobao_item_feature')
       saved_model_dir = 'data/test/inference/dssm_item_model/'
       pipeline_config_path = os.path.join(saved_model_dir,
