@@ -326,7 +326,7 @@ class PredictorTestOnDS(tf.test.TestCase):
 
       with open(self._test_output_path + '/part-0.csv', 'r') as f:
           output_res = f.readlines()
-          self.assertTrue(len(output_res) == 101)
+          self.assertTrue(len(output_res) == 10001)
 
 
 class PredictorTestV2(tf.test.TestCase):
