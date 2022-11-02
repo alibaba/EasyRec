@@ -286,6 +286,7 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
+        output_sep=';',
         selected_cols='0,3')
     predictor.predict_impl(
         test_input_path,
