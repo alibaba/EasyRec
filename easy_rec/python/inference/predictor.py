@@ -615,7 +615,7 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
-               ds_vector_recall=None,
+               ds_vector_recall=False,
                fg_json_path=None,
                profiling_file=None,
                selected_cols=None,
@@ -633,9 +633,9 @@ class CSVPredictor(Predictor):
       self._is_rtp = False
       self._input_sep = data_config.separator
 
-    if selected_cols and ds_vector_recall:
+    if selected_cols and not ds_vector_recall:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
-    elif self._ds_vector_recall in ["faiss","holo","mysql"]:
+    elif ds_vector_recall:
       self._selected_cols = selected_cols.split(',')
     else:
       self._selected_cols = None
@@ -726,7 +726,7 @@ class CSVPredictor(Predictor):
           break
       print('field_names: %s' % ','.join(self._field_names))
       self._all_fields = self._field_names
-    elif self._ds_vector_recall in ["faiss","holo","mysql"]:
+    elif self._ds_vector_recall:
       self._all_fields = self._selected_cols
     else:
       self._all_fields = self._input_fields
