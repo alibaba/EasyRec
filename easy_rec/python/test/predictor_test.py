@@ -327,7 +327,12 @@ class PredictorTestOnDS(tf.test.TestCase):
 
       with open(self._test_output_path + '/part-0.csv', 'r') as f:
           output_res = f.readlines()
-          self.assertTrue(len(output_res) == 10001)
+          self.assertTrue(output_res[1] ==
+          '-0.187066,-0.027638,-0.117294,0.115318,-0.273561,0.035698,-0.055832,'
+          '0.226849,-0.105808,-0.152751,0.081528,-0.183329,0.134619,0.185392,'
+          '0.096774,0.104428,0.161868,0.269710,-0.268538,0.138760,-0.170105,'
+          '0.232625,-0.121130,0.198466,-0.078941,0.017774,0.268834,-0.238553,0.084058,'
+          '-0.269466,-0.289651,0.179517;620392\n')
 
 
 class PredictorTestV2(tf.test.TestCase):
