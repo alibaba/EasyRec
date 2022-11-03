@@ -615,7 +615,7 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
-               ds_vector_recall="",
+               ds_vector_recall=None,
                fg_json_path=None,
                profiling_file=None,
                selected_cols=None,
@@ -633,7 +633,7 @@ class CSVPredictor(Predictor):
       self._is_rtp = False
       self._input_sep = data_config.separator
 
-    if selected_cols and self._ds_vector_recall == "":
+    if selected_cols and ds_vector_recall:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
     elif self._ds_vector_recall in ["faiss","holo","mysql"]:
       self._selected_cols = selected_cols.split(',')
