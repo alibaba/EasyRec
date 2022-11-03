@@ -313,7 +313,7 @@ class PredictorTestOnDS(tf.test.TestCase):
       predictor = CSVPredictor(
           saved_model_dir,
           pipeline_config.data_config,
-          vec_engine='holo',
+          ds_vector_recall='holo',
           output_sep=';',
           selected_cols='pid,adgroup_id,cate_id,campaign_id,customer,brand,price')
 
