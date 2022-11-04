@@ -525,11 +525,14 @@ def trial_end(self, trial_job_id, success):
 
 - 如果NNICTL启动不成功，找到配置的实验目录experimentWorkingDirectory，例如exp_dir/$experiment_id/log/nnictl_stderr.log去查看具体的问题
 
-  - 例如报错：Error: /lib64/libstdc++.so.6: version \`CXXABI_1.3.8' not found，可参考：方案
+  - 例如报错：Error: /lib64/libstdc++.so.6: version \`CXXABI_1.3.8' not found，可参考
+
+  ```
     sudo mv libstdc++.so.6.0.26 /usr/lib64
     cd /usr/lib64
     sudo mv libstdc++.so.6 libstdc++.so.6.bak
     sudo ln -s libstdc++.so.6.0.26 libstdc++.so.6
+  ```
 
 - 如果NNICTL一开始成功，后续突然不成功，可以清空ECS环境中的python进程，重试
 
