@@ -494,7 +494,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
     remain_variables = list(
         set(global_variables).difference(set(metric_variables)))
-    cur_saver = tf.train.Saver(var_list=remain_variables)
+    cur_saver = tf.train.Saver(var_list=remain_variables, sharded=True)
     scaffold = tf.train.Scaffold(
         saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
     return tf.estimator.EstimatorSpec(
