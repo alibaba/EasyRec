@@ -45,6 +45,9 @@ input_fields字段:
   - 如果input是INT32类型，并且默认值是6，那么default_val是"6";
   - 如果input是DOUBLE类型，并且默认值是0.5，那么default_val是"0.5";
 - input_dim, 目前仅适用于RawFeature类型，可以指定多维数据，如一个图片的embedding vector.
+- user_define_fn, 目前仅适用于label，指定用户自定义函数名，以对label进行处理.
+- user_define_fn_path, 如需引入oss/hdfs上的用户自定义函数，需指定函数路径.
+- user_define_fn_res_type, 指定用户自定义函数的输出值类型.
 
 ```protobuf
   input_fields: {
@@ -52,6 +55,32 @@ input_fields字段:
     input_type: DOUBLE
     default_val:"0"
   }
+```
+
+```protobuf
+  input_fields {
+    input_name:'clk'
+    input_type: DOUBLE
+    user_define_fn: 'tf.math.log1p'
+  }
+```
+
+```protobuf
+  input_fields {
+    input_name:'clk'
+    input_type: INT64
+    user_define_fn: 'remap_lbl'
+    user_define_fn_path: '/samples/demo_script/process_lbl.py'
+    user_define_fn_res_type: INT64
+  }
+```
+
+process_lbl.py:
+``` python
+import numpy as np
+def remap_lbl(labels):
+    res = np.where(labels<5, 0, 1)
+    return res
 ```
 
 - **注意:**
