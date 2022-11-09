@@ -615,12 +615,14 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
+               ds_vector_recall=False,
                fg_json_path=None,
                profiling_file=None,
                selected_cols=None,
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
     self._output_sep = output_sep
+    self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
     self._with_header = data_config.with_header
 
@@ -631,8 +633,10 @@ class CSVPredictor(Predictor):
       self._is_rtp = False
       self._input_sep = data_config.separator
 
-    if selected_cols:
+    if selected_cols and not ds_vector_recall:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    elif ds_vector_recall:
+      self._selected_cols = selected_cols.split(',')
     else:
       self._selected_cols = None
 
@@ -722,6 +726,8 @@ class CSVPredictor(Predictor):
           break
       print('field_names: %s' % ','.join(self._field_names))
       self._all_fields = self._field_names
+    elif self._ds_vector_recall:
+      self._all_fields = self._selected_cols
     else:
       self._all_fields = self._input_fields
     if self._is_rtp:

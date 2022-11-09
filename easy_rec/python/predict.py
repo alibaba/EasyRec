@@ -50,6 +50,7 @@ tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', None, '')
 tf.app.flags.DEFINE_string('fg_json_path', '', '')
+tf.app.flags.DEFINE_string('ds_vector_recall', '', '')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -94,6 +95,7 @@ def main(argv):
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
+          ds_vector_recall=FLAGS.ds_vector_recall,
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
           output_sep=FLAGS.output_sep)
