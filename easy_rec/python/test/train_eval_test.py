@@ -982,6 +982,11 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_multi_tower_with_label_udf(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_on_taobao_test_udf.config',
+        self._test_dir)
+    self.assertTrue(self._success)
 
 if __name__ == '__main__':
   tf.test.main()

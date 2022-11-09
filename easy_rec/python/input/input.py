@@ -70,6 +70,14 @@ class Input(six.with_metaclass(_meta_type, object)):
       for x in range(len(self._label_fields) - len(self._label_dim)):
         self._label_dim.append(1)
 
+    self._label_udf_map = {}
+    for config in self._data_config.input_fields:
+      if config.HasField('user_define_fn'):
+        assert config.HasField('user_define_fn_res_type'), 'must set user_define_fn_res_type for %s.' %(config.input_name)
+        if config.HasField('user_define_fn_path'):
+          self._label_udf_map[config.input_name] = (config.user_define_fn, config.user_define_fn_path, config.user_define_fn_res_type)
+        else:
+          self._label_udf_map[config.input_name] = (config.user_define_fn, None, config.user_define_fn_res_type)
     self._batch_size = data_config.batch_size
     self._prefetch_size = data_config.prefetch_size
     self._feature_configs = list(feature_configs)
@@ -674,6 +682,32 @@ class Input(six.with_metaclass(_meta_type, object)):
     for input_id, input_name in enumerate(self._label_fields):
       if input_name not in field_dict:
         continue
+      if input_name in self._label_udf_map:
+        udf_class, udf_path, dtype = self._label_udf_map[input_name]
+        if udf_path:
+          if udf_path.startswith('oss://') or udf_path.startswith('hdfs://'):
+            with tf.gfile.GFile(udf_path, 'r') as fin:
+              udf_content = fin.read()
+            final_udf_tmp_path = '/udf/'
+            final_udf_path = final_udf_tmp_path + udf_path.split('/')[-1]
+            logging.info('final udf path %s' % final_udf_path)
+            logging.info('udf content: %s' % udf_content)
+            if not tf.gfile.Exists(final_udf_tmp_path):
+              tf.gfile.MkDir(final_udf_tmp_path)
+            with tf.gfile.GFile(final_udf_path, 'w') as fin:
+              fin.write(udf_content)
+          else:
+            final_udf_path = udf_path
+          final_udf_path = final_udf_path[:-3].replace('/', '.')
+          final_udf_path = final_udf_path + '.' + udf_class
+          logging.info('apply udf %s' % final_udf_path)
+          udf = load_by_path(final_udf_path)
+        else:
+          logging.info('apply udf %s' % udf_class)
+          udf = load_by_path(udf_class)
+        field_dict[input_name] = tf.py_func(udf, [field_dict[input_name]], Tout=get_tf_type(dtype))
+        field_dict[input_name].set_shape(tf.TensorShape([None]))
+        
       if field_dict[input_name].dtype == tf.string:
         if self._label_dim[input_id] > 1:
           logging.info('will split labels[%d]=%s' % (input_id, input_name))
