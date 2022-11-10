@@ -1,0 +1,1 @@
+kafka_install_dir=../kafka_2.13-3.1.0/  oss_path=oss://yangxi-bj/export_embedding_taobao_fg_step_0 oss_ak=xxx oss_sk=xxx oss_endpoint=oss-cn-beijing.aliyuncs.com TEST_DEVICES='' PYTHONPATH=.:pai_jobs/ python -m easy_rec.python.test.kafka_test KafkaTest.test_kafka_processor

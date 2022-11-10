@@ -21,6 +21,7 @@ else:
 
 MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
+
 class FeatureKeyError(KeyError):
 
   def __init__(self, feature_name):
@@ -140,6 +141,7 @@ class FeatureColumnParser(object):
       if self._share_embed_infos[embed_name].HasField('initializer'):
         initializer = hyperparams_builder.build_initializer(
             self._share_embed_infos[embed_name].initializer)
+
       partitioner = self._build_partitioner(self._share_embed_infos[embed_name])
 
       if self._share_embed_infos[embed_name].HasField('ev_params'):

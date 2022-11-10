@@ -103,8 +103,12 @@ message FeatureConfig {
     optional int32 precision = 21 [default = -1];
 
     // normalize raw feature to [0-1]
-    optional double min_val = 22 [default=0.0];
-    optional double max_val = 23 [default=0.0];
+    optional double min_val = 212 [default=0.0];
+    optional double max_val = 213 [default=0.0];
+
+    // normalization function for raw features:
+    //   such as: tf.math.log1p
+    optional string normalizer_fn = 214;
 
     // raw feature of multiple dimensions
     optional uint32 raw_input_dim = 24 [default=1];
@@ -135,11 +139,13 @@ message FeatureGroupConfig {
 
     optional WideOrDeep wide_deep = 3 [default = DEEP];
     repeated SeqAttGroupConfig sequence_features = 4;
+    optional bool negative_sampler = 5 [default = false];
 }
 
 message SeqAttMap {
     repeated string key = 1;
     repeated string hist_seq = 2;
+    repeated string aux_hist_seq = 3;
 }
 
 message SeqAttGroupConfig {
@@ -148,4 +154,6 @@ message SeqAttGroupConfig {
     optional bool tf_summary = 3 [default = false];
     optional DNN seq_dnn = 4;
     optional bool allow_key_search = 5 [default = false];
+    optional bool need_key_feature = 6 [default = true];
+    optional bool allow_key_transform = 7 [default = false];
 }

@@ -100,7 +100,7 @@ class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
 
 class PredictorImpl(object):
 
-  def __init__(self, model_path, profiling_file=None):
+  def __init__(self, model_path, profiling_file=None, use_latest=False):
     """Impl class for predictor.
 
     Args:
@@ -108,6 +108,8 @@ class PredictorImpl(object):
       profiling_file:  profiling result file, default None.
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
+      use_latest: use latest saved_model.pb if multiple ones are found,
+        else raise an exception.
     """
     self._inputs_map = {}
     self._outputs_map = {}
@@ -116,6 +118,7 @@ class PredictorImpl(object):
     self._model_path = model_path
     self._input_names = []
     self._is_multi_placeholder = True
+    self._use_latest = use_latest
 
     self._build_model()
 
@@ -145,13 +148,18 @@ class PredictorImpl(object):
     dir_list = []
     for root, dirs, files in gfile.Walk(directory):
       for f in files:
-        _, ext = os.path.splitext(f)
-        if ext == '.pb':
+        if f.endswith('saved_model.pb'):
           dir_list.append(root)
     if len(dir_list) == 0:
       raise ValueError('savedmodel is not found in directory %s' % directory)
     elif len(dir_list) > 1:
-      raise ValueError('multiple saved model found in directory %s' % directory)
+      if self._use_latest:
+        logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
+        dir_list = sorted(dir_list, key=lambda x: int(x.split('/')[-1]))
+        return dir_list[-1]
+      else:
+        raise ValueError('multiple saved model found in directory %s' %
+                         directory)
 
     return dir_list[0]
 
@@ -320,7 +328,11 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self, model_path, profiling_file=None, fg_json_path=None):
+  def __init__(self,
+               model_path,
+               profiling_file=None,
+               fg_json_path=None,
+               use_latest=True):
     """Initialize a `Predictor`.
 
     Args:
@@ -329,8 +341,9 @@ class Predictor(PredictorInterface):
         if not None, predict function will use Timeline to profiling
         prediction time, and the result json will be saved to profiling_file
       fg_json_path: fg.json file
+      use_latest: use latest saved_model.pb if multiple one exists.
     """
-    self._predictor_impl = PredictorImpl(model_path, profiling_file)
+    self._predictor_impl = PredictorImpl(model_path, profiling_file, use_latest)
     self._inputs_map = self._predictor_impl._inputs_map
     self._outputs_map = self._predictor_impl._outputs_map
     self._profiling_file = profiling_file
@@ -602,39 +615,48 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
+               ds_vector_recall=False,
                fg_json_path=None,
                profiling_file=None,
                selected_cols=None,
-               input_sep=',',
                output_sep=chr(1)):
     super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
-    self._input_sep = input_sep
     self._output_sep = output_sep
+    self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
+    self._with_header = data_config.with_header
 
     if 'rtp' in input_type:
       self._is_rtp = True
+      self._input_sep = data_config.rtp_separator
     else:
       self._is_rtp = False
-    if selected_cols:
+      self._input_sep = data_config.separator
+
+    if selected_cols and not ds_vector_recall:
       self._selected_cols = [int(x) for x in selected_cols.split(',')]
+    elif ds_vector_recall:
+      self._selected_cols = selected_cols.split(',')
     else:
       self._selected_cols = None
 
   def _get_reserved_cols(self, reserved_cols):
     if reserved_cols == 'ALL_COLUMNS':
       if self._is_rtp:
-        idx = 0
-        reserved_cols = []
-        for x in range(len(self._record_defaults) - 1):
-          if not self._selected_cols or x in self._selected_cols[:-1]:
-            reserved_cols.append(self._input_fields[idx])
-            idx += 1
-          else:
-            reserved_cols.append('no_used_%d' % x)
-        reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+        if self._with_header:
+          reserved_cols = self._all_fields
+        else:
+          idx = 0
+          reserved_cols = []
+          for x in range(len(self._record_defaults) - 1):
+            if not self._selected_cols or x in self._selected_cols[:-1]:
+              reserved_cols.append(self._input_fields[idx])
+              idx += 1
+            else:
+              reserved_cols.append('no_used_%d' % x)
+          reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
       else:
-        reserved_cols = self._input_fields
+        reserved_cols = self._all_fields
     else:
       reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
     return reserved_cols
@@ -653,17 +675,20 @@ class CSVPredictor(Predictor):
           record_defaults=self._record_defaults,
           name='decode_csv')
     if self._is_rtp:
-      inputs = {}
-      idx = 0
-      for x in range(len(self._record_defaults) - 1):
-        if not self._selected_cols or x in self._selected_cols[:-1]:
-          inputs[self._input_fields[idx]] = fields[x]
-          idx += 1
-        else:
-          inputs['no_used_%d' % x] = fields[x]
-      inputs[SINGLE_PLACEHOLDER_FEATURE_KEY] = fields[-1]
+      if self._with_header:
+        inputs = dict(zip(self._all_fields, fields))
+      else:
+        inputs = {}
+        idx = 0
+        for x in range(len(self._record_defaults) - 1):
+          if not self._selected_cols or x in self._selected_cols[:-1]:
+            inputs[self._input_fields[idx]] = fields[x]
+            idx += 1
+          else:
+            inputs['no_used_%d' % x] = fields[x]
+        inputs[SINGLE_PLACEHOLDER_FEATURE_KEY] = fields[-1]
     else:
-      inputs = {self._input_fields[x]: fields[x] for x in range(len(fields))}
+      inputs = {self._all_fields[x]: fields[x] for x in range(len(fields))}
     return inputs
 
   def _get_num_cols(self, file_paths):
@@ -687,10 +712,24 @@ class CSVPredictor(Predictor):
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
     file_paths = []
-    for x in input_path.split(','):
-      file_paths.extend(gfile.Glob(x))
+    for path in input_path.split(','):
+      for x in gfile.Glob(path):
+        if not x.endswith('_SUCCESS'):
+          file_paths.append(x)
     assert len(file_paths) > 0, 'match no files with %s' % input_path
 
+    if self._with_header:
+      with tf.gfile.GFile(file_paths[0], 'r') as fin:
+        for line_str in fin:
+          line_str = line_str.strip()
+          self._field_names = line_str.split(self._input_sep)
+          break
+      print('field_names: %s' % ','.join(self._field_names))
+      self._all_fields = self._field_names
+    elif self._ds_vector_recall:
+      self._all_fields = self._selected_cols
+    else:
+      self._all_fields = self._input_fields
     if self._is_rtp:
       num_cols = self._get_num_cols(file_paths)
       self._record_defaults = ['' for _ in range(num_cols)]
@@ -702,13 +741,13 @@ class CSVPredictor(Predictor):
         self._record_defaults[col_idx] = default_val
     else:
       self._record_defaults = [
-          self._get_defaults(col_name) for col_name in self._input_fields
+          self._get_defaults(col_name) for col_name in self._all_fields
       ]
 
     dataset = tf.data.Dataset.from_tensor_slices(file_paths)
     parallel_num = min(num_parallel_calls, len(file_paths))
     dataset = dataset.interleave(
-        tf.data.TextLineDataset,
+        lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
         cycle_length=parallel_num,
         num_parallel_calls=parallel_num)
     dataset = dataset.shard(slice_num, slice_id)

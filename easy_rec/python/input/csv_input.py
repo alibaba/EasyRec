@@ -77,8 +77,10 @@ class CSVInput(Input):
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
     file_paths = []
-    for x in self._input_path:
-      file_paths.extend(tf.gfile.Glob(x))
+    for path in self._input_path:
+      for x in tf.gfile.Glob(path):
+        if not x.endswith('_SUCCESS'):
+          file_paths.append(x)
     assert len(file_paths) > 0, 'match no files with %s' % self._input_path
 
     assert not file_paths[0].endswith(
@@ -129,17 +131,27 @@ class CSVInput(Input):
             reshuffle_each_iteration=True)
       dataset = dataset.repeat(self.num_epochs)
     elif self._task_num > 1:  # For distribute evaluate
-      dataset = tf.data.TextLineDataset(
-          file_paths,
-          compression_type=compression_type).skip(int(self._with_header))
+      dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+      parallel_num = min(num_parallel_calls, len(file_paths))
+      dataset = dataset.interleave(
+          lambda x: tf.data.TextLineDataset(
+              x, compression_type=compression_type).skip(
+                  int(self._with_header)),
+          cycle_length=parallel_num,
+          num_parallel_calls=parallel_num)
       dataset = self._safe_shard(dataset)
       dataset = dataset.repeat(1)
     else:
       logging.info('eval files[%d]: %s' %
                    (len(file_paths), ','.join(file_paths)))
-      dataset = tf.data.TextLineDataset(
-          file_paths,
-          compression_type=compression_type).skip(int(self._with_header))
+      dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+      parallel_num = min(num_parallel_calls, len(file_paths))
+      dataset = dataset.interleave(
+          lambda x: tf.data.TextLineDataset(
+              x, compression_type=compression_type).skip(
+                  int(self._with_header)),
+          cycle_length=parallel_num,
+          num_parallel_calls=parallel_num)
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)

@@ -21,6 +21,56 @@ enum DistributionStrategy {
     MultiWorkerMirroredStrategy = 5;
 }
 
+message IncrementSaveConfig {
+   message Kafka {
+     message Consumer {
+       optional string config_topic = 1;
+       optional string config_global = 2;
+       optional int64 offset = 3 [default=0];
+       optional int32 timeout = 4 [default=600];
+     }
+     required string server = 1;
+     required string topic = 2;
+     required Consumer consumer = 3;
+   }
+
+   message Datahub {
+     message Consumer {
+       optional int64 offset = 1 [default=0];
+       optional int32 timeout = 2 [default=600];
+     }
+     required string akId       = 1;
+     required string akSecret   = 2;
+     required string region     = 3;
+     required string project    = 4;
+     required string topic      = 5;
+     required Consumer consumer = 6;
+   }
+
+   message File {
+     optional string incr_save_dir = 1 [default="incr_save"];
+     // relative to model_dir
+     optional bool relative = 2 [default=true];
+     // for online inference, please set the storage.mount_path to mount_path
+     // online service will fail
+     optional string mount_path = 3 [default="/home/admin/docker_ml/workspace/incr_save/"];
+   }
+
+   optional int32 sparse_save_secs  = 1 [default=0];
+   optional int32 dense_save_secs   = 2 [default=0];
+   optional int32 sparse_save_steps = 3 [default=0];
+   optional int32 dense_save_steps  = 4 [default=0];
+
+   // if open, will save increment updates to model_dir/incr_save/
+   optional bool debug_save_update = 5 [default=false];
+
+   oneof incr_update {
+     Kafka kafka = 501;
+     Datahub datahub = 502;
+     File fs = 503;
+   }
+}
+
 // Message for configuring EasyRecModel training jobs (train.py).
 // Next id: 25
 message TrainConfig {
@@ -107,4 +157,15 @@ message TrainConfig {
 
     // match variable patterns to freeze
     repeated string freeze_gradient = 30;
+
+    // increment save config
+    optional IncrementSaveConfig incr_save_config = 31;
+
+    // enable oss stop signal
+    // stop by create OSS_STOP_SIGNAL under model_dir
+    optional bool enable_oss_stop_signal = 32 [default = false];
+
+    // stop training after dead_line time, format:
+    //   20220508 23:59:59
+    optional string dead_line = 33;
 }

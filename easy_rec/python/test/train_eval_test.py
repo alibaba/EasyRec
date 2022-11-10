@@ -4,12 +4,14 @@
 import glob
 import logging
 import os
-import six
+import threading
+import time
 import unittest
+from distutils.version import LooseVersion
 
 import numpy as np
+import six
 import tensorflow as tf
-from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -186,6 +188,49 @@ class TrainEvalTest(tf.test.TestCase):
         post_check_func=_post_check_func)
     self.assertTrue(self._success)
 
+  def test_oss_stop_signal(self):
+    train_dir = os.path.join(self._test_dir, 'train/')
+
+    def _watch_func():
+      while True:
+        tmp_ckpt = estimator_utils.latest_checkpoint(train_dir)
+        if tmp_ckpt is not None:
+          version = estimator_utils.get_ckpt_version(tmp_ckpt)
+          if version > 30:
+            break
+        time.sleep(1)
+      stop_file = os.path.join(train_dir, 'OSS_STOP_SIGNAL')
+      with open(stop_file, 'w') as fout:
+        fout.write('OSS_STOP_SIGNAL')
+
+    watch_th = threading.Thread(target=_watch_func)
+    watch_th.start()
+
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/taobao_fg_signal_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    watch_th.join()
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
+
+  def test_dead_line_stop_signal(self):
+    train_dir = os.path.join(self._test_dir, 'train/')
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dead_line_stop.config',
+        self._test_dir,
+        total_steps=1000)
+    self.assertTrue(self._success)
+    final_ckpt = estimator_utils.latest_checkpoint(train_dir)
+    ckpt_version = estimator_utils.get_ckpt_version(final_ckpt)
+    logging.info('final ckpt version = %d' % ckpt_version)
+    self._success = ckpt_version < 1000
+    assert ckpt_version < 1000
+
   def test_fine_tune_latest_ckpt_path(self):
 
     def _post_check_func(pipeline_config):
@@ -263,6 +308,23 @@ class TrainEvalTest(tf.test.TestCase):
   def test_autoint(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/autoint_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_text_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_text_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_uniter_only_image_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/uniter_on_movielens_only_image_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_cmbf(self):
@@ -446,7 +508,8 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_mmoe_with_multi_loss(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/mmoe_on_taobao_with_multi_loss.config', self._test_dir)
+        'samples/model_config/mmoe_on_taobao_with_multi_loss.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_mmoe_deprecated(self):
@@ -480,9 +543,15 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dbmtl_cmbf_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_dbmtl_uniter(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dbmtl_with_multi_loss(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dbmtl_on_taobao_with_multi_loss.config', self._test_dir)
+        'samples/model_config/dbmtl_on_taobao_with_multi_loss.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_early_stop(self):
@@ -500,6 +569,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_early_stop_dis(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_early_stop_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_latest_export_with_asset(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/din_on_taobao_latest_export.config',
         self._test_dir)
     self.assertTrue(self._success)
 
@@ -645,6 +720,13 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_with_sample_weight.config', self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_neg_sampler_with_sample_weight(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_neg_sampler_with_sample_weight.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   @unittest.skipIf(
       LooseVersion(tf.__version__) != LooseVersion('2.3.0'),
       'MultiWorkerMirroredStrategy need tf version == 2.3')
@@ -659,7 +741,7 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf(six.PY2, "Only run in python3")
+  @unittest.skipIf(six.PY2, 'Only run in python3')
   def test_share_not_used(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/share_not_used.config', self._test_dir)
@@ -841,6 +923,63 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/esmm_distribute_eval_on_taobao.config',
         cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_share_no_used(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/share_embedding_not_used.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_neg_sampler_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_neg_sampler_sequence_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_neg_sampler_need_key_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_neg_sampler_need_key_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_need_key_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_need_key_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_allow_key_transform(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_multi_numeric_boundary_allow_key_transform.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_on_multi_numeric_boundary_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_on_numeric_boundary_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_on_sequence_feature_aux_hist_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_on_sequence_feature_aux_hist_seq_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_multi_tower_recall_neg_sampler_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_recall_neg_sampler_sequence_feature.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_multi_tower_recall_neg_sampler_only_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
 

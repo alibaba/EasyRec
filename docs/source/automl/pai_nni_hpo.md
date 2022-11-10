@@ -15,12 +15,20 @@ bash scripts/init.sh
 python setup.py install
 ```
 
+### 下载安装hpo-tools
+
+```
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
+bash install_hpo_tools.sh
+cd examples/search/maxcompute_easyrec
+```
+
 ## 启动调优
 
 ### 启动命令
 
 ```bash
-nnictl create --config hpo_nni/search/begin/config.yml --port=8780
+nnictl create --config begin/config.yml --port=8780
 ```
 
 其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。
@@ -44,11 +52,13 @@ tuner:
   name: TPE
   classArgs:
     optimize_mode: maximize
+debug: true
+logLevel: debug
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
       start_step: 2
@@ -56,7 +66,7 @@ assessor:
 
 ##### 并发度和最大Trial数量、最大运行时间可以实时调整：
 
-建议：刚开始设置为1，调测代码成功后，可以调大并发度。
+建议：刚开始设置为1，调测代码成功后，可以先调大最大运行次数Max trial No.，再调大并发度Concurrency。
 ![image.png](../../images/automl/pai_nni_modify.jpg)
 
 #### 配置 config_begin.ini
@@ -119,6 +129,10 @@ auc=1
 
 按照以下方式将相关参数以key=value的方式写入metric_config下
 
+easyrec的日志如下图，那么key可以配置成auc_is_valid_play等等
+
+![image.png](../../images/automl/easyrec_metric.jpg)
+
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25
 
 ```json
@@ -129,7 +143,7 @@ auc_is_comment=0.25
 
 多目标示例：metric=val('auc_is_valid_play')\*0.5+val('auc_is_like')\*0.25+val('auc_is_comment')\*0.25-val('loss_play_time')\*0.25
 
-注意：如果按照metric越大越好的方式优化，loss相关的指标权重定义为负值。
+注意：如果config.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
 
 ```json
 auc_is_valid_play=0.5
@@ -211,6 +225,27 @@ auc_is_valid_play=1
 点击每个Trial No，可以看到每个参数Trial的日志、参数详情,报错和输出可以点击以下3个按钮。
 ![image.png](../../images/automl/pai_nni_log.jpg)
 
+### 手动停止某组实验超参
+
+如果某些参数的结果不太好，可以进行手动停止。
+例如停止第一组参数。
+![image.png](../../images/automl/nni_stop.png)
+
+### 多目标default metric查看
+
+假设用户配置的metric_config为如下，那么UI中Default metric中显示3项；该组trial最终的metric
+
+- default=auc\*0.5+accuracy\*0.5
+- auc即为最终的auc值
+- accuracy即为最终的accuracy值
+
+```
+auc=0.5
+accuracy=0.5
+```
+
+![image.png](../../images/automl/nni_metric.png)
+
 ## finetune训练（可选）
 
 由于推荐业务每天都有实时更新的数据，如果用户采用先训练一批历史数据，后面每天finetune更新模型的话，可以利用以上begin调优的最优结果，再在新数据上微调。如果用户每次更新模型都是重新开始训练的话，则不需要此步骤。
@@ -241,13 +276,13 @@ learning_rate {
 支持本地上pipeline文件修改
 
 ```bash
-python hpo_nni/core/modify_pipeline_config.py --pipeline_config_path=../config/pipeline.config --save_path=../config/pipeline_finetune.config --learning_rate=1e-6
+python finetune/modify_pipeline_config.py --pipeline_config_path=./samples/pipeline.config --save_path=./samples/pipeline_finetune.config --learning_rate=1e-6
 ```
 
 也支持oss上pipeline文件直接修改
 
 ```bash
-python hpo_nni/core/modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
+python finetune/modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
 ```
 
 如果用户想要看是否有更优参数，可以看下级目录启动调优。
@@ -255,16 +290,19 @@ python hpo_nni/core/modify_pipeline_config.py  --pipeline_config_path=oss://easy
 ### 启动调优(可选)
 
 ```bash
-nnictl create --config hpo_nni/search/finetune/config.yml --port=8617
+nnictl create --config finetune/config.yml --port=8617
 ```
 
 #### config.yml
 
 ```
+experimentWorkingDirectory: ../expdir
 searchSpaceFile: search_space.json
-trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-17 --end_time=2022-06-18
+trialCommand: python3 ./run_finetune.py --config=./config_finetune.ini --exp_dir=../exp --start_time=2022-06-16 --end_time=2022-06-17
 trialConcurrency: 1
 maxTrialNumber: 1
+debug: true
+logLevel: debug
 tuner:
   name: TPE
   classArgs:
@@ -272,11 +310,11 @@ tuner:
 trainingService:
   platform: local
 assessor:
-   codeDirectory: ../../core
-   className: pai_assessor.PAIAssessor
+   codeDirectory: ../../../core/assessor
+   className: maxcompute_assessor.MaxComputeAssessor
    classArgs:
       optimize_mode: maximize
-      start_step: 5
+      start_step: 2
 ```
 
 #### config_finetune
@@ -311,7 +349,7 @@ assessor:
   - {eval_ymd} 必须保留，将会在代码中根据第二天日期进行替换
   - {predate} 必须保留，将会在代码中根据前一天日期进行替换
 
-#### run.py 参数说明
+#### run_finetune.py 参数说明
 
 表示从20220530finetune到20220617，根据这些天的平均结果衡量超参数的优劣。
 
@@ -351,37 +389,40 @@ search_space.json：
 
 如果您想设置自定义停止策略，可以参考[NNI CustomizeAssessor](https://nni.readthedocs.io/en/v2.6/Assessor/CustomizeAssessor.html)
 
-注意继承hpo_nni/core/pai_assessor.PaiAssessor
-trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉。
+注意继承hpo_tools/core/assessor/maxcompute_assessor.MaxComputeAssessor
+trial_end函数，该函数是用来当一个实验被停止时，会去将maxcompute作业给终止掉,并删除中间文件。
 
 ```
   def trial_end(self, trial_job_id, success):
     logging.info('trial end')
+    # user_cancelled or early_stopped
     if not success:
-      logging.info('early stop kill instance')
-      access_id = get_value('access_id', trial_id=trial_job_id)
-      access_key = get_value('access_key', trial_id=trial_job_id)
-      project = get_value('project', trial_id=trial_job_id)
-      endpoint = get_value('endpoint', trial_id=trial_job_id)
-      instance = get_value(trial_job_id, trial_id=trial_job_id)
-      if access_id and access_key and project and endpoint and instance:
-        o = create_odps(
-            access_id=access_id,
-            access_key=access_key,
-            project=project,
-            endpoint=endpoint)
-        logging.info('stop instance')
-        o.stop_instance(instance)
-        logging.info('stop instance success')
-        # for report result
-        set_value(trial_job_id + '_exit', '1', trial_id=trial_job_id)
+      # kill mc instance
+      kill_instance(trial_job_id=trial_job_id)
+      # remove json file
+      remove_filepath(trial_id=trial_job_id)
 ```
 
 ## FAQ
 
 - 如果是用MAC安装，遇到nni启动权限问题，可以手动解决下
+
   ```
   chmod 777 /Users/liuchenglong/opt/anaconda3/envs/easyrec-nni/lib/python3.8/site-packages/nni-2.8-py3.8-macosx-10.9-x86_64.egg/nni_node/node
   ```
+
   报错如下：
   ![image.png](../../images/automl/nni-failed1.png)
+
+- 如果实验异常，可以查看具体的日志.
+
+  - 找到配置的实验目录experimentWorkingDirectory，可以去{exp_dir}/{nni_exp_id}/log下查看nni-manager的日志；{exp_dir}/{nni_exp_id}/trials查看所有实验的日志.
+
+    ![image.png](../../images/automl/nni_exp_log.jpg)
+
+  - 可以在实验启动的UI上查看日志
+
+  ![image.png](../../images/automl/nni_manager_log.jpg)
+  ![image.png](../../images/automl/nni_manager_log2.jpg)
+
+- 建议使用长周期的服务器去启动，如果是自己的笔记本，建议保持电脑待机

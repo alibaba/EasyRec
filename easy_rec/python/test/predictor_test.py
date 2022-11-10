@@ -147,7 +147,39 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=',',
+        output_sep=';',
+        selected_cols='')
+
+    predictor.predict_impl(
+        test_input_path,
+        self._test_output_path,
+        reserved_cols='ALL_COLUMNS',
+        output_cols='ALL_COLUMNS',
+        slice_id=0,
+        slice_num=1)
+    header_truth = 'logits;probs;clk;buy;pid;adgroup_id;cate_id;campaign_id;customer;'\
+                   'brand;user_id;cms_segid;cms_group_id;final_gender_code;age_level;pvalue_level;' \
+                   'shopping_level;occupation;new_user_class_level;tag_category_list;tag_brand_list;price'
+
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(len(output_res) == 101)
+      self.assertEqual(output_res[0].strip(), header_truth)
+
+  @RunAsSubprocess
+  def test_local_pred_with_header(self):
+    test_input_path = 'data/test/inference/taobao_infer_data_with_header.txt'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_infer_result')
+    saved_model_dir = 'data/test/inference/tb_multitower_export/'
+    pipeline_config_path = os.path.join(saved_model_dir,
+                                        'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        pipeline_config_path, False)
+    pipeline_config.data_config.with_header = True
+
+    predictor = CSVPredictor(
+        saved_model_dir,
+        pipeline_config.data_config,
         output_sep=';',
         selected_cols='')
 
@@ -194,7 +226,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=',',
         output_sep=';',
         selected_cols='')
 
@@ -226,7 +257,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=';',
         output_sep=';',
         selected_cols='0,3')
     predictor.predict_impl(
@@ -256,7 +286,6 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
-        input_sep=';',
         output_sep=';',
         selected_cols='0,3')
     predictor.predict_impl(
@@ -271,6 +300,39 @@ class PredictorTestOnDS(tf.test.TestCase):
       output_res = f.readlines()
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
+
+  @RunAsSubprocess
+  def test_local_pred_embedding(self):
+      test_input_path = 'data/test/inference/taobao_item_feature_data.csv'
+      self._test_output_path = os.path.join(self._test_dir, 'taobao_item_feature')
+      saved_model_dir = 'data/test/inference/dssm_item_model/'
+      pipeline_config_path = os.path.join(saved_model_dir,
+                                          'assets/pipeline.config')
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+          pipeline_config_path, False)
+      predictor = CSVPredictor(
+          saved_model_dir,
+          pipeline_config.data_config,
+          ds_vector_recall=True,
+          output_sep=';',
+          selected_cols='pid,adgroup_id,cate_id,campaign_id,customer,brand,price')
+
+      predictor.predict_impl(
+          test_input_path,
+          self._test_output_path,
+          reserved_cols='adgroup_id',
+          output_cols='item_emb',
+          slice_id=0,
+          slice_num=1)
+
+      with open(self._test_output_path + '/part-0.csv', 'r') as f:
+          output_res = f.readlines()
+          self.assertTrue(output_res[1] ==
+          '-0.187066,-0.027638,-0.117294,0.115318,-0.273561,0.035698,-0.055832,'
+          '0.226849,-0.105808,-0.152751,0.081528,-0.183329,0.134619,0.185392,'
+          '0.096774,0.104428,0.161868,0.269710,-0.268538,0.138760,-0.170105,'
+          '0.232625,-0.121130,0.198466,-0.078941,0.017774,0.268834,-0.238553,0.084058,'
+          '-0.269466,-0.289651,0.179517;620392\n')
 
 
 class PredictorTestV2(tf.test.TestCase):
