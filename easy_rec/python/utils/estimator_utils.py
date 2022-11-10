@@ -895,7 +895,7 @@ def latest_checkpoint(model_dir):
     model_path: xx/model.ckpt-2000
   """
   try:
-    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.index'))
 
     if len(ckpt_metas) == 0:
       return None
