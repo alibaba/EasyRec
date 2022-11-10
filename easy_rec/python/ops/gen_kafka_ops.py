@@ -4,9 +4,10 @@ This file is MACHINE GENERATED! Do not edit.
 Original C++ source file: kafka_ops_deprecated.cc
 """
 
+import logging
 import os
-
 import traceback
+
 import six as _six
 import tensorflow as tf
 from tensorflow.python import pywrap_tensorflow as _pywrap_tensorflow
@@ -27,7 +28,8 @@ if easy_rec.ops_dir is not None:
     try:
       kafka_module = tf.load_op_library(kafka_ops_path)
     except Exception:
-      logging.warning("load %s failed: %s" % (kafka_ops_path, traceback.format_exc()))
+      logging.warning('load %s failed: %s' %
+                      (kafka_ops_path, traceback.format_exc()))
 
 
 @tf_export('io_kafka_dataset_v2')

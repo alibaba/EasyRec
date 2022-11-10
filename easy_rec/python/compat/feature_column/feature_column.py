@@ -165,7 +165,6 @@ from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
-from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import utils as fc_utils
 
 
@@ -2611,6 +2610,15 @@ class _SharedEmbeddingColumn(
             initializer = init_ops.zeros_initializer()
           else:
             initializer = self.initializer
+          extra_args = {}
+          if 'EmbeddingVariableConfig' in dir(variables):
+            ev_option = variables.EmbeddingVariableOption()
+            ev_option.filter_strategy = variables.CounterFilter(
+                filter_freq=self.ev_params.filter_freq)
+            extra_args['ev_option'] = ev_option
+          else:
+            extra_args['filter_options'] = variables.CounterFilterOptions(
+                self.ev_params.filter_freq)
           embedding_weights = variable_scope.get_embedding_variable(
               name='embedding_weights',
               embedding_dim=self.dimension,
@@ -2618,10 +2626,8 @@ class _SharedEmbeddingColumn(
               trainable=self.trainable and trainable,
               partitioner=self.partitioner,
               collections=weight_collections,
-              steps_to_live=self.ev_params.steps_to_live
-              if self.ev_params is not None else None,
-              filter_options=variables.CounterFilterOptions(
-                  self.ev_params.filter_freq))
+              steps_to_live=self.ev_params.steps_to_live,
+              **extra_args)
 
         ops.add_to_collection(self.shared_embedding_collection_name,
                               embedding_weights)
@@ -2633,22 +2639,13 @@ class _SharedEmbeddingColumn(
             self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
 
       # Return embedding lookup result.
-      if self.ev_params is not None:
-        return ev_embedding_ops.safe_embedding_lookup_sparse(
-            embedding_weights=embedding_weights,
-            sparse_ids=sparse_ids,
-            sparse_weights=sparse_weights,
-            combiner=self.combiner,
-            name='%s_weights' % self.name,
-            max_norm=self.max_norm)
-      else:
-        return embedding_ops.safe_embedding_lookup_sparse(
-            embedding_weights=embedding_weights,
-            sparse_ids=sparse_ids,
-            sparse_weights=sparse_weights,
-            combiner=self.combiner,
-            name='%s_weights' % self.name,
-            max_norm=self.max_norm)
+      return embedding_ops.safe_embedding_lookup_sparse(
+          embedding_weights=embedding_weights,
+          sparse_ids=sparse_ids,
+          sparse_weights=sparse_weights,
+          combiner=self.combiner,
+          name='%s_weights' % self.name,
+          max_norm=self.max_norm)
 
   def _get_dense_tensor(self, inputs, weight_collections=None, trainable=None):
     if isinstance(self.categorical_column, _SequenceCategoricalColumn):

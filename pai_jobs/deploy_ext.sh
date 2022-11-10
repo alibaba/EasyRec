@@ -156,7 +156,7 @@ then
   sed -i -e "s/name=\"easy_rec_ext\"/name=\"easy_rec_ext15\"/g" easy_rec_ext.xml
   sed -i -e "s/tensorflow1120_ext/tensorflow1150_ext/g" easy_rec_ext.xml
 fi
-  
+
 
 tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
 

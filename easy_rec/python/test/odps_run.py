@@ -200,7 +200,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--odpscmd', type=str, default='odpscmd', help='odpscmd path')
   parser.add_argument(
-      '--algo_name', type=str, default='easy_rec_ext', help='whether use pai-tf 1.15')
+      '--algo_name',
+      type=str,
+      default='easy_rec_ext',
+      help='whether use pai-tf 1.15')
   parser.add_argument(
       '--algo_project', type=str, default=None, help='algo project name')
   parser.add_argument(
@@ -234,8 +237,8 @@ if __name__ == '__main__':
   if args.algo_version:
     odps_oss_config.algo_version = args.algo_version
   algo_names = ['easy_rec_ext15', 'easy_rec_ext']
-  assert args.algo_name in algo_names, \
-     "algo_name must be oneof: %s" % (','.join(algo_names))
+  assert args.algo_name in algo_names, 'algo_name must be oneof: %s' % (
+      ','.join(algo_names))
   odps_oss_config.algo_name = args.algo_name
   if args.arn:
     odps_oss_config.arn = args.arn
