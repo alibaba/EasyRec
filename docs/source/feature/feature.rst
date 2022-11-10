@@ -92,8 +92,9 @@ IdFeature: 离散值特征/ID类特征
 -  vocab\_list:
    指定词表，适合取值比较少可以枚举的特征，如星期，月份，星座等
 
--  vocab\_file:
-   使用文件指定词表，用于指定比较大的词表。在提交tf任务到pai集群的时候，可以把词典文件存储在oss中。
+-  vocab\_file: 使用文件指定词表，用于指定比较大的词表。
+    -  格式: 每行一个单词
+    -  路径: 在提交tf任务到pai集群的时候，可以把词典文件存储在oss中。
 
 -  NOTE: hash\_bucket\_size, num\_buckets, vocab\_list,
    vocab\_file只能指定其中之一，不能同时指定
@@ -177,6 +178,7 @@ TagFeature
 tags字段可以用于描述商品的多个属性
 
 .. code:: protobuf
+
   feature_config:{
     features : {
        input_names: 'properties'
@@ -196,6 +198,7 @@ tags字段可以用于描述商品的多个属性
 我们同样支持有权重的tag特征，如"体育:0.3\|娱乐:0.2\|军事:0.5"：
 
 .. code:: protobuf
+
   feature_config:{
     features : {
        input_names: 'tag_kvs'
@@ -206,9 +209,10 @@ tags字段可以用于描述商品的多个属性
        embedding_dim: 24
     }
   }
-或"体育\|娱乐\|军事"和"0.3\|0.2\|0.5"的输入形式：
+或"体育\|娱乐\|军事"和"0.3\|0.2\|0.5"的输入形式:
 
 .. code:: protobuf
+
   feature_config:{
     features : {
        input_names: 'tags'
@@ -224,9 +228,9 @@ NOTE:
 ~~~~~
 
 -  如果使用csv文件进行存储，那么多个tag之间采用\ **列内分隔符**\ 进行分隔，
-   例如：csv的列之间一般用逗号(,)分隔，那么可采用竖线(\|)作为多个tag之间的分隔符。
--  weights：tags对应的权重列，在表里面一般采用string类型存储。
--  Weights的数目必须要和tag的数目一致，并且使用\ **列内分隔符**\ 进行分隔。
+   例如: csv的列之间一般用逗号(,)分隔，那么可采用竖线(\|)作为多个tag之间的分隔符。
+-  weights: tags对应的权重列，在表里面一般采用string类型存储。
+-  weights的数目必须要和tag的数目一致，并且使用\ **列内分隔符**\ 进行分隔。
 
 SequenceFeature：行为序列类特征
 ----------------------------------------------------------------
@@ -324,6 +328,7 @@ ComboFeature：组合特征
 对输入的离散值进行组合, 如age + sex:
 
 .. code:: protobuf
+
   feature_config:{
     features {
         input_names: ["age", "sex"]
@@ -347,6 +352,7 @@ ExprFeature：表达式特征
 将表达式特征放在EasyRec中，一方面减少模型io，另一方面保证离在线一致。
 
 .. code:: protobuf
+
   data_config {
       input_fields {
         input_name: 'user_age'
@@ -369,7 +375,7 @@ ExprFeature：表达式特征
         input_type: INT32
       }
     ...
-  )
+  }
   feature_config:{
       features {
        feature_name: "age_satisfy1"
@@ -412,16 +418,8 @@ EmbeddingVariable
 ----------------------------------------------------------------
 Key Value Hash, 减少hash冲突, 支持特征准入和特征淘汰。
 
-- 配置方式:
-  - feature_config单独配置ev_params
-  - model_config里面统一配置ev_params
-- ev_params : EVParams
-  - filter_freq: 频次过滤
-    - 低频特征噪声大,过滤噪声让模型更鲁棒
-  - steps_to_live: 特征淘汰
-    - 淘汰过期特征,防止模型过大
-- 示例:
 .. code:: protobuf
+
   model_config {
     model_class: "MultiTower"
     ...
@@ -429,6 +427,13 @@ Key Value Hash, 减少hash冲突, 支持特征准入和特征淘汰。
       filter_freq: 2
     }
   }
+- 配置方式:
+   - feature_config单独配置ev_params
+   - model_config里面统一配置ev_params
+
+- ev_params : EVParams
+   - filter_freq: 频次过滤, 低频特征噪声大,过滤噪声让模型更鲁棒
+   - steps_to_live: 特征淘汰, 淘汰过期特征,防止模型过大
 - Note: 仅在安装PAI-TF/DeepRec时可用
 
 特征选择
