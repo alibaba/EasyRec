@@ -10,6 +10,12 @@ message Tower {
     required DNN dnn = 2;
 };
 
+message BiasTower {
+    required string input = 1;
+    required DNN dnn = 2;
+    optional float bias_dropout_ratio = 3;
+}
+
 
 message TaskTower {
     // task name for the task tower
@@ -68,4 +74,6 @@ message BayesTaskTower {
     // optional float prediction_weight = 14 [default = 1.0];
     // multiple losses
     repeated Loss losses = 15;
+    // bias tower
+    repeated BiasTower bias_tower = 16;
 };
