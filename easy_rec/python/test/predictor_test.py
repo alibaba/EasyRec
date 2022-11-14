@@ -301,6 +301,40 @@ class PredictorTestOnDS(tf.test.TestCase):
       self.assertTrue(len(output_res) == 101)
       self.assertEqual(output_res[0].strip(), header_truth)
 
+  @RunAsSubprocess
+  def test_local_pred_embedding(self):
+    test_input_path = 'data/test/inference/taobao_item_feature_data.csv'
+    self._test_output_path = os.path.join(self._test_dir, 'taobao_item_feature')
+    saved_model_dir = 'data/test/inference/dssm_item_model/'
+    pipeline_config_path = os.path.join(saved_model_dir,
+                                        'assets/pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        pipeline_config_path, False)
+    predictor = CSVPredictor(
+        saved_model_dir,
+        pipeline_config.data_config,
+        ds_vector_recall=True,
+        output_sep=';',
+        selected_cols='pid,adgroup_id,cate_id,campaign_id,customer,brand,price')
+
+    predictor.predict_impl(
+        test_input_path,
+        self._test_output_path,
+        reserved_cols='adgroup_id',
+        output_cols='item_emb',
+        slice_id=0,
+        slice_num=1)
+
+    with open(self._test_output_path + '/part-0.csv', 'r') as f:
+      output_res = f.readlines()
+      self.assertTrue(
+          output_res[1] ==
+          '-0.187066,-0.027638,-0.117294,0.115318,-0.273561,0.035698,-0.055832,'
+          '0.226849,-0.105808,-0.152751,0.081528,-0.183329,0.134619,0.185392,'
+          '0.096774,0.104428,0.161868,0.269710,-0.268538,0.138760,-0.170105,'
+          '0.232625,-0.121130,0.198466,-0.078941,0.017774,0.268834,-0.238553,0.084058,'
+          '-0.269466,-0.289651,0.179517;620392\n')
+
 
 class PredictorTestV2(tf.test.TestCase):
 

@@ -560,8 +560,9 @@ def distribute_evaluate(pipeline_config,
     from tensorflow.python.training.monitored_session import WorkerSessionCreator
     from easy_rec.python.utils.estimator_utils import EvaluateExitBarrierHook
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
+    cur_ps_num = len(tf_config['cluster']['ps'])
     with device(
-        replica_device_setter(worker_device=cur_work_device, cluster=cluster)):
+        replica_device_setter(ps_tasks=cur_ps_num, worker_device=cur_work_device, cluster=cluster)):
       estimator_spec = estimator._distribute_eval_model_fn(
           input_feas, input_lbls, run_config)
 
@@ -576,7 +577,7 @@ def distribute_evaluate(pipeline_config,
       global_variables = tf.global_variables()
       remain_variables = list(
           set(global_variables).difference(set(metric_variables)))
-      cur_saver = tf.train.Saver(var_list=remain_variables)
+      cur_saver = tf.train.Saver(var_list=remain_variables, sharded=True)
       cur_scaffold = tf.train.Scaffold(
           saver=cur_saver,
           ready_for_local_init_op=model_ready_for_local_init_op)
