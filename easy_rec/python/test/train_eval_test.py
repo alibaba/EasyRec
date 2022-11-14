@@ -904,6 +904,8 @@ class TrainEvalTest(tf.test.TestCase):
         cur_eval_path, self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf('-PAI' not in tf.__version__,
+                   'Only test when pai-tf is used.')
   def test_distribute_eval_dssm_reg(self):
     cur_eval_path = 'data/test/distribute_eval_test/dssm_distribute_eval_reg_taobao_ckpt'
     self._success = test_utils.test_distributed_eval(
