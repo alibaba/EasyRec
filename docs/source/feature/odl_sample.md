@@ -5,6 +5,35 @@
 - 离线样本可以使用SQL在MaxCompute或者Hive/Spark平台上构造.
 - 可以使用 [推荐算法定制](https://pairec.yuque.com/books/share/72cb101c-e89d-453b-be81-0fadf09db4dd) 来自动生成离线特征 和 离线样本的流程.
 
+## 样本权重
+
+- 指定输入一列为sample_weight
+  - data_config.sample_weight
+- 示例:
+  ```protobuf
+    data_config {
+      input_fields {
+        input_name: 'clk'
+        input_type: DOUBLE
+      }
+      input_fields {
+        input_name: 'field1'
+        input_type: STRING
+      }
+      ...
+      input_fields {
+        input_name: 'sw'
+        input_type: DOUBLE
+      }
+
+      sample_weight: 'sw'
+
+      label_fields: 'clk'
+      batch_size: 1024
+      input_type: CSVInput
+    }
+  ```
+
 ## 实时样本
 
 ### 前置条件
