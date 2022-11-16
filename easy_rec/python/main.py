@@ -545,7 +545,9 @@ def distribute_evaluate(pipeline_config,
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
     cur_ps_num = len(tf_config['cluster']['ps'])
     with device(
-        replica_device_setter(ps_tasks=cur_ps_num, worker_device=cur_work_device, cluster=cluster)):
+        replica_device_setter(
+            ps_tasks=cur_ps_num, worker_device=cur_work_device,
+            cluster=cluster)):
       estimator_spec = estimator._distribute_eval_model_fn(
           input_feas, input_lbls, run_config)
 
