@@ -5,7 +5,6 @@ from __future__ import print_function
 import logging
 # use few threads to avoid oss error
 import os
-os.system("sudo cp ./estimator.py /worker/venv/lib/python3.6/site-packages/tensorflow_estimator/python/estimator/estimator.py")
 import time
 
 import tensorflow as tf

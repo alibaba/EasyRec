@@ -125,7 +125,7 @@ then
   rm -rf kafka.tar.gz
 fi
 
-tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py estimator.py
+tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]
