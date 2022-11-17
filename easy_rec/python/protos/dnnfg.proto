@@ -1,0 +1,12 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message DNNFG {
+    required DNN dnn = 1;
+    required float l2_regularization = 2 [default = 1e-4];
+    optional float hard_neg_softmax_weight = 5 [default=0.1];
+    optional float pairwise_loss_weight = 6 [default=1];
+    optional float pointwise_loss_weight = 7 [default=1];
+}

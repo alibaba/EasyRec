@@ -8,7 +8,10 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 
 try:
-  import pai
+  if tf.__version__ == '1.15':
+    from tensorflow.python.ops.work_queue import WorkQueue
+  else:
+    from pai.data import WorkQueue
 except Exception:
   pass
 
@@ -50,7 +53,7 @@ class OdpsInputV2(Input):
         mode == tf.estimator.ModeKeys.TRAIN:
       logging.info('pai_worker_slice_num = %d' %
                    self._data_config.pai_worker_slice_num)
-      work_queue = pai.data.WorkQueue(
+      work_queue = WorkQueue(
           self._input_path,
           num_epochs=self.num_epochs,
           shuffle=self._data_config.shuffle,

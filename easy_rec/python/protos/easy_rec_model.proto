@@ -16,6 +16,7 @@ import "easy_rec/python/protos/dbmtl.proto";
 import "easy_rec/python/protos/ple.proto";
 import "easy_rec/python/protos/simple_multi_task.proto";
 import "easy_rec/python/protos/dcn.proto";
+import "easy_rec/python/protos/dnnfg.proto";
 import "easy_rec/python/protos/cmbf.proto";
 import "easy_rec/python/protos/uniter.proto";
 import "easy_rec/python/protos/autoint.proto";
@@ -65,6 +66,7 @@ message EasyRecModel {
         DLRM dlrm = 108;
         CMBF cmbf = 109;
         Uniter uniter = 110;
+        DNNFG dnnfg = 111;
 
         MultiTowerRecall multi_tower_recall = 200;
         DSSM dssm = 201;

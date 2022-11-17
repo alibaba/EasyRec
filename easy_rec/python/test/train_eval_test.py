@@ -904,6 +904,8 @@ class TrainEvalTest(tf.test.TestCase):
         cur_eval_path, self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf('-PAI' not in tf.__version__,
+                   'Only test when pai-tf is used.')
   def test_distribute_eval_dssm_reg(self):
     cur_eval_path = 'data/test/distribute_eval_test/dssm_distribute_eval_reg_taobao_ckpt'
     self._success = test_utils.test_distributed_eval(
@@ -928,20 +930,6 @@ class TrainEvalTest(tf.test.TestCase):
   def test_share_no_used(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/share_embedding_not_used.config', self._test_dir)
-    self.assertTrue(self._success)
-
-  @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_dssm_neg_sampler_sequence_feature(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_neg_sampler_sequence_feature.config',
-        self._test_dir)
-    self.assertTrue(self._success)
-
-  @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_dssm_neg_sampler_need_key_feature(self):
-    self._success = test_utils.test_single_train_eval(
-        'samples/model_config/dssm_neg_sampler_need_key_feature.config',
-        self._test_dir)
     self.assertTrue(self._success)
 
   def test_dbmtl_on_multi_numeric_boundary_need_key_feature(self):
@@ -969,16 +957,24 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_multi_tower_recall_neg_sampler_sequence_feature(self):
+  def test_dnn_fg_recall_neg_sampler(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/multi_tower_recall_neg_sampler_sequence_feature.config',
+        'samples/model_config/fg_fusion_train_neg_on_dnn.config',
         self._test_dir)
     self.assertTrue(self._success)
 
   @unittest.skipIf(gl is None, 'graphlearn is not installed')
-  def test_multi_tower_recall_neg_sampler_only_sequence_feature(self):
+  def test_dnn_fg_recall_neg_sampler_with_sequence_feature(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
+        'samples/model_config/fg_fusion_train_neg_seq_on_dnn.config',
+        self._test_dir,
+        total_steps=10)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dcn_fg_with_sequence_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fg_fusion_train_seq_on_dcn.config',
         self._test_dir)
     self.assertTrue(self._success)
 

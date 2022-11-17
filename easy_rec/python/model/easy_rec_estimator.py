@@ -127,7 +127,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self.feature_configs,
         features,
         labels,
-        is_training=True)
+        is_training=tf.estimator.ModeKeys.TRAIN)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
 
@@ -432,7 +432,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self.feature_configs,
         features,
         labels,
-        is_training=False)
+        is_training=tf.estimator.ModeKeys.EVAL)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
@@ -459,7 +459,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self.feature_configs,
         features,
         labels,
-        is_training=False)
+        is_training=tf.estimator.ModeKeys.EVAL)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
@@ -510,7 +510,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self.feature_configs,
         features,
         labels=None,
-        is_training=False)
+        is_training=tf.estimator.ModeKeys.PREDICT)
     model.build_predict_graph()
 
     export_config = self._pipeline_config.export_config

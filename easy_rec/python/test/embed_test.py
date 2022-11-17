@@ -131,8 +131,8 @@ class EmbedTest(tf.test.TestCase):
     features = {'field1': tf.constant(['0112', '132430'])}
     dummy_input = DummyInput(
         data_config, feature_configs, '', input_vals=features)
+    dummy_input._set_effective_fields()
     field_dict, _ = dummy_input._build(tf.estimator.ModeKeys.TRAIN, {})
-
     wide_and_deep_dict = {'field1': WideOrDeep.DEEP}
     fc_parser = FeatureColumnParser(feature_configs, wide_and_deep_dict)
     builder = feature_column._LazyBuilder(field_dict)

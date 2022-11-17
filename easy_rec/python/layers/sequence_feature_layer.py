@@ -18,7 +18,8 @@ class SequenceFeatureLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
-               is_training=False):
+               is_training=False,
+               mode=tf.estimator.ModeKeys.EVAL):
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -33,6 +34,7 @@ class SequenceFeatureLayer(object):
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
+    self.mode = mode
 
   def negative_sampler_target_attention(self,
                                         dnn_config,
@@ -44,7 +46,6 @@ class SequenceFeatureLayer(object):
     cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
             'aux_hist_seq_emb_list']
-
     seq_max_len = tf.shape(hist_id_col)[1]
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
@@ -52,6 +53,7 @@ class SequenceFeatureLayer(object):
 
     pos_feature = cur_id[:batch_size]
     neg_feature = cur_id[batch_size:]
+
     cur_id = tf.concat([
         pos_feature[:, tf.newaxis, :],
         tf.tile(neg_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
@@ -65,7 +67,10 @@ class SequenceFeatureLayer(object):
 
     concat_features = tf.tile(
         concat_features[:, tf.newaxis, :], multiples=[1, neg_num_add_1, 1])
-    seq_len = tf.tile(seq_len, multiples=[neg_num_add_1])
+
+    # seq_len = tf.tile(seq_len, multiples=[neg_num_add_1])
+    seq_len = tf.tile(seq_len[:, tf.newaxis], multiples=[1, neg_num_add_1])
+    seq_len = tf.reshape(seq_len, [neg_num_add_1 * batch_size])
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(
@@ -80,6 +85,7 @@ class SequenceFeatureLayer(object):
         [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
         axis=-1)  # (B * neg_num_add_1, seq_max_len, seq_emb_dim*4)
 
+    # dnn_config.activation = "tf.nn.leaky_relu"
     din_layer = dnn.DNN(
         dnn_config,
         self._kernel_regularizer,
@@ -88,9 +94,10 @@ class SequenceFeatureLayer(object):
         last_layer_no_activation=True,
         last_layer_no_batch_norm=True)
     din_net = din_layer(din_net)
-    scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
+    # scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
+    scores = tf.reshape(din_net, [-1, seq_max_len])
 
-    seq_len = tf.expand_dims(seq_len, 1)
+    # seq_len = tf.expand_dims(seq_len, 1)
     mask = tf.sequence_mask(seq_len)
     padding = tf.ones_like(scores) * (-2**32 + 1)
     scores = tf.where(mask, scores,
@@ -98,8 +105,9 @@ class SequenceFeatureLayer(object):
 
     # Scale
     scores = tf.nn.softmax(scores)  # (B * neg_num_add_1, 1, seq_max_len)
-    hist_din_emb = tf.matmul(scores,
-                             hist_id_col)  # [B * neg_num_add_1, 1, seq_emb_dim]
+    # hist_din_emb = tf.matmul(scores,
+    #                          hist_id_col)  # [B * neg_num_add_1, 1, seq_emb_dim]
+    hist_din_emb = tf.reduce_sum(scores[:, :, tf.newaxis] * hist_id_col, axis=1)
     hist_din_emb = tf.reshape(hist_din_emb,
                               [batch_size, neg_num_add_1, seq_emb_dim
                                ])  # [B * neg_num_add_1, seq_emb_dim]
@@ -129,7 +137,7 @@ class SequenceFeatureLayer(object):
     seq_emb_dim = hist_id_col.shape[2]
     cur_id_dim = tf.shape(cur_id)[-1]
 
-    cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
+    # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(
@@ -179,9 +187,13 @@ class SequenceFeatureLayer(object):
                features,
                concat_features,
                all_seq_att_map_config,
-               feature_name_to_output_tensors=None,
-               negative_sampler=False):
+               feature_name_to_output_tensors=None):
     logging.info('use sequence feature layer.')
+    negative_sampler = False
+    if (features.get('__sampler_type__', None)
+        is not None) and (features.get('_fg_cfg', None) is None):
+      negative_sampler = True
+
     all_seq_fea = []
     # process all sequence features
     for seq_att_map_config in all_seq_att_map_config:
@@ -209,7 +221,8 @@ class SequenceFeatureLayer(object):
         seq_dnn_config = DNN()
         seq_dnn_config.hidden_units.extend([128, 64, 32, 1])
       cur_target_attention_name = 'seq_dnn' + group_name
-      if negative_sampler:
+      if negative_sampler and self.mode != tf.estimator.ModeKeys.PREDICT:
+        print('cd negative target attention', self.mode)
         seq_fea, concat_features = self.negative_sampler_target_attention(
             seq_dnn_config,
             seq_features,
@@ -218,6 +231,7 @@ class SequenceFeatureLayer(object):
             need_key_feature=need_key_feature,
             allow_key_transform=allow_key_transform)
       else:
+        print('cd target attention', self.mode)
         seq_fea = self.target_attention(
             seq_dnn_config,
             seq_features,
@@ -225,4 +239,5 @@ class SequenceFeatureLayer(object):
             need_key_feature=need_key_feature,
             allow_key_transform=allow_key_transform)
       all_seq_fea.append(seq_fea)
+    # concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
     return concat_features, all_seq_fea

@@ -27,21 +27,26 @@ class MultiTowerRecall(RankModel):
     self._model_config = self._model_config.multi_tower_recall
     assert isinstance(self._model_config, MultiTowerRecallConfig)
 
-    self.user_tower_feature, _ = self._input_layer(self._feature_dict, 'user')
-    self.item_tower_feature, _ = self._input_layer(self._feature_dict, 'item')
+    self.user_tower_feature, _ = self._input_layer(
+        self._feature_dict, 'user')  # [batch, neg+1, emb] [batch * neg+1, emb]
+    self.item_tower_feature, _ = self._input_layer(
+        self._feature_dict, 'item')  # [batch+neg, emb]  [batch * neg+1, emb]
 
   def build_predict_graph(self):
-
-    user_tower_feature = self.user_tower_feature
-    batch_size = tf.shape(user_tower_feature)[0]
-    pos_item_feature = self.item_tower_feature[:batch_size]
-    neg_item_feature = self.item_tower_feature[batch_size:]
-    item_tower_feature = tf.concat([
-        pos_item_feature[:, tf.newaxis, :],
-        tf.tile(
-            neg_item_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
-    ],
-                                   axis=1)  # noqa: E126
+    if self._mode != tf.estimator.ModeKeys.PREDICT:
+      user_tower_feature = self.user_tower_feature
+      batch_size = tf.shape(user_tower_feature)[0]
+      pos_item_feature = self.item_tower_feature[:batch_size]
+      neg_item_feature = self.item_tower_feature[batch_size:]
+      item_tower_feature = tf.concat([
+          pos_item_feature[:, tf.newaxis, :],
+          tf.tile(
+              neg_item_feature[tf.newaxis, :, :], multiples=[batch_size, 1, 1])
+      ],
+                                     axis=1)  # noqa: E126
+    else:
+      user_tower_feature = self.user_tower_feature
+      item_tower_feature = self.item_tower_feature
 
     user_dnn = dnn.DNN(self._model_config.user_tower.dnn, self._l2_reg,
                        'user_dnn', self._is_training)
@@ -50,7 +55,9 @@ class MultiTowerRecall(RankModel):
     item_dnn = dnn.DNN(self._model_config.item_tower.dnn, self._l2_reg,
                        'item_dnn', self._is_training)
     item_tower_emb = item_dnn(item_tower_feature)
-    item_tower_emb = tf.reshape(item_tower_emb, tf.shape(user_tower_emb))
+
+    # if self._mode == tf.estimator.ModeKeys.PREDICT:
+    #     item_tower_emb = tf.reshape(item_tower_emb, tf.shape(user_tower_emb))
 
     tower_fea_arr = []
     tower_fea_arr.append(user_tower_emb)
