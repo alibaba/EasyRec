@@ -78,8 +78,8 @@ Running Platform:
 
 ## Document
 
-- [Home](https://easyrec.readthedocs.io/en/latest/)
-- [FAQ](https://easyrec.readthedocs.io/en/latest/faq.html)
+- [Home](http://easyrec.readthedocs.io/en/latest/)
+- [FAQ](http://easyrec.readthedocs.io/en/latest/faq.html)
 - [EasyRec Framework](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/EasyRec.pptx)(PPT)
 
 &#160;
