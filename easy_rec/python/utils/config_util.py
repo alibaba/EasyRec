@@ -537,9 +537,12 @@ def process_data_path(data_path, hive_util):
 def process_neg_sampler_data_path(pipeline_config):
   # replace neg_sampler hive table => hdfs path
   if pai_util.is_on_pai():
-    return None
+    return
   if not pipeline_config.data_config.HasField('sampler'):
-    return None
+    return
+  # not using hive, so not need to process it
+  if pipeline_config.WhichOneof('train_path') != 'hive_train_input':
+    return
   hive_util = HiveUtils(
       data_config=pipeline_config.data_config,
       hive_config=pipeline_config.hive_train_input)
