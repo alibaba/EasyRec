@@ -23,9 +23,10 @@ class DummyInput(Input):
                task_index=0,
                task_num=1,
                check_mode=False,
+               pipeline_config=None,
                input_vals={}):
     super(DummyInput, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num, check_mode)
+                                     task_index, task_num, check_mode, pipeline_config)
     self._input_vals = input_vals
 
   def _build(self, mode, params):

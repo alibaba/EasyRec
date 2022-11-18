@@ -36,7 +36,9 @@ class Input(six.with_metaclass(_meta_type, object)):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               pipeline_config=None):
+    self._pipeline_config = pipeline_config
     self._data_config = data_config
     self._check_mode = check_mode
     logging.info('check_mode: %s ' % self._check_mode)
@@ -107,6 +109,19 @@ class Input(six.with_metaclass(_meta_type, object)):
     # add sample weight to effective fields
     if self._data_config.HasField('sample_weight'):
       self._effective_fields.append(self._data_config.sample_weight)
+
+    # add uid_field of GAUC and session_fields of SessionAUC
+    metrics = self._pipeline_config.eval_config.metrics_set
+    for metric in metrics:
+      metric_name = metric.WhichOneof('metric')
+      if metric_name == 'GAUC':
+        uid = metric.gauc.uid_field
+        if uid not in self._effective_fields:
+          self._effective_fields.append(uid)
+      elif metric_name == 'SessionAUC':
+        sid = metric.session_auc.session_id_field
+        if sid not in self._effective_fields:
+          self._effective_fields.append(sid)
 
     self._effective_fids = [
         self._input_fields.index(x) for x in self._effective_fields

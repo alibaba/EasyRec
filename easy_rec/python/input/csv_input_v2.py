@@ -13,9 +13,10 @@ class CSVInputV2(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               pipeline_config=None):
     super(CSVInputV2, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num, check_mode)
+                                     task_index, task_num, check_mode, pipeline_config)
 
   def _build(self, mode, params):
     if type(self._input_path) != list:

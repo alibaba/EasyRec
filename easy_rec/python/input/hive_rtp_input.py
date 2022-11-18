@@ -19,9 +19,10 @@ class HiveRTPInput(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               pipeline_config=None):
     super(HiveRTPInput, self).__init__(data_config, feature_config, input_path,
-                                       task_index, task_num, check_mode)
+                                       task_index, task_num, check_mode, pipeline_config)
     if input_path is None:
       return
     self._data_config = data_config
