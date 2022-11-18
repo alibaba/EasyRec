@@ -8,7 +8,10 @@
 {"leaf_name": "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt", "leaf_file": ["data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/checkpoint", "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/eval_result.txt", "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/model.ckpt-1000.data-00000-of-00001", "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/model.ckpt-1000.index", "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/model.ckpt-1000.meta", "data/test/distribute_eval_test/esmm_distribute_eval_taobao_ckpt/pipeline.config"]}
 {"leaf_name": "data/test/export", "leaf_file": ["data/test/export/data.csv"]}
 {"leaf_name": "data/test/hpo_test/eval_val", "leaf_file": ["data/test/hpo_test/eval_val/events.out.tfevents.1597889819.j63d04245.sqa.eu95"]}
-{"leaf_name": "data/test/inference", "leaf_file": ["data/test/inference/lookup_data_test80.csv", "data/test/inference/taobao_infer_data.txt", "data/test/inference/taobao_infer_rtp_data.txt"]}
+{"leaf_name": "data/test/inference", "leaf_file": ["data/test/inference/lookup_data_test80.csv", "data/test/inference/taobao_infer_data.txt", "data/test/inference/taobao_infer_data_with_header.txt", "data/test/inference/taobao_infer_rtp_data.txt", "data/test/inference/taobao_item_feature_data.csv"]}
+{"leaf_name": "data/test/inference/dssm_item_model", "leaf_file": ["data/test/inference/dssm_item_model/saved_model.pb"]}
+{"leaf_name": "data/test/inference/dssm_item_model/assets", "leaf_file": ["data/test/inference/dssm_item_model/assets/pipeline.config"]}
+{"leaf_name": "data/test/inference/dssm_item_model/variables", "leaf_file": ["data/test/inference/dssm_item_model/variables/variables.data-00000-of-00001", "data/test/inference/dssm_item_model/variables/variables.index"]}
 {"leaf_name": "data/test/inference/fg_export_multi", "leaf_file": ["data/test/inference/fg_export_multi/saved_model.pb"]}
 {"leaf_name": "data/test/inference/fg_export_multi/assets", "leaf_file": ["data/test/inference/fg_export_multi/assets/pipeline.config"]}
 {"leaf_name": "data/test/inference/fg_export_multi/variables", "leaf_file": ["data/test/inference/fg_export_multi/variables/variables.data-00000-of-00001", "data/test/inference/fg_export_multi/variables/variables.index"]}
