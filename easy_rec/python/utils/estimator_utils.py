@@ -938,6 +938,14 @@ def chief_to_master():
     return None
 
 
+def is_ps():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'task' in tf_config:
+      return tf_config['task']['type'] == 'ps'
+  return False
+
+
 def is_chief():
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
