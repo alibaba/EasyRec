@@ -37,8 +37,9 @@ class RTPInput(Input):
                task_num=1,
                check_mode=False,
                pipeline_config=None):
-    super(RTPInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num, check_mode, pipeline_config)
+    super(RTPInput,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
     self._rtp_separator = self._data_config.rtp_separator

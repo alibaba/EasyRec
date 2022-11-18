@@ -19,8 +19,9 @@ class CSVInputEx(CSVInput):
                task_num=1,
                check_mode=False,
                pipeline_config=None):
-    super(CSVInputEx, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num, check_mode, pipeline_config)
+    super(CSVInputEx,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
 
   def _parse_csv(self, line):
     record_defaults = [

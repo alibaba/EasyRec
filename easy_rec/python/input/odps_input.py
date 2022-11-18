@@ -21,8 +21,9 @@ class OdpsInput(Input):
                task_num=1,
                check_mode=False,
                pipeline_config=None):
-    super(OdpsInput, self).__init__(data_config, feature_config, input_path,
-                                    task_index, task_num, check_mode, pipeline_config)
+    super(OdpsInput,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
 
   def _build(self, mode, params):
     # check data_config are consistent with odps tables

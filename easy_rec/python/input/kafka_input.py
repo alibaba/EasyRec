@@ -38,8 +38,9 @@ class KafkaInput(Input):
                task_num=1,
                check_mode=False,
                pipeline_config=None):
-    super(KafkaInput, self).__init__(data_config, feature_config, '',
-                                     task_index, task_num, check_mode, pipeline_config)
+    super(KafkaInput,
+          self).__init__(data_config, feature_config, '', task_index, task_num,
+                         check_mode, pipeline_config)
     self._kafka = kafka_config
     self._offset_dict = {}
     if self._kafka is not None:

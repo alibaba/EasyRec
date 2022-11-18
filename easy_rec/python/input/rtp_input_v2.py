@@ -25,8 +25,9 @@ class RTPInputV2(Input):
                task_num=1,
                check_mode=False,
                pipeline_config=None):
-    super(RTPInputV2, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num, check_mode, pipeline_config)
+    super(RTPInputV2,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
 
   def _parse_rtp(self, lines):
     tf_types = [tf.string for x in self._input_field_types]
