@@ -51,27 +51,27 @@ then
   exit 1
 fi
 
-#ODPSCMD=`which $ODPSCMD`
-#if [ $? -ne 0 ] && [ $mode -ne 2 ]
-#then
-#   echo "$ODPSCMD is not in PATH"
-#   exit 1
-#fi
-#
-#if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
-#then
-#  if [ -z "$odps_config" ]
-#  then
-#      echo "odps_config is not set"
-#  else
-#      echo "odps_config[$odps_config] does not exist"
-#  fi
-#  exit 1
-#fi
-#if [ -e "$odps_config" ]
-#then
-#  odps_config=`readlink -f $odps_config`
-#fi
+ODPSCMD=`which $ODPSCMD`
+if [ $? -ne 0 ] && [ $mode -ne 2 ]
+then
+   echo "$ODPSCMD is not in PATH"
+   exit 1
+fi
+
+if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
+then
+  if [ -z "$odps_config" ]
+  then
+      echo "odps_config is not set"
+  else
+      echo "odps_config[$odps_config] does not exist"
+  fi
+  exit 1
+fi
+if [ -e "$odps_config" ]
+then
+  odps_config=`readlink -f $odps_config`
+fi
 
 cd $root_dir
 sh scripts/gen_proto.sh
@@ -122,7 +122,7 @@ then
 fi
 
 tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
-exit
+
 # 2 means generate only
 if [ $mode -ne 2 ]
 then
