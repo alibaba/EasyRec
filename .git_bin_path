@@ -14,7 +14,7 @@
 {"leaf_name": "data/test/inference/dssm_item_model/variables", "leaf_file": ["data/test/inference/dssm_item_model/variables/variables.data-00000-of-00001", "data/test/inference/dssm_item_model/variables/variables.index"]}
 {"leaf_name": "data/test/inference/fg_export_multi", "leaf_file": ["data/test/inference/fg_export_multi/saved_model.pb"]}
 {"leaf_name": "data/test/inference/fg_export_multi/assets", "leaf_file": ["data/test/inference/fg_export_multi/assets/pipeline.config"]}
-{"leaf_name": "data/test/inference/fg_export_multi/variables", "leaf_file": ["data/test/inference/fg_export_multi/variables/variables.data-00000-of-00001", "data/test/inference/fg_export_multi/variables/variables.index"]}t
+{"leaf_name": "data/test/inference/fg_export_multi/variables", "leaf_file": ["data/test/inference/fg_export_multi/variables/variables.data-00000-of-00001", "data/test/inference/fg_export_multi/variables/variables.index"]}
 {"leaf_name": "data/test/inference/fg_export_single", "leaf_file": ["data/test/inference/fg_export_single/saved_model.pb"]}
 {"leaf_name": "data/test/inference/fg_export_single/assets", "leaf_file": ["data/test/inference/fg_export_single/assets/pipeline.config"]}
 {"leaf_name": "data/test/inference/fg_export_single/variables", "leaf_file": ["data/test/inference/fg_export_single/variables/variables.data-00000-of-00001", "data/test/inference/fg_export_single/variables/variables.index"]}

@@ -14,6 +14,7 @@
 {"leaf_path": "data/test/inference/dssm_item_model/variables", "sig": "c336511a405289fe5797a3a960972b30", "remote_path": "data/git_oss_sample_data/data_test_inference_dssm_item_model_variables_c336511a405289fe5797a3a960972b30"}
 {"leaf_path": "data/test/inference/fg_export_multi", "sig": "c6690cef053aed9e2011bbef90ef33e7", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_c6690cef053aed9e2011bbef90ef33e7"}
 {"leaf_path": "data/test/inference/fg_export_multi/assets", "sig": "7fe7a4525f5d46cc763172f5200e96e0", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_assets_7fe7a4525f5d46cc763172f5200e96e0"}
+{"leaf_path": "data/test/inference/fg_export_multi/variables", "sig": "1f9aad9744382c6d5b5f152d556d9b30", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_multi_variables_1f9aad9744382c6d5b5f152d556d9b30"}
 {"leaf_path": "data/test/inference/fg_export_single", "sig": "c314cb4b77db30084cf5964bee6a0844", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_single_c314cb4b77db30084cf5964bee6a0844"}
 {"leaf_path": "data/test/inference/fg_export_single/assets", "sig": "7fe7a4525f5d46cc763172f5200e96e0", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_single_assets_7fe7a4525f5d46cc763172f5200e96e0"}
 {"leaf_path": "data/test/inference/fg_export_single/variables", "sig": "1f9aad9744382c6d5b5f152d556d9b30", "remote_path": "data/git_oss_sample_data/data_test_inference_fg_export_single_variables_1f9aad9744382c6d5b5f152d556d9b30"}
