@@ -76,7 +76,8 @@ input_fields字段:
 ```
 
 process_lbl.py:
-``` python
+
+```python
 import numpy as np
 def remap_lbl(labels):
     res = np.where(labels<5, 0, 1)
