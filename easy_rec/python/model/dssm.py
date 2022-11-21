@@ -122,20 +122,17 @@ class DSSM(MatchModel):
 
   def build_rtp_output_dict(self):
     output_dict = super(DSSM, self).build_rtp_output_dict()
-    if 'user_tower_emb' not in self._prediction_dict:
+    if self._loss_type in (LossType.CLASSIFICATION,
+                           LossType.SOFTMAX_CROSS_ENTROPY):
+      rank_predict_source = 'probs'
+    elif self._loss_type == LossType.L2_LOSS:
+      rank_predict_source = 'y'
+    else:
+      raise ValueError('invalid loss type: %s' % str(self._loss_type))
+    if rank_predict_source not in self._prediction_dict:
       raise ValueError(
-          'User tower embedding does not exist. Please checking predict graph.')
-    output_dict['user_embedding_output'] = tf.identity(
-        self._prediction_dict['user_tower_emb'], name='user_embedding_output')
-    if 'item_tower_emb' not in self._prediction_dict:
-      raise ValueError(
-          'Item tower embedding does not exist. Please checking predict graph.')
-    output_dict['item_embedding_output'] = tf.identity(
-        self._prediction_dict['item_tower_emb'], name='item_embedding_output')
-    if self._loss_type == LossType.CLASSIFICATION:
-      if 'probs' not in self._prediction_dict:
-        raise ValueError(
-            'Probs output does not exist. Please checking predict graph.')
-      output_dict['rank_predict'] = tf.identity(
-          self._prediction_dict['probs'], name='rank_predict')
+          ('Rank prediction source node [{}] does not exist.' +
+          'Please check the predict graph.').format(rank_predict_source))
+    output_dict['rank_predict'] = tf.identity(
+        self._prediction_dict[rank_predict_source], name='rank_predict')
     return output_dict

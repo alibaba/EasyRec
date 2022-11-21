@@ -17,7 +17,6 @@ from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import basic_session_run_hooks
-from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -643,21 +642,63 @@ class EasyRecEstimator(tf.estimator.Estimator):
                         serving_input_receiver_fn=None,
                         checkpoint_path=None,
                         mode=tf.estimator.ModeKeys.PREDICT):
-    with context.graph_mode():
-      if not checkpoint_path:
-        # Locate the latest checkpoint
-        checkpoint_path = estimator_utils.latest_checkpoint(self._model_dir)
-      if not checkpoint_path:
-        raise ValueError("Couldn't find trained model at %s." % self._model_dir)
-      with ops.Graph().as_default():
+    server_target = None
+    if 'TF_CONFIG' in os.environ:
+      tf_config = estimator_utils.chief_to_master()
+      from tensorflow.python.training import server_lib
+      if tf_config['task']['type'] == 'ps':
+        cluster = tf.train.ClusterSpec(tf_config['cluster'])
+        server = server_lib.Server(
+            cluster, job_name='ps', task_index=tf_config['task']['index'])
+        server.join()
+      elif tf_config['task']['type'] == 'master':
+        if 'ps' in tf_config['cluster']:
+          cluster = tf.train.ClusterSpec(tf_config['cluster'])
+          server = server_lib.Server(cluster, job_name='master', task_index=0)
+          server_target = server.target
+          print('server_target = %s' % server_target)
+
+    if not checkpoint_path:
+      # Locate the latest checkpoint
+      checkpoint_path = estimator_utils.latest_checkpoint(self._model_dir)
+    if not checkpoint_path:
+      raise ValueError("Couldn't find trained model at %s." % self._model_dir)
+
+    if server_target:
+      from tensorflow.python.training.device_setter import replica_device_setter
+      from tensorflow.python.framework.ops import device
+      from tensorflow.python.training.monitored_session import MonitoredSession
+      from tensorflow.python.training.monitored_session import ChiefSessionCreator
+      with device(
+          replica_device_setter(
+              worker_device='/job:master/task:0', cluster=cluster)):
         input_receiver = serving_input_receiver_fn()
         estimator_spec = self._call_model_fn(
             features=input_receiver.features,
             labels=getattr(input_receiver, 'labels', None),
             mode=mode,
             config=self.config)
-        with tf_session.Session(config=self._session_config) as session:
-          graph_saver = estimator_spec.scaffold.saver or saver.Saver(
-              sharded=True)
-          graph_saver.restore(session, checkpoint_path)
-          graph_saver.save(session, export_path)
+      graph_saver = tf.train.Saver(sharded=True)
+      chief_sess_creator = ChiefSessionCreator(
+          master=server_target,
+          scaffold=tf.train.Scaffold(saver=graph_saver),
+          checkpoint_filename_with_path=checkpoint_path)
+      with MonitoredSession(
+          session_creator=chief_sess_creator,
+          hooks=None,
+          stop_grace_period_secs=120) as sess:
+        graph_saver.save(sess._tf_sess(), export_path)
+    else:
+      with context.graph_mode():
+        with ops.Graph().as_default():
+          input_receiver = serving_input_receiver_fn()
+          estimator_spec = self._call_model_fn(
+              features=input_receiver.features,
+              labels=getattr(input_receiver, 'labels', None),
+              mode=mode,
+              config=self.config)
+          with tf_session.Session(config=self._session_config) as session:
+            graph_saver = estimator_spec.scaffold.saver or tf.train.Saver(
+                sharded=True)
+            graph_saver.restore(session, checkpoint_path)
+            graph_saver.save(session, export_path)

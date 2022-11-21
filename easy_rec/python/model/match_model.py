@@ -153,12 +153,12 @@ class MatchModel(EasyRecModel):
           tf.log(hit_prob + 1e-12) * tf.squeeze(self._sample_weight))
       logging.info('softmax cross entropy loss is used')
 
-      user_features = self._prediction_dict['user_tower_emb']
-      pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
-      pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
-      # if pos_simi < 0, produce loss
-      reg_pos_loss = tf.nn.relu(-pos_simi)
-      self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
+      # user_features = self._prediction_dict['user_tower_emb']
+      # pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
+      # pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
+      # # if pos_simi < 0, produce loss
+      # reg_pos_loss = tf.nn.relu(-pos_simi)
+      # self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
     return self._loss_dict
