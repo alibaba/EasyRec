@@ -19,9 +19,21 @@ python setup.py install
 
 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
 
+安装2选1，install_hpo_tools.sh默认会安装最新版本，最新版本内的代码和案例都是匹配的，可以正常运行，但可能文档配置未更新。因此可以采用安装当前文档匹配的版本。
+
+#### 安装最新版本（可选）
+
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
 bash install_hpo_tools.sh ./
+cd ./examples/search/maxcompute_easyrec
+```
+
+#### 安装当前版本（可选）
+
+```
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools_0.1.3.sh
+bash install_hpo_tools_0.1.3.sh ./
 cd ./examples/search/maxcompute_easyrec
 ```
 
@@ -89,24 +101,19 @@ cmdxx=xx （执行的命令行）
 - final_mode=final/best/avg（可选，默认值为best，可选值为final/best/avg）
 - optimize_mode=maximize/minimize （可选，默认值为maximize, 可选值为maximize/minimize)
 - source_list_final_mode=final/best/avg（可选，默认值为final_mode，可选值为final/best/avg,用于有多个metric_source时最终metric如何计算，具体可以看maxcompute_crossvalidation案例）
-- metric_key示例：对应查询的key以及对应的权重
+- metric_dict示例：对应查询的key以及对应的权重
   - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25
     ```
-    auc_is_valid_play=0.5
-    auc_is_like=0.25
-    auc_is_comment=0.25
+    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
     ```
   - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25-val(’loss_play_time’)\*0.25
     注意：如果config.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
     ```
-    auc_is_valid_play=0.5
-    auc_is_like=0.25
-    auc_is_comment=0.25
-    loss_play_time=-0.25
+    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25, 'loss_play_time':-0.25}
     ```
   - 单目标示例：metric=val(’auc_is_valid_play’)\*1
     ```
-    auc_is_valid_play=1
+    metric_dict={'auc_is_valid_play':1}
     ```
 
 #### oss_config （可选）
@@ -157,7 +164,7 @@ metric_type=summary
 metric_source=oss://lcl-bj/eval_dist_test/model_${exp_id}_${trial_id}/eval_val/
 # best/final/avg,default=best
 final_mode=final
-auc=1
+metric_dict={'auc':1}
 
 ```
 
@@ -423,9 +430,7 @@ metric_source_{{bizdate}}=oss://automl-nni/easyrec/finetune/{{bizdate}}_finetune
 # best/final/avg,default=best
 final_mode=final
 source_list_final_mode=avg
-auc_is_valid_play=0.5
-auc_is_like=0.25
-auc_is_comment=0.25
+metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
 ```
 
 与begin训练的`差异点`:
@@ -528,6 +533,8 @@ def trial_end(self, trial_job_id, success):
   - 例如报错：Error: /lib64/libstdc++.so.6: version \`CXXABI_1.3.8' not found，可参考
 
   ```
+    wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/libstdc.so_.6.0.26.zip
+    unzip libstdc.so_.6.0.26.zip
     sudo mv libstdc++.so.6.0.26 /usr/lib64
     cd /usr/lib64
     sudo mv libstdc++.so.6 libstdc++.so.6.bak

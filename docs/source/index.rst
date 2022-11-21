@@ -51,6 +51,7 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: PREDICT
 
+   predict/input_output
    predict/MaxCompute 离线预测
    predict/Local 离线预测
    predict/在线预测
