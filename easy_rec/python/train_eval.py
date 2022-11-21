@@ -105,31 +105,7 @@ def main(argv):
       ds_util.set_on_ds()
       set_tf_config_and_get_train_worker_num_on_ds()
       if pipeline_config.train_config.fine_tune_checkpoint:
-        fine_tune_ckpt_path = pipeline_config.train_config.fine_tune_checkpoint
-        if fine_tune_ckpt_path.startswith('hdfs://'):
-          if estimator_utils.is_ps() or estimator_utils.is_chief()\
-             or estimator_utils.is_master():
-            tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
-            tmpdir = os.path.join('/tmp/experiments', tmpdir)
-            logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
-            if gfile.IsDirectory(tmpdir):
-              gfile.DeleteRecursively(tmpdir)
-            gfile.MakeDirs(tmpdir)
-            for src_path in gfile.Glob(fine_tune_ckpt_path + '*'):
-              _, file_name = os.path.split(src_path)
-              # chief or master only need .meta and .index file
-              if estimator_utils.is_ps() or '.data-' not in file_name:
-                dst_path = os.path.join(tmpdir, os.path.basename(src_path))
-                logging.info('will copy %s to local path %s' %
-                             (src_path, dst_path))
-                gfile.Copy(src_path, dst_path, overwrite=True)
-            ckpt_filename = os.path.basename(fine_tune_ckpt_path)
-            fine_tune_ckpt_path = os.path.join(tmpdir, ckpt_filename)
-            pipeline_config.train_config.fine_tune_checkpoint = fine_tune_ckpt_path
-            logging.info('will restore from %s' % fine_tune_ckpt_path)
-          else:
-            # workers do not have to create the restore graph
-            pipeline_config.train_config.ClearField('fine_tune_checkpoint')
+        ds_util.cache_ckpt(pipeline_config)
 
     if FLAGS.hpo_param_path:
       with gfile.GFile(FLAGS.hpo_param_path, 'r') as fin:
