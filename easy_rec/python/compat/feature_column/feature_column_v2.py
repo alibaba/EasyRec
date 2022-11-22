@@ -1411,7 +1411,8 @@ def bucketized_column(source_column, boundaries):
 
 def categorical_column_with_hash_bucket(key,
                                         hash_bucket_size,
-                                        dtype=dtypes.string):
+                                        dtype=dtypes.string,
+                                        feature_name=None):
   """Represents sparse feature where ids are set by hashing.
 
   Use this when your sparse features are in string or integer format, and you
@@ -1464,97 +1465,7 @@ def categorical_column_with_hash_bucket(key,
   fc_utils.assert_key_is_string(key)
   fc_utils.assert_string_or_int(dtype, prefix='column_name: {}'.format(key))
 
-  return HashedCategoricalColumn(key, hash_bucket_size, dtype)
-
-
-def categorical_column_with_vocabulary_file(key,
-                                            vocabulary_file,
-                                            vocabulary_size=None,
-                                            num_oov_buckets=0,
-                                            default_value=None,
-                                            dtype=dtypes.string):
-  """A `CategoricalColumn` with a vocabulary file.
-
-  Use this when your inputs are in string or integer format, and you have a
-  vocabulary file that maps each value to an integer ID. By default,
-  out-of-vocabulary values are ignored. Use either (but not both) of
-  `num_oov_buckets` and `default_value` to specify how to include
-  out-of-vocabulary values.
-
-  For input dictionary `features`, `features[key]` is either `Tensor` or
-  `SparseTensor`. If `Tensor`, missing values can be represented by `-1` for int
-  and `''` for string, which will be dropped by this feature column.
-
-  Example with `num_oov_buckets`:
-  File '/us/states.txt' contains 50 lines, each with a 2-character U.S. state
-  abbreviation. All inputs with values in that file are assigned an ID 0-49,
-  corresponding to its line number. All other values are hashed and assigned an
-  ID 50-54.
-
-  ```python
-  states = categorical_column_with_vocabulary_file(
-      key='states', vocabulary_file='/us/states.txt', vocabulary_size=50,
-      num_oov_buckets=5)
-  columns = [states, ...]
-  features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
-  linear_prediction = linear_model(features, columns)
-  ```
-
-  Example with `default_value`:
-  File '/us/states.txt' contains 51 lines - the first line is 'XX', and the
-  other 50 each have a 2-character U.S. state abbreviation. Both a literal 'XX'
-  in input, and other values missing from the file, will be assigned ID 0. All
-  others are assigned the corresponding line number 1-50.
-
-  ```python
-  states = categorical_column_with_vocabulary_file(
-      key='states', vocabulary_file='/us/states.txt', vocabulary_size=51,
-      default_value=0)
-  columns = [states, ...]
-  features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
-  linear_prediction, _, _ = linear_model(features, columns)
-  ```
-
-  And to make an embedding with either:
-
-  ```python
-  columns = [embedding_column(states, 3),...]
-  features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
-  dense_tensor = input_layer(features, columns)
-  ```
-
-  Args:
-    key: A unique string identifying the input feature. It is used as the
-      column name and the dictionary key for feature parsing configs, feature
-      `Tensor` objects, and feature columns.
-    vocabulary_file: The vocabulary file name.
-    vocabulary_size: Number of the elements in the vocabulary. This must be no
-      greater than length of `vocabulary_file`, if less than length, later
-      values are ignored. If None, it is set to the length of `vocabulary_file`.
-    num_oov_buckets: Non-negative integer, the number of out-of-vocabulary
-      buckets. All out-of-vocabulary inputs will be assigned IDs in the range
-      `[vocabulary_size, vocabulary_size+num_oov_buckets)` based on a hash of
-      the input value. A positive `num_oov_buckets` can not be specified with
-      `default_value`.
-    default_value: The integer ID value to return for out-of-vocabulary feature
-      values, defaults to `-1`. This can not be specified with a positive
-      `num_oov_buckets`.
-    dtype: The type of features. Only string and integer types are supported.
-
-  Returns:
-    A `CategoricalColumn` with a vocabulary file.
-
-  Raises:
-    ValueError: `vocabulary_file` is missing or cannot be opened.
-    ValueError: `vocabulary_size` is missing or < 1.
-    ValueError: `num_oov_buckets` is a negative integer.
-    ValueError: `num_oov_buckets` and `default_value` are both specified.
-    ValueError: `dtype` is neither string nor integer.
-  """
-  return categorical_column_with_vocabulary_file_v2(key, vocabulary_file,
-                                                    vocabulary_size, dtype,
-                                                    default_value,
-                                                    num_oov_buckets)
+  return HashedCategoricalColumn(feature_name, key, hash_bucket_size, dtype)
 
 
 def categorical_column_with_vocabulary_file_v2(key,
@@ -1562,7 +1473,8 @@ def categorical_column_with_vocabulary_file_v2(key,
                                                vocabulary_size=None,
                                                dtype=dtypes.string,
                                                default_value=None,
-                                               num_oov_buckets=0):
+                                               num_oov_buckets=0,
+                                               feature_name=None):
   """A `CategoricalColumn` with a vocabulary file.
 
   Use this when your inputs are in string or integer format, and you have a
@@ -1668,6 +1580,7 @@ def categorical_column_with_vocabulary_file_v2(key,
   fc_utils.assert_string_or_int(dtype, prefix='column_name: {}'.format(key))
   fc_utils.assert_key_is_string(key)
   return VocabularyFileCategoricalColumn(
+      feature_name=feature_name,
       key=key,
       vocabulary_file=vocabulary_file,
       vocabulary_size=vocabulary_size,
@@ -1680,7 +1593,8 @@ def categorical_column_with_vocabulary_list(key,
                                             vocabulary_list,
                                             dtype=None,
                                             default_value=-1,
-                                            num_oov_buckets=0):
+                                            num_oov_buckets=0,
+                                            feature_name=None):
   """A `CategoricalColumn` with in-memory vocabulary.
 
   Use this when your inputs are in string or integer format, and you have an
@@ -1785,6 +1699,7 @@ def categorical_column_with_vocabulary_list(key,
   fc_utils.assert_key_is_string(key)
 
   return VocabularyListCategoricalColumn(
+      feature_name=feature_name,
       key=key,
       vocabulary_list=tuple(vocabulary_list),
       dtype=dtype,
@@ -1792,7 +1707,10 @@ def categorical_column_with_vocabulary_list(key,
       num_oov_buckets=num_oov_buckets)
 
 
-def categorical_column_with_identity(key, num_buckets, default_value=None):
+def categorical_column_with_identity(key,
+                                     num_buckets,
+                                     default_value=None,
+                                     feature_name=None):
   """A `CategoricalColumn` that returns identity values.
 
   Use this when your inputs are integers in the range `[0, num_buckets)`, and
@@ -1856,7 +1774,10 @@ def categorical_column_with_identity(key, num_buckets, default_value=None):
             default_value, num_buckets, key))
   fc_utils.assert_key_is_string(key)
   return IdentityCategoricalColumn(
-      key=key, number_buckets=num_buckets, default_value=default_value)
+      feature_name=feature_name,
+      key=key,
+      number_buckets=num_buckets,
+      default_value=default_value)
 
 
 def indicator_column(categorical_column):
@@ -1968,7 +1889,7 @@ def weighted_categorical_column(categorical_column,
       dtype=dtype)
 
 
-def crossed_column(keys, hash_bucket_size, hash_key=None):
+def crossed_column(keys, hash_bucket_size, hash_key=None, feature_name=None):
   """Returns a column for performing crosses of categorical features.
 
   Crossed features will be hashed according to `hash_bucket_size`. Conceptually,
@@ -2092,7 +2013,10 @@ def crossed_column(keys, hash_bucket_size, hash_key=None):
           'Hashing before crossing will increase probability of collision. '
           'Instead, use the feature name as a string. Given: {}'.format(key))
   return CrossedColumn(
-      keys=tuple(keys), hash_bucket_size=hash_bucket_size, hash_key=hash_key)
+      feature_name=feature_name,
+      keys=tuple(keys),
+      hash_bucket_size=hash_bucket_size,
+      hash_key=hash_key)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -2696,9 +2620,9 @@ def _normalize_feature_columns(feature_columns):
 class NumericColumn(
     DenseColumn,
     fc_old._DenseColumn,  # pylint: disable=protected-access
-    collections.namedtuple(
-        'NumericColumn',
-        ('key', 'shape', 'default_value', 'dtype', 'normalizer_fn'))):
+    collections.namedtuple('NumericColumn',
+                           ('feature_name', 'key', 'shape', 'default_value',
+                            'dtype', 'normalizer_fn'))):
   """see `numeric_column`."""
 
   @property
@@ -2708,7 +2632,7 @@ class NumericColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):
@@ -3927,7 +3851,8 @@ class HashedCategoricalColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
     collections.namedtuple('HashedCategoricalColumn',
-                           ('key', 'hash_bucket_size', 'dtype'))):
+                           ('feature_name', 'key', 'hash_bucket_size', 'dtype'))
+):
   """see `categorical_column_with_hash_bucket`."""
 
   @property
@@ -3937,7 +3862,7 @@ class HashedCategoricalColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):
@@ -4042,9 +3967,10 @@ class HashedCategoricalColumn(
 class VocabularyFileCategoricalColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple('VocabularyFileCategoricalColumn',
-                           ('key', 'vocabulary_file', 'vocabulary_size',
-                            'num_oov_buckets', 'dtype', 'default_value'))):
+    collections.namedtuple(
+        'VocabularyFileCategoricalColumn',
+        ('feature_name', 'key', 'vocabulary_file', 'vocabulary_size',
+         'num_oov_buckets', 'dtype', 'default_value'))):
   """See `categorical_column_with_vocabulary_file`."""
 
   @property
@@ -4054,7 +3980,7 @@ class VocabularyFileCategoricalColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):
@@ -4160,10 +4086,9 @@ class VocabularyFileCategoricalColumn(
 class VocabularyListCategoricalColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple(
-        'VocabularyListCategoricalColumn',
-        ('key', 'vocabulary_list', 'dtype', 'default_value', 'num_oov_buckets'))
-):
+    collections.namedtuple('VocabularyListCategoricalColumn',
+                           ('feature_name', 'key', 'vocabulary_list', 'dtype',
+                            'default_value', 'num_oov_buckets'))):
   """See `categorical_column_with_vocabulary_list`."""
 
   @property
@@ -4173,7 +4098,7 @@ class VocabularyListCategoricalColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):
@@ -4278,8 +4203,9 @@ class VocabularyListCategoricalColumn(
 class IdentityCategoricalColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple('IdentityCategoricalColumn',
-                           ('key', 'number_buckets', 'default_value'))):
+    collections.namedtuple(
+        'IdentityCategoricalColumn',
+        ('feature_name', 'key', 'number_buckets', 'default_value'))):
   """See `categorical_column_with_identity`."""
 
   @property
@@ -4289,7 +4215,7 @@ class IdentityCategoricalColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):
@@ -4528,8 +4454,9 @@ class WeightedCategoricalColumn(
 class CrossedColumn(
     CategoricalColumn,
     fc_old._CategoricalColumn,  # pylint: disable=protected-access
-    collections.namedtuple('CrossedColumn',
-                           ('keys', 'hash_bucket_size', 'hash_key'))):
+    collections.namedtuple(
+        'CrossedColumn',
+        ('feature_name', 'keys', 'hash_bucket_size', 'hash_key'))):
   """See `crossed_column`."""
 
   @property
@@ -4546,6 +4473,8 @@ class CrossedColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
+    if self.feature_name:
+      return self.feature_name
     feature_names = []
     for key in _collect_leaf_level_keys(self):
       if isinstance(key, (FeatureColumn, fc_old._FeatureColumn)):  # pylint: disable=protected-access
