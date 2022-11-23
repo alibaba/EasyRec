@@ -1,15 +1,15 @@
-# RankServer
+# EasyRec Processor
 
-RankServer是和EasyRec训练配套的高性能在线打分引擎, 包含特征处理和模型推理功能.
+EasyRec Processor, 是EasyRec对应的高性能在线打分引擎, 包含特征处理和模型推理功能. EasyRecProcessor运行在PAI-EAS之上, 可以充分利用PAI-EAS多种优化特性.
 
 ## 架构设计
 
-RankServer包含三个部分: Item特征缓存, 特征处理(Feature Generator), TFModel(tensorflow model).
+EasyRec Processor包含三个部分: Item特征缓存, 特征处理(Feature Generator), TFModel(tensorflow model).
 ![image.png](../../images/processor/easy_rec_processor_1.png)
 
 ## 性能优化
 
-### 初级实现
+### 基础实现
 
 将FeatureGenerator和TFModel分开, 先做特征生成，然后再Run TFModel.
 
@@ -82,6 +82,8 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
      <tr><td> 优化后 </td><td> 93 </td><td> 226  </td><td> 34  </td><td> 57 </td></tr>
      <tr><td> 提升   </td><td>    </td><td> 580% </td><td> 88% </td><td> 84%</td></tr>
    </table>
+
+- 总结: 可以看出来, 优化实现比基础实现性能高出很多.
 
 ### 参考
 
