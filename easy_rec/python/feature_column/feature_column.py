@@ -321,10 +321,10 @@ class FeatureColumnParser(object):
 
     if len(config.input_names) > 1:
       tag_fc = feature_column.weighted_categorical_column(
-          tag_fc, weight_feature_key=feature_name + ':1', dtype=tf.float32)
+          tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
     elif config.HasField('kv_separator'):
       tag_fc = feature_column.weighted_categorical_column(
-          tag_fc, weight_feature_key=feature_name + ':1', dtype=tf.float32)
+          tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(tag_fc, config)
@@ -342,7 +342,9 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
     fc = feature_column.numeric_column(
-        feature_name, shape=(config.raw_input_dim,), name=feature_name)
+        key=feature_name,
+        shape=(config.raw_input_dim,),
+        feature_name=feature_name)
 
     bounds = None
     if config.boundaries:
@@ -369,9 +371,14 @@ class FeatureColumnParser(object):
         self._add_deep_embedding_column(fc, config)
     else:
       tmp_id_col = feature_column.categorical_column_with_identity(
-          feature_name, config.raw_input_dim, default_value=0)
+          feature_name + '_raw_proj_id',
+          config.raw_input_dim,
+          default_value=0,
+          feature_name=feature_name)
       wgt_fc = feature_column.weighted_categorical_column(
-          tmp_id_col, weight_feature_key=feature_name + ':1', dtype=tf.float32)
+          tmp_id_col,
+          weight_feature_key=feature_name + '_raw_proj_val',
+          dtype=tf.float32)
       if self.is_wide(config):
         self._add_wide_embedding_column(wgt_fc, config)
       if self.is_deep(config):
@@ -459,33 +466,33 @@ class FeatureColumnParser(object):
       if config.HasField('hash_bucket_size'):
         hash_bucket_size = self._get_hash_bucket_size(config)
         fc = sequence_feature_column.sequence_categorical_column_with_hash_bucket(
-            config.input_names[0],
+            feature_name,
             hash_bucket_size,
             dtype=tf.string,
             feature_name=feature_name)
       elif config.vocab_list:
         fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
-            config.input_names[0],
+            feature_name,
             default_value=0,
             vocabulary_list=config.vocab_list,
             feature_name=feature_name)
       elif config.vocab_file:
         fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
-            config.input_names[0],
+            feature_name,
             default_value=0,
             vocabulary_file=config.vocab_file,
             vocabulary_size=self._get_vocab_size(config.vocab_file),
             feature_name=feature_name)
       else:
         fc = sequence_feature_column.sequence_categorical_column_with_identity(
-            config.input_names[0],
+            feature_name,
             config.num_buckets,
             default_value=0,
             feature_name=feature_name)
-    else:
+    else:  # raw feature
       bounds = None
       fc = sequence_feature_column.sequence_numeric_column(
-          config.input_names[0], shape=(1,), feature_name=feature_name)
+          feature_name, shape=(1,), feature_name=feature_name)
       if config.hash_bucket_size > 0:
         hash_bucket_size = self._get_hash_bucket_size(config)
         assert sub_feature_type == config.IdFeature, \
@@ -507,18 +514,18 @@ class FeatureColumnParser(object):
         except Exception as e:
           logging.error(
               'sequence features bucketized_column [%s] with bounds %s error' %
-              (config.input_names[0], str(bounds)))
+              (feature_name, str(bounds)))
           raise e
       elif config.hash_bucket_size <= 0:
         if config.embedding_dim > 0:
           tmp_id_col = sequence_feature_column.sequence_categorical_column_with_identity(
-              config.input_names[0] + '_raw_proj_id',
+              feature_name + '_raw_proj_id',
               config.raw_input_dim,
               default_value=0,
               feature_name=feature_name)
           wgt_fc = sequence_feature_column.sequence_weighted_categorical_column(
               tmp_id_col,
-              weight_feature_key=config.input_names[0] + '_raw_proj_val',
+              weight_feature_key=feature_name + '_raw_proj_val',
               dtype=tf.float32)
           fc = wgt_fc
         else:

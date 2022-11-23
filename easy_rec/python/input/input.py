@@ -292,8 +292,8 @@ class Input(six.with_metaclass(_meta_type, object)):
               tmp_vs, tf.float32, name='kv_tag_wgt_str_2_flt_%s' % input_0)
         parsed_dict[feature_name] = tf.sparse.SparseTensor(
             indices, tmp_ks, parsed_dict[feature_name].dense_shape)
-        parsed_dict[feature_name + ':1'] = tf.sparse.SparseTensor(
-            indices, tmp_vs, parsed_dict[feature_name + ':1'].dense_shape)
+        parsed_dict[feature_name + '_w'] = tf.sparse.SparseTensor(
+            indices, tmp_vs, parsed_dict[feature_name + '_w'].dense_shape)
       if not fc.HasField('hash_bucket_size'):
         check_list = [
             tf.py_func(
@@ -330,12 +330,12 @@ class Input(six.with_metaclass(_meta_type, object)):
         with tf.control_dependencies([assert_op]):
           field = tf.sparse.SparseTensor(field.indices, tf.identity(field_vals),
                                          field.dense_shape)
-        parsed_dict[feature_name + ':1'] = field
+        parsed_dict[feature_name + '_w'] = field
     else:
       parsed_dict[feature_name] = field_dict[input_0]
       if len(fc.input_names) > 1:
         input_1 = fc.input_names[1]
-        parsed_dict[feature_name + ':1'] = field_dict[input_1]
+        parsed_dict[feature_name + '_w'] = field_dict[input_1]
 
   def _parse_expr_feature(self, fc, parsed_dict, field_dict):
     fea_name = fc.feature_name
@@ -457,6 +457,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[feature_name])
 
     if not fc.boundaries and fc.num_buckets <= 1 and \
+        fc.embedding_dim > 0 and \
         self._data_config.sample_weight != input_0:
       # may need by wide model and deep model to project
       # raw values to a vector, it maybe better implemented
@@ -473,11 +474,11 @@ class Input(six.with_metaclass(_meta_type, object)):
       indices = tf.concat([indices_0, indices_1], axis=1)
 
       tmp_parsed = parsed_dict[feature_name]
-      parsed_dict[feature_name] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
           dense_shape=[sample_num, fc.raw_input_dim])
-      parsed_dict[feature_name + ':1'] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(tmp_parsed, [-1]),
           dense_shape=[sample_num, fc.raw_input_dim])
@@ -544,14 +545,12 @@ class Input(six.with_metaclass(_meta_type, object)):
             parsed_dict[feature_name].dense_shape)
     else:
       parsed_dict[feature_name] = field
-    if not fc.boundaries and fc.num_buckets <= 1 and fc.hash_bucket_size <= 0 and \
-        self._data_config.sample_weight != input_0 and sub_feature_type == fc.RawFeature and \
-        fc.raw_input_dim == 1:
-      # may need by wide model and deep model to project
-      # raw values to a vector, it maybe better implemented
-      # by a ProjectionColumn later
+    if not fc.boundaries and fc.num_buckets <= 1 and\
+       self._data_config.sample_weight != input_0 and\
+       sub_feature_type == fc.RawFeature and\
+       fc.raw_input_dim == 1:
       logging.info(
-          'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimension raw feature'
+          'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimension sequence raw feature'
           % feature_name)
       parsed_dict[feature_name] = tf.sparse_to_dense(
           parsed_dict[feature_name].indices,
@@ -568,24 +567,21 @@ class Input(six.with_metaclass(_meta_type, object)):
       indices_1 = tf.reshape(indices_1, [-1, 1])
       indices = tf.concat([indices_0, indices_1], axis=1)
       tmp_parsed = parsed_dict[feature_name]
-      parsed_dict[feature_name] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
           dense_shape=[sample_num, fc.sequence_length])
-      parsed_dict[feature_name + ':1'] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(tmp_parsed, [-1]),
           dense_shape=[sample_num, fc.sequence_length])
-    elif not fc.boundaries and fc.num_buckets <= 1 and fc.hash_bucket_size <= 0 and \
-        self._data_config.sample_weight != input_0 and sub_feature_type == fc.RawFeature and \
-        fc.raw_input_dim > 1:
+    elif (not fc.boundaries and fc.num_buckets <= 1 and
+          self._data_config.sample_weight != input_0 and
+          sub_feature_type == fc.RawFeature and fc.raw_input_dim > 1):
       # for 3 dimension sequence feature input.
-      # may need by wide model and deep model to project
-      # raw values to a vector, it maybe better implemented
-      # by a ProjectionColumn later
-      logging.info(
-          'Not set boundaries or num_buckets or hash_bucket_size, %s will process as three dimension raw feature'
-          % feature_name)
+      logging.info('Not set boundaries or num_buckets or hash_bucket_size,'
+                   ' %s will process as three dimension sequence raw feature' %
+                   feature_name)
       parsed_dict[feature_name] = tf.sparse_to_dense(
           parsed_dict[feature_name].indices, [
               tf.shape(parsed_dict[feature_name])[0], fc.sequence_length,
@@ -607,11 +603,11 @@ class Input(six.with_metaclass(_meta_type, object)):
       indices = tf.concat([indices_0, indices_1, indices_2], axis=1)
 
       tmp_parsed = parsed_dict[feature_name]
-      parsed_dict[feature_name] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
           dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim])
-      parsed_dict[feature_name + ':1'] = tf.SparseTensor(
+      parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(parsed_dict[feature_name], [-1]),
           dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim])
@@ -685,6 +681,10 @@ class Input(six.with_metaclass(_meta_type, object)):
           else:
             key = feature_name
           parsed_dict[key] = field_dict[input_name]
+      if 'price' in fc.input_names:
+        print(fc)
+        print(parsed_dict[fc.feature_name if fc.feature_name else fc
+                          .input_names[0]])
 
     for input_id, input_name in enumerate(self._label_fields):
       if input_name not in field_dict:

@@ -1255,7 +1255,8 @@ def numeric_column(key,
                    shape=(1,),
                    default_value=None,
                    dtype=dtypes.float32,
-                   normalizer_fn=None):
+                   normalizer_fn=None,
+                   feature_name=None):
   """Represents real valued or numerical features.
 
   Example:
@@ -1319,7 +1320,8 @@ def numeric_column(key,
 
   fc_utils.assert_key_is_string(key)
   return NumericColumn(
-      key,
+      feature_name=feature_name,
+      key=key,
       shape=shape,
       default_value=default_value,
       dtype=dtype,
