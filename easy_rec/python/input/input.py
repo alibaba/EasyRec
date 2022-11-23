@@ -124,6 +124,34 @@ class Input(six.with_metaclass(_meta_type, object)):
           if sid not in self._effective_fields:
             self._effective_fields.append(sid)
 
+      # check multi task model's metrics
+      model_config = self._pipeline_config.model_config
+      model_name = model_config.WhichOneof('model')
+      model = None
+      if model_name == 'MMoE':
+        model = model_config.mmoe
+      elif model_name == 'ESMM':
+        model = model_config.esmm
+      elif model_name == 'DBMTL':
+        model = model_config.dbmtl
+      elif model_name == 'SimpleMultiTask':
+        model = model_config.simple_multi_task
+      elif model_name == 'PLE':
+        model = model_config.ple
+      if model is not None:
+        for tower in model.task_towers:
+          metrics = tower.metrics_set
+          for metric in metrics:
+            metric_name = metric.WhichOneof('metric')
+            if metric_name == 'GAUC':
+              uid = metric.gauc.uid_field
+              if uid not in self._effective_fields:
+                self._effective_fields.append(uid)
+            elif metric_name == 'SessionAUC':
+              sid = metric.session_auc.session_id_field
+              if sid not in self._effective_fields:
+                self._effective_fields.append(sid)
+
     self._effective_fids = [
         self._input_fields.index(x) for x in self._effective_fields
     ]
