@@ -15,3 +15,7 @@ cd docs
 rm -rf build
 make html
 rm -rf build/html/_modules
+
+python post_fix.py build/html/search.html
+
+echo "view docs: python -m http.server --directory=docs/build/html/ 8081"

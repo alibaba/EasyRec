@@ -31,8 +31,12 @@
      }
     }
 
+-  **max\_partitions**:
+   当hash_bucket_size或者num_buckets较大(>=1e+7)时, 建议设置max_partitions >= parameter server number, 让参数在parameter server上分布更加均匀, 防止某个ps通信和计算过载.
+
 -  **shared\_names**:
-   其它输入的数据列，复用这个config，仅仅适用于只有一个input\_names的特征，不适用于有多个input\_names的特征，如ComboFeature。
+   其它输入的数据列，复用这个config，仅仅适用于只有一个input\_names的特征，不适用于有多个input\_names的特征，如ComboFeature.
+
 
 IdFeature: 离散值特征/ID类特征
 ----------------------------------------------------------------
@@ -286,17 +290,19 @@ Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
   }
 
 -  sequence_features: 序列特征组的名称
+-  seq_att_map: target attention模块, 具体细节可以参考排序里的 DIN 模型
+    - key: target item相关的特征, 包括id和side info(如brand, category, ctr)等
+    - hist_seq: 用户行为id序列和side info序列, 需要和key一一对应
+    - aux_hist_seq: 如果某个side info序列 和 key 对应不上, 可以放在aux_hist_seq里面
 -  allow_key_search: 当 key 对应的特征没有在 feature_groups 里面时，需要设置为 true, 将会复用对应特征的 embedding.
 -  need_key_feature : 默认为 true, 指过完 target attention 之后的特征会和 key 对应的特征 concat 之后返回。
    设置为 false 时，将会只返回过完 target attention 之后的特征。
--  allow_key_transform: 默认为 false, 指 key 和 hist_seq 需 一一 对应，其对应的 embedding_dim 也需要相等。假如存在不相等的
-   情况，比如某个 hist_seq 和 key 对应不上，可以设置 allow_key_transform 为 true, 其将会对 key 做变换，变化为和 hist_seq 相同的维度。
--  aux_hist_seq。在某个 hist_seq 和 key 对应不上，除了上面的方式设置 allow_key_transform 外，还可以将该序列特征设置为 aux_hist_seq, aux_hist_seq
-   是为了满足没有 key 对应的序列特征的设置。
--  seq_att_map: 具体细节可以参考排序里的 DIN 模型。
--  NOTE：SequenceFeature一般放在 user 组里面。
+-  allow_key_transform: 默认为 false, 指 key 和 hist_seq 需 一一 对应，其对应的 embedding_dim 也需要相等
+    - 如不相等, 可以设置 allow_key_transform 为 true, 将key的embedding_dim映射到和 hist_seq 相同
+-  NOTE: SequenceFeature一般放在 user 组里面.
 
-在模型中可支持对序列特征使用TextCNN算子进行embedding聚合，示例如下：
+-  TextCNN特征聚合(Sequence Combiner)
+   特征配置模块支持使用TextCNN算子对序列特征进行embedding聚合，示例:
 
 .. code:: protobuf
 
