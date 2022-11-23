@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import six
 import tensorflow as tf
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -690,15 +691,15 @@ class Input(six.with_metaclass(_meta_type, object)):
         if udf_path:
           assert dtype is not None, 'must set user_define_fn_res_type'
           if udf_path.startswith('oss://') or udf_path.startswith('hdfs://'):
-            with tf.gfile.GFile(udf_path, 'r') as fin:
+            with gfile.GFile(udf_path, 'r') as fin:
               udf_content = fin.read()
             final_udf_tmp_path = '/udf/'
             final_udf_path = final_udf_tmp_path + udf_path.split('/')[-1]
             logging.info('final udf path %s' % final_udf_path)
             logging.info('udf content: %s' % udf_content)
-            if not tf.gfile.Exists(final_udf_tmp_path):
-              tf.gfile.MkDir(final_udf_tmp_path)
-            with tf.gfile.GFile(final_udf_path, 'w') as fin:
+            if not gfile.Exists(final_udf_tmp_path):
+              gfile.MkDir(final_udf_tmp_path)
+            with gfile.GFile(final_udf_path, 'w') as fin:
               fin.write(udf_content)
           else:
             final_udf_path = udf_path

@@ -70,7 +70,7 @@ input_fields字段:
     input_name:'clk'
     input_type: INT64
     user_define_fn: 'remap_lbl'
-    user_define_fn_path: '/samples/demo_script/process_lbl.py'
+    user_define_fn_path: 'samples/demo_script/process_lbl.py'
     user_define_fn_res_type: INT64
   }
 ```
