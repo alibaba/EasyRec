@@ -242,24 +242,16 @@ class Input(six.with_metaclass(_meta_type, object)):
                           (ftype, tf_type))
         features[input_name] = input_vals[:, tmp_id]
     features = self._preprocess(features)
-    return {'features': inputs_placeholder}, features
+    return {'features': inputs_placeholder}, features['feature']
 
   def _get_features(self, fields):
-    # field_dict = {x: fields[x] for x in self._effective_fields if x in fields}
-    # for k in self._appended_fields:
-    #   field_dict[k] = fields[k]
-    # if constant.SAMPLE_WEIGHT in fields:
-    #   logging.info('will use field %s as sample weight' %
-    #                self._data_config.sample_weight)
-    #   field_dict[constant.SAMPLE_WEIGHT] = fields[constant.SAMPLE_WEIGHT]
-    field_dict = {x: fields[x] for x in fields if x not in self._label_fields}
-    return field_dict
+    return fields['feature']
 
   def _get_labels(self, fields):
+    labels = fields['label']
     return OrderedDict([
-        (x, tf.squeeze(fields[x], axis=1) if len(fields[x].get_shape()) == 2 and
-         fields[x].get_shape()[1] == 1 else fields[x])
-        for x in self._label_fields
+        (x, tf.squeeze(labels[x], axis=1) if len(labels[x].get_shape()) == 2 and
+         labels[x].get_shape()[1] == 1 else labels[x]) for x in labels
     ])
 
   def _parse_tag_feature(self, fc, parsed_dict, field_dict):
@@ -677,15 +669,12 @@ class Input(six.with_metaclass(_meta_type, object)):
             'feature_name') else fc.input_names[0]
         for input_id, input_name in enumerate(fc.input_names):
           if input_id > 0:
-            key = feature_name + ':' + str(input_id)
+            key = feature_name + '_' + str(input_id)
           else:
             key = feature_name
           parsed_dict[key] = field_dict[input_name]
-      if 'price' in fc.input_names:
-        print(fc)
-        print(parsed_dict[fc.feature_name if fc.feature_name else fc
-                          .input_names[0]])
 
+    label_dict = {}
     for input_id, input_name in enumerate(self._label_fields):
       if input_name not in field_dict:
         continue
@@ -701,31 +690,31 @@ class Input(six.with_metaclass(_meta_type, object)):
                   Tout=tf.bool)
           ] if self._check_mode else []
           with tf.control_dependencies(check_list):
-            parsed_dict[input_name] = tf.string_split(
+            label_dict[input_name] = tf.string_split(
                 field_dict[input_name], self._label_sep[input_id]).values
-            parsed_dict[input_name] = tf.reshape(
-                parsed_dict[input_name], [-1, self._label_dim[input_id]])
+            label_dict[input_name] = tf.reshape(label_dict[input_name],
+                                                [-1, self._label_dim[input_id]])
         else:
-          parsed_dict[input_name] = field_dict[input_name]
+          label_dict[input_name] = field_dict[input_name]
         check_list = [
             tf.py_func(
-                check_string_to_number, [parsed_dict[input_name], input_name],
+                check_string_to_number, [label_dict[input_name], input_name],
                 Tout=tf.bool)
         ] if self._check_mode else []
         with tf.control_dependencies(check_list):
-          parsed_dict[input_name] = tf.string_to_number(
-              parsed_dict[input_name], tf.float32, name=input_name)
+          label_dict[input_name] = tf.string_to_number(
+              label_dict[input_name], tf.float32, name=input_name)
       else:
         assert field_dict[input_name].dtype in [
             tf.float32, tf.double, tf.int32, tf.int64
         ], 'invalid label dtype: %s' % str(field_dict[input_name].dtype)
-        parsed_dict[input_name] = field_dict[input_name]
+        label_dict[input_name] = field_dict[input_name]
 
     if self._data_config.HasField('sample_weight'):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
-    return parsed_dict
+    return {'feature': parsed_dict, 'label': label_dict}
 
   def _lookup_preprocess(self, fc, field_dict):
     """Preprocess function for lookup features.

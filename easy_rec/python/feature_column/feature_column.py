@@ -418,7 +418,7 @@ class FeatureColumnParser(object):
       if input_id == 0:
         input_names.append(feature_name)
       else:
-        input_names.append(feature_name + ':' + str(input_id))
+        input_names.append(feature_name + '_' + str(input_id))
     fc = feature_column.crossed_column(
         input_names,
         self._get_hash_bucket_size(config),
