@@ -198,7 +198,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
-    return inputs, features
+    return inputs, features['feature']
 
   def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
