@@ -230,7 +230,7 @@ def _get_ckpt_path(pipeline_config, checkpoint_path):
     else:
       ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
-    ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
+    ckpt_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
                  'will use latest checkpoint %s from %s' %
                  (ckpt_path, pipeline_config.model_dir))

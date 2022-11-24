@@ -393,7 +393,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           saver=tf.train.Saver(
               var_list=var_list,
               sharded=True,
-              max_to_keep=self.train_config.keep_checkpoint_max),
+              max_to_keep=self.train_config.keep_checkpoint_max,
+              save_relative_paths=True),
           local_init_op=tf.group(local_init_ops),
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))
