@@ -78,7 +78,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
     print('[OdpsRTPInputV2] built features: {}'.format(features.keys()))
     features = self._preprocess(features)
     print('[OdpsRTPInputV2] processed features: {}'.format(features.keys()))
-    return {'features': inputs_placeholder}, features
+    return {'features': inputs_placeholder}, features['feature']
 
   def create_multi_placeholders(self, *args, **kwargs):
     """Create serving multi-placeholders with rtp_fg."""

@@ -193,7 +193,8 @@ def concatenate_context_input(context_input, sequence_input):
 
 def sequence_categorical_column_with_identity(key,
                                               num_buckets,
-                                              default_value=None):
+                                              default_value=None,
+                                              feature_name=None):
   """Returns a feature column that represents sequences of integers.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -235,7 +236,10 @@ def sequence_categorical_column_with_identity(key,
   """
   return fc.SequenceCategoricalColumn(
       fc.categorical_column_with_identity(
-          key=key, num_buckets=num_buckets, default_value=default_value))
+          feature_name=feature_name,
+          key=key,
+          num_buckets=num_buckets,
+          default_value=default_value))
 
 
 def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
@@ -281,7 +285,8 @@ def sequence_weighted_categorical_column(categorical_column,
 
 def sequence_categorical_column_with_hash_bucket(key,
                                                  hash_bucket_size,
-                                                 dtype=dtypes.string):
+                                                 dtype=dtypes.string,
+                                                 feature_name=None):
   """A sequence of categorical terms where ids are set by hashing.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -320,7 +325,10 @@ def sequence_categorical_column_with_hash_bucket(key,
   """
   return fc.SequenceCategoricalColumn(
       fc.categorical_column_with_hash_bucket(
-          key=key, hash_bucket_size=hash_bucket_size, dtype=dtype))
+          feature_name=feature_name,
+          key=key,
+          hash_bucket_size=hash_bucket_size,
+          dtype=dtype))
 
 
 def sequence_categorical_column_with_vocabulary_file(key,
@@ -328,7 +336,8 @@ def sequence_categorical_column_with_vocabulary_file(key,
                                                      vocabulary_size=None,
                                                      num_oov_buckets=0,
                                                      default_value=None,
-                                                     dtype=dtypes.string):
+                                                     dtype=dtypes.string,
+                                                     feature_name=None):
   """A sequence of categorical terms where ids use a vocabulary file.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -382,6 +391,7 @@ def sequence_categorical_column_with_vocabulary_file(key,
   """
   return fc.SequenceCategoricalColumn(
       fc.categorical_column_with_vocabulary_file(
+          feature_name=feature_name,
           key=key,
           vocabulary_file=vocabulary_file,
           vocabulary_size=vocabulary_size,
@@ -394,7 +404,8 @@ def sequence_categorical_column_with_vocabulary_list(key,
                                                      vocabulary_list,
                                                      dtype=None,
                                                      default_value=-1,
-                                                     num_oov_buckets=0):
+                                                     num_oov_buckets=0,
+                                                     feature_name=None):
   """A sequence of categorical terms where ids use an in-memory list.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -447,6 +458,7 @@ def sequence_categorical_column_with_vocabulary_list(key,
   """
   return fc.SequenceCategoricalColumn(
       fc.categorical_column_with_vocabulary_list(
+          feature_name=feature_name,
           key=key,
           vocabulary_list=vocabulary_list,
           dtype=dtype,
@@ -458,7 +470,8 @@ def sequence_numeric_column(key,
                             shape=(1,),
                             default_value=0.,
                             dtype=dtypes.float32,
-                            normalizer_fn=None):
+                            normalizer_fn=None,
+                            feature_name=None):
   """Returns a feature column that represents sequences of numeric data.
 
   Example:
@@ -508,7 +521,8 @@ def sequence_numeric_column(key,
         'normalizer_fn must be a callable. Given: {}'.format(normalizer_fn))
 
   return SequenceNumericColumn(
-      key,
+      feature_name=feature_name,
+      key=key,
       shape=shape,
       default_value=default_value,
       dtype=dtype,
@@ -529,9 +543,9 @@ def _assert_all_equal_and_return(tensors, name=None):
 
 class SequenceNumericColumn(
     fc.SequenceDenseColumn, fc_v1._FeatureColumn,
-    collections.namedtuple(
-        'SequenceNumericColumn',
-        ('key', 'shape', 'default_value', 'dtype', 'normalizer_fn'))):
+    collections.namedtuple('SequenceNumericColumn',
+                           ('feature_name', 'key', 'shape', 'default_value',
+                            'dtype', 'normalizer_fn'))):
   """Represents sequences of numeric data."""
 
   @property
@@ -541,7 +555,7 @@ class SequenceNumericColumn(
   @property
   def name(self):
     """See `FeatureColumn` base class."""
-    return self.key
+    return self.feature_name if self.feature_name else self.key
 
   @property
   def raw_name(self):

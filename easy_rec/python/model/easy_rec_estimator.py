@@ -174,7 +174,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
-          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
