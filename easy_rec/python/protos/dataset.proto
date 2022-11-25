@@ -150,6 +150,12 @@ message DatasetConfig {
         optional string default_val = 3;
         optional uint32 input_dim = 4 [default=1];
         optional uint32 input_shape = 5 [default = 1];
+        // user-defined function for label. eg: tf.math.log1p, remap_lbl
+        optional string user_define_fn = 6;
+        // user-defined function path. eg: /samples/demo_script/process_lbl.py
+        optional string user_define_fn_path = 7;
+        // output field type of user-defined function.
+        optional FieldType user_define_fn_res_type = 8;
     }
 
     // set auto_expand_input_fields to true to

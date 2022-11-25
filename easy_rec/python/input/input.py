@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import six
 import tensorflow as tf
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -71,6 +72,17 @@ class Input(six.with_metaclass(_meta_type, object)):
     if len(self._label_dim) < len(self._label_fields):
       for x in range(len(self._label_fields) - len(self._label_dim)):
         self._label_dim.append(1)
+
+    self._label_udf_map = {}
+    for config in self._data_config.input_fields:
+      if config.HasField('user_define_fn'):
+        user_define_fn_path = config.user_define_fn_path if config.HasField(
+            'user_define_fn_path') else None
+        user_define_fn_res_type = config.user_define_fn_res_type if config.HasField(
+            'user_define_fn_res_type') else None
+        self._label_udf_map[config.input_name] = (config.user_define_fn,
+                                                  user_define_fn_path,
+                                                  user_define_fn_res_type)
 
     self._batch_size = data_config.batch_size
     self._prefetch_size = data_config.prefetch_size
@@ -722,6 +734,41 @@ class Input(six.with_metaclass(_meta_type, object)):
     for input_id, input_name in enumerate(self._label_fields):
       if input_name not in field_dict:
         continue
+      if input_name in self._label_udf_map:
+        udf_class, udf_path, dtype = self._label_udf_map[input_name]
+        if udf_path:
+          assert dtype is not None, 'must set user_define_fn_res_type'
+          if udf_path.startswith('oss://') or udf_path.startswith('hdfs://'):
+            with gfile.GFile(udf_path, 'r') as fin:
+              udf_content = fin.read()
+            final_udf_tmp_path = '/udf/'
+            final_udf_path = final_udf_tmp_path + udf_path.split('/')[-1]
+            logging.info('final udf path %s' % final_udf_path)
+            logging.info('udf content: %s' % udf_content)
+            if not gfile.Exists(final_udf_tmp_path):
+              gfile.MkDir(final_udf_tmp_path)
+            with gfile.GFile(final_udf_path, 'w') as fin:
+              fin.write(udf_content)
+          else:
+            final_udf_path = udf_path
+          final_udf_path = final_udf_path[:-3].replace('/', '.')
+          final_udf_path = final_udf_path + '.' + udf_class
+          logging.info('apply udf %s' % final_udf_path)
+          udf = load_by_path(final_udf_path)
+          field_dict[input_name] = tf.py_func(
+              udf, [field_dict[input_name]], Tout=get_tf_type(dtype))
+          field_dict[input_name].set_shape(tf.TensorShape([None]))
+        else:
+          logging.info('apply udf %s' % udf_class)
+          udf = load_by_path(udf_class)
+          if udf_class.split('.')[0] in ['tf', 'tensorflow']:
+            field_dict[input_name] = udf(field_dict[input_name])
+          else:
+            assert dtype is not None, 'must set user_define_fn_res_type'
+            field_dict[input_name] = tf.py_func(
+                udf, [field_dict[input_name]], Tout=get_tf_type(dtype))
+            field_dict[input_name].set_shape(tf.TensorShape([None]))
+
       if field_dict[input_name].dtype == tf.string:
         if self._label_dim[input_id] > 1:
           logging.info('will split labels[%d]=%s' % (input_id, input_name))
