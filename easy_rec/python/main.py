@@ -526,7 +526,6 @@ def distribute_evaluate(pipeline_config,
         print('server_target = %s' % server_target)
 
   if server_target:
-    from tensorflow.contrib.training.python.training import device_setter as device_setter_lib
     from tensorflow.python.training.device_setter import replica_device_setter
     from tensorflow.python.framework.ops import device
     from tensorflow.python.training.monitored_session import MonitoredSession
@@ -537,11 +536,8 @@ def distribute_evaluate(pipeline_config,
     cur_ps_num = len(tf_config['cluster']['ps'])
     with device(
         replica_device_setter(
-            ps_tasks=cur_ps_num,
-            worker_device=cur_work_device,
-            cluster=cluster,
-            ps_strategy=device_setter_lib.GreedyLoadBalancingStrategy(
-                cur_ps_num, device_setter_lib.byte_size_load_fn))):
+            ps_tasks=cur_ps_num, worker_device=cur_work_device,
+            cluster=cluster)):
       distribution = strategy_builder.build(train_config)
       estimator, run_config = _create_estimator(pipeline_config, distribution)
       eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
