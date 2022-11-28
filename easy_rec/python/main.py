@@ -525,17 +525,8 @@ def distribute_evaluate(pipeline_config,
         server_target = server.target
         print('server_target = %s' % server_target)
 
-  distribution = strategy_builder.build(train_config)
-  estimator, run_config = _create_estimator(pipeline_config, distribution)
-  eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
-  ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
-  ckpt_dir = os.path.dirname(ckpt_path)
-
   if server_target:
-    # evaluate with parameter server
-    input_iter = eval_spec.input_fn(
-        mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
-    input_feas, input_lbls = input_iter.get_next()
+    from tensorflow.contrib.training.python.training import device_setter as device_setter_lib
     from tensorflow.python.training.device_setter import replica_device_setter
     from tensorflow.python.framework.ops import device
     from tensorflow.python.training.monitored_session import MonitoredSession
@@ -545,7 +536,20 @@ def distribute_evaluate(pipeline_config,
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
     cur_ps_num = len(tf_config['cluster']['ps'])
     with device(
-        replica_device_setter(ps_tasks=cur_ps_num, worker_device=cur_work_device, cluster=cluster)):
+        replica_device_setter(
+            ps_tasks=cur_ps_num,
+            worker_device=cur_work_device,
+            cluster=cluster,
+            ps_strategy=device_setter_lib.GreedyLoadBalancingStrategy(
+                cur_ps_num, device_setter_lib.byte_size_load_fn))):
+      distribution = strategy_builder.build(train_config)
+      estimator, run_config = _create_estimator(pipeline_config, distribution)
+      eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
+      ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+      ckpt_dir = os.path.dirname(ckpt_path)
+      input_iter = eval_spec.input_fn(
+          mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
+      input_feas, input_lbls = input_iter.get_next()
       estimator_spec = estimator._distribute_eval_model_fn(
           input_feas, input_lbls, run_config)
 
@@ -576,7 +580,6 @@ def distribute_evaluate(pipeline_config,
     update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
     metric_ops = {x: eval_metric_ops[x][0] for x in eval_metric_ops.keys()}
     update_op = tf.group(update_ops)
-    count = 0
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
@@ -592,19 +595,11 @@ def distribute_evaluate(pipeline_config,
         stop_grace_period_secs=cur_stop_grace_period_sesc) as sess:
       while True:
         try:
-          count += 1
           sess.run(update_op)
         except tf.errors.OutOfRangeError:
           break
     eval_result = cur_hooks.eval_result
-  else:
-    # this way does not work, wait to be debugged
-    # the variables are not placed to parameter server
-    # with tf.device(
-    #    replica_device_setter(
-    #        worker_device='/job:master/task:0', cluster=cluster)):
-    eval_result = estimator.evaluate(
-        eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+
   logging.info('Evaluate finish')
 
   # write eval result to file
