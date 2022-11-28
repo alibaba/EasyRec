@@ -145,7 +145,7 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
     logging.info('eval_steps = %d' % eval_steps)
   else:
     eval_steps = None
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
@@ -230,7 +230,7 @@ def _get_ckpt_path(pipeline_config, checkpoint_path):
     else:
       ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
-    ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
+    ckpt_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
                  'will use latest checkpoint %s from %s' %
                  (ckpt_path, pipeline_config.model_dir))
@@ -312,7 +312,7 @@ def _train_and_evaluate_impl(pipeline_config,
       epoch_str += ' / ' + str(worker_num)
     logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
 
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
@@ -722,7 +722,7 @@ def export(export_dir,
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
@@ -783,7 +783,7 @@ def export_checkpoint(pipeline_config=None,
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   data_config = pipeline_config.data_config
 
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 

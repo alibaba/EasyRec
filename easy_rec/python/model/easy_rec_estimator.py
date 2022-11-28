@@ -174,7 +174,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
-          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
@@ -393,7 +392,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           saver=tf.train.Saver(
               var_list=var_list,
               sharded=True,
-              max_to_keep=self.train_config.keep_checkpoint_max),
+              max_to_keep=self.train_config.keep_checkpoint_max,
+              save_relative_paths=True),
           local_init_op=tf.group(local_init_ops),
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))

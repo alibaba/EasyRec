@@ -45,6 +45,9 @@ input_fields字段:
   - 如果input是INT32类型，并且默认值是6，那么default_val是"6";
   - 如果input是DOUBLE类型，并且默认值是0.5，那么default_val是"0.5";
 - input_dim, 目前仅适用于RawFeature类型，可以指定多维数据，如一个图片的embedding vector.
+- user_define_fn, 目前仅适用于label，指定用户自定义函数名，以对label进行处理.
+- user_define_fn_path, 如需引入oss/hdfs上的用户自定义函数，需指定函数路径.
+- user_define_fn_res_type, 指定用户自定义函数的输出值类型.
 
 ```protobuf
   input_fields: {
@@ -52,6 +55,33 @@ input_fields字段:
     input_type: DOUBLE
     default_val:"0"
   }
+```
+
+```protobuf
+  input_fields {
+    input_name:'clk'
+    input_type: DOUBLE
+    user_define_fn: 'tf.math.log1p'
+  }
+```
+
+```protobuf
+  input_fields {
+    input_name:'clk'
+    input_type: INT64
+    user_define_fn: 'remap_lbl'
+    user_define_fn_path: 'samples/demo_script/process_lbl.py'
+    user_define_fn_res_type: INT64
+  }
+```
+
+process_lbl.py:
+
+```python
+import numpy as np
+def remap_lbl(labels):
+    res = np.where(labels<5, 0, 1)
+    return res
 ```
 
 - **注意:**
@@ -62,16 +92,53 @@ input_fields字段:
 
 ### input_type:
 
-目前支持一下几种input_type：
+目前支持一下几种[input_type](../proto.html#protos.DatasetConfig.InputType):
 
 - CSVInput，表示数据格式是CSV，注意要配合separator使用
+
+  - 需要指定train_input_path和eval_input_path
+
+  ```protobuf
+  train_input_path: "data/test/dwd_avazu_ctr_train.csv"
+  eval_input_path: "data/test/dwd_avazu_ctr_test.csv"
+  ```
+
 - OdpsInputV2，如果在MaxCompute上运行EasyRec, 则使用OdpsInputV2
-- OdpsInputV3, 如果在本地或者EMR上访问MaxCompute Table, 则使用OdpsInputV3
+
+  - 需要指定train_input_path和eval_input_path
+  - 可以通过pai命令传入, [参考](../train.md#on-pai)
+
+- OdpsInputV3, 如果在本地或者[DataScience](https://help.aliyun.com/document_detail/170836.html)上访问MaxCompute Table, 则使用OdpsInputV3
+
+- HiveInput和HiveParquetInput, 在Hadoop集群上访问Hive表
+
+  - 需要配置hive_train_input和hive_eval_input
+  - 参考[HiveConfig](../proto.html#protos.HiveConfig)
+
+  ```protobuf
+  hive_train_input {
+    host: "192.168.1"
+    username: "admin"
+    table_name: "census_income_train_simple"
+  }
+  hive_eval_input {
+    host: "192.168.1"
+    username: "admin"
+    table_name: "census_income_eval_simple"
+  }
+  ```
+
 - 如果需要使用RTP FG, 那么：
-  - 在EMR或者本地运行EasyRec，应使用RTPInput；
+
+  - 在EMR或者本地运行EasyRec，应使用RTPInput或者HiveRTPInput;
   - 在Odps上运行，则应使用OdpsRTPInput
-- KafkaInput & DatahubInput
-  - 实时训练需要用到的input类型
+
+- KafkaInput & DatahubInput: [实时训练](../online_train.md)需要用到的input类型
+
+  - KafkaInput需要配置kafka_train_input 和 kafka_eval_input
+    - 参考[KafkaServer](../proto.html#protos.KafkaServer)
+  - DatahubServer需要配置datahub_train_input 和 datahub_eval_input
+    - 参考[DataHubServer](../proto.html#protos.DatahubServer)
 
 ### separator:
 

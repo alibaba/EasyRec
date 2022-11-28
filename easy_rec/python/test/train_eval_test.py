@@ -115,6 +115,12 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_multi_tower_session_auc(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_on_taobao_session_auc.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_multi_tower_save_checkpoint_secs(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_save_secs_on_taobao.config',

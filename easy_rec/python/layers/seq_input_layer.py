@@ -63,8 +63,7 @@ class SeqInputLayer(object):
                   builder)
               regularizers.apply_regularization(
                   self._embedding_regularizer, weights_list=[tmp_key_tensor])
-              key_tensors.append(
-                  feature_column_dict[key]._get_dense_tensor(builder))
+              key_tensors.append(tmp_key_tensor)
           elif feature_name_to_output_tensors[key] is None:
             assert feature_name_to_output_tensors[
                 key] is not None, 'When allow_key_search is False, key: %s should defined in same feature group.' % key
