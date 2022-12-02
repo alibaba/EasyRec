@@ -83,10 +83,56 @@
 
 ### 样本生成
 
+1. 样本预处理
+
+   - 提取曝光、点击等事件信息:
+
+     ```sql
+       create temporary table user_click_log ...
+
+       create temporary table user_expose_log ...
+
+       create temporary table odl_sample_preprocess (
+           request_id string,
+           `user_id` string,
+           item_id string,
+           event_type string,
+           event_time bigint,
+           scene string
+       ) with (
+         'connector' = 'datahub',
+         'endPoint' = 'http://dh-cn-beijing-int-vpc.aliyuncs.com/',
+         'project' = 'easy_rec_proj',
+         'topic' = 'odl_sample_preprocess',
+         'subId' = '166987972XXXXXXX',
+         'accessId' = 'LTAIXXXXXXXX',
+         'accessKey' = 'XYZXXXXXXXX'
+       );
+
+       begin STATEMENT SET;
+       insert into odl_sample_preprocess
+       select aa as request_id, bb as user_id, cc as item_id, dd as event_type,
+           ee as event_time, ff as scene
+       from user_click_log;
+
+       insert into odl_sample_preprocess
+       select aa as request_id, bb as user_id, cc as item_id, 'expose' as event_type,
+           ee as event_time, ff as scene
+       from user_expose_log;
+     ```
+
+     - project: datahub project
+     - topic: datahub topic
+     - subId: datahub订阅id, 每个flink sql任务需要单独创建订阅id, 否则会有冲突
+     - scene: extra fields, 可选字段
+
 1. 样本Events聚合(OnlineSampleAggr):
 
    - 上传资源包: [rec-realtime-0.8-SNAPSHOT.jar](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/rec-realtime-0.8-SNAPSHOT.jar)
      ![image.png](../../images/odl_events_aggr.png)
+
+   - 入口参数: com.aliyun.rec.feature.job.OnlineSampleEventsAggr
+     ![image.png](../../images/odl_sample_aggr_config.png)
 
    - flink配置:
 
@@ -96,8 +142,8 @@
        datahub.accessKey: xxx
        datahub.inputTopic: user_behavior_log
        datahub.sinkTopic: odl_sample_aggr
-       datahub.projectName: odl_sample
-       datahub.startInMs: '1655571600'
+       datahub.projectName: odl_sample_preprocess
+       datahub.startInSecs: '1655571600'
 
        input.userid: user_id
        input.itemid: item_id
@@ -105,9 +151,10 @@
        input.event-type: event
        input.event-duration: play_time
        input.event-ts: ts
-       input.expose-event: exposure
+       input.expose-event: expose
        input.event-extra: 'scene'
        input.wait-positive-secs: '900'
+       state.max-event-num: '100'
      ```
 
      - datahub参数配置
@@ -130,6 +177,9 @@
          - 其它事件延迟会补充下发
        - event-extra: 其它event相关字段,多个字段以","分割
        - wait-positive-secs: 等待正样本的时间, 单位是seconds
+     - state:
+       - max-event-num: 只存最新的n个event, 默认n是Integer.MAX_VALUE
+     - debug-mode: 默认是false, 为true时, 打印详细的event信息和timer注册以及触发的信息
      - datahub topic schema:
        - inputTopic: user_behavior_log
          <table class="docutils" border=1>
@@ -244,10 +294,10 @@
 
 - 校验方法:
 
-  - 实时样本落到maxcompute, 和离线的数据作对比
+  - 实时样本落到maxcompute / hive, 和离线的数据作对比
   - EasyRec训练的summary里面查看label的正负样本比
     ![image.png](../../images/odl_label_sum.png)
 
 ### 实时训练
 
-- 启动训练: [文档](../online_train.md)
+- 训练和预测: [文档](../online_train.md)
