@@ -40,6 +40,8 @@ message TaskTower {
     optional float out_task_space_weight = 12 [default = 1.0];
     // multiple losses
     repeated Loss losses = 13;
+    // use sample weight only for positive samples
+    optional bool use_pos_sample_weight = 14 [default = false];
 };
 
 
@@ -76,4 +78,6 @@ message BayesTaskTower {
     repeated Loss losses = 15;
     // bias tower
     repeated BiasTower bias_tower = 16;
+    // use sample weight only for positive samples
+    optional bool use_pos_sample_weight = 17 [default = false];
 };
