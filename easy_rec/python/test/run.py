@@ -78,6 +78,11 @@ def main(argv):
     os.makedirs(test_log_dir)
   logging.info('Total number of cases: %d test_dir: %s' %
                (len(all_tests), test_dir))
+
+  max_num_port_per_proc = 3
+  total_port_num = (max_num_port_per_proc + 2) * FLAGS.num_parallel
+  all_available_ports = test_utils.get_ports_base(total_port_num)
+
   procs = {}
   failed_cases = []
   for case_file, case_name in all_tests:
@@ -86,16 +91,22 @@ def main(argv):
       for proc in procs:
         if proc.poll() is not None:
           if proc.returncode != 0:
-            fail_file, fail_name = procs[proc]
+            fail_file, fail_name, _ = procs[proc]
             failed_cases.append((fail_file, fail_name, proc.returncode))
           procs_done.append(proc)
       for proc in procs_done:
+        _, _, tmp_ports = procs[proc]
+        all_available_ports.extend([int(x) for x in tmp_ports.split(',')])
         del procs[proc]
     cmd = 'python -m easy_rec.python.test.%s %s' % (case_file, case_name)
     log_file = '%s/%s.%s.log' % (test_log_dir, case_file, case_name)
+    tmp_ports = ','.join(
+        [str(x) for x in all_available_ports[:max_num_port_per_proc]])
+    all_available_ports = all_available_ports[max_num_port_per_proc:]
+
     logging.info('Run %s.%s Log: %s' % (case_file, case_name, log_file))
-    proc = test_utils.run_cmd(cmd, log_file)
-    procs[proc] = (case_file, case_name)
+    proc = test_utils.run_cmd(cmd, log_file, env={'ports': tmp_ports})
+    procs[proc] = (case_file, case_name, tmp_ports)
 
   for proc in procs:
     try:

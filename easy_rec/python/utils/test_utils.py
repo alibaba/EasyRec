@@ -483,7 +483,7 @@ def _ports_in_use(ports):
   return stat == 0
 
 
-def _get_ports(num_worker):
+def get_ports_base(num_worker):
   port_base = int(os.environ.get('PORT_BASE', 10000))
   num_try = 10
   for i in range(num_try):
@@ -491,6 +491,19 @@ def _get_ports(num_worker):
     if not _ports_in_use(ports):
       return ports
     logging.info('ports %s in use, retry...' % ports)
+
+
+def _get_ports(num_worker):
+  # port queue to deals with port conflicts when multiple
+  # test cases run in parallel
+  if 'ports' in os.environ():
+    ports = os.environ()['ports']
+    port_arr = [int(x) for x in ports.split(',')]
+    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
+        % (ports, num_worker)
+    return port_arr[:num_worker]
+  else:
+    return get_ports_base(num_worker)
 
 
 def _ps_worker_train(pipeline_config_path,
