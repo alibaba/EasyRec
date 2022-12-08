@@ -126,7 +126,7 @@
      - subId: datahub订阅id, 每个flink sql任务需要单独创建订阅id, 否则会有冲突
      - scene: extra fields, 可选字段
 
-1. 样本Events聚合(OnlineSampleAggr):
+2. 样本Events聚合(OnlineSampleAggr):
 
    - 上传资源包: [rec-realtime-0.8-SNAPSHOT.jar](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/rec-realtime-0.8-SNAPSHOT.jar)
      ![image.png](../../images/odl_events_aggr.png)
@@ -199,7 +199,7 @@
          ]
          ```
 
-1. label生成,  目前提供三种[udf](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/label_gen.zip):
+3. label生成, 目前提供三种[python udf](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/label_gen.zip):
 
    - playtime: sum_over(events, 'playtime')
    - click:  has_event(events, 'click')
@@ -222,9 +222,56 @@
        );
      ```
 
-1. 样本join全埋点特征
+4. 样本join全埋点特征
 
    ```sql
+     create temporary table odl_sample_with_lbl(
+       `request_id`    STRING,
+       `user_id`       STRING,
+       `item_id`       STRING,
+       `ln_play_time`  DOUBLE,
+       `is_valid_play` BIGINT,
+       `min_ts`        BIGINT,
+       `max_ts`        BIGINT,
+       `ts`            AS TO_TIMESTAMP(
+             FROM_UNIXTIME(if (min_ts is not null and min_ts < UNIX_TIMESTAMP(),
+              min_ts, UNIX_TIMESTAMP()), 'yyyy-MM-dd HH:mm:ss')),
+       WATERMARK FOR `ts` AS `ts` - INTERVAL '5' SECOND
+     ) WITH (
+       'connector' = 'datahub',
+       'endPoint' = 'http://dh-cn-beijing-int-vpc.aliyuncs.com/',
+       'project' = 'easy_rec_proj',
+       'topic' = 'odl_sample_with_lbl',
+       'subId' = '165519436817538OG0',
+       'accessId' = 'LTAIxxx',
+       'accessKey' = 'xxxxxxxxx',
+       'startTime' = '2022-07-02 14:30:00'
+     );
+
+     create temporary table odl_callback_log(
+       `request_id`        STRING,
+       `request_time`      BIGINT,
+       `module`    STRING,
+       `user_id`   STRING,
+       `item_id`   STRING,
+       `scene`     STRING,
+       `generate_features` STRING,
+       `ts`              AS
+           TO_TIMESTAMP(FROM_UNIXTIME(if(request_time is not null and request_time < UNIX_TIMESTAMP(),
+                 request_time, UNIX_TIMESTAMP()), 'yyyy-MM-dd HH:mm:ss')),
+       WATERMARK FOR `ts` AS `ts` - INTERVAL '5' SECOND
+     ) WITH (
+       'connector' = 'datahub',
+       'endPoint' = 'http://dh-cn-beijing-int-vpc.aliyuncs.com/',
+       'project' = 'easy_rec_proj',
+       'topic' = 'odl_callback_log',
+       'subId' = '16567769418786B4JH',
+       'accessId' = 'LTAIxxx',
+       'accessKey' = 'xxxxxx'
+       'startTime' = '2022-07-02 14:30:00'
+     );
+
+
      create temporary view sample_view as
      select a.request_id, a.user_id, a.item_id, a.ln_play_time, a.is_valid_play, feature, b.request_time
      from  odl_sample_with_lbl a
@@ -240,6 +287,11 @@
      where a.ts between b.ts - INTERVAL '30' SECONDS  and b.ts + INTERVAL '30' MINUTE;
    ```
 
+   - create temporary table注意事项:
+     - ts作为watermark需要限制小于当前时间, 防止因为异常的timestamp导致watermark混乱
+     - temporary table可以只列举需要的字段，不必枚举所有字段
+     - datahub connector更多参数请参考[文档](https://help.aliyun.com/document_detail/177534.html)
+     - kafka connector参考[文档](https://help.aliyun.com/document_detail/177144.html)
    - odl_callback_log需要做去重, 防止因为重复调用造成样本重复
    - flink配置开启ttl(millisecond), 控制state大小:
      ```sql
@@ -258,7 +310,7 @@
        state.backend.gemini.kv.separate.value.size.threshold: '500'
      ```
 
-1. 实时样本写入Datahub / Kafka
+6. 实时样本写入Datahub / Kafka
 
    ```sql
      create temporary table odl_sample_with_fea_and_lbl(
