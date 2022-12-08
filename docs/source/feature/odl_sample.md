@@ -126,7 +126,7 @@
      - subId: datahub订阅id, 每个flink sql任务需要单独创建订阅id, 否则会有冲突
      - scene: extra fields, 可选字段
 
-2. 样本Events聚合(OnlineSampleAggr):
+1. 样本Events聚合(OnlineSampleAggr):
 
    - 上传资源包: [rec-realtime-0.8-SNAPSHOT.jar](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/rec-realtime-0.8-SNAPSHOT.jar)
      ![image.png](../../images/odl_events_aggr.png)
@@ -199,7 +199,7 @@
          ]
          ```
 
-3. label生成, 目前提供三种[python udf](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/label_gen.zip):
+1. label生成, 目前提供三种[python udf](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/label_gen.zip):
 
    - playtime: sum_over(events, 'playtime')
    - click:  has_event(events, 'click')
@@ -222,7 +222,7 @@
        );
      ```
 
-4. 样本join全埋点特征
+1. 样本join全埋点特征
 
    ```sql
      create temporary table odl_sample_with_lbl(
@@ -310,7 +310,7 @@
        state.backend.gemini.kv.separate.value.size.threshold: '500'
      ```
 
-6. 实时样本写入Datahub / Kafka
+1. 实时样本写入Datahub / Kafka
 
    ```sql
      create temporary table odl_sample_with_fea_and_lbl(

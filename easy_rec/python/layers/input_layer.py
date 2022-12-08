@@ -228,7 +228,7 @@ class InputLayer(object):
 
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
-      return concat_features, group_features
+    return concat_features, group_features
 
   def get_wide_deep_dict(self):
     """Get wide or deep indicator for feature columns.
