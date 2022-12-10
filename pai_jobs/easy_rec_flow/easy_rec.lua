@@ -128,7 +128,7 @@ function getHyperParams(config, cmd, checkpoint_path, fine_tune_checkpoint,
     checkTable(output_table)
 
     if extra_params ~= nil and extra_params ~= '' then
-      hyperParameters = hyperParameters .. extra_params
+      hyperParameters = hyperParameters .. " " .. extra_params
     end
     return hyperParameters, cluster, tables, output_table
   end
@@ -161,7 +161,7 @@ function getHyperParams(config, cmd, checkpoint_path, fine_tune_checkpoint,
       hyperParameters = hyperParameters .. ' --knn_compress_dim=' .. knn_compress_dim
     end
     if extra_params ~= nil and extra_params ~= '' then
-      hyperParameters = hyperParameters .. extra_params
+      hyperParameters = hyperParameters .. " " .. extra_params
     end
     return hyperParameters, cluster, tables, output_table
   end
@@ -258,7 +258,7 @@ function getHyperParams(config, cmd, checkpoint_path, fine_tune_checkpoint,
                                   num_gpus_per_worker)
 
   if extra_params ~= nil and extra_params ~= '' then
-    hyperParameters = hyperParameters .. extra_params
+    hyperParameters = hyperParameters .. " " .. extra_params
   end
 
   return hyperParameters, cluster, tables, output_table
