@@ -120,7 +120,7 @@ def main(argv):
       proc.kill()
 
     if proc.returncode != 0:
-      fail_file, fail_name = procs[proc]
+      fail_file, fail_name, _ = procs[proc]
       failed_cases.append((fail_file, fail_name, proc.returncode))
 
   if len(failed_cases) > 0:
