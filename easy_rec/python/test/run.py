@@ -81,7 +81,7 @@ def main(argv):
 
   max_num_port_per_proc = 3
   total_port_num = (max_num_port_per_proc + 2) * FLAGS.num_parallel
-  all_available_ports = test_utils.get_ports_base(total_port_num)
+  all_available_ports = test_utils.get_ports_base(total_port_num).tolist()
 
   procs = {}
   failed_cases = []
