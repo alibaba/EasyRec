@@ -105,7 +105,9 @@ def main(argv):
     all_available_ports = all_available_ports[max_num_port_per_proc:]
 
     logging.info('Run %s.%s Log: %s' % (case_file, case_name, log_file))
-    proc = test_utils.run_cmd(cmd, log_file, env={'ports': tmp_ports})
+    case_envs = dict(os.environ)
+    case_envs['ports'] = tmp_ports
+    proc = test_utils.run_cmd(cmd, log_file, env=case_envs)
     procs[proc] = (case_file, case_name, tmp_ports)
 
   for proc in procs:
