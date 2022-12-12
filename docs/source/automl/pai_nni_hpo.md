@@ -335,6 +335,7 @@ accuracy=0.5
 ### 一键重试失败的Trial
 
 当用户确认失败原因为没有资源，或者算法偶现失败等原因时，想采取重试策略，可以使用该API发起多个失败的Trial一起重试。在内部其实是将NNI最大运行次数增大，并发数保持不变；并且是新增了多个Trial，每个Trial的参数和之前失败的Trial保持一致。
+
 注意该功能在2.10目前有问题；需要nni\<=2.9
 
 - experiment_id: 重试的实验ID（必选）
@@ -343,11 +344,14 @@ accuracy=0.5
 
 例如：
 实验exp跑了20组，失败5组；最大运行次数为30
+
 启动第一次重试，参数为（exp,0,-1)；最大运行次数将被修改为35，此时仍有失败2组.
+
 启动第二次重试时，参数为（exp，20，-1）；最大运行次数将被修改为37， 此时全部成功；后续无需重启
 
 ```
 python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
+python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=20 --trial_end_id=-1
 ```
 
 ### 超参数分析
