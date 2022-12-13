@@ -51,16 +51,21 @@ def proc_wait(proc, timeout=1200):
 
 
 def get_tmp_dir():
-  tmp_name = ''.join(
-      [random.choice(string.ascii_letters + string.digits) for i in range(8)])
-  if os.environ.get('TEST_DIR', '') != '':
-    global TEST_DIR
-    TEST_DIR = os.environ['TEST_DIR']
-  dir_name = os.path.join(TEST_DIR, tmp_name)
-  if os.path.exists(dir_name):
-    shutil.rmtree(dir_name)
-  os.makedirs(dir_name)
-  return dir_name
+  max_retry = 5
+  while max_retry > 0:
+    tmp_name = ''.join([
+        random.choice(string.ascii_letters + string.digits) for i in range(12)
+    ])
+    if os.environ.get('TEST_DIR', '') != '':
+      global TEST_DIR
+      TEST_DIR = os.environ['TEST_DIR']
+    dir_name = os.path.join(TEST_DIR, tmp_name)
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+      return dir_name
+    else:
+      max_retry -= 1
+  raise RuntimeError('Failed to get_tmp_dir: max_retry=%d' % max_retry)
 
 
 def clear_all_tmp_dirs():
