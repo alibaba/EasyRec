@@ -496,8 +496,8 @@ def get_ports_base(num_worker):
 def _get_ports(num_worker):
   # port queue to deals with port conflicts when multiple
   # test cases run in parallel
-  if 'ports' in os.environ():
-    ports = os.environ()['ports']
+  if 'ports' in os.environ:
+    ports = os.environ['ports']
     port_arr = [int(x) for x in ports.split(',')]
     assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
         % (ports, num_worker)
