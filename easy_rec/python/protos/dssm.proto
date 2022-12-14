@@ -20,4 +20,8 @@ message DSSM {
     optional bool scale_simi = 5 [default = true];
     optional string item_id = 9;
     required bool ignore_in_batch_neg_sam = 10 [default = false];
+
+    // mask negative sampled items by hist sequence
+    //   which are actually positive ones
+    repeated string hist_seq_masks = 11;
 }

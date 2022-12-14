@@ -132,7 +132,8 @@ class InputLayer(object):
       embedding_reg_lst = []
       for fc in group_seq_columns:
         with variable_scope.variable_scope(
-            group_name + '/' + fc.categorical_column.name, reuse=tf.AUTO_REUSE):
+            group_name + '/' + fc.categorical_column.name,
+            reuse=variable_scope.AUTO_REUSE):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
           if fc.max_seq_length > 0:
             tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(

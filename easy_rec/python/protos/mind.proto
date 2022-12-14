@@ -70,9 +70,9 @@ message MIND {
 
   optional string item_id = 9;
 
-  // used if multiple sequence group are used
-  // use sequence type embedding to differentiate
-  // multiple bhv sequences such as clk, buy, ...
+  // used if multiple sequence group are used:
+  //   sequence type embedding is used to differentiate
+  //   multiple bhv sequences such as clk, buy, ...
   optional int32 seq_type_embed_dim = 10 [default=4];
 
   optional bool ignore_in_batch_neg_sam = 11 [default = false];
@@ -82,7 +82,11 @@ message MIND {
   // in experiments, setup such a loss leads to low hitrate.
   optional float max_interests_simi = 12 [default = 1.0];
 
-  // require similarities between use embeddings and
+  // require similarities between user embeddings and
   //  target items to be positive
   optional float simi_pos_reg = 13 [default=0.0];
+
+  // mask negative sampled items by hist sequence
+  //   which are actually positive ones
+  repeated string hist_seq_masks = 11;
 }
