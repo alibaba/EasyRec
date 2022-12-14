@@ -51,16 +51,21 @@ def proc_wait(proc, timeout=1200):
 
 
 def get_tmp_dir():
-  tmp_name = ''.join(
-      [random.choice(string.ascii_letters + string.digits) for i in range(8)])
-  if os.environ.get('TEST_DIR', '') != '':
-    global TEST_DIR
-    TEST_DIR = os.environ['TEST_DIR']
-  dir_name = os.path.join(TEST_DIR, tmp_name)
-  if os.path.exists(dir_name):
-    shutil.rmtree(dir_name)
-  os.makedirs(dir_name)
-  return dir_name
+  max_retry = 5
+  while max_retry > 0:
+    tmp_name = ''.join([
+        random.choice(string.ascii_letters + string.digits) for i in range(12)
+    ])
+    if os.environ.get('TEST_DIR', '') != '':
+      global TEST_DIR
+      TEST_DIR = os.environ['TEST_DIR']
+    dir_name = os.path.join(TEST_DIR, tmp_name)
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+      return dir_name
+    else:
+      max_retry -= 1
+  raise RuntimeError('Failed to get_tmp_dir: max_retry=%d' % max_retry)
 
 
 def clear_all_tmp_dirs():
@@ -483,7 +488,7 @@ def _ports_in_use(ports):
   return stat == 0
 
 
-def _get_ports(num_worker):
+def get_ports_base(num_worker):
   port_base = int(os.environ.get('PORT_BASE', 10000))
   num_try = 10
   for i in range(num_try):
@@ -491,6 +496,19 @@ def _get_ports(num_worker):
     if not _ports_in_use(ports):
       return ports
     logging.info('ports %s in use, retry...' % ports)
+
+
+def _get_ports(num_worker):
+  # port queue to deals with port conflicts when multiple
+  # test cases run in parallel
+  if 'ports' in os.environ:
+    ports = os.environ['ports']
+    port_arr = [int(x) for x in ports.split(',')]
+    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
+        % (ports, num_worker)
+    return port_arr[:num_worker]
+  else:
+    return get_ports_base(num_worker)
 
 
 def _ps_worker_train(pipeline_config_path,
