@@ -31,6 +31,12 @@ message MIND {
     CONCAT = 0;
     SUM = 1;
   }
+
+  // to support multiple sequences:
+  //   the sequences will be concatenated together
+  // if not specified, default sequence group is 'hist'
+  repeated string seq_group_names = 100;
+
   // preprocessing dnn before entering capsule layer
   optional DNN pre_capsule_dnn = 101;
 
@@ -60,14 +66,23 @@ message MIND {
 
   required float l2_regularization = 7 [default = 1e-4];
 
-  optional string time_id_fea = 8;
+  repeated string time_id_fea = 8;
 
   optional string item_id = 9;
 
-  optional bool ignore_in_batch_neg_sam = 10 [default = false];
+  // used if multiple sequence group are used
+  // use sequence type embedding to differentiate
+  // multiple bhv sequences such as clk, buy, ...
+  optional int32 seq_type_embed_dim = 10 [default=4];
+
+  optional bool ignore_in_batch_neg_sam = 11 [default = false];
 
   // if small than 1.0, then a loss will be added to
   // limit the maximal interest similarities, but
   // in experiments, setup such a loss leads to low hitrate.
-  optional float max_interests_simi = 11 [default = 1.0];
+  optional float max_interests_simi = 12 [default = 1.0];
+
+  // require similarities between use embeddings and
+  //  target items to be positive
+  optional float simi_pos_reg = 13 [default=0.0];
 }

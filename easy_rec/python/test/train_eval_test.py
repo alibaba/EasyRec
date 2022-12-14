@@ -7,11 +7,11 @@ import os
 import threading
 import time
 import unittest
+from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
-from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -471,6 +471,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_mind_with_time_id(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mind_on_taobao_with_time.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_mind_with_multi_seq(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mind_on_taobao_multi_seq.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_deepfm_with_regression(self):
