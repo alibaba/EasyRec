@@ -88,5 +88,5 @@ message MIND {
 
   // mask negative sampled items by hist sequence
   //   which are actually positive ones
-  repeated string hist_seq_masks = 11;
+  repeated string hist_seq_masks = 14;
 }

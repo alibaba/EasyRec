@@ -265,6 +265,7 @@ class MIND(MatchModel):
       self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       y_pred = self._mask_in_batch(y_pred)
+      y_pred = self._mask_hist_seq(y_pred)
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.softmax(y_pred)
     else:
