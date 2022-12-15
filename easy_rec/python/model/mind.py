@@ -111,6 +111,8 @@ class MIND(MatchModel):
       self._hist_seq_len = tf.add_n(all_hist_seq_lens)
       if len(all_time_feas) > 0:
         self._time_fea = array_ops.concat(all_time_feas, axis=1)
+      else:
+        self._time_fea = None
     return True
 
   def _combine_multi_seq(self, hist_seq_feas):
