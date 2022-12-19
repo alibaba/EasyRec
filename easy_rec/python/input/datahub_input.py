@@ -22,6 +22,7 @@ try:
   from datahub.exceptions import DatahubException
   from datahub.models import RecordType
   from datahub.models import CursorType
+  from datahub.models.shard import ShardState
   import urllib3
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
@@ -70,12 +71,14 @@ class DataHubInput(Input):
     if datahub_config:
       shard_result = self._datahub.list_shard(self._datahub_config.project,
                                               self._datahub_config.topic)
-      shards = shard_result.shards
+      shards = [x for x in shard_result.shards if x.state == ShardState.ACTIVE]
       self._all_shards = shards
       self._shards = [
           shards[i] for i in range(len(shards)) if (i % task_num) == task_index
       ]
-      logging.info('all shards: %s' % str(self._shards))
+      logging.info('all_shards[len=%d]: %s task_shards[len=%d]: %s' % (
+          len(self._all_shards), str(self._all_shards), len(self._shards),
+          str(self._shards)))
 
       offset_type = datahub_config.WhichOneof('offset')
       if offset_type == 'offset_time':
