@@ -41,9 +41,9 @@ class DBMTL(MultiTaskModel):
       self._features, _ = self._input_layer(self._feature_dict, 'all')
 
     self._bias_features_dict = {}
-    if self._mode == tf.estimator.ModeKeys.TRAIN: 
-      for task_tower_cfg in self._model_config.task_towers:
-        for bias_tower_cfg in task_tower_cfg.bias_tower:
+    for task_tower_cfg in self._model_config.task_towers:
+      for bias_tower_cfg in task_tower_cfg.bias_tower:
+        if self._mode == tf.estimator.ModeKeys.TRAIN or bias_tower_cfg.infer_with_tower:
           if bias_tower_cfg.input not in self._bias_features_dict:
             self._bias_features_dict[bias_tower_cfg.input], _ = self._input_layer(self._feature_dict, bias_tower_cfg.input)
 
@@ -128,8 +128,8 @@ class DBMTL(MultiTaskModel):
           name=tower_name + '/output')
       tf.summary.scalar(tower_name + '/output', tf.reduce_mean(output_logits))
 
-      if self._mode == tf.estimator.ModeKeys.TRAIN: 
-        for bias_tower_cfg in task_tower_cfg.bias_tower:
+      for bias_tower_cfg in task_tower_cfg.bias_tower:
+        if self._mode == tf.estimator.ModeKeys.TRAIN or bias_tower_cfg.infer_with_tower: 
           bias_dnn = dnn.DNN(
             task_tower_cfg.relation_dnn,
             self._l2_reg,

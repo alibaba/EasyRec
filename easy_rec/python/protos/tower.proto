@@ -14,6 +14,7 @@ message BiasTower {
     required string input = 1;
     required DNN dnn = 2;
     optional float bias_dropout_ratio = 3;
+    optional bool infer_with_tower = 4 [default = false];
 }
 
 
