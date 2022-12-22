@@ -76,9 +76,9 @@ class DataHubInput(Input):
       self._shards = [
           shards[i] for i in range(len(shards)) if (i % task_num) == task_index
       ]
-      logging.info('all_shards[len=%d]: %s task_shards[len=%d]: %s' % (
-          len(self._all_shards), str(self._all_shards), len(self._shards),
-          str(self._shards)))
+      logging.info('all_shards[len=%d]: %s task_shards[len=%d]: %s' %
+                   (len(self._all_shards), str(
+                       self._all_shards), len(self._shards), str(self._shards)))
 
       offset_type = datahub_config.WhichOneof('offset')
       if offset_type == 'offset_time':

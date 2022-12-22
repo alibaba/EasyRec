@@ -89,6 +89,8 @@ class MatchModel(EasyRecModel):
           batch_hists[batch_id][value] = 1
         for batch_idx in range(batch_size):
           for item_idx, item_id in enumerate(item_ids):
+            if batch_idx == item_idx:
+              continue
             if item_id in batch_hists[batch_idx]:
               mask[batch_idx][item_idx] = 1
         return mask

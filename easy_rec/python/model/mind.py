@@ -56,7 +56,7 @@ class MIND(MatchModel):
     mind_seq_groups = list(self._model_config.seq_group_names)
     if len(mind_seq_groups) <= 1:
       group_name = 'hist' if len(self._model_config.seq_group_names) == 0 else \
-          self._model_config.seq_group_names[1]
+          self._model_config.seq_group_names[0]
       hist_seq_feas = self._input_layer(
           self._feature_dict, group_name, is_combine=False)
       self._hist_seq_len = hist_seq_feas[0][1]
