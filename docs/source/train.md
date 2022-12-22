@@ -163,8 +163,15 @@ python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmo
 - --continue_train: restore之前的checkpoint，继续训练
 - --model_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - --edit_config_json: 使用json的方式对config的一些字段进行修改，如:
-  ```sql
-  --edit_config_json='{"train_config.fine_tune_checkpoint": "oss://easyrec/model.ckpt-50"}'
+  ```bash
+  --edit_config_json='{"train_config.fine_tune_checkpoint": "experiments/ctr/model.ckpt-50"}'
+  ```
+- Extend Args: 命令行参数修改config, 类似edit_config_json
+  - 支持train_config.*, eval_config.*, data_config.*, feature_config.*
+  - 示例:
+  ```bash
+  --train_config.fine_tune_checkpoint=experiments/ctr/model.ckpt-50
+  --data_config.negative_sampler.input_path=data/test/tb_data/taobao_ad_feature_gl
   ```
 
 ### On PAI

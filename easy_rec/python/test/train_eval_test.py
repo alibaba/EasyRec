@@ -923,6 +923,23 @@ class TrainEvalTest(tf.test.TestCase):
         post_check_func=_post_check_config,
         extra_cmd_args='--model_config.deepfm.wide_output_dim=1')
 
+  def test_cmd_config_param_v3(self):
+
+    def _post_check_config(pipeline_config):
+      train_saved_config_path = os.path.join(self._test_dir,
+                                             'train/pipeline.config')
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+          train_saved_config_path)
+      assert pipeline_config.model_config.deepfm.wide_output_dim == 3,\
+          'invalid model_config.deepfm.wide_output_dim=%d' % \
+          pipeline_config.model_config.deepfm.wide_output_dim
+
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=_post_check_config,
+        extra_cmd_args='--model_config.deepfm.wide_output_dim="3"')
+
   def test_distribute_eval_deepfm_multi_cls(self):
     cur_eval_path = 'data/test/distribute_eval_test/deepfm_distribute_eval_dwd_avazu_out_multi_cls'
     self._success = test_utils.test_distributed_eval(

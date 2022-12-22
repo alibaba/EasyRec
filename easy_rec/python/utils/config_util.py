@@ -581,10 +581,11 @@ def parse_extra_config_param(extra_args, edit_config_json):
         sep_pos = tmp_arg.find('=')
         k = tmp_arg[:sep_pos]
         v = tmp_arg[(sep_pos + 1):]
+        v = v.strip(' "\'')
         edit_config_json[k] = v
         arg_id += 1
       elif arg_id + 1 < len(extra_args):
-        edit_config_json[tmp_arg] = extra_args[arg_id + 1]
+        edit_config_json[tmp_arg] = extra_args[arg_id + 1].strip(' "\'')
         arg_id += 2
       else:
         logging.error('missing value for arg: %s' % extra_args[arg_id])
