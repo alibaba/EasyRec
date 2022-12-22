@@ -4,7 +4,6 @@ import argparse
 import json
 import logging
 import os
-import sys
 
 import tensorflow as tf
 from tensorflow.python.platform import gfile
@@ -97,27 +96,9 @@ if __name__ == '__main__':
   edit_config_json = {}
   if args.edit_config_json:
     edit_config_json = json.loads(edit_config_json)
-  for i in range(len(extra_args)):
-    if extra_args[i].startswith('--data_config.') or    \
-       extra_args[i].startswith('--train_config.') or   \
-       extra_args[i].startswith('--feature_config.') or \
-       extra_args[i].startswith('--model_config.') or   \
-       extra_args[i].startswith('--export_config.') or  \
-       extra_args[i].startswith('--eval_config.'):
-      tmp_arg = extra_args[i][2:]
-      if '=' in tmp_arg:
-        sep_pos = tmp_arg.find('=')
-        k = tmp_arg[:sep_pos]
-        v = tmp_arg[(sep_pos + 1):]
-        edit_config_json[k] = v
-      elif i + 1 < len(extra_args):
-        edit_config_json[tmp_arg] = extra_args[i + 1]
-      else:
-        logging.error('missing value for arg: %s' % extra_args[i])
-        sys.exit(1)
-    else:
-      logging.error('unknown args: %s' % extra_args[i])
-      sys.exit(1)
+
+  if extra_args is not None and len(extra_args) > 0:
+    config_util.parse_extra_config_param(extra_args, edit_config_json)
 
   if args.pipeline_config_path is not None:
     pipeline_config = config_util.get_configs_from_pipeline_file(

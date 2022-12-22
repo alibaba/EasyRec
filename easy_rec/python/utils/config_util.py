@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import sys
 
 import numpy as np
 import six
@@ -563,3 +564,31 @@ def process_neg_sampler_data_path(pipeline_config):
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
     sampler_config.hard_neg_edge_input_path = process_data_path(
         sampler_config.hard_neg_edge_input_path, hive_util)
+
+
+def parse_extra_config_param(extra_args, edit_config_json):
+  arg_num = len(extra_args)
+  arg_id = 0
+  while arg_id < arg_num:
+    if extra_args[arg_id].startswith('--data_config.') or    \
+       extra_args[arg_id].startswith('--train_config.') or   \
+       extra_args[arg_id].startswith('--feature_config.') or \
+       extra_args[arg_id].startswith('--model_config.') or   \
+       extra_args[arg_id].startswith('--export_config.') or  \
+       extra_args[arg_id].startswith('--eval_config.'):
+      tmp_arg = extra_args[arg_id][2:]
+      if '=' in tmp_arg:
+        sep_pos = tmp_arg.find('=')
+        k = tmp_arg[:sep_pos]
+        v = tmp_arg[(sep_pos + 1):]
+        edit_config_json[k] = v
+        arg_id += 1
+      elif arg_id + 1 < len(extra_args):
+        edit_config_json[tmp_arg] = extra_args[arg_id + 1]
+        arg_id += 2
+      else:
+        logging.error('missing value for arg: %s' % extra_args[arg_id])
+        sys.exit(1)
+    else:
+      logging.error('unknown args: %s' % extra_args[arg_id])
+      sys.exit(1)
