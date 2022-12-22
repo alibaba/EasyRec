@@ -21,6 +21,7 @@ from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
+from easy_rec.python.compat import sync_replicas_optimizer
 from easy_rec.python.compat.early_stopping import custom_early_stop_hook
 from easy_rec.python.compat.early_stopping import deadline_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
@@ -210,7 +211,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         }
       else:
         extra_args = {}
-      optimizer = tf.train.SyncReplicasOptimizer(
+      optimizer = sync_replicas_optimizer.SyncReplicasOptimizer(
           optimizer,
           replicas_to_aggregate=run_config.num_worker_replicas,
           total_num_replicas=run_config.num_worker_replicas,
