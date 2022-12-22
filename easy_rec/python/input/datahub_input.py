@@ -22,6 +22,7 @@ try:
   from datahub.exceptions import DatahubException
   from datahub.models import RecordType
   from datahub.models import CursorType
+  from datahub.models.shard import ShardState
   import urllib3
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
@@ -70,12 +71,14 @@ class DataHubInput(Input):
     if datahub_config:
       shard_result = self._datahub.list_shard(self._datahub_config.project,
                                               self._datahub_config.topic)
-      shards = shard_result.shards
+      shards = [x for x in shard_result.shards if x.state == ShardState.ACTIVE]
       self._all_shards = shards
       self._shards = [
           shards[i] for i in range(len(shards)) if (i % task_num) == task_index
       ]
-      logging.info('all shards: %s' % str(self._shards))
+      logging.info('all_shards[len=%d]: %s task_shards[len=%d]: %s' %
+                   (len(self._all_shards), str(
+                       self._all_shards), len(self._shards), str(self._shards)))
 
       offset_type = datahub_config.WhichOneof('offset')
       if offset_type == 'offset_time':
@@ -121,6 +124,7 @@ class DataHubInput(Input):
         assert x in self._dh_field_names, 'sample_weight[%s] is not in datahub' % x
 
       self._read_cnt = 32
+      self._max_retry = 8
 
       if len(self._dh_fea_ids) > 1:
         self._filter_fea_func = lambda record: ''.join(
@@ -247,9 +251,24 @@ class DataHubInput(Input):
         else:
           cursor = self._offset_dict[shard_id]
 
-        get_result = self._datahub.get_tuple_records(
-            self._datahub_config.project, self._datahub_config.topic, shard_id,
-            record_schema, cursor, self._read_cnt)
+        max_retry = self._max_retry
+        get_result = None
+        while max_retry > 0:
+          try:
+            get_result = self._datahub.get_tuple_records(
+                self._datahub_config.project, self._datahub_config.topic,
+                shard_id, record_schema, cursor, self._read_cnt)
+          except Exception as ex:
+            logging.warning(
+                'get_tuple_records exception: shard_id=%s cursor=%s read_cnt=%d exception:%s traceback:%s'
+                % (shard_id, cursor, self._read_cnt, str(ex),
+                   traceback.format_exc()))
+          max_retry -= 1
+        if get_result is None:
+          logging.error('failed to get_tuple_records after max_retry=%d' %
+                        self._max_retry)
+          raise RuntimeError('failed to get_tuple_records after max_retry=%d' %
+                             self._max_retry)
         count = get_result.record_count
         if count == 0:
           continue

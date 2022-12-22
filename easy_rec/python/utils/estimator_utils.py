@@ -348,7 +348,13 @@ class CheckpointSaverHook(CheckpointSaverHook):
       logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
 
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
-      self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids()
+      norm_name_to_ids = embedding_utils.get_norm_name_to_ids()
+      self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids(
+          norm_name_to_ids)
+      embed_name_to_id_file = os.path.join(checkpoint_dir,
+                                           constant.EMBED_NAME_TO_IDS_FILE)
+      embedding_utils.save_norm_name_to_ids(embed_name_to_id_file,
+                                            norm_name_to_ids)
 
       with gfile.GFile(
           os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES),
@@ -549,6 +555,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
           tmp_key += tmp_var._save_slice_info.var_offset[0]
+      if tmp_key.dtype in [np.int32, np.uint32]:
+        tmp_key = np.array(tmp_key, dtype=np.int64)
       bytes_buf += tmp_key.tobytes()
       bytes_buf += tmp_val.tobytes()
     if self._kafka_producer is not None:
@@ -895,7 +903,7 @@ def latest_checkpoint(model_dir):
     model_path: xx/model.ckpt-2000
   """
   try:
-    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.meta'))
+    ckpt_metas = gfile.Glob(os.path.join(model_dir, 'model.ckpt-*.index'))
 
     if len(ckpt_metas) == 0:
       return None

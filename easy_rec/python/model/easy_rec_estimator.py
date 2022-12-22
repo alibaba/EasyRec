@@ -174,6 +174,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
+          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
@@ -398,16 +399,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))
       # saver hook
-      saver_hook = estimator_utils.CheckpointSaverHook(
-          checkpoint_dir=self.model_dir,
-          save_secs=self._config.save_checkpoints_secs,
-          save_steps=self._config.save_checkpoints_steps,
-          scaffold=scaffold,
-          write_graph=self.train_config.write_graph,
-          data_offset_var=data_offset_var,
-          increment_save_config=self.incr_save_config)
       chief_hooks = []
       if estimator_utils.is_chief():
+        saver_hook = estimator_utils.CheckpointSaverHook(
+            checkpoint_dir=self.model_dir,
+            save_secs=self._config.save_checkpoints_secs,
+            save_steps=self._config.save_checkpoints_steps,
+            scaffold=scaffold,
+            write_graph=self.train_config.write_graph,
+            data_offset_var=data_offset_var,
+            increment_save_config=self.incr_save_config)
         hooks.append(saver_hook)
 
     # profiling hook
@@ -557,6 +558,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
           assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 all_vars[var_name])
+      logging.info('dense train vars num=%d' % len(all_vars))
+    elif self.train_config.HasField('incr_save_config'):
+      logging.warning('dense_train_var_path does not exist: %s' %
+                      dense_train_var_path)
 
     # add more asset files
     if len(export_config.asset_files) > 0:
