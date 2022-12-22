@@ -97,12 +97,17 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_deepfm_with_param_edit(self):
+    model_dir = os.path.join(self._test_dir, 'train_new')
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
         self._test_dir,
-        hyperparam_str='{"model_dir":"experiments/deepfm_multi_cls_on_avazu_ctr", '
-        '"model_config.deepfm.wide_output_dim": 32}')
+        hyperparam_str='{"model_dir":"%s", '
+        '"model_config.deepfm.wide_output_dim": 32}' % model_dir)
     self.assertTrue(self._success)
+    config_path = os.path.join(model_dir, 'pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(config_path)
+    self.assertTrue(pipeline_config.model_dir == model_dir)
+    self.assertTrue(pipeline_config.model_config.deepfm.wide_output_dim == 32)
 
   def test_multi_tower(self):
     self._success = test_utils.test_single_train_eval(

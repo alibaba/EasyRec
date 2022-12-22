@@ -36,7 +36,7 @@ if __name__ == '__main__':
       help='Path to pipeline config file.')
   parser.add_argument(
       '--continue_train',
-      type=bool,
+      action='store_true',
       default=False,
       help='continue train using existing model_dir')
   parser.add_argument(
@@ -80,22 +80,26 @@ if __name__ == '__main__':
       '"feature_config.feature[0].boundaries":[4,5,6,7]}')
   parser.add_argument(
       '--ignore_finetune_ckpt_error',
-      type=bool,
+      action='store_true',
       default=False,
       help='During incremental training, ignore the problem of missing fine_tune_checkpoint files'
   )
   parser.add_argument(
       '--odps_config', type=str, default=None, help='odps config path')
-  parser.add_argument('--is_on_ds', type=bool, default=False, help='is on ds')
   parser.add_argument(
-      '--check_mode', type=bool, default=False, help='is use check mode')
+      '--is_on_ds', action='store_true', default=False, help='is on ds')
+  parser.add_argument(
+      '--check_mode',
+      action='store_true',
+      default=False,
+      help='is use check mode')
   parser.add_argument(
       '--selected_cols', type=str, default=None, help='select input columns')
   args, extra_args = parser.parse_known_args()
 
   edit_config_json = {}
   if args.edit_config_json:
-    edit_config_json = json.loads(edit_config_json)
+    edit_config_json = json.loads(args.edit_config_json)
 
   if extra_args is not None and len(extra_args) > 0:
     config_util.parse_extra_config_param(extra_args, edit_config_json)

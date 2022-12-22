@@ -272,8 +272,9 @@ def test_single_train_eval(pipeline_config_path,
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-      test_pipeline_config_path, hyperparam_str)
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path=' + test_pipeline_config_path
+  if hyperparam_str:
+    train_cmd += ' --edit_config_json=\'%s\'' % hyperparam_str
   if fine_tune_checkpoint:
     train_cmd += ' --fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
