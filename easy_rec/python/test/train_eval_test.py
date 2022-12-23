@@ -141,7 +141,7 @@ class TrainEvalTest(tf.test.TestCase):
     # ensure interval is 20s
     self.assertAllClose(
         ckpts_times[1:] - ckpts_times[:-1], [20] * (len(ckpts_times) - 1),
-        atol=8)
+        atol=16)
     self.assertTrue(self._success)
 
   def test_keep_ckpt_max(self):
