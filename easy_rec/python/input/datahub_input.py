@@ -3,6 +3,7 @@
 import json
 import logging
 import traceback
+import datetime
 
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
@@ -123,8 +124,14 @@ class DataHubInput(Input):
         x = self._data_config.sample_weight
         assert x in self._dh_field_names, 'sample_weight[%s] is not in datahub' % x
 
-      self._read_cnt = 32
+      self._read_cnt = 512
+      self._log_every_cnts =  self._data_config.batch_size * 16
       self._max_retry = 8
+
+      # record shard read cnt
+      self._shard_read_cnt = {}
+      self._shard_cursor_seq = {}
+      self._last_log_cnt = {}
 
       if len(self._dh_fea_ids) > 1:
         self._filter_fea_func = lambda record: ''.join(
@@ -270,6 +277,8 @@ class DataHubInput(Input):
           raise RuntimeError('failed to get_tuple_records after max_retry=%d' %
                              self._max_retry)
         count = get_result.record_count
+        logging.info('shard[%s] cursor=%s sequence=%d count=%d' % (shard_id, cursor, get_result.start_seq, count))
+        self._shard_cursor_seq[shard_id] = get_result.start_seq + count
         if count == 0:
           continue
         for row_id, record in enumerate(get_result.records):
@@ -286,8 +295,37 @@ class DataHubInput(Input):
         if shard_id not in self._offset_dict or get_result.next_cursor > self._offset_dict[
             shard_id]:
           self._offset_dict[shard_id] = get_result.next_cursor
+        self._update_counter(shard_id, count)
     except DatahubException as ex:
       logging.error('DatahubException: %s' % str(ex))
+
+  def _update_counter(self, shard_id, count):
+    if count == 0:
+      return
+    if shard_id not in self._shard_read_cnt:
+      self._shard_read_cnt[shard_id] = count
+      self._log_shard(shard_id)
+    else:
+      self._shard_read_cnt[shard_id] += count
+      tmp_cnt = self._last_log_cnt.get(shard_id, 0)
+      if self._shard_read_cnt[shard_id] - tmp_cnt > self._log_every_cnts:
+        self._log_shard(shard_id)
+        self._last_log_cnt[shard_id] = self._shard_read_cnt[shard_id]
+
+  def _log_shard(self, shard_id):
+    if shard_id not in self._shard_cursor_seq:
+      return
+    tmp_seq = self._shard_cursor_seq[shard_id]
+    if tmp_seq < 0:
+      return
+    cursor_result = self._datahub.get_cursor(self._datahub_config.project,
+                                           self._datahub_config.topic,
+                                           shard_id, CursorType.SEQUENCE, 
+                                           param=tmp_seq)
+    ts = cursor_result.record_time / 1000.0
+    ts_s = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info("shard[%s]: cursor=%s sequence=%d ts=%.3f datetime=%s" % (shard_id, cursor_result.cursor,
+        tmp_seq, ts, ts_s))
 
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN:

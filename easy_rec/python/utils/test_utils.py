@@ -204,13 +204,13 @@ def test_datahub_train_eval(pipeline_config_path,
 
   pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id
   pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
-  pipeline_config.datahub_train_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_train_input.endpoint = odps_oss_config.dh_endpoint
   pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
   pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
 
   pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id
   pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
-  pipeline_config.datahub_eval_input.region = odps_oss_config.dh_endpoint
+  pipeline_config.datahub_eval_input.endpoint = odps_oss_config.dh_endpoint
   pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
   pipeline_config.datahub_eval_input.topic = odps_oss_config.dh_topic
 

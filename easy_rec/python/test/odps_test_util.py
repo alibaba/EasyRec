@@ -71,7 +71,6 @@ class OdpsOSSConfig:
     self.odps_endpoint = ''
 
     self.dh = None
-    self.odps = None
 
     # default to algo_public
     self.algo_project = None
@@ -115,11 +114,11 @@ class OdpsOSSConfig:
 
   def clean_topic(self, dh_project):
     if not dh_project:
-      logging.error('project is empty .')
-      topic_names = self.dh.list_topic(dh_project).topic_names
-      for topic_name in topic_names:
-        self.clean_subscription(topic_name)
-        self.dh.delete_topic(dh_project, topic_name)
+      return 
+    topic_names = self.dh.list_topic(dh_project).topic_names
+    for topic_name in topic_names:
+      self.clean_subscription(topic_name)
+      self.dh.delete_topic(dh_project, topic_name)
 
   def clean_project(self):
     project_names = self.dh.list_project().project_names
@@ -149,15 +148,9 @@ class OdpsOSSConfig:
 
     return DhDict.get(input_type)
 
-  def init_dh_and_odps(self):
+  def init_datahub(self):
     self.dh = DataHub(self.dh_id, self.dh_key, self.dh_endpoint)
-    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name,
-                     self.odps_endpoint)
-    self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
-    read_odps = DataFrame(self.odps.get_table(self.odpsTable))
-    col_name = read_odps.schema.names
-    col_type = [self.get_input_type(str(i)) for i in read_odps.schema.types]
     try:
       self.dh.create_project(self.dh_project, comment='EasyRecTest')
       logging.info('create project success!')
@@ -165,22 +158,25 @@ class OdpsOSSConfig:
       logging.warning('project %s already exist!' % self.dh_project)
     except Exception:
       logging.error(traceback.format_exc())
-    record_schema = RecordSchema.from_lists(col_name, col_type)
+    col_names = ['label', 'features']
+    col_types = ['INT32', 'STRING'] 
+    col_types = [self.get_input_type(x) for x in col_types]
+    record_schema = RecordSchema.from_lists(col_names, col_types)
     try:
+      if self.dh_topic in self.dh.list_topic(self.dh_project).topic_names:
+        self.dh.delete_topic(self.dh_project, self.dh_topic)
       # project_name, topic_name, shard_count, life_cycle, record_schema, comment
       self.dh.create_tuple_topic(
-          self.dh_project,
-          self.dh_topic,
-          7,
-          3,
-          record_schema,
+          project_name=self.dh_project,
+          topic_name=self.dh_topic,
+          shard_count=2, life_cycle=1,
+          record_schema=record_schema,
           comment='EasyRecTest')
-      logging.info('create tuple topic %s success!' % self.dh_topic)
+      logging.info('create tuple topic %s succeed' % self.dh_topic)
     except ResourceExistException:
-      logging.info('topic %s already exist!' % self.dh_topic)
+      logging.error('create topic %s failed: %s' % (self.dh_topic, traceback.format_exc()))
     except Exception as ex:
-      logging.error('exception:%s' % str(ex))
-      logging.error(traceback.format_exc())
+      logging.error('exception: %s %s' % (str(ex), traceback.format_exc()))
     try:
       self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
       logging.info('datahub[%s,%s] shards all ready' %
@@ -189,14 +185,22 @@ class OdpsOSSConfig:
       if topic_result.record_type != RecordType.TUPLE:
         logging.error('invalid topic type: %s' % str(topic_result.record_type))
       record_schema = topic_result.record_schema
-      t = self.odps.get_table(self.odpsTable)
-      with t.open_reader() as reader:
+
+      with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
         record_list = []
-        for data in reader:
-          record = TupleRecord(values=data.values, schema=record_schema)
+        total_cnt = 0
+        for line_str in fin:
+          line_str = line_str.strip()
+          sep_pos = line_str.find(',')
+          label = int(line_str[:sep_pos])
+          feature = line_str[(sep_pos+1):]
+          record = TupleRecord(values=[label, feature], schema=record_schema)
           record_list.append(record)
-        for i in range(10):
-          self.dh.put_records(self.dh_project, self.dh_topic, record_list)
+          if len(record_list) >= 8192:
+            self.dh.put_records(self.dh_project, self.dh_topic, record_list)
+            total_cnt += len(record_list)
+            if total_cnt > 8192 * 64:
+              break
     except Exception as ex:
       logging.error('exception: %s' % str(ex))
       logging.error(traceback.format_exc())
