@@ -97,12 +97,17 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_deepfm_with_param_edit(self):
+    model_dir = os.path.join(self._test_dir, 'train_new')
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
         self._test_dir,
-        hyperparam_str='{"model_dir":"experiments/deepfm_multi_cls_on_avazu_ctr", '
-        '"model_config.deepfm.wide_output_dim": 32}')
+        hyperparam_str='{"model_dir":"%s", '
+        '"model_config.deepfm.wide_output_dim": 32}' % model_dir)
     self.assertTrue(self._success)
+    config_path = os.path.join(model_dir, 'pipeline.config')
+    pipeline_config = config_util.get_configs_from_pipeline_file(config_path)
+    self.assertTrue(pipeline_config.model_dir == model_dir)
+    self.assertTrue(pipeline_config.model_config.deepfm.wide_output_dim == 32)
 
   def test_multi_tower(self):
     self._success = test_utils.test_single_train_eval(
@@ -136,7 +141,7 @@ class TrainEvalTest(tf.test.TestCase):
     # ensure interval is 20s
     self.assertAllClose(
         ckpts_times[1:] - ckpts_times[:-1], [20] * (len(ckpts_times) - 1),
-        atol=8)
+        atol=16)
     self.assertTrue(self._success)
 
   def test_keep_ckpt_max(self):
@@ -888,6 +893,57 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/din_on_gzip_data.config', self._test_dir)
     self.assertTrue(self._success)
+
+  def test_cmd_config_param(self):
+
+    def _post_check_config(pipeline_config):
+      train_saved_config_path = os.path.join(self._test_dir,
+                                             'train/pipeline.config')
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+          train_saved_config_path)
+      assert pipeline_config.model_config.deepfm.wide_output_dim == 8,\
+          'invalid model_config.deepfm.wide_output_dim=%d' % \
+          pipeline_config.model_config.deepfm.wide_output_dim
+
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=_post_check_config,
+        extra_cmd_args='--model_config.deepfm.wide_output_dim 8')
+
+  def test_cmd_config_param_v2(self):
+
+    def _post_check_config(pipeline_config):
+      train_saved_config_path = os.path.join(self._test_dir,
+                                             'train/pipeline.config')
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+          train_saved_config_path)
+      assert pipeline_config.model_config.deepfm.wide_output_dim == 1,\
+          'invalid model_config.deepfm.wide_output_dim=%d' % \
+          pipeline_config.model_config.deepfm.wide_output_dim
+
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=_post_check_config,
+        extra_cmd_args='--model_config.deepfm.wide_output_dim=1')
+
+  def test_cmd_config_param_v3(self):
+
+    def _post_check_config(pipeline_config):
+      train_saved_config_path = os.path.join(self._test_dir,
+                                             'train/pipeline.config')
+      pipeline_config = config_util.get_configs_from_pipeline_file(
+          train_saved_config_path)
+      assert pipeline_config.model_config.deepfm.wide_output_dim == 3,\
+          'invalid model_config.deepfm.wide_output_dim=%d' % \
+          pipeline_config.model_config.deepfm.wide_output_dim
+
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
+        self._test_dir,
+        post_check_func=_post_check_config,
+        extra_cmd_args='--model_config.deepfm.wide_output_dim="3"')
 
   def test_distribute_eval_deepfm_multi_cls(self):
     cur_eval_path = 'data/test/distribute_eval_test/deepfm_distribute_eval_dwd_avazu_out_multi_cls'

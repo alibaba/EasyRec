@@ -160,7 +160,7 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
 
   train_config.num_steps = total_steps
   # change model_dir
-  pipeline_config.model_dir = test_dir + '/train'
+  pipeline_config.model_dir = os.path.join(test_dir, 'train')
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
   data_config.num_epochs = 0
@@ -245,6 +245,7 @@ def test_single_train_eval(pipeline_config_path,
                            post_check_func=None,
                            check_mode=False,
                            fine_tune_checkpoint=None,
+                           extra_cmd_args=None,
                            timeout=-1):
   gpus = get_available_gpus()
   if len(gpus) > 0:
@@ -271,12 +272,16 @@ def test_single_train_eval(pipeline_config_path,
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-      test_pipeline_config_path, hyperparam_str)
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path=' + test_pipeline_config_path
+  if hyperparam_str:
+    train_cmd += ' --edit_config_json=\'%s\'' % hyperparam_str
   if fine_tune_checkpoint:
-    train_cmd += '--fine_tune_checkpoint %s' % fine_tune_checkpoint
+    train_cmd += ' --fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
-    train_cmd += '--check_mode'
+    train_cmd += ' --check_mode'
+  if extra_cmd_args:
+    train_cmd += ' '
+    train_cmd += extra_cmd_args
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT if timeout < 0 else timeout)
   if proc.returncode != 0:
