@@ -155,15 +155,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     if Input.DATA_OFFSET in features:
       task_index, task_num = estimator_utils.get_task_index_and_num()
+      if self._pipeline_config.data_config.chief_redundant and task_num > 1:
+        task_index -= 1
+        task_num -= 1
       data_offset_var = tf.get_variable(
           name=Input.DATA_OFFSET,
           dtype=tf.string,
           shape=[task_num],
           collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
           trainable=False)
-      update_offset = tf.assign(data_offset_var[task_index],
-                                features[Input.DATA_OFFSET])
-      ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
+      if task_index >= 0:
+        update_offset = tf.assign(data_offset_var[task_index],
+                                  features[Input.DATA_OFFSET])
+        ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
     else:
       data_offset_var = None
 
@@ -365,8 +369,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
 
-      # exclude data_offset_var
-      var_list = [x for x in var_list if x != data_offset_var]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)

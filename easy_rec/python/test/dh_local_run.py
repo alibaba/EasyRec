@@ -6,11 +6,9 @@ import sys
 
 import tensorflow as tf
 
-from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import change_files
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig
-from easy_rec.python.test.odps_test_util import delete_oss_path
-from easy_rec.python.test.odps_test_util import get_oss_bucket
+from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
 
 logging.basicConfig(
@@ -18,6 +16,7 @@ logging.basicConfig(
 
 DATAHUB_TEST_SCRIPT_PATH = './samples/dh_script'
 odps_oss_config = OdpsOSSConfig(script_path=DATAHUB_TEST_SCRIPT_PATH)
+
 
 class TestPipelineOnEmr(tf.test.TestCase):
   """Train eval test on emr."""
@@ -32,34 +31,44 @@ class TestPipelineOnEmr(tf.test.TestCase):
     if self._success:
       shutil.rmtree(self._test_dir)
 
+  def _load_config_for_test(self, config_path, total_steps=50):
+    pipeline_config = config_util.get_configs_from_pipeline_file(config_path)
+    pipeline_config.train_config.train_distribute = 0
+    pipeline_config.train_config.sync_replicas = False
+
+    pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id
+    pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
+    pipeline_config.datahub_train_input.endpoint = odps_oss_config.dh_endpoint
+    pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
+    pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
+
+    pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id
+    pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
+    pipeline_config.datahub_eval_input.endpoint = odps_oss_config.dh_endpoint
+    pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
+    pipeline_config.datahub_eval_input.topic = odps_oss_config.dh_topic
+    return pipeline_config
+
   def test_datahub_train_eval(self):
-    test_utils.test_datahub_train_eval(
-        '%s/configs/deepfm.config' % odps_oss_config.temp_dir, odps_oss_config,
-        self._test_dir, total_steps=10)
-    self._success = False
-    # self.assertTrue(self._success)
+    config_path = 'samples/dh_script/configs/deepfm.config'
+    pipeline_config = self._load_config_for_test(config_path)
+    test_utils.test_single_train_eval(
+        pipeline_config, self._test_dir, total_steps=10)
+    self.assertTrue(self._success)
+
+  def test_distributed_datahub_train_eval(self):
+    config_path = 'samples/dh_script/configs/deepfm.config'
+    pipeline_config = self._load_config_for_test(config_path)
+    pipeline_config.data_config.chief_redundant = True
+    test_utils.test_distributed_train_eval(
+        pipeline_config, self._test_dir, total_steps=10)
+    self.assertTrue(self._success)
 
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--odps_config', type=str, default=None, help='odps config path')
-  parser.add_argument(
-      '--oss_config', type=str, default=None, help='ossutilconfig path')
-  parser.add_argument(
-      '--bucket_name', type=str, default=None, help='test oss bucket name')
-  # parser.add_argument('--arn', type=str, default=None, help='oss rolearn')
-  parser.add_argument(
-      '--odpscmd', type=str, default='odpscmd', help='odpscmd path')
-  parser.add_argument(
-      '--algo_project', type=str, default=None, help='algo project name')
-  parser.add_argument(
-      '--algo_res_project',
-      type=str,
-      default=None,
-      help='algo resource project name')
-  parser.add_argument(
-      '--algo_version', type=str, default=None, help='algo version')
   args, unknown_args = parser.parse_known_args()
 
   sys.argv = [sys.argv[0]]
@@ -71,7 +80,7 @@ if __name__ == '__main__':
   os.environ['ODPS_CONFIG_FILE_PATH'] = args.odps_config
 
   shutil.copytree(DATAHUB_TEST_SCRIPT_PATH, odps_oss_config.temp_dir)
-  logging.info("temp_dir=%s" % odps_oss_config.temp_dir)
+  logging.info('temp_dir=%s' % odps_oss_config.temp_dir)
   for root, dirs, files in os.walk(odps_oss_config.temp_dir):
     for file in files:
       file_path = os.path.join(root, file)

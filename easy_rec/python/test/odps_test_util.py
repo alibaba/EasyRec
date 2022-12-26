@@ -114,7 +114,7 @@ class OdpsOSSConfig:
 
   def clean_topic(self, dh_project):
     if not dh_project:
-      return 
+      return
     topic_names = self.dh.list_topic(dh_project).topic_names
     for topic_name in topic_names:
       self.clean_subscription(topic_name)
@@ -159,7 +159,7 @@ class OdpsOSSConfig:
     except Exception:
       logging.error(traceback.format_exc())
     col_names = ['label', 'features']
-    col_types = ['INT32', 'STRING'] 
+    col_types = ['INT32', 'STRING']
     col_types = [self.get_input_type(x) for x in col_types]
     record_schema = RecordSchema.from_lists(col_names, col_types)
     try:
@@ -169,12 +169,14 @@ class OdpsOSSConfig:
       self.dh.create_tuple_topic(
           project_name=self.dh_project,
           topic_name=self.dh_topic,
-          shard_count=2, life_cycle=1,
+          shard_count=2,
+          life_cycle=1,
           record_schema=record_schema,
           comment='EasyRecTest')
       logging.info('create tuple topic %s succeed' % self.dh_topic)
     except ResourceExistException:
-      logging.error('create topic %s failed: %s' % (self.dh_topic, traceback.format_exc()))
+      logging.error('create topic %s failed: %s' %
+                    (self.dh_topic, traceback.format_exc()))
     except Exception as ex:
       logging.error('exception: %s %s' % (str(ex), traceback.format_exc()))
     try:
@@ -193,7 +195,7 @@ class OdpsOSSConfig:
           line_str = line_str.strip()
           sep_pos = line_str.find(',')
           label = int(line_str[:sep_pos])
-          feature = line_str[(sep_pos+1):]
+          feature = line_str[(sep_pos + 1):]
           record = TupleRecord(values=[label, feature], schema=record_schema)
           record_list.append(record)
           if len(record_list) >= 8192:
