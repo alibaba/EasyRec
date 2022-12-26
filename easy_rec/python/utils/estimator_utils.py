@@ -962,6 +962,17 @@ def is_chief():
   return True
 
 
+def is_first_worker():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'worker' in tf_config['cluster']:
+      return tf_config['task']['type'] == 'worker' and tf_config['task'][
+          'index'] == 0
+    else:
+      return tf_config['task']['type'] in ['chief', 'master']
+  return True
+
+
 def is_master():
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])

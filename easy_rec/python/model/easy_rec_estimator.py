@@ -414,7 +414,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         hooks.append(saver_hook)
 
     # profiling hook
-    if self.train_config.is_profiling and estimator_utils.is_chief():
+    if self.train_config.is_profiling and estimator_utils.is_first_worker():
       profile_hook = tf.train.ProfilerHook(
           save_steps=log_step_count_steps, output_dir=self.model_dir)
       hooks.append(profile_hook)
