@@ -5,6 +5,7 @@ import json
 import logging
 import queue
 import threading
+import time
 import traceback
 
 import tensorflow as tf
@@ -345,6 +346,8 @@ class DataHubInput(Input):
                   self._max_retry)
             count = get_result.record_count
             if count == 0:
+              # avoid too frequent access to datahub server
+              time.sleep(0.1)
               continue
             self._shard_cursor_seq[shard_id] = get_result.start_seq + (
                 count - 1)
