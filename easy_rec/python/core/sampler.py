@@ -652,7 +652,7 @@ class HardNegativeSamplerV2(BaseSampler):
                   attr_delimiter=attr_delimiter)) \
         .edge(tf.compat.as_str(edge_data_path),
               edge_type=('user', 'item', 'edge'),
-              decoder=gl.Decoder(weighted=True))  \
+              decoder=gl.Decoder(weighted=True)) \
         .edge(tf.compat.as_str(hard_neg_edge_data_path),
               edge_type=('user', 'item', 'hard_neg_edge'),
               decoder=gl.Decoder(weighted=True))
@@ -718,7 +718,9 @@ def build(data_config):
   if sampler_type == 'negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
-
+    if sampler_config.input_path.endswith('*.csv'):
+      sampler_config.input_path = ','.join(
+          file_path for file_path in tf.gfile.Glob(sampler_config.input_path))
     return NegativeSampler.instance(
         data_path=sampler_config.input_path,
         fields=attr_fields,
@@ -729,6 +731,9 @@ def build(data_config):
   elif sampler_type == 'negative_sampler_in_memory':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+    if sampler_config.input_path.endswith('*.csv'):
+      sampler_config.input_path = ','.join(
+          file_path for file_path in tf.gfile.Glob(sampler_config.input_path))
     return NegativeSamplerInMemory.instance(
         data_path=sampler_config.input_path,
         fields=attr_fields,
@@ -739,6 +744,18 @@ def build(data_config):
   elif sampler_type == 'negative_sampler_v2':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+    if sampler_config.user_input_path.endswith('*.csv'):
+      sampler_config.user_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.user_input_path))
+    if sampler_config.item_input_path.endswith('*.csv'):
+      sampler_config.item_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.item_input_path))
+    if sampler_config.pos_edge_input_path.endswith('*.csv'):
+      sampler_config.pos_edge_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.pos_edge_input_path))
     return NegativeSamplerV2.instance(
         user_data_path=sampler_config.user_input_path,
         item_data_path=sampler_config.item_input_path,
@@ -751,6 +768,18 @@ def build(data_config):
   elif sampler_type == 'hard_negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+    if sampler_config.user_input_path.endswith('*.csv'):
+      sampler_config.user_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.user_input_path))
+    if sampler_config.item_input_path.endswith('*.csv'):
+      sampler_config.item_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.item_input_path))
+    if sampler_config.hard_neg_edge_input_path.endswith('*.csv'):
+      sampler_config.hard_neg_edge_input_path = ','.join(
+          file_path for file_path in tf.gfile.Glob(
+              sampler_config.hard_neg_edge_input_path))
     return HardNegativeSampler.instance(
         user_data_path=sampler_config.user_input_path,
         item_data_path=sampler_config.item_input_path,
@@ -764,6 +793,22 @@ def build(data_config):
   elif sampler_type == 'hard_negative_sampler_v2':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+    if sampler_config.user_input_path.endswith('*.csv'):
+      sampler_config.user_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.user_input_path))
+    if sampler_config.item_input_path.endswith('*.csv'):
+      sampler_config.item_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.item_input_path))
+    if sampler_config.pos_edge_input_path.endswith('*.csv'):
+      sampler_config.pos_edge_input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.pos_edge_input_path))
+    if sampler_config.hard_neg_edge_input_path.endswith('*.csv'):
+      sampler_config.hard_neg_edge_input_path = ','.join(
+          file_path for file_path in tf.gfile.Glob(
+              sampler_config.hard_neg_edge_input_path))
     return HardNegativeSamplerV2.instance(
         user_data_path=sampler_config.user_input_path,
         item_data_path=sampler_config.item_input_path,
