@@ -714,7 +714,6 @@ def build(data_config):
   sampler_config = getattr(data_config, sampler_type)
   if ds_util.is_on_ds():
     gl.set_field_delimiter(sampler_config.field_delimiter)
-
   if sampler_type == 'negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
