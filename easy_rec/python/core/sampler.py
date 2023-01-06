@@ -57,14 +57,15 @@ def _get_np_type(field_type):
 
 def _change_sampler_config_input_path(sampler_config_input_path):
 
-  if re.search(r'*', sampler_config_input_path) == None :
-      input_path = ','.join(
-          file_path
-          for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+  if re.search(r'*', sampler_config_input_path) == None:
+    input_path = ','.join(
+        file_path
+        for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
   else:
-      input_path = sampler_config_input_path
+    input_path = sampler_config_input_path
 
   return input_path
+
 
 class BaseSampler(object):
   _instance_lock = threading.Lock()
