@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import threading
+import re
 
 import numpy as np
 import six
@@ -52,6 +53,18 @@ def _get_np_type(field_type):
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
+
+
+def _change_sampler_config_input_path(sampler_config_input_path):
+    line = sampler_config_input_path.split(".")[0]
+    pattern=r"/"
+    if re.match(line,pattern) == None or sampler_config_input_path.startswith("odps:"):
+       input_path = ','.join(
+       file_path
+       for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+    else:
+      input_path = sampler_config_input_path
+    return input_path
 
 
 class BaseSampler(object):
@@ -707,7 +720,7 @@ class HardNegativeSamplerV2(BaseSampler):
 
 
 def build(data_config):
-  global hard_neg_edge_input_path, item_input_path, pos_edge_input_path, user_input_path, input_path
+
   if not data_config.HasField('sampler'):
     return None
   sampler_type = data_config.WhichOneof('sampler')
@@ -717,65 +730,12 @@ def build(data_config):
   if ds_util.is_on_ds():
     gl.set_field_delimiter(sampler_config.field_delimiter)
 
-  if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
-    if sampler_config.input_path.startswith(
-        'hdfs:') or sampler_config.input_path.startswith(
-            '/') or sampler_config.input_path.startswith('data/test/'):
-      input_path = ','.join(
-          file_path
-          for file_path in tf.gfile.Glob(sampler_config.input_path.split(',')))
-    else:
-      input_path = sampler_config.input_path
-
-  if sampler_type in [
-      'negative_sampler_v2', 'hard_negative_sampler', 'hard_negative_sampler_v2'
-  ]:
-    if sampler_config.user_input_path.startswith(
-        'hdfs:') or sampler_config.user_input_path.startswith(
-            '/') or sampler_config.user_input_path.startswith('data/test/'):
-      user_input_path = ','.join(
-          file_path for file_path in tf.gfile.Glob(
-              sampler_config.user_input_path.split(',')))
-    else:
-      user_input_path = sampler_config.user_input_path
-
-  if sampler_type in [
-      'negative_sampler_v2', 'hard_negative_sampler'
-      '', 'hard_negative_sampler_v2'
-  ]:
-    if sampler_config.item_input_path.startswith(
-        'hdfs:') or sampler_config.item_input_path.startswith(
-            '/') or sampler_config.item_input_path.startswith('data/test/'):
-      item_input_path = ','.join(
-          file_path for file_path in tf.gfile.Glob(
-              sampler_config.item_input_path.split(',')))
-    else:
-      item_input_path = sampler_config.item_input_path
-
-  if sampler_type in ['negative_sampler_v2', 'hard_negative_sampler_v2']:
-    if sampler_config.pos_edge_input_path.startswith(
-        'hdfs:') or sampler_config.pos_edge_input_path.startswith(
-            '/') or sampler_config.pos_edge_input_path.startswith('data/test/'):
-      pos_edge_input_path = ','.join(
-          file_path for file_path in tf.gfile.Glob(
-              sampler_config.pos_edge_input_path.split(',')))
-    else:
-      pos_edge_input_path = sampler_config.pos_edge_input_path
-
-  if sampler_type in ['hard_negative_sampler', 'hard_negative_sampler_v2']:
-    if sampler_config.hard_neg_edge_input_path.startswith(
-        'hdfs:') or sampler_config.hard_neg_edge_input_path.startswith(
-            '/') or sampler_config.hard_neg_edge_input_path.startswith(
-                'data/test/'):
-      hard_neg_edge_input_path = ','.join(
-          file_path for file_path in tf.gfile.Glob(
-              sampler_config.hard_neg_edge_input_path.split(',')))
-    else:
-      hard_neg_edge_input_path = sampler_config.hard_neg_edge_input_path
 
   if sampler_type == 'negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+
+    input_path = _change_sampler_config_input_path(sampler_config.input_path)
     return NegativeSampler.instance(
         data_path=input_path,
         fields=attr_fields,
@@ -786,6 +746,8 @@ def build(data_config):
   elif sampler_type == 'negative_sampler_in_memory':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+
+    input_path = _change_sampler_config_input_path(sampler_config.input_path)
     return NegativeSamplerInMemory.instance(
         data_path=input_path,
         fields=attr_fields,
@@ -796,6 +758,10 @@ def build(data_config):
   elif sampler_type == 'negative_sampler_v2':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+
+    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
+    pos_edge_input_path = _change_sampler_config_input_path(sampler_config.pos_edge_input_path)
     return NegativeSamplerV2.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
@@ -808,6 +774,10 @@ def build(data_config):
   elif sampler_type == 'hard_negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+
+    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
+    hard_neg_edge_input_path = _change_sampler_config_input_path(sampler_config.hard_neg_edge_input_path)
     return HardNegativeSampler.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
@@ -821,6 +791,11 @@ def build(data_config):
   elif sampler_type == 'hard_negative_sampler_v2':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
+
+    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
+    pos_edge_input_path = _change_sampler_config_input_path(sampler_config.pos_edge_input_path)
+    hard_neg_edge_input_path = _change_sampler_config_input_path(sampler_config.hard_neg_edge_input_path)
     return HardNegativeSamplerV2.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
