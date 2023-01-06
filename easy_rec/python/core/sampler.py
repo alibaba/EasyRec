@@ -56,13 +56,17 @@ def _get_np_type(field_type):
 
 
 def _change_sampler_config_input_path(sampler_config_input_path):
-    line = sampler_config_input_path.split(".")[0]
-    if re.match(line,r"/") == None or sampler_config_input_path.startswith("odps:"):
-       input_path = ','.join(
-       file_path
-       for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+
+    if sampler_config_input_path.startswith("."):
+      input_path = ','.join(
+         file_path for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
     else:
-      input_path = sampler_config_input_path
+      line = sampler_config_input_path.split(".")[0]
+      if re.match(line,r"/") == None or re.match(line,r"odps://") == None:
+          input_path = ','.join(
+              file_path for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+      else:
+        input_path = sampler_config_input_path
     return input_path
 
 
