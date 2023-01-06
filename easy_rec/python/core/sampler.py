@@ -7,8 +7,8 @@ import json
 import logging
 import math
 import os
-import threading
 import re
+import threading
 
 import numpy as np
 import six
@@ -57,17 +57,20 @@ def _get_np_type(field_type):
 
 def _change_sampler_config_input_path(sampler_config_input_path):
 
-    if sampler_config_input_path.startswith("."):
-      input_path = ','.join(
-         file_path for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+  if sampler_config_input_path.startswith('.'):
+    input_path = ','.join(
+        file_path
+        for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+  else:
+    line = sampler_config_input_path.split('.')[0]
+    if re.match(r'/', line) == None or re.match(r'odps://', line) != None:
+      input_path = sampler_config_input_path
     else:
-      line = sampler_config_input_path.split(".")[0]
-      if re.match(line,r"/") == None or re.match(line,r"odps://") == None:
-          input_path = ','.join(
-              file_path for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
-      else:
-        input_path = sampler_config_input_path
-    return input_path
+      input_path = ','.join(
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+
+  return input_path
 
 
 class BaseSampler(object):
@@ -733,7 +736,6 @@ def build(data_config):
   if ds_util.is_on_ds():
     gl.set_field_delimiter(sampler_config.field_delimiter)
 
-
   if sampler_type == 'negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
@@ -762,9 +764,12 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
-    pos_edge_input_path = _change_sampler_config_input_path(sampler_config.pos_edge_input_path)
+    user_input_path = _change_sampler_config_input_path(
+        sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(
+        sampler_config.item_input_path)
+    pos_edge_input_path = _change_sampler_config_input_path(
+        sampler_config.pos_edge_input_path)
     return NegativeSamplerV2.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
@@ -778,9 +783,12 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
-    hard_neg_edge_input_path = _change_sampler_config_input_path(sampler_config.hard_neg_edge_input_path)
+    user_input_path = _change_sampler_config_input_path(
+        sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(
+        sampler_config.item_input_path)
+    hard_neg_edge_input_path = _change_sampler_config_input_path(
+        sampler_config.hard_neg_edge_input_path)
     return HardNegativeSampler.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
@@ -795,10 +803,14 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(sampler_config.item_input_path)
-    pos_edge_input_path = _change_sampler_config_input_path(sampler_config.pos_edge_input_path)
-    hard_neg_edge_input_path = _change_sampler_config_input_path(sampler_config.hard_neg_edge_input_path)
+    user_input_path = _change_sampler_config_input_path(
+        sampler_config.user_input_path)
+    item_input_path = _change_sampler_config_input_path(
+        sampler_config.item_input_path)
+    pos_edge_input_path = _change_sampler_config_input_path(
+        sampler_config.pos_edge_input_path)
+    hard_neg_edge_input_path = _change_sampler_config_input_path(
+        sampler_config.hard_neg_edge_input_path)
     return HardNegativeSamplerV2.instance(
         user_data_path=user_input_path,
         item_data_path=item_input_path,
