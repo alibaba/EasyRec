@@ -707,6 +707,7 @@ class HardNegativeSamplerV2(BaseSampler):
 
 
 def build(data_config):
+  global hard_neg_edge_input_path, item_input_path, pos_edge_input_path, user_input_path, input_path
   if not data_config.HasField('sampler'):
     return None
   sampler_type = data_config.WhichOneof('sampler')
@@ -716,39 +717,32 @@ def build(data_config):
     gl.set_field_delimiter(sampler_config.field_delimiter)
 
     if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
-      sampler_config.input_path = sampler_config.input_path.split(',')
-      sampler_config.input_path = ','.join(
+      input_path = ','.join(
           file_path for file_path in tf.gfile.Glob(sampler_config.input_path))
 
     if sampler_type in [
         'negative_sampler_v2', 'hard_negative_sampler',
         'hard_negative_sampler_v2'
     ]:
-      sampler_config.user_input_path = sampler_config.user_input_path.split(',')
-      sampler_config.user_input_path = ','.join(
+      user_input_path = ','.join(
           file_path
           for file_path in tf.gfile.Glob(sampler_config.user_input_path))
 
     if sampler_type in [
-        'negative_sampler_v2', 'hard_negative_sampler',
+        'negative_sampler_v2', 'hard_negative_sampler''',
         'hard_negative_sampler_v2'
     ]:
-      sampler_config.item_input_path = sampler_config.item_input_path.split(',')
-      sampler_config.item_input_path = ','.join(
+      item_input_path = ','.join(
           file_path
           for file_path in tf.gfile.Glob(sampler_config.item_input_path))
 
     if sampler_type in ['negative_sampler_v2', 'hard_negative_sampler_v2']:
-      sampler_config.pos_edge_input_path = sampler_config.pos_edge_input_path.split(
-          ',')
-      sampler_config.pos_edge_input_path = ','.join(
+      pos_edge_input_path = ','.join(
           file_path
           for file_path in tf.gfile.Glob(sampler_config.pos_edge_input_path))
 
     if sampler_type in ['hard_negative_sampler', 'hard_negative_sampler_v2']:
-      sampler_config.hard_neg_edge_input_path = sampler_config.hard_neg_edge_input_path.split(
-          ',')
-      sampler_config.hard_neg_edge_input_path = ','.join(
+      hard_neg_edge_input_path = ','.join(
           file_path for file_path in tf.gfile.Glob(
               sampler_config.hard_neg_edge_input_path))
 
@@ -756,7 +750,7 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
     return NegativeSampler.instance(
-        data_path=sampler_config.input_path,
+        data_path=input_path,
         fields=attr_fields,
         num_sample=sampler_config.num_sample,
         batch_size=data_config.batch_size,
@@ -766,7 +760,7 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
     return NegativeSamplerInMemory.instance(
-        data_path=sampler_config.input_path,
+        data_path=input_path,
         fields=attr_fields,
         num_sample=sampler_config.num_sample,
         batch_size=data_config.batch_size,
@@ -776,9 +770,9 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
     return NegativeSamplerV2.instance(
-        user_data_path=sampler_config.user_input_path,
-        item_data_path=sampler_config.item_input_path,
-        edge_data_path=sampler_config.pos_edge_input_path,
+        user_data_path=user_input_path,
+        item_data_path=item_input_path,
+        edge_data_path=pos_edge_input_path,
         fields=attr_fields,
         num_sample=sampler_config.num_sample,
         batch_size=data_config.batch_size,
@@ -788,9 +782,9 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
     return HardNegativeSampler.instance(
-        user_data_path=sampler_config.user_input_path,
-        item_data_path=sampler_config.item_input_path,
-        hard_neg_edge_data_path=sampler_config.hard_neg_edge_input_path,
+        user_data_path=user_input_path,
+        item_data_path=item_input_path,
+        hard_neg_edge_data_path=hard_neg_edge_input_path,
         fields=attr_fields,
         num_sample=sampler_config.num_sample,
         num_hard_sample=sampler_config.num_hard_sample,
@@ -801,10 +795,10 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
     return HardNegativeSamplerV2.instance(
-        user_data_path=sampler_config.user_input_path,
-        item_data_path=sampler_config.item_input_path,
-        edge_data_path=sampler_config.pos_edge_input_path,
-        hard_neg_edge_data_path=sampler_config.hard_neg_edge_input_path,
+        user_data_path=user_input_path,
+        item_data_path=item_input_path,
+        edge_data_path=pos_edge_input_path,
+        hard_neg_edge_data_path=hard_neg_edge_input_path,
         fields=attr_fields,
         num_sample=sampler_config.num_sample,
         num_hard_sample=sampler_config.num_hard_sample,
