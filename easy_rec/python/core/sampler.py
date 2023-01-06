@@ -63,7 +63,7 @@ def _change_sampler_config_input_path(sampler_config_input_path):
         for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
   else:
     line = sampler_config_input_path.split('.')[0]
-    if re.match(r'/', line) == None or re.match(r'odps://', line) != None:
+    if re.search(r'/', line) == None or re.match(r'odps://', line) != None:
       input_path = sampler_config_input_path
     else:
       input_path = ','.join(
