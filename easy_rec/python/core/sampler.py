@@ -713,38 +713,65 @@ def build(data_config):
   sampler_type = data_config.WhichOneof('sampler')
   print('sampler_type = %s' % sampler_type)
   sampler_config = getattr(data_config, sampler_type)
+
   if ds_util.is_on_ds():
     gl.set_field_delimiter(sampler_config.field_delimiter)
 
-    if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
+  if sampler_type in ['negative_sampler', 'negative_sampler_in_memory']:
+    if sampler_config.input_path.startswith(
+        'hdfs:') or sampler_config.input_path.startswith(
+            '/') or sampler_config.input_path.startswith('data/test/'):
       input_path = ','.join(
-          file_path for file_path in tf.gfile.Glob(sampler_config.input_path))
+          file_path
+          for file_path in tf.gfile.Glob(sampler_config.input_path.split(',')))
+    else:
+      input_path = sampler_config.input_path
 
-    if sampler_type in [
-        'negative_sampler_v2', 'hard_negative_sampler',
-        'hard_negative_sampler_v2'
-    ]:
+  if sampler_type in [
+      'negative_sampler_v2', 'hard_negative_sampler', 'hard_negative_sampler_v2'
+  ]:
+    if sampler_config.user_input_path.startswith(
+        'hdfs:') or sampler_config.user_input_path.startswith(
+            '/') or sampler_config.user_input_path.startswith('data/test/'):
       user_input_path = ','.join(
-          file_path
-          for file_path in tf.gfile.Glob(sampler_config.user_input_path))
+          file_path for file_path in tf.gfile.Glob(
+              sampler_config.user_input_path.split(',')))
+    else:
+      user_input_path = sampler_config.user_input_path
 
-    if sampler_type in [
-        'negative_sampler_v2', 'hard_negative_sampler''',
-        'hard_negative_sampler_v2'
-    ]:
+  if sampler_type in [
+      'negative_sampler_v2', 'hard_negative_sampler'
+      '', 'hard_negative_sampler_v2'
+  ]:
+    if sampler_config.item_input_path.startswith(
+        'hdfs:') or sampler_config.item_input_path.startswith(
+            '/') or sampler_config.item_input_path.startswith('data/test/'):
       item_input_path = ','.join(
-          file_path
-          for file_path in tf.gfile.Glob(sampler_config.item_input_path))
+          file_path for file_path in tf.gfile.Glob(
+              sampler_config.item_input_path.split(',')))
+    else:
+      item_input_path = sampler_config.item_input_path
 
-    if sampler_type in ['negative_sampler_v2', 'hard_negative_sampler_v2']:
+  if sampler_type in ['negative_sampler_v2', 'hard_negative_sampler_v2']:
+    if sampler_config.pos_edge_input_path.startswith(
+        'hdfs:') or sampler_config.pos_edge_input_path.startswith(
+            '/') or sampler_config.pos_edge_input_path.startswith('data/test/'):
       pos_edge_input_path = ','.join(
-          file_path
-          for file_path in tf.gfile.Glob(sampler_config.pos_edge_input_path))
+          file_path for file_path in tf.gfile.Glob(
+              sampler_config.pos_edge_input_path.split(',')))
+    else:
+      pos_edge_input_path = sampler_config.pos_edge_input_path
 
-    if sampler_type in ['hard_negative_sampler', 'hard_negative_sampler_v2']:
+  if sampler_type in ['hard_negative_sampler', 'hard_negative_sampler_v2']:
+    if sampler_config.hard_neg_edge_input_path.startswith(
+        'hdfs:') or sampler_config.hard_neg_edge_input_path.startswith(
+            '/') or sampler_config.hard_neg_edge_input_path.startswith(
+                'data/test/'):
       hard_neg_edge_input_path = ','.join(
           file_path for file_path in tf.gfile.Glob(
-              sampler_config.hard_neg_edge_input_path))
+              sampler_config.hard_neg_edge_input_path.split(',')))
+    else:
+      hard_neg_edge_input_path = sampler_config.hard_neg_edge_input_path
 
   if sampler_type == 'negative_sampler':
     input_fields = {f.input_name: f for f in data_config.input_fields}
