@@ -108,7 +108,11 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
-  file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
+
+  if '*' in gt_table:
+    file_paths = tf.gfile.Glob(gt_table.split(','))
+  else:
+    file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
   batch_list, i = [], 0
   for file_path in file_paths:
     with tf.gfile.GFile(file_path, 'r') as fin:
@@ -140,6 +144,9 @@ def main():
       FLAGS.pipeline_config_path)
   logging.info('i_emb_table %s', i_emb_table)
   logging.info(i_emb_table.startswith('hdfs:'))
+  if '*' in i_emb_table:
+    i_emb_table = ','.join(
+        file_path for file_path in tf.gfile.Glob(i_emb_table.split(',')))
   if not i_emb_table.startswith('hdfs:'):
     hive_utils = HiveUtils(
         data_config=pipeline_config.data_config,
