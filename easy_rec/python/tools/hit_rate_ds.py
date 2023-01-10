@@ -109,7 +109,7 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
-  if '*' in gt_table:
+  if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
   else:
     file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
