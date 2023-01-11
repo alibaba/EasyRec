@@ -56,4 +56,6 @@ message ExportConfig {
 
     // export asset files
     repeated string asset_files = 15;
+
+    optional string oss_params = 16;
 }

@@ -5,6 +5,7 @@
 Such as Hyper parameter tuning or automatic feature expanding.
 """
 
+import argparse
 import datetime
 import json
 import logging
@@ -563,3 +564,72 @@ def process_neg_sampler_data_path(pipeline_config):
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
     sampler_config.hard_neg_edge_input_path = process_data_path(
         sampler_config.hard_neg_edge_input_path, hive_util)
+
+
+def parse_oss_params(extra_params):
+  if not isinstance(extra_params, list):
+    extra_params = [x.strip() for x in extra_params.split(' ')]
+    extra_params = [x for x in extra_params if x != '']
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--oss_path',
+      type=str,
+      default=None,
+      help='write embed objects to oss folder, oss://bucket/folder')
+  parser.add_argument(
+      '--oss_endpoint', type=str, default=None, help='oss endpoint')
+  parser.add_argument('--oss_ak', type=str, default=None, help='oss ak')
+  parser.add_argument('--oss_sk', type=str, default=None, help='oss sk')
+  parser.add_argument(
+      '--oss_threads',
+      type=int,
+      default=10,
+      help='# threads access oss at the same time')
+  parser.add_argument(
+      '--oss_timeout',
+      type=int,
+      default=10,
+      help='connect to oss, time_out in seconds')
+  parser.add_argument(
+      '--oss_expire', type=int, default=24, help='oss expire time in hours')
+  parser.add_argument(
+      '--oss_write_kv',
+      type=int,
+      default=1,
+      help='whether to write embedding to oss')
+  parser.add_argument(
+      '--oss_embedding_version',
+      type=str,
+      default='',
+      help='oss embedding version')
+  parser.add_argument(
+      '--asset_files', type=str, default='', help='more files to add to asset')
+  parser.add_argument(
+      '--verbose',
+      action='store_true',
+      default=False,
+      help='print more debug information')
+  args = parser.parse_args(extra_params)
+
+  extra_params = {}
+  if args.oss_path:
+    extra_params['oss_path'] = args.oss_path
+  if args.oss_endpoint:
+    extra_params['oss_endpoint'] = args.oss_endpoint
+  if args.oss_ak:
+    extra_params['oss_ak'] = args.oss_ak
+  if args.oss_sk:
+    extra_params['oss_sk'] = args.oss_sk
+  if args.oss_timeout > 0:
+    extra_params['oss_timeout'] = args.oss_timeout
+  if args.oss_expire > 0:
+    extra_params['oss_expire'] = args.oss_expire
+  if args.oss_threads > 0:
+    extra_params['oss_threads'] = args.oss_threads
+  if args.oss_write_kv:
+    extra_params['oss_write_kv'] = True if args.oss_write_kv == 1 else False
+  if args.oss_embedding_version:
+    extra_params['oss_embedding_version'] = args.oss_embedding_version
+  extra_params['verbose'] = args.verbose
+  return extra_params

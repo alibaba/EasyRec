@@ -15,8 +15,8 @@ import tensorflow as tf
 from tensorflow.core.protobuf import saved_model_pb2
 
 import easy_rec
+from easy_rec.python.builders import exporter_builder
 from easy_rec.python.builders import strategy_builder
-from easy_rec.python.compat import exporter
 from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
@@ -46,16 +46,6 @@ else:
   ConfigProto = tf.ConfigProto
 
 load_class.auto_import()
-
-# when version of tensorflow > 1.8 strip_default_attrs set true will cause
-# saved_model inference core, such as:
-#   [libprotobuf FATAL external/protobuf_archive/src/google/protobuf/map.h:1058]
-#    CHECK failed: it != end(): key not found: new_axis_mask
-# so temporarily modify strip_default_attrs of _SavedModelExporter in
-# tf.estimator.exporter to false by default
-FinalExporter = exporter.FinalExporter
-LatestExporter = exporter.LatestExporter
-BestExporter = exporter.BestExporter
 
 
 def _get_input_fn(data_config,
@@ -156,44 +146,8 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
       export_config,
       check_mode=check_mode,
       **input_fn_kwargs)
-  if export_config.exporter_type == 'final':
-    exporters = [
-        FinalExporter(name='final', serving_input_receiver_fn=export_input_fn)
-    ]
-  elif export_config.exporter_type == 'latest':
-    exporters = [
-        LatestExporter(
-            name='latest',
-            serving_input_receiver_fn=export_input_fn,
-            exports_to_keep=export_config.exports_to_keep)
-    ]
-  elif export_config.exporter_type == 'best':
-    logging.info(
-        'will use BestExporter, metric is %s, the bigger the better: %d' %
-        (export_config.best_exporter_metric, export_config.metric_bigger))
-
-    def _metric_cmp_fn(best_eval_result, current_eval_result):
-      logging.info('metric: best = %s current = %s' %
-                   (str(best_eval_result), str(current_eval_result)))
-      if export_config.metric_bigger:
-        return (best_eval_result[export_config.best_exporter_metric] <
-                current_eval_result[export_config.best_exporter_metric])
-      else:
-        return (best_eval_result[export_config.best_exporter_metric] >
-                current_eval_result[export_config.best_exporter_metric])
-
-    exporters = [
-        BestExporter(
-            name='best',
-            serving_input_receiver_fn=export_input_fn,
-            compare_fn=_metric_cmp_fn,
-            exports_to_keep=export_config.exports_to_keep)
-    ]
-  elif export_config.exporter_type == 'none':
-    exporters = []
-  else:
-    raise ValueError('Unknown exporter type %s' % export_config.exporter_type)
-
+  exporters = exporter_builder.build(export_config.exporter_type, export_config,
+                                     export_input_fn)
   # set throttle_secs to a small number, so that we can control evaluation
   # interval steps by checkpoint saving steps
   eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
@@ -733,13 +687,16 @@ def export(export_dir,
       if incr_save_type:
         extra_params['incr_update'][incr_save_type] = getattr(
             incr_save_config, incr_save_type)
+    tf_config = os.environ.get('TF_CONFIG', None)
     return export_big_model_to_oss(export_dir, pipeline_config, extra_params,
                                    serving_input_fn, estimator, ckpt_path,
-                                   verbose)
+                                   tf_config, verbose)
 
   if 'redis_url' in extra_params:
+    tf_config = os.environ.get('TF_CONFIG', None)
     return export_big_model(export_dir, pipeline_config, extra_params,
-                            serving_input_fn, estimator, ckpt_path, verbose)
+                            serving_input_fn, estimator, ckpt_path, tf_config,
+                            verbose)
 
   final_export_dir = estimator.export_savedmodel(
       export_dir_base=export_dir,

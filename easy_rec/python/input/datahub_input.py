@@ -3,11 +3,10 @@
 import datetime
 import json
 import logging
-import queue
-import threading
 import time
 import traceback
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import script_ops
@@ -38,6 +37,12 @@ except Exception:
       % traceback.format_exc())
   DataHub = None
 
+if tf.__version__ >= '2.0':
+  ignore_errors = tf.data.experimental.ignore_errors()
+  tf = tf.compat.v1
+else:
+  ignore_errors = tf.contrib.data.ignore_errors()
+
 
 class DataHubInput(Input):
   """DataHubInput is used for online train."""
@@ -67,7 +72,9 @@ class DataHubInput(Input):
           akId = akId.encode('utf-8')
           akSecret = akSecret.encode('utf-8')
           endpoint = endpoint.encode('utf-8')
-        self._datahub = DataHub(akId, akSecret, endpoint)
+        self._max_conn_num = 8
+        self._datahub = DataHub(
+            akId, akSecret, endpoint, pool_maxsize=self._max_conn_num)
       else:
         self._datahub = None
     except Exception as ex:
@@ -141,6 +148,10 @@ class DataHubInput(Input):
       for x in self._label_fields:
         assert x in self._dh_field_names, 'label_field[%s] is not in datahub' % x
 
+      self._dh_lbl_ids = [
+          self._dh_field_names.index(x) for x in self._label_fields
+      ]
+
       if self._data_config.HasField('sample_weight'):
         x = self._data_config.sample_weight
         assert x in self._dh_field_names, 'sample_weight[%s] is not in datahub' % x
@@ -148,8 +159,6 @@ class DataHubInput(Input):
       self._read_cnt = 512
       self._log_every_cnts = self._data_config.batch_size * 16
       self._max_retry = 8
-      self._max_qsize = self._batch_size * self._prefetch_size * 2
-      self._sample_que = queue.Queue(maxsize=self._max_qsize)
 
       # record shard read cnt
       self._shard_read_cnt = {}
@@ -180,8 +189,7 @@ class DataHubInput(Input):
     field_dict[Input.DATA_OFFSET] = script_ops.py_func(_dump_offsets, [],
                                                        dtypes.string)
 
-    for x in self._label_fields:
-      dh_id = self._dh_field_names.index(x)
+    for x, dh_id in zip(self._label_fields, self._dh_lbl_ids):
       field_dict[x] = fields[dh_id]
 
     feature_inputs = self.get_feature_input_fields()
@@ -299,9 +307,17 @@ class DataHubInput(Input):
       yield all_records[sid]
       sid += 1
 
-  def _datahub_generator(self):
-    logging.info('start epoch[%d]' % self._num_epoch)
-    self._num_epoch += 1
+  def _datahub_generator(self, part_id, part_num):
+    avg_num = len(self._shards) / part_num
+    res_num = len(self._shards) % part_num
+    start_id = avg_num * part_id + min(part_id, res_num)
+    end_id = avg_num * (part_id + 1) + min(part_id + 1, res_num)
+
+    thread_shards = self._shards[start_id:end_id]
+
+    logging.info(
+        'start generator[part_id=%d][part_num=%d][shard_num=%d][thread_shard_num=%d:%d]'
+        % (part_id, part_num, len(self._shards), start_id, end_id))
 
     try:
       self._datahub.wait_shards_ready(self._datahub_config.project,
@@ -313,68 +329,60 @@ class DataHubInput(Input):
                       str(topic_result.record_type))
       record_schema = topic_result.record_schema
 
-      def _fetch_func(shard_id):
-        try:
-          while True:
-            if shard_id not in self._offset_dict:
-              cursor_result = self._datahub.get_cursor(
+      try:
+        iter_id = 0
+        while True:
+          shard_id = thread_shards[iter_id].shard_id
+          iter_id += 1
+          if iter_id >= len(thread_shards):
+            iter_id = 0
+          if shard_id not in self._offset_dict:
+            cursor_result = self._datahub.get_cursor(
+                self._datahub_config.project, self._datahub_config.topic,
+                shard_id, CursorType.OLDEST)
+            cursor = cursor_result.cursor
+          else:
+            cursor = self._offset_dict[shard_id]
+
+          max_retry = self._max_retry
+          get_result = None
+          while max_retry > 0:
+            try:
+              get_result = self._datahub.get_tuple_records(
                   self._datahub_config.project, self._datahub_config.topic,
-                  shard_id, CursorType.OLDEST)
-              cursor = cursor_result.cursor
-            else:
-              cursor = self._offset_dict[shard_id]
-
-            max_retry = self._max_retry
-            get_result = None
-            while max_retry > 0:
-              try:
-                get_result = self._datahub.get_tuple_records(
-                    self._datahub_config.project, self._datahub_config.topic,
-                    shard_id, record_schema, cursor, self._read_cnt)
-                break
-              except Exception as ex:
-                logging.warning(
-                    'get_tuple_records exception: shard_id=%s cursor=%s read_cnt=%d exception:%s traceback:%s'
-                    % (shard_id, cursor, self._read_cnt, str(ex),
-                       traceback.format_exc()))
-              max_retry -= 1
-            if get_result is None:
-              logging.error('failed to get_tuple_records after max_retry=%d' %
-                            self._max_retry)
-              raise RuntimeError(
-                  'failed to get_tuple_records after max_retry=%d' %
-                  self._max_retry)
-            count = get_result.record_count
-            if count == 0:
-              # avoid too frequent access to datahub server
-              time.sleep(0.1)
+                  shard_id, record_schema, cursor, self._read_cnt)
+              break
+            except Exception as ex:
+              logging.warning(
+                  'get_tuple_records exception: shard_id=%s cursor=%s read_cnt=%d exception:%s traceback:%s'
+                  % (shard_id, cursor, self._read_cnt, str(ex),
+                     traceback.format_exc()))
+            max_retry -= 1
+          if get_result is None:
+            logging.error('failed to get_tuple_records after max_retry=%d' %
+                          self._max_retry)
+            raise RuntimeError(
+                'failed to get_tuple_records after max_retry=%d' %
+                self._max_retry)
+          count = get_result.record_count
+          if count == 0:
+            # avoid too frequent access to datahub server
+            time.sleep(0.1)
+            continue
+          self._shard_cursor_seq[shard_id] = get_result.start_seq + (count - 1)
+          for row_id, record in enumerate(get_result.records):
+            if self._is_data_empty(record):
+              logging.warning('skip empty data record: %s' %
+                              self._dump_record(record))
               continue
-            self._shard_cursor_seq[shard_id] = get_result.start_seq + (
-                count - 1)
-            for row_id, record in enumerate(get_result.records):
-              if self._is_data_empty(record):
-                logging.warning('skip empty data record: %s' %
-                                self._dump_record(record))
-                continue
-              self._sample_que.put(tuple(record.values))
-            if shard_id not in self._offset_dict or get_result.next_cursor > self._offset_dict[
-                shard_id]:
-              self._offset_dict[shard_id] = get_result.next_cursor
-            self._update_counter(shard_id, count)
-        except Exception as ex:
-          logging.error('fetch_sample thread[shard_id=%s] fail: %s %s' %
-                        (shard_id, str(ex), traceback.format_exc()))
-
-      fetch_thread_arr = []
-      for shard in self._shards:
-        fetch_thread = threading.Thread(
-            target=_fetch_func, args=(shard.shard_id,))
-        fetch_thread.start()
-        fetch_thread_arr.append(fetch_thread)
-      logging.info('started %d fetch threads' % len(fetch_thread_arr))
-
-      while True:
-        yield self._sample_que.get()
+            yield tuple(record.values)
+          if shard_id not in self._offset_dict or get_result.next_cursor > self._offset_dict[
+              shard_id]:
+            self._offset_dict[shard_id] = get_result.next_cursor
+          self._update_counter(shard_id, count)
+      except Exception as ex:
+        logging.error('fetch_sample thread[shard_id=%s] fail: %s %s' %
+                      (shard_id, str(ex), traceback.format_exc()))
     except Exception as ex:
       logging.error('_datahub_generator exception: %s %s' %
                     (str(ex), traceback.format_exc()))
@@ -406,10 +414,8 @@ class DataHubInput(Input):
         param=tmp_seq)
     ts = cursor_result.record_time / 1000.0
     ts_s = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    logging.info(
-        'shard[%s]: cursor=%s sequence=%d ts=%.3f datetime=%s qsize=%d max_qsize=%d'
-        % (shard_id, cursor_result.cursor, tmp_seq, ts, ts_s,
-           self._sample_que.qsize(), self._max_qsize))
+    logging.info('shard[%s]: cursor=%s sequence=%d ts=%.3f datetime=%s' %
+                 (shard_id, cursor_result.cursor, tmp_seq, ts, ts_s))
 
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -433,10 +439,16 @@ class DataHubInput(Input):
           output_types=list_types,
           output_shapes=list_shapes)
     else:
-      dataset = tf.data.Dataset.from_generator(
-          self._datahub_generator,
-          output_types=list_types,
-          output_shapes=list_shapes)
+      split_num = min(self._max_conn_num, len(self._shards))
+      dataset = tf.data.Dataset.from_tensor_slices(
+          np.arange(split_num)).interleave(
+              lambda x: tf.data.Dataset.from_generator(
+                  self._datahub_generator,
+                  output_types=list_types,
+                  output_shapes=list_shapes,
+                  args=[x, split_num]),
+              cycle_length=len(self._shards),
+              num_parallel_calls=len(self._shards))
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
@@ -454,6 +466,8 @@ class DataHubInput(Input):
     dataset = dataset.map(
         map_func=self._preprocess,
         num_parallel_calls=self._data_config.num_parallel_calls)
+    if self._data_config.ignore_error:
+      dataset = dataset.apply(ignore_errors)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:

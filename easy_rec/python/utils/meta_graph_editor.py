@@ -46,7 +46,6 @@ class MetaGraphEditor:
       meta_graph_def = loader.get_meta_graph_def_from_tags(tags)
     else:
       assert meta_graph_def, 'either saved_model_dir or meta_graph_def must be set'
-      tf.reset_default_graph()
       tf.train.import_meta_graph(meta_graph_def)
     self._meta_graph_version = meta_graph_def.meta_info_def.meta_graph_version
     self._signature_def = meta_graph_def.signature_def[
@@ -451,6 +450,10 @@ class MetaGraphEditor:
       uniq_embed_combiners[embed_id] = embed_combiner
       uniq_embed_is_kvs[embed_id] = embed_is_kv
       uniq_embed_dims[embed_id] = embed_dim
+
+    for embed_id, embed_dim in zip(uniq_embed_ids, uniq_embed_dims):
+      assert embed_dim > 0, 'invalid embed_id=%s embed_dim=%d' % (embed_id,
+                                                                  embed_dim)
 
     lookup_init_op = self._lookup_op.oss_init(
         osspath=self._oss_path,

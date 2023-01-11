@@ -88,7 +88,7 @@ if __name__ == '__main__':
       if 'features' in predictor.input_names:
         feature = args.separator.join(feature)
       batch_input.append(feature)
-    output = predictor.predict(batch_input)
+    output = predictor.predict(batch_input, batch_size=1024)
 
   if args.save_path:
     fout = open(args.save_path, 'w')
@@ -100,12 +100,14 @@ if __name__ == '__main__':
     logging.info('compare result path: ' + args.cmp_res_path)
     logging.info('compare key: ' + args.cmp_key)
     logging.info('tolerance: ' + str(args.tol))
+    all_cmp_keys = args.cmp_key.split(',')
     with open(args.cmp_res_path, 'r') as fin:
       for line_id, line_str in enumerate(fin):
         line_str = line_str.strip()
         line_pred = json.loads(line_str)
-        assert np.abs(
-            line_pred[args.cmp_key] -
-            output[line_id][args.cmp_key]) < args.tol, 'line[%d]: %.8f' % (
-                line_id,
-                np.abs(line_pred[args.cmp_key] - output[line_id][args.cmp_key]))
+        for cmp_key in all_cmp_keys:
+          assert np.abs(
+              line_pred[cmp_key] - output[line_id][cmp_key]
+          ) < args.tol, 'line[%d]: %.8f %.8f %.8f' % (
+              line_id, np.abs(line_pred[cmp_key] - output[line_id][cmp_key]),
+              line_pred[cmp_key], output[line_id][cmp_key])

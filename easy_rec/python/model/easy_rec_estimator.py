@@ -369,6 +369,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
 
+      # exclude data_offset_var
+      var_list = [x for x in var_list if x != data_offset_var]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)

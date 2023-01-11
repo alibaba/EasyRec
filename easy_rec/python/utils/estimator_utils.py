@@ -620,6 +620,14 @@ class CheckpointSaverHook(CheckpointSaverHook):
         if x:
           data_offset_json.update(json.loads(x))
       save_dir, _ = os.path.split(self._save_path)
+      # reuse existing offsets
+      if len(data_offset_json) == 0:
+        ckpt_path = latest_checkpoint(save_dir)
+        if ckpt_path is not None:
+          ckpt_path += '.offset'
+          if gfile.Exists(ckpt_path):
+            with gfile.GFile(ckpt_path, 'r') as fin:
+              data_offset_json = json.load(fin)
       save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout)

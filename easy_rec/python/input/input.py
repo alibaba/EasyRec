@@ -805,6 +805,9 @@ class Input(six.with_metaclass(_meta_type, object)):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
+
+    if Input.DATA_OFFSET in field_dict:
+      parsed_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
     return {'feature': parsed_dict, 'label': label_dict}
 
   def _lookup_preprocess(self, fc, field_dict):
