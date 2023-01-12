@@ -593,3 +593,15 @@ def parse_extra_config_param(extra_args, edit_config_json):
     else:
       logging.error('unknown args: %s' % extra_args[arg_id])
       sys.exit(1)
+
+
+def process_multi_file_input_path(sampler_config_input_path):
+
+  if "*" in sampler_config_input_path:
+    input_path = ','.join(
+      file_path
+      for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+  else:
+    input_path = sampler_config_input_path
+
+  return input_path

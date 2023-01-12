@@ -29,6 +29,7 @@ from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
 from easy_rec.python.utils.hit_rate_utils import load_graph
 from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
 from easy_rec.python.utils.hive_utils import HiveUtils
+from easy_rec.python.utils.config_util import process_multi_file_input_path
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -144,9 +145,7 @@ def main():
       FLAGS.pipeline_config_path)
   logging.info('i_emb_table %s', i_emb_table)
   logging.info(i_emb_table.startswith('hdfs:'))
-  if '*' in i_emb_table:
-    i_emb_table = ','.join(
-        file_path for file_path in tf.gfile.Glob(i_emb_table.split(',')))
+  i_emb_table = process_multi_file_input_path(i_emb_table)
   if not i_emb_table.startswith('hdfs:'):
     hive_utils = HiveUtils(
         data_config=pipeline_config.data_config,
