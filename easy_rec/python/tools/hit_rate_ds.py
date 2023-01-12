@@ -30,6 +30,7 @@ from easy_rec.python.utils.hit_rate_utils import load_graph
 from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
 from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.config_util import process_multi_file_input_path
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -110,9 +111,11 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
+  is_dir = os.system('hadoop fs -test -d %s' %gt_table)
+
   if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
-  elif gt_table.endswith('/'):
+  elif is_dir == 0:
     file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
   else:
     file_paths = tf.gfile.Glob(gt_table)
@@ -147,14 +150,17 @@ def main():
   pipeline_config = config_util.get_configs_from_pipeline_file(
       FLAGS.pipeline_config_path)
   logging.info('i_emb_table %s', i_emb_table)
-  logging.info(i_emb_table.startswith('hdfs:'))
-  i_emb_table = process_multi_file_input_path(i_emb_table)
-  if not i_emb_table.startswith('hdfs:'):
+
+  input_type = pipeline_config.data_config.input_type
+  input_type_name = DatasetConfig.InputType.Name(input_type)
+  if input_type_name == 'CSVInput':
+      i_emb_table = process_multi_file_input_path(i_emb_table)
+  else:
     hive_utils = HiveUtils(
         data_config=pipeline_config.data_config,
         hive_config=pipeline_config.hive_train_input)
     i_emb_table = hive_utils.get_table_location(i_emb_table)
-  logging.info('i_emb_table_hdfs_path: %s', i_emb_table)
+
   g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout,
                  FLAGS.knn_strict)
   gl.set_tracker_mode(0)
@@ -177,7 +183,7 @@ def main():
     g.init(task_index=task_index, task_count=worker_count, hosts=worker_hosts)
     # Your model, use g to do some operation, such as sampling
 
-    if gt_table.startswith('hdfs:'):
+    if input_type_name == 'CSVInput':
       gt_all = gt_hdfs(gt_table, FLAGS.batch_size, FLAGS.gt_table_field_sep)
     else:
       gt_reader = HiveUtils(
