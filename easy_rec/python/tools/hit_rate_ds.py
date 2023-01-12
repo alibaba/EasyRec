@@ -112,8 +112,11 @@ def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
   if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
-  else:
+  elif gt_table.endswith('/'):
     file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
+  else:
+    file_paths = tf.gfile.Glob(gt_table)
+
   batch_list, i = [], 0
   for file_path in file_paths:
     with tf.gfile.GFile(file_path, 'r') as fin:
