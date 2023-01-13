@@ -100,7 +100,8 @@ class InputLayer(object):
             concat_features,
             group_seq_arr,
             feature_name_to_output_tensors,
-            negative_sampler=negative_sampler)
+            negative_sampler=negative_sampler,
+            scope_name=group_name)
         group_features.extend(all_seq_fea)
         for col, fea in zip(group_seq_arr, all_seq_fea):
           feature_name_to_output_tensors['seq_fea/' + col.group_name] = fea
