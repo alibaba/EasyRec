@@ -111,11 +111,14 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
-  is_dir = os.system('hadoop fs -test -d %s' %gt_table)
+  if gt_table.startswith():
+    is_dir = os.system('hadoop fs -test -d %s' %gt_table) == 0
+  else:
+    is_dir = os.path.isdir(gt_table)
 
   if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
-  elif is_dir == 0:
+  elif is_dir :
     file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
   else:
     file_paths = tf.gfile.Glob(gt_table)
