@@ -111,7 +111,7 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
-  if gt_table.startswith():
+  if gt_table.startswith("hdfs:"):
     is_dir = os.system('hadoop fs -test -d %s' %gt_table) == 0
   else:
     is_dir = os.path.isdir(gt_table)
