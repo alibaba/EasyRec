@@ -548,10 +548,12 @@ def distribute_evaluate(pipeline_config,
       input_feas, input_lbls = input_iter.get_next()
       estimator_spec = estimator._distribute_eval_model_fn(
           input_feas, input_lbls, run_config)
-
+    cur_log_device_placement = False
+    if train_config.is_profiling:
+      cur_log_device_placement = True
     session_config = ConfigProto(
         allow_soft_placement=True,
-        log_device_placement=True,
+        log_device_placement=cur_log_device_placement,
         device_filters=['/job:ps',
                         '/job:worker/task:%d' % cur_task_index])
     if cur_job_name == 'master':
