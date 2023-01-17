@@ -1,0 +1,121 @@
+name: CI Build Code Style
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  ci-test:
+    runs-on: EasyRec-py37-tf25
+    defaults:
+      run:
+        shell: bash {0}
+    steps:
+      - name: FetchCommit ${{ github.event.pull_request.head.sha }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: recursive
+      - name: RunCiTest
+        id: run_ci_test
+        env:
+          TEST_DEVICES: ""
+          PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
+        run: |
+           source activate tf25_py3
+           python git-lfs/git_lfs.py pull
+           pre-commit run -a
+           if [ $? -eq 0 ]
+           then
+             echo "::set-output name=ci_test_passed::1"
+           else
+             echo "::set-output name=ci_test_passed:0"
+           fi
+      - name: LabelAndComment
+        env:
+          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
+        uses: actions/github-script@v5
+        with:
+           script: |
+             const { CI_TEST_PASSED } = process.env
+             labels = await github.rest.issues.listLabelsOnIssue({
+               issue_number: context.issue.number,
+               repo:context.repo.repo,
+               owner:context.repo.owner
+             })
+             console.log('labels.url=' + labels.url)
+
+             labels = labels.data
+
+             var label_names = []
+             if (labels != null) {
+               labels.forEach(tmp_lbl => label_names.push(tmp_lbl.name))
+             }
+             console.log(`ci_test_passed=${CI_TEST_PASSED} labels=${label_names}`);
+
+             var pass_label = null;
+             if (labels != null) {
+                pass_label = labels.find(label=>label.name=='code_style_test_passed');
+             }
+
+             var fail_label = null;
+             if (labels != null) {
+                fail_label = labels.find(label=>label.name=='code_style_test_failed');
+             }
+
+             if (pass_label) {
+               github.rest.issues.removeLabel({
+                 issue_number: context.issue.number,
+                 owner: context.repo.owner,
+                 repo: context.repo.repo,
+                 name: 'code_style_test_passed'
+               })
+             }
+
+             if (fail_label) {
+               github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'code_style_test_failed'
+               })
+             }
+
+             if (CI_TEST_PASSED == 1) {
+               github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: ['code_style_test_passed']
+               })
+
+               github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: "Code Style Test Passed"
+               })
+             } else {
+               github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: ['code_style_test_failed']
+               })
+
+               github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: "Code Style Test Failed"
+               })
+             }
+      - name: SignalFail
+        env:
+          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
+        run: |
+          echo "CI_TEST_PASSED=${CI_TEST_PASSED}"
+          if [ $CI_TEST_PASSED -ne 1 ]
+          then
+            echo "code_style_test_failed, will exit"
+            exit 1
+          fi
