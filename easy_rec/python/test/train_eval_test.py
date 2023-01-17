@@ -980,6 +980,13 @@ class TrainEvalTest(tf.test.TestCase):
         cur_eval_path, self._test_dir)
     self.assertTrue(self._success)
 
+  def test_distribute_eval_dssm_hard_neg_sampler(self):
+    cur_eval_path = 'data/test/distribute_eval_test/dssm_hard_neg_sampler_taobao_ckpt'
+    self._success = test_utils.test_distributed_eval(
+        'samples/model_config/dssm_distribute_eval_hard_neg_sampler_on_taobao.config',
+        cur_eval_path, self._test_dir)
+    self.assertTrue(self._success)
+
   def test_distribute_eval_dropout(self):
     cur_eval_path = 'data/test/distribute_eval_test/dropoutnet_distribute_eval_taobao_ckpt'
     self._success = test_utils.test_distributed_eval(

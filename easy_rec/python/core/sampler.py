@@ -7,7 +7,6 @@ import json
 import logging
 import math
 import os
-import re
 import threading
 
 import numpy as np
@@ -16,6 +15,7 @@ import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
+from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
@@ -57,7 +57,7 @@ def _get_np_type(field_type):
 
 def _change_sampler_config_input_path(sampler_config_input_path):
 
-  if "*" in sampler_config_input_path:
+  if '*' in sampler_config_input_path:
     input_path = ','.join(
         file_path
         for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
@@ -90,8 +90,11 @@ class BaseSampler(object):
       if 'ps' in tf_config['cluster']:
         # ps mode
         tf_config = json.loads(os.environ['TF_CONFIG'])
-        task_count = len(tf_config['cluster']['worker']) + 2
-        if self._is_on_ds:
+        eval_cnt = 0
+        if 'evaluator' in tf_config['cluster']:
+          eval_cnt += 1
+        task_count = len(tf_config['cluster']['worker']) + 1 + eval_cnt
+        if self._is_on_ds or not pai_util.is_on_pai():
           gl.set_tracker_mode(0)
           server_hosts = [
               host.split(':')[0] + ':888' + str(i)
@@ -110,7 +113,7 @@ class BaseSampler(object):
           self._g.init(
               cluster=cluster,
               job_name='client',
-              task_index=tf_config['task']['index'] + 2)
+              task_index=tf_config['task']['index'] + 1 + eval_cnt)
         # TODO(hongsheng.jhs): check cluster has evaluator or not?
         elif tf_config['task']['type'] == 'evaluator':
           self._g.init(
