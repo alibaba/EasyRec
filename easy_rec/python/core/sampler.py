@@ -16,6 +16,7 @@ import tensorflow as tf
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
 from easy_rec.python.utils import pai_util
+from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
@@ -53,18 +54,6 @@ def _get_np_type(field_type):
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
-
-
-def _change_sampler_config_input_path(sampler_config_input_path):
-
-  if '*' in sampler_config_input_path:
-    input_path = ','.join(
-        file_path
-        for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
-  else:
-    input_path = sampler_config_input_path
-
-  return input_path
 
 
 class BaseSampler(object):
@@ -737,7 +726,7 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    input_path = _change_sampler_config_input_path(sampler_config.input_path)
+    input_path = process_multi_file_input_path(sampler_config.input_path)
     return NegativeSampler.instance(
         data_path=input_path,
         fields=attr_fields,
@@ -749,7 +738,7 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    input_path = _change_sampler_config_input_path(sampler_config.input_path)
+    input_path = process_multi_file_input_path(sampler_config.input_path)
     return NegativeSamplerInMemory.instance(
         data_path=input_path,
         fields=attr_fields,
@@ -761,11 +750,11 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(
+    user_input_path = process_multi_file_input_path(
         sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(
+    item_input_path = process_multi_file_input_path(
         sampler_config.item_input_path)
-    pos_edge_input_path = _change_sampler_config_input_path(
+    pos_edge_input_path = process_multi_file_input_path(
         sampler_config.pos_edge_input_path)
     return NegativeSamplerV2.instance(
         user_data_path=user_input_path,
@@ -780,11 +769,11 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(
+    user_input_path = process_multi_file_input_path(
         sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(
+    item_input_path = process_multi_file_input_path(
         sampler_config.item_input_path)
-    hard_neg_edge_input_path = _change_sampler_config_input_path(
+    hard_neg_edge_input_path = process_multi_file_input_path(
         sampler_config.hard_neg_edge_input_path)
     return HardNegativeSampler.instance(
         user_data_path=user_input_path,
@@ -800,13 +789,13 @@ def build(data_config):
     input_fields = {f.input_name: f for f in data_config.input_fields}
     attr_fields = [input_fields[name] for name in sampler_config.attr_fields]
 
-    user_input_path = _change_sampler_config_input_path(
+    user_input_path = process_multi_file_input_path(
         sampler_config.user_input_path)
-    item_input_path = _change_sampler_config_input_path(
+    item_input_path = process_multi_file_input_path(
         sampler_config.item_input_path)
-    pos_edge_input_path = _change_sampler_config_input_path(
+    pos_edge_input_path = process_multi_file_input_path(
         sampler_config.pos_edge_input_path)
-    hard_neg_edge_input_path = _change_sampler_config_input_path(
+    hard_neg_edge_input_path = process_multi_file_input_path(
         sampler_config.hard_neg_edge_input_path)
     return HardNegativeSamplerV2.instance(
         user_data_path=user_input_path,
