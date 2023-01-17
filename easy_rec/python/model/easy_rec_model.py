@@ -73,6 +73,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return self._base_model_config.kd
 
   @property
+  def feature_groups(self):
+    return self._base_model_config.feature_groups
+
+  @property
   def l2_regularization(self):
     model_config = getattr(self._base_model_config,
                            self._base_model_config.WhichOneof('model'))

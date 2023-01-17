@@ -7,6 +7,7 @@ import logging
 import os
 import pkgutil
 import pydoc
+import traceback
 from abc import ABCMeta
 
 import six
@@ -43,7 +44,7 @@ def load_by_path(path):
   try:
     return pydoc.locate(path)
   except pydoc.ErrorDuringImport:
-    logging.error('load %s failed' % path)
+    logging.error('load %s failed: %s' % (path, traceback.format_exc()))
     return None
 
 

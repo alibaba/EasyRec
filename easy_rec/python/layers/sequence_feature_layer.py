@@ -166,8 +166,9 @@ class SequenceFeatureLayer(object):
     if len(aux_hist_emb_list) > 0:
       all_hist_dim_emb = [hist_din_emb]
       for hist_col in aux_hist_emb_list:
+        aux_hist_dim = hist_col.shape[-1]
         cur_aux_hist = tf.matmul(scores, hist_col)
-        outputs = tf.reshape(cur_aux_hist, [-1, seq_emb_dim])
+        outputs = tf.reshape(cur_aux_hist, [-1, aux_hist_dim])
         all_hist_dim_emb.append(outputs)
       hist_din_emb = tf.concat(all_hist_dim_emb, axis=1)
     if not need_key_feature:
@@ -180,7 +181,8 @@ class SequenceFeatureLayer(object):
                concat_features,
                all_seq_att_map_config,
                feature_name_to_output_tensors=None,
-               negative_sampler=False):
+               negative_sampler=False,
+               scope_name=None):
     logging.info('use sequence feature layer.')
     all_seq_fea = []
     # process all sequence features
@@ -191,7 +193,7 @@ class SequenceFeatureLayer(object):
       allow_key_transform = seq_att_map_config.allow_key_transform
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
-                                           allow_key_search)
+                                           allow_key_search, scope_name)
 
       # apply regularization for sequence feature key in seq_input_layer.
 
