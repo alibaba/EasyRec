@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+import os
 import re
 from abc import abstractmethod
 
@@ -59,6 +60,9 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._sample_weight = 1.0
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
+
+    self._mode = os.environ.get('tf.estimator.mode',
+                                tf.estimator.ModeKeys.TRAIN)
 
   @property
   def embedding_regularization(self):

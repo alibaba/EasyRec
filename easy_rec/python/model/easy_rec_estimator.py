@@ -224,11 +224,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
           optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
 
     # add barrier for no strategy case
-    if run_config.num_worker_replicas > 1 and \
-       self.train_config.train_distribute == DistributionStrategy.NoStrategy:
-      hooks.append(
-          estimator_utils.ExitBarrierHook(run_config.num_worker_replicas,
-                                          run_config.is_chief, self.model_dir))
+    # if run_config.num_worker_replicas > 1 and \
+    #    self.train_config.train_distribute == DistributionStrategy.NoStrategy:
+    #   hooks.append(
+    #       estimator_utils.ExitBarrierHook(run_config.num_worker_replicas,
+    #                                       run_config.is_chief, self.model_dir))
 
     if self.export_config.enable_early_stop:
       eval_dir = os.path.join(self._model_dir, 'eval_val')

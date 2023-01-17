@@ -39,9 +39,32 @@ class DBMTL(MultiTaskModel):
                                          self._input_layer)
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
+
+    self._bias_features_dict = {}
+    if self._mode == tf.estimator.ModeKeys.TRAIN:
+      for task_tower_cfg in self._model_config.task_towers:
+        for bias_tower_cfg in task_tower_cfg.bias_tower:
+          if bias_tower_cfg.input not in self._bias_features_dict:
+            self._bias_features_dict[
+                bias_tower_cfg.input], _ = self._input_layer(
+                    self._feature_dict, bias_tower_cfg.input)
+
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
+    if self._model_config.use_feature_bn:
+      self._features = tf.layers.batch_normalization(
+          self._features,
+          training=self._is_training,
+          trainable=True,
+          name='feat/all/bn')
+      for k, v in self._bias_features_dict.items():
+        self._bias_features_dict[k] = tf.layers.batch_normalization(
+            v,
+            training=self._is_training,
+            trainable=True,
+            name='feat/%s/bn' % k)
+
     if self._model_config.HasField('bottom_cmbf'):
       bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_uniter'):
@@ -105,6 +128,33 @@ class DBMTL(MultiTaskModel):
           task_tower_cfg.num_class,
           kernel_regularizer=self._l2_reg,
           name=tower_name + '/output')
+      tf.summary.scalar(tower_name + '/output', tf.reduce_mean(output_logits))
+
+      if self._mode == tf.estimator.ModeKeys.TRAIN:
+        for bias_tower_cfg in task_tower_cfg.bias_tower:
+          bias_dnn = dnn.DNN(
+              task_tower_cfg.relation_dnn,
+              self._l2_reg,
+              name='%s/%s/bias_dnn' % (tower_name, bias_tower_cfg.input),
+              is_training=self._is_training)
+          bias_fea = bias_dnn(self._bias_features_dict[bias_tower_cfg.input])
+          bias_logits = tf.layers.dense(
+              bias_fea,
+              task_tower_cfg.num_class,
+              kernel_regularizer=self._l2_reg,
+              name='%s/%s/bias_output' % (tower_name, bias_tower_cfg.input))
+          if bias_tower_cfg.HasField(
+              'bias_dropout_ratio') and bias_tower_cfg.bias_dropout_ratio > 0:
+            bias_logits = tf.nn.dropout(
+                bias_logits,
+                keep_prob=1 - bias_tower_cfg.bias_dropout_ratio,
+                name='%s/%s/bias_dropout' % (tower_name, bias_tower_cfg.input))
+
+          tf.summary.scalar(
+              '%s/%s/bias_output' % (tower_name, bias_tower_cfg.input),
+              tf.reduce_mean(bias_logits))
+          output_logits = output_logits + bias_logits
+
       tower_outputs[tower_name] = output_logits
 
     self._add_to_prediction_dict(tower_outputs)

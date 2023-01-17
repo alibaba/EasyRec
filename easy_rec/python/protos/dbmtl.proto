@@ -20,4 +20,6 @@ message DBMTL {
     repeated BayesTaskTower task_towers = 4;
     // l2 regularization
     optional float l2_regularization = 5 [default = 1e-4];
+
+    optional bool use_feature_bn = 6 [default = false];
 }
