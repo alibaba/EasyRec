@@ -220,7 +220,7 @@ def _wait_ckpt(ckpt_path, max_wait_ts):
         break
   else:
     while time.time() - start_ts < max_wait_ts:
-      if gfile.Exists(ckpt_path + '.index'):
+      if not gfile.Exists(ckpt_path + '.index'):
         logging.info('wait for checkpoint[%s]' % ckpt_path)
         time.sleep(30)
       else:

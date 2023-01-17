@@ -156,15 +156,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     if Input.DATA_OFFSET in features:
       task_index, task_num = estimator_utils.get_task_index_and_num()
+      if self._pipeline_config.data_config.chief_redundant and task_num > 1:
+        task_index -= 1
+        task_num -= 1
       data_offset_var = tf.get_variable(
           name=Input.DATA_OFFSET,
           dtype=tf.string,
           shape=[task_num],
           collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
           trainable=False)
-      update_offset = tf.assign(data_offset_var[task_index],
-                                features[Input.DATA_OFFSET])
-      ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
+      if task_index >= 0:
+        update_offset = tf.assign(data_offset_var[task_index],
+                                  features[Input.DATA_OFFSET])
+        ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
     else:
       data_offset_var = None
 
@@ -175,6 +179,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
+          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
@@ -365,8 +370,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
           tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
 
-      # exclude data_offset_var
-      var_list = [x for x in var_list if x != data_offset_var]
       # early_stop flag will not be saved in checkpoint
       # and could not be restored from checkpoint
       early_stop_var = find_early_stop_var(var_list)
@@ -399,20 +402,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))
       # saver hook
-      saver_hook = estimator_utils.CheckpointSaverHook(
-          checkpoint_dir=self.model_dir,
-          save_secs=self._config.save_checkpoints_secs,
-          save_steps=self._config.save_checkpoints_steps,
-          scaffold=scaffold,
-          write_graph=self.train_config.write_graph,
-          data_offset_var=data_offset_var,
-          increment_save_config=self.incr_save_config)
       chief_hooks = []
       if estimator_utils.is_chief():
+        saver_hook = estimator_utils.CheckpointSaverHook(
+            checkpoint_dir=self.model_dir,
+            save_secs=self._config.save_checkpoints_secs,
+            save_steps=self._config.save_checkpoints_steps,
+            scaffold=scaffold,
+            write_graph=self.train_config.write_graph,
+            data_offset_var=data_offset_var,
+            increment_save_config=self.incr_save_config)
         hooks.append(saver_hook)
 
     # profiling hook
-    if self.train_config.is_profiling and estimator_utils.is_chief():
+    if self.train_config.is_profiling and estimator_utils.is_first_worker():
       profile_hook = tf.train.ProfilerHook(
           save_steps=log_step_count_steps, output_dir=self.model_dir)
       hooks.append(profile_hook)
@@ -558,6 +561,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
           assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 all_vars[var_name])
+      logging.info('dense train vars num=%d' % len(all_vars))
+    elif self.train_config.HasField('incr_save_config'):
+      logging.warning('dense_train_var_path does not exist: %s' %
+                      dense_train_var_path)
 
     # add more asset files
     if len(export_config.asset_files) > 0:

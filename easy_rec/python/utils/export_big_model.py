@@ -24,6 +24,7 @@ from tensorflow.python.training.saver import export_meta_graph
 
 import easy_rec
 from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import io_util
 from easy_rec.python.utils import proto_util
@@ -362,17 +363,27 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   logging.info('meta_graph_version = %s' %
                meta_graph_def.meta_info_def.meta_graph_version)
 
+  if 'incr_update' in oss_params:
+    embed_name_to_id_file = os.path.join(
+        os.path.dirname(checkpoint_path), constant.EMBED_NAME_TO_IDS_FILE)
+    norm_name_to_ids = embedding_utils.load_norm_name_to_ids(
+        embed_name_to_id_file)
+  else:
+    norm_name_to_ids = embedding_utils.get_norm_name_to_ids()
+    embed_name_to_id_file = os.path.join(export_dir,
+                                         constant.EMBED_NAME_TO_IDS_FILE)
+    embedding_utils.save_norm_name_to_ids(embed_name_to_id_file,
+                                          norm_name_to_ids)
+
   embed_var_parts = {}
   embed_norm_name = {}
   embed_spos = {}
   # pai embedding variable
   embedding_vars = {}
-  norm_name_to_ids = {}
   for x in global_variables():
     tf.logging.info('global var: %s %s %s' % (x.name, str(type(x)), x.device))
     if 'EmbeddingVariable' in str(type(x)):
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
-      norm_name_to_ids[norm_name] = 1
       tmp_export = x.export()
       if x.device not in embedding_vars:
         embedding_vars[x.device] = [(norm_name, tmp_export.keys,
@@ -382,18 +393,11 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
             (norm_name, tmp_export.keys, tmp_export.values, part_id))
     elif '/embedding_weights:' in x.name or '/embedding_weights/part_' in x.name:
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
-      norm_name_to_ids[norm_name] = 1
-      embed_norm_name[x] = norm_name
+      embed_norm_name[x] = norm_name_to_ids[norm_name]
       if norm_name not in embed_var_parts:
         embed_var_parts[norm_name] = {part_id: x}
       else:
         embed_var_parts[norm_name][part_id] = x
-
-  for tid, t in enumerate(norm_name_to_ids.keys()):
-    norm_name_to_ids[t] = str(tid)
-
-  for x in embed_norm_name:
-    embed_norm_name[x] = norm_name_to_ids[embed_norm_name[x]]
 
   total_num = 0
   for norm_name in embed_var_parts:
@@ -426,7 +430,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
     for tmp_dev in per_device_vars:
       tmp_vars = per_device_vars[tmp_dev]
       with tf.device(tmp_dev):
-        tmp_names = [embed_norm_name[v] for v in tmp_vars]
+        tmp_names = [str(embed_norm_name[v]) for v in tmp_vars]
         tmp_spos = [np.array(embed_spos[v], dtype=np.int64) for v in tmp_vars]
         write_kv_res = kv_module.oss_write_kv(
             tmp_names,
@@ -445,7 +449,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
     for tmp_dev in embedding_vars:
       with tf.device(tmp_dev):
         tmp_vs = embedding_vars[tmp_dev]
-        tmp_sparse_names = [norm_name_to_ids[x[0]] for x in tmp_vs]
+        tmp_sparse_names = [str(norm_name_to_ids[x[0]]) for x in tmp_vs]
         tmp_sparse_keys = [x[1] for x in tmp_vs]
         tmp_sparse_vals = [x[2] for x in tmp_vs]
         tmp_part_ids = [x[3] for x in tmp_vs]
@@ -507,14 +511,12 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   saver = tf.train.import_meta_graph(meta_graph_editor._meta_graph_def)
   graph = tf.get_default_graph()
 
-  embed_name_to_id_file = os.path.join(export_dir, 'embed_name_to_ids.txt')
-  with GFile(embed_name_to_id_file, 'w') as fout:
-    for tmp_norm_name in norm_name_to_ids:
-      fout.write('%s\t%s\n' % (tmp_norm_name, norm_name_to_ids[tmp_norm_name]))
   ops.add_to_collection(
       ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
-          embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
+          embed_name_to_id_file,
+          dtype=tf.string,
+          name=constant.EMBED_NAME_TO_IDS_FILE))
 
   if 'incr_update' in oss_params:
     dense_train_vars_path = os.path.join(
