@@ -119,7 +119,7 @@ class BaseSampler(object):
       else:
         # worker mode
         task_count = len(tf_config['cluster']['worker']) + 1
-        if not self._is_on_ds:
+        if pai_util.is_on_pai():
           if tf_config['task']['type'] in ['chief', 'master']:
             self._g.init(task_index=0, task_count=task_count)
           elif tf_config['task']['type'] == 'worker':
