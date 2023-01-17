@@ -980,6 +980,7 @@ class TrainEvalTest(tf.test.TestCase):
         cur_eval_path, self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
   def test_distribute_eval_dssm_hard_neg_sampler(self):
     cur_eval_path = 'data/test/distribute_eval_test/dssm_hard_neg_sampler_taobao_ckpt'
     self._success = test_utils.test_distributed_eval(
