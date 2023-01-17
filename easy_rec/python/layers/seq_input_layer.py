@@ -54,8 +54,10 @@ class SeqInputLayer(object):
 
     if scope_name is None:
       scope_name = group_name
+    # name_scope is specified to avoid adding _1 _2 after scope_name
     with variable_scope.variable_scope(
-        scope_name, reuse=tf.AUTO_REUSE), ops.name_scope(scope_name + '/'):
+        scope_name,
+        reuse=variable_scope.AUTO_REUSE), ops.name_scope(scope_name + '/'):
       key_tensors = []
       hist_tensors = []
       check_op_list = []

@@ -114,7 +114,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         self._multi_value_types[fc.input_names[0]] = tf.float32
 
       if fc.HasField('normalizer_fn'):
-        feature_name = fc.feature_name if fc.HasField('feature_name') else fc.input_names[0]
+        feature_name = fc.feature_name if fc.HasField(
+            'feature_name') else fc.input_names[0]
         self._normalizer_fn[feature_name] = load_by_path(fc.normalizer_fn)
 
     # add sample weight to effective fields
