@@ -76,13 +76,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     self._label_udf_map = {}
     for config in self._data_config.input_fields:
       if config.HasField('user_define_fn'):
-        user_define_fn_path = config.user_define_fn_path if config.HasField(
-            'user_define_fn_path') else None
-        user_define_fn_res_type = config.user_define_fn_res_type if config.HasField(
-            'user_define_fn_res_type') else None
-        self._label_udf_map[config.input_name] = (config.user_define_fn,
-                                                  user_define_fn_path,
-                                                  user_define_fn_res_type)
+        self._label_udf_map[config.input_name] = self._load_label_fn(config)
 
     self._batch_size = data_config.batch_size
     self._prefetch_size = data_config.prefetch_size
@@ -100,6 +94,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     # it is used in create_multi_placeholders
     self._multi_value_types = {}
 
+    self._normalizer_fn = {}
     for fc in self._feature_configs:
       for input_name in fc.input_names:
         assert input_name in self._input_fields, 'invalid input_name in %s' % str(
@@ -117,6 +112,11 @@ class Input(six.with_metaclass(_meta_type, object)):
 
       if fc.feature_type == fc.RawFeature:
         self._multi_value_types[fc.input_names[0]] = tf.float32
+
+      if fc.HasField('normalizer_fn'):
+        feature_name = fc.feature_name if fc.HasField(
+            'feature_name') else fc.input_names[0]
+        self._normalizer_fn[feature_name] = load_by_path(fc.normalizer_fn)
 
     # add sample weight to effective fields
     if self._data_config.HasField('sample_weight'):
@@ -186,6 +186,32 @@ class Input(six.with_metaclass(_meta_type, object)):
       self._sampler = sampler_lib.build(data_config)
 
     self.get_type_defaults = get_type_defaults
+
+  def _load_label_fn(self, config):
+    udf_class = config.user_define_fn
+    udf_path = config.user_define_fn_path if config.HasField(
+        'user_define_fn_path') else None
+    dtype = config.user_define_fn_res_type if config.HasField(
+        'user_define_fn_res_type') else None
+
+    if udf_path:
+      if udf_path.startswith('oss://') or udf_path.startswith('hdfs://'):
+        with gfile.GFile(udf_path, 'r') as fin:
+          udf_content = fin.read()
+        final_udf_tmp_path = '/udf/'
+        final_udf_path = final_udf_tmp_path + udf_path.split('/')[-1]
+        logging.info('final udf path %s' % final_udf_path)
+        logging.info('udf content: %s' % udf_content)
+        if not gfile.Exists(final_udf_tmp_path):
+          gfile.MkDir(final_udf_tmp_path)
+        with gfile.GFile(final_udf_path, 'w') as fin:
+          fin.write(udf_content)
+      else:
+        final_udf_path = udf_path
+      final_udf_path = final_udf_path[:-3].replace('/', '.')
+      udf_class = final_udf_path + '.' + udf_class
+    logging.info('apply udf %s' % udf_class)
+    return load_by_path(udf_class), udf_class, dtype
 
   @property
   def num_epochs(self):
@@ -501,7 +527,7 @@ class Input(six.with_metaclass(_meta_type, object)):
 
     if fc.HasField('normalizer_fn'):
       logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
-      parsed_dict[feature_name] = load_by_path(fc.normalizer_fn)(
+      parsed_dict[feature_name] = self._normalizer_fn[feature_name](
           parsed_dict[feature_name])
 
     if not fc.boundaries and fc.num_buckets <= 1 and \
@@ -735,39 +761,16 @@ class Input(six.with_metaclass(_meta_type, object)):
       if input_name not in field_dict:
         continue
       if input_name in self._label_udf_map:
-        udf_class, udf_path, dtype = self._label_udf_map[input_name]
-        if udf_path:
+        udf, udf_class, dtype = self._label_udf_map[input_name]
+        if dtype is None or dtype == '':
+          logging.info('apply tensorflow function transform: %s' % udf_class)
+          field_dict[input_name] = udf(field_dict[input_name])
+        else:
           assert dtype is not None, 'must set user_define_fn_res_type'
-          if udf_path.startswith('oss://') or udf_path.startswith('hdfs://'):
-            with gfile.GFile(udf_path, 'r') as fin:
-              udf_content = fin.read()
-            final_udf_tmp_path = '/udf/'
-            final_udf_path = final_udf_tmp_path + udf_path.split('/')[-1]
-            logging.info('final udf path %s' % final_udf_path)
-            logging.info('udf content: %s' % udf_content)
-            if not gfile.Exists(final_udf_tmp_path):
-              gfile.MkDir(final_udf_tmp_path)
-            with gfile.GFile(final_udf_path, 'w') as fin:
-              fin.write(udf_content)
-          else:
-            final_udf_path = udf_path
-          final_udf_path = final_udf_path[:-3].replace('/', '.')
-          final_udf_path = final_udf_path + '.' + udf_class
-          logging.info('apply udf %s' % final_udf_path)
-          udf = load_by_path(final_udf_path)
+          logging.info('apply py_func transform: %s' % udf_class)
           field_dict[input_name] = tf.py_func(
               udf, [field_dict[input_name]], Tout=get_tf_type(dtype))
           field_dict[input_name].set_shape(tf.TensorShape([None]))
-        else:
-          logging.info('apply udf %s' % udf_class)
-          udf = load_by_path(udf_class)
-          if udf_class.split('.')[0] in ['tf', 'tensorflow']:
-            field_dict[input_name] = udf(field_dict[input_name])
-          else:
-            assert dtype is not None, 'must set user_define_fn_res_type'
-            field_dict[input_name] = tf.py_func(
-                udf, [field_dict[input_name]], Tout=get_tf_type(dtype))
-            field_dict[input_name].set_shape(tf.TensorShape([None]))
 
       if field_dict[input_name].dtype == tf.string:
         if self._label_dim[input_id] > 1:
