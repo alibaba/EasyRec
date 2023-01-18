@@ -21,10 +21,7 @@ jobs:
           TEST_DEVICES: ""
           PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
         run: |
-           echo "HOME=${HOME}"
-           pwd
-           echo $PATH
-           source activate tf25_py3
+           conda activate tf25_py3
            pre-commit run -a
            if [ $? -eq 0 ]
            then
