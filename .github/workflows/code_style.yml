@@ -23,15 +23,18 @@ jobs:
         run: |
            source ~/.bashrc
            source activate tf25_py3
-           which pre-commit
-           pre-commit -V
-           pwd
            pre-commit run -a
            if [ $? -eq 0 ]
            then
              echo "ci_test_passed=1" >> $GITHUB_OUTPUT
            else
-             echo "ci_test_passed=0" >> $GITHUB_OUTPUT
+             pre-commit run -a
+             if [ $? -eq 0 ]
+             then
+               echo "ci_test_passed=1" >> $GITHUB_OUTPUT
+             else
+               echo "ci_test_passed=0" >> $GITHUB_OUTPUT
+             fi
            fi
       - name: LabelAndComment
         env:
