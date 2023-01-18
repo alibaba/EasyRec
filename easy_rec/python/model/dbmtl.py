@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import cmbf
 from easy_rec.python.layers import dnn
+from easy_rec.python.layers import layer_norm
 from easy_rec.python.layers import mmoe
 from easy_rec.python.layers import uniter
 from easy_rec.python.model.multi_task_model import MultiTaskModel
@@ -64,6 +65,12 @@ class DBMTL(MultiTaskModel):
             training=self._is_training,
             trainable=True,
             name='feat/%s/bn' % k)
+    elif self._model_config.use_feature_ln:
+      self._features = layer_norm.layer_norm(
+          self._features, trainable=True, scope='feat/all/ln')
+      for k, v in self._bias_features_dict.items():
+        self._bias_features_dict[k] = layer_norm.layer_norm(
+            v, trainable=True, name='feat/%s/ln' % k)
 
     if self._model_config.HasField('bottom_cmbf'):
       bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
