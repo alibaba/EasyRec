@@ -166,3 +166,11 @@ class DBMTL(MultiTaskModel):
 
     self._add_to_prediction_dict(tower_outputs)
     return self._prediction_dict
+
+  def get_shared_ws(self):
+    shared_ws = [
+        x for x in tf.global_variables()
+        if 'bottom_dnn' in x.name and '/kernel' in x.name
+    ]
+    shared_ws.sort(key=lambda x: x.name)
+    return shared_ws[-1]

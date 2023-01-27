@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
+from easy_rec.python.loss.grad_norm import grad_norm
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 
@@ -113,11 +114,25 @@ class MultiTaskModel(RankModel):
 
       self._loss_dict.update(loss_dict)
 
+    if self._base_model_config.grad_norm:
+      shared_ws = self.get_shared_ws()
+      loss_keys = list(self._loss_dict.keys())
+      loss_vals = [self._loss_dict[x] for x in loss_keys]
+      weighted_losses, grad_norm_loss = grad_norm(
+          loss_vals, shared_ws, self._base_model_config.grad_norm_alpha)
+      for k, v in zip(loss_keys, weighted_losses):
+        self._loss_dict[k] = v
+      self._loss_dict['grad_norm_loss'] = grad_norm_loss
+
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
                                               self._labels)
     self._loss_dict.update(kd_loss_dict)
 
     return self._loss_dict
+
+  def get_shared_ws(self):
+    """Return last shared layer weights."""
+    raise NotImplementedError()
 
   def get_outputs(self):
     outputs = []

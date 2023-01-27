@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.contrib.framework.python.ops import variables
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import nn
@@ -151,7 +150,7 @@ def layer_norm(inputs,
           initializer=init_ops.zeros_initializer(),
           trainable=trainable)
     if scale:
-      gamma = variables.model_variable(
+      gamma = variable_scope.get_variable(
           'gamma',
           shape=params_shape,
           dtype=dtype,
