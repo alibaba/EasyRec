@@ -606,6 +606,15 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, run_context.session)
 
+  def _clean_old_offset_files(self):
+    if self._data_offset_var is not None:
+      for offset_file in gfile.Glob(
+          os.path.join(self._checkpoint_dir, 'model.ckpt-*.offset')):
+        index_file = offset_file[:-6] + 'index'
+        if not gfile.Exists(index_file):
+          gfile.Remove(offset_file)
+          logging.info('clean old offset file: %s' % offset_file)
+
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
@@ -642,6 +651,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         tf.SessionLog(
             status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),
         step)
+
+    self._clean_old_offset_files()
 
     should_stop = False
     for l in self._listeners:  # noqa: E741
