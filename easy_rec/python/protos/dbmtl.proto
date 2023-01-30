@@ -22,4 +22,6 @@ message DBMTL {
     optional float l2_regularization = 5 [default = 1e-4];
 
     optional bool use_feature_bn = 6 [default = false];
+
+    optional DNN sequence_dnn = 7;
 }

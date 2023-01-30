@@ -69,7 +69,7 @@ class SequenceFeatureLayer(object):
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
       cur_id = tf.layers.dense(
-          cur_id, seq_emb_dim, name='sequence_key_transform_layer')
+          cur_id, seq_emb_dim, name=name + '/sequence_key_transform_layer')
 
     cur_ids = tf.tile(cur_id, [1, 1, seq_max_len])
     cur_ids = tf.reshape(
@@ -127,13 +127,21 @@ class SequenceFeatureLayer(object):
 
     seq_max_len = tf.shape(hist_id_col)[1]
     seq_emb_dim = hist_id_col.shape[2]
-    cur_id_dim = tf.shape(cur_id)[-1]
+    cur_id_dim = cur_id.shape[-1]
 
-    cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
+    # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
-      cur_id = tf.layers.dense(
-          cur_id, seq_emb_dim, name='sequence_key_transform_layer')
+      # cur_id = tf.layers.dense(
+      #     cur_id, seq_emb_dim, 
+      #     kernel_regularizer=self._kernel_regularizer,
+      #     name=name + '/sequence_key_transform_layer')
+      # hist_id_col = tf.layers.dense(
+      #     hist_id_col, seq_emb_dim, 
+      #     kernel_regularizer=self._kernel_regularizer,
+      #     name=name + '/sequence_hist_transform_layer')
+      cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim -  cur_id_dim]])
+      
 
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,

@@ -65,7 +65,7 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
-  def __call__(self, features, group_name, is_combine=True):
+  def __call__(self, features, group_name, is_combine=True, return_sequence=False):
     """Get features by group_name.
 
     Args:
@@ -103,7 +103,10 @@ class InputLayer(object):
         group_features.extend(all_seq_fea)
         all_seq_fea = tf.concat(all_seq_fea, axis=-1)
         concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
-      return concat_features, group_features
+      if return_sequence:
+        return concat_features, group_features, all_seq_fea
+      else:
+        return concat_features, group_features
     else:
       if self._variational_dropout_config is not None:
         raise ValueError(

@@ -37,6 +37,8 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
+    elif self._model_config.HasField('sequence_dnn'):
+      self._features, _, self._seq_features = self._input_layer(self._feature_dict, 'all', return_sequence=True)
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
 
@@ -76,6 +78,15 @@ class DBMTL(MultiTaskModel):
       bottom_fea = bottom_dnn(self._features)
     else:
       bottom_fea = self._features
+
+    if self._model_config.HasField('sequence_dnn'):
+      sequence_dnn = dnn.DNN(
+          self._model_config.sequence_dnn,
+          self._l2_reg,
+          name='sequence_dnn',
+          is_training=self._is_training)
+      sequence_fea = sequence_dnn(self._seq_features)
+      bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):
