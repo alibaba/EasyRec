@@ -196,7 +196,7 @@ class RankModel(EasyRecModel):
                          label_name,
                          num_class=1,
                          suffix=''):
-    if not isinstance(loss_type, dict):
+    if not isinstance(loss_type, set):
       loss_type = {loss_type}
     from easy_rec.python.core.easyrec_metrics import metrics_tf
     from easy_rec.python.core import metrics as metrics_lib
