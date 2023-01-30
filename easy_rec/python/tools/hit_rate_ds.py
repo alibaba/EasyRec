@@ -24,13 +24,13 @@ import os
 import graphlearn as gl
 import tensorflow as tf
 
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
 from easy_rec.python.utils.hit_rate_utils import load_graph
 from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
 from easy_rec.python.utils.hive_utils import HiveUtils
-from easy_rec.python.utils.config_util import process_multi_file_input_path
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -113,7 +113,7 @@ def gt_hdfs(gt_table, batch_size, gt_file_sep):
 
   if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
-  elif tf.gfile.IsDirectory(gt_table) :
+  elif tf.gfile.IsDirectory(gt_table):
     file_paths = tf.gfile.Glob(os.path.join(gt_table, '*'))
   else:
     file_paths = tf.gfile.Glob(gt_table)
@@ -152,7 +152,7 @@ def main():
   input_type = pipeline_config.data_config.input_type
   input_type_name = DatasetConfig.InputType.Name(input_type)
   if input_type_name == 'CSVInput':
-      i_emb_table = process_multi_file_input_path(i_emb_table)
+    i_emb_table = process_multi_file_input_path(i_emb_table)
   else:
     hive_utils = HiveUtils(
         data_config=pipeline_config.data_config,
