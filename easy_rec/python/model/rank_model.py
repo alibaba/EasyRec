@@ -68,12 +68,12 @@ class RankModel(EasyRecModel):
   def _add_to_prediction_dict(self, output):
     if len(self._losses) == 0:
       prediction_dict = self._output_to_prediction_impl(
-        output, loss_type=self._loss_type, num_class=self._num_class)
+          output, loss_type=self._loss_type, num_class=self._num_class)
       self._prediction_dict.update(prediction_dict)
     else:
       for loss in self._losses:
         prediction_dict = self._output_to_prediction_impl(
-          output, loss_type=loss.loss_type, num_class=self._num_class)
+            output, loss_type=loss.loss_type, num_class=self._num_class)
         self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):
@@ -95,8 +95,8 @@ class RankModel(EasyRecModel):
       if len(self._losses) > 0:
         loss_types = {loss.loss_type for loss in self._losses}
       binary_loss_set = {
-        LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
-        LossType.PAIR_WISE_LOSS
+          LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
+          LossType.PAIR_WISE_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -339,8 +339,8 @@ class RankModel(EasyRecModel):
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
     binary_loss_set = {
-      LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
-      LossType.PAIR_WISE_LOSS
+        LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
+        LossType.PAIR_WISE_LOSS
     }
     if loss_type in binary_loss_set:
       if num_class == 1:

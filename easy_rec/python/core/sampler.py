@@ -7,7 +7,6 @@ import json
 import logging
 import math
 import os
-import re
 import threading
 
 import numpy as np
@@ -16,8 +15,8 @@ import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
-from easy_rec.python.utils.tf_utils import get_tf_type
 from easy_rec.python.utils.config_util import process_multi_file_input_path
+from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   import graphlearn as gl
@@ -54,7 +53,6 @@ def _get_np_type(field_type):
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
-
 
 
 class BaseSampler(object):

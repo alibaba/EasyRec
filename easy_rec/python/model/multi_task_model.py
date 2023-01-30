@@ -53,19 +53,19 @@ class MultiTaskModel(RankModel):
       tower_name = task_tower_cfg.tower_name
       if len(task_tower_cfg.losses) == 0:
         self._prediction_dict.update(
-          self._output_to_prediction_impl(
-              output[tower_name],
-              loss_type=task_tower_cfg.loss_type,
-              num_class=task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+            self._output_to_prediction_impl(
+                output[tower_name],
+                loss_type=task_tower_cfg.loss_type,
+                num_class=task_tower_cfg.num_class,
+                suffix='_%s' % tower_name))
       else:
         for loss in task_tower_cfg.losses:
           self._prediction_dict.update(
-            self._output_to_prediction_impl(
-              output[tower_name],
-              loss_type=loss.loss_type,
-              num_class=task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+              self._output_to_prediction_impl(
+                  output[tower_name],
+                  loss_type=loss.loss_type,
+                  num_class=task_tower_cfg.num_class,
+                  suffix='_%s' % tower_name))
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
@@ -137,15 +137,15 @@ class MultiTaskModel(RankModel):
       tower_name = task_tower_cfg.tower_name
       if len(task_tower_cfg.losses) == 0:
         outputs.extend(
-          self._get_outputs_impl(
-              task_tower_cfg.loss_type,
-              task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+            self._get_outputs_impl(
+                task_tower_cfg.loss_type,
+                task_tower_cfg.num_class,
+                suffix='_%s' % tower_name))
       else:
         for loss in task_tower_cfg.losses:
           outputs.extend(
-            self._get_outputs_impl(
-              loss.loss_type,
-              task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+              self._get_outputs_impl(
+                  loss.loss_type,
+                  task_tower_cfg.num_class,
+                  suffix='_%s' % tower_name))
     return list(set(outputs))
