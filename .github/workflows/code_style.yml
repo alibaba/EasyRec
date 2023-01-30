@@ -1,4 +1,4 @@
-name: CI Build PY3 TF25
+name: CI Build Code Style
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -22,9 +22,20 @@ jobs:
           PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
         run: |
            source ~/.bashrc
-           conda activate tf25_py3
-           python git-lfs/git_lfs.py pull
-           source scripts/ci_test.sh
+           source activate tf25_py3
+           pre-commit run -a
+           if [ $? -eq 0 ]
+           then
+             echo "ci_test_passed=1" >> $GITHUB_OUTPUT
+           else
+             pre-commit run -a
+             if [ $? -eq 0 ]
+             then
+               echo "ci_test_passed=1" >> $GITHUB_OUTPUT
+             else
+               echo "ci_test_passed=0" >> $GITHUB_OUTPUT
+             fi
+           fi
       - name: LabelAndComment
         env:
           CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
@@ -49,12 +60,12 @@ jobs:
 
              var pass_label = null;
              if (labels != null) {
-                pass_label = labels.find(label=>label.name=='ci_py3_tf25_test_passed');
+                pass_label = labels.find(label=>label.name=='code_style_test_passed');
              }
 
              var fail_label = null;
              if (labels != null) {
-                fail_label = labels.find(label=>label.name=='ci_py3_tf25_test_failed');
+                fail_label = labels.find(label=>label.name=='code_style_test_failed');
              }
 
              if (pass_label) {
@@ -62,7 +73,7 @@ jobs:
                  issue_number: context.issue.number,
                  owner: context.repo.owner,
                  repo: context.repo.repo,
-                 name: 'ci_py3_tf25_test_passed'
+                 name: 'code_style_test_passed'
                })
              }
 
@@ -71,7 +82,7 @@ jobs:
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  name: 'ci_py3_tf25_test_failed'
+                  name: 'code_style_test_failed'
                })
              }
 
@@ -80,28 +91,28 @@ jobs:
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  labels: ['ci_py3_tf25_test_passed']
+                  labels: ['code_style_test_passed']
                })
 
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: "CI PY3 TF25 Test Passed"
+                  body: "Code Style Test Passed"
                })
              } else {
                github.rest.issues.addLabels({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  labels: ['ci_py3_tf25_test_failed']
+                  labels: ['code_style_test_failed']
                })
 
                github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: "CI PY3 TF25 Test Failed"
+                  body: "Code Style Test Failed"
                })
              }
       - name: SignalFail
@@ -111,6 +122,6 @@ jobs:
           echo "CI_TEST_PASSED=${CI_TEST_PASSED}"
           if [ $CI_TEST_PASSED -ne 1 ]
           then
-            echo "ci_py3_tf25_test_failed, will exit"
+            echo "code_style_test_failed, will exit"
             exit 1
           fi
