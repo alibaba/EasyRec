@@ -16,13 +16,13 @@ then
   flag=$?
   if [ $flag -eq 2 ]
   then
-     echo "::set-output name=ci_test_passed::0"
+     echo "ci_test_passed=0" >> $GITHUB_OUTPUT
      exit
   fi
   if [ $flag -ne 0 ]
   then
      # there are no code changes related to this test
-     echo "::set-output name=ci_test_passed::1"
+     echo "ci_test_passed=1" >> $GITHUB_OUTPUT
      exit
   fi
 fi
@@ -41,7 +41,7 @@ PYTHONPATH=. python -m easy_rec.python.test.run  # --pattern export_test.*
 # for github
 if [ $? -eq 0 ]
 then
-  echo "::set-output name=ci_test_passed::1"
+  echo "ci_test_passed=1" >> $GITHUB_OUTPUT
 else
-  echo "::set-output name=ci_test_passed::0"
+  echo "ci_test_passed=0" >> $GITHUB_OUTPUT
 fi
