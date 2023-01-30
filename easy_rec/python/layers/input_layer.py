@@ -17,7 +17,8 @@ from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import shape_utils
 
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
-from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
+from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn
+from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn
 
 
 class InputLayer(object):
@@ -167,7 +168,11 @@ class InputLayer(object):
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
         feature_name_to_output_tensors=feature_name_to_output_tensors)
-    embedding_reg_lst = [output_features]
+    # embedding_reg_lst = [output_features]
+    embedding_reg_lst = []
+    for col, val in cols_to_output_tensors.items():
+      if isinstance(col, EmbeddingColumn) or isinstance(col, SharedEmbeddingColumn):
+        embedding_reg_lst.append(val)
     builder = feature_column._LazyBuilder(features)
     seq_features = []
     for column in sorted(group_seq_columns, key=lambda x: x.name):
