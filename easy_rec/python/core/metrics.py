@@ -347,3 +347,75 @@ def _get_matrix_mask_indices(matrix, num_rows=None):
   max_index_per_row = tf.tile(max_index_per_row, [1, max_elem_per_row])
   result = tf.where(result >= 0, result, max_index_per_row)
   return result
+
+def _separated_xauc_impl(labels, predictions, keys, reduction='mean'):
+  """Computes the XAUC group by the key separately.
+
+  Args:
+    labels: A `Tensor` whose shape matches `predictions`. Will be cast to
+      `bool`.
+    predictions: A floating point `Tensor` of arbitrary shape and whose values
+      are in the range `[0, 1]`.
+    keys: keys to be group by, A int or string `Tensor` whose shape matches `predictions`.
+    reduction: reduction metric for auc of different keys
+      * "mean": simple mean of different keys
+      * "mean_by_sample_num": weighted mean with sample num of different keys
+      * "mean_by_positive_num": weighted mean with positive sample num of different keys
+  """
+  assert reduction in ['mean', 'mean_by_sample_num', 'mean_by_positive_num'], \
+      'reduction method must in mean | mean_by_sample_num | mean_by_positive_num'
+  separated_label = defaultdict(list)
+  separated_prediction = defaultdict(list)
+  separated_weights = defaultdict(int)
+
+  def update_pyfunc(labels, predictions, keys):
+    for label, prediction, key in zip(labels, predictions, keys):
+      separated_label[key].append(label)
+      separated_prediction[key].append(prediction)
+      if reduction == 'mean':
+        separated_weights[key] = 1
+      elif reduction == 'mean_by_sample_num':
+        separated_weights[key] += 1
+      elif reduction == 'mean_by_positive_num':
+        separated_weights[key] += label
+
+  def value_pyfunc():
+    metrics = []
+    weights = []
+    for key in separated_label.keys():
+      per_label = np.asarray(separated_label[key]).reshape([-1])
+      per_prediction = np.asarray(separated_prediction[key]).reshape([-1])      
+      n = np.size(per_prediction)
+      if n < 2:
+        continue
+
+      label_m = per_label[np.newaxis,:] - per_label[:,np.newaxis]
+      prediction_m = per_prediction[np.newaxis,:] - per_prediction[:,np.newaxis]
+      metric = 1.0 - np.sum(np.logical_xor(label_m > 0, prediction_m > 0)) * 1.0 / (n * (n - 1))
+
+      metrics.append(metric)
+      weights.append(separated_weights[key])
+    if len(metrics) > 0:
+      return np.average(metrics, weights=weights).astype(np.float32)
+    else:
+      return np.float32(0.0)
+
+  update_op = tf.py_func(update_pyfunc, [labels, predictions, keys], [])
+  value_op = tf.py_func(value_pyfunc, [], tf.float32)
+  return value_op, update_op
+
+def xgauc(labels, predictions, uids, reduction='mean'):
+  """Computes the XAUC group by user separately.
+
+  Args:
+    labels: A `Tensor` whose shape matches `predictions`. Will be cast to
+      `bool`.
+    predictions: A floating point `Tensor` of arbitrary shape and whose values
+      are in the range `[0, 1]`.
+    uids: user ids, A int or string `Tensor` whose shape matches `predictions`.
+    reduction: reduction method for auc of different users
+      * "mean": simple mean of different users
+      * "mean_by_sample_num": weighted mean with sample num of different users
+      * "mean_by_positive_num": weighted mean with positive sample num of different users
+  """
+  return _separated_xauc_impl(labels, predictions, uids, reduction)

@@ -33,7 +33,8 @@ class RankModel(EasyRecModel):
                                  output,
                                  loss_type,
                                  num_class=1,
-                                 suffix=''):
+                                 suffix='',
+                                 loss_param=None):
     prediction_dict = {}
     if loss_type == LossType.F1_REWEIGHTED_LOSS or loss_type == LossType.PAIR_WISE_LOSS:
       assert num_class == 1, 'num_class must be 1 when loss type is F1_REWEIGHTED_LOSS/PAIR_WISE_LOSS'
@@ -63,11 +64,36 @@ class RankModel(EasyRecModel):
     elif loss_type == LossType.SIGMOID_L2_LOSS:
       output = tf.squeeze(output, axis=1)
       prediction_dict['y' + suffix] = tf.sigmoid(output)
+    elif loss_type == LossType.L2_QUANTILE_LOSS:
+      output = tf.squeeze(output, axis=1)
+      prediction_dict['y_quantile' + suffix] = output
+
+      delta = 1.0 / (len(loss_param.boundaries) + 1)
+      xs = tf.range(0, 1.0 + delta, delta)
+      ys = tf.convert_to_tensor([loss_param.min] + list(loss_param.boundaries) + [loss_param.max])
+      ms = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
+      ms = tf.pad(ms[:-1], [(1, 1)])
+      bs = ys - ms*xs
+
+      x = tf.clip_by_value(output, 0, 1.0)
+      i = tf.math.argmax(tf.cast(xs[..., tf.newaxis, :] > x[..., tf.newaxis], tf.int32), axis=-1)
+      m = tf.gather(ms, i, axis=-1)
+      b = tf.gather(bs, i, axis=-1)
+
+      prediction_dict['y' + suffix] = tf.reshape(m*x + b, tf.shape(output))
     return prediction_dict
 
   def _add_to_prediction_dict(self, output):
-    prediction_dict = self._output_to_prediction_impl(
-        output, loss_type=self._loss_type, num_class=self._num_class)
+    if len(self._losses) == 0:
+      prediction_dict = self._output_to_prediction_impl(
+          output, loss_type=self._loss_type, num_class=self._num_class)
+    else:
+      for loss in self._losses:
+        loss_param = loss.WhichOneof('loss_param')
+        if loss_param is not None:
+          loss_param = getattr(loss, loss_param)
+        prediction_dict = self._output_to_prediction_impl(
+          output, loss_type=loss.loss_type, num_class=self._num_class, loss_param=loss_param)
     self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):
@@ -132,6 +158,9 @@ class RankModel(EasyRecModel):
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       loss_name = 'l2_loss' + suffix
       pred = self._prediction_dict['y' + suffix]
+    elif loss_type == LossType.L2_QUANTILE_LOSS:
+      loss_name = 'l2_loss' + suffix
+      pred = self._prediction_dict['y_quantile' + suffix]
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
 
@@ -188,6 +217,10 @@ class RankModel(EasyRecModel):
     binary_loss_set = {
         LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
         LossType.PAIR_WISE_LOSS
+    }
+    regression_loss_set = {
+        LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS,
+        LossType.L2_QUANTILE_LOSS
     }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
@@ -269,7 +302,7 @@ class RankModel(EasyRecModel):
           metric.recall_at_topk.topk)
     elif metric.WhichOneof('metric') == 'mean_absolute_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+      if loss_type in regression_loss_set:
         metric_dict['mean_absolute_error' +
                     suffix] = metrics_tf.mean_absolute_error(
                         label, self._prediction_dict['y' + suffix])
@@ -281,7 +314,7 @@ class RankModel(EasyRecModel):
         assert False, 'mean_absolute_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+      if loss_type in regression_loss_set:
         metric_dict['mean_squared_error' +
                     suffix] = metrics_tf.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -293,7 +326,7 @@ class RankModel(EasyRecModel):
         assert False, 'mean_squared_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'root_mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
+      if loss_type in regression_loss_set:
         metric_dict['root_mean_squared_error' +
                     suffix] = metrics_tf.root_mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -303,6 +336,16 @@ class RankModel(EasyRecModel):
                         label, self._prediction_dict['probs' + suffix])
       else:
         assert False, 'root_mean_squared_error is not supported for this model'
+    elif metric.WhichOneof('metric') == 'xgauc':
+      label = tf.to_float(self._labels[label_name])
+      if loss_type in regression_loss_set:
+        metric_dict['xgauc' + suffix] = metrics_lib.xgauc(
+            label,
+            self._prediction_dict['y' + suffix],
+            uids=self._feature_dict[metric.xgauc.uid_field],
+            reduction=metric.xgauc.reduction)
+      else:
+        assert False, 'xgauc is not supported for this model'
     elif metric.WhichOneof('metric') == 'accuracy':
       assert loss_type == LossType.CLASSIFICATION
       assert num_class > 1
@@ -314,10 +357,11 @@ class RankModel(EasyRecModel):
   def build_metric_graph(self, eval_config):
     metric_dict = {}
     for metric in eval_config.metrics_set:
+      loss_type = self._loss_type if len(self._losses) == 0 else self._losses[0].loss_type
       metric_dict.update(
           self._build_metric_impl(
               metric,
-              loss_type=self._loss_type,
+              loss_type=loss_type,
               label_name=self._label_name,
               num_class=self._num_class))
     return metric_dict

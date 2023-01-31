@@ -8,6 +8,7 @@ from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
 from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
+from tensorflow.python.ops import math_ops
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -46,6 +47,10 @@ def build(loss_type,
         f1_beta_square,
         weights=loss_weight,
         label_smoothing=label_smoothing)
+  elif loss_type == LossType.L2_QUANTILE_LOSS:
+    bucketize_label = math_ops.bucketize(label, list(loss_param.boundaries)) / len(loss_param.boundaries)
+    return tf.losses.mean_squared_error(labels=bucketize_label,
+        predictions=pred, weights=loss_weight, **kwargs)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

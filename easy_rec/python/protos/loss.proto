@@ -13,6 +13,7 @@ enum LossType {
     SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING = 7;
     PAIR_WISE_LOSS = 8;
     F1_REWEIGHTED_LOSS = 9;
+    L2_QUANTILE_LOSS = 10;
 }
 
 message Loss {
@@ -23,6 +24,7 @@ message Loss {
     SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
     CircleLoss circle_loss = 103;
     MultiSimilarityLoss multi_simi_loss = 104;
+    L2QuantileLoss l2_quantile_loss = 105;
   }
 };
 
@@ -48,4 +50,10 @@ message MultiSimilarityLoss {
 message F1ReweighedLoss {
   required float f1_beta_square = 1 [default = 1.0];
   required float label_smoothing = 2 [default = 0];
+}
+
+message L2QuantileLoss {
+  repeated float boundaries = 1;
+  required float min = 2;
+  required float max = 3;
 }

@@ -51,12 +51,26 @@ class MultiTaskModel(RankModel):
   def _add_to_prediction_dict(self, output):
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      self._prediction_dict.update(
-          self._output_to_prediction_impl(
-              output[tower_name],
-              loss_type=task_tower_cfg.loss_type,
-              num_class=task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+      losses = task_tower_cfg.losses
+      if len(losses) == 0:
+        self._prediction_dict.update(
+            self._output_to_prediction_impl(
+                output[tower_name],
+                loss_type=task_tower_cfg.loss_type,
+                num_class=task_tower_cfg.num_class,
+                suffix='_%s' % tower_name))
+      else:
+        for loss in losses:
+          loss_param = loss.WhichOneof('loss_param')
+          if loss_param is not None:
+            loss_param = getattr(loss, loss_param)
+          self._prediction_dict.update(
+              self._output_to_prediction_impl(
+                  output[tower_name],
+                  loss_type=loss.loss_type,
+                  num_class=task_tower_cfg.num_class,
+                  suffix='_%s' % tower_name,
+                  loss_param=loss_param))
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
@@ -64,10 +78,12 @@ class MultiTaskModel(RankModel):
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       for metric in task_tower_cfg.metrics_set:
+        losses = task_tower_cfg.losses
+        loss_type = task_tower_cfg.loss_type if len(losses) == 0 else losses[0].loss_type
         metric_dict.update(
             self._build_metric_impl(
                 metric,
-                loss_type=task_tower_cfg.loss_type,
+                loss_type=loss_type,
                 label_name=self._label_name_dict[tower_name],
                 num_class=task_tower_cfg.num_class,
                 suffix='_%s' % tower_name))
