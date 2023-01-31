@@ -19,9 +19,21 @@ python setup.py install
 
 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
 
+安装2选1，install_hpo_tools.sh默认会安装最新版本，最新版本内的代码和案例都是匹配的，可以正常运行，但可能文档配置未更新。因此可以采用安装当前文档匹配的版本。
+
+#### 安装最新版本（可选）
+
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
 bash install_hpo_tools.sh ./
+cd ./examples/search/maxcompute_easyrec
+```
+
+#### 安装当前版本（可选）
+
+```
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools_0.1.6.sh
+bash install_hpo_tools_0.1.6.sh ./
 cd ./examples/search/maxcompute_easyrec
 ```
 
@@ -89,24 +101,19 @@ cmdxx=xx （执行的命令行）
 - final_mode=final/best/avg（可选，默认值为best，可选值为final/best/avg）
 - optimize_mode=maximize/minimize （可选，默认值为maximize, 可选值为maximize/minimize)
 - source_list_final_mode=final/best/avg（可选，默认值为final_mode，可选值为final/best/avg,用于有多个metric_source时最终metric如何计算，具体可以看maxcompute_crossvalidation案例）
-- metric_key示例：对应查询的key以及对应的权重
+- metric_dict示例：对应查询的key以及对应的权重
   - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25
     ```
-    auc_is_valid_play=0.5
-    auc_is_like=0.25
-    auc_is_comment=0.25
+    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
     ```
   - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25-val(’loss_play_time’)\*0.25
     注意：如果config.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
     ```
-    auc_is_valid_play=0.5
-    auc_is_like=0.25
-    auc_is_comment=0.25
-    loss_play_time=-0.25
+    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25, 'loss_play_time':-0.25}
     ```
   - 单目标示例：metric=val(’auc_is_valid_play’)\*1
     ```
-    auc_is_valid_play=1
+    metric_dict={'auc_is_valid_play':1}
     ```
 
 #### oss_config （可选）
@@ -157,7 +164,7 @@ metric_type=summary
 metric_source=oss://lcl-bj/eval_dist_test/model_${exp_id}_${trial_id}/eval_val/
 # best/final/avg,default=best
 final_mode=final
-auc=1
+metric_dict={'auc':1}
 
 ```
 
@@ -318,6 +325,40 @@ accuracy=0.5
 多组实验可以点击All experiments,然后点击具体的实验ID进入对应的实验详情
 ![image.png](../../images/automl/exp-list.png)
 
+### 自定义参数或者失败重试
+
+可以使用自定义参数，也可以使用该功能重启失败的trial。
+点击复制这个按钮，然后跳出Customized trial，点击提交/或者修改即可，此处是新增一组参数，应该记得调高MaxTrialNo
+注意该功能在2.10目前有问题；需要nni\<=2.9
+![image.png](../../images/automl/retry_trial.jpg)
+
+### 一键重试失败的Trial
+
+当用户确认失败原因为没有资源，或者算法偶现失败等原因时，想采取重试策略，可以使用该API发起多个失败的Trial一起重试。在内部其实是将NNI最大运行次数增大，并发数保持不变；并且是新增了多个Trial，每个Trial的参数和之前失败的Trial保持一致。
+
+注意该功能在2.10目前有问题；需要nni\<=2.9
+
+- experiment_id: 重试的实验ID（必选）
+- trial_begin_id: 默认为0（可选，表明重试的开始为第0个trial）；
+- trial_end_id: 默认为-1 （可选，表明重试的结束为最后一个trial）
+
+例如：
+实验exp跑了20组，失败5组；最大运行次数为30
+
+启动第一次重试，参数为（exp,0,-1)；最大运行次数将被修改为35，此时仍有失败2组.
+
+启动第二次重试时，参数为（exp，20，-1）；最大运行次数将被修改为37， 此时全部成功；后续无需重启
+
+```
+python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
+python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=20 --trial_end_id=-1
+```
+
+### 超参数分析
+
+可以点击超参数Hyper-parameter，选中关注的指标，就可以看出来最好的参数大概是哪些；对参数进行分析
+![image.png](../../images/automl/hyper.jpg)
+
 ## finetune训练（可选）
 
 由于推荐业务每天都有实时更新的数据，如果用户采用先训练一批历史数据，后面每天finetune更新模型的话，可以利用以上begin调优的最优结果，再在新数据上微调。如果用户每次更新模型都是重新开始训练的话，则不需要此步骤。
@@ -423,9 +464,7 @@ metric_source_{{bizdate}}=oss://automl-nni/easyrec/finetune/{{bizdate}}_finetune
 # best/final/avg,default=best
 final_mode=final
 source_list_final_mode=avg
-auc_is_valid_play=0.5
-auc_is_like=0.25
-auc_is_comment=0.25
+metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
 ```
 
 与begin训练的`差异点`:
@@ -450,10 +489,11 @@ auc_is_comment=0.25
 支持将该组中的实验结果和同组中的所有历史进行比较，如果不满足比较标准（例如小于中位数），则停止该组超参数的运行。比如说设置最大运行次数max_trial_num， 实际使用量会显著小于max_trial_num，但具体数量就和实际跑的任务及随机到的超参有关系了。例如max_trial_num=50时，可能最终可能不到 25 次，并且差不多已经是完整探索了50组超参。
 在config.yml中：
 
-- optimize_mode： 最大化优化的方向
+- optimize_mode： 最大化优化的方向,maximize/minimize
 - start_step: 从第2步开始进行早停判定
 - moving_avg: 早停判断时，采用所有历史的滑动平均值作为判断标准
 - proportion： 本次超参搜索的最优值和历史记录的proportion值比较
+- patience：metric指标连续下降几次，就停止
 - platform: 目前支持LOCAL/PAI/DLC/DATASCIENCE/MAXCOMPUTE/TRAININGSERVICE
 
 ```
@@ -528,6 +568,8 @@ def trial_end(self, trial_job_id, success):
   - 例如报错：Error: /lib64/libstdc++.so.6: version \`CXXABI_1.3.8' not found，可参考
 
   ```
+    wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/libstdc.so_.6.0.26.zip
+    unzip libstdc.so_.6.0.26.zip
     sudo mv libstdc++.so.6.0.26 /usr/lib64
     cd /usr/lib64
     sudo mv libstdc++.so.6 libstdc++.so.6.bak

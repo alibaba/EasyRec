@@ -363,7 +363,7 @@ class Predictor(PredictorInterface):
     Returns:
       a list, which conaining the name of input nodes available in model
     """
-    return list(self._inputs_map.keys())
+    return self._predictor_impl.input_names
 
   @property
   def output_names(self):

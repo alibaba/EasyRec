@@ -348,7 +348,13 @@ class CheckpointSaverHook(CheckpointSaverHook):
       logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
 
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
-      self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids()
+      norm_name_to_ids = embedding_utils.get_norm_name_to_ids()
+      self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids(
+          norm_name_to_ids)
+      embed_name_to_id_file = os.path.join(checkpoint_dir,
+                                           constant.EMBED_NAME_TO_IDS_FILE)
+      embedding_utils.save_norm_name_to_ids(embed_name_to_id_file,
+                                            norm_name_to_ids)
 
       with gfile.GFile(
           os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES),
@@ -549,6 +555,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
           tmp_key += tmp_var._save_slice_info.var_offset[0]
+      if tmp_key.dtype in [np.int32, np.uint32]:
+        tmp_key = np.array(tmp_key, dtype=np.int64)
       bytes_buf += tmp_key.tobytes()
       bytes_buf += tmp_val.tobytes()
     if self._kafka_producer is not None:
@@ -598,6 +606,15 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, run_context.session)
 
+  def _clean_old_offset_files(self):
+    if self._data_offset_var is not None:
+      for offset_file in gfile.Glob(
+          os.path.join(self._checkpoint_dir, 'model.ckpt-*.offset')):
+        index_file = offset_file[:-6] + 'index'
+        if not gfile.Exists(index_file):
+          gfile.Remove(offset_file)
+          logging.info('clean old offset file: %s' % offset_file)
+
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
@@ -612,6 +629,14 @@ class CheckpointSaverHook(CheckpointSaverHook):
         if x:
           data_offset_json.update(json.loads(x))
       save_dir, _ = os.path.split(self._save_path)
+      # reuse existing offsets
+      if len(data_offset_json) == 0:
+        ckpt_path = latest_checkpoint(save_dir)
+        if ckpt_path is not None:
+          ckpt_path += '.offset'
+          if gfile.Exists(ckpt_path):
+            with gfile.GFile(ckpt_path, 'r') as fin:
+              data_offset_json = json.load(fin)
       save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout)
@@ -626,6 +651,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         tf.SessionLog(
             status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),
         step)
+
+    self._clean_old_offset_files()
 
     should_stop = False
     for l in self._listeners:  # noqa: E741
@@ -938,10 +965,29 @@ def chief_to_master():
     return None
 
 
+def is_ps():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'task' in tf_config:
+      return tf_config['task']['type'] == 'ps'
+  return False
+
+
 def is_chief():
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'task' in tf_config:
+      return tf_config['task']['type'] in ['chief', 'master']
+  return True
+
+
+def is_first_worker():
+  if 'TF_CONFIG' in os.environ:
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    if 'worker' in tf_config['cluster']:
+      return tf_config['task']['type'] == 'worker' and tf_config['task'][
+          'index'] == 0
+    else:
       return tf_config['task']['type'] in ['chief', 'master']
   return True
 

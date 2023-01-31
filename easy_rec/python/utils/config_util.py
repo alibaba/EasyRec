@@ -5,6 +5,7 @@
 Such as Hyper parameter tuning or automatic feature expanding.
 """
 
+import argparse
 import datetime
 import json
 import logging
@@ -17,6 +18,7 @@ import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
 from tensorflow.python.lib.io import file_io
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.protos import pipeline_pb2
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
@@ -29,7 +31,7 @@ if tf.__version__ >= '2.0':
 
 def search_pipeline_config(directory):
   dir_list = []
-  for root, dirs, files in tf.gfile.Walk(directory):
+  for root, dirs, files in gfile.Walk(directory):
     for f in files:
       _, ext = os.path.splitext(f)
       if ext == '.config':
@@ -57,12 +59,12 @@ def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
   if isinstance(pipeline_config_path, pipeline_pb2.EasyRecConfig):
     return pipeline_config_path
 
-  assert tf.gfile.Exists(
+  assert gfile.Exists(
       pipeline_config_path
   ), 'pipeline_config_path [%s] not exists' % pipeline_config_path
 
   pipeline_config = pipeline_pb2.EasyRecConfig()
-  with tf.gfile.GFile(pipeline_config_path, 'r') as f:
+  with gfile.GFile(pipeline_config_path, 'r') as f:
     config_str = f.read()
     if pipeline_config_path.endswith('.config'):
       text_format.Merge(config_str, pipeline_config)
@@ -350,9 +352,10 @@ def save_message(protobuf_message, filename):
     file_io.recursive_create_dir(directory)
   # as_utf8=True to make sure pbtxt is human readable when string contains chinese
   config_text = text_format.MessageToString(protobuf_message, as_utf8=True)
-  with tf.gfile.Open(filename, 'wb') as f:
+  with gfile.Open(filename, 'w') as f:
     logging.info('Writing protobuf message file to %s', filename)
     f.write(config_text)
+  assert gfile.Exists(filename), 'save config file(%s) failed' % filename
 
 
 def add_boundaries_to_config(pipeline_config, tables):
@@ -537,9 +540,12 @@ def process_data_path(data_path, hive_util):
 def process_neg_sampler_data_path(pipeline_config):
   # replace neg_sampler hive table => hdfs path
   if pai_util.is_on_pai():
-    return None
+    return
   if not pipeline_config.data_config.HasField('sampler'):
-    return None
+    return
+  # not using hive, so not need to process it
+  if pipeline_config.WhichOneof('train_path') != 'hive_train_input':
+    return
   hive_util = HiveUtils(
       data_config=pipeline_config.data_config,
       hive_config=pipeline_config.hive_train_input)
@@ -560,3 +566,72 @@ def process_neg_sampler_data_path(pipeline_config):
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
     sampler_config.hard_neg_edge_input_path = process_data_path(
         sampler_config.hard_neg_edge_input_path, hive_util)
+
+
+def parse_oss_params(extra_params):
+  if not isinstance(extra_params, list):
+    extra_params = [x.strip() for x in extra_params.split(' ')]
+    extra_params = [x for x in extra_params if x != '']
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--oss_path',
+      type=str,
+      default=None,
+      help='write embed objects to oss folder, oss://bucket/folder')
+  parser.add_argument(
+      '--oss_endpoint', type=str, default=None, help='oss endpoint')
+  parser.add_argument('--oss_ak', type=str, default=None, help='oss ak')
+  parser.add_argument('--oss_sk', type=str, default=None, help='oss sk')
+  parser.add_argument(
+      '--oss_threads',
+      type=int,
+      default=10,
+      help='# threads access oss at the same time')
+  parser.add_argument(
+      '--oss_timeout',
+      type=int,
+      default=10,
+      help='connect to oss, time_out in seconds')
+  parser.add_argument(
+      '--oss_expire', type=int, default=24, help='oss expire time in hours')
+  parser.add_argument(
+      '--oss_write_kv',
+      type=int,
+      default=1,
+      help='whether to write embedding to oss')
+  parser.add_argument(
+      '--oss_embedding_version',
+      type=str,
+      default='',
+      help='oss embedding version')
+  parser.add_argument(
+      '--asset_files', type=str, default='', help='more files to add to asset')
+  parser.add_argument(
+      '--verbose',
+      action='store_true',
+      default=False,
+      help='print more debug information')
+  args = parser.parse_args(extra_params)
+
+  extra_params = {}
+  if args.oss_path:
+    extra_params['oss_path'] = args.oss_path
+  if args.oss_endpoint:
+    extra_params['oss_endpoint'] = args.oss_endpoint
+  if args.oss_ak:
+    extra_params['oss_ak'] = args.oss_ak
+  if args.oss_sk:
+    extra_params['oss_sk'] = args.oss_sk
+  if args.oss_timeout > 0:
+    extra_params['oss_timeout'] = args.oss_timeout
+  if args.oss_expire > 0:
+    extra_params['oss_expire'] = args.oss_expire
+  if args.oss_threads > 0:
+    extra_params['oss_threads'] = args.oss_threads
+  if args.oss_write_kv:
+    extra_params['oss_write_kv'] = True if args.oss_write_kv == 1 else False
+  if args.oss_embedding_version:
+    extra_params['oss_embedding_version'] = args.oss_embedding_version
+  extra_params['verbose'] = args.verbose
+  return extra_params

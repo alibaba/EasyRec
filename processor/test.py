@@ -10,6 +10,7 @@ import subprocess
 import time
 
 import numpy as np
+import six
 from google.protobuf import text_format
 
 from easy_rec.python.protos import dataset_pb2
@@ -19,7 +20,9 @@ from easy_rec.python.protos import tf_predict_pb2
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-PROCESSOR_VERSION = 'LaRec-0.9.5b-b890f69-TF-2.5.0-Linux'
+# PROCESSOR_VERSION = 'LaRec-0.9.5d-b1b1604-TF-2.5.0-Linux'
+# PROCESSOR_VERSION = 'LaRec-1.0.0-66214a6-TF-2.5.0-Linux'
+PROCESSOR_VERSION = 'LaRec-1.0.0-62a4cd8-TF-2.5.0-Linux'
 PROCESSOR_FILE = PROCESSOR_VERSION + '.tar.gz'
 PROCESSOR_URL = 'http://easyrec.oss-cn-beijing.aliyuncs.com/processor/' + PROCESSOR_FILE
 PROCESSOR_ENTRY_LIB = 'processor/' + PROCESSOR_VERSION + '/larec/libtf_predictor.so'
@@ -29,23 +32,31 @@ def build_array_proto(array_proto, data, dtype):
   array_proto.array_shape.dim.append(len(data))
 
   if dtype == dataset_pb2.DatasetConfig.STRING:
-    array_proto.string_val.extend([x.encode('utf-8') for x in data])
+    if six.PY2:
+      array_proto.string_val.extend([x for x in data])
+    else:
+      array_proto.string_val.extend([x.encode('utf-8') for x in data])
     array_proto.dtype = tf_predict_pb2.DT_STRING
+    return len(array_proto.string_val)
   elif dtype == dataset_pb2.DatasetConfig.FLOAT:
     array_proto.float_val.extend([float(x) for x in data])
     array_proto.dtype = tf_predict_pb2.DT_FLOAT
+    return len(array_proto.float_val)
   elif dtype == dataset_pb2.DatasetConfig.DOUBLE:
     array_proto.double_val.extend([float(x) for x in data])
     array_proto.dtype = tf_predict_pb2.DT_DOUBLE
+    return len(array_proto.double_val)
   elif dtype == dataset_pb2.DatasetConfig.INT32:
     array_proto.int_val.extend([int(x) for x in data])
     array_proto.dtype = tf_predict_pb2.DT_INT32
+    return len(array_proto.int_val)
   elif dtype == dataset_pb2.DatasetConfig.INT64:
     array_proto.int64_val.extend([np.int64(x) for x in data])
     array_proto.dtype = tf_predict_pb2.DT_INT64
+    return len(array_proto.int64_val)
   else:
     assert False, 'invalid datatype[%s]' % str(dtype)
-  return array_proto
+  return len(data)
 
 
 if __name__ == '__main__':
@@ -63,6 +74,8 @@ if __name__ == '__main__':
       '--saved_model_dir', type=str, default=None, help='saved model directory')
   parser.add_argument(
       '--test_dir', type=str, default=None, help='test directory')
+  parser.add_argument(
+      '--targets', type=str, default='logits,probs', help='save targets')
   args = parser.parse_args()
 
   if not os.path.exists(PROCESSOR_ENTRY_LIB):
@@ -96,19 +109,24 @@ if __name__ == '__main__':
                   for x in data_config.input_fields
                   if x.input_name not in data_config.label_fields]
 
+  rtp_separator = data_config.rtp_separator
+  if six.PY2:
+    rtp_separator = rtp_separator.encode('utf-8')
   with open(args.input_path, 'r') as fin:
     for line_str in fin:
       line_str = line_str.strip()
-      line_toks = line_str.split(data_config.rtp_separator)[-1].split(chr(2))
+      line_toks = line_str.split(rtp_separator)[-1].split(chr(2))
       for i, tok in enumerate(line_toks):
         input_fields[i].append(tok)
 
   req = tf_predict_pb2.PredictRequest()
   req.signature_name = 'serving_default'
+
+  offset = len(data_config.label_fields)
   for i in range(len(input_fields)):
-    build_array_proto(req.inputs[data_config.input_fields[i + 1].input_name],
-                      input_fields[i],
-                      data_config.input_fields[i + 1].input_type)
+    build_array_proto(
+        req.inputs[data_config.input_fields[i + offset].input_name],
+        input_fields[i], data_config.input_fields[i + offset].input_type)
 
   tf_predictor = ctypes.cdll.LoadLibrary(PROCESSOR_ENTRY_LIB)
   tf_predictor.saved_model_init.restype = ctypes.c_void_p
@@ -156,11 +174,18 @@ if __name__ == '__main__':
   res = tf_predict_pb2.PredictResponse()
   res.ParseFromString(res_bytes)
 
+  out_keys = args.targets.split(',')
+  for k in out_keys:
+    assert k in res.outputs, 'invalid target: %s, all outputs:%s' % \
+        (k, ','.join(res.outputs.keys()))
+  out_vals = [res.outputs[k].float_val for k in out_keys]
+  ncol = len(out_keys)
+  nrow = len(out_vals[0])
+  logging.info('num_outputs = %d num_samples = %d' % (ncol, nrow))
   with open(args.output_path, 'w') as fout:
-    logits = res.outputs['logits'].float_val
-    probs = res.outputs['probs'].float_val
-    for logit, prob in zip(logits, probs):
-      fout.write(json.dumps({'logits': logit, 'probs': prob}) + '\n')
+    for i in range(nrow):
+      one_res = {out_keys[j]: out_vals[j][i] for j in range(ncol)}
+      fout.write(json.dumps(one_res) + '\n')
 
   # free memory
   tf_predictor.saved_model_release(ctypes.c_void_p(handle))

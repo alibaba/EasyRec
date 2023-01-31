@@ -37,5 +37,5 @@
 {"leaf_path": "data/test/movielens_1m", "sig": "99badbeec64f2fcabe0dfa1d2bfd8fb5", "remote_path": "data/git_oss_sample_data/data_test_movielens_1m_99badbeec64f2fcabe0dfa1d2bfd8fb5"}
 {"leaf_path": "data/test/mt_ckpt", "sig": "803499f48e2df5e51ce5606e9649c6d4", "remote_path": "data/git_oss_sample_data/data_test_mt_ckpt_803499f48e2df5e51ce5606e9649c6d4"}
 {"leaf_path": "data/test/rtp", "sig": "76cda60582617ddbb7cd5a49eb68a4b9", "remote_path": "data/git_oss_sample_data/data_test_rtp_76cda60582617ddbb7cd5a49eb68a4b9"}
-{"leaf_path": "data/test/tb_data", "sig": "126c375d6aa666633fb3084aa27ff9f7", "remote_path": "data/git_oss_sample_data/data_test_tb_data_126c375d6aa666633fb3084aa27ff9f7"}
+{"leaf_path": "data/test/tb_data", "sig": "f1279ca42de1734be321e88f85775d5f", "remote_path": "data/git_oss_sample_data/data_test_tb_data_f1279ca42de1734be321e88f85775d5f"}
 {"leaf_path": "data/test/tb_data_with_time", "sig": "1a7648f4ae55faf37855762bccbb70cc", "remote_path": "data/git_oss_sample_data/data_test_tb_data_with_time_1a7648f4ae55faf37855762bccbb70cc"}

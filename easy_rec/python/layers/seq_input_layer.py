@@ -4,6 +4,8 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import variable_scope
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
@@ -33,7 +35,8 @@ class SeqInputLayer(object):
                features,
                group_name,
                feature_name_to_output_tensors={},
-               allow_key_search=True):
+               allow_key_search=True,
+               scope_name=None):
     feature_column_dict = self._fc_parser.deep_columns
     feature_column_dict.update(self._fc_parser.sequence_columns)
 
@@ -49,7 +52,12 @@ class SeqInputLayer(object):
       input_name = input_name.split('/')[:2]
       return 'sequence_feature/' + '/'.join(input_name)
 
-    with tf.variable_scope(group_name, reuse=tf.AUTO_REUSE):
+    if scope_name is None:
+      scope_name = group_name
+    # name_scope is specified to avoid adding _1 _2 after scope_name
+    with variable_scope.variable_scope(
+        scope_name,
+        reuse=variable_scope.AUTO_REUSE), ops.name_scope(scope_name + '/'):
       key_tensors = []
       hist_tensors = []
       check_op_list = []
@@ -58,13 +66,12 @@ class SeqInputLayer(object):
           if key not in feature_name_to_output_tensors or (
               feature_name_to_output_tensors[key] is None and allow_key_search):
             qfc = feature_column_dict[key]
-            with tf.variable_scope(qfc._var_scope_name):
+            with variable_scope.variable_scope(qfc._var_scope_name):
               tmp_key_tensor = feature_column_dict[key]._get_dense_tensor(
                   builder)
               regularizers.apply_regularization(
                   self._embedding_regularizer, weights_list=[tmp_key_tensor])
-              key_tensors.append(
-                  feature_column_dict[key]._get_dense_tensor(builder))
+              key_tensors.append(tmp_key_tensor)
           elif feature_name_to_output_tensors[key] is None:
             assert feature_name_to_output_tensors[
                 key] is not None, 'When allow_key_search is False, key: %s should defined in same feature group.' % key
@@ -78,7 +85,7 @@ class SeqInputLayer(object):
         cur_hist_seqs = []
         for hist_seq in x.hist_seq:
           seq_fc = feature_column_dict[hist_seq]
-          with tf.variable_scope(seq_fc._var_scope_name):
+          with variable_scope.variable_scope(seq_fc._var_scope_name):
             cur_hist_seqs.append(
                 feature_column_dict[hist_seq]._get_sequence_dense_tensor(
                     builder))
@@ -87,7 +94,7 @@ class SeqInputLayer(object):
         aux_hist_emb_list = []
         for aux_hist_seq in x.aux_hist_seq:
           seq_fc = feature_column_dict[aux_hist_seq]
-          with tf.variable_scope(seq_fc._var_scope_name):
+          with variable_scope.variable_scope(seq_fc._var_scope_name):
             aux_hist_embedding, _ = feature_column_dict[
                 aux_hist_seq]._get_sequence_dense_tensor(builder)
           aux_hist_emb_list.append(aux_hist_embedding)

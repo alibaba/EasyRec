@@ -39,11 +39,13 @@
 
     - is_multi: id_feature是否是多值属性
 
-      - 默认是false, 转换成EasyRec的config时会转成IdFeature
+      - 默认是true, 转换成EasyRec的config时会转成TagFeature
 
-      - 如果设成true, 转换成EasyRec的config时会转成TagFeature.
+      - 如果设成false, 转换成EasyRec的config时会转成IdFeature, 可以减少字符串分割的开销
 
       - 多值分隔符使用chr(29)\[ctrl+v ctrl+\].
+
+      - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
 
     - vocab_file: 词典文件路径，根据词典将对应的输入映射成ID.
 
@@ -89,7 +91,7 @@
 
       - 比如ctr_1d,ctr_2d,ctr_3d,ctr_12d可以放在一个RawFeature里面.
       - 该选项对生成数据有影响.
-      - 该选项对生成EasyRec config也有影响.
+      - 该选项对生成EasyRec config也有影响, 对应到[feature_config.raw_input_dim](../proto.html#protos.FeatureConfig)
 
   - [ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
 
@@ -139,9 +141,27 @@
 
     - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
+  - [SequenceFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/SequenceFeature.pdf)
+
+    - 序列特征用于对用户行为建模, 通常应用于DIN和Transformer模型当中
+
+    - sequence_pk: 行为序列的特征名, 如点击序列, 购买序列等, 一般保存在item侧, 如user:clk_seq_50
+
+      - 离线格式: item_id和属性拼在一起, 通过#分隔
+
+        - 示例: item\_\_id:11#item\_\_price:2.0;item_id:22#item\_\_price:4.0
+
+      - 在线格式: 只保留item_id
+
+        - 示例: 11;22
+
+    - sequence_table: 一般都是item, online serving时从item表中根据item_id查询item信息, 离线时没有用
+
+    - Note: item_seq(如item的图片列表)目前还不支持
+
   - [OverLapFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
 
-  - 所有feature都需要的字段:
+  - 针对EasyRec的扩展字段:
 
     - group: feature所属的分组
 
@@ -152,10 +172,6 @@
     - combiner: 默认是mean, 也可以是sum.
 
       - 影响数据生成和 EasyRec feature_config 生成, 主要是多值Feature.
-
-    - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
-
-      - 多值feature使用chr(29)\[ctrl+v ctrl+\]\]作为分隔符.
 
 - 全局配置说明:
 
@@ -170,7 +186,7 @@
     i_item_id:10539078362,i_seller_id:21776327,...
     ```
 
-  - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"\\u001D"
+  - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"u001D"
 
   - kv_separator: 多值有权重特征的分隔符，如”体育:0.3|娱乐:0.2|军事:0.5”，不指定默认None，即没有权重
 
@@ -310,7 +326,7 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 - --output_path: 输出的EasyRec config路径
 
-- --separator: feature之间的分隔符, 默认是CTRL_B(\\u0002)
+- --separator: feature之间的分隔符, 默认是CTRL_B(u0002)
 
 - --selected_cols: 指定输入列，包括label、\[sample_weight\]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型),  最后一列必须是features, 如:
 
@@ -320,7 +336,7 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
   - 注意不要有**空格**，其中 sample_weight 列是可选的，可以没有
 
-- --incol_separator: feature内部的分隔符，即多值分隔符，默认是CTRL_C(\\u0003)
+- --incol_separator: feature内部的分隔符，即多值分隔符，默认是CTRL_C(u0003)
 
 - --input_type: 输入类型，默认是OdpsRTPInput, 如果在EMR上使用或者本地使用，应该用RTPInput, 如果使用RTPInput那么--selected_cols也需要进行修改, 使用对应的列的id:
 
@@ -346,9 +362,11 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 ```sql
 pai -name easy_rec_ext
--Dconfig=oss://bucket-name/easy_rec_test/fg.config
+-Dversion='0.4.5'
 -Dcmd=train
--Dtables='odps://project-name/tables/taobao_fg_train_out,odps://project-name/tables/taobao_fg_test_out'
+-Dconfig=oss://bucket-name/easy_rec_test/fg.config
+-Dtrain_tables=odps://project-name/tables/taobao_fg_train_out
+-Deval_tables=odps://project-name/tables/taobao_fg_test_out
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Darn=acs:ram::xxx:role/ev-ext-test-oss
 -Dbuckets=oss://bucket-name/
@@ -356,45 +374,38 @@ pai -name easy_rec_ext
 -Deval_method=separate;
 ```
 
-环境里没有安装easy_rec_ext ，则上传easy_rec.tar.gz包
-
-```sql
-pai -name tensorflow1120_cpu_ext
-    -Dscript='oss://<path>/easy_rec.tar.gz'
-    -DentryFile='run.py'
-    -Dbuckets='oss://<bucket-name>/'
-    -Dtables='odps://<project-name>/tables/<train_table_name>/dt=${bizdate},odps://<project-name>/tables/<test_table_name>/dt=${bizdate}'
-    -Darn='acs:ram::xxx:role/aliyunodpspaidefaultrole'
-    -DossHost='oss-us-west-1-internal.aliyuncs.com'
-    -Dcluster='{
-      \"ps\": {
-          \"count\" : 4,
-          \"cpu\" : 600,
-          \"memory\" : 30000
-      },
-      \"worker\" : {
-          \"count\" : 33,
-          \"cpu\" : 800,
-          \"memory\" : 30000
-      }
-    }'
-    -DuserDefinedParameters='--cmd train --config oss://<path>/fg.config --model_dir oss://<model_path>/ --train_tables odps://<project-name>/tables/<train_table_name>/dt=${bizdate} --eval_tables odps://<project-name>/tables/<test_table_name>/dt=${bizdate} --with_evaluator'
-;
-```
+- 参数说明: [请参考](../train.md#on-pai)
 
 #### 模型导出
 
 ```sql
-pai -name tensorflow1120_cpu_ext
-    -Dscript='oss://<path>/easy_rec.tar.gz'
-    -DentryFile='run.py'
-    -Dbuckets='oss://<bucket-name>/'
-    -Darn='acs:ram::xxx:role/aliyunodpspaidefaultrole'
-    -DossHost='oss-us-west-1-internal.aliyuncs.com'
-    -DuserDefinedParameters='--cmd export --config=oss://<model_path>/pipeline.config --export_dir=oss://<export_path>/ --asset_files=oss://<path>/fg.json';
-;
+pai -name easy_rec_ext
+    -Dversion='0.4.5'
+    -Dcmd=export
+    -Dconfig=oss://easyrec/easy_rec_test/fg.config
+    -Dexport_dir=oss://<bucket-name>/export_dir
+    -Dbuckets=oss://<bucket-name>/
+    -Darn=acs:ram::xxx:role/aliyunodpspaidefaultrole
+    -DossHost=oss-hangzhou-internal.aliyuncs.com
+    -Dedit_config_json='{"export_config.multi_placeholder":true, "feature_config.features[:].max_partitions":1}';
 
 ```
+
+- 参数说明: [请参考](../export.md#pai)
+- 注意事项:
+  - 请检查fg.config, 保证导出的模型是支持多个placeholder的输入\[每个特征一个placeholder\]
+
+    ```
+    export_config {
+      multi_placeholder: true
+    }
+    ```
+
+    如果不是, 可以通过-Dedit_config_json='{"export_config.multi_placeholder":true}' 进行修改
+
+  - 如果有设置feature_config.features.max_partitions, 请加入下面的命令重置:
+
+    - -Dedit_config_json='{"feature_config.features\[:\].max_partitions":1}'进行修改, 可以获得更好的性能
 
 #### 增加特征
 
@@ -441,20 +452,38 @@ pai -name tensorflow1120_cpu_ext
 bizdate=$1
 cat << EOF > echo.json
 {
-  "name":"easyrec_processor",
-  "baseimage": "registry.cn-shanghai.aliyuncs.com/eas/eas-worker-amd64:0.4.22",
+  "name":"ali_rec_rnk",
   "metadata": {
-    "region": "us-west-1",
-    "cpu": 6,
+    "resource": "eas-r-xxxx",
+    "cpu": 8,
     "memory": 20000,
-    "instance": 3
+    "instance": 2,
+    "rpc": {
+      "enable_jemalloc": 1,
+      "max_queue_size": 100
+    }
   },
-  "model_config":"{\"holo-conf\":{\"url\":\"postgresql://<AccessKeyID>:<AccessKeySecret>@<域名>:<port>/<database>\",\"prefix\":\"fg_*\",\"table\" : [{\"name\": \"<schema>.<table_name>\",\"key\" : \"<index_column_name>\",\"value\": \"<column_name>\",\"period\": 2880}]},\"period\": 2880,\"fg\":true,\"multitargets\":true,\"outputs\":\"probs_ctr,probs_cvr\",\"inter_op_parallelism_threads\": 6, \"intra_op_parallelism_threads\": 6, \"fg_ins_num\":2}",
-  "model_path": "oss://<model_path>/",
-  "processor_path": "oss://easyrec/deploy/processor/easyrec_holo_broadwell.tar.gz",
+  "model_config": {
+    "remote_type": "hologres",
+    "url": "postgresql://<AccessKeyID>:<AccessKeySecret>@<域名>:<port>/<database>",
+    "tables": [{"name":"<schema>.<table_name>","key":"<index_column_name>","value": "<column_name>"}],
+    "period": 2880,
+    "fg_mode": "tf",
+    "outputs":"probs_ctr,probs_cvr",
+  },
+  "model_path": "",
+  "processor_path": "http://easyrec.oss-cn-beijing.aliyuncs.com/processor/LaRec-0.9.5d-b1b1604-TF-2.5.0-Linux.tar.gz",
   "processor_entry": "libtf_predictor.so",
-  "token": "Y2E4OGY2MTBkODFhMzJhMDUzODM0YmE4OGRjZTI2MTgxYWNhOWRkNw==",
-  "processor_type": "cpp"
+  "processor_type": "cpp",
+  "storage": [
+    {
+      "mount_path": "/home/admin/docker_ml/workspace/model/",
+      "oss": {
+        "endpoint": "oss-cn-hangzhou-internal.aliyuncs.com",
+        "path": "oss://easyrec/ali_rec_sln_acc_rnk/20221122/export/final_with_fg"
+      }
+    }
+  ]
 }
 
 EOF
@@ -462,73 +491,33 @@ EOF
 #/home/admin/usertools/tools/eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e pai-eas.us-west-1.aliyuncs.com create echo.json
 /home/admin/usertools/tools/eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e pai-eas.us-west-1.aliyuncs.com update easyrec_processor -s echo.json
 
-
 ```
 
-训练导出的时候需要修改fg.config ，保证导出的模型是支持多个place_holder 的输入
-
-```
-export_config {
-  multi_placeholder: true
-}
-```
-
-- processor_path， processor_entry， processor_type 自定义 easyrec processor  设置，与示例保持一致即可
+- processor_path, processor_entry, processor_type: 自定义processor配置，与示例保持一致即可
 
 - model_config: eas 部署配置。主要控制把 item 特征加载到内存中。目前数据源支持redis和holo
 
-  - redis-conf: 配置redis 访问的相关配置，包括 url, password
-    - prefix: item_id key的前缀, 为了和其它的key(如user_id等)区分开来
-    - cluster: cluster模式访问redis, 默认是false, 使用单例模式
-  - pool_size: redis connection pool size
   - period: item feature reload period, 单位minutes
-
-- 更多选项:
-
-  - model_config:
-    - fg_ins_num: fg并行数，可以加快fg的计算速度
-    - multitargets: 是否多目标模型
-    - outputs: saved_model output signatures, 如果有多个，之间用,分割
-
-  ```
-    "model_config":{
-      "fg_ins_num": 4,
-      "multitargets": true,
-      "outputs": "probs_ctr,probs_cvr",
-      ...
-    }
-  ```
-
-- holo-conf: 也支持使用[holo](https://www.aliyun.com/product/bigdata/hologram)存储item feature, 好处是支持增量更新
-
-  - 需要创建一张holo表, 包含3列:
-    ```
-    ｜item_id｜item_features｜update_time｜
-    ```
   - url: holo url
-  - user: holo db username
-  - password: holo db password
-  - dbname: holo dbname
-  - table: holo table name
-  - key: name of the column store item_ids
-  - value: name of the column store item features
+  - fg_mode: 支持tf和normal两种模式, tf模式表示fg是以TF算子的方式执行的, 性能更好
+  - tables: holo item tables, support multiple tables
+    - key: name of the column store item_ids
+    - value: select column names, joined by comma
+    - condition: where subsql to filter some items
+    - timekey: update time column, the column type should be timestamp or int
+    - static: if true, this table will not be updated periodically
 
-```
-  {
-    "model_config":{
-      "holo-conf":{
-        "url":"hgprecn-cn-09k22ikm5008-cn-hangzhou.hologres.aliyuncs.com",
-        "user":"admin",
-        "password":"1234567",
-        "dbname":"easyrec_test",
-        "table":"test_table",
-        "key":"item_id",
-        "value":"item_features"
-      }
-      ...
-    }
-  }
-```
+- storage: 将oss的模型目录mount到docker的指定目录下
+
+  - mount_path: docker内部的挂载路径, 与示例保持一致即可
+  - 配置了storage就不需要配置model_path了
+  - 优点: 部署速度快
+  - 缺点: 仅适用于专有资源组, 不适用于公共资源组
+
+- model_path: 将模型拷贝到docker内部, 在公共资源组时使用
+
+  - 优点: 公共资源组的资源池大, 方便动态伸缩
+  - 缺点: 部署速度慢, 需要将模型保存到docker内部
 
 #### 客户端访问
 
@@ -537,61 +526,10 @@ export_config {
 ```protobuf
 syntax = "proto3";
 
-option go_package = ".;easyrec";
-option java_package = "com.alibaba.pairec.processor.proto";
-option java_outer_classname = "PredictProtos";
+package com.alibaba.pairec.processor;
 
-enum ArrayDataType {
-  // Not a legal value for DataType. Used to indicate a DataType field
-  // has not been set.
-  DT_INVALID = 0;
-  // Data types that all computation devices are expected to be
-  // capable to support.
-  DT_FLOAT = 1;
-  DT_DOUBLE = 2;
-  DT_INT32 = 3;
-  DT_UINT8 = 4;
-  DT_INT16 = 5;
-  DT_INT8 = 6;
-  DT_STRING = 7;
-  DT_COMPLEX64 = 8;  // Single-precision complex
-  DT_INT64 = 9;
-  DT_BOOL = 10;
-  DT_QINT8 = 11;     // Quantized int8
-  DT_QUINT8 = 12;    // Quantized uint8
-  DT_QINT32 = 13;    // Quantized int32
-  DT_BFLOAT16 = 14;  // Float32 truncated to 16 bits.  Only for cast ops.
-  DT_QINT16 = 15;    // Quantized int16
-  DT_QUINT16 = 16;   // Quantized uint16
-  DT_UINT16 = 17;
-  DT_COMPLEX128 = 18;  // Double-precision complex
-  DT_HALF = 19;
-  DT_RESOURCE = 20;
-  DT_VARIANT = 21;  // Arbitrary C++ data types
-}
-// Dimensions of an array
-message ArrayShape {
-  repeated int64 dim = 1 [packed = true];
-}
-// Protocol buffer representing an array
-message ArrayProto {
-  // Data Type.
-  ArrayDataType dtype = 1;
-  // Shape of the array.
-  ArrayShape array_shape = 2;
-  // DT_FLOAT.
-  repeated float float_val = 3 [packed = true];
-  // DT_DOUBLE.
-  repeated double double_val = 4 [packed = true];
-  // DT_INT32, DT_INT16, DT_INT8, DT_UINT8.
-  repeated int32 int_val = 5 [packed = true];
-  // DT_STRING.
-  repeated bytes string_val = 6;
-  // DT_INT64.
-  repeated int64 int64_val = 7 [packed = true];
-  // DT_BOOL.
-  repeated bool bool_val = 8 [packed = true];
-}
+import "tf_predict.proto";
+
 // context features
 message ContextFeatures {
   repeated PBFeature features = 1;
@@ -609,6 +547,13 @@ message PBFeature {
 // PBRequest specifies the request for aggregator
 message PBRequest {
   // debug mode
+  // 0: score output
+  // 1: only fg output, in kv format
+  // 2: score output and fg output
+  // 3: fg output, in dense array format, used to build online sample stream
+  // 4: write fg output(in dense array format) to datahub
+  // 100: reserved for save request on eas
+  // 101: reserved for save timeline on eas
   int32 debug_level = 1;
 
   // user features
@@ -650,15 +595,14 @@ message PBResponse {
 
   StatusCode status_code = 6;
 
-  // item ids
   repeated string item_ids = 7;
-
   repeated string outputs = 8;
 
   // all fg input features
   map<string, string> raw_features = 9;
 
-  map<string, ArrayProto> tf_outputs = 10;
+  // tf output tensors
+  map<string, tensorflow.eas.ArrayProto> tf_outputs = 10;
 }
 ```
 
@@ -718,4 +662,4 @@ for(String itemId: genFeas.keySet()) {
 }
 ```
 
-- Note: 生产环境调用的时候不要设置debug，会导致rt升高，qps下降.
+- Note: 生产环境调用的时候设置debug_level=0，否则会导致rt上升, qps下降.

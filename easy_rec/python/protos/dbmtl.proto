@@ -23,5 +23,7 @@ message DBMTL {
 
     optional bool use_feature_bn = 6 [default = false];
 
-    optional DNN sequence_dnn = 7;
+    optional bool use_feature_ln = 7 [default = false];
+
+    optional DNN sequence_dnn = 8;
 }

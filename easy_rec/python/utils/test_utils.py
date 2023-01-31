@@ -51,16 +51,21 @@ def proc_wait(proc, timeout=1200):
 
 
 def get_tmp_dir():
-  tmp_name = ''.join(
-      [random.choice(string.ascii_letters + string.digits) for i in range(8)])
-  if os.environ.get('TEST_DIR', '') != '':
-    global TEST_DIR
-    TEST_DIR = os.environ['TEST_DIR']
-  dir_name = os.path.join(TEST_DIR, tmp_name)
-  if os.path.exists(dir_name):
-    shutil.rmtree(dir_name)
-  os.makedirs(dir_name)
-  return dir_name
+  max_retry = 5
+  while max_retry > 0:
+    tmp_name = ''.join([
+        random.choice(string.ascii_letters + string.digits) for i in range(12)
+    ])
+    if os.environ.get('TEST_DIR', '') != '':
+      global TEST_DIR
+      TEST_DIR = os.environ['TEST_DIR']
+    dir_name = os.path.join(TEST_DIR, tmp_name)
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+      return dir_name
+    else:
+      max_retry -= 1
+  raise RuntimeError('Failed to get_tmp_dir: max_retry=%d' % max_retry)
 
 
 def clear_all_tmp_dirs():
@@ -147,8 +152,12 @@ def _replace_data_for_test(data_path):
 
 
 def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
-  pipeline_config = config_util.get_configs_from_pipeline_file(
-      pipeline_config_path)
+  if not isinstance(pipeline_config_path, EasyRecConfig):
+    pipeline_config = config_util.get_configs_from_pipeline_file(
+        pipeline_config_path)
+  else:
+    pipeline_config = pipeline_config_path
+
   train_config = pipeline_config.train_config
   eval_config = pipeline_config.eval_config
   data_config = pipeline_config.data_config
@@ -168,62 +177,6 @@ def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
   pipeline_config.model_dir = test_dir
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   return pipeline_config
-
-
-def test_datahub_train_eval(pipeline_config_path,
-                            odps_oss_config,
-                            test_dir,
-                            process_pipeline_func=None,
-                            total_steps=50,
-                            post_check_func=None):
-  gpus = get_available_gpus()
-  if len(gpus) > 0:
-    set_gpu_id(gpus[0])
-  else:
-    set_gpu_id(None)
-
-  if not isinstance(pipeline_config_path, EasyRecConfig):
-    logging.info('testing pipeline config %s' % pipeline_config_path)
-  if 'TF_CONFIG' in os.environ:
-    del os.environ['TF_CONFIG']
-
-  if isinstance(pipeline_config_path, EasyRecConfig):
-    pipeline_config = pipeline_config_path
-  else:
-    pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                            total_steps)
-
-  pipeline_config.train_config.train_distribute = 0
-  pipeline_config.train_config.num_gpus_per_worker = 1
-  pipeline_config.train_config.sync_replicas = False
-
-  pipeline_config.datahub_train_input.akId = odps_oss_config.dh_id
-  pipeline_config.datahub_train_input.akSecret = odps_oss_config.dh_key
-  pipeline_config.datahub_train_input.region = odps_oss_config.dh_endpoint
-  pipeline_config.datahub_train_input.project = odps_oss_config.dh_project
-  pipeline_config.datahub_train_input.topic = odps_oss_config.dh_topic
-
-  pipeline_config.datahub_eval_input.akId = odps_oss_config.dh_id
-  pipeline_config.datahub_eval_input.akSecret = odps_oss_config.dh_key
-  pipeline_config.datahub_eval_input.region = odps_oss_config.dh_endpoint
-  pipeline_config.datahub_eval_input.project = odps_oss_config.dh_project
-  pipeline_config.datahub_eval_input.topic = odps_oss_config.dh_topic
-
-  if process_pipeline_func is not None:
-    assert callable(process_pipeline_func)
-    pipeline_config = process_pipeline_func(pipeline_config)
-  config_util.save_pipeline_config(pipeline_config, test_dir)
-  test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % \
-      test_pipeline_config_path
-  proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
-  proc_wait(proc, timeout=TEST_TIME_OUT)
-  if proc.returncode != 0:
-    logging.error('train %s failed' % test_pipeline_config_path)
-    return False
-  if post_check_func:
-    return post_check_func(pipeline_config)
-  return True
 
 
 def _Load_config_for_test_eval(pipeline_config_path):
@@ -252,11 +205,8 @@ def test_single_train_eval(pipeline_config_path,
   if 'TF_CONFIG' in os.environ:
     del os.environ['TF_CONFIG']
 
-  if isinstance(pipeline_config_path, EasyRecConfig):
-    pipeline_config = pipeline_config_path
-  else:
-    pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                            total_steps)
+  pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
+                                          total_steps)
 
   pipeline_config.train_config.train_distribute = 0
   pipeline_config.train_config.num_gpus_per_worker = 1
@@ -381,7 +331,9 @@ def test_hdfs_train_eval(pipeline_config_path,
     set_gpu_id(gpus[0])
   else:
     set_gpu_id(None)
-  logging.info('testing pipeline config %s' % pipeline_config_path)
+  if not isinstance(pipeline_config_path, EasyRecConfig):
+    logging.info('testing pipeline config %s' % pipeline_config_path)
+
   logging.info('train_yaml_path %s' % train_yaml_path)
   if 'TF_CONFIG' in os.environ:
     del os.environ['TF_CONFIG']
@@ -483,7 +435,7 @@ def _ports_in_use(ports):
   return stat == 0
 
 
-def _get_ports(num_worker):
+def get_ports_base(num_worker):
   port_base = int(os.environ.get('PORT_BASE', 10000))
   num_try = 10
   for i in range(num_try):
@@ -491,6 +443,19 @@ def _get_ports(num_worker):
     if not _ports_in_use(ports):
       return ports
     logging.info('ports %s in use, retry...' % ports)
+
+
+def _get_ports(num_worker):
+  # port queue to deals with port conflicts when multiple
+  # test cases run in parallel
+  if 'ports' in os.environ:
+    ports = os.environ['ports']
+    port_arr = [int(x) for x in ports.split(',')]
+    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
+        % (ports, num_worker)
+    return port_arr[:num_worker]
+  else:
+    return get_ports_base(num_worker)
 
 
 def _ps_worker_train(pipeline_config_path,
@@ -615,7 +580,9 @@ def test_distributed_train_eval(pipeline_config_path,
                                 total_steps=50,
                                 num_evaluator=0,
                                 edit_config_json=None):
-  logging.info('testing pipeline config %s' % pipeline_config_path)
+  if not isinstance(pipeline_config_path, EasyRecConfig):
+    logging.info('testing pipeline config %s' % pipeline_config_path)
+
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
   if edit_config_json is not None:

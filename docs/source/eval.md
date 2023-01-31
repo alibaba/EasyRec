@@ -90,7 +90,7 @@ python -m easy_rec.python.eval --pipeline_config_path dwd_avazu_ctr_deepmodel.co
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
@@ -100,12 +100,13 @@ pai -name easy_rec_ext -project algo_public
 
 - -Dcmd: evaluate 模型评估
 - -Dconfig: 同训练
-- -Dtables: 只需要指定测试 tables
+- -Deval_tables: 指定测试 tables
 - -Dcluster: 评估不需要PS节点，指定一个worker节点即可
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - -Dcheckpoint_path: 使用指定的checkpoint_path，如oss://easyrec/ckpt/MultiTower/model.ckpt-1000。不指定的话，默认model_dir中最新的ckpt文件。
 - 如果是pai内部版,则不需要指定arn和ossHost, arn和ossHost放在-Dbuckets里面
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
+- -Deval_result_path: 保存评估结果的文件名, 默认是eval_result.txt, 保存目录是model_dir.
 
 #### 分布式评估
 
@@ -113,7 +114,7 @@ pai -name easy_rec_ext -project algo_public
 pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
--Dtables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
+-Deval_tables=odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test
 -Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dextra_params=" --distribute_eval True"
@@ -124,4 +125,4 @@ pai -name easy_rec_ext -project algo_public
 
 - -distribute_eval: 分布式 evaluate
 
-评估的结果会写到model_dir目录下的文件"eval_result.txt"中。
+评估结果: 会写到model_dir目录下的-Deval_result_path指定的文件名(默认是eval_result.txt)里面。
