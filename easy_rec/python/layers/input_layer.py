@@ -232,7 +232,8 @@ class InputLayer(object):
       group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
-      regularizers.apply_regularization(
+      if embedding_reg_lst:
+        regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
     return concat_features, group_features
 
