@@ -13,6 +13,7 @@ import os
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import saved_model_pb2
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.builders import exporter_builder
@@ -33,7 +34,6 @@ from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
 if tf.__version__ >= '2.0':
-  gfile = tf.compat.v1.gfile
   from tensorflow.core.protobuf import config_pb2
 
   ConfigProto = config_pb2.ConfigProto
@@ -41,7 +41,6 @@ if tf.__version__ >= '2.0':
 
   tf = tf.compat.v1
 else:
-  gfile = tf.gfile
   GPUOptions = tf.GPUOptions
   ConfigProto = tf.ConfigProto
 

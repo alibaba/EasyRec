@@ -18,6 +18,7 @@ import tensorflow as tf
 from google.protobuf import json_format
 from google.protobuf import text_format
 from tensorflow.python.lib.io import file_io
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.protos import pipeline_pb2
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
@@ -30,7 +31,7 @@ if tf.__version__ >= '2.0':
 
 def search_pipeline_config(directory):
   dir_list = []
-  for root, dirs, files in tf.gfile.Walk(directory):
+  for root, dirs, files in gfile.Walk(directory):
     for f in files:
       _, ext = os.path.splitext(f)
       if ext == '.config':
@@ -58,12 +59,12 @@ def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
   if isinstance(pipeline_config_path, pipeline_pb2.EasyRecConfig):
     return pipeline_config_path
 
-  assert tf.gfile.Exists(
+  assert gfile.Exists(
       pipeline_config_path
   ), 'pipeline_config_path [%s] not exists' % pipeline_config_path
 
   pipeline_config = pipeline_pb2.EasyRecConfig()
-  with tf.gfile.GFile(pipeline_config_path, 'r') as f:
+  with gfile.GFile(pipeline_config_path, 'r') as f:
     config_str = f.read()
     if pipeline_config_path.endswith('.config'):
       text_format.Merge(config_str, pipeline_config)
@@ -351,9 +352,10 @@ def save_message(protobuf_message, filename):
     file_io.recursive_create_dir(directory)
   # as_utf8=True to make sure pbtxt is human readable when string contains chinese
   config_text = text_format.MessageToString(protobuf_message, as_utf8=True)
-  with tf.gfile.Open(filename, 'wb') as f:
+  with gfile.Open(filename, 'w') as f:
     logging.info('Writing protobuf message file to %s', filename)
     f.write(config_text)
+  assert gfile.Exists(filename), 'save config file(%s) failed' % filename
 
 
 def add_boundaries_to_config(pipeline_config, tables):
