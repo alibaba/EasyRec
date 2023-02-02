@@ -131,6 +131,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'output_cols', None,
     'output columns, such as: score float. multiple columns are separated by ,')
+tf.app.flags.DEFINE_string('fg_features', 'features',
+                           'feature colum name, default to "features".')
 tf.app.flags.DEFINE_integer('batch_size', 1024, 'predict batch size')
 tf.app.flags.DEFINE_string(
     'profiling_file', None,
@@ -497,7 +499,8 @@ def main(argv):
         fg_json_path=FLAGS.fg_json_path,
         profiling_file=profiling_file,
         all_cols=FLAGS.all_cols,
-        all_col_types=FLAGS.all_col_types)
+        all_col_types=FLAGS.all_col_types,
+        fg_features=FLAGS.fg_features)
     input_table, output_table = FLAGS.tables, FLAGS.outputs
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))

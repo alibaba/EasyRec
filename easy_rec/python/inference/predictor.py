@@ -35,8 +35,6 @@ from easy_rec.python.utils.tf_utils import get_tf_type
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
-SINGLE_PLACEHOLDER_FEATURE_KEY = 'features'
-
 _PREDICTOR_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
     _PREDICTOR_CLASS_MAP, have_abstract_class=True)
@@ -332,7 +330,8 @@ class Predictor(PredictorInterface):
                model_path,
                profiling_file=None,
                fg_json_path=None,
-               use_latest=True):
+               use_latest=True,
+               fg_features='features'):
     """Initialize a `Predictor`.
 
     Args:
@@ -342,6 +341,7 @@ class Predictor(PredictorInterface):
         prediction time, and the result json will be saved to profiling_file
       fg_json_path: fg.json file
       use_latest: use latest saved_model.pb if multiple one exists.
+      fg_features: input feature columns name, used by RTP FG output format.
     """
     self._predictor_impl = PredictorImpl(model_path, profiling_file, use_latest)
     self._inputs_map = self._predictor_impl._inputs_map
@@ -350,6 +350,7 @@ class Predictor(PredictorInterface):
     self._export_config = self._predictor_impl._export_config
     self._input_fields_info = self._predictor_impl._input_fields_info
     self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
+    self._fg_features = fg_features
 
     self._input_fields = self._predictor_impl._input_fields_list
     fg_json = self._get_fg_json(fg_json_path, model_path)
@@ -479,8 +480,8 @@ class Predictor(PredictorInterface):
 
       def _parse_value(all_vals):
         if self._is_multi_placeholder:
-          if SINGLE_PLACEHOLDER_FEATURE_KEY in all_vals:
-            feature_vals = all_vals[SINGLE_PLACEHOLDER_FEATURE_KEY]
+          if self._fg_features in all_vals:
+            feature_vals = all_vals[self._fg_features]
             split_index = []
             split_vals = {}
             fg_input_size = len(feature_vals[0].decode('utf-8').split('\002'))
@@ -654,7 +655,7 @@ class CSVPredictor(Predictor):
               idx += 1
             else:
               reserved_cols.append('no_used_%d' % x)
-          reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
+          reserved_cols.append(self._fg_features)
       else:
         reserved_cols = self._all_fields
     else:
@@ -686,7 +687,7 @@ class CSVPredictor(Predictor):
             idx += 1
           else:
             inputs['no_used_%d' % x] = fields[x]
-        inputs[SINGLE_PLACEHOLDER_FEATURE_KEY] = fields[-1]
+        inputs[self._fg_features] = fields[-1]
     else:
       inputs = {self._all_fields[x]: fields[x] for x in range(len(fields))}
     return inputs
@@ -786,9 +787,10 @@ class ODPSPredictor(Predictor):
                fg_json_path=None,
                profiling_file=None,
                all_cols='',
-               all_col_types=''):
+               all_col_types='',
+               fg_features='features'):
     super(ODPSPredictor, self).__init__(model_path, profiling_file,
-                                        fg_json_path)
+                                        fg_json_path, fg_features)
     self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
     self._all_col_types = [
         x.strip() for x in all_col_types.split(',') if x != ''
