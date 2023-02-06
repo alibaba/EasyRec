@@ -51,12 +51,21 @@ class MultiTaskModel(RankModel):
   def _add_to_prediction_dict(self, output):
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      self._prediction_dict.update(
-          self._output_to_prediction_impl(
-              output[tower_name],
-              loss_type=task_tower_cfg.loss_type,
-              num_class=task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+      if len(task_tower_cfg.losses) == 0:
+        self._prediction_dict.update(
+            self._output_to_prediction_impl(
+                output[tower_name],
+                loss_type=task_tower_cfg.loss_type,
+                num_class=task_tower_cfg.num_class,
+                suffix='_%s' % tower_name))
+      else:
+        for loss in task_tower_cfg.losses:
+          self._prediction_dict.update(
+              self._output_to_prediction_impl(
+                  output[tower_name],
+                  loss_type=loss.loss_type,
+                  num_class=task_tower_cfg.num_class,
+                  suffix='_%s' % tower_name))
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
@@ -64,10 +73,13 @@ class MultiTaskModel(RankModel):
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       for metric in task_tower_cfg.metrics_set:
+        loss_types = {task_tower_cfg.loss_type}
+        if len(task_tower_cfg.losses) > 0:
+          loss_types = {loss.loss_type for loss in task_tower_cfg.losses}
         metric_dict.update(
             self._build_metric_impl(
                 metric,
-                loss_type=task_tower_cfg.loss_type,
+                loss_type=loss_types,
                 label_name=self._label_name_dict[tower_name],
                 num_class=task_tower_cfg.num_class,
                 suffix='_%s' % tower_name))
@@ -123,9 +135,17 @@ class MultiTaskModel(RankModel):
     outputs = []
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      outputs.extend(
-          self._get_outputs_impl(
-              task_tower_cfg.loss_type,
-              task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
-    return outputs
+      if len(task_tower_cfg.losses) == 0:
+        outputs.extend(
+            self._get_outputs_impl(
+                task_tower_cfg.loss_type,
+                task_tower_cfg.num_class,
+                suffix='_%s' % tower_name))
+      else:
+        for loss in task_tower_cfg.losses:
+          outputs.extend(
+              self._get_outputs_impl(
+                  loss.loss_type,
+                  task_tower_cfg.num_class,
+                  suffix='_%s' % tower_name))
+    return list(set(outputs))
