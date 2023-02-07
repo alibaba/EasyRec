@@ -482,7 +482,44 @@ class Input(six.with_metaclass(_meta_type, object)):
     input_0 = fc.input_names[0]
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
     if field_dict[input_0].dtype == tf.string:
-      if fc.raw_input_dim > 1:
+
+      def combine(x):
+        seq = tf.string_split([x], fc.seq_multi_sep)
+        seq_len = tf.size(seq)
+        if fc.raw_input_dim > 1:
+          check_list = [
+              tf.py_func(
+                  check_split,
+                  [seq.values, fc.separator, fc.raw_input_dim, input_0],
+                  Tout=tf.bool)
+          ] if self._check_mode else []
+          with tf.control_dependencies(check_list):
+            emb = tf.string_split(seq.values, fc.separator).values
+        else:
+          emb = seq.values
+        check_list = [
+            tf.py_func(check_string_to_number, [emb, input_0], Tout=tf.bool)
+        ] if self._check_mode else []
+        with tf.control_dependencies(check_list):
+          emb_val = tf.string_to_number(emb)
+        emb_vec = tf.reshape(emb_val, [seq_len, -1])
+
+        if fc.combiner == 'max':
+          emb_vec = tf.reduce_max(emb_vec, axis=0)
+        elif fc.combiner == 'min':
+          emb_vec = tf.reduce_min(emb_vec, axis=0)
+        elif fc.combiner == 'sum':
+          emb_vec = tf.reduce_sum(emb_vec, axis=0)
+        elif fc.combiner == 'mean':
+          emb_vec = tf.reduce_mean(emb_vec, axis=0)
+        else:
+          assert False, 'unsupported combine operator: ' + fc.combiner
+        return emb_vec
+
+      if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
+        parsed_dict[feature_name] = tf.map_fn(
+            combine, field_dict[input_0], dtype=tf.float32)
+      elif fc.raw_input_dim > 1:
         check_list = [
             tf.py_func(
                 check_split,
