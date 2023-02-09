@@ -57,7 +57,7 @@ tf.app.flags.DEFINE_integer('knn_metric', '0', '0(l2) or 1(ip).')
 tf.app.flags.DEFINE_bool('knn_strict', False, 'use exact search.')
 tf.app.flags.DEFINE_integer('timeout', '60', 'timeout')
 tf.app.flags.DEFINE_integer('num_interests', 1, 'max number of interests')
-tf.app.flags.DEFINE_string('gt_table_field_sep', '\u0001', 'gt_table_field_sep')
+tf.app.flags.DEFINE_string('gt_table_field_sep', '\t', 'gt_table_field_sep')
 tf.app.flags.DEFINE_string('item_emb_table_field_sep', '\t',
                            'item_emb_table_field_sep')
 tf.app.flags.DEFINE_bool('is_on_ds', False, help='is on ds')
