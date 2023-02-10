@@ -486,6 +486,11 @@ def distribute_evaluate(pipeline_config,
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
   eval_data = get_eval_input_path(pipeline_config)
+  data_config = pipeline_config.data_config
+  if data_config.HasField('sampler'):
+    logging.warning("It is not accuracy to use eval with negative sampler, recommand to use hitrate.py!")
+    eval_result = {}
+    return eval_result
   model_dir = get_model_dir_path(pipeline_config)
   eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
   if not gfile.IsDirectory(eval_tmp_results_dir):
