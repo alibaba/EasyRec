@@ -351,6 +351,7 @@ class Predictor(PredictorInterface):
     self._input_fields_info = self._predictor_impl._input_fields_info
     self._is_multi_placeholder = self._predictor_impl._is_multi_placeholder
     self._fg_features = fg_features
+    logging.info('fg_features = %s' % self._fg_features)
 
     self._input_fields = self._predictor_impl._input_fields_list
     fg_json = self._get_fg_json(fg_json_path, model_path)
@@ -789,8 +790,11 @@ class ODPSPredictor(Predictor):
                all_cols='',
                all_col_types='',
                fg_features='features'):
-    super(ODPSPredictor, self).__init__(model_path, profiling_file,
-                                        fg_json_path, fg_features)
+    super(ODPSPredictor, self).__init__(
+        model_path,
+        profiling_file,
+        fg_json_path=fg_json_path,
+        fg_features=fg_features)
     self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
     self._all_col_types = [
         x.strip() for x in all_col_types.split(',') if x != ''
