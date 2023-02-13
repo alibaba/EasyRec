@@ -143,6 +143,7 @@ RawFeature：连续值特征
 也可以手动导入分箱信息。如下：
 
 .. code:: protobuf
+
   feature_config:{
     features {
       input_names: "ctr"
@@ -160,6 +161,7 @@ RawFeature：连续值特征
 这里同样支持embedding特征，如"0.233\|0.123\|0.023\|2.123\|0.233\|0.123\|0.023\|2.123"
 
 .. code:: protobuf
+
   feature_config:{
     features {
       input_names: "pic_emb"
@@ -174,6 +176,7 @@ RawFeature：连续值特征
 还支持多个embedding特征的聚合操作，如"0.23\|-0.123\|0.923\|-2.123;2.3\|0\|0\|12.33;0\|-1.23\|0.023\|0.32"
 
 .. code:: protobuf
+
   feature_config:{
     features {
       input_names: "pic_emb"
@@ -186,9 +189,9 @@ RawFeature：连续值特征
   }
 
 - seq_multi_sep: 指定多个embedding序列的分隔符
-- combiner: 指定多个embedding序列的聚合方式，可选值：min, max, mean, sum
+- combiner: 指定多个embedding序列的聚合方式，可选值：``min, max, mean, sum``
 
-上面例子聚合之后的结果为：`2.3\|0\|0.923\|12.33`
+上面例子聚合之后的结果为："2.3\|0\|0.923\|12.33"
 
 TagFeature
 ----------------------------------------------------------------
