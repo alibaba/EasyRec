@@ -120,23 +120,27 @@ class SequenceFeatureLayer(object):
                        deep_fea,
                        name,
                        need_key_feature=True,
-                       allow_key_transform=False):
+                       allow_key_transform=False,
+                       transform_dnn=False):
     cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
             'aux_hist_seq_emb_list']
 
     seq_max_len = tf.shape(hist_id_col)[1]
     seq_emb_dim = hist_id_col.shape[2]
-    cur_id_dim = tf.shape(cur_id)[-1]
+    cur_id_dim = cur_id.shape[-1]
 
-    cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
+    # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
-      cur_key_layer_name = 'sequence_key_transform_layer_' + name
-      cur_id = tf.layers.dense(cur_id, seq_emb_dim, name=cur_key_layer_name)
-      cur_fea_layer_name = 'sequence_fea_transform_layer_' + name
-      hist_id_col = tf.layers.dense(
-          hist_id_col, seq_emb_dim, name=cur_fea_layer_name)
+      if transform_dnn:
+        cur_key_layer_name = 'sequence_key_transform_layer_' + name
+        cur_id = tf.layers.dense(cur_id, seq_emb_dim, name=cur_key_layer_name)
+        cur_fea_layer_name = 'sequence_fea_transform_layer_' + name
+        hist_id_col = tf.layers.dense(
+            hist_id_col, seq_emb_dim, name=cur_fea_layer_name)
+      else:
+        cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
 
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,
@@ -194,6 +198,7 @@ class SequenceFeatureLayer(object):
       allow_key_search = seq_att_map_config.allow_key_search
       need_key_feature = seq_att_map_config.need_key_feature
       allow_key_transform = seq_att_map_config.allow_key_transform
+      transform_dnn = seq_att_map_config.transform_dnn
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search, scope_name)
@@ -228,6 +233,7 @@ class SequenceFeatureLayer(object):
             seq_features,
             name=cur_target_attention_name,
             need_key_feature=need_key_feature,
-            allow_key_transform=allow_key_transform)
+            allow_key_transform=allow_key_transform,
+            transform_dnn=transform_dnn)
       all_seq_fea.append(seq_fea)
     return concat_features, all_seq_fea
