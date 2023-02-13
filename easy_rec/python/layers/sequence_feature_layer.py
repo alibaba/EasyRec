@@ -133,14 +133,14 @@ class SequenceFeatureLayer(object):
     # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
-      if transform_dnn:
+      if seq_emb_dim > cur_id_dim and not transform_dnn:
+        cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
+      else:
         cur_key_layer_name = 'sequence_key_transform_layer_' + name
         cur_id = tf.layers.dense(cur_id, seq_emb_dim, name=cur_key_layer_name)
         cur_fea_layer_name = 'sequence_fea_transform_layer_' + name
         hist_id_col = tf.layers.dense(
             hist_id_col, seq_emb_dim, name=cur_fea_layer_name)
-      else:
-        cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
 
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,
