@@ -488,7 +488,9 @@ def distribute_evaluate(pipeline_config,
   eval_data = get_eval_input_path(pipeline_config)
   data_config = pipeline_config.data_config
   if data_config.HasField('sampler'):
-    logging.warning("It is not accuracy to use eval with negative sampler, recommand to use hitrate.py!")
+    logging.warning(
+        'It is not accuracy to use eval with negative sampler, recommand to use hitrate.py!'
+    )
     eval_result = {}
     return eval_result
   model_dir = get_model_dir_path(pipeline_config)
