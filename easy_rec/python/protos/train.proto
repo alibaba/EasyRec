@@ -69,6 +69,8 @@ message IncrementSaveConfig {
      Datahub datahub = 502;
      File fs = 503;
    }
+
+   optional uint32 max_idle_period = 6 [default=0];
 }
 
 // Message for configuring EasyRecModel training jobs (train.py).

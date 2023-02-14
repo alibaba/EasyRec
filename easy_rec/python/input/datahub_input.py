@@ -366,8 +366,11 @@ class DataHubInput(Input):
                 self._max_retry)
           count = get_result.record_count
           if count == 0:
-            # avoid too frequent access to datahub server
-            time.sleep(0.1)
+            if get_result.next_cursor > cursor:
+              self._offset_dict[shard_id] = get_result.next_cursor
+            else:
+              # avoid too frequent access to datahub server
+              time.sleep(0.1)
             continue
           self._shard_cursor_seq[shard_id] = get_result.start_seq + (count - 1)
           for row_id, record in enumerate(get_result.records):

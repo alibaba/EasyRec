@@ -26,6 +26,8 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
+from easy_rec.python.utils import odl_utils
+from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.config_util import get_eval_input_path
 from easy_rec.python.utils.config_util import get_model_dir_path
 from easy_rec.python.utils.config_util import get_train_input_path
@@ -283,7 +285,14 @@ def _train_and_evaluate_impl(pipeline_config,
   eval_spec = _create_eval_export_spec(
       pipeline_config, eval_data, check_mode=check_mode)
   from easy_rec.python.compat import estimator_train
+  if train_config.HasField('incr_save_config') and pai_util.is_on_pai():
+    odl_error_log_watcher = odl_utils.ErrorLogWatchDog()
+    odl_error_log_watcher.start()
+  else:
+    odl_error_log_watcher = None
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
+  if odl_error_log_watcher is not None:
+    odl_error_log_watcher.stop()
   logging.info('Train and evaluate finish')
 
 

@@ -27,6 +27,7 @@ from easy_rec.python.ops.incr_record import get_sparse_indices
 from easy_rec.python.ops.incr_record import kv_resource_incr_gather
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
+from easy_rec.python.utils import odl_utils
 from easy_rec.python.utils import shape_utils
 
 from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
@@ -337,15 +338,19 @@ class CheckpointSaverHook(CheckpointSaverHook):
     self._write_graph = write_graph
     self._data_offset_var = data_offset_var
 
+    self._odl_watch_dog = None
     if increment_save_config is not None:
+      if increment_save_config.max_idle_period > 0:
+        self._odl_watch_dog = odl_utils.OdlWatchDog(
+            increment_save_config.max_idle_period)
       self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
-      logging.info('KAFKA_TIMEOUT: %dms' % self._kafka_timeout_ms)
+      # logging.info('KAFKA_TIMEOUT: %dms' % self._kafka_timeout_ms)
       self._kafka_max_req_size = os.environ.get('KAFKA_MAX_REQ_SIZE',
                                                 1024 * 1024 * 64)
-      logging.info('KAFKA_MAX_REQ_SIZE: %d' % self._kafka_max_req_size)
+      # logging.info('KAFKA_MAX_REQ_SIZE: %d' % self._kafka_max_req_size)
       self._kafka_max_msg_size = os.environ.get('KAFKA_MAX_MSG_SIZE',
                                                 1024 * 1024 * 1024)
-      logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
+      # logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
 
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       norm_name_to_ids = embedding_utils.get_norm_name_to_ids()
@@ -446,6 +451,11 @@ class CheckpointSaverHook(CheckpointSaverHook):
     else:
       self._dense_timer = None
       self._sparse_timer = None
+
+  def begin(self):
+    super(CheckpointSaverHook, self).begin()
+    if self._odl_watch_dog is not None:
+      self._odl_watch_dog.start()
 
   def after_create_session(self, session, coord):
     global_step = session.run(self._global_step_tensor)
@@ -594,6 +604,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
     global_step = -1
     if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(
         stale_global_step + self._steps_per_run):
+      if self._odl_watch_dog:
+        self._odl_watch_dog.set_last_update()
       global_step = run_context.session.run(self._global_step_tensor)
       self._dense_timer.update_last_triggered_step(global_step)
       self._send_dense(global_step, run_context.session)
@@ -674,6 +686,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         global_step != self._sparse_timer.last_triggered_step():
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, session)
+    if self._odl_watch_dog:
+      self._odl_watch_dog.stop()
 
 
 class NumpyCheckpointRestoreHook(SessionRunHook):
@@ -892,9 +906,8 @@ def get_ckpt_version(ckpt_path):
 def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
                                                ignore_ckpt_error):
   ckpt_path = None
-  if checkpoint_path.endswith('/') or tf.gfile.IsDirectory(checkpoint_path +
-                                                           '/'):
-    if tf.gfile.Exists(checkpoint_path):
+  if checkpoint_path.endswith('/') or gfile.IsDirectory(checkpoint_path + '/'):
+    if gfile.Exists(checkpoint_path):
       ckpt_path = latest_checkpoint(checkpoint_path)
       if ckpt_path:
         logging.info(
@@ -904,7 +917,7 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
         assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
     else:
       assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
-  elif tf.gfile.Exists(checkpoint_path + '.meta'):
+  elif gfile.Exists(checkpoint_path + '.meta'):
     ckpt_path = checkpoint_path
     logging.info('update fine_tune_checkpoint to %s' % checkpoint_path)
   else:
