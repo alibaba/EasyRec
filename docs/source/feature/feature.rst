@@ -301,6 +301,7 @@ Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
       allow_key_search: true
       need_key_feature:true
       allow_key_transform:false
+      transform_dnn:false
       seq_att_map: {
         key: "brand"
         key: "cate_id"
@@ -321,6 +322,7 @@ Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
    设置为 false 时，将会只返回过完 target attention 之后的特征。
 -  allow_key_transform: 默认为 false, 指 key 和 hist_seq 需 一一 对应，其对应的 embedding_dim 也需要相等
     - 如不相等, 可以设置 allow_key_transform 为 true, 将key的embedding_dim映射到和 hist_seq 相同
+        - 默认处理方式为 padding, 当设置 transform_dnn 为 true 时，使用 dnn 的方式映射。
 -  NOTE: SequenceFeature一般放在 user 组里面.
 
 -  TextCNN特征聚合(Sequence Combiner)

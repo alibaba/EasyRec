@@ -156,4 +156,5 @@ message SeqAttGroupConfig {
     optional bool allow_key_search = 5 [default = false];
     optional bool need_key_feature = 6 [default = true];
     optional bool allow_key_transform = 7 [default = false];
+    optional bool transform_dnn = 8 [default = false];
 }
