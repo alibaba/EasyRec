@@ -34,13 +34,14 @@ class InputLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
+               use_feature_ln=False,
                is_training=False):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
         feature_configs, feature_groups_config, ev_params,
-        embedding_regularizer, kernel_regularizer, is_training)
+        embedding_regularizer, kernel_regularizer, use_feature_ln, is_training)
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -61,6 +62,7 @@ class InputLayer(object):
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
     self._variational_dropout_config = variational_dropout_config
+    self._use_feature_ln = use_feature_ln
 
   def has_group(self, group_name):
     return group_name in self._feature_groups

@@ -11,6 +11,7 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.layers import layer_norm
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -22,7 +23,8 @@ class SeqInputLayer(object):
                feature_configs,
                feature_groups_config,
                embedding_regularizer=None,
-               ev_params=None):
+               ev_params=None,
+               use_feature_ln=False):
     self._feature_groups_config = {
         x.group_name: x for x in feature_groups_config
     }
@@ -30,6 +32,7 @@ class SeqInputLayer(object):
     self._fc_parser = FeatureColumnParser(
         feature_configs, wide_and_deep_dict, ev_params=ev_params)
     self._embedding_regularizer = embedding_regularizer
+    self._use_feature_ln = use_feature_ln
 
   def __call__(self,
                features,
@@ -115,9 +118,16 @@ class SeqInputLayer(object):
           check_op_list.append(check_op)
 
     with tf.control_dependencies(check_op_list):
+      key_t = tf.concat(key_tensors, axis=-1)
+      hist_seq_emb_t = tf.concat([x[0] for x in hist_tensors], axis=-1)
+      if self._use_feature_ln:
+        key_t = layer_norm.layer_norm(
+          key_t, trainable=True, scope=group_name + '/key/ln')
+        hist_seq_emb_t = layer_norm.layer_norm(
+          hist_seq_emb_t, trainable=True, scope=group_name + '/hist_seq/ln')
       features = {
-          'key': tf.concat(key_tensors, axis=-1),
-          'hist_seq_emb': tf.concat([x[0] for x in hist_tensors], axis=-1),
+          'key': key_t,
+          'hist_seq_emb': hist_seq_emb_t,
           'hist_seq_len': hist_tensors[0][1],
           'aux_hist_seq_emb_list': aux_hist_emb_list
       }
