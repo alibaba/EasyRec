@@ -65,7 +65,12 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
-  def __call__(self, features, group_name, is_combine=True, is_dict=False):
+  def __call__(self,
+               features,
+               group_name,
+               is_combine=True,
+               return_sequence=False,
+               is_dict=False):
     """Get features by group_name.
 
     Args:
@@ -73,6 +78,7 @@ class InputLayer(object):
       group_name: feature_group name
       is_combine: whether to combine sequence features over the
           time dimension.
+      return_sequence: whether to return sequence feature.
       is_dict: whether to return group_features in dict
 
     Return:
@@ -103,16 +109,17 @@ class InputLayer(object):
             negative_sampler=negative_sampler,
             scope_name=group_name)
         group_features.extend(all_seq_fea)
-        for col, fea in zip(group_seq_arr, all_seq_fea):
-          feature_name_to_output_tensors['seq_fea/' + col.group_name] = fea
-        all_seq_fea = array_ops.concat(all_seq_fea, axis=-1)
-        concat_features = array_ops.concat([concat_features, all_seq_fea],
-                                           axis=-1)
+        all_seq_fea = tf.concat(all_seq_fea, axis=-1)
+        concat_features = tf.concat([concat_features, all_seq_fea], axis=-1)
+
+      result = [concat_features, group_features]
+      if return_sequence:
+        result.append(all_seq_fea)
       if is_dict:
-        return concat_features, group_features, feature_name_to_output_tensors
-      else:
-        return concat_features, group_features
-    else:  # return sequence feature in raw format instead of combine them
+        result.append(feature_name_to_output_tensors)
+
+      return tuple(result)
+    else:
       if self._variational_dropout_config is not None:
         raise ValueError(
             'variational dropout is not supported in not combined mode now.')

@@ -38,13 +38,16 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
+    elif self._model_config.HasField('sequence_dnn'):
+      self._features, _, self._seq_features = self._input_layer(
+          self._feature_dict, 'all', return_sequence=True)
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
 
     self._bias_features_dict = {}
-    if self._mode == tf.estimator.ModeKeys.TRAIN:
-      for task_tower_cfg in self._model_config.task_towers:
-        for bias_tower_cfg in task_tower_cfg.bias_tower:
+    for task_tower_cfg in self._model_config.task_towers:
+      for bias_tower_cfg in task_tower_cfg.bias_tower:
+        if self._mode == tf.estimator.ModeKeys.TRAIN or bias_tower_cfg.infer_with_tower:
           if bias_tower_cfg.input not in self._bias_features_dict:
             self._bias_features_dict[
                 bias_tower_cfg.input], _ = self._input_layer(
@@ -85,6 +88,15 @@ class DBMTL(MultiTaskModel):
       bottom_fea = bottom_dnn(self._features)
     else:
       bottom_fea = self._features
+
+    if self._model_config.HasField('sequence_dnn'):
+      sequence_dnn = dnn.DNN(
+          self._model_config.sequence_dnn,
+          self._l2_reg,
+          name='sequence_dnn',
+          is_training=self._is_training)
+      sequence_fea = sequence_dnn(self._seq_features)
+      bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):
@@ -137,8 +149,8 @@ class DBMTL(MultiTaskModel):
           name=tower_name + '/output')
       tf.summary.scalar(tower_name + '/output', tf.reduce_mean(output_logits))
 
-      if self._mode == tf.estimator.ModeKeys.TRAIN:
-        for bias_tower_cfg in task_tower_cfg.bias_tower:
+      for bias_tower_cfg in task_tower_cfg.bias_tower:
+        if self._mode == tf.estimator.ModeKeys.TRAIN or bias_tower_cfg.infer_with_tower:
           bias_dnn = dnn.DNN(
               task_tower_cfg.relation_dnn,
               self._l2_reg,

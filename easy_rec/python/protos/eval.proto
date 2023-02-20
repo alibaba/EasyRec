@@ -54,6 +54,16 @@ message SessionAUC {
     optional string reduction = 2 [default='mean'];
 }
 
+message XGAUC {
+    // uid field name
+    required string uid_field = 1;
+    // reduction method for auc of different users
+    // * "mean": simple mean of different users
+    // * "mean_by_sample_num": weighted mean with sample num of different users
+    // * "mean_by_positive_num": weighted mean with positive sample num of different users
+    optional string reduction = 2 [default='mean'];
+}
+
 message EvalMetrics {
     oneof metric {
         AUC auc = 1;
@@ -68,6 +78,7 @@ message EvalMetrics {
         Recall recall = 10;
         Precision precision = 11;
         AvgPrecisionAtTopK precision_at_topk = 12;
+        XGAUC xgauc = 13;
     }
 }
 

@@ -14,6 +14,7 @@ message BiasTower {
     required string input = 1;
     required DNN dnn = 2;
     optional float bias_dropout_ratio = 3;
+    optional bool infer_with_tower = 4 [default = false];
 }
 
 
@@ -76,4 +77,6 @@ message BayesTaskTower {
     repeated Loss losses = 15;
     // bias tower
     repeated BiasTower bias_tower = 16;
+    // use sample weight only for positive samples
+    optional bool use_pos_sample_weight = 17 [default = false];
 };
