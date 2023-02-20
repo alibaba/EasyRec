@@ -348,6 +348,7 @@ def _get_matrix_mask_indices(matrix, num_rows=None):
   result = tf.where(result >= 0, result, max_index_per_row)
   return result
 
+
 def _separated_xauc_impl(labels, predictions, keys, reduction='mean'):
   """Computes the XAUC group by the key separately.
 
@@ -384,14 +385,17 @@ def _separated_xauc_impl(labels, predictions, keys, reduction='mean'):
     weights = []
     for key in separated_label.keys():
       per_label = np.asarray(separated_label[key]).reshape([-1])
-      per_prediction = np.asarray(separated_prediction[key]).reshape([-1])      
+      per_prediction = np.asarray(separated_prediction[key]).reshape([-1])
       n = np.size(per_prediction)
       if n < 2:
         continue
 
-      label_m = per_label[np.newaxis,:] - per_label[:,np.newaxis]
-      prediction_m = per_prediction[np.newaxis,:] - per_prediction[:,np.newaxis]
-      metric = 1.0 - np.sum(np.logical_xor(label_m > 0, prediction_m > 0)) * 1.0 / (n * (n - 1))
+      label_m = per_label[np.newaxis, :] - per_label[:, np.newaxis]
+      prediction_m = per_prediction[np.newaxis, :] - per_prediction[:,
+                                                                    np.newaxis]
+      metric = 1.0 - np.sum(np.logical_xor(label_m > 0,
+                                           prediction_m > 0)) * 1.0 / (
+                                               n * (n - 1))
 
       metrics.append(metric)
       weights.append(separated_weights[key])
@@ -403,6 +407,7 @@ def _separated_xauc_impl(labels, predictions, keys, reduction='mean'):
   update_op = tf.py_func(update_pyfunc, [labels, predictions, keys], [])
   value_op = tf.py_func(value_pyfunc, [], tf.float32)
   return value_op, update_op
+
 
 def xgauc(labels, predictions, uids, reduction='mean'):
   """Computes the XAUC group by user separately.

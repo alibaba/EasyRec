@@ -70,17 +70,20 @@ class RankModel(EasyRecModel):
 
       delta = 1.0 / (len(loss_param.boundaries) + 1)
       xs = tf.range(0, 1.0 + delta, delta)
-      ys = tf.convert_to_tensor([loss_param.min] + list(loss_param.boundaries) + [loss_param.max])
+      ys = tf.convert_to_tensor([loss_param.min] + list(loss_param.boundaries) +
+                                [loss_param.max])
       ms = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
       ms = tf.pad(ms[:-1], [(1, 1)])
-      bs = ys - ms*xs
+      bs = ys - ms * xs
 
       x = tf.clip_by_value(output, 0, 1.0)
-      i = tf.math.argmax(tf.cast(xs[..., tf.newaxis, :] > x[..., tf.newaxis], tf.int32), axis=-1)
+      i = tf.math.argmax(
+          tf.cast(xs[..., tf.newaxis, :] > x[..., tf.newaxis], tf.int32),
+          axis=-1)
       m = tf.gather(ms, i, axis=-1)
       b = tf.gather(bs, i, axis=-1)
 
-      prediction_dict['y' + suffix] = tf.reshape(m*x + b, tf.shape(output))
+      prediction_dict['y' + suffix] = tf.reshape(m * x + b, tf.shape(output))
     return prediction_dict
 
   def _add_to_prediction_dict(self, output):
@@ -93,7 +96,10 @@ class RankModel(EasyRecModel):
         if loss_param is not None:
           loss_param = getattr(loss, loss_param)
         prediction_dict = self._output_to_prediction_impl(
-          output, loss_type=loss.loss_type, num_class=self._num_class, loss_param=loss_param)
+            output,
+            loss_type=loss.loss_type,
+            num_class=self._num_class,
+            loss_param=loss_param)
     self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):
@@ -219,8 +225,7 @@ class RankModel(EasyRecModel):
         LossType.PAIR_WISE_LOSS
     }
     regression_loss_set = {
-        LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS,
-        LossType.L2_QUANTILE_LOSS
+        LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.L2_QUANTILE_LOSS
     }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
@@ -357,7 +362,8 @@ class RankModel(EasyRecModel):
   def build_metric_graph(self, eval_config):
     metric_dict = {}
     for metric in eval_config.metrics_set:
-      loss_type = self._loss_type if len(self._losses) == 0 else self._losses[0].loss_type
+      loss_type = self._loss_type if len(
+          self._losses) == 0 else self._losses[0].loss_type
       metric_dict.update(
           self._build_metric_impl(
               metric,
