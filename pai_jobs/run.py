@@ -278,7 +278,8 @@ def main(argv):
       pipeline_config.model_dir += '/'
 
   if FLAGS.clear_model:
-    if gfile.IsDirectory(pipeline_config.model_dir):
+    if gfile.IsDirectory(
+        pipeline_config.model_dir) and estimator_utils.is_chief():
       gfile.DeleteRecursively(pipeline_config.model_dir)
 
   if FLAGS.max_wait_ckpt_ts > 0:
