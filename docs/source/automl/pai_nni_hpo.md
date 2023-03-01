@@ -17,6 +17,39 @@ python setup.py install
 
 ### 下载安装hpo-tools
 
+#### 安装python3.7+以上环境 (可选)
+
+```
+wget http://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/Anaconda3-5.3.1-Linux-x86_64.sh
+bash Anaconda3-5.3.1-Linux-x86_64.sh
+source ~/.bashrc
+conda create -n test python=3.7
+source activate test
+```
+
+#### 安装java8及以上环境（可选）
+
+如果用户不需要提交maxcompute作业，或者环境已经满足，可以跳过。[odpscmd 参考](https://help.aliyun.com/document_detail/27971.html#section-dje-rvv-jp2)
+
+此处给了一个mac安装java8的教程，一般linux服务器会自带java8
+
+```
+# on mac
+brew install --cask homebrew/cask-versions/adoptopenjdk8
+
+# 接下来获取jdk安装路径，输入 /usr/libexec/java_home -V.红方框內就是jdk的安装路径，复制备用(/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home)
+/usr/libexec/java_home -V
+
+# 设置环境变量 vi /etc/profile
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
+export PATH=$JAVA_HOME/bin:$PATH:.
+export CLASS_PATH=$JAVA_HOME/lib
+source /etc/profile
+java -version
+```
+
+#### 安装hpo_tools
+
 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
 
 安装2选1，install_hpo_tools.sh默认会安装最新版本，最新版本内的代码和案例都是匹配的，可以正常运行，但可能文档配置未更新。因此可以采用安装当前文档匹配的版本。
@@ -25,21 +58,31 @@ python setup.py install
 
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
-bash install_hpo_tools.sh ./
+source install_hpo_tools.sh ./ aliyun
 cd ./examples/search/maxcompute_easyrec
 ```
 
 #### 安装当前版本（可选）
 
 ```
-wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools_0.1.6.sh
-bash install_hpo_tools_0.1.6.sh ./
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools_0.1.10.sh
+source install_hpo_tools_0.1.10.sh ./ aliyun
 cd ./examples/search/maxcompute_easyrec
 ```
 
 - 注意如果有旧版本，会先卸载旧版本，升级新版本hpo-tools
 - 注意会注册PAIAssessor，用于earlystop和手动停止
 - 注意会下载examples，用于开启demo
+- 默认会安装dlc命令行工具，用于提交dlc作业
+- 默认会安装odpscmd命令行工具，用于提交maxcompute作业
+
+### 卸载hpo-tools（可选）
+
+如果需要升级，则需要先卸载之前安装包,第一个参数为原始安装的位置；默认会卸载hpo_tools，删除examples/dlc/odpscmd
+
+```
+bash uninstall_hpo_tools.sh ./
+```
 
 ## 配置
 
@@ -78,8 +121,8 @@ def update_default_params(cmd, tuner_params={}, params_only=False):
 
 #### params_config(可选）
 
-如果用户的参数是保存在文件中，则需要配置params_config, 用于标记需要修改参数的源文件路径和目标路径
-可以为多个params_src_dst_filepathxx=src_path,dst_path,注意以，分割；支持OSS/HDFS/NAS/LOCAL
+- 如果用户的参数是保存在文件中，则需要配置params_config, 用于标记需要修改参数的源文件路径和目标路径;可以为多个params_src_dst_filepathxx=src_path,dst_path,注意以，分割；支持OSS/HDFS/NAS/LOCAL
+- 如果用户想要生成参数，也可以配置params_config,只需要配置目标路径即可
 
 #### platform_config(必选）
 
@@ -95,7 +138,7 @@ cmdxx=xx （执行的命令行）
 用于标记任务metric的获取来源、metric类型、最终metric的方式、metric的key以及对应权重、
 其中
 
-- metric_type=summary/table/api(必选）
+- metric_type=summary/table/api/json/sydout(必选）
 - metric_source=xxx（必选，可以为多个以metric_source开头的，具体可以看finetune案例）
   - metric_source=oss://lcl-bj/eval_dist_test/model\_${exp_id}\_${trial_id}/eval_val/ 为easyrec model_dir/eval_val/下
 - final_mode=final/best/avg（可选，默认值为best，可选值为final/best/avg）
@@ -115,6 +158,17 @@ cmdxx=xx （执行的命令行）
     ```
     metric_dict={'auc_is_valid_play':1}
     ```
+  - 如果metric_type=stdout类型，则metric_dict对应的key为正则表达式，value为对应的权重,可以查看dlc_mnist/config_local_stdout.ini示例
+    ```
+    [metric_config]
+    # metric type is summary/table
+    metric_type=stdout
+    metric_source=oss://test-nni/examples/search/pai/stdout/stdout_${exp_id}_${trial_id}
+    # best or final,default=best
+    final_mode=best
+    metric_dict={'validation: accuracy=([0-9\\.]+)':1}
+    optimize_mode=maximize
+    ```
 
 #### oss_config （可选）
 
@@ -123,6 +177,23 @@ cmdxx=xx （执行的命令行）
 #### odps_config （可选）
 
 如果任务需要使用maxcompute平台执行任务，则需要配置odps config,修改对应的odps_config的值
+
+#### schedule_config (可选)
+
+支持在指定时间范围内调度AutoML任务
+
+- 天数级：例如：everyday/weekend
+- 分钟级：例如：09:00～21:00
+
+```
+[schedule_config]
+# everyday/weedend
+day=everyday
+start_time=15:15
+end_time=21:59
+```
+
+#### config.ini 示例
 
 ```
 [oss_config]
@@ -173,6 +244,36 @@ metric_dict={'auc':1}
 相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
 
 注意pai命令中的value需要用引号，例如DossHost='oss-cn-beijing-internal.aliyuncs.com'
+
+#### config_local.ini 示例
+
+其中执行的命令的是在本地的，而是在PAI MaxCompute平台
+
+```
+[params_config]
+# easy_rec config replace KEY->search params value
+params_src_dst_filepath=./samples/pipeline_local.config,${NNI_OUTPUT_DIR}/pai/easyrec_model_${exp_id}_${trial_id}.config
+
+[platform_config]
+name=Local
+cmd1=python -m easy_rec.python.train_eval --pipeline_config_path ${NNI_OUTPUT_DIR}/pai/easyrec_model_${exp_id}_${trial_id}.config --model_dir=${NNI_OUTPUT_DIR}/pai/model/easyrec_model_${exp_id}_${trial_id} --train_input_path=./samples/data/taobao_train_data --eval_input_path=./samples/data/taobao_test_data
+
+[metric_config]
+# metric type is summary/table
+metric_type=summary
+metric_source=${NNI_OUTPUT_DIR}/pai/model/easyrec_model_${exp_id}_${trial_id}/eval_val/
+# best/final/avg,default=best
+final_mode=final
+metric_dict={'auc':1}
+```
+
+##### CPU/GPU
+
+[NNI Local配置参考手册](https://nni.readthedocs.io/zh/stable/reference/experiment_config.html#localconfig)
+
+- 如果想将任务执行在GPU上，则使用config_local_gpu.yml，配置了GPU相关的信息
+- 如果想将任务执行在CPU上，则使用config_local.yml
+  ![image.png](../../images/automl/nni_local.jpg)
 
 ### 配置超参搜索空间search_space.json
 
@@ -227,7 +328,8 @@ train_config {
 nnictl create --config config.yml --port=8780
 ```
 
-其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。
+其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。如果遇到问题，请查看FAQ。
+
 您也可以参考[NNI参考手册](https://nni.readthedocs.io/en/v2.1/Tutorial/QuickStart.html)
 查看nnictl的更多用法。
 
@@ -352,6 +454,26 @@ accuracy=0.5
 ```
 python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
 python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=20 --trial_end_id=-1
+```
+
+### 一键停止运行的Trial
+
+当用户得到想要的模型和参数时，由于NNI停止实验时，只会停止本地的进程，不会将dlc/trainingservice等平台的任务停止，目前提供了接口，可以将实验正常运行的作业给停止掉，并且将最大实验次数调至1(最小的正数），避免停止的瞬间起新的作业。
+
+- experiment_id: 停止的实验ID（必选）
+- trial_begin_id: 默认为0（可选，表明停止的开始为第0个trial）；
+- trial_end_id: 默认为-1 （可选，表明停止的结束为最后一个trial）
+
+```
+python -m hpo_tools.core.utils.kill_multi_running_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
+```
+
+### 停止实验
+
+在停止实验之前，先参考一键停止运行的Trial，再停止实验
+
+```
+nnictl stop exp_id
 ```
 
 ### 超参数分析
