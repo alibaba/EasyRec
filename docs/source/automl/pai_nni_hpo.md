@@ -138,7 +138,7 @@ cmdxx=xx （执行的命令行）
 用于标记任务metric的获取来源、metric类型、最终metric的方式、metric的key以及对应权重、
 其中
 
-- metric_type=summary/table/api/json/sydout(必选）
+- metric_type=summary/table/api/json/stdout(必选）
 - metric_source=xxx（必选，可以为多个以metric_source开头的，具体可以看finetune案例）
   - metric_source=oss://lcl-bj/eval_dist_test/model\_${exp_id}\_${trial_id}/eval_val/ 为easyrec model_dir/eval_val/下
 - final_mode=final/best/avg（可选，默认值为best，可选值为final/best/avg）
@@ -247,7 +247,7 @@ metric_dict={'auc':1}
 
 #### config_local.ini 示例
 
-其中执行的命令的是在本地的，而是在PAI MaxCompute平台
+其中执行的命令的是在本地的，而不是在PAI MaxCompute平台
 
 ```
 [params_config]
