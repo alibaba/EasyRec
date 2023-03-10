@@ -105,20 +105,23 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         is_training=self._is_training)
 
   def get_sequence_encoding(self, group_name=None, is_training=True):
-    if group_name is None:
-      seq_encoding = []
-      for group in self.feature_groups:
-        if len(group.sequence_encoders) == 0:
-          continue
-        encoding = self.get_sequence_encoding(group.group_name,
-                                              self._is_training)
-        if encoding is not None:
-          seq_encoding.append(encoding)
-      if seq_encoding:
-        return tf.concat(seq_encoding, axis=-1)
-      else:
-        return None
-    return self._sequence_encoder(self._feature_dict, group_name, is_training)
+    if group_name is not None:
+      return self._sequence_encoder(self._feature_dict, group_name, is_training)
+
+    seq_encoding = []
+    for group in self.feature_groups:
+      if len(group.sequence_encoders) == 0:
+        continue
+      encoding = self.get_sequence_encoding(group.group_name, self._is_training)
+      if encoding is not None:
+        seq_encoding.append(encoding)
+
+    if len(seq_encoding) > 1:
+      return tf.concat(seq_encoding, axis=-1)
+    elif len(seq_encoding) == 1:
+      return seq_encoding[0]
+    else:
+      return None
 
   @abstractmethod
   def build_predict_graph(self):

@@ -7,8 +7,8 @@ import tensorflow as tf
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
-from easy_rec.python.utils.shape_utils import get_shape_list
 from easy_rec.python.utils.activation import get_activation
+from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -39,7 +39,7 @@ class SequenceEncoder(object):
       encoder_type = encoder.WhichOneof('encoder').lower()
       if encoder_type == 'bst':
         encoding = self.bst_encoder(seq_features, target_feature, group_name,
-                                    encoder.bst)
+                                    encoder.bst, is_training)
         outputs.append(encoding)
       elif encoder_type == 'din':
         encoding = self.din_encoder(seq_features, target_feature, group_name,
@@ -74,7 +74,7 @@ class SequenceEncoder(object):
     din_all = tf.concat([queries, keys, queries - keys, queries * keys],
                         axis=-1)
     din_layer = dnn.DNN(
-        config.dnn,
+        config.attention_dnn,
         self._l2_reg,
         group_name + '/din_attention',
         is_training,
@@ -91,10 +91,12 @@ class SequenceEncoder(object):
     scores = scores / (seq_emb_size**0.5)
     # normalization with softmax is abandoned according to the original paper
     scores = tf.nn.sigmoid(scores)
-    output = tf.squeeze(tf.matmul(scores, keys))
+    output = tf.squeeze(tf.matmul(scores, keys), axis=[1])
+    print('din output shape:', output.shape)
     return output
 
-  def bst_encoder(self, seq_features, target_feature, group_name, config, is_training):
+  def bst_encoder(self, seq_features, target_feature, group_name, config,
+                  is_training):
     if not is_training:
       config.hidden_dropout_prob = 0.0
       config.attention_probs_dropout_prob = 0.0
@@ -158,6 +160,7 @@ class SequenceEncoder(object):
         name=group_name + '/bst')
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     out_fea = attention_fea[:, 0, :]  # target feature
+    print('bst output shape:', out_fea.shape)
     return out_fea
 
 

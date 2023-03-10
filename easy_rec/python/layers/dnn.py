@@ -34,7 +34,13 @@ class DNN:
     self._name = name
     self._is_training = is_training
     logging.info('dnn activation function = %s' % self._config.activation)
-    self.activation = get_activation(self._config.activation, is_training=is_training)
+    if self._config.activation.lower() == 'dice':
+      self.activations = [
+          get_activation('dice', is_training=is_training, feat_dim=units)
+          for units in self.hidden_units
+      ]
+    else:
+      self.activation = get_activation(self._config.activation)
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
 
@@ -51,6 +57,7 @@ class DNN:
     if hidden_units_len == 1 and self.hidden_units[0] == 0:
       return deep_fea
 
+    act = self._config.activation.lower()
     hidden_feature_dict = {}
     for i, unit in enumerate(self.hidden_units):
       deep_fea = tf.layers.dense(
@@ -67,8 +74,8 @@ class DNN:
             trainable=True,
             name='%s/dnn_%d/bn' % (self._name, i))
       if (i + 1 < hidden_units_len) or not self._last_layer_no_activation:
-        deep_fea = self.activation(
-            deep_fea, name='%s/dnn_%d/act' % (self._name, i))
+        act_fn = self.activations[i] if act == 'dice' else self.activation
+        deep_fea = act_fn(deep_fea, name='%s/dnn_%d/act' % (self._name, i))
       if len(self.dropout_ratio) > 0 and self._is_training:
         assert self.dropout_ratio[
             i] < 1, 'invalid dropout_ratio: %.3f' % self.dropout_ratio[i]

@@ -108,5 +108,5 @@ message BSTEncoder {
 
 message DINEncoder {
     // din attention layer
-    required DNN dnn = 1;
+    required DNN attention_dnn = 1;
 }
