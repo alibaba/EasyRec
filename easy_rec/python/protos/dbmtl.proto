@@ -20,4 +20,10 @@ message DBMTL {
     repeated BayesTaskTower task_towers = 4;
     // l2 regularization
     optional float l2_regularization = 5 [default = 1e-4];
+    // Whether to user sequence encoder
+    required bool use_sequence_encoder = 6 [default = false];
+    // Whether to user sequence encoder
+    required bool use_input_batch_norm = 7 [default = false];
+    // input layer dropout rate
+    optional float input_dropout_rate = 8 [default = 0];
 }

@@ -42,6 +42,20 @@ class DBMTL(MultiTaskModel):
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
+    if self._model_config.use_input_batch_norm:
+      self._features = tf.layers.batch_normalization(
+          self._features,
+          training=self._is_training,
+          trainable=True,
+          name='input_bn')
+    if self._model_config.HasField('input_dropout_rate'):
+      drop_rate = self._model_config.input_dropout_rate
+      self._features = tf.layers.dropout(
+          self._features,
+          rate=drop_rate,
+          training=self._is_training,
+          name='input_dropout')
+
     if self._model_config.HasField('bottom_cmbf'):
       bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_uniter'):
@@ -55,6 +69,11 @@ class DBMTL(MultiTaskModel):
       bottom_fea = bottom_dnn(self._features)
     else:
       bottom_fea = self._features
+
+    if self._model_config.use_sequence_encoder:
+      seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+      if seq_encoding is not None:
+        bottom_fea = tf.concat([bottom_fea, seq_encoding], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

@@ -12,6 +12,7 @@ from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
@@ -60,6 +61,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
 
+    self._sequence_encoder = SequenceEncoder(self._input_layer,
+                                             model_config.feature_groups,
+                                             self._emb_reg, self._l2_reg)
+
   @property
   def embedding_regularization(self):
     return self._base_model_config.embedding_regularization
@@ -98,6 +103,22 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
         is_training=self._is_training)
+
+  def get_sequence_encoding(self, group_name=None, is_training=True):
+    if group_name is None:
+      seq_encoding = []
+      for group in self.feature_groups:
+        if len(group.sequence_encoders) == 0:
+          continue
+        encoding = self.get_sequence_encoding(group.group_name,
+                                              self._is_training)
+        if encoding is not None:
+          seq_encoding.append(encoding)
+      if seq_encoding:
+        return tf.concat(seq_encoding, axis=-1)
+      else:
+        return None
+    return self._sequence_encoder(self._feature_dict, group_name, is_training)
 
   @abstractmethod
   def build_predict_graph(self):

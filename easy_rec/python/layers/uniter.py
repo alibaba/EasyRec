@@ -31,7 +31,8 @@ class Uniter(object):
       tower_num += 1
     self._txt_seq_features = None
     if input_layer.has_group('text'):
-      self._txt_seq_features = input_layer(features, 'text', is_combine=False)
+      self._txt_seq_features, _, _ = input_layer(
+          features, 'text', is_combine=False)
       tower_num += 1
     self._use_token_type = True if tower_num > 1 else False
     self._other_features = None
