@@ -5,6 +5,7 @@ import tensorflow as tf
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.shape_utils import get_shape_list
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -224,6 +225,10 @@ class Uniter(object):
     return img_fea
 
   def __call__(self, is_training, *args, **kwargs):
+    if not is_training:
+      self._model_config.hidden_dropout_prob = 0.0
+      self._model_config.attention_probs_dropout_prob = 0.0
+
     sub_modules = []
 
     img_fea = self.image_embeddings()
@@ -262,8 +267,7 @@ class Uniter(object):
       input_mask = tf.concat(masks, axis=1)
       attention_mask = multihead_cross_attention.create_attention_mask_from_input_mask(
           from_tensor=all_fea, to_mask=input_mask)
-      hidden_act = multihead_cross_attention.get_activation(
-          self._model_config.hidden_act)
+      hidden_act = get_activation(self._model_config.hidden_act)
       attention_fea = multihead_cross_attention.transformer_encoder(
           all_fea,
           hidden_size=hidden_size,

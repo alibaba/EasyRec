@@ -8,6 +8,7 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.shape_utils import get_shape_list
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -93,7 +94,11 @@ class SequenceEncoder(object):
     output = tf.squeeze(tf.matmul(scores, keys))
     return output
 
-  def bst_encoder(self, seq_features, target_feature, group_name, config):
+  def bst_encoder(self, seq_features, target_feature, group_name, config, is_training):
+    if not is_training:
+      config.hidden_dropout_prob = 0.0
+      config.attention_probs_dropout_prob = 0.0
+
     seq_embeds = [seq_fea for seq_fea, _ in seq_features]
     regularizers.apply_regularization(self._emb_reg, weights_list=seq_embeds)
 
@@ -123,7 +128,11 @@ class SequenceEncoder(object):
       seq_len += 1
 
     if seq_embed_size != config.hidden_size:
-      seq_input = tf.layers.dense(seq_input, config.hidden_size)
+      seq_input = tf.layers.dense(
+          seq_input,
+          config.hidden_size,
+          activation=tf.nn.relu,
+          kernel_regularizer=self._l2_reg)
 
     seq_fea = multihead_cross_attention.embedding_postprocessor(
         seq_input,
@@ -134,7 +143,7 @@ class SequenceEncoder(object):
     attention_mask = multihead_cross_attention.create_attention_mask_from_input_mask(
         from_tensor=seq_fea, to_mask=seq_mask)
 
-    hidden_act = multihead_cross_attention.get_activation(config.hidden_act)
+    hidden_act = get_activation(config.hidden_act)
     attention_fea = multihead_cross_attention.transformer_encoder(
         seq_fea,
         hidden_size=config.hidden_size,
@@ -146,9 +155,8 @@ class SequenceEncoder(object):
         hidden_dropout_prob=config.hidden_dropout_prob,
         attention_probs_dropout_prob=config.attention_probs_dropout_prob,
         initializer_range=config.initializer_range,
-        name=group_name +
-        '/bst')  # shape: [batch_size, seq_length, hidden_size]
-
+        name=group_name + '/bst')
+    # attention_fea shape: [batch_size, seq_length, hidden_size]
     out_fea = attention_fea[:, 0, :]  # target feature
     return out_fea
 
