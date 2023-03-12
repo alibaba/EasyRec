@@ -13,6 +13,11 @@ try:
 except ImportError:
   BatchNormalization = tf.keras.layers.BatchNormalization
 
+try:
+  from tensorflow.python.ops.init_ops import Zeros
+except ImportError:
+  from tensorflow.python.ops.init_ops_v2 import Zeros
+
 
 class Dice(Layer):
   """The Data Adaptive Activation Function in DIN.
@@ -37,20 +42,22 @@ class Dice(Layer):
      ACM, 2018: 1059-1068.] (https://arxiv.org/pdf/1706.06978.pdf)
   """
 
-  def __init__(self,
-               feat_dim,
-               axis=-1,
-               epsilon=1e-9,
-               is_training=None,
-               **kwargs):
+  def __init__(self, axis=-1, epsilon=1e-9, is_training=None, **kwargs):
     super(Dice, self).__init__(**kwargs)
-    self.feat_dim = feat_dim
     self.axis = axis
     self.epsilon = epsilon
     self.is_training = is_training
+
+  def build(self, input_shape):
+    super(Dice, self).build(input_shape)  # Be sure to call this somewhere!
     self.bn = BatchNormalization(
         axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
-    self.alphas = tf.Variable(tf.zeros([feat_dim]), dtype=tf.float32)
+    self.alphas = self.add_weight(
+        shape=(input_shape[-1],),
+        initializer=Zeros(),
+        dtype=tf.float32,
+        name='dice_alpha')  # name='alpha_'+self.name
+    self.uses_learning_phase = True
 
   def call(self, inputs, **kwargs):
     inputs_normed = self.bn(inputs, training=self.is_training)
@@ -114,11 +121,11 @@ def get_activation(activation_string, **kwargs):
     return gelu
   elif act == 'leaky_relu':
     return tf.nn.leaky_relu
-  elif act in ('prelu', 'PRelu'):
+  elif act == 'prelu':
     if len(kwargs) == 0:
       return tf.nn.leaky_relu
     return tf.keras.layers.PReLU(**kwargs)
-  elif act in ('dice', 'Dice'):
+  elif act == 'dice':
     return Dice(**kwargs)
   elif act == 'elu':
     return tf.nn.elu

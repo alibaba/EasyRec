@@ -61,9 +61,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
 
-    self._sequence_encoder = SequenceEncoder(self._input_layer,
+    self._sequence_encoder = SequenceEncoder(self._input_layer, feature_configs,
                                              model_config.feature_groups,
-                                             self._emb_reg, self._l2_reg)
+                                             self._l2_reg)
+    self._sequence_encoding_by_group_name = {}
 
   @property
   def embedding_regularization(self):
@@ -106,13 +107,24 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
   def get_sequence_encoding(self, group_name=None, is_training=True):
     if group_name is not None:
-      return self._sequence_encoder(self._feature_dict, group_name, is_training)
+      if group_name in self._sequence_encoding_by_group_name:
+        return self._sequence_encoding_by_group_name[group_name]
+      encoding = self._sequence_encoder(self._feature_dict, group_name,
+                                        is_training)
+      self._sequence_encoding_by_group_name[group_name] = encoding
+      return encoding
 
     seq_encoding = []
     for group in self.feature_groups:
       if len(group.sequence_encoders) == 0:
         continue
-      encoding = self.get_sequence_encoding(group.group_name, self._is_training)
+      group_name = group.group_name
+      if group_name in self._sequence_encoding_by_group_name:
+        encoding = self._sequence_encoding_by_group_name[group_name]
+      else:
+        encoding = self._sequence_encoder(self._feature_dict, group_name,
+                                          is_training)
+        self._sequence_encoding_by_group_name[group_name] = encoding
       if encoding is not None:
         seq_encoding.append(encoding)
 

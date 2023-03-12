@@ -78,9 +78,10 @@ message UniterTower {
 message SequenceEncoder {
     // encoder parameters
     oneof encoder {
-        BSTEncoder bst = 1;
-        DINEncoder din = 2;
+        BSTEncoder bst = 101;
+        DINEncoder din = 102;
     }
+    required bool force_share_embeddings = 1 [default = true];
 }
 
 message BSTEncoder {
@@ -109,4 +110,6 @@ message BSTEncoder {
 message DINEncoder {
     // din attention layer
     required DNN attention_dnn = 1;
+    // whether to keep target item feature
+    required bool need_target_feature = 2 [default = true];
 }
