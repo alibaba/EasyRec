@@ -26,7 +26,7 @@ message TaskTower {
     optional DNN dnn = 6;
     // training loss weights
     optional float weight = 7 [default = 1.0];
-    // label name for indcating the sample space for the task tower
+    // label name for indicating the sample space for the task tower
     optional string task_space_indicator_label = 10;
     // the loss weight for sample in the task space
     optional float in_task_space_weight = 11 [default = 1.0];
@@ -34,6 +34,8 @@ message TaskTower {
     optional float out_task_space_weight = 12 [default = 1.0];
     // multiple losses
     repeated Loss losses = 13;
+    // whether to use sample weight in this tower
+    required bool use_sample_weight = 14 [default = true];
 };
 
 
@@ -68,4 +70,6 @@ message BayesTaskTower {
     // optional float prediction_weight = 14 [default = 1.0];
     // multiple losses
     repeated Loss losses = 15;
+    // whether to use sample weight in this tower
+    required bool use_sample_weight = 16 [default = true];
 };

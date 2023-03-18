@@ -13,6 +13,9 @@ enum LossType {
     SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING = 7;
     PAIR_WISE_LOSS = 8;
     F1_REWEIGHTED_LOSS = 9;
+    BINARY_FOCAL_LOSS = 10;
+    PAIRWISE_FOCAL_LOSS = 11;
+    PAIRWISE_LOGISTIC_LOSS = 12;
 }
 
 message Loss {
@@ -23,6 +26,10 @@ message Loss {
     SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
     CircleLoss circle_loss = 103;
     MultiSimilarityLoss multi_simi_loss = 104;
+    BinaryFocalLoss binary_focal_loss = 105;
+    PairwiseLoss pairwise_loss = 106;
+    PairwiseFocalLoss pairwise_focal_loss = 107;
+    PairwiseLogisticLoss pairwise_logistic_loss = 108;
   }
 };
 
@@ -48,4 +55,26 @@ message MultiSimilarityLoss {
 message F1ReweighedLoss {
   required float f1_beta_square = 1 [default = 1.0];
   required float label_smoothing = 2 [default = 0];
+}
+
+message BinaryFocalLoss {
+  required float gamma = 1 [default = 2.0];
+  optional float alpha = 2;
+}
+
+message PairwiseLoss {
+  required float margin = 1 [default = 0];
+  optional string session_name = 2;
+}
+
+message PairwiseFocalLoss {
+  required float gamma = 1 [default = 2.0];
+  optional float alpha = 2;
+  required float margin = 3 [default = 0];
+  optional string session_name = 4;
+}
+
+message PairwiseLogisticLoss {
+  required float temperature = 1 [default = 1.0];
+  optional string session_name = 4;
 }

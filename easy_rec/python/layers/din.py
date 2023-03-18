@@ -1,20 +1,22 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.utils.shape_utils import get_shape_list
 
+# from tensorflow.python.keras.layers import Layer
 
-class DIN(Layer):
+
+class DIN(object):
 
   def __init__(self, config, l2_reg, name='din', **kwargs):
-    super(DIN, self).__init__(name=name, **kwargs)
+    # super(DIN, self).__init__(name=name, **kwargs)
+    self.name = name
     self.l2_reg = l2_reg
     self.config = config
 
-  def call(self, inputs, training=None, **kwargs):
+  def __call__(self, inputs, training=None, **kwargs):
     seq_features, target_feature = inputs
     seq_input = [seq_fea for seq_fea, _ in seq_features]
     keys = tf.concat(seq_input, axis=-1)

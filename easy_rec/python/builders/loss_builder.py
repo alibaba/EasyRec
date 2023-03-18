@@ -4,6 +4,9 @@ import logging
 
 import tensorflow as tf
 
+from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
+from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss
+from easy_rec.python.loss.pairwise_loss import pairwise_logistic_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
@@ -36,7 +39,28 @@ def build(loss_type,
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.PAIR_WISE_LOSS:
-    return pairwise_loss(label, pred)
+    session = kwargs.get('session_ids', None)
+    margin = 0 if loss_param is None else loss_param.margin
+    return pairwise_loss(
+        label, pred, session_ids=session, margin=margin, weights=loss_weight)
+  elif loss_type == LossType.PAIRWISE_LOGISTIC_LOSS:
+    session = kwargs.get('session_ids', None)
+    temp = 1.0 if loss_param is None else loss_param.temperature
+    return pairwise_logistic_loss(
+        label, pred, session_ids=session, temperature=temp, weights=loss_weight)
+  elif loss_type == LossType.PAIRWISE_FOCAL_LOSS:
+    session = kwargs.get('session_ids', None)
+    if loss_param is None:
+      return pairwise_focal_loss(
+          label, pred, session_ids=session, weights=loss_weight)
+    return pairwise_focal_loss(
+        label,
+        pred,
+        session_ids=session,
+        gamma=loss_param.gamma,
+        alpha=loss_param.alpha if loss_param.HasField('alpha') else None,
+        margin=loss_param.margin,
+        weights=loss_weight)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
     label_smoothing = 0 if loss_param is None else loss_param.label_smoothing
@@ -46,6 +70,16 @@ def build(loss_type,
         f1_beta_square,
         weights=loss_weight,
         label_smoothing=label_smoothing)
+  elif loss_type == LossType.BINARY_FOCAL_LOSS:
+    if loss_param is None:
+      return sigmoid_focal_loss_with_logits(
+          label, pred, sample_weights=loss_weight)
+    gamma = loss_param.gamma
+    alpha = None
+    if loss_param.HasField('alpha'):
+      alpha = loss_param.alpha
+    return sigmoid_focal_loss_with_logits(
+        label, pred, gamma=gamma, alpha=alpha, sample_weights=loss_weight)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

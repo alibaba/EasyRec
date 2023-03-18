@@ -1,21 +1,23 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
 
+# from tensorflow.python.keras.layers import Layer
 
-class BST(Layer):
+
+class BST(object):
 
   def __init__(self, config, l2_reg, name='din', **kwargs):
-    super(BST, self).__init__(name=name, **kwargs)
+    # super(BST, self).__init__(name=name, **kwargs)
+    self.name = name
     self.l2_reg = l2_reg
     self.config = config
 
-  def call(self, inputs, training=None, **kwargs):
+  def __call__(self, inputs, training=None, **kwargs):
     seq_features, target_feature = inputs
     if not training:
       self.config.hidden_dropout_prob = 0.0
@@ -50,11 +52,12 @@ class BST(Layer):
       seq_len += 1
       max_position += 1
 
-    seq_input = tf.layers.dense(
-        seq_input,
-        self.config.hidden_size,
-        activation=tf.nn.leaky_relu,
-        kernel_regularizer=self.l2_reg)
+    if seq_embed_size != self.config.hidden_size:
+      seq_input = tf.layers.dense(
+          seq_input,
+          self.config.hidden_size,
+          activation=tf.nn.relu,
+          kernel_regularizer=self.l2_reg)
 
     seq_fea = multihead_cross_attention.embedding_postprocessor(
         seq_input,

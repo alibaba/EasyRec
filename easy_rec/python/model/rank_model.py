@@ -35,10 +35,16 @@ class RankModel(EasyRecModel):
                                  num_class=1,
                                  suffix=''):
     prediction_dict = {}
-    if loss_type == LossType.F1_REWEIGHTED_LOSS or loss_type == LossType.PAIR_WISE_LOSS:
+    binary_loss_type = {
+        LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
+        LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
+        LossType.PAIRWISE_LOGISTIC_LOSS
+    }
+    if loss_type in binary_loss_type:
       assert num_class == 1, 'num_class must be 1 when loss type is F1_REWEIGHTED_LOSS/PAIR_WISE_LOSS'
       output = tf.squeeze(output, axis=1)
       probs = tf.sigmoid(output)
+      tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
       prediction_dict['logits' + suffix] = output
       prediction_dict['probs' + suffix] = probs
     elif loss_type == LossType.CLASSIFICATION:
@@ -96,7 +102,8 @@ class RankModel(EasyRecModel):
         loss_types = {loss.loss_type for loss in self._losses}
       binary_loss_set = {
           LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
-          LossType.PAIR_WISE_LOSS
+          LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
+          LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -117,7 +124,7 @@ class RankModel(EasyRecModel):
               + 't_graph() is called.')
       else:
         logging.warning(
-            'failed to build RTP rank_predict: unsupported loss type {}'.foramt(
+            'failed to build RTP rank_predict: unsupported loss type {}'.format(
                 loss_types))
       if forwarded is not None:
         rank_predict = tf.identity(forwarded, name='rank_predict')
@@ -133,14 +140,16 @@ class RankModel(EasyRecModel):
                        suffix='',
                        loss_param=None):
     loss_dict = {}
+    binary_loss_type = {
+        LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
+        LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
+        LossType.PAIRWISE_LOGISTIC_LOSS
+    }
     if loss_type == LossType.CLASSIFICATION:
       loss_name = 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
-    elif loss_type == LossType.F1_REWEIGHTED_LOSS:
-      loss_name = 'f1_reweighted_loss' + suffix
-      pred = self._prediction_dict['logits' + suffix]
-    elif loss_type == LossType.PAIR_WISE_LOSS:
-      loss_name = 'pairwise_loss' + suffix
+    elif loss_type in binary_loss_type:
+      loss_name = LossType.Name(loss_type).lower() + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       loss_name = 'l2_loss' + suffix
@@ -150,13 +159,18 @@ class RankModel(EasyRecModel):
 
     tf.summary.scalar('labels/%s' % label_name,
                       tf.reduce_mean(tf.to_float(self._labels[label_name])))
+    kwargs = {}
+    if loss_param is not None:
+      if hasattr(loss_param, 'session_name'):
+        kwargs['session_ids'] = self._labels[loss_param.session_name]
     loss_dict[loss_name] = loss_builder.build(
         loss_type,
         self._labels[label_name],
         pred,
         loss_weight,
         num_class,
-        loss_param=loss_param)
+        loss_param=loss_param,
+        **kwargs)
     return loss_dict
 
   def build_loss_graph(self):
@@ -202,7 +216,8 @@ class RankModel(EasyRecModel):
     from easy_rec.python.core import metrics as metrics_lib
     binary_loss_set = {
         LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
-        LossType.PAIR_WISE_LOSS
+        LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
+        LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS
     }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
@@ -342,7 +357,8 @@ class RankModel(EasyRecModel):
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
     binary_loss_set = {
         LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
-        LossType.PAIR_WISE_LOSS
+        LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
+        LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS
     }
     if loss_type in binary_loss_set:
       if num_class == 1:

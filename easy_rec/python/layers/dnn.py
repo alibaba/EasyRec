@@ -35,8 +35,9 @@ class DNN:
     self._is_training = is_training
     logging.info('dnn activation function = %s' % self._config.activation)
     self.activations = [
-        get_activation(self._config.activation, is_training=is_training)
-        for _ in self.hidden_units
+        get_activation(
+            self._config.activation, is_training=is_training, feat_dim=units)
+        for units in self.hidden_units
     ]
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
