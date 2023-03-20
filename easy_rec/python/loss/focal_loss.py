@@ -12,7 +12,9 @@ def sigmoid_focal_loss_with_logits(labels,
                                    logits,
                                    gamma=2.0,
                                    alpha=None,
-                                   sample_weights=None):
+                                   ohem_ratio=1.0,
+                                   sample_weights=None,
+                                   label_smoothing=0):
   """Implements the focal loss function.
 
   Focal loss was first introduced in the RetinaNet paper
@@ -25,10 +27,15 @@ def sigmoid_focal_loss_with_logits(labels,
   imbalance between the background class and other classes is extremely high.
 
   Args
-      labels: true targets tensor.
-      logits: predictions tensor.
+      labels: `[batch_size]` target integer labels in `{0, 1}`.
+      logits: Float `[batch_size]` logits outputs of the network.
       alpha: balancing factor.
       gamma: modulating factor.
+      ohem_ratio: the percent of hard examples to be mined
+      sample_weights:  Optional `Tensor` whose rank is either 0, or the same rank as
+        `labels`, and must be broadcastable to `labels` (i.e., all dimensions must
+        be either `1`, or the same as the corresponding `losses` dimension).
+      label_smoothing: If greater than `0` then smooth the labels.
 
   Returns:
       Weighted loss float `Tensor`. If `reduction` is `NONE`,this has the
@@ -38,14 +45,19 @@ def sigmoid_focal_loss_with_logits(labels,
       ValueError: If the shape of `sample_weight` is invalid or value of
         `gamma` is less than zero
   """
+  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
   if gamma and gamma < 0:
     raise ValueError('Value of gamma should be greater than or equal to zero')
-  logging.info('[focal_loss] gamma: {}, alpha: {}'.format(gamma, alpha))
+  logging.info(
+      '[focal_loss] gamma: {}, alpha: {}, ohem_ratho: {}, label smoothing: {}'
+      .format(gamma, alpha, ohem_ratio, label_smoothing))
 
   y_true = tf.cast(labels, logits.dtype)
 
   # convert the predictions into probabilities
   y_pred = tf.nn.sigmoid(logits)
+  epsilon = 1e-7
+  y_pred = tf.clip_by_value(y_pred, epsilon, 1 - epsilon)
   p_t = (y_true * y_pred) + ((1 - y_true) * (1 - y_pred))
   weights = tf.pow((1 - p_t), gamma)
 
@@ -59,4 +71,17 @@ def sigmoid_focal_loss_with_logits(labels,
     else:
       weights *= sample_weights
 
-  return tf.losses.sigmoid_cross_entropy(y_true, logits, weights=weights)
+  if ohem_ratio == 1.0:
+    return tf.losses.sigmoid_cross_entropy(
+        y_true, logits, weights=weights, label_smoothing=label_smoothing)
+
+  losses = tf.losses.sigmoid_cross_entropy(
+      y_true,
+      logits,
+      weights=weights,
+      label_smoothing=label_smoothing,
+      reduction=tf.losses.Reduction.NONE)
+  k = tf.size(losses) * ohem_ratio
+  topk = tf.nn.top_k(losses, k)
+  losses = tf.boolean_mask(topk.values, topk.values > 0)
+  return tf.reduce_mean(losses)

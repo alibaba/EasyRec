@@ -411,12 +411,10 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
 
 
 try:
-  # from tensorflow.python.training import AdamAsyncOptimizer
-  import tensorflow as tf
+  from tensorflow.train import AdamAsyncOptimizer
 
   @tf_export('contrib.opt.AdamAsyncWOptimizer')
-  class AdamAsyncWOptimizer(DecoupledWeightDecayExtension,
-                            tf.train.AdamAsyncOptimizer):
+  class AdamAsyncWOptimizer(DecoupledWeightDecayExtension, AdamAsyncOptimizer):
     """Optimizer that implements the Adam algorithm with weight decay.
 
     This is an implementation of the AdamW optimizer described in ["Fixing
@@ -474,5 +472,5 @@ try:
           use_locking=use_locking,
           name=name)
 except ImportError:
-  print('import AdamAsyncOptimizer failed')
+  print('import AdamAsyncOptimizer failed when loading AdamAsyncWOptimizer')
   pass

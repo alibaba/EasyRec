@@ -12,8 +12,13 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def pairwise_loss(labels, logits, session_ids=None, margin=0, weights=1.0):
-  """Pairwise loss.  Also see `pairwise_logistic_loss` below.
+def pairwise_loss(labels,
+                  logits,
+                  session_ids=None,
+                  margin=0,
+                  weights=1.0,
+                  name=''):
+  """Deprecated Pairwise loss.  Also see `pairwise_logistic_loss` below.
 
   Args:
     labels: a `Tensor` with shape [batch_size]. e.g. click or not click in the session.
@@ -21,23 +26,26 @@ def pairwise_loss(labels, logits, session_ids=None, margin=0, weights=1.0):
     session_ids: a `Tensor` with shape [batch_size]. Session ids of each sample, used to max GAUC metric. e.g. user_id
     margin: the margin between positive and negative sample pair
     weights: sample weights
+    name: the name of loss
   """
-  logging.info('[pairwise_loss] margin: {}'.format(margin))
+  loss_name = name if name else 'pairwise_logistic_loss'
+  logging.info('[{}] margin: {}'.format(loss_name, margin))
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0)) - margin
   pairwise_mask = tf.greater(
       tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
   if session_ids is not None:
-    logging.info('[pairwise_loss] use session ids')
+    logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(
         tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
     pairwise_mask = tf.logical_and(pairwise_mask, group_equal)
 
   pairwise_logits = tf.boolean_mask(pairwise_logits, pairwise_mask)
-  pairwise_pseudo_labels = tf.ones_like(pairwise_logits)
+  num_pair = tf.size(pairwise_logits)
+  tf.summary.scalar('loss/%s_num_of_pairs' % loss_name, num_pair)
 
   if tf.is_numeric_tensor(weights):
-    logging.info('[pairwise_loss] use sample weight')
+    logging.info('[%s] use sample weight' % loss_name)
     weights = tf.expand_dims(tf.cast(weights, tf.float32), -1)
     batch_size, _ = get_shape_list(weights, 2)
     pairwise_weights = tf.tile(weights, tf.stack([1, batch_size]))
@@ -45,35 +53,48 @@ def pairwise_loss(labels, logits, session_ids=None, margin=0, weights=1.0):
   else:
     pairwise_weights = weights
 
+  pairwise_pseudo_labels = tf.ones_like(pairwise_logits)
   loss = tf.losses.sigmoid_cross_entropy(
       pairwise_pseudo_labels, pairwise_logits, weights=pairwise_weights)
   # set rank loss to zero if a batch has no positive sample.
-  loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
+  # loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
   return loss
 
 
 def pairwise_focal_loss(labels,
                         logits,
                         session_ids=None,
-                        margin=0,
+                        hinge_margin=None,
                         gamma=2,
                         alpha=None,
-                        weights=1.0):
-  logging.info('[pairwise_focal_loss] margin: {}, gamma: {}, alpha: {}'.format(
-      margin, gamma, alpha))
-  pairwise_logits = tf.math.subtract(
-      tf.expand_dims(logits, -1), tf.expand_dims(logits, 0)) - margin
+                        weights=1.0,
+                        ohem_ratio=1.0,
+                        name=''):
+  loss_name = name if name else 'pairwise_focal_loss'
+  logging.info(
+      '[{}] hinge margin: {}, gamma: {}, alpha: {}, ohem_ratio: {}'.format(
+          loss_name, hinge_margin, gamma, alpha, ohem_ratio))
+  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
+
+  pairwise_logits = tf.expand_dims(logits, -1) - tf.expand_dims(logits, 0)
+
   pairwise_mask = tf.greater(
       tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
+  if hinge_margin is not None:
+    hinge_mask = tf.less(pairwise_logits, hinge_margin)
+    pairwise_mask = tf.logical_and(pairwise_mask, hinge_mask)
   if session_ids is not None:
-    logging.info('[pairwise_focal_loss] use session ids')
+    logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(
         tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
     pairwise_mask = tf.logical_and(pairwise_mask, group_equal)
+
   pairwise_logits = tf.boolean_mask(pairwise_logits, pairwise_mask)
+  num_pair = tf.size(pairwise_logits)
+  tf.summary.scalar('loss/%s_num_of_pairs' % loss_name, num_pair)
 
   if tf.is_numeric_tensor(weights):
-    logging.info('[pairwise_focal_loss] use sample weight')
+    logging.info('[%s] use sample weight' % loss_name)
     weights = tf.expand_dims(tf.cast(weights, tf.float32), -1)
     batch_size, _ = get_shape_list(weights, 2)
     pairwise_weights = tf.tile(weights, tf.stack([1, batch_size]))
@@ -87,10 +108,8 @@ def pairwise_focal_loss(labels,
       pairwise_logits,
       gamma=gamma,
       alpha=alpha,
+      ohem_ratio=ohem_ratio,
       sample_weights=pairwise_weights)
-
-  # set rank loss to zero if a batch has no positive sample.
-  loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
   return loss
 
 
@@ -98,8 +117,11 @@ def pairwise_logistic_loss(labels,
                            logits,
                            session_ids=None,
                            temperature=1.0,
-                           weights=1.0):
-  r"""Pairwise logistic loss.
+                           hinge_margin=None,
+                           weights=1.0,
+                           ohem_ratio=1.0,
+                           name=''):
+  r"""Computes pairwise logistic loss between `labels` and `logits`.
 
   Definition:
   $$
@@ -112,28 +134,40 @@ def pairwise_logistic_loss(labels,
       relevance.
     logits: A `Tensor` with shape [batch_size].
     session_ids: a `Tensor` with shape [batch_size]. Session ids of each sample, used to max GAUC metric. e.g. user_id
-    temperature: A float number to modify the scores=scores/temperature.
+    temperature: (Optional) The temperature to use for scaling the logits.
+    hinge_margin: the margin between positive and negative logits
     weights: A scalar, a `Tensor` with shape [batch_size] for each sample
+    ohem_ratio: the percent of hard examples to be mined
+    name: the name of loss
   """
-  logits /= temperature
+  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
+  loss_name = name if name else 'pairwise_logistic_loss'
+  if temperature != 1.0:
+    logits /= temperature
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0))
 
   pairwise_mask = tf.greater(
       tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
+  if hinge_margin is not None:
+    hinge_mask = tf.less(pairwise_logits, hinge_margin)
+    pairwise_mask = tf.logical_and(pairwise_mask, hinge_mask)
   if session_ids is not None:
-    logging.info('[pairwise_logistic_loss] use session ids')
+    logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(
         tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
     pairwise_mask = tf.logical_and(pairwise_mask, group_equal)
+
   pairwise_logits = tf.boolean_mask(pairwise_logits, pairwise_mask)
+  num_pair = tf.size(pairwise_logits)
+  tf.summary.scalar('loss/%s_num_of_pairs' % loss_name, num_pair)
 
   # The following is the same as log(1 + exp(-pairwise_logits)).
   losses = tf.nn.relu(-pairwise_logits) + tf.math.log1p(
       tf.exp(-tf.abs(pairwise_logits)))
 
   if tf.is_numeric_tensor(weights):
-    logging.info('[pairwise_logistic_loss] use sample weight')
+    logging.info('[%s] use sample weight' % loss_name)
     weights = tf.expand_dims(tf.cast(weights, tf.float32), -1)
     batch_size, _ = get_shape_list(weights, 2)
     pairwise_weights = tf.tile(weights, tf.stack([1, batch_size]))
@@ -141,7 +175,12 @@ def pairwise_logistic_loss(labels,
   else:
     pairwise_weights = weights
 
-  loss = compute_weighted_loss(losses, pairwise_weights)
-  # set rank loss to zero if a batch has no positive sample.
-  loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
-  return loss
+  if ohem_ratio == 1.0:
+    return compute_weighted_loss(losses, pairwise_weights)
+
+  losses = compute_weighted_loss(
+      losses, pairwise_weights, reduction=tf.losses.Reduction.NONE)
+  k = tf.size(losses) * ohem_ratio
+  topk = tf.nn.top_k(losses, k)
+  losses = tf.boolean_mask(topk.values, topk.values > 0)
+  return tf.reduce_mean(losses)

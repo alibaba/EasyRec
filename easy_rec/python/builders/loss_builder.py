@@ -23,6 +23,7 @@ def build(loss_type,
           num_class=1,
           loss_param=None,
           **kwargs):
+  loss_name = kwargs.pop('loss_name')
   if loss_type == LossType.CLASSIFICATION:
     if num_class == 1:
       return tf.losses.sigmoid_cross_entropy(
@@ -42,25 +43,46 @@ def build(loss_type,
     session = kwargs.get('session_ids', None)
     margin = 0 if loss_param is None else loss_param.margin
     return pairwise_loss(
-        label, pred, session_ids=session, margin=margin, weights=loss_weight)
+        label,
+        pred,
+        session_ids=session,
+        margin=margin,
+        weights=loss_weight,
+        name=loss_name)
   elif loss_type == LossType.PAIRWISE_LOGISTIC_LOSS:
     session = kwargs.get('session_ids', None)
     temp = 1.0 if loss_param is None else loss_param.temperature
+    ohem_ratio = 1.0 if loss_param is None else loss_param.ohem_ratio
+    hinge_margin = None
+    if loss_param is not None and loss_param.HasField('hinge_margin'):
+      hinge_margin = loss_param.hinge_margin
     return pairwise_logistic_loss(
-        label, pred, session_ids=session, temperature=temp, weights=loss_weight)
+        label,
+        pred,
+        session_ids=session,
+        temperature=temp,
+        hinge_margin=hinge_margin,
+        ohem_ratio=ohem_ratio,
+        weights=loss_weight,
+        name=loss_name)
   elif loss_type == LossType.PAIRWISE_FOCAL_LOSS:
     session = kwargs.get('session_ids', None)
     if loss_param is None:
       return pairwise_focal_loss(
-          label, pred, session_ids=session, weights=loss_weight)
+          label, pred, session_ids=session, weights=loss_weight, name=loss_name)
+    hinge_margin = None
+    if loss_param.HasField('hinge_margin'):
+      hinge_margin = loss_param.hinge_margin
     return pairwise_focal_loss(
         label,
         pred,
         session_ids=session,
         gamma=loss_param.gamma,
         alpha=loss_param.alpha if loss_param.HasField('alpha') else None,
-        margin=loss_param.margin,
-        weights=loss_weight)
+        hinge_margin=hinge_margin,
+        ohem_ratio=loss_param.ohem_ratio,
+        weights=loss_weight,
+        name=loss_name)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
     label_smoothing = 0 if loss_param is None else loss_param.label_smoothing
@@ -79,7 +101,13 @@ def build(loss_type,
     if loss_param.HasField('alpha'):
       alpha = loss_param.alpha
     return sigmoid_focal_loss_with_logits(
-        label, pred, gamma=gamma, alpha=alpha, sample_weights=loss_weight)
+        label,
+        pred,
+        gamma=gamma,
+        alpha=alpha,
+        ohem_ratio=loss_param.ohem_ratio,
+        sample_weights=loss_weight,
+        label_smoothing=loss_param.label_smoothing)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

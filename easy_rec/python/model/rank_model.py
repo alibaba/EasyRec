@@ -159,10 +159,10 @@ class RankModel(EasyRecModel):
 
     tf.summary.scalar('labels/%s' % label_name,
                       tf.reduce_mean(tf.to_float(self._labels[label_name])))
-    kwargs = {}
+    kwargs = {'loss_name': loss_name}
     if loss_param is not None:
       if hasattr(loss_param, 'session_name'):
-        kwargs['session_ids'] = self._labels[loss_param.session_name]
+        kwargs['session_ids'] = self._feature_dict[loss_param.session_name]
     loss_dict[loss_name] = loss_builder.build(
         loss_type,
         self._labels[label_name],
