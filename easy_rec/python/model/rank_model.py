@@ -138,6 +138,7 @@ class RankModel(EasyRecModel):
                        loss_weight=1.0,
                        num_class=1,
                        suffix='',
+                       loss_name='',
                        loss_param=None):
     loss_dict = {}
     binary_loss_type = {
@@ -146,13 +147,16 @@ class RankModel(EasyRecModel):
         LossType.PAIRWISE_LOGISTIC_LOSS
     }
     if loss_type == LossType.CLASSIFICATION:
-      loss_name = 'cross_entropy_loss' + suffix
+      loss_name = loss_name if loss_name else 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in binary_loss_type:
-      loss_name = LossType.Name(loss_type).lower() + suffix
+      if not loss_name:
+        loss_name = LossType.Name(loss_type).lower() + suffix
+      else:
+        loss_name = loss_name + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
-      loss_name = 'l2_loss' + suffix
+      loss_name = loss_name if loss_name else 'l2_loss' + suffix
       pred = self._prediction_dict['y' + suffix]
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
@@ -191,6 +195,7 @@ class RankModel(EasyRecModel):
             label_name=self._label_name,
             loss_weight=self._sample_weight,
             num_class=self._num_class,
+            loss_name=loss.loss_name,
             loss_param=loss_param)
         for loss_name, loss_value in loss_ops.items():
           loss_dict[loss_name] = loss_value * loss.weight

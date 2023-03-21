@@ -69,10 +69,11 @@ def sigmoid_focal_loss_with_logits(labels,
     weights *= alpha_factor
 
   if sample_weights is not None:
-    logging.info('[%s] use sample weight' % loss_name)
     if tf.is_numeric_tensor(sample_weights):
+      logging.info('[%s] use sample weight' % loss_name)
       weights *= tf.cast(sample_weights, tf.float32)
-    else:
+    elif sample_weights != 1.0:
+      logging.info('[%s] use sample weight: %f' % (loss_name, sample_weights))
       weights *= sample_weights
 
   if ohem_ratio == 1.0:
@@ -85,7 +86,7 @@ def sigmoid_focal_loss_with_logits(labels,
       weights=weights,
       label_smoothing=label_smoothing,
       reduction=tf.losses.Reduction.NONE)
-  k = tf.size(losses, out_type=tf.float32) * tf.convert_to_tensor(ohem_ratio)
+  k = tf.to_float(tf.size(losses)) * tf.convert_to_tensor(ohem_ratio)
   k = tf.to_int32(tf.math.rint(k))
   topk = tf.nn.top_k(losses, k)
   losses = tf.boolean_mask(topk.values, topk.values > 0)

@@ -195,7 +195,7 @@ def pairwise_logistic_loss(labels,
 
   losses = compute_weighted_loss(
       losses, pairwise_weights, reduction=tf.losses.Reduction.NONE)
-  k = tf.size(losses, out_type=tf.float32) * tf.convert_to_tensor(ohem_ratio)
+  k = tf.to_float(tf.size(losses)) * tf.convert_to_tensor(ohem_ratio)
   k = tf.to_int32(tf.math.rint(k))
   topk = tf.nn.top_k(losses, k)
   losses = tf.boolean_mask(topk.values, topk.values > 0)

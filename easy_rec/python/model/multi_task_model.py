@@ -121,6 +121,7 @@ class MultiTaskModel(RankModel):
               loss_weight=loss_weight,
               num_class=task_tower_cfg.num_class,
               suffix='_%s' % tower_name,
+              loss_name=loss.loss_name,
               loss_param=loss_param)
           for loss_name, loss_value in loss_ops.items():
             loss_dict[loss_name] = loss_value * loss.weight
