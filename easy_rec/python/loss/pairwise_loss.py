@@ -3,7 +3,7 @@
 import logging
 
 import tensorflow as tf
-from focal_loss import sigmoid_focal_loss_with_logits
+from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from tensorflow.python.ops.losses.losses_impl import compute_weighted_loss
 
 from easy_rec.python.utils.shape_utils import get_shape_list
