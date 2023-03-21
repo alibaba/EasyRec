@@ -3,9 +3,9 @@
 import logging
 
 import tensorflow as tf
-from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from tensorflow.python.ops.losses.losses_impl import compute_weighted_loss
 
+from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -30,6 +30,9 @@ def pairwise_loss(labels,
     weights: sample weights
     name: the name of loss
   """
+  logging.warning(
+      'The old `pairwise_loss` is being deprecated. '
+      'Please use the new `pairwise_logistic_loss` or `pairwise_focal_loss`')
   loss_name = name if name else 'pairwise_loss'
   logging.info('[{}] margin: {}, temperature: {}'.format(
       loss_name, margin, temperature))
@@ -192,7 +195,8 @@ def pairwise_logistic_loss(labels,
 
   losses = compute_weighted_loss(
       losses, pairwise_weights, reduction=tf.losses.Reduction.NONE)
-  k = tf.size(losses) * ohem_ratio
+  k = tf.size(losses, out_type=tf.float32) * tf.convert_to_tensor(ohem_ratio)
+  k = tf.to_int32(tf.math.rint(k))
   topk = tf.nn.top_k(losses, k)
   losses = tf.boolean_mask(topk.values, topk.values > 0)
   return tf.reduce_mean(losses)

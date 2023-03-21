@@ -85,7 +85,8 @@ def sigmoid_focal_loss_with_logits(labels,
       weights=weights,
       label_smoothing=label_smoothing,
       reduction=tf.losses.Reduction.NONE)
-  k = tf.size(losses) * ohem_ratio
+  k = tf.size(losses, out_type=tf.float32) * tf.convert_to_tensor(ohem_ratio)
+  k = tf.to_int32(tf.math.rint(k))
   topk = tf.nn.top_k(losses, k)
   losses = tf.boolean_mask(topk.values, topk.values > 0)
   return tf.reduce_mean(losses)
