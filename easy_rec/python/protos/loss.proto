@@ -67,6 +67,7 @@ message BinaryFocalLoss {
 message PairwiseLoss {
   required float margin = 1 [default = 0];
   optional string session_name = 2;
+  optional float temperature = 3 [default = 1.0];
 }
 
 message PairwiseFocalLoss {
@@ -75,6 +76,7 @@ message PairwiseFocalLoss {
   optional float hinge_margin = 3 [default = 1.0];
   optional string session_name = 4;
   optional float ohem_ratio = 5 [default = 1.0];
+  optional float temperature = 6 [default = 1.0];
 }
 
 message PairwiseLogisticLoss {

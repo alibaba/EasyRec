@@ -42,11 +42,13 @@ def build(loss_type,
   elif loss_type == LossType.PAIR_WISE_LOSS:
     session = kwargs.get('session_ids', None)
     margin = 0 if loss_param is None else loss_param.margin
+    temp = 1.0 if loss_param is None else loss_param.temperature
     return pairwise_loss(
         label,
         pred,
         session_ids=session,
         margin=margin,
+        temperature=temp,
         weights=loss_weight,
         name=loss_name)
   elif loss_type == LossType.PAIRWISE_LOGISTIC_LOSS:
@@ -81,6 +83,7 @@ def build(loss_type,
         alpha=loss_param.alpha if loss_param.HasField('alpha') else None,
         hinge_margin=hinge_margin,
         ohem_ratio=loss_param.ohem_ratio,
+        temperature=loss_param.temperature,
         weights=loss_weight,
         name=loss_name)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
@@ -95,7 +98,7 @@ def build(loss_type,
   elif loss_type == LossType.BINARY_FOCAL_LOSS:
     if loss_param is None:
       return sigmoid_focal_loss_with_logits(
-          label, pred, sample_weights=loss_weight)
+          label, pred, sample_weights=loss_weight, name=loss_name)
     gamma = loss_param.gamma
     alpha = None
     if loss_param.HasField('alpha'):
@@ -107,7 +110,8 @@ def build(loss_type,
         alpha=alpha,
         ohem_ratio=loss_param.ohem_ratio,
         sample_weights=loss_weight,
-        label_smoothing=loss_param.label_smoothing)
+        label_smoothing=loss_param.label_smoothing,
+        name=loss_name)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 

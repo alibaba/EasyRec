@@ -16,6 +16,7 @@ def pairwise_loss(labels,
                   logits,
                   session_ids=None,
                   margin=0,
+                  temperature=1.0,
                   weights=1.0,
                   name=''):
   """Deprecated Pairwise loss.  Also see `pairwise_logistic_loss` below.
@@ -25,11 +26,16 @@ def pairwise_loss(labels,
     logits: a `Tensor` with shape [batch_size]. e.g. the value of last neuron before activation.
     session_ids: a `Tensor` with shape [batch_size]. Session ids of each sample, used to max GAUC metric. e.g. user_id
     margin: the margin between positive and negative sample pair
+    temperature: (Optional) The temperature to use for scaling the logits.
     weights: sample weights
     name: the name of loss
   """
-  loss_name = name if name else 'pairwise_logistic_loss'
-  logging.info('[{}] margin: {}'.format(loss_name, margin))
+  loss_name = name if name else 'pairwise_loss'
+  logging.info('[{}] margin: {}, temperature: {}'.format(
+      loss_name, margin, temperature))
+
+  if temperature != 1.0:
+    logits /= temperature
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0)) - margin
   pairwise_mask = tf.greater(
@@ -67,15 +73,18 @@ def pairwise_focal_loss(labels,
                         hinge_margin=None,
                         gamma=2,
                         alpha=None,
-                        weights=1.0,
                         ohem_ratio=1.0,
+                        temperature=1.0,
+                        weights=1.0,
                         name=''):
   loss_name = name if name else 'pairwise_focal_loss'
+  assert 0 < ohem_ratio <= 1.0, loss_name + ' ohem_ratio must be in (0, 1]'
   logging.info(
-      '[{}] hinge margin: {}, gamma: {}, alpha: {}, ohem_ratio: {}'.format(
-          loss_name, hinge_margin, gamma, alpha, ohem_ratio))
-  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
+      '[{}] hinge margin: {}, gamma: {}, alpha: {}, ohem_ratio: {}, temperature: {}'
+      .format(loss_name, hinge_margin, gamma, alpha, ohem_ratio, temperature))
 
+  if temperature != 1.0:
+    logits /= temperature
   pairwise_logits = tf.expand_dims(logits, -1) - tf.expand_dims(logits, 0)
 
   pairwise_mask = tf.greater(
@@ -140,8 +149,11 @@ def pairwise_logistic_loss(labels,
     ohem_ratio: the percent of hard examples to be mined
     name: the name of loss
   """
-  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
   loss_name = name if name else 'pairwise_logistic_loss'
+  assert 0 < ohem_ratio <= 1.0, loss_name + ' ohem_ratio must be in (0, 1]'
+  logging.info('[{}] hinge margin: {}, ohem_ratio: {}, temperature: {}'.format(
+      loss_name, hinge_margin, ohem_ratio, temperature))
+
   if temperature != 1.0:
     logits /= temperature
   pairwise_logits = tf.math.subtract(

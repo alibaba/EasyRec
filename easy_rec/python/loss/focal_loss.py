@@ -14,7 +14,8 @@ def sigmoid_focal_loss_with_logits(labels,
                                    alpha=None,
                                    ohem_ratio=1.0,
                                    sample_weights=None,
-                                   label_smoothing=0):
+                                   label_smoothing=0,
+                                   name=''):
   """Implements the focal loss function.
 
   Focal loss was first introduced in the RetinaNet paper
@@ -36,6 +37,7 @@ def sigmoid_focal_loss_with_logits(labels,
         `labels`, and must be broadcastable to `labels` (i.e., all dimensions must
         be either `1`, or the same as the corresponding `losses` dimension).
       label_smoothing: If greater than `0` then smooth the labels.
+      name: the name of loss
 
   Returns:
       Weighted loss float `Tensor`. If `reduction` is `NONE`,this has the
@@ -45,12 +47,13 @@ def sigmoid_focal_loss_with_logits(labels,
       ValueError: If the shape of `sample_weight` is invalid or value of
         `gamma` is less than zero
   """
-  assert 0 < ohem_ratio <= 1.0, 'ohem_ratio must be in (0, 1]'
+  loss_name = name if name else 'focal_loss'
+  assert 0 < ohem_ratio <= 1.0, loss_name + ' ohem_ratio must be in (0, 1]'
   if gamma and gamma < 0:
     raise ValueError('Value of gamma should be greater than or equal to zero')
   logging.info(
-      '[focal_loss] gamma: {}, alpha: {}, ohem_ratho: {}, label smoothing: {}'
-      .format(gamma, alpha, ohem_ratio, label_smoothing))
+      '[{}] gamma: {}, alpha: {}, ohem_ratho: {}, label smoothing: {}'.format(
+          loss_name, gamma, alpha, ohem_ratio, label_smoothing))
 
   y_true = tf.cast(labels, logits.dtype)
 
@@ -66,6 +69,7 @@ def sigmoid_focal_loss_with_logits(labels,
     weights *= alpha_factor
 
   if sample_weights is not None:
+    logging.info('[%s] use sample weight' % loss_name)
     if tf.is_numeric_tensor(sample_weights):
       weights *= tf.cast(sample_weights, tf.float32)
     else:
