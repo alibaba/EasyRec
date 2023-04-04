@@ -5,6 +5,7 @@ import tensorflow as tf
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import seq_input_layer
+from easy_rec.python.protos import feature_config_pb2
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -18,6 +19,7 @@ class SequenceFeatureLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
+               use_feature_ln=False,
                is_training=False):
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
@@ -29,7 +31,8 @@ class SequenceFeatureLayer(object):
           feature_configs,
           self._seq_feature_groups_config,
           embedding_regularizer=embedding_regularizer,
-          ev_params=ev_params)
+          ev_params=ev_params,
+          use_feature_ln=use_feature_ln)
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
@@ -120,7 +123,8 @@ class SequenceFeatureLayer(object):
                        deep_fea,
                        name,
                        need_key_feature=True,
-                       allow_key_transform=False):
+                       allow_key_transform=False,
+                       seq_transform_type=feature_config_pb2.PADDING):
     cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
             'aux_hist_seq_emb_list']
@@ -132,15 +136,24 @@ class SequenceFeatureLayer(object):
     # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
-      # cur_id = tf.layers.dense(
-      #     cur_id, seq_emb_dim,
-      #     kernel_regularizer=self._kernel_regularizer,
-      #     name=name + '/sequence_key_transform_layer')
-      # hist_id_col = tf.layers.dense(
-      #     hist_id_col, seq_emb_dim,
-      #     kernel_regularizer=self._kernel_regularizer,
-      #     name=name + '/sequence_hist_transform_layer')
-      cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
+      if seq_transform_type in [feature_config_pb2.PADDING, feature_config_pb2.SCORE_PADDING]:
+        cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
+      elif seq_transform_type == feature_config_pb2.KEY_DNN:
+        cur_id = tf.layers.dense(
+            cur_id, seq_emb_dim,
+            kernel_regularizer=self._kernel_regularizer,
+            name=name + '/sequence_key_transform_layer')
+      elif seq_transform_type == feature_config_pb2.DUAL_DNN:
+        cur_id = tf.layers.dense(
+            cur_id, seq_emb_dim,
+            kernel_regularizer=self._kernel_regularizer,
+            name=name + '/sequence_key_transform_layer')
+        hist_id_col = tf.layers.dense(
+            hist_id_col, seq_emb_dim,
+            kernel_regularizer=self._kernel_regularizer,
+            name=name + '/sequence_hist_transform_layer')
+      else:
+        raise NotImplementedError
 
     cur_ids = tf.tile(cur_id, [1, seq_max_len])
     cur_ids = tf.reshape(cur_ids,
@@ -167,6 +180,9 @@ class SequenceFeatureLayer(object):
 
     # Scale
     scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
+    if seq_transform_type == feature_config_pb2.SCORE_PADDING:
+      hist_id_col = hist_id_col[:, :, :cur_id_dim]
+      seq_emb_dim = cur_id_dim
     hist_din_emb = tf.matmul(scores, hist_id_col)  # [B, 1, seq_emb_dim]
     hist_din_emb = tf.reshape(hist_din_emb,
                               [-1, seq_emb_dim])  # [B, seq_emb_dim]
@@ -198,6 +214,7 @@ class SequenceFeatureLayer(object):
       allow_key_search = seq_att_map_config.allow_key_search
       need_key_feature = seq_att_map_config.need_key_feature
       allow_key_transform = seq_att_map_config.allow_key_transform
+      seq_transform_type = seq_att_map_config.seq_transform_type
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search, scope_name)
@@ -232,6 +249,7 @@ class SequenceFeatureLayer(object):
             seq_features,
             name=cur_target_attention_name,
             need_key_feature=need_key_feature,
-            allow_key_transform=allow_key_transform)
+            allow_key_transform=allow_key_transform,
+            seq_transform_type=seq_transform_type)
       all_seq_fea.append(seq_fea)
     return concat_features, all_seq_fea

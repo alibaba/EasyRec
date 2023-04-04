@@ -386,6 +386,8 @@ class RankModel(EasyRecModel):
         ]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
+    elif loss_type == LossType.L2_QUANTILE_LOSS:
+      return ['y' + suffix, 'y_quantile' + suffix]
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(loss_type))
 
