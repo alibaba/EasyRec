@@ -1,5 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
@@ -21,13 +23,19 @@ class DIN(object):
     seq_input = [seq_fea for seq_fea, _ in seq_features]
     keys = tf.concat(seq_input, axis=-1)
 
+    query = target_feature
     target_emb_size = target_feature.shape.as_list()[-1]
     seq_emb_size = keys.shape.as_list()[-1]
-    assert target_emb_size == seq_emb_size, 'the embedding size of sequence and target item is not equal' \
-                                            ' in feature group:' + self.name
+    if target_emb_size != seq_emb_size:
+      logging.info('<din> the embedding size of sequence [%d] and target item [%d] is not equal'
+                   ' in feature group: %s', seq_emb_size, target_emb_size, self.name)
+      if target_emb_size < seq_emb_size:
+        query = tf.pad(target_feature, [[0, 0], [0, seq_emb_size-target_emb_size]])
+      else:
+        assert False, 'the embedding size of target item is larger than the one of sequence'
 
     batch_size, max_seq_len, _ = get_shape_list(keys, 3)
-    queries = tf.tile(tf.expand_dims(target_feature, 1), [1, max_seq_len, 1])
+    queries = tf.tile(tf.expand_dims(query, 1), [1, max_seq_len, 1])
     din_all = tf.concat([queries, keys, queries - keys, queries * keys],
                         axis=-1)
     din_layer = dnn.DNN(
@@ -48,6 +56,9 @@ class DIN(object):
     scores = scores / (seq_emb_size**0.5)
     # normalization with softmax is abandoned according to the original paper
     scores = tf.nn.sigmoid(scores)
+
+    if target_emb_size < seq_emb_size:
+      keys = keys[:, :, :target_emb_size]  # [B, L, E]
     output = tf.squeeze(tf.matmul(scores, keys), axis=[1])
     if self.config.need_target_feature:
       output = tf.concat([output, target_feature], axis=-1)

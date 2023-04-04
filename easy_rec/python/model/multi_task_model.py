@@ -7,6 +7,7 @@ import tensorflow as tf
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
+from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -124,7 +125,15 @@ class MultiTaskModel(RankModel):
               loss_name=loss.loss_name,
               loss_param=loss_param)
           for loss_name, loss_value in loss_ops.items():
-            loss_dict[loss_name] = loss_value * loss.weight
+            if loss.learn_loss_weight:
+              uncertainty = tf.Variable(0, name="%s_loss_weight" % loss_name, dtype=tf.float32)
+              tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
+              if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+                loss_dict[loss_name] = 0.5 * tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+              else:
+                loss_dict[loss_name] = tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+            else:
+              loss_dict[loss_name] = loss_value * loss.weight
 
       self._loss_dict.update(loss_dict)
 

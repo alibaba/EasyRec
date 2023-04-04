@@ -8,6 +8,7 @@ from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_logistic_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
+from easy_rec.python.loss.jrc_loss import jrc_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
 from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
@@ -39,6 +40,11 @@ def build(loss_type,
     logging.info('%s is used' % LossType.Name(loss_type))
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
+  elif loss_type == LossType.JRC_LOSS:
+    alpha = 0.5 if loss_param is None else loss_param.alpha
+    auto_weight = False if loss_param is None else not loss_param.HasField('alpha')
+    session = kwargs.get('session_ids', None)
+    return jrc_loss(label, pred, session, alpha, auto_weight=auto_weight, name=loss_name)
   elif loss_type == LossType.PAIR_WISE_LOSS:
     session = kwargs.get('session_ids', None)
     margin = 0 if loss_param is None else loss_param.margin

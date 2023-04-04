@@ -41,12 +41,18 @@ class RankModel(EasyRecModel):
         LossType.PAIRWISE_LOGISTIC_LOSS
     }
     if loss_type in binary_loss_type:
-      assert num_class == 1, 'num_class must be 1 when loss type is F1_REWEIGHTED_LOSS/PAIR_WISE_LOSS'
+      assert num_class == 1, 'num_class must be 1 when loss type is %s' % loss_type.name
       output = tf.squeeze(output, axis=1)
       probs = tf.sigmoid(output)
       tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
       prediction_dict['logits' + suffix] = output
       prediction_dict['probs' + suffix] = probs
+    elif loss_type == LossType.JRC_LOSS:
+      assert num_class == 2, 'num_class must be 2 when loss type is JRC_LOSS'
+      probs = tf.nn.softmax(output, axis=1)
+      tf.summary.scalar('prediction/probs', tf.reduce_mean(probs[:, 1]))
+      prediction_dict['logits' + suffix] = output
+      prediction_dict['probs' + suffix] = probs[:, 1]
     elif loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
         output = tf.squeeze(output, axis=1)
@@ -103,7 +109,8 @@ class RankModel(EasyRecModel):
       binary_loss_set = {
           LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
           LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
-          LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS
+          LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
+          LossType.JRC_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -144,7 +151,7 @@ class RankModel(EasyRecModel):
     binary_loss_type = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS
     }
     if loss_type == LossType.CLASSIFICATION:
       loss_name = loss_name if loss_name else 'cross_entropy_loss' + suffix
@@ -198,7 +205,15 @@ class RankModel(EasyRecModel):
             loss_name=loss.loss_name,
             loss_param=loss_param)
         for loss_name, loss_value in loss_ops.items():
-          loss_dict[loss_name] = loss_value * loss.weight
+          if loss.learn_loss_weight:
+            uncertainty = tf.Variable(0, name="%s_loss_weight" % loss_name, dtype=tf.float32)
+            tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
+            if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+              loss_dict[loss_name] = 0.5 * tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+            else:
+              loss_dict[loss_name] = tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+          else:
+            loss_dict[loss_name] = loss_value * loss.weight
 
     self._loss_dict.update(loss_dict)
 
