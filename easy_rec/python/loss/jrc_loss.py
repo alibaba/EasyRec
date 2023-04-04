@@ -11,6 +11,8 @@ if tf.__version__ >= '2.0':
 def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name=''):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
+     https://arxiv.org/abs/2208.06164
+
   Args:
     labels: a `Tensor` with shape [batch_size]. e.g. click or not click in the session.
     logits: a `Tensor` with shape [batch_size, 2]. e.g. the value of last neuron before activation.
@@ -32,6 +34,7 @@ def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name='')
   # Mask: shape [B, B], mask[i,j]=1 indicates the i-th sample
   # and j-th sample are in the same context
   mask = tf.equal(tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0))
+  mask = tf.to_float(mask)
 
   # Tile logits and label: [B, 2]->[B, B, 2]
   logits = tf.tile(tf.expand_dims(logits, 1), [1, batch_size, 1])
@@ -40,7 +43,7 @@ def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name='')
   # Set logits that are not in the same context to -inf
   mask3d = tf.expand_dims(mask, 2)
   y = y * mask3d
-  logits = logits + (1 - mask) * -1e9
+  logits = logits + (1 - mask3d) * -1e9
   y_neg, y_pos = y[:, :, 0], y[:, :, 1]
   l_neg, l_pos = logits[:, :, 0], logits[:, :, 1]
 
