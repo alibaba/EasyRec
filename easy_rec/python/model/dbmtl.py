@@ -44,6 +44,10 @@ class DBMTL(MultiTaskModel):
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
 
+    if self._input_layer.has_group('extra'):
+      extra_features, _ = self._input_layer(self._feature_dict, 'extra')
+      self._features = tf.concat([self._features, extra_features], axis=1)
+
     self._bias_features_dict = {}
     for task_tower_cfg in self._model_config.task_towers:
       for bias_tower_cfg in task_tower_cfg.bias_tower:
