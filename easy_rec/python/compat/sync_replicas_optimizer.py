@@ -142,7 +142,8 @@ class SyncReplicasOptimizer(optimizer.Optimizer):
                variable_averages=None,
                variables_to_average=None,
                use_locking=False,
-               name='sync_replicas'):
+               name='sync_replicas',
+               **extra_args):
     """Construct a sync_replicas optimizer.
 
     Args:

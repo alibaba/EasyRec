@@ -155,7 +155,9 @@ class PredictorImpl(object):
     elif len(dir_list) > 1:
       if self._use_latest:
         logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
-        dir_list = sorted(dir_list, key=lambda x: int(x.split('/')[-1]))
+        dir_list = sorted(
+            dir_list,
+            key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)]))
         return dir_list[-1]
       else:
         raise ValueError('multiple saved model found in directory %s' %
