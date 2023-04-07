@@ -610,6 +610,7 @@ def distribute_evaluate(pipeline_config,
   eval_result_file = os.path.join(model_dir, eval_result_filename)
   logging.info('save eval result to file %s' % eval_result_file)
   if cur_job_name == 'master':
+    print('eval_result = ', eval_result)
     logging.info('eval_result = {0}'.format(eval_result))
     with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {'eval_method': 'distribute'}

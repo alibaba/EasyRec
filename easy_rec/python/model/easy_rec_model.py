@@ -110,7 +110,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       if group_name in self._sequence_encoding_by_group_name:
         return self._sequence_encoding_by_group_name[group_name]
       encoding = self._sequence_encoder(self._feature_dict, group_name,
-                                        is_training)
+                                        is_training, loss_dict=self._loss_dict)
       self._sequence_encoding_by_group_name[group_name] = encoding
       return encoding
 
@@ -123,7 +123,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         encoding = self._sequence_encoding_by_group_name[group_name]
       else:
         encoding = self._sequence_encoder(self._feature_dict, group_name,
-                                          is_training)
+                                          is_training, loss_dict=self._loss_dict)
         self._sequence_encoding_by_group_name[group_name] = encoding
       if encoding is not None:
         seq_encoding.append(encoding)

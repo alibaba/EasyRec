@@ -75,7 +75,7 @@ class SequenceEncoder(object):
       encoder_type = encoder.WhichOneof('encoder').lower()
       if encoder_type == 'bst':
         bst = BST(encoder.bst, self._l2_reg, name=group_name)
-        encoding = bst([seq_features, target_feature], is_training)
+        encoding = bst([seq_features, target_feature], is_training, **kwargs)
         outputs.append(encoding)
       elif encoder_type == 'din':
         din = DIN(encoder.din, self._l2_reg, name=group_name)
