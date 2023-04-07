@@ -141,7 +141,8 @@ class Input(six.with_metaclass(_meta_type, object)):
       model_name = model_config.WhichOneof('model')
       if model_name in {'mmoe', 'esmm', 'dbmtl', 'simple_multi_task', 'ple'}:
         model = getattr(model_config, model_name)
-        for tower in model.task_towers:
+        towers = [model.ctr_tower, model.cvr_tower] if model_name == 'esmm' else model.task_towers
+        for tower in towers:
           metrics = tower.metrics_set
           for metric in metrics:
             metric_name = metric.WhichOneof('metric')

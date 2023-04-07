@@ -24,7 +24,7 @@ def build(loss_type,
           num_class=1,
           loss_param=None,
           **kwargs):
-  loss_name = kwargs.pop('loss_name')
+  loss_name = kwargs.pop('loss_name') if 'loss_name' in kwargs else 'unknown'
   if loss_type == LossType.CLASSIFICATION:
     if num_class == 1:
       return tf.losses.sigmoid_cross_entropy(
