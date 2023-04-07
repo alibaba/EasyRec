@@ -381,7 +381,7 @@ def main(argv):
     # TODO: support multi-worker evaluation
     if not FLAGS.distribute_eval:
       assert len(
-          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 worker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
     if FLAGS.eval_tables:

@@ -411,7 +411,7 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
 
 
 try:
-  from tensorflow.python.training import AdamAsyncOptimizer
+  from tensorflow.train import AdamAsyncOptimizer
 
   @tf_export('contrib.opt.AdamAsyncWOptimizer')
   class AdamAsyncWOptimizer(DecoupledWeightDecayExtension, AdamAsyncOptimizer):
@@ -472,4 +472,5 @@ try:
           use_locking=use_locking,
           name=name)
 except ImportError:
+  print('import AdamAsyncOptimizer failed when loading AdamAsyncWOptimizer')
   pass

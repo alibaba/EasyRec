@@ -20,7 +20,7 @@ matplotlib.use('Agg')  # NOQA
 import matplotlib.pyplot as plt  # NOQA
 
 tf.app.flags.DEFINE_string('model_type', 'variational_dropout',
-                           'feature selection model tyoe')
+                           'feature selection model type')
 tf.app.flags.DEFINE_string('config_path', '',
                            'feature selection model config path')
 tf.app.flags.DEFINE_string('checkpoint_path', None,
