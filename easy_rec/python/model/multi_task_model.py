@@ -126,12 +126,15 @@ class MultiTaskModel(RankModel):
               loss_param=loss_param)
           for loss_name, loss_value in loss_ops.items():
             if loss.learn_loss_weight:
-              uncertainty = tf.Variable(0, name="%s_loss_weight" % loss_name, dtype=tf.float32)
+              uncertainty = tf.Variable(
+                  0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
               tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
               if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
-                loss_dict[loss_name] = 0.5 * tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+                loss_dict[loss_name] = 0.5 * tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
               else:
-                loss_dict[loss_name] = tf.exp(-uncertainty) * loss_value + 0.5 * uncertainty
+                loss_dict[loss_name] = tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
             else:
               loss_dict[loss_name] = loss_value * loss.weight
 

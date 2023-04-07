@@ -8,7 +8,12 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name=''):
+def jrc_loss(labels,
+             logits,
+             session_ids,
+             alpha=0.5,
+             auto_weight=False,
+             name=''):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
      https://arxiv.org/abs/2208.06164
@@ -22,7 +27,8 @@ def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name='')
     name: the name of loss
   """
   loss_name = name if name else 'jrc_loss'
-  logging.info('[{}] alpha: {}'.format(loss_name, alpha))
+  logging.info('[{}] alpha: {}, auto_weight: {}'.format(loss_name, alpha,
+                                                        auto_weight))
 
   ce_loss = tf.losses.sparse_softmax_cross_entropy(labels, logits)
 
@@ -33,7 +39,8 @@ def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name='')
 
   # Mask: shape [B, B], mask[i,j]=1 indicates the i-th sample
   # and j-th sample are in the same context
-  mask = tf.equal(tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0))
+  mask = tf.equal(
+      tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0))
   mask = tf.to_float(mask)
 
   # Tile logits and label: [B, 2]->[B, B, 2]
@@ -42,24 +49,27 @@ def jrc_loss(labels, logits, session_ids, alpha=0.5, auto_weight=False, name='')
 
   # Set logits that are not in the same context to -inf
   mask3d = tf.expand_dims(mask, 2)
-  y = y * mask3d
+  y = tf.to_float(y) * mask3d
   logits = logits + (1 - mask3d) * -1e9
   y_neg, y_pos = y[:, :, 0], y[:, :, 1]
   l_neg, l_pos = logits[:, :, 0], logits[:, :, 1]
 
   # Compute list-wise generative loss -log p(x|y, z)
-  loss_pos = -tf.sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
-  loss_neg = -tf.sum(y_neg * tf.nn.log_softmax(l_neg, axis=0), axis=0)
-  ge_loss = tf.mean((loss_pos+loss_neg)/tf.sum(mask, axis=0))
+  loss_pos = -tf.reduce_sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
+  loss_neg = -tf.reduce_sum(y_neg * tf.nn.log_softmax(l_neg, axis=0), axis=0)
+  ge_loss = tf.reduce_mean((loss_pos + loss_neg) / tf.reduce_sum(mask, axis=0))
 
   # The final JRC model
   if auto_weight:
-    uncertainty1 = tf.Variable(0, name="%s_ranking_loss_weight" % loss_name, dtype=tf.float32)
+    uncertainty1 = tf.Variable(
+        0, name='%s_ranking_loss_weight' % loss_name, dtype=tf.float32)
     tf.summary.scalar('loss/%s_ranking_uncertainty' % loss_name, uncertainty1)
-    uncertainty2 = tf.Variable(0, name="%s_calibration_loss_weight" % loss_name, dtype=tf.float32)
-    tf.summary.scalar('loss/%s_calibration_uncertainty' % loss_name, uncertainty2)
+    uncertainty2 = tf.Variable(
+        0, name='%s_calibration_loss_weight' % loss_name, dtype=tf.float32)
+    tf.summary.scalar('loss/%s_calibration_uncertainty' % loss_name,
+                      uncertainty2)
     loss = tf.exp(-uncertainty1) * ce_loss + 0.5 * uncertainty1
     loss += tf.exp(-uncertainty2) * ge_loss + 0.5 * uncertainty2
   else:
-    loss = alpha*ce_loss + (1-alpha)*ge_loss
+    loss = alpha * ce_loss + (1 - alpha) * ge_loss
   return loss

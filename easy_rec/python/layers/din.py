@@ -27,10 +27,12 @@ class DIN(object):
     target_emb_size = target_feature.shape.as_list()[-1]
     seq_emb_size = keys.shape.as_list()[-1]
     if target_emb_size != seq_emb_size:
-      logging.info('<din> the embedding size of sequence [%d] and target item [%d] is not equal'
-                   ' in feature group: %s', seq_emb_size, target_emb_size, self.name)
+      logging.info(
+          '<din> the embedding size of sequence [%d] and target item [%d] is not equal'
+          ' in feature group: %s', seq_emb_size, target_emb_size, self.name)
       if target_emb_size < seq_emb_size:
-        query = tf.pad(target_feature, [[0, 0], [0, seq_emb_size-target_emb_size]])
+        query = tf.pad(target_feature,
+                       [[0, 0], [0, seq_emb_size - target_emb_size]])
       else:
         assert False, 'the embedding size of target item is larger than the one of sequence'
 

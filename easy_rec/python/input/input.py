@@ -253,6 +253,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     inputs = {}
     for fid in effective_fids:
       input_name = self._input_fields[fid]
+      if input_name == sample_weight_field:
+        continue
       if placeholder_named_by_input:
         placeholder_name = input_name
       else:
@@ -482,8 +484,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       if fc.raw_input_dim > 1:
         check_list = [
             tf.py_func(
-                check_split,
-                [vals, fc.separator, fc.raw_input_dim, input_0],
+                check_split, [vals, fc.separator, fc.raw_input_dim, input_0],
                 Tout=tf.bool)
         ] if self._check_mode else []
         with tf.control_dependencies(check_list):
@@ -512,19 +513,17 @@ class Input(six.with_metaclass(_meta_type, object)):
           parsed_dict[feature_name] = emb
         else:
           parsed_dict[feature_name] = tf.sparse_to_dense(
-            tmp_fea.indices,
-            [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
-            tmp_vals,
-            default_value=0)
+              tmp_fea.indices,
+              [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
+              tmp_vals,
+              default_value=0)
       elif fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
         check_list = [
-          tf.py_func(
-            check_string_to_number, [vals, input_0],
-            Tout=tf.bool)
+            tf.py_func(check_string_to_number, [vals, input_0], Tout=tf.bool)
         ] if self._check_mode else []
         with tf.control_dependencies(check_list):
-          emb = tf.string_to_number(vals, tf.float32,
-                                    name='raw_fea_to_flt_%s' % input_0)
+          emb = tf.string_to_number(
+              vals, tf.float32, name='raw_fea_to_flt_%s' % input_0)
         if fc.combiner == 'max':
           emb = tf.segment_max(emb, segment_ids)
         elif fc.combiner == 'sum':
@@ -537,13 +536,13 @@ class Input(six.with_metaclass(_meta_type, object)):
           assert False, 'unsupported combine operator: ' + fc.combiner
         parsed_dict[feature_name] = emb
       else:
-         check_list = [
-           tf.py_func(
-             check_string_to_number, [field_dict[input_0], input_0],
-             Tout=tf.bool)
-         ] if self._check_mode else []
-         with tf.control_dependencies(check_list):
-           parsed_dict[feature_name] = tf.string_to_number(
+        check_list = [
+            tf.py_func(
+                check_string_to_number, [field_dict[input_0], input_0],
+                Tout=tf.bool)
+        ] if self._check_mode else []
+        with tf.control_dependencies(check_list):
+          parsed_dict[feature_name] = tf.string_to_number(
               field_dict[input_0], tf.float32)
     elif field_dict[input_0].dtype in [
         tf.int32, tf.int64, tf.double, tf.float32
@@ -557,7 +556,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           fc.max_val - fc.min_val)
 
     if fc.HasField('normalizer_fn'):
-      logging.info('apply normalizer_fn %s to `%s`' % (fc.normalizer_fn, feature_name))
+      logging.info('apply normalizer_fn %s to `%s`' %
+                   (fc.normalizer_fn, feature_name))
       parsed_dict[feature_name] = self._normalizer_fn[feature_name](
           parsed_dict[feature_name])
 
