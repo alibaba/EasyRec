@@ -127,11 +127,11 @@ class Input(six.with_metaclass(_meta_type, object)):
       metrics = self._pipeline_config.eval_config.metrics_set
       for metric in metrics:
         metric_name = metric.WhichOneof('metric')
-        if metric_name == 'GAUC':
+        if metric_name == 'gauc':
           uid = metric.gauc.uid_field
           if uid not in self._effective_fields:
             self._effective_fields.append(uid)
-        elif metric_name == 'SessionAUC':
+        elif metric_name == 'session_auc':
           sid = metric.session_auc.session_id_field
           if sid not in self._effective_fields:
             self._effective_fields.append(sid)
@@ -139,27 +139,18 @@ class Input(six.with_metaclass(_meta_type, object)):
       # check multi task model's metrics
       model_config = self._pipeline_config.model_config
       model_name = model_config.WhichOneof('model')
-      model = None
-      if model_name == 'MMoE':
-        model = model_config.mmoe
-      elif model_name == 'ESMM':
-        model = model_config.esmm
-      elif model_name == 'DBMTL':
-        model = model_config.dbmtl
-      elif model_name == 'SimpleMultiTask':
-        model = model_config.simple_multi_task
-      elif model_name == 'PLE':
-        model = model_config.ple
-      if model is not None:
-        for tower in model.task_towers:
+      if model_name in {'mmoe', 'esmm', 'dbmtl', 'simple_multi_task', 'ple'}:
+        model = getattr(model_config, model_name)
+        towers = [model.ctr_tower, model.cvr_tower] if model_name == 'esmm' else model.task_towers
+        for tower in towers:
           metrics = tower.metrics_set
           for metric in metrics:
             metric_name = metric.WhichOneof('metric')
-            if metric_name == 'GAUC':
+            if metric_name == 'gauc':
               uid = metric.gauc.uid_field
               if uid not in self._effective_fields:
                 self._effective_fields.append(uid)
-            elif metric_name == 'SessionAUC':
+            elif metric_name == 'session_auc':
               sid = metric.session_auc.session_id_field
               if sid not in self._effective_fields:
                 self._effective_fields.append(sid)
@@ -263,6 +254,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     inputs = {}
     for fid in effective_fids:
       input_name = self._input_fields[fid]
+      if input_name == sample_weight_field:
+        continue
       if placeholder_named_by_input:
         placeholder_name = input_name
       else:
@@ -482,52 +475,21 @@ class Input(six.with_metaclass(_meta_type, object)):
     input_0 = fc.input_names[0]
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
     if field_dict[input_0].dtype == tf.string:
-
-      def combine(x):
-        seq = tf.string_split([x], fc.seq_multi_sep)
-        seq_len = tf.size(seq)
-        if fc.raw_input_dim > 1:
-          check_list = [
-              tf.py_func(
-                  check_split,
-                  [seq.values, fc.separator, fc.raw_input_dim, input_0],
-                  Tout=tf.bool)
-          ] if self._check_mode else []
-          with tf.control_dependencies(check_list):
-            emb = tf.string_split(seq.values, fc.separator).values
-        else:
-          emb = seq.values
-        check_list = [
-            tf.py_func(check_string_to_number, [emb, input_0], Tout=tf.bool)
-        ] if self._check_mode else []
-        with tf.control_dependencies(check_list):
-          emb_val = tf.string_to_number(emb)
-        emb_vec = tf.reshape(emb_val, [seq_len, -1])
-
-        if fc.combiner == 'max':
-          emb_vec = tf.reduce_max(emb_vec, axis=0)
-        elif fc.combiner == 'min':
-          emb_vec = tf.reduce_min(emb_vec, axis=0)
-        elif fc.combiner == 'sum':
-          emb_vec = tf.reduce_sum(emb_vec, axis=0)
-        elif fc.combiner == 'mean':
-          emb_vec = tf.reduce_mean(emb_vec, axis=0)
-        else:
-          assert False, 'unsupported combine operator: ' + fc.combiner
-        return emb_vec
-
       if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
-        parsed_dict[feature_name] = tf.map_fn(
-            combine, field_dict[input_0], dtype=tf.float32)
-      elif fc.raw_input_dim > 1:
+        fea = tf.string_split(field_dict[input_0], fc.seq_multi_sep)
+        segment_ids = fea.indices[:, 0]
+        vals = fea.values
+      else:
+        vals = field_dict[input_0]
+        segment_ids = tf.range(0, tf.shape(vals)[0])
+      if fc.raw_input_dim > 1:
         check_list = [
             tf.py_func(
-                check_split,
-                [field_dict[input_0], fc.separator, fc.raw_input_dim, input_0],
+                check_split, [vals, fc.separator, fc.raw_input_dim, input_0],
                 Tout=tf.bool)
         ] if self._check_mode else []
         with tf.control_dependencies(check_list):
-          tmp_fea = tf.string_split(field_dict[input_0], fc.separator)
+          tmp_fea = tf.string_split(vals, fc.separator)
         check_list = [
             tf.py_func(
                 check_string_to_number, [tmp_fea.values, input_0], Tout=tf.bool)
@@ -537,11 +499,43 @@ class Input(six.with_metaclass(_meta_type, object)):
               tmp_fea.values,
               tf.float32,
               name='multi_raw_fea_to_flt_%s' % input_0)
-        parsed_dict[feature_name] = tf.sparse_to_dense(
-            tmp_fea.indices,
-            [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
-            tmp_vals,
-            default_value=0)
+        if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
+          emb = tf.reshape(tmp_vals, [-1, fc.raw_input_dim])
+          if fc.combiner == 'max':
+            emb = tf.segment_max(emb, segment_ids)
+          elif fc.combiner == 'sum':
+            emb = tf.segment_sum(emb, segment_ids)
+          elif fc.combiner == 'min':
+            emb = tf.segment_min(emb, segment_ids)
+          elif fc.combiner == 'mean':
+            emb = tf.segment_mean(emb, segment_ids)
+          else:
+            assert False, 'unsupported combine operator: ' + fc.combiner
+          parsed_dict[feature_name] = emb
+        else:
+          parsed_dict[feature_name] = tf.sparse_to_dense(
+              tmp_fea.indices,
+              [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
+              tmp_vals,
+              default_value=0)
+      elif fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
+        check_list = [
+            tf.py_func(check_string_to_number, [vals, input_0], Tout=tf.bool)
+        ] if self._check_mode else []
+        with tf.control_dependencies(check_list):
+          emb = tf.string_to_number(
+              vals, tf.float32, name='raw_fea_to_flt_%s' % input_0)
+        if fc.combiner == 'max':
+          emb = tf.segment_max(emb, segment_ids)
+        elif fc.combiner == 'sum':
+          emb = tf.segment_sum(emb, segment_ids)
+        elif fc.combiner == 'min':
+          emb = tf.segment_min(emb, segment_ids)
+        elif fc.combiner == 'mean':
+          emb = tf.segment_mean(emb, segment_ids)
+        else:
+          assert False, 'unsupported combine operator: ' + fc.combiner
+        parsed_dict[feature_name] = emb
       else:
         check_list = [
             tf.py_func(
@@ -563,7 +557,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           fc.max_val - fc.min_val)
 
     if fc.HasField('normalizer_fn'):
-      logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
+      logging.info('apply normalizer_fn %s to `%s`' %
+                   (fc.normalizer_fn, feature_name))
       parsed_dict[feature_name] = self._normalizer_fn[feature_name](
           parsed_dict[feature_name])
 
@@ -845,6 +840,9 @@ class Input(six.with_metaclass(_meta_type, object)):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
+
+    if Input.DATA_OFFSET in field_dict:
+      parsed_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
     return {'feature': parsed_dict, 'label': label_dict}
 
   def _lookup_preprocess(self, fc, field_dict):

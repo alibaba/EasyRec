@@ -37,6 +37,8 @@ def load_by_path(path):
   path = path.strip()
   if path == '' or path is None:
     return None
+  if 'lambda' in path:
+    return eval(path)
   components = path.split('.')
   if components[0] == 'tf':
     components[0] = 'tensorflow'
