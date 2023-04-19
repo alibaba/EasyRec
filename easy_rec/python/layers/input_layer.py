@@ -98,8 +98,9 @@ class InputLayer(object):
     feature_name_to_output_tensors = {}
     negative_sampler = self._feature_groups[group_name]._config.negative_sampler
     if is_combine:
-      concat_features, group_features = self.single_call_input_layer(
-          features, group_name, feature_name_to_output_tensors)
+      with tf.device('/CPU:0'):
+        concat_features, group_features = self.single_call_input_layer(
+            features, group_name, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
         # for target attention
         group_seq_arr = self._group_name_to_seq_features[group_name]

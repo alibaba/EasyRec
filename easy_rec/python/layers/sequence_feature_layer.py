@@ -215,7 +215,8 @@ class SequenceFeatureLayer(object):
       need_key_feature = seq_att_map_config.need_key_feature
       allow_key_transform = seq_att_map_config.allow_key_transform
       seq_transform_type = seq_att_map_config.seq_transform_type
-      seq_features = self._seq_input_layer(features, group_name,
+      with tf.device('/CPU:0'):
+        seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search, scope_name)
 
