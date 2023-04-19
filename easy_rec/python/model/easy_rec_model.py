@@ -100,8 +100,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         ev_params=self._global_ev_params,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
-        variational_dropout_config=model_config.variational_dropout if model_config.HasField('variational_dropout') else None,
-        use_feature_ln=self._model_config.use_feature_ln if hasattr(self._model_config, 'use_feature_ln') else False,
+        variational_dropout_config=model_config.variational_dropout
+        if model_config.HasField('variational_dropout') else None,
+        use_feature_ln=self._model_config.use_feature_ln if hasattr(
+            self._model_config, 'use_feature_ln') else False,
         is_training=self._is_training)
 
   @abstractmethod

@@ -137,20 +137,25 @@ class SequenceFeatureLayer(object):
     # cur_id = cur_id[:tf.shape(hist_id_col)[0], ...]  # for negative sampler
 
     if allow_key_transform and (cur_id_dim != seq_emb_dim):
-      if seq_transform_type in [feature_config_pb2.PADDING, feature_config_pb2.SCORE_PADDING]:
+      if seq_transform_type in [
+          feature_config_pb2.PADDING, feature_config_pb2.SCORE_PADDING
+      ]:
         cur_id = tf.pad(cur_id, [[0, 0], [0, seq_emb_dim - cur_id_dim]])
       elif seq_transform_type == feature_config_pb2.KEY_DNN:
         cur_id = tf.layers.dense(
-            cur_id, seq_emb_dim,
+            cur_id,
+            seq_emb_dim,
             kernel_regularizer=self._kernel_regularizer,
             name=name + '/sequence_key_transform_layer')
       elif seq_transform_type == feature_config_pb2.DUAL_DNN:
         cur_id = tf.layers.dense(
-            cur_id, seq_emb_dim,
+            cur_id,
+            seq_emb_dim,
             kernel_regularizer=self._kernel_regularizer,
             name=name + '/sequence_key_transform_layer')
         hist_id_col = tf.layers.dense(
-            hist_id_col, seq_emb_dim,
+            hist_id_col,
+            seq_emb_dim,
             kernel_regularizer=self._kernel_regularizer,
             name=name + '/sequence_hist_transform_layer')
       else:
@@ -183,7 +188,7 @@ class SequenceFeatureLayer(object):
     if use_softmax_attention_score:
       scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
     else:
-      scores = scores / (seq_emb_dim.value ** 0.5)
+      scores = scores / (seq_emb_dim.value**0.5)
       scores = tf.nn.sigmoid(scores)
     if seq_transform_type == feature_config_pb2.SCORE_PADDING:
       hist_id_col = hist_id_col[:, :, :cur_id_dim]

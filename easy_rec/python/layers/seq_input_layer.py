@@ -10,8 +10,8 @@ from tensorflow.python.ops import variable_scope
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.layers import layer_norm
+from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -122,9 +122,9 @@ class SeqInputLayer(object):
       hist_seq_emb_t = tf.concat([x[0] for x in hist_tensors], axis=-1)
       if self._use_feature_ln:
         key_t = layer_norm.layer_norm(
-          key_t, trainable=True, scope=group_name + '/key/ln')
+            key_t, trainable=True, scope=group_name + '/key/ln')
         hist_seq_emb_t = layer_norm.layer_norm(
-          hist_seq_emb_t, trainable=True, scope=group_name + '/hist_seq/ln')
+            hist_seq_emb_t, trainable=True, scope=group_name + '/hist_seq/ln')
       features = {
           'key': key_t,
           'hist_seq_emb': hist_seq_emb_t,

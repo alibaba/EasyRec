@@ -272,7 +272,6 @@ class RankModel(EasyRecModel):
         LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
         LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
         LossType.JRC_LOSS
-
     }
     regression_loss_set = {
         LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.L2_QUANTILE_LOSS
