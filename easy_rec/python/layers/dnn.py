@@ -3,8 +3,7 @@
 import logging
 
 import tensorflow as tf
-
-from easy_rec.python.utils.load_class import load_by_path
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -34,7 +33,7 @@ class DNN:
     self._name = name
     self._is_training = is_training
     logging.info('dnn activation function = %s' % self._config.activation)
-    self.activation = load_by_path(self._config.activation)
+    self.activation = get_activation(self._config.activation, training=is_training)
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
 

@@ -164,4 +164,5 @@ message SeqAttGroupConfig {
     optional bool need_key_feature = 6 [default = true];
     optional bool allow_key_transform = 7 [default = false];
     optional SeqTransformType seq_transform_type = 8 [default = PADDING];
+    optional bool use_softmax_attention_score = 9 [default = true];
 }

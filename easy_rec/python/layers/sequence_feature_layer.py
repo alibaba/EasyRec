@@ -124,7 +124,8 @@ class SequenceFeatureLayer(object):
                        name,
                        need_key_feature=True,
                        allow_key_transform=False,
-                       seq_transform_type=feature_config_pb2.PADDING):
+                       seq_transform_type=feature_config_pb2.PADDING,
+                       use_softmax_attention_score=True):
     cur_id, hist_id_col, seq_len, aux_hist_emb_list = deep_fea['key'], deep_fea[
         'hist_seq_emb'], deep_fea['hist_seq_len'], deep_fea[
             'aux_hist_seq_emb_list']
@@ -179,7 +180,11 @@ class SequenceFeatureLayer(object):
     scores = tf.where(mask, scores, padding)  # [B, 1, seq_max_len]
 
     # Scale
-    scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
+    if use_softmax_attention_score:
+      scores = tf.nn.softmax(scores)  # (B, 1, seq_max_len)
+    else:
+      scores = scores / (seq_emb_dim.value ** 0.5)
+      scores = tf.nn.sigmoid(scores)
     if seq_transform_type == feature_config_pb2.SCORE_PADDING:
       hist_id_col = hist_id_col[:, :, :cur_id_dim]
       seq_emb_dim = cur_id_dim
@@ -215,6 +220,7 @@ class SequenceFeatureLayer(object):
       need_key_feature = seq_att_map_config.need_key_feature
       allow_key_transform = seq_att_map_config.allow_key_transform
       seq_transform_type = seq_att_map_config.seq_transform_type
+      use_softmax_attention_score = seq_att_map_config.use_softmax_attention_score
       seq_features = self._seq_input_layer(features, group_name,
                                            feature_name_to_output_tensors,
                                            allow_key_search, scope_name)
@@ -250,6 +256,7 @@ class SequenceFeatureLayer(object):
             name=cur_target_attention_name,
             need_key_feature=need_key_feature,
             allow_key_transform=allow_key_transform,
-            seq_transform_type=seq_transform_type)
+            seq_transform_type=seq_transform_type,
+            use_softmax_attention_score=use_softmax_attention_score)
       all_seq_fea.append(seq_fea)
     return concat_features, all_seq_fea
