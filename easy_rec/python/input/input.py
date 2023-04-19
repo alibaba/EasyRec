@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
@@ -920,11 +921,11 @@ class Input(six.with_metaclass(_meta_type, object)):
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
         if export_config.multi_placeholder:
-          with tf.device('/CPU:0'):
+          with ops.device('/CPU:0'):
             inputs, features = self.create_multi_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
-          with tf.device('/CPU:0'):
+          with ops.device('/CPU:0'):
             inputs, features = self.create_placeholders(export_config)
           print('built feature placeholders. features: {}'.format(
               features.keys()))
