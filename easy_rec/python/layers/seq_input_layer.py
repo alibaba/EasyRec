@@ -109,28 +109,28 @@ class SeqInputLayer(object):
             tf.summary.histogram(
                 _seq_embed_summary_name(hist_seq_len.name), hist_seq_len)
 
-        for idx in range(1, len(cur_hist_seqs)):
-          check_op = tf.assert_equal(
-              cur_hist_seqs[0][1],
-              cur_hist_seqs[idx][1],
-              message='SequenceFeature Error: The size of %s not equal to the size of %s.'
-              % (x.hist_seq[idx], x.hist_seq[0]))
-          check_op_list.append(check_op)
+        # for idx in range(1, len(cur_hist_seqs)):
+        #   check_op = tf.assert_equal(
+        #       cur_hist_seqs[0][1],
+        #       cur_hist_seqs[idx][1],
+        #       message='SequenceFeature Error: The size of %s not equal to the size of %s.'
+        #       % (x.hist_seq[idx], x.hist_seq[0]))
+        #   check_op_list.append(check_op)
 
-    with tf.control_dependencies(check_op_list):
-      key_t = tf.concat(key_tensors, axis=-1)
-      hist_seq_emb_t = tf.concat([x[0] for x in hist_tensors], axis=-1)
-      if self._use_feature_ln:
-        key_t = layer_norm.layer_norm(
-          key_t, trainable=True, scope=group_name + '/key/ln')
-        hist_seq_emb_t = layer_norm.layer_norm(
-          hist_seq_emb_t, trainable=True, scope=group_name + '/hist_seq/ln')
-      features = {
-          'key': key_t,
-          'hist_seq_emb': hist_seq_emb_t,
-          'hist_seq_len': hist_tensors[0][1],
-          'aux_hist_seq_emb_list': aux_hist_emb_list
-      }
+    # with tf.control_dependencies(check_op_list):
+    key_t = tf.concat(key_tensors, axis=-1)
+    hist_seq_emb_t = tf.concat([x[0] for x in hist_tensors], axis=-1)
+    if self._use_feature_ln:
+      key_t = layer_norm.layer_norm(
+        key_t, trainable=True, scope=group_name + '/key/ln')
+      hist_seq_emb_t = layer_norm.layer_norm(
+        hist_seq_emb_t, trainable=True, scope=group_name + '/hist_seq/ln')
+    features = {
+        'key': key_t,
+        'hist_seq_emb': hist_seq_emb_t,
+        'hist_seq_len': hist_tensors[0][1],
+        'aux_hist_seq_emb_list': aux_hist_emb_list
+    }
     return features
 
   def get_wide_deep_dict(self):
