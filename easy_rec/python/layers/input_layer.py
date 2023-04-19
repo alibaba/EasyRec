@@ -101,7 +101,7 @@ class InputLayer(object):
     if is_combine:
       with ops.device('/CPU:0'):
         concat_features, group_features = self.single_call_input_layer(
-          features, group_name, feature_name_to_output_tensors)
+            features, group_name, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
         # for target attention
         group_seq_arr = self._group_name_to_seq_features[group_name]
@@ -184,7 +184,7 @@ class InputLayer(object):
     for column in sorted(group_seq_columns, key=lambda x: x.name):
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):
-        with ops.device('/CPU:0'): 
+        with ops.device('/CPU:0'):
           seq_feature, seq_len = column._get_sequence_dense_tensor(builder)
         embedding_reg_lst.append(seq_feature)
 

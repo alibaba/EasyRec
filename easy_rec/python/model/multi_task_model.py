@@ -162,10 +162,9 @@ class MultiTaskModel(RankModel):
     outputs = []
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      loss_type = task_tower_cfg.loss_type if len(task_tower_cfg.losses) == 0 else task_tower_cfg.losses[0].loss_type
+      loss_type = task_tower_cfg.loss_type if len(
+          task_tower_cfg.losses) == 0 else task_tower_cfg.losses[0].loss_type
       outputs.extend(
           self._get_outputs_impl(
-              loss_type,
-              task_tower_cfg.num_class,
-              suffix='_%s' % tower_name))
+              loss_type, task_tower_cfg.num_class, suffix='_%s' % tower_name))
     return outputs
