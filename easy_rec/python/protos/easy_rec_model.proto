@@ -24,6 +24,7 @@ import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
+import "easy_rec/python/protos/neu_mf.proto";
 // for input performance test
 message DummyModel {
 
@@ -65,6 +66,7 @@ message EasyRecModel {
         DLRM dlrm = 108;
         CMBF cmbf = 109;
         Uniter uniter = 110;
+        NeuMF neu_mf = 111;
 
         MultiTowerRecall multi_tower_recall = 200;
         DSSM dssm = 201;

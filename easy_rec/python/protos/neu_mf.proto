@@ -1,0 +1,9 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+
+message NeuMF {
+    required DNN dnn = 1;
+    required float l2_regularization = 2 [default = 1e-4];
+}
