@@ -34,10 +34,16 @@ class NeuMF(RankModel):
     self._model_config = self._model_config.neu_mf
     assert isinstance(self._model_config, NeuMFConfig)
 
-    self.mlp_user_feature, _ = self._input_layer(self._feature_dict, 'mlp_user')
-    self.mf_user_feature, _ = self._input_layer(self._feature_dict, 'mf_user')
-    self.mlp_item_feature, _ = self._input_layer(self._feature_dict, 'mlp_item')
-    self.mf_item_feature, _ = self._input_layer(self._feature_dict, 'mf_item')
+    self.user_feature, _ = self._input_layer(self._feature_dict, 'user')
+    self.mlp_user_feature = self.user_feature
+    self.mf_user_feature = self.user_feature
+    self.item_feature, _ = self._input_layer(self._feature_dict, 'item')
+    self.mlp_item_feature = self.item_feature
+    self.mf_item_feature = self.item_feature
+    # self.mlp_user_feature, _ = self._input_layer(self._feature_dict, 'mlp_user')
+    # self.mf_user_feature, _ = self._input_layer(self._feature_dict, 'mf_user')
+    # self.mlp_item_feature, _ = self._input_layer(self._feature_dict, 'mlp_item')
+    # self.mf_item_feature, _ = self._input_layer(self._feature_dict, 'mf_item')
 
     self._l2_reg = regularizers.l2_regularizer(
         self._model_config.l2_regularization)
