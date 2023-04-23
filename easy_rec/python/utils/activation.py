@@ -4,33 +4,14 @@
 import numpy as np
 import six
 import tensorflow as tf
-from tensorflow.python.keras.layers import Layer
-
 from easy_rec.python.utils.load_class import load_by_path
 
-try:
-  from tensorflow.python.keras.layers import BatchNormalization
-except ImportError:
-  BatchNormalization = tf.keras.layers.BatchNormalization
 
-# try:
-#   from tensorflow.python.ops.init_ops import Zeros
-# except ImportError:
-#   from tensorflow.python.ops.init_ops_v2 import Zeros
-
-
-class Dice(Layer):
+def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
   """The Data Adaptive Activation Function in DIN.
 
   Which can be viewed as a generalization of PReLu, and can adaptively adjust the rectified point
    according to distribution of input data.
-
-  Input shape
-    - Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does not include the samples axis)
-     when using this layer as the first layer in a model.
-
-  Output shape
-    - Same shape as the input.
 
   Arguments
     - **axis** : Integer, the axis that should be used to compute data distribution (typically the features axis).
@@ -41,44 +22,18 @@ class Dice(Layer):
      Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining.
      ACM, 2018: 1059-1068.] (https://arxiv.org/pdf/1706.06978.pdf)
   """
-
-  def __init__(self,
-               feat_dim,
-               axis=-1,
-               epsilon=1e-9,
-               is_training=None,
-               **kwargs):
-    super(Dice, self).__init__(**kwargs)
-    self.axis = axis
-    self.epsilon = epsilon
-    self.is_training = is_training
-    self.bn = BatchNormalization(
-        axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
-    self.alphas = tf.Variable(tf.zeros([feat_dim]), dtype=tf.float32)
-
-  # def build(self, input_shape):
-  #   super(Dice, self).build(input_shape)  # Be sure to call this somewhere!
-  #   self.bn = BatchNormalization(
-  #       axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
-  #   self.alphas = self.add_weight(
-  #       shape=(input_shape[-1],),
-  #       initializer=Zeros(),
-  #       dtype=tf.float32,
-  #       name='dice_alpha')  # name='alpha_'+self.name
-  #   self.uses_learning_phase = True
-
-  def call(self, inputs, **kwargs):
-    inputs_normed = self.bn(inputs, training=self.is_training)
-    x_p = tf.sigmoid(inputs_normed)
-    return self.alphas * (1.0 - x_p) * inputs + x_p * inputs
-
-  def compute_output_shape(self, input_shape):
-    return input_shape
-
-  def get_config(self,):
-    config = {'axis': self.axis, 'epsilon': self.epsilon}
-    base_config = super(Dice, self).get_config()
-    return dict(list(base_config.items()) + list(config.items()))
+  alphas = tf.get_variable('alpha_' + name, _x.get_shape()[-1],
+                           initializer=tf.constant_initializer(0.0),
+                           dtype=tf.float32)
+  inputs_normed = tf.layers.batch_normalization(
+    inputs=_x,
+    axis=axis,
+    epsilon=epsilon,
+    center=False,
+    scale=False,
+    training=training)
+  x_p = tf.sigmoid(inputs_normed)
+  return alphas * (1.0 - x_p) * _x + x_p * _x
 
 
 def gelu(x):
@@ -134,7 +89,7 @@ def get_activation(activation_string, **kwargs):
       return tf.nn.leaky_relu
     return tf.keras.layers.PReLU(**kwargs)
   elif act == 'dice':
-    return Dice(**kwargs)
+    return lambda x, name: dice(x, name=name, **kwargs)
   elif act == 'elu':
     return tf.nn.elu
   elif act == 'selu':
@@ -143,7 +98,7 @@ def get_activation(activation_string, **kwargs):
     return tf.tanh
   elif act == 'swish':
     if tf.__version__ < '1.13.0':
-      return lambda x: x * tf.sigmoid(x)
+      return lambda x, name: x * tf.sigmoid(x, name=name)
     return tf.nn.swish
   elif act == 'sigmoid':
     return tf.nn.sigmoid

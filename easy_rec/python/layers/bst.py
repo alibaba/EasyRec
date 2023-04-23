@@ -86,10 +86,15 @@ class BST(object):
     if self.config.need_contrastive_learning:
       assert 'loss_dict' in kwargs, "no `loss_dict` in kwargs of bst layer: %s" % self.name
       loss = self.contrastive_loss(seq_input, seq_len, max_position)
-      loss *= self.config.contrastive_loss_weight
+      if self.config.auto_contrastive_loss_weight:
+        uncertainty = tf.Variable(
+          0, name='%s_contrastive_loss_weight' % self.name, dtype=tf.float32)
+        loss = tf.exp(-uncertainty) * loss + 0.5 * uncertainty
+      else:
+        loss *= self.config.contrastive_loss_weight
       loss_dict = kwargs['loss_dict']
-      loss_dict['contrastive_loss'] = loss
-      tf.summary.scalar('loss/%s_contrastive_loss' % self.name, loss)
+      loss_dict['%s_contrastive_loss' % self.name] = loss
+      # tf.summary.scalar('loss/%s_contrastive_loss' % self.name, loss)
 
     if target_feature is not None:
       target_size = target_feature.shape.as_list()[-1]

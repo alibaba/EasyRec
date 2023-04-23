@@ -17,6 +17,7 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.layers import dnn
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -129,11 +130,20 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         seq_encoding.append(encoding)
 
     if len(seq_encoding) > 1:
-      return tf.concat(seq_encoding, axis=-1)
+      encoding = tf.concat(seq_encoding, axis=-1)
     elif len(seq_encoding) == 1:
-      return seq_encoding[0]
+      encoding = seq_encoding[0]
     else:
       return None
+
+    if self._base_model_config.HasField('sequence_dnn'):
+      sequence_dnn = dnn.DNN(
+        self._base_model_config.sequence_dnn,
+        self._l2_reg,
+        name='sequence_dnn',
+        is_training=self._is_training)
+      encoding = sequence_dnn(encoding)
+    return encoding
 
   @abstractmethod
   def build_predict_graph(self):

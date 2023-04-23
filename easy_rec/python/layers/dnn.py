@@ -34,11 +34,7 @@ class DNN:
     self._name = name
     self._is_training = is_training
     logging.info('dnn activation function = %s' % self._config.activation)
-    self.activations = [
-        get_activation(
-            self._config.activation, is_training=is_training, feat_dim=units)
-        for units in self.hidden_units
-    ]
+    self.activation = get_activation(self._config.activation, is_training=is_training)
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
 
@@ -71,7 +67,7 @@ class DNN:
             trainable=True,
             name='%s/dnn_%d/bn' % (self._name, i))
       if (i + 1 < hidden_units_len) or not self._last_layer_no_activation:
-        deep_fea = self.activations[i](
+        deep_fea = self.activation(
             deep_fea, name='%s/dnn_%d/act' % (self._name, i))
       if len(self.dropout_ratio) > 0 and self._is_training:
         assert self.dropout_ratio[

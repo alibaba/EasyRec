@@ -3,6 +3,7 @@ package protos;
 
 import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
+import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/wide_and_deep.proto";
 import "easy_rec/python/protos/multi_tower.proto";
 import "easy_rec/python/protos/dlrm.proto";
@@ -102,4 +103,6 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
+    // dnn layers after sequence feature
+    optional DNN sequence_dnn = 16;
 }

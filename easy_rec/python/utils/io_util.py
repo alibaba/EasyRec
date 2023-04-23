@@ -97,7 +97,7 @@ def download(oss_or_url, dst_dir=''):
 def create_module_dir(dst_dir):
   if not os.path.exists(dst_dir):
     os.makedirs(dst_dir)
-    with open(os.path.join(dst_dir, '__init__.py'), 'w') as ofile:
+    with open(os.path.join(dst_dir, 'explainer.py'), 'w') as ofile:
       ofile.write('\n')
 
 

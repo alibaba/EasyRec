@@ -109,6 +109,8 @@ message BSTEncoder {
     required bool need_contrastive_learning = 11 [default = false];
     // the weight of contrastive learning loss
     optional float contrastive_loss_weight = 12 [default = 1.0];
+    // whether need auto learn contrastive loss weight
+    optional bool auto_contrastive_loss_weight = 13 [default = false];
 }
 
 message DINEncoder {
