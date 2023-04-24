@@ -90,7 +90,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
 
   if cluster:
     logging.info('cluster = ' + str(cluster))
-  with tf.device(
+  with ops.device(
       replica_device_setter(
           worker_device='/job:master/task:0', cluster=cluster)):
     outputs = estimator._export_model_fn(features, None, None,
@@ -171,7 +171,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
     all_write_res = []
     for tmp_dev in per_device_vars:
       tmp_vars = per_device_vars[tmp_dev]
-      with tf.device(tmp_dev):
+      with ops.device(tmp_dev):
         tmp_names = [embed_norm_name[v] for v in tmp_vars]
         tmp_spos = [np.array(embed_spos[v], dtype=np.int64) for v in tmp_vars]
         write_kv_res = kv_module.write_kv(
@@ -189,7 +189,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
         all_write_res.append(write_kv_res)
 
     for tmp_dev in embedding_vars:
-      with tf.device(tmp_dev):
+      with ops.device(tmp_dev):
         tmp_vs = embedding_vars[tmp_dev]
         tmp_sparse_names = [norm_name_to_ids[x[0]] for x in tmp_vs]
         tmp_sparse_keys = [x[1] for x in tmp_vs]
@@ -297,8 +297,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
         },
         assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
         saver=saver,
-        strip_default_attrs=True,
-        clear_devices=True)
+        strip_default_attrs=True)  # , clear_devices=True)
     builder.save()
 
   # remove temporary files
@@ -345,7 +344,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
 
     if cluster:
       logging.info('cluster = ' + str(cluster))
-    with tf.device(
+    with ops.device(
         replica_device_setter(
             worker_device='/job:master/task:0', cluster=cluster)):
       outputs = estimator._export_model_fn(features, None, None,
@@ -430,7 +429,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
       all_write_res = []
       for tmp_dev in per_device_vars:
         tmp_vars = per_device_vars[tmp_dev]
-        with tf.device(tmp_dev):
+        with ops.device(tmp_dev):
           tmp_names = [str(embed_norm_name[v]) for v in tmp_vars]
           tmp_spos = [np.array(embed_spos[v], dtype=np.int64) for v in tmp_vars]
           write_kv_res = kv_module.oss_write_kv(
@@ -448,7 +447,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
           all_write_res.append(write_kv_res)
 
       for tmp_dev in embedding_vars:
-        with tf.device(tmp_dev):
+        with ops.device(tmp_dev):
           tmp_vs = embedding_vars[tmp_dev]
           tmp_sparse_names = [str(norm_name_to_ids[x[0]]) for x in tmp_vs]
           tmp_sparse_keys = [x[1] for x in tmp_vs]
@@ -629,7 +628,6 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
           assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
           saver=saver,
           main_op=main_op,
-          strip_default_attrs=True,
-          clear_devices=True)
+          strip_default_attrs=True)  # , clear_devices=True)
       save_path = builder.save()
   return save_path
