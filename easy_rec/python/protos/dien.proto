@@ -1,0 +1,13 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/multi_tower.proto";
+
+message DIEN {
+    required DNN dnn = 1;
+    repeated DINTower din_towers = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+    optional float hard_neg_softmax_weight = 4 [default=0.1];
+    optional float aux_loss_weight = 5 [default=1];
+}
