@@ -238,7 +238,8 @@ if __name__ == '__main__':
       if line_str.startswith('#'):
         continue
       line_str = line_str.replace('~/', os.environ['HOME'] + '/')
-      line_str = line_str.replace('${TMPDIR}', os.environ.get('TMPDIR', '/tmp'))
+      line_str = line_str.replace('${TMPDIR}',
+                                  os.environ.get('TMPDIR', '/tmp/'))
       line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
       line_tok = [x.strip() for x in line_str.split('=') if x != '']
       if line_tok[0] == 'host':
@@ -373,7 +374,13 @@ if __name__ == '__main__':
               oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
             else:
               url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
-              subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              # subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              if sys.platform.startswith('linux'):
+                subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              elif sys.platform.startswith('darwin'):
+                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
+              elif sys.platform.startswith('win'):
+                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
           else:
             in_cache = True
             logging.info('%s is in cache' % file_name_with_sig)
