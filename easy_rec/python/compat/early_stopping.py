@@ -22,6 +22,8 @@ import os
 import threading
 import time
 
+import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import init_ops
@@ -33,10 +35,14 @@ from tensorflow.python.summary import summary_iterator
 from tensorflow.python.training import basic_session_run_hooks
 from tensorflow.python.training import session_run_hook
 from tensorflow.python.training import training_util
-from tensorflow.python.util.tf_export import estimator_export
 
 from easy_rec.python.utils.config_util import parse_time
 from easy_rec.python.utils.load_class import load_by_path
+
+if LooseVersion(tf.__version__) >= LooseVersion('2.12.0'):
+  from tensorflow_estimator.python.estimator.estimator_export import estimator_export
+else:
+  from tensorflow.python.util.tf_export import estimator_export
 
 _EVENT_FILE_GLOB_PATTERN = 'events.out.tfevents.*'
 

@@ -238,7 +238,7 @@ if __name__ == '__main__':
       if line_str.startswith('#'):
         continue
       line_str = line_str.replace('~/', os.environ['HOME'] + '/')
-      line_str = line_str.replace('${TMPDIR}',
+      line_str = line_str.replace('${TMPDIR}/',
                                   os.environ.get('TMPDIR', '/tmp/'))
       line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
       line_tok = [x.strip() for x in line_str.split('=') if x != '']
@@ -327,6 +327,7 @@ if __name__ == '__main__':
     any_update = False
     git_bin_arr = load_git_bin()
     git_bin_url = load_git_url()
+    # print('git_bin_arr',git_bin_arr)
     for leaf_path in git_bin_arr:
       leaf_files = git_bin_arr[leaf_path]
       if len(leaf_files) == 0:
@@ -364,7 +365,7 @@ if __name__ == '__main__':
       remote_path = git_bin_url[leaf_path][1]
       _, file_name_with_sig = os.path.split(remote_path)
       tar_tmp_path = '%s/%s.tar.gz' % (git_oss_cache_dir, file_name_with_sig)
-
+      print('aaa tar_tmp_path', tar_tmp_path)
       max_retry = 5
       while max_retry > 0:
         try:
