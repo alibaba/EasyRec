@@ -226,9 +226,10 @@ class SequenceFeatureLayer(object):
       allow_key_transform = seq_att_map_config.allow_key_transform
       seq_transform_type = seq_att_map_config.seq_transform_type
       use_softmax_attention_score = seq_att_map_config.use_softmax_attention_score
-      seq_features = self._seq_input_layer(features, group_name,
-                                           feature_name_to_output_tensors,
-                                           allow_key_search, scope_name)
+      with tf.device('/CPU:0'):
+        seq_features = self._seq_input_layer(features, group_name,
+                                             feature_name_to_output_tensors,
+                                             allow_key_search, scope_name)
 
       # apply regularization for sequence feature key in seq_input_layer.
 

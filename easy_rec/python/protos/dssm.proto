@@ -20,4 +20,6 @@ message DSSM {
     optional bool scale_simi = 5 [default = true];
     optional string item_id = 9;
     required bool ignore_in_batch_neg_sam = 10 [default = false];
+    optional float tower_emb_l1_regularization = 11 [default = 0];
+    optional float tower_emb_l2_regularization = 12 [default = 0];
 }

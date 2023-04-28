@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
+from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.match_model import MatchModel
 from easy_rec.python.protos.dssm_pb2 import DSSM as DSSMConfig
@@ -111,6 +112,24 @@ class DSSM(MatchModel):
       return ['y', 'user_emb', 'item_emb']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
+
+  def build_loss_graph(self):
+    loss_dict = super(DSSM, self).build_loss_graph()
+    if self._model_config.tower_emb_l1_regularization > 0:
+      l1 = regularizers.l1_regularizer(
+          self._model_config.tower_emb_l1_regularization)
+      loss_dict['user_tower_emb_l1_reg_loss'] = l1(
+          self._prediction_dict['user_tower_emb'])
+      loss_dict['item_tower_emb_l1_reg_loss'] = l1(
+          self._prediction_dict['item_tower_emb'])
+    if self._model_config.tower_emb_l2_regularization > 0:
+      l2 = regularizers.l2_regularizer(
+          self._model_config.tower_emb_l2_regularization)
+      loss_dict['user_tower_emb_l2_reg_loss'] = l2(
+          self._prediction_dict['user_tower_emb'])
+      loss_dict['item_tower_emb_l2_reg_loss'] = l2(
+          self._prediction_dict['item_tower_emb'])
+    return loss_dict
 
   def build_output_dict(self):
     output_dict = super(DSSM, self).build_output_dict()
