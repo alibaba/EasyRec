@@ -55,9 +55,13 @@ class DIN(object):
     seq_mask = tf.expand_dims(seq_mask, 1)
     paddings = tf.ones_like(scores) * (-2**32 + 1)
     scores = tf.where(seq_mask, scores, paddings)  # [B, 1, L]
-    scores = scores / (seq_emb_size**0.5)
-    # normalization with softmax is abandoned according to the original paper
-    scores = tf.nn.sigmoid(scores)
+    if self.config.attention_normalizer == 'softmax':
+      scores = tf.nn.softmax(scores)  # (B, 1, L)
+    elif self.config.attention_normalizer == 'sigmoid':
+      scores = scores / (seq_emb_size**0.5)
+      scores = tf.nn.sigmoid(scores)
+    else:
+      raise ValueError("unsupported attention normalizer: " + self.config.attention_normalizer)
 
     if target_emb_size < seq_emb_size:
       keys = keys[:, :, :target_emb_size]  # [B, L, E]

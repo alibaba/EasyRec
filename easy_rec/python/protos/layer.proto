@@ -118,4 +118,6 @@ message DINEncoder {
     required DNN attention_dnn = 1;
     // whether to keep target item feature
     required bool need_target_feature = 2 [default = true];
+    // option: softmax, sigmoid
+    required string attention_normalizer = 3 [default = 'softmax'];
 }
