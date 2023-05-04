@@ -5,7 +5,9 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+
 import tensorflow as tf
+
 from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
 from easy_rec.python.utils.activation import gelu
 from easy_rec.python.utils.shape_utils import get_shape_list
