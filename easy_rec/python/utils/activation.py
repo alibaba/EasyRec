@@ -6,6 +6,9 @@ import six
 import tensorflow as tf
 from easy_rec.python.utils.load_class import load_by_path
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
   """The Data Adaptive Activation Function in DIN.
