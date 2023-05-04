@@ -187,6 +187,9 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
 
+多目标排序模型同时使用多个损失函数的完整示例：
+[dbmtl_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
+
 ##### 损失函数权重自适应学习
 
 多目标学习任务中，人工指定多个损失函数的静态权重通常不能获得最好的效果。EasyRec支持损失函数权重自适应学习，示例如下：

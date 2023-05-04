@@ -3,7 +3,7 @@ import tensorflow as tf
 from easy_rec.python.core.metrics import metric_learning_average_precision_at_k
 from easy_rec.python.core.metrics import metric_learning_recall_at_k
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers.common_layers import gelu
+from easy_rec.python.utils.activation import gelu
 from easy_rec.python.layers.common_layers import highway
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.multi_similarity import ms_loss

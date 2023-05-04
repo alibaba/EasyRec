@@ -4,7 +4,7 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.utils.load_class import load_by_path
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -25,7 +25,7 @@ class DNN:
       dnn_config: instance of easy_rec.python.protos.dnn_pb2.DNN
       l2_reg: l2 regularizer
       name: scope of the DNN, so that the parameters could be separated from other dnns
-      is_training: train phase or not, impact batchnorm and dropout
+      is_training: train phase or not, impact batch_norm and dropout
       last_layer_no_activation: in last layer, use or not use activation
       last_layer_no_batch_norm: in last layer, use or not use batch norm
     """
@@ -34,7 +34,7 @@ class DNN:
     self._name = name
     self._is_training = is_training
     logging.info('dnn activation function = %s' % self._config.activation)
-    self.activation = load_by_path(self._config.activation)
+    self.activation = get_activation(self._config.activation, training=is_training)
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
 
