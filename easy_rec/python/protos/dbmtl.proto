@@ -26,4 +26,9 @@ message DBMTL {
     optional bool use_feature_ln = 7 [default = false];
 
     optional DNN sequence_dnn = 8;
+
+    // Whether to user sequence encoder
+    required bool use_sequence_encoder = 9 [default = false];
+    // input layer dropout rate
+    optional float input_dropout_rate = 10 [default = 0];
 }

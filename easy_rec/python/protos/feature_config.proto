@@ -3,6 +3,7 @@ package protos;
 
 import "easy_rec/python/protos/hyperparams.proto";
 import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/layer.proto";
 enum WideOrDeep {
     DEEP = 0;
     WIDE = 1;
@@ -140,6 +141,7 @@ message FeatureGroupConfig {
     optional WideOrDeep wide_deep = 3 [default = DEEP];
     repeated SeqAttGroupConfig sequence_features = 4;
     optional bool negative_sampler = 5 [default = false];
+    repeated SequenceEncoder sequence_encoders = 6;
 }
 
 message SeqAttMap {

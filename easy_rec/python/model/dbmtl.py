@@ -79,6 +79,14 @@ class DBMTL(MultiTaskModel):
         self._bias_features_dict[k] = layer_norm.layer_norm(
             v, trainable=True, name='feat/%s/ln' % k)
 
+    if self._model_config.HasField('input_dropout_rate'):
+      drop_rate = self._model_config.input_dropout_rate
+      self._features = tf.layers.dropout(
+          self._features,
+          rate=drop_rate,
+          training=self._is_training,
+          name='input_dropout')
+
     if self._model_config.HasField('bottom_cmbf'):
       bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_uniter'):
@@ -101,6 +109,11 @@ class DBMTL(MultiTaskModel):
           is_training=self._is_training)
       sequence_fea = sequence_dnn(self._seq_features)
       bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
+
+    if self._model_config.use_sequence_encoder:
+      seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+      if seq_encoding is not None:
+        bottom_fea = tf.concat([bottom_fea, seq_encoding], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

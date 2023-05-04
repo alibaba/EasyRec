@@ -74,3 +74,44 @@ message UniterTower {
     // dnn layers for other features
     optional DNN other_feature_dnn = 11;
 }
+
+message SequenceEncoder {
+    // encoder parameters
+    oneof encoder {
+        BSTEncoder bst = 101;
+        DINEncoder din = 102;
+    }
+    required bool force_share_embeddings = 1 [default = true];
+}
+
+message BSTEncoder {
+    // Size of the encoder layers and the pooler layer
+    required uint32 hidden_size = 1;
+    // Number of hidden layers in the Transformer encoder
+    required uint32 num_hidden_layers = 2;
+    // Number of attention heads for each attention layer in the Transformer encoder
+    required uint32 num_attention_heads = 3;
+    // The size of the "intermediate" (i.e. feed-forward) layer in the Transformer encoder
+    required uint32 intermediate_size = 4;
+    // The non-linear activation function (function or string) in the encoder and pooler.
+    required string hidden_act = 5 [default = 'gelu'];  // "gelu", "relu", "tanh" and "swish" are supported.
+    // The dropout probability for all fully connected layers in the embeddings, encoder, and pooler
+    required float hidden_dropout_prob = 6 [default = 0.1];
+    // The dropout ratio for the attention probabilities
+    required float attention_probs_dropout_prob = 7 [default = 0.1];
+    // The maximum sequence length that this model might ever be used with
+    required uint32 max_position_embeddings = 8 [default = 512];
+    // Whether to add position embeddings for the position of each token in the text sequence
+    required bool use_position_embeddings = 9 [default = true];
+    // The stddev of the truncated_normal_initializer for initializing all weight matrices
+    required float initializer_range = 10 [default = 0.02];
+}
+
+message DINEncoder {
+    // din attention layer
+    required DNN attention_dnn = 1;
+    // whether to keep target item feature
+    required bool need_target_feature = 2 [default = true];
+    // option: softmax, sigmoid
+    required string attention_normalizer = 3 [default = 'softmax'];
+}

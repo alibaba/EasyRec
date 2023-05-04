@@ -14,10 +14,12 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
 from easy_rec.python.utils.load_class import get_register_class_meta
+from easy_rec.python.layers import dnn
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -65,6 +67,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._mode = os.environ.get('tf.estimator.mode',
                                 tf.estimator.ModeKeys.TRAIN)
 
+    self._sequence_encoder = SequenceEncoder(self._input_layer, feature_configs,
+                                             model_config.feature_groups,
+                                             self._l2_reg)
+    self._sequence_encoding_by_group_name = {}
+
   @property
   def embedding_regularization(self):
     return self._base_model_config.embedding_regularization
@@ -103,8 +110,47 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
         use_feature_ln=self._model_config.use_feature_ln if hasattr(
-            self._model_config, 'use_feature_ln') else False,
+          self._model_config, 'use_feature_ln') else False,
         is_training=self._is_training)
+
+  def get_sequence_encoding(self, group_name=None, is_training=True):
+    if group_name is not None:
+      if group_name in self._sequence_encoding_by_group_name:
+        return self._sequence_encoding_by_group_name[group_name]
+      encoding = self._sequence_encoder(self._feature_dict, group_name,
+                                        is_training, loss_dict=self._loss_dict)
+      self._sequence_encoding_by_group_name[group_name] = encoding
+      return encoding
+
+    seq_encoding = []
+    for group in self.feature_groups:
+      if len(group.sequence_encoders) == 0:
+        continue
+      group_name = group.group_name
+      if group_name in self._sequence_encoding_by_group_name:
+        encoding = self._sequence_encoding_by_group_name[group_name]
+      else:
+        encoding = self._sequence_encoder(self._feature_dict, group_name,
+                                          is_training, loss_dict=self._loss_dict)
+        self._sequence_encoding_by_group_name[group_name] = encoding
+      if encoding is not None:
+        seq_encoding.append(encoding)
+
+    if len(seq_encoding) > 1:
+      encoding = tf.concat(seq_encoding, axis=-1)
+    elif len(seq_encoding) == 1:
+      encoding = seq_encoding[0]
+    else:
+      return None
+
+    if self._base_model_config.HasField('sequence_dnn'):
+      sequence_dnn = dnn.DNN(
+        self._base_model_config.sequence_dnn,
+        self._l2_reg,
+        name='sequence_dnn',
+        is_training=self._is_training)
+      encoding = sequence_dnn(encoding)
+    return encoding
 
   @abstractmethod
   def build_predict_graph(self):
