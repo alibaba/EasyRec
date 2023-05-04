@@ -188,6 +188,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - alpha: ranking loss 与 calibration loss 的相对权重系数；不设置该值时，触发权重自适应学习
   - session_name: list分组的字段名，比如user_id
   - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
+  - 使用示例： [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
 
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
