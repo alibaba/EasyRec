@@ -6,11 +6,10 @@ from __future__ import print_function
 
 import math
 
-import six
 import tensorflow as tf
 
 from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
-from easy_rec.python.layers.common_layers import gelu
+from easy_rec.python.utils.activation import gelu
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
@@ -53,7 +52,8 @@ def attention_layer(from_tensor,
                     do_return_2d_tensor=False,
                     batch_size=None,
                     from_seq_length=None,
-                    to_seq_length=None):
+                    to_seq_length=None,
+                    reuse=None):
   """Performs multi-headed attention from `from_tensor` to `to_tensor`.
 
   This is an implementation of multi-headed attention based on "Attention is all you Need".
@@ -96,6 +96,7 @@ def attention_layer(from_tensor,
       of the 3D version of the `from_tensor`.
     to_seq_length: (Optional) If the input is 2D, this might be the seq length
       of the 3D version of the `to_tensor`.
+    reuse: whether to reuse this layer
 
   Returns:
     float Tensor of shape [batch_size, from_seq_length,
@@ -149,7 +150,8 @@ def attention_layer(from_tensor,
       num_attention_heads * size_per_head,
       activation=query_act,
       name='query',
-      kernel_initializer=create_initializer(initializer_range))
+      kernel_initializer=create_initializer(initializer_range),
+      reuse=reuse)
 
   # `key_layer` = [B*T, N*H]
   key_layer = tf.layers.dense(
@@ -157,7 +159,8 @@ def attention_layer(from_tensor,
       num_attention_heads * size_per_head,
       activation=key_act,
       name='key',
-      kernel_initializer=create_initializer(initializer_range))
+      kernel_initializer=create_initializer(initializer_range),
+      reuse=reuse)
 
   # `value_layer` = [B*T, N*H]
   value_layer = tf.layers.dense(
@@ -165,7 +168,8 @@ def attention_layer(from_tensor,
       num_attention_heads * size_per_head,
       activation=value_act,
       name='value',
-      kernel_initializer=create_initializer(initializer_range))
+      kernel_initializer=create_initializer(initializer_range),
+      reuse=reuse)
 
   # `query_layer` = [B, N, F, H]
   query_layer = transpose_for_scores(query_layer, batch_size,
@@ -242,6 +246,7 @@ def transformer_encoder(input_tensor,
                         hidden_dropout_prob=0.1,
                         attention_probs_dropout_prob=0.1,
                         initializer_range=0.02,
+                        reuse=None,
                         name='transformer'):
   """Multi-headed, multi-layer Transformer from "Attention is All You Need".
 
@@ -265,6 +270,7 @@ def transformer_encoder(input_tensor,
       probabilities.
     initializer_range: float. Range of the initializer (stddev of truncated
       normal).
+    reuse: whether to reuse this encoder
     name: scope name prefix
 
   Returns:
@@ -315,11 +321,12 @@ def transformer_encoder(input_tensor,
               do_return_2d_tensor=True,
               batch_size=batch_size,
               from_seq_length=seq_length,
-              to_seq_length=seq_length)
+              to_seq_length=seq_length,
+              reuse=reuse)
 
         # Run a linear projection of `hidden_size` then add a residual
         # with `layer_input`.
-        with tf.variable_scope('output'):
+        with tf.variable_scope('output', reuse=reuse):
           attention_output = tf.layers.dense(
               attention_output,
               hidden_size,
@@ -328,7 +335,7 @@ def transformer_encoder(input_tensor,
           attention_output = layer_norm(attention_output + layer_input)
 
       # The activation is only applied to the "intermediate" hidden layer.
-      with tf.variable_scope('intermediate'):
+      with tf.variable_scope('intermediate', reuse=reuse):
         intermediate_output = tf.layers.dense(
             attention_output,
             intermediate_size,
@@ -336,7 +343,7 @@ def transformer_encoder(input_tensor,
             kernel_initializer=create_initializer(initializer_range))
 
       # Down-project back to `hidden_size` then add the residual.
-      with tf.variable_scope('output'):
+      with tf.variable_scope('output', reuse=reuse):
         layer_output = tf.layers.dense(
             intermediate_output,
             hidden_size,
@@ -640,6 +647,7 @@ def embedding_postprocessor(input_tensor,
                             reuse_token_type=None,
                             use_position_embeddings=True,
                             position_embedding_name='position_embeddings',
+                            reuse_position_embedding=None,
                             initializer_range=0.02,
                             max_position_embeddings=512,
                             dropout_prob=0.1):
@@ -659,6 +667,7 @@ def embedding_postprocessor(input_tensor,
       position of each token in the sequence.
     position_embedding_name: string. The name of the embedding table variable
       for positional embeddings.
+    reuse_position_embedding: bool. Whether to reuse position embedding variable.
     initializer_range: float. Range of the weight initialization.
     max_position_embeddings: int. Maximum sequence length that might ever be
       used with this model. This can be longer than the sequence length of
@@ -699,7 +708,8 @@ def embedding_postprocessor(input_tensor,
   if use_position_embeddings:
     assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
     with tf.control_dependencies([assert_op]):
-      full_position_embeddings = tf.get_variable(
+      with tf.variable_scope("position_embedding", reuse=reuse_position_embedding):
+        full_position_embeddings = tf.get_variable(
           name=position_embedding_name,
           shape=[max_position_embeddings, width],
           initializer=create_initializer(initializer_range))
@@ -736,41 +746,3 @@ def layer_norm_and_dropout(input_tensor, dropout_prob, name=None):
   output_tensor = layer_norm(input_tensor, name)
   output_tensor = dropout(output_tensor, dropout_prob)
   return output_tensor
-
-
-def get_activation(activation_string):
-  """Maps a string to a Python function, e.g., "relu" => `tf.nn.relu`.
-
-  Args:
-    activation_string: String name of the activation function.
-
-  Returns:
-    A Python function corresponding to the activation function. If
-    `activation_string` is None, empty, or "linear", this will return None.
-    If `activation_string` is not a string, it will return `activation_string`.
-
-  Raises:
-    ValueError: The `activation_string` does not correspond to a known
-      activation.
-  """
-  # We assume that anything that's not a string is already an activation
-  # function, so we just return it.
-  if not isinstance(activation_string, six.string_types):
-    return activation_string
-
-  if not activation_string:
-    return None
-
-  act = activation_string.lower()
-  if act == 'linear':
-    return None
-  elif act == 'relu':
-    return tf.nn.relu
-  elif act == 'gelu':
-    return gelu
-  elif act == 'tanh':
-    return tf.tanh
-  elif act == 'swish':
-    return tf.nn.swish
-  else:
-    raise ValueError('Unsupported activation: %s' % act)
