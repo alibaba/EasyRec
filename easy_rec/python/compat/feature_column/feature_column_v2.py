@@ -3378,6 +3378,38 @@ class EmbeddingColumn(
     return self.categorical_column.raw_name
 
   @property
+  def cardinality(self):
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.parse_example_spec
@@ -3726,6 +3758,38 @@ class SharedEmbeddingColumn(
   def raw_name(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.raw_name
+
+  @property
+  def cardinality(self):
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
 
   @property
   def parse_example_spec(self):
