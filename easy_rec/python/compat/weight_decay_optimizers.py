@@ -472,5 +472,4 @@ try:
           use_locking=use_locking,
           name=name)
 except ImportError:
-  print('import AdamAsyncOptimizer failed when loading AdamAsyncWOptimizer')
   pass
