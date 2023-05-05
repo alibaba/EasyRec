@@ -138,8 +138,7 @@ class InputLayer(object):
         group_features = [cols_to_output_tensors[x] for x in group_columns]
 
         for col, val in cols_to_output_tensors.items():
-          if isinstance(col, EmbeddingColumn) or isinstance(
-              col, SharedEmbeddingColumn):
+          if isinstance(col, EmbeddingColumn) or isinstance(col, _SharedEmbeddingColumn) or isinstance(col, SharedEmbeddingColumn):
             embedding_reg_lst.append(val)
 
       builder = feature_column._LazyBuilder(features)
@@ -256,7 +255,7 @@ class InputLayer(object):
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
     for fc, val in cols_to_output_tensors.items():
-      if isinstance(fc, EmbeddingColumn) or isinstance(fc, SharedEmbeddingColumn):
+      if isinstance(fc, EmbeddingColumn) or isinstance(fc, _SharedEmbeddingColumn) or isinstance(fc, SharedEmbeddingColumn):
         embedding_reg_lst.append(val)
 
     if embedding_reg_lst:

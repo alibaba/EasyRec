@@ -3395,7 +3395,7 @@ class EmbeddingColumn(
     if isinstance(fc, VocabularyFileCategoricalColumn):
       return len(fc.vocabulary_size) + fc.num_oov_buckets
 
-    if isinstance(fc, WeightedCategoricalColumn):
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(fc, SequenceWeightedCategoricalColumn):
       sub_fc = fc.categorical_column
       if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
         return sub_fc.hash_bucket_size
@@ -3777,7 +3777,7 @@ class SharedEmbeddingColumn(
     if isinstance(fc, VocabularyFileCategoricalColumn):
       return len(fc.vocabulary_size) + fc.num_oov_buckets
 
-    if isinstance(fc, WeightedCategoricalColumn):
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(fc, SequenceWeightedCategoricalColumn):
       sub_fc = fc.categorical_column
       if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
         return sub_fc.hash_bucket_size

@@ -167,6 +167,9 @@ from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, BucketizedColumn,\
+  WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, CrossedColumn, IdentityCategoricalColumn,\
+  VocabularyListCategoricalColumn, VocabularyFileCategoricalColumn
 
 
 def _internal_input_layer(features,
@@ -2530,7 +2533,39 @@ class _SharedEmbeddingColumn(
 
   @property
   def raw_name(self):
-    return self.categorical_column.name
+    return self.categorical_column.raw_name
+
+  @property
+  def cardinality(self):
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(fc, SequenceWeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
 
   @property
   def _var_scope_name(self):

@@ -331,12 +331,8 @@ class FeatureColumnParser(object):
           default_value=0,
           feature_name=feature_name)
 
-    if len(config.input_names) > 1:
-      tag_fc = feature_column.weighted_categorical_column(
-          tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
-    elif config.HasField('kv_separator'):
-      tag_fc = feature_column.weighted_categorical_column(
-          tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
+    tag_fc = feature_column.weighted_categorical_column(
+        tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(tag_fc, config)
