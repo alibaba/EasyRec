@@ -42,7 +42,7 @@ def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
   return alphas * (1.0 - x_p) * _x + x_p * _x
 
 
-def gelu(x):
+def gelu(x, name='gelu'):
   """Gaussian Error Linear Unit.
 
   This is a smoother version of the RELU.
@@ -50,13 +50,15 @@ def gelu(x):
 
   Args:
     x: float Tensor to perform activation.
+    name: name for this activation
 
   Returns:
     `x` with the GELU activation applied.
   """
-  cdf = 0.5 * (1.0 + tf.tanh(
+  with tf.name_scope(name):
+    cdf = 0.5 * (1.0 + tf.tanh(
       (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
-  return x * cdf
+    return x * cdf
 
 
 def get_activation(activation_string, **kwargs):
