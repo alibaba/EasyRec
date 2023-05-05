@@ -61,6 +61,11 @@ def gelu(x, name='gelu'):
     return x * cdf
 
 
+def swish(x, name='swish'):
+  with tf.name_scope(name):
+    return x * tf.sigmoid(x)
+
+
 def get_activation(activation_string, **kwargs):
   """Maps a string to a Python function, e.g., "relu" => `tf.nn.relu`.
 
@@ -98,7 +103,7 @@ def get_activation(activation_string, **kwargs):
       return tf.nn.leaky_relu
     return tf.keras.layers.PReLU(**kwargs)
   elif act == 'dice':
-    return lambda x, name: dice(x, name=name, **kwargs)
+    return lambda x, name='dice': dice(x, name=name, **kwargs)
   elif act == 'elu':
     return tf.nn.elu
   elif act == 'selu':
@@ -107,7 +112,7 @@ def get_activation(activation_string, **kwargs):
     return tf.tanh
   elif act == 'swish':
     if tf.__version__ < '1.13.0':
-      return lambda x, name: x * tf.sigmoid(x, name=name)
+      return swish
     return tf.nn.swish
   elif act == 'sigmoid':
     return tf.nn.sigmoid
