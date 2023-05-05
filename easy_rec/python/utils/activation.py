@@ -4,6 +4,7 @@
 import numpy as np
 import six
 import tensorflow as tf
+
 from easy_rec.python.utils.load_class import load_by_path
 
 if tf.__version__ >= '2.0':
@@ -13,8 +14,8 @@ if tf.__version__ >= '2.0':
 def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
   """The Data Adaptive Activation Function in DIN.
 
-  Which can be viewed as a generalization of PReLu, and can adaptively adjust the rectified point
-   according to distribution of input data.
+  Which can be viewed as a generalization of PReLu,
+  and can adaptively adjust the rectified point according to distribution of input data.
 
   Arguments
     - **axis** : Integer, the axis that should be used to compute data distribution (typically the features axis).
@@ -25,34 +26,44 @@ def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
      Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining.
      ACM, 2018: 1059-1068.] (https://arxiv.org/pdf/1706.06978.pdf)
   """
-  alphas = tf.get_variable('alpha_' + name, _x.get_shape()[-1],
-                           initializer=tf.constant_initializer(0.0),
-                           dtype=tf.float32)
+  alphas = tf.get_variable(
+      'alpha_' + name,
+      _x.get_shape()[-1],
+      initializer=tf.constant_initializer(0.0),
+      dtype=tf.float32)
   inputs_normed = tf.layers.batch_normalization(
-    inputs=_x,
-    axis=axis,
-    epsilon=epsilon,
-    center=False,
-    scale=False,
-    training=training)
+      inputs=_x,
+      axis=axis,
+      epsilon=epsilon,
+      center=False,
+      scale=False,
+      training=training)
   x_p = tf.sigmoid(inputs_normed)
   return alphas * (1.0 - x_p) * _x + x_p * _x
 
 
-def gelu(x):
+def gelu(x, name='gelu'):
   """Gaussian Error Linear Unit.
 
   This is a smoother version of the RELU.
   Original paper: https://arxiv.org/abs/1606.08415
+
   Args:
     x: float Tensor to perform activation.
+    name: name for this activation
 
   Returns:
     `x` with the GELU activation applied.
   """
-  cdf = 0.5 * (1.0 + tf.tanh(
+  with tf.name_scope(name):
+    cdf = 0.5 * (1.0 + tf.tanh(
       (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
-  return x * cdf
+    return x * cdf
+
+
+def swish(x, name='swish'):
+  with tf.name_scope(name):
+    return x * tf.sigmoid(x)
 
 
 def get_activation(activation_string, **kwargs):
@@ -92,7 +103,7 @@ def get_activation(activation_string, **kwargs):
       return tf.nn.leaky_relu
     return tf.keras.layers.PReLU(**kwargs)
   elif act == 'dice':
-    return lambda x, name: dice(x, name=name, **kwargs)
+    return lambda x, name='dice': dice(x, name=name, **kwargs)
   elif act == 'elu':
     return tf.nn.elu
   elif act == 'selu':
@@ -101,7 +112,7 @@ def get_activation(activation_string, **kwargs):
     return tf.tanh
   elif act == 'swish':
     if tf.__version__ < '1.13.0':
-      return lambda x, name: x * tf.sigmoid(x, name=name)
+      return swish
     return tf.nn.swish
   elif act == 'sigmoid':
     return tf.nn.sigmoid
