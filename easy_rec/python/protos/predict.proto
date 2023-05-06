@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package com.alibaba.pairec.processor;
+
+import "easy_rec/python/protos/tf_predict.proto";
+
+// context features
+message ContextFeatures {
+  repeated PBFeature features = 1;
+}
+
+message PBFeature {
+  oneof value {
+    int32 int_feature = 1;
+    int64 long_feature = 2;
+    string string_feature = 3;
+    float float_feature = 4;
+  }
+}
+
+// PBRequest specifies the request for aggregator
+message PBRequest {
+  // debug mode
+  int32 debug_level = 1;
+
+  // user features
+  map<string, PBFeature> user_features = 2;
+
+  // item ids
+  repeated string item_ids = 3;
+
+  // context features for each item
+  map<string, ContextFeatures> context_features = 4;
+
+  int32 faiss_neigh_num = 5;
+}
+
+// return results
+message Results {
+  repeated double scores = 1 [packed = true];
+}
+
+enum StatusCode {
+  OK = 0;
+  INPUT_EMPTY = 1;
+  EXCEPTION = 2;
+}
+
+// PBResponse specifies the response for aggregator
+message PBResponse {
+  // results
+  map<string, Results> results = 1;
+
+  // item features
+  map<string, string> item_features = 2;
+
+  // generate features
+  map<string, string> generate_features = 3;
+
+  // context features
+  map<string, ContextFeatures> context_features = 4;
+
+  string error_msg = 5;
+
+  StatusCode status_code = 6;
+
+  repeated string item_ids = 7;
+  repeated string outputs = 8;
+
+  // all fg input features
+  map<string, string> raw_features = 9;
+
+  // tf output tensors
+  map<string, tensorflow.eas.ArrayProto> tf_outputs = 10;
+}

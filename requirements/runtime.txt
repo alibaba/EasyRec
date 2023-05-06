@@ -1,6 +1,5 @@
 future
 matplotlib
-nni
 oss2
 pandas
 psutil

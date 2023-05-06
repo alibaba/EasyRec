@@ -708,11 +708,12 @@ def embedding_postprocessor(input_tensor,
   if use_position_embeddings:
     assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
     with tf.control_dependencies([assert_op]):
-      with tf.variable_scope("position_embedding", reuse=reuse_position_embedding):
+      with tf.variable_scope(
+          'position_embedding', reuse=reuse_position_embedding):
         full_position_embeddings = tf.get_variable(
-          name=position_embedding_name,
-          shape=[max_position_embeddings, width],
-          initializer=create_initializer(initializer_range))
+            name=position_embedding_name,
+            shape=[max_position_embeddings, width],
+            initializer=create_initializer(initializer_range))
       # Since the position embedding table is a learned variable, we create it
       # using a (long) sequence length `max_position_embeddings`. The actual
       # sequence length might be shorter than this, for faster training of
