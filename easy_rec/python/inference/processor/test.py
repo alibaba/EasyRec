@@ -65,6 +65,8 @@ if __name__ == '__main__':
       '--test_dir', type=str, default=None, help='test directory')
   args = parser.parse_args()
 
+  if not os.path.exists('processor'):
+    os.mkdir('processor')
   if not os.path.exists(PROCESSOR_ENTRY_LIB):
     if not os.path.exists('processor/' + PROCESSOR_FILE):
       subprocess.check_output(

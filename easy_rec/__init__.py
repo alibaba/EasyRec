@@ -1,11 +1,10 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+
 import logging
 import os
 import platform
 import sys
-
-import tensorflow as tf
 
 from easy_rec.version import __version__
 
@@ -16,33 +15,36 @@ sys.path.insert(0, parent_dir)
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-if platform.system() == 'Linux':
-  ops_dir = os.path.join(curr_dir, 'python/ops')
-  if 'PAI' in tf.__version__:
-    ops_dir = os.path.join(ops_dir, '1.12_pai')
-  elif tf.__version__.startswith('1.12'):
-    ops_dir = os.path.join(ops_dir, '1.12')
-  elif tf.__version__.startswith('1.15'):
-    ops_dir = os.path.join(ops_dir, '1.15')
+# Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
+if 'PROCESSOR_TEST' not in os.environ:
+  if platform.system() == 'Linux':
+    ops_dir = os.path.join(curr_dir, 'python/ops')
+    import tensorflow as tf
+    if 'PAI' in tf.__version__:
+      ops_dir = os.path.join(ops_dir, '1.12_pai')
+    elif tf.__version__.startswith('1.12'):
+      ops_dir = os.path.join(ops_dir, '1.12')
+    elif tf.__version__.startswith('1.15'):
+      ops_dir = os.path.join(ops_dir, '1.15')
+    else:
+      ops_dir = None
   else:
     ops_dir = None
-else:
-  ops_dir = None
 
-from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
-from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
-from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
-from easy_rec.python.main import export  # isort:skip  # noqa: E402
-from easy_rec.python.main import train_and_evaluate  # isort:skip  # noqa: E402
-from easy_rec.python.main import export_checkpoint  # isort:skip  # noqa: E402
+  from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
+  from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
+  from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
+  from easy_rec.python.main import export  # isort:skip  # noqa: E402
+  from easy_rec.python.main import train_and_evaluate  # isort:skip  # noqa: E402
+  from easy_rec.python.main import export_checkpoint  # isort:skip  # noqa: E402
 
-try:
-  import tensorflow_io.oss
-except Exception:
-  pass
+  try:
+    import tensorflow_io.oss
+  except Exception:
+    pass
 
-print('easy_rec version: %s' % __version__)
-print('Usage: easy_rec.help()')
+  print('easy_rec version: %s' % __version__)
+  print('Usage: easy_rec.help()')
 
 _global_config = {}
 
