@@ -63,8 +63,12 @@ class RankModel(EasyRecModel):
         prediction_dict['probs' + suffix] = probs
       else:
         probs = tf.nn.softmax(output, axis=1)
-        prediction_dict['logits' + suffix] = output
-        prediction_dict['probs' + suffix] = probs
+        if num_class == 2:
+          prediction_dict['logits' + suffix] = output[:, 1]
+          prediction_dict['probs' + suffix] = probs[:, 1]
+        else:
+          prediction_dict['logits' + suffix] = output
+          prediction_dict['probs' + suffix] = probs
         prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(
             output, axis=1)
         prediction_dict['probs' + suffix + '_y'] = math_ops.reduce_max(
