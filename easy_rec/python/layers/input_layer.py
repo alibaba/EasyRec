@@ -37,9 +37,12 @@ class InputLayer(object):
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False):
-    self._feature_groups = {
-        x.group_name: FeatureGroup(x) for x in feature_groups_config
-    }
+    self._feature_groups = {}
+    for x in feature_groups_config:
+      assert x.group_name not in self._feature_groups, 'feature_group name(%s) is repeated'\
+          % x.group_name
+      self._feature_groups[x.group_name] = FeatureGroup(x)
+
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
         feature_configs, feature_groups_config, ev_params,
         embedding_regularizer, kernel_regularizer, is_training)
@@ -81,7 +84,8 @@ class InputLayer(object):
       is_combine: True
         features: all features concatenate together
         group_features: list of features
-        feature_name_to_output_tensors: dict, feature_name to feature_value, only present when is_dict is True
+        feature_name_to_output_tensors: dict, feature_name to feature_value,
+          only present when is_dict is True
       is_combine: False
         seq_features: list of sequence features, each element is a tuple:
           3 dimension embedding tensor (batch_size, max_seq_len, embedding_dimension),
@@ -130,8 +134,9 @@ class InputLayer(object):
       seq_features = []
       embedding_reg_lst = []
       for fc in group_seq_columns:
-        with variable_scope.variable_scope('input_layer/' +
-                                           fc.categorical_column.name):
+        with variable_scope.variable_scope(
+            group_name + '/' + fc.categorical_column.name,
+            reuse=variable_scope.AUTO_REUSE):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
           if fc.max_seq_length > 0:
             tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(

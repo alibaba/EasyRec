@@ -2,7 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 
+import numpy as np
 import tensorflow as tf
+from tensorflow.python.ops import array_ops
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.easy_rec_model import EasyRecModel
@@ -65,6 +67,43 @@ class MatchModel(EasyRecModel):
             axis=1)  # yapf: disable
       else:
         return logits
+
+  def _mask_hist_seq(self, logits):
+    if hasattr(self._model_config, 'hist_seq_masks') and \
+       len(self._model_config.hist_seq_masks) > 0 and \
+       self._item_ids is not None:
+      hist_seq_masks = self._model_config.hist_seq_masks
+      batch_size = tf.shape(logits)[0]
+      all_hist_seqs = [self._feature_dict[x] for x in hist_seq_masks]
+      all_hist_indices = [x.indices for x in all_hist_seqs]
+      all_hist_values = [x.values for x in all_hist_seqs]
+      all_hist_indices = array_ops.concat([x[:, 0] for x in all_hist_indices],
+                                          axis=0)
+      all_hist_values = array_ops.concat(all_hist_values, axis=0)
+
+      def _gen_hist_mask(all_hist_indices, all_hist_values, batch_size,
+                         item_ids):
+        mask = np.zeros([batch_size, len(item_ids)], dtype=np.float32)
+        batch_hists = [{} for x in range(batch_size)]
+        for batch_id, value in zip(all_hist_indices, all_hist_values):
+          batch_hists[batch_id][value] = 1
+        for batch_idx in range(batch_size):
+          for item_idx, item_id in enumerate(item_ids):
+            if batch_idx == item_idx:
+              continue
+            if item_id in batch_hists[batch_idx]:
+              mask[batch_idx][item_idx] = 1
+        return mask
+
+      mask = tf.py_func(
+          _gen_hist_mask,
+          [all_hist_indices, all_hist_values, batch_size, self._item_ids],
+          Tout=tf.float32)
+      mask.set_shape(logits.get_shape())
+      logits = logits - mask * 1e32
+      return logits
+    else:
+      return logits
 
   def _list_wise_sim(self, user_emb, item_emb):
     batch_size = tf.shape(user_emb)[0]
@@ -153,12 +192,17 @@ class MatchModel(EasyRecModel):
           tf.log(hit_prob + 1e-12) * tf.squeeze(self._sample_weight))
       logging.info('softmax cross entropy loss is used')
 
-      user_features = self._prediction_dict['user_tower_emb']
-      pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
-      pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
-      # if pos_simi < 0, produce loss
-      reg_pos_loss = tf.nn.relu(-pos_simi)
-      self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
+      if hasattr(self._model_config,
+                 'simi_pos_reg') and self._model_config.simi_pos_reg > 0:
+        logging.info('will add regularizations(%.3f) to constraint similarities'
+                     ' between user and target items to be positive.' %
+                     self._model_config.simi_pos_reg)
+        user_features = self._prediction_dict['user_tower_emb']
+        pos_item_emb = self._prediction_dict['item_tower_emb'][:batch_size]
+        pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
+        # if pos_simi < 0, produce loss
+        reg_pos_loss = tf.nn.relu(-pos_simi * self._model_config.simi_pos_reg)
+        self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
     return self._loss_dict

@@ -1,8 +1,13 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import math
 
 import tensorflow as tf
+from tensorflow.python.framework import dtypes
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import init_ops
+from tensorflow.python.ops import variable_scope
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
@@ -32,8 +37,8 @@ class MIND(MatchModel):
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.mind
 
-    self._hist_seq_features = self._input_layer(
-        self._feature_dict, 'hist', is_combine=False)
+    self._init_seq_fea()
+
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
     self._item_features, _ = self._input_layer(self._feature_dict, 'item')
 
@@ -47,34 +52,71 @@ class MIND(MatchModel):
     self._l2_reg = regularizers.l2_regularizer(
         self._model_config.l2_regularization)
 
-  def build_predict_graph(self):
-    capsule_layer = CapsuleLayer(self._model_config.capsule_config,
-                                 self._is_training)
-
-    if self._model_config.time_id_fea:
-      time_id_fea = [
-          x[0]
-          for x in self._hist_seq_features
-          if self._model_config.time_id_fea in x[0].name
-      ]
-      logging.info('time_id_fea is set(%s), find num: %d' %
-                   (self._model_config.time_id_fea, len(time_id_fea)))
+  def _init_seq_fea(self):
+    mind_seq_groups = list(self._model_config.seq_group_names)
+    if len(mind_seq_groups) <= 1:
+      group_name = 'hist' if len(self._model_config.seq_group_names) == 0 else \
+          self._model_config.seq_group_names[0]
+      hist_seq_feas = self._input_layer(
+          self._feature_dict, group_name, is_combine=False)
+      self._hist_seq_len = hist_seq_feas[0][1]
+      if len(self._model_config.time_id_fea) > 0:
+        time_fea_name = self._model_config.time_id_fea[0]
+        self._time_fea = [
+            x[0] for x in hist_seq_feas if time_fea_name in x[0].name
+        ][0]
+        hist_seq_feas = [
+            x[0] for x in hist_seq_feas if time_fea_name not in x[0].name
+        ]
+      else:
+        self._time_fea = None
+      self._hist_seq_fea = self._combine_multi_seq(hist_seq_feas)
     else:
-      time_id_fea = []
-    time_id_fea = time_id_fea[0] if len(time_id_fea) > 0 else None
+      logging.info('mind_seq_groups[num=%d]:%s' %
+                   (len(mind_seq_groups), ','.join(mind_seq_groups)))
+      mind_seq_type_embed_dim = 4
+      with variable_scope.variable_scope('mind_user_seq_type'):
+        seq_type_var = variable_scope.get_variable(
+            name='embedding_weights',
+            shape=[len(mind_seq_groups), self._model_config.seq_type_embed_dim],
+            dtype=dtypes.float32,
+            initializer=init_ops.truncated_normal_initializer(
+                mean=0, stddev=1e-2 / math.sqrt(mind_seq_type_embed_dim)),
+            trainable=self._is_training)
 
-    if time_id_fea is not None:
-      hist_seq_feas = [
-          x[0]
-          for x in self._hist_seq_features
-          if self._model_config.time_id_fea not in x[0].name
-      ]
-    else:
-      hist_seq_feas = [x[0] for x in self._hist_seq_features]
+      # multiple sequences
+      all_hist_seqs = []
+      all_time_feas = []
+      all_hist_seq_lens = []
+      for group_id, group_name in enumerate(self._model_config.seq_group_names):
+        hist_seq_feas = self._input_layer(
+            self._feature_dict, group_name, is_combine=False)
+        hist_seq_len = hist_seq_feas[0][1]
+        # batch_size, seq_len, embedding_dim
+        batch_size = array_ops.shape(hist_seq_feas[0][0])[0]
+        batch_seq_len = array_ops.shape(hist_seq_feas[0][0])[1]
+        if len(self._model_config.time_id_fea) > group_id:
+          time_fea_name = self._model_config.time_id_fea[group_id]
+          all_time_feas.append(
+              [x[0] for x in hist_seq_feas if time_fea_name in x[0].name][0])
+          hist_seq_feas = [
+              x for x in hist_seq_feas if time_fea_name not in x[0].name
+          ]
+        seq_type = array_ops.tile(seq_type_var[group_id, :][None, None, :],
+                                  [batch_size, batch_seq_len, 1])
+        hist_seq_feas.append([seq_type, hist_seq_len])
+        all_hist_seqs.append(self._combine_multi_seq(hist_seq_feas))
+        all_hist_seq_lens.append(hist_seq_len)
+      self._hist_seq_fea = array_ops.concat(all_hist_seqs, axis=1)
+      self._hist_seq_len = tf.add_n(all_hist_seq_lens)
+      if len(all_time_feas) > 0:
+        self._time_fea = array_ops.concat(all_time_feas, axis=1)
+      else:
+        self._time_fea = None
+    return True
 
-    # it is assumed that all hist have the same length
-    hist_seq_len = self._hist_seq_features[0][1]
-
+  def _combine_multi_seq(self, hist_seq_feas):
+    hist_seq_feas = [x[0] for x in hist_seq_feas]
     if self._model_config.user_seq_combine == MINDConfig.SUM:
       # sum pooling over the features
       hist_embed_dims = [x.get_shape()[-1] for x in hist_seq_feas]
@@ -82,37 +124,38 @@ class MIND(MatchModel):
         assert hist_embed_dims[i] == hist_embed_dims[0], \
             'all hist seq must have the same embedding shape, but: %s' \
             % str(hist_embed_dims)
-      hist_seq_feas = tf.add_n(hist_seq_feas) / len(hist_seq_feas)
+      return tf.add_n(hist_seq_feas) / len(hist_seq_feas)
     else:
-      hist_seq_feas = tf.concat(hist_seq_feas, axis=2)
+      return tf.concat(hist_seq_feas, axis=2)
+
+  def build_predict_graph(self):
+    capsule_layer = CapsuleLayer(self._model_config.capsule_config,
+                                 self._is_training)
 
     if self._model_config.HasField('pre_capsule_dnn') and \
         len(self._model_config.pre_capsule_dnn.hidden_units) > 0:
       pre_dnn_layer = dnn.DNN(self._model_config.pre_capsule_dnn, self._l2_reg,
                               'pre_capsule_dnn', self._is_training)
-      hist_seq_feas = pre_dnn_layer(hist_seq_feas)
+      hist_seq_feas = pre_dnn_layer(self._hist_seq_fea)
+    else:
+      hist_seq_feas = self._hist_seq_fea
 
-    if time_id_fea is not None:
-      assert time_id_fea.get_shape(
+    if self._time_fea is not None:
+      assert self._time_fea.get_shape(
       )[-1] == 1, 'time_id must have only embedding_size of 1'
-      time_id_mask = tf.sequence_mask(hist_seq_len, tf.shape(time_id_fea)[1])
-      time_id_mask = (tf.cast(time_id_mask, tf.float32) * 2 - 1) * 1e32
-      time_id_fea = tf.minimum(time_id_fea, time_id_mask[:, :, None])
-      hist_seq_feas = hist_seq_feas * tf.nn.softmax(time_id_fea, axis=1)
+      time_mask = tf.sequence_mask(self._hist_seq_len,
+                                   tf.shape(self._time_fea)[1])
+      time_mask = (tf.cast(time_mask, tf.float32) * 2 - 1) * 1e32
+      time_fea = tf.minimum(self._time_fea, time_mask[:, :, None])
+      hist_seq_feas = hist_seq_feas * tf.nn.softmax(time_fea, axis=1)
 
-    tf.summary.histogram('hist_seq_len', hist_seq_len)
+    tf.summary.histogram('hist_seq_len', self._hist_seq_len)
 
     # batch_size x max_k x high_capsule_dim
     high_capsules, num_high_capsules = capsule_layer(hist_seq_feas,
-                                                     hist_seq_len)
+                                                     self._hist_seq_len)
 
     tf.summary.histogram('num_high_capsules', num_high_capsules)
-
-    # high_capsules = tf.layers.batch_normalization(
-    #     high_capsules, training=self._is_training,
-    #     trainable=True, name='capsule_bn')
-    # high_capsules = high_capsules * 0.1
-
     tf.summary.scalar('high_capsules_norm',
                       tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
     tf.summary.scalar('num_high_capsules',
@@ -224,6 +267,7 @@ class MIND(MatchModel):
       self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       y_pred = self._mask_in_batch(y_pred)
+      y_pred = self._mask_hist_seq(y_pred)
       self._prediction_dict['logits'] = y_pred
       self._prediction_dict['probs'] = tf.nn.softmax(y_pred)
     else:
