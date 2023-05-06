@@ -3,7 +3,7 @@
 Demo
 
 ```bash
-python -m easy_rec.python.client.client_demo \
+python -m easy_rec.python.inference.client.client_demo \
   --endpoint 1301055xxxxxxxxx.cn-hangzhou.pai-eas.aliyuncs.com \
   --service_name ali_rec_rnk_sample_rt_v3 \
   --token MmQ3Yxxxxxxxxxxx \
