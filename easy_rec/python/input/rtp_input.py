@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.ops.gen_str_avx_op import str_split_by_chr
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
@@ -104,7 +105,7 @@ class RTPInput(Input):
             Tout=tf.bool)
     ] if self._check_mode else []
     with tf.control_dependencies(check_list):
-      fields = tf.string_split(
+      fields = str_split_by_chr(
           feature_str, self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
     rtp_record_defaults = [
