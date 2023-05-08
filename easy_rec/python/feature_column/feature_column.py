@@ -423,8 +423,11 @@ class FeatureColumnParser(object):
     """
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
+    dim = config.raw_input_dim
+    if config.HasField('embedding_dim'):
+      dim = config.embedding_dim
     fc = feature_column.constant_numeric_column(
-        feature_name, shape=(config.embedding_dim,), feature_name=feature_name)
+        feature_name, shape=(dim,), feature_name=feature_name)
     if self.is_wide(config):
       self._wide_columns[feature_name] = fc
     if self.is_deep(config):
