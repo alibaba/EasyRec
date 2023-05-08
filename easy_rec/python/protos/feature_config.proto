@@ -43,6 +43,7 @@ message FeatureConfig {
         LookupFeature = 4;
         SequenceFeature = 5;
         ExprFeature = 6;
+        ConstFeature = 7;
     }
 
     enum FieldType {

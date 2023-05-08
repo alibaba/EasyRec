@@ -2,15 +2,16 @@ syntax = "proto2";
 package protos;
 
 
-message  VariationalDropoutLayer{
+message VariationalDropoutLayer {
     // regularization coefficient lambda
     optional float regularization_lambda = 1 [default = 0.01];
     // variational_dropout dimension
     optional bool embedding_wise_variational_dropout = 2 [default = false];
+
     // whether to use FSCD model
     optional bool regularize_by_feature_complexity = 3 [default = false];
-
     optional float feature_complexity_weight = 4 [default = 1.0];
     optional float feature_dimension_weight = 5 [default = 1e-2];
     optional float feature_cardinality_weight = 6 [default = 1e-7];
+    optional uint32 fine_tune_use_top_k_features = 7;
 }

@@ -11,13 +11,13 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
+from easy_rec.python.layers import dnn
 from easy_rec.python.layers import input_layer
 from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
 from easy_rec.python.utils.load_class import get_register_class_meta
-from easy_rec.python.layers import dnn
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -110,8 +110,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if group_name is not None:
       if group_name in self._sequence_encoding_by_group_name:
         return self._sequence_encoding_by_group_name[group_name]
-      encoding = self._sequence_encoder(self._feature_dict, group_name,
-                                        is_training, loss_dict=self._loss_dict)
+      encoding = self._sequence_encoder(
+          self._feature_dict,
+          group_name,
+          is_training,
+          loss_dict=self._loss_dict)
       self._sequence_encoding_by_group_name[group_name] = encoding
       return encoding
 
@@ -123,8 +126,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       if group_name in self._sequence_encoding_by_group_name:
         encoding = self._sequence_encoding_by_group_name[group_name]
       else:
-        encoding = self._sequence_encoder(self._feature_dict, group_name,
-                                          is_training, loss_dict=self._loss_dict)
+        encoding = self._sequence_encoder(
+            self._feature_dict,
+            group_name,
+            is_training,
+            loss_dict=self._loss_dict)
         self._sequence_encoding_by_group_name[group_name] = encoding
       if encoding is not None:
         seq_encoding.append(encoding)
@@ -138,10 +144,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
     if self._base_model_config.HasField('sequence_dnn'):
       sequence_dnn = dnn.DNN(
-        self._base_model_config.sequence_dnn,
-        self._l2_reg,
-        name='sequence_dnn',
-        is_training=self._is_training)
+          self._base_model_config.sequence_dnn,
+          self._l2_reg,
+          name='sequence_dnn',
+          is_training=self._is_training)
       encoding = sequence_dnn(encoding)
     return encoding
 

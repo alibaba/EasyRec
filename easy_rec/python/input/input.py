@@ -225,6 +225,19 @@ class Input(six.with_metaclass(_meta_type, object)):
       total_epoch = 1
     return total_epoch is not None and curr_epoch >= total_epoch
 
+  def get_erase_features(self):
+    if self._pipeline_config is None:
+      return set()
+
+    config = self._pipeline_config.model_config.variational_dropout
+    if config is None:
+      return set()
+
+    top_k = config.fine_tune_use_top_k_features
+    from easy_rec.python.layers.fscd_layer import get_top_and_bottom_features
+    _, erase_features = get_top_and_bottom_features(self._pipeline_config, top_k)
+    return erase_features
+
   def create_multi_placeholders(self, export_config):
     """Create multiply placeholders on export, one for each feature.
 
@@ -252,6 +265,7 @@ class Input(six.with_metaclass(_meta_type, object)):
           self._input_fields[fid] != sample_weight_field
       ]
 
+    erase_features = self.get_erase_features()
     inputs = {}
     for fid in effective_fids:
       input_name = self._input_fields[fid]
@@ -265,12 +279,20 @@ class Input(six.with_metaclass(_meta_type, object)):
         tf_type = self._multi_value_types[input_name]
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+        if input_name in erase_features:
+          def_val = self.get_type_defaults(tf_type, self._input_field_defaults[fid])
+          finput = tf.placeholder_with_default(def_val, [None, None], name=placeholder_name)
+        else:
+          finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
       else:
         ftype = self._input_field_types[fid]
         tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None], name=placeholder_name)
+        if input_name in erase_features:
+          def_val = self.get_type_defaults(tf_type, self._input_field_defaults[fid])
+          finput = tf.placeholder_with_default(def_val, [None], name=placeholder_name)
+        else:
+          finput = tf.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
@@ -302,11 +324,15 @@ class Input(six.with_metaclass(_meta_type, object)):
           len(effective_fids))
     input_vals = tf.reshape(
         input_vals, [-1, len(effective_fids)], name='input_reshape')
+
+    erase_features = self.get_erase_features()
     features = {}
     for tmp_id, fid in enumerate(effective_fids):
       ftype = self._input_field_types[fid]
       tf_type = get_tf_type(ftype)
       input_name = self._input_fields[fid]
+      if input_name in erase_features:
+        continue
       if tf_type in [tf.float32, tf.double, tf.int32, tf.int64]:
         features[input_name] = tf.string_to_number(
             input_vals[:, tmp_id],
@@ -471,6 +497,11 @@ class Input(six.with_metaclass(_meta_type, object)):
               parsed_dict[feature_name],
               tf.int32,
               name='%s_str_2_int' % input_0)
+
+  def _parse_const_feature(self, fc, parsed_dict, field_dict):
+    input_0 = fc.input_names[0]
+    feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
+    parsed_dict[feature_name] = field_dict[input_0]
 
   def _parse_raw_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]
@@ -779,6 +810,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         self._parse_id_feature(fc, parsed_dict, field_dict)
       elif feature_type == fc.ExprFeature:
         self._parse_expr_feature(fc, parsed_dict, field_dict)
+      elif feature_type == fc.ConstFeature:
+        self._parse_const_feature(fc, parsed_dict, field_dict)
       else:
         feature_name = fc.feature_name if fc.HasField(
             'feature_name') else fc.input_names[0]

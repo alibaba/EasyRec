@@ -61,7 +61,8 @@ class DIN(object):
       scores = scores / (seq_emb_size**0.5)
       scores = tf.nn.sigmoid(scores)
     else:
-      raise ValueError("unsupported attention normalizer: " + self.config.attention_normalizer)
+      raise ValueError('unsupported attention normalizer: ' +
+                       self.config.attention_normalizer)
 
     if target_emb_size < seq_emb_size:
       keys = keys[:, :, :target_emb_size]  # [B, L, E]

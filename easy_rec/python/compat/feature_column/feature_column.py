@@ -167,9 +167,6 @@ from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, BucketizedColumn,\
-  WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, CrossedColumn, IdentityCategoricalColumn,\
-  VocabularyListCategoricalColumn, VocabularyFileCategoricalColumn
 
 
 def _internal_input_layer(features,
@@ -2537,6 +2534,10 @@ class _SharedEmbeddingColumn(
 
   @property
   def cardinality(self):
+    from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, BucketizedColumn, \
+      WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, CrossedColumn, IdentityCategoricalColumn, \
+      VocabularyListCategoricalColumn, VocabularyFileCategoricalColumn
+
     fc = self.categorical_column
     if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
       return fc.hash_bucket_size
@@ -2553,9 +2554,11 @@ class _SharedEmbeddingColumn(
     if isinstance(fc, VocabularyFileCategoricalColumn):
       return len(fc.vocabulary_size) + fc.num_oov_buckets
 
-    if isinstance(fc, WeightedCategoricalColumn) or isinstance(fc, SequenceWeightedCategoricalColumn):
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(
+        fc, SequenceWeightedCategoricalColumn):
       sub_fc = fc.categorical_column
-      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(sub_fc, CrossedColumn):
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(
+          sub_fc, CrossedColumn):
         return sub_fc.hash_bucket_size
       if isinstance(sub_fc, IdentityCategoricalColumn):
         return sub_fc.num_buckets

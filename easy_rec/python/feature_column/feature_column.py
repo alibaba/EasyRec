@@ -129,6 +129,8 @@ class FeatureColumnParser(object):
           self.parse_sequence_feature(config)
         elif config.feature_type == config.ExprFeature:
           self.parse_expr_feature(config)
+        elif config.feature_type == config.ConstFeature:
+          self.parse_const_feature(config)
         else:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
@@ -331,8 +333,9 @@ class FeatureColumnParser(object):
           default_value=0,
           feature_name=feature_name)
 
-    tag_fc = feature_column.weighted_categorical_column(
-        tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
+    if len(config.input_names) > 1 or config.HasField('kv_separator'):
+      tag_fc = feature_column.weighted_categorical_column(
+          tag_fc, weight_feature_key=feature_name + '_w', dtype=tf.float32)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(tag_fc, config)
@@ -396,9 +399,7 @@ class FeatureColumnParser(object):
           self._deep_columns[feature_name] = fc
 
   def parse_expr_feature(self, config):
-    """Generate raw features columns.
-
-    if boundaries is set, will be converted to category_column first.
+    """Generate expression features columns.
 
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
@@ -408,7 +409,24 @@ class FeatureColumnParser(object):
     fc = feature_column.numeric_column(
         feature_name, shape=(1,), feature_name=feature_name)
     if self.is_wide(config):
-      self._add_wide_embedding_column(fc, config)
+      self._wide_columns[feature_name] = fc
+    if self.is_deep(config):
+      self._deep_columns[feature_name] = fc
+
+  def parse_const_feature(self, config):
+    """Generate constant features columns.
+
+    used for mask input features.
+
+    Args:
+      config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
+    """
+    feature_name = config.feature_name if config.HasField('feature_name') \
+        else config.input_names[0]
+    fc = feature_column.constant_numeric_column(
+        feature_name, shape=(config.embedding_dim,), feature_name=feature_name)
+    if self.is_wide(config):
+      self._wide_columns[feature_name] = fc
     if self.is_deep(config):
       self._deep_columns[feature_name] = fc
 

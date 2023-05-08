@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 from collections import OrderedDict
 
 import tensorflow as tf
@@ -12,8 +13,8 @@ from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import sequence_feature_layer
 from easy_rec.python.layers import variational_dropout_layer
-from easy_rec.python.layers.fscd_layer import FSCDLayer
 from easy_rec.python.layers.common_layers import text_cnn
+from easy_rec.python.layers.fscd_layer import FSCDLayer
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import shape_utils
 
@@ -118,7 +119,7 @@ class InputLayer(object):
         return concat_features, group_features
     else:  # return sequence feature in raw format instead of combine them
       if self._variational_dropout_config is not None:
-        raise ValueError(
+        logging.warn(
             'variational dropout is not supported in not combined mode now.')
 
       feature_group = self._feature_groups[group_name]
@@ -138,7 +139,9 @@ class InputLayer(object):
         group_features = [cols_to_output_tensors[x] for x in group_columns]
 
         for col, val in cols_to_output_tensors.items():
-          if isinstance(col, EmbeddingColumn) or isinstance(col, _SharedEmbeddingColumn) or isinstance(col, SharedEmbeddingColumn):
+          if isinstance(col, EmbeddingColumn) or isinstance(
+              col, _SharedEmbeddingColumn) or isinstance(
+                  col, SharedEmbeddingColumn):
             embedding_reg_lst.append(val)
 
       builder = feature_column._LazyBuilder(features)
@@ -226,11 +229,14 @@ class InputLayer(object):
 
     if self._variational_dropout_config is not None:
       if self._variational_dropout_config.regularize_by_feature_complexity:
-        fscd = FSCDLayer(self._feature_configs, self._variational_dropout_config,
-                         is_training=self._is_training, name=group_name)
+        fscd = FSCDLayer(
+            self._feature_configs,
+            self._variational_dropout_config,
+            is_training=self._is_training,
+            name=group_name)
         output_features = fscd(cols_to_output_tensors)
         concat_features = array_ops.concat(
-          [output_features] + seq_features, axis=-1)
+            [output_features] + seq_features, axis=-1)
         group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                          [cols_to_output_tensors[x] for x in group_seq_columns]
       else:
@@ -255,7 +261,8 @@ class InputLayer(object):
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
     for fc, val in cols_to_output_tensors.items():
-      if isinstance(fc, EmbeddingColumn) or isinstance(fc, _SharedEmbeddingColumn) or isinstance(fc, SharedEmbeddingColumn):
+      if isinstance(fc, EmbeddingColumn) or isinstance(
+          fc, _SharedEmbeddingColumn) or isinstance(fc, SharedEmbeddingColumn):
         embedding_reg_lst.append(val)
 
     if embedding_reg_lst:

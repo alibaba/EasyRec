@@ -1,24 +1,26 @@
-import tensorflow as tf
-from tensorflow.python.platform import gfile
-from tensorflow.python.saved_model import signature_constants
-from easy_rec.python.utils.load_class import get_register_class_meta
-from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
-from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.tools.explainer.methods import DeepExplain
-# from easy_rec.python.tools.explainer.deep_shap import DeepShap
-from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 import abc
 import collections
-import numpy as np
 import logging
-import six
-import time
-from six import moves
 import os
+import time
+
+import numpy as np
+import six
+import tensorflow as tf
+from six import moves
+from tensorflow.python.platform import gfile
+from tensorflow.python.saved_model import signature_constants
+
+# from easy_rec.python.tools.explainer.deep_shap import DeepShap
+from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.tools.explainer.methods import DeepExplain
+from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
+from easy_rec.python.utils.input_utils import get_type_defaults
+from easy_rec.python.utils.load_class import get_register_class_meta
 
 _EXPLAINER_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
-  _EXPLAINER_CLASS_MAP, have_abstract_class=True)
+    _EXPLAINER_CLASS_MAP, have_abstract_class=True)
 
 
 class Explainer(six.with_metaclass(_register_abc_meta, object)):
@@ -48,17 +50,18 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
       assert tf.saved_model.loader.maybe_saved_model_directory(model_path), \
         'saved model does not exists in %s' % model_path
     else:
-      raise ValueError('currently only savedmodel is supported, path:' + model_path)
+      raise ValueError('currently only savedmodel is supported, path:' +
+                       model_path)
 
     input_fields = _get_input_fields_from_pipeline_config(model_path)
     self._input_fields_info, self._input_fields = input_fields
 
     de = self.deep_explain
     meta_graph_def = tf.saved_model.loader.load(
-      de.session, [tf.saved_model.tag_constants.SERVING], model_path)
+        de.session, [tf.saved_model.tag_constants.SERVING], model_path)
     # parse signature
     signature_def = meta_graph_def.signature_def[
-      signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+        signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
     inputs = signature_def.inputs
     input_info = []
     self._is_multi_placeholder = len(inputs.items()) > 1
@@ -76,8 +79,8 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
           # in which case, the order of inputs may not be the
           # same as they are defined, therefore, list input
           # could not be supported, only dict input could be supported
-          logging.warning(
-            'could not determine input_id from input_name: %s' % input_name)
+          logging.warning('could not determine input_id from input_name: %s' %
+                          input_name)
           input_id = gid
         input_info.append((input_id, name, tensor.dtype))
         self._inputs_map[name] = de.graph.get_tensor_by_name(tensor.name)
@@ -120,7 +123,8 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
 
     default_value = []
     for i, (field, name) in enumerate(zip(input_fields, self._input_names)):
-      assert field == name, "input field `%d` has different names: <%s, %s>" % (i, field, name)
+      assert field == name, 'input field `%d` has different names: <%s, %s>' % (
+          i, field, name)
       value = self._get_defaults(field)
       # default_value.append(np.array([value]))  # for deep_shap
       default_value.append(np.array(value))  # for deep_shap
@@ -134,20 +138,21 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
     else:
       defaults = {'string': '', 'double': 0.0, 'bigint': 0}
       assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
-        col_name, col_type)
+          col_name, col_type)
       default_val = defaults[col_type]
       logging.info(
-        'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
-        % (col_name, default_val))
+          'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
+          % (col_name, default_val))
     return default_val
 
   def str_to_number(self, values):
-    assert len(values) == len(self._input_fields), "value count %d is not equal to the number of input fields %d" % (
-      len(values), len(self._input_fields)
-    )
+    assert len(values) == len(
+        self._input_fields
+    ), 'value count %d is not equal to the number of input fields %d' % (
+        len(values), len(self._input_fields))
     result = []
     for i, name in enumerate(self._input_names):
-      assert name in self._input_fields_info, "input `%s` not in pipeline config" % name
+      assert name in self._input_fields_info, 'input `%s` not in pipeline config' % name
       idx = self._input_fields.index(name)
       input_type, default_val = self._input_fields_info[name]
       if input_type in {DatasetConfig.INT32, DatasetConfig.INT64}:
@@ -177,24 +182,28 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
         tmp_cols.append(tmp_keys[0].strip())
       self._output_cols = tmp_cols
     if len(self._output_cols) > 1:
-      logging.warning('Only one output can be supported currently, use the first one: %s', self._output_cols[0])
+      logging.warning(
+          'Only one output can be supported currently, use the first one: %s',
+          self._output_cols[0])
 
     output_name = self._output_cols[0]
     assert output_name in self.output_names, 'invalid output name `%s` not in model outputs `%s`' % (
-      output_name, ','.join(self.output_names))
+        output_name, ','.join(self.output_names))
     if output_name is None:
       output = self._outputs_map.values()[0]
     elif type(output_name) in {str, unicode}:
       output = self._outputs_map[output_name]
     else:
-      raise Exception('unsupported type of output_name: ' + str(type(output_name)))
+      raise Exception('unsupported type of output_name: ' +
+                      str(type(output_name)))
 
     def_vals = self.default_values()
     # print('default values (%d):' % len(def_vals), def_vals)
     inputs = [self._inputs_map[name] for name in self._input_names]
     # e = DeepShap(inputs, output, def_vals, session=self._session)
     # self._explainer = e
-    e = self.deep_explain.get_explainer(self.method, output, inputs, baseline=def_vals)
+    e = self.deep_explain.get_explainer(
+        self.method, output, inputs, baseline=def_vals)
     return e
 
   @property
@@ -236,6 +245,7 @@ class Explainer(six.with_metaclass(_register_abc_meta, object)):
 
 
 class OdpsExplainer(Explainer):
+
   def feature_importance(self,
                          input_path,
                          output_path,
@@ -247,17 +257,24 @@ class OdpsExplainer(Explainer):
     input_cols = self.input_names
     input_dim = len(input_cols)
     if reserved_cols:
-      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x.strip() not in input_cols]
+      reserved_cols = [
+          x.strip()
+          for x in reserved_cols.split(',')
+          if x.strip() not in input_cols
+      ]
       input_cols.extend(reserved_cols)
     selected_cols = ','.join(input_cols)
-    print("selected_cols: " + selected_cols)
+    print('selected_cols: ' + selected_cols)
 
     explainer = self.get_explainer(output_cols)
-    print("reference value:", explainer.expected_value)
+    print('reference value:', explainer.expected_value)
 
     import common_io
-    reader = common_io.table.TableReader(input_path, selected_cols=selected_cols,
-                                         slice_id=slice_id, slice_count=slice_num)
+    reader = common_io.table.TableReader(
+        input_path,
+        selected_cols=selected_cols,
+        slice_id=slice_id,
+        slice_count=slice_num)
 
     reserved_cols_idx = []
     if reserved_cols:
@@ -302,13 +319,15 @@ class OdpsExplainer(Explainer):
 
 
 class OdpsRtpExplainer(Explainer):
+
   def __init__(self, deep_explain, model_path, method_name):
-    super(OdpsRtpExplainer, self).__init__(deep_explain, model_path, method_name)
+    super(OdpsRtpExplainer, self).__init__(deep_explain, model_path,
+                                           method_name)
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
     if not gfile.Exists(pipeline_path):
       logging.warning(
-        '%s not exists, default values maybe inconsistent with the values used in training.'
-        % pipeline_path)
+          '%s not exists, default values maybe inconsistent with the values used in training.'
+          % pipeline_path)
       return
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     self._fg_separator = pipeline_config.data_config.separator
@@ -325,19 +344,20 @@ class OdpsRtpExplainer(Explainer):
       self._effective_fields = []
       for fc in feature_configs:
         for input_name in fc.input_names:
-          assert input_name in self._input_fields, 'invalid input_name in %s' % str(fc)
+          assert input_name in self._input_fields, 'invalid input_name in %s' % str(
+              fc)
           if input_name not in self._effective_fields:
             self._effective_fields.append(input_name)
       self._effective_fids = [
-        self._input_fields.index(x) for x in self._effective_fields
+          self._input_fields.index(x) for x in self._effective_fields
       ]
       # sort fids from small to large
       self._effective_fids = list(set(self._effective_fids))
       self._effective_fields = [
-        self._input_fields[x] for x in self._effective_fids
+          self._input_fields[x] for x in self._effective_fids
       ]
-      logging.info(
-        "raw input fields: %d, effective fields: %d" % (len(self._input_fields), len(self._effective_fields)))
+      logging.info('raw input fields: %d, effective fields: %d' %
+                   (len(self._input_fields), len(self._effective_fields)))
 
   def feature_importance(self,
                          input_path,
@@ -352,14 +372,17 @@ class OdpsRtpExplainer(Explainer):
     if 'features' not in input_cols:
       input_cols.append('features')
     selected_cols = ','.join(input_cols)
-    print("selected_cols: " + selected_cols)
+    print('selected_cols: ' + selected_cols)
 
     explainer = self.get_explainer(output_cols)
-    print("reference value:", explainer.expected_value)
+    print('reference value:', explainer.expected_value)
 
     import common_io
-    reader = common_io.table.TableReader(input_path, selected_cols=selected_cols,
-                                         slice_id=slice_id, slice_count=slice_num)
+    reader = common_io.table.TableReader(
+        input_path,
+        selected_cols=selected_cols,
+        slice_id=slice_id,
+        slice_count=slice_num)
 
     sum_t0, sum_t1, sum_t2 = 0, 0, 0
     writer = common_io.table.TableWriter(output_path, slice_id=slice_id)
@@ -373,9 +396,11 @@ class OdpsRtpExplainer(Explainer):
       for j in range(len(records)):
         if reserved_dim > 0:
           reserved.append(records[j][:reserved_dim])
-        inputs.append(self.str_to_number(records[j][-1].decode('utf-8').split(self._fg_separator)))
+        inputs.append(
+            self.str_to_number(records[j][-1].decode('utf-8').split(
+                self._fg_separator)))
       inputs = list(np.array(inputs).T)
-      print("inputs:", inputs)
+      print('inputs:', inputs)
       # sv = explainer.shap_values(inputs, check_additivity=False)
       ret = explainer.run(inputs, batch_size=len(records))
       ret = np.array(ret)
@@ -406,8 +431,8 @@ def _get_input_fields_from_pipeline_config(model_path):
   pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
   if not gfile.Exists(pipeline_path):
     logging.warning(
-      '%s not exists, default values maybe inconsistent with the values used in training.'
-      % pipeline_path)
+        '%s not exists, default values maybe inconsistent with the values used in training.'
+        % pipeline_path)
     return {}, []
   pipeline_config = get_configs_from_pipeline_file(pipeline_path)
   data_config = pipeline_config.data_config
@@ -418,11 +443,15 @@ def _get_input_fields_from_pipeline_config(model_path):
 
   input_fields = data_config.input_fields
   input_fields_info = {
-    input_field.input_name:
-      (input_field.input_type, input_field.default_val)
-    for input_field in input_fields if input_field.input_name not in labels
+      input_field.input_name: (input_field.input_type, input_field.default_val)
+      for input_field in input_fields
+      if input_field.input_name not in labels
   }
-  input_fields_list = [input_field.input_name for input_field in input_fields if input_field.input_name not in labels]
+  input_fields_list = [
+      input_field.input_name
+      for input_field in input_fields
+      if input_field.input_name not in labels
+  ]
   return input_fields_info, input_fields_list
 
 
@@ -448,12 +477,11 @@ def search_pb(directory, use_latest=False):
     if use_latest:
       logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
       dir_list = sorted(
-        dir_list,
-        key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)]))
+          dir_list,
+          key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)]))
       return dir_list[-1]
     else:
-      raise ValueError('multiple saved model found in directory %s' %
-                       directory)
+      raise ValueError('multiple saved model found in directory %s' % directory)
 
   return dir_list[0]
 
@@ -490,17 +518,17 @@ def run(FLAGS):
 
   gpu_options = tf.GPUOptions(allow_growth=True)
   session_config = tf.ConfigProto(
-    gpu_options=gpu_options,
-    allow_soft_placement=True)
+      gpu_options=gpu_options, allow_soft_placement=True)
   session = tf.Session(config=session_config)
 
   worker_count = len(FLAGS.worker_hosts.split(','))
   with DeepExplain(session=session) as de:
     e = OdpsRtpExplainer(de, model_path, 'deeplift')
-    e.feature_importance(FLAGS.explain_tables if FLAGS.explain_tables else FLAGS.tables,
-                         FLAGS.outputs,
-                         reserved_cols=FLAGS.reserved_cols,
-                         output_cols=FLAGS.output_cols,
-                         batch_size=FLAGS.batch_size,
-                         slice_id=FLAGS.task_index,
-                         slice_num=worker_count)
+    e.feature_importance(
+        FLAGS.explain_tables if FLAGS.explain_tables else FLAGS.tables,
+        FLAGS.outputs,
+        reserved_cols=FLAGS.reserved_cols,
+        output_cols=FLAGS.output_cols,
+        batch_size=FLAGS.batch_size,
+        slice_id=FLAGS.task_index,
+        slice_num=worker_count)
