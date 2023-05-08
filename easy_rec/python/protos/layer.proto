@@ -80,8 +80,11 @@ message SequenceEncoder {
     oneof encoder {
         BSTEncoder bst = 101;
         DINEncoder din = 102;
+        BSTEncoder duobst = 103;
     }
     required bool force_share_embeddings = 1 [default = true];
+    optional ContrastLearning cl_param = 2;
+    required string duo_aug_type = 3 [default = 'both'];
 }
 
 message BSTEncoder {
@@ -119,3 +122,14 @@ message DINEncoder {
     // whether to keep target item feature
     required bool need_target_feature = 2 [default = true];
 }
+
+
+message ContrastLearning {
+    //Percentage length of mask original sequence
+    required float gamma = 1  [default = 0.15];
+    //Percentage left of crop original sequence
+    required float eta = 2  [default = 0.8];
+    //Percentage length of reorder original sequence
+    required float beta = 3  [default = 0.5];
+}
+

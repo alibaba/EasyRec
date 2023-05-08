@@ -1,24 +1,21 @@
-# -*- encoding:utf-8 -*-
-# Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 if tf.__version__ >= '2.0':
-    tf = tf.compat.v1
-
+  tf = tf.compat.v1
 
 def assign(input_tensor, position=None, value=None):
     input_tensor[tuple(position)] = value
     return input_tensor
 
 
-def item_mask(aug_data, length, weights, gamma):
-    length1 = tf.cast(length,dtype=tf.float32)
-    num_mask = tf.cast(tf.math.floor(length1 * gamma) ,dtype=tf.int32)
+def item_mask(aug_data, length, gamma):
+    length1 = tf.cast(length, dtype=tf.float32)
+    num_mask = tf.cast(tf.math.floor(length1 * gamma), dtype=tf.int32)
     seq = tf.range(length, dtype=tf.int32)
     mask_index = tf.random.shuffle(seq)[:num_mask]
     masked_item_seq = aug_data
-    masked_item_seq = tf.py_func(assign, inp=[masked_item_seq, [mask_index], weights], Tout=masked_item_seq.dtype)
+    masked_item_seq = tf.py_func(assign, inp=[masked_item_seq, [mask_index], 0], Tout=masked_item_seq.dtype)
     return masked_item_seq, length
 
 
@@ -36,11 +33,11 @@ def item_crop(aug_data, length, eta):
                                 tf.concat([aug_data[crop_begin:], cropped_item_seq[:crop_begin]], axis=0))
     return cropped_item_seq, num_left
 
-
 def item_reorder(aug_data, length, beta):
-    length1 = tf.cast(length, dtype=tf.float32)
-    num_reorder = tf.cast(tf.math.floor(length1 * beta), dtype=tf.int32)
+    length1 = tf.cast(length,dtype=tf.float32)
+    num_reorder = tf.cast(tf.math.floor(length1 * beta) ,dtype=tf.int32)
     reorder_begin = tf.random.uniform([1], minval=0, maxval=length - num_reorder, dtype=tf.int32)[0]
+    #reordered_item_seq = tf.Variable(original_data[0], dtype=tf.float32)
     shuffle_index = tf.range(reorder_begin, reorder_begin + num_reorder)
     shuffle_index = tf.random.shuffle(shuffle_index)
     x = tf.range(get_shape_list(aug_data)[0])
@@ -53,26 +50,33 @@ def item_reorder(aug_data, length, beta):
     return reordered_item_seq, length
 
 
-def augment(x, cl_param, weights):
+def augment(x, cl_param):
     seq, length = x
     flag = tf.range(3, dtype=tf.int32)
     flag1 = tf.random.shuffle(flag)[:1][0]
     aug_seq, aug_len = tf.cond(tf.equal(flag1, 0),
                                lambda: item_crop(seq, length, cl_param.eta),
                                lambda: tf.cond(tf.equal(flag1, 1),
-                                               lambda: item_mask(seq, length, weights, cl_param.gamma),
+                                               lambda: item_mask(seq, length, cl_param.gamma),
                                                lambda: item_reorder(seq, length, cl_param.beta)))
 
     return [aug_seq, aug_len]
 
 
-def input_aug_data(original_data, seq_len, weights, cl_param):
-    print("seq_len:", seq_len)
+def input_aug_data(original_data, seq_len, cl_param):
+    # original_data = [seq_fea for seq_fea, _ in seq_features]
+    # original_data = tf.concat(original_data, axis=-1)
+    # lengths = seq_features[0][1]  # [B, 1]
     lengths = tf.cast(seq_len, dtype=tf.int32)
-    aug_seq1, aug_len1 = tf.map_fn(lambda elems: augment(elems, cl_param, weights), elems=(original_data, lengths),
-                                   dtype=[tf.float32, tf.int32])
-    aug_seq2, aug_len2 = tf.map_fn(lambda elems: augment(elems, cl_param, weights), elems=(original_data, lengths),
-                                   dtype=[tf.float32, tf.int32])
+    #lengths = tf.Print(lengths, [lengths], message='xxx')
+    #lengths = tf.squeeze(lengths, -1)  # [B]
+    aug_seq1, aug_len1 = tf.map_fn(augment, elems=(original_data, lengths), fn_args=(cl_param,), dtype=[tf.float32, tf.int32])
+    aug_seq2, aug_len2 = tf.map_fn(augment, elems=(original_data, lengths), fn_args=(cl_param,), dtype=[tf.float32, tf.int32])
     aug_seq1 = tf.reshape(aug_seq1, tf.shape(original_data))
     aug_seq2 = tf.reshape(aug_seq2, tf.shape(original_data))
-    return aug_seq1, aug_seq2, aug_len1, aug_len2
+    # seq_input = tf.concat(aug_seq1, axis=-1)
+    # max_seq_len = get_shape_list(aug_seq1)[1]
+    # seq_embed_size = get_shape_list(aug_seq1)[-1]
+    #max_position = get_shape_list(aug_seq1)[1]
+    # max_position = self.config.max_position_embeddings
+    return aug_seq1, aug_seq2, aug_len1, aug_len2  #, seq_input, max_seq_len
