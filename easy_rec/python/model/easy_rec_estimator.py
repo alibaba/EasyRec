@@ -427,6 +427,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
               save_steps=self.train_config.save_summary_steps,
               output_dir=self.model_dir,
               scaffold=scaffold))
+      hooks.append(
+          basic_session_run_hooks.StepCounterHook(
+              every_n_steps=log_step_count_steps, output_dir=self.model_dir))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.TRAIN,
