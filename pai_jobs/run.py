@@ -11,7 +11,6 @@ import tensorflow as tf
 import yaml
 from tensorflow.python.platform import gfile
 
-os.environ['IS_ON_PAI'] = '1'
 import easy_rec
 from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
@@ -24,6 +23,8 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
+
+os.environ['IS_ON_PAI'] = '1'
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
 os.environ['OENV_MultiWriteThreadsNum'] = '4'

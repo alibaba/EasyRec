@@ -2,6 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define cv_input, the base class for cv tasks."""
 
+import os
+import unittest
+
 import tensorflow as tf
 from google.protobuf import text_format
 
@@ -265,6 +268,8 @@ class CSVInputTest(tf.test.TestCase):
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
 
+  @unittest.skipIf('AVX_TEST' not in os.environ,
+                   'Only execute when avx512 instructions are supported')
   @RunAsSubprocess
   def test_csv_input_ex_avx(self):
     constant.enable_avx_str_split()
