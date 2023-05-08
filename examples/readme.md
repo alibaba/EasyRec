@@ -1,8 +1,8 @@
-## 介绍
+# Introduction
 
 为了验证算法的准确性、帮助用户更好的使用EasyRec，我们提供了在一些公开数据集上使用EasyRec训练模型的demo实验，供用户更好的理解和使用EasyRec。主要包括数据集下载、预处理、模型配置、训练及评估等过程。
 
-## 安装 EasyRec
+# Install EasyRec
 
 ```
 git clone https://github.com/alibaba/EasyRec.git
@@ -11,7 +11,7 @@ bash scripts/init.sh
 python setup.py install
 ```
 
-## 准备数据集
+# Prepare Data
 
 ### MovieLens-1M
 
@@ -40,7 +40,7 @@ cd data/amazon_books
 sh download_and_process.sh
 ```
 
-## Config
+# Edit Config
 
 EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。
 我们提供了用于demo实验的完整config文件，详细见: \[\]
@@ -176,7 +176,7 @@ export_config {
 }
 ```
 
-## Train & Eval Model
+# Train & Eval Model
 
 通过指定对应的config文件即可启动命令训练模型。例如，在movielens-1m数据集上训练DeepFM模型并得到评估结果。
 
@@ -184,7 +184,7 @@ export_config {
 python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movieslen.config
 ```
 
-## Demo Results
+# Demo Results
 
 我们提供了在公开数据集上的demo实验以及评估结果，仅供参考，详细见rank_model和match_model。
 
