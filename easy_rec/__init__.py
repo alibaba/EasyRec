@@ -5,8 +5,6 @@ import os
 import platform
 import sys
 
-import tensorflow as tf
-
 from easy_rec.version import __version__
 
 curr_dir, _ = os.path.split(__file__)
