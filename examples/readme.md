@@ -43,9 +43,9 @@ sh download_and_process.sh
 # Edit Config
 
 EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。
-我们提供了用于demo实验的完整config文件，详细见: \[\]
+我们提供了用于demo实验的完整示例config文件，详细见: `configs/`
 
-### 输入
+<!-- ### 输入
 
 在我们的demo实验中，采用local环境的csv格式的文件。
 
@@ -85,7 +85,7 @@ train_config {
 
 ### 评估配置
 
-eval_config用于配置训练过程中的评估指标，详细见: \[\]
+eval_config用于配置训练过程中的评估指标，详细见: `[docs/source/eval.md]`
 
 ```
 eval_config {
@@ -97,7 +97,7 @@ eval_config {
 
 ### 数据配置
 
-data_config用于配置输入文件中各特征列的数据类型。详细见: \[\]
+data_config用于配置输入文件中各特征列的数据类型。
 
 ```
 data_config {
@@ -164,17 +164,11 @@ model_config: {
   }
   embedding_regularization: 1e-4
 }
-```
+``` -->
 
-### 导出配置
+<!-- ### 导出配置
 
-export_config用于配置导出模型时的参数。
-
-```
-export_config {
-  multi_placeholder: false
-}
-```
+export_config用于配置导出模型时的参数。 -->
 
 # Train & Eval Model
 
