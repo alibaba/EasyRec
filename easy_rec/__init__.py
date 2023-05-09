@@ -25,7 +25,10 @@ if 'PROCESSOR_TEST' not in os.environ:
     elif tf.__version__.startswith('1.12'):
       ops_dir = os.path.join(ops_dir, '1.12')
     elif tf.__version__.startswith('1.15'):
-      ops_dir = os.path.join(ops_dir, '1.15')
+      if 'IS_ON_PAI' in os.environ:
+        ops_dir = os.path.join(ops_dir, 'DeepRec')
+      else:
+        ops_dir = os.path.join(ops_dir, '1.15')
     else:
       ops_dir = None
   else:
