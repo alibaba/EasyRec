@@ -16,7 +16,7 @@ conda activate py36_tf12
 pip install tensorflow==1.12.0
 ```
 
-# EasyRec安装
+# 安装EasyRec
 
 ```
 git clone https://github.com/alibaba/EasyRec.git
@@ -25,7 +25,7 @@ bash scripts/init.sh
 python setup.py install
 ```
 
-# Prepare Data
+# 准备数据集
 
 我们在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
 
@@ -107,7 +107,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 更多数据集和模型训练任务的命令参考[rank_model/](rank_model/) 和[match_model/](match_model/)。 -->
 
-# Results
+# 评估结果
 
 我们提供了在公开数据集上的demo实验以及评估结果，仅供参考。
 
