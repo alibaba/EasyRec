@@ -5,7 +5,7 @@
 Automatic Feature Interaction Learning via Self-Attentive Neural Networks（AutoInt）通过将特征都映射到相同的低维空间中，然后利用带有残差连接的 Multi-head Self-Attention 机制显示构造高阶特征，对低维空间中的特征交互进行显式建模，有效提升了CTR预估的准确率。
 注意：AutoInt 模型要求所有输入特征的 embedding_dim 保持一致。
 
-![autoint.png](../../images/models/autoint.png)
+![autoint.png](../../docs/images/models/autoint.png)
 
 ### 参考论文
 

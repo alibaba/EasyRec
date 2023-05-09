@@ -4,7 +4,7 @@
 
 FM模型的主要应用场景是点击率预估，目的是在数据高维稀疏的情况下，解决特征的组合问题。
 
-![fm.png](../../images/models/fm.png)
+![fm.png](../../docs/images/models/fm.png)
 
 ### 参考论文
 
