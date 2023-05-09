@@ -174,11 +174,13 @@ class MatchModel(EasyRecModel):
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
 
+    kwargs = {'loss_name': loss_name}
     self._loss_dict[loss_name] = loss_builder.build(
         self._loss_type,
         label=label,
         pred=pred,
-        loss_weight=self._sample_weight)
+        loss_weight=self._sample_weight,
+        **kwargs)
 
     # build kd loss
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,

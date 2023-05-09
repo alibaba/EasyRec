@@ -7,6 +7,7 @@ import tensorflow as tf
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
+from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -89,7 +90,9 @@ class MultiTaskModel(RankModel):
     """Build loss graph for multi task model."""
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      loss_weight = task_tower_cfg.weight * self._sample_weight
+      loss_weight = task_tower_cfg.weight
+      if task_tower_cfg.use_sample_weight:
+        loss_weight *= self._sample_weight
 
       if hasattr(task_tower_cfg, 'task_space_indicator_label') and \
           task_tower_cfg.HasField('task_space_indicator_label'):
@@ -119,9 +122,21 @@ class MultiTaskModel(RankModel):
               loss_weight=loss_weight,
               num_class=task_tower_cfg.num_class,
               suffix='_%s' % tower_name,
+              loss_name=loss.loss_name,
               loss_param=loss_param)
           for loss_name, loss_value in loss_ops.items():
-            loss_dict[loss_name] = loss_value * loss.weight
+            if loss.learn_loss_weight:
+              uncertainty = tf.Variable(
+                  0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
+              tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
+              if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+                loss_dict[loss_name] = 0.5 * tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
+              else:
+                loss_dict[loss_name] = tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
+            else:
+              loss_dict[loss_name] = loss_value * loss.weight
 
       self._loss_dict.update(loss_dict)
 
