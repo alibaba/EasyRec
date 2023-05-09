@@ -1,4 +1,6 @@
-### 输入
+# Config配置文件说明
+
+## 输入
 
 在我们的demo实验中，采用local环境的csv格式的文件。
 
@@ -10,9 +12,9 @@ model_dir: "examples/ckpt/new_autoint_on_movieslen_ckpt"
 
 其中，`train_input_path`是训练集路径，`test_input_path`是测试集路径，`model_dir`是指定模型保存的路径。
 
-### 训练配置
+## 训练配置
 
-train_config用于配置一些训练时常用的参数，详细见 `[docs/source/train.md]`
+train_config用于配置一些训练时常用的参数，详细见[train.md](../../docs/source/train.md)。
 
 ```
 train_config {
@@ -36,9 +38,9 @@ train_config {
 }
 ```
 
-### 评估配置
+## 评估配置
 
-eval_config用于配置训练过程中的评估指标，详细见: `[docs/source/eval.md]`
+eval_config用于配置训练过程中的评估指标(如AUC)，详细见 [eval.md](../../docs/source/eval.md)。
 
 ```
 eval_config {
@@ -48,9 +50,9 @@ eval_config {
 }
 ```
 
-### 数据配置
+## 数据配置
 
-data_config用于配置输入文件中各特征列的数据类型。
+data_config用于配置输入文件中各特征列的数据类型，详细见 [data.md](../../docs/source/feature/data.md)。
 
 ```
 data_config {
@@ -69,7 +71,7 @@ data_config {
 }
 ```
 
-### 特征配置
+## 特征配置
 
 feature_config用于配置特征字段。
 
@@ -90,7 +92,7 @@ feature_config: {
 }
 ```
 
-### 模型配置
+## 模型配置
 
 model_config用于配置模型类型以及模型网络具体参数信息等。
 
@@ -119,6 +121,6 @@ model_config: {
 }
 ```
 
-### 导出配置
+## 导出配置
 
-export_config用于配置导出模型时的参数。
+export_config用于配置导出模型时的参数，详细见 [export.md](../../docs/source/export.md)。
