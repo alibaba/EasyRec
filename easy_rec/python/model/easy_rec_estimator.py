@@ -414,6 +414,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
             data_offset_var=data_offset_var,
             increment_save_config=self.incr_save_config)
         hooks.append(saver_hook)
+        hooks.append(
+            basic_session_run_hooks.StepCounterHook(
+                every_n_steps=log_step_count_steps, output_dir=self.model_dir))
 
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_first_worker():

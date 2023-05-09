@@ -16,12 +16,15 @@ from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
+
+os.environ['IS_ON_PAI'] = '1'
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
@@ -177,6 +180,8 @@ tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 tf.app.flags.DEFINE_string('fg_json_path', None, '')
+tf.app.flags.DEFINE_bool('enable_avx_str_split', False,
+                         'enable avx str split to speedup')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -232,6 +237,11 @@ def _wait_ckpt(ckpt_path, max_wait_ts):
 
 def main(argv):
   pai_util.set_on_pai()
+  if FLAGS.enable_avx_str_split:
+    constant.enable_avx_str_split()
+    logging.info('will enable avx str split: %s' %
+                 constant.is_avx_str_split_enabled())
+
   if FLAGS.distribute_eval:
     os.environ['distribute_eval'] = 'True'
 

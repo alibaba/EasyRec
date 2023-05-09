@@ -16,14 +16,22 @@ sys.path.insert(0, parent_dir)
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-if platform.system() == 'Linux':
-  ops_dir = os.path.join(curr_dir, 'python/ops')
-  if 'PAI' in tf.__version__:
-    ops_dir = os.path.join(ops_dir, '1.12_pai')
-  elif tf.__version__.startswith('1.12'):
-    ops_dir = os.path.join(ops_dir, '1.12')
-  elif tf.__version__.startswith('1.15'):
-    ops_dir = os.path.join(ops_dir, '1.15')
+# Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
+if 'PROCESSOR_TEST' not in os.environ:
+  if platform.system() == 'Linux':
+    ops_dir = os.path.join(curr_dir, 'python/ops')
+    import tensorflow as tf
+    if 'PAI' in tf.__version__:
+      ops_dir = os.path.join(ops_dir, '1.12_pai')
+    elif tf.__version__.startswith('1.12'):
+      ops_dir = os.path.join(ops_dir, '1.12')
+    elif tf.__version__.startswith('1.15'):
+      if 'IS_ON_PAI' in os.environ:
+        ops_dir = os.path.join(ops_dir, 'DeepRec')
+      else:
+        ops_dir = os.path.join(ops_dir, '1.15')
+    else:
+      ops_dir = None
   else:
     ops_dir = None
 else:
