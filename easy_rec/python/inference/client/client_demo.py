@@ -5,8 +5,7 @@ import logging
 import sys
 import traceback
 
-from easyrec_request import EasyrecRequest
-
+from easy_rec.python.inference.client.easyrec_request import EasyrecRequest
 from easy_rec.python.protos.predict_pb2 import PBFeature
 from easy_rec.python.protos.predict_pb2 import PBRequest
 
