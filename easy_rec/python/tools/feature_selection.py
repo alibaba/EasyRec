@@ -294,6 +294,90 @@ class VariationalDropoutFS:
       plt.savefig(f, format='png')
 
 
+class FSCD(object):
+  def __init__(self,
+               config_path,
+               output_dir,
+               topk,
+               checkpoint_path=None,
+               fg_path=None,
+               visualize=False):
+    self._config_path = config_path
+    self._output_dir = output_dir
+    self._topk = topk
+    if not tf.gfile.Exists(self._output_dir):
+      tf.gfile.MakeDirs(self._output_dir)
+    self._checkpoint_path = checkpoint_path
+    self._fg_path = fg_path
+    self._visualize = visualize
+
+  def process(self):
+    tf.logging.info('Loading delta of FSCD layer ...')
+    config = config_util.get_configs_from_pipeline_file(self._config_path)
+    assert config.model_config.HasField(
+        'variational_dropout'), 'variational_dropout must be in model_config'
+
+    feature_importance_map = {}
+    from easy_rec.python.layers.fscd_layer import get_feature_importance
+    for feature_group in config.model_config.feature_groups:
+      group_name = feature_group.group_name
+      tf.logging.info('Calculating %s feature importance ...' % group_name)
+      feature_importance = get_feature_importance(config, group_name)
+      feature_importance_map[group_name] = feature_importance
+
+      tf.logging.info('Dump %s  feature importance to csv ...' % group_name)
+      self._dump_to_csv(feature_importance, group_name)
+
+      if self._visualize:
+        tf.logging.info('Visualizing %s feature importance ...' % group_name)
+        self._visualize_feature_importance(feature_importance, group_name)
+
+    tf.logging.info('Processing model config ...')
+    self._process_config(feature_importance_map)
+
+  def _dump_to_csv(self, feature_importance, group_name):
+    """Dump feature importance data to a csv file."""
+    with tf.gfile.Open(
+        os.path.join(self._output_dir,
+                     'feature_importance_%s.csv' % group_name), 'w') as f:
+      df = pd.DataFrame(
+          columns=['feature_name', 'importance'],
+          data=[list(kv) for kv in feature_importance.items()])
+      df.to_csv(f, encoding='gbk')
+
+  def _visualize_feature_importance(self, feature_importance, group_name):
+    """Draw feature importance histogram."""
+    df = pd.DataFrame(
+        columns=['feature_name', 'importance'],
+        data=[list(kv) for kv in feature_importance.items()])
+    df['color'] = ['red' if x < 0.5 else 'green' for x in df['importance']]
+    df.sort_values('importance', inplace=True, ascending=False)
+    df.reset_index(inplace=True)
+    # Draw plot
+    plt.figure(figsize=(90, 200), dpi=100)
+    plt.hlines(y=df.index, xmin=0, xmax=df.mean_drop_p)
+    for x, y, tex in zip(df.mean_drop_p, df.index, df.mean_drop_p):
+      plt.text(
+          x,
+          y,
+          round(tex, 2),
+          horizontalalignment='right' if x < 0 else 'left',
+          verticalalignment='center',
+          fontdict={
+              'color': 'red' if x < 0 else 'green',
+              'size': 14
+          })
+    # Decorations
+    plt.yticks(df.index, df.feature_name, fontsize=20)
+    plt.title('Feature Importance', fontdict={'size': 30})
+    plt.grid(linestyle='--', alpha=0.5)
+    plt.xlim(0, 1)
+    with tf.gfile.GFile(
+        os.path.join(self._output_dir,
+                     'feature_importance_pic_%s.png' % group_name), 'wb') as f:
+      plt.savefig(f, format='png')
+
+
 if __name__ == '__main__':
   if FLAGS.model_type == 'variational_dropout':
     fs = VariationalDropoutFS(
@@ -303,6 +387,15 @@ if __name__ == '__main__':
         checkpoint_path=FLAGS.checkpoint_path,
         fg_path=FLAGS.fg_path,
         visualize=FLAGS.visualize)
+    fs.process()
+  elif FLAGS.model_type == 'fscd':
+    fs = FSCD(
+      FLAGS.config_path,
+      FLAGS.output_dir,
+      FLAGS.topk,
+      checkpoint_path=FLAGS.checkpoint_path,
+      fg_path=FLAGS.fg_path,
+      visualize=FLAGS.visualize)
     fs.process()
   else:
     raise ValueError('Unknown feature selection model type %s' %

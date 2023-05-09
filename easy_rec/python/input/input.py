@@ -18,6 +18,7 @@ from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.load_class import load_by_path
+from easy_rec.python.utils.tf_utils import get_config_type
 from easy_rec.python.utils.tf_utils import get_tf_type
 
 if tf.__version__ >= '2.0':
@@ -280,8 +281,9 @@ class Input(six.with_metaclass(_meta_type, object)):
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
         if input_name in erase_features:
-          def_val = self.get_type_defaults(tf_type, self._input_field_defaults[fid])
-          finput = tf.placeholder_with_default(def_val, [None, None], name=placeholder_name)
+          conf_type = get_config_type(tf_type)
+          def_val = self.get_type_defaults(conf_type, self._input_field_defaults[fid])
+          finput = tf.placeholder_with_default([def_val], [None, None], name=placeholder_name)
         else:
           finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
       else:
@@ -289,8 +291,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
         if input_name in erase_features:
-          def_val = self.get_type_defaults(tf_type, self._input_field_defaults[fid])
-          finput = tf.placeholder_with_default(def_val, [None], name=placeholder_name)
+          def_val = self.get_type_defaults(ftype, self._input_field_defaults[fid])
+          finput = tf.placeholder_with_default([def_val], [None], name=placeholder_name)
         else:
           finput = tf.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput

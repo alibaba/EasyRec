@@ -33,3 +33,16 @@ def get_col_type(tf_type):
   }
   assert tf_type in type_map, 'invalid type: %s' % tf_type
   return type_map[tf_type]
+
+
+def get_config_type(tf_type):
+  type_map = {
+      tf.int32: DatasetConfig.INT32,
+      tf.int64: DatasetConfig.INT64,
+      tf.string: DatasetConfig.STRING,
+      tf.bool: DatasetConfig.BOOL,
+      tf.float32: DatasetConfig.FLOAT,
+      tf.double: DatasetConfig.DOUBLE
+  }
+  assert tf_type in type_map, 'invalid type: %s' % tf_type
+  return type_map[tf_type]

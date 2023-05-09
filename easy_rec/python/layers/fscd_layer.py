@@ -1,14 +1,16 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
+from collections import OrderedDict
 import math
 import json
 import numpy as np
-import six
 import tensorflow as tf
 from tensorflow.python.framework.meta_graph import read_meta_graph_file
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn  # NOQA
+from easy_rec.python.compat.sort_ops import argsort
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -28,7 +30,7 @@ def sigmoid(x):
   return 1. / (1. + math.exp(-x))
 
 
-def get_top_and_bottom_features(pipeline_config, top_k):
+def get_feature_importance(pipeline_config, feature_group_name=None):
   assert pipeline_config.model_config.HasField(
     'variational_dropout'), 'variational_dropout must be in model_config'
 
@@ -41,29 +43,50 @@ def get_top_and_bottom_features(pipeline_config, top_k):
     features = json.loads(col_def)
     features_map.update(features)
 
-  top_features = set()
+  feature_importance = OrderedDict()
   tf.logging.info('Reading checkpoint from %s ...' % checkpoint_path)
   reader = tf.train.NewCheckpointReader(checkpoint_path)
   for feature_group in pipeline_config.model_config.feature_groups:
     group_name = feature_group.group_name
-    delta_name = 'fscd_delta_%s' % group_name
-    if not reader.has_tensor(delta_name):
+    if feature_group_name is not None and feature_group_name != group_name:
       continue
     assert group_name in features_map, "%s not in feature map" % group_name
     feature_dims = features_map[group_name]
+
+    delta_name = 'fscd_delta_%s' % group_name
+    if not reader.has_tensor(delta_name):
+      logging.warn("feature group `%s` doesn't be involved in FSCD layer")
+      for feature, dim in feature_dims:
+        feature_importance[feature] = 1.0
+      continue
+
     delta = reader.get_tensor(delta_name)
-    values, indices = tf.nn.top_k(delta, top_k)
+    indices = argsort(delta, direction='DESCENDING')
+    keep_prob = tf.nn.sigmoid(delta)
     with tf.Session() as sess:
       idx = indices.eval(session=sess)
+      probs = keep_prob.eval(session=sess)
     for i in idx:
       feature = feature_dims[i][0]
-      top_features.add(feature)
+      if feature in feature_importance:
+        raw = feature_importance[feature]
+        if probs[i] > raw:
+          logging.info("%s importance change from %d to %d", feature, raw, probs[i])
+          feature_importance[feature] = probs[i]
+      else:
+        feature_importance[feature] = probs[i]
+  return feature_importance
 
+
+def get_top_and_bottom_features(pipeline_config, top_k):
+  feature_score = get_feature_importance(pipeline_config)
+  top_features = set()
   bottom_features = set()
-  for group_name, features in six.iteritems(features_map):
-    for name, dim in features:
-      if name not in top_features:
-        bottom_features.add(name)
+  for feature, score in feature_score.iteritems():
+    if len(top_features) < top_k:
+      top_features.add(feature)
+    else:
+      bottom_features.add(feature)
 
   print("selected top %d features:" % top_k, ','.join(top_features))
   print("removed bottom features:", ','.join(bottom_features))
@@ -127,31 +150,10 @@ class FSCDLayer(object):
             "dimension:", dim, "c:", c, "theta:", theta, "alpha:", alpha)
     return alphas
 
-  # def mask_bottom_features(self, cols_to_feature, top_k):
-  #   feature_map = tf.get_collection('variational_dropout')
-  #   features = feature_map[self.name]
-  #
-  #   delta_name = 'fscd_delta_%s' % self.name
-  #   graph = tf.get_default_graph()
-  #   delta = graph.get_tensor_by_name(delta_name)
-  #   values, indices = tf.nn.top_k(delta, top_k)
-  #
-  #   output_tensors = []
-  #   feature_columns = cols_to_feature.keys()
-  #   for column in sorted(feature_columns, key=lambda x: x.name):
-  #     value = cols_to_feature[column]
-  #     output_tensors.append(value)
-  #   return tf.concat(output_tensors, 1)
-
   def __call__(self, cols_to_feature):
     """
     cols_to_feature: an ordered dict mapping feature_column to feature_values
     """
-    # if self._config.HasField('fine_tune_use_top_k_features'):
-    #   k = self._config.fine_tune_use_top_k_features
-    #   assert k > 0, 'config `fine_tune_use_top_k_features` must be large than 0'
-    #   return self.mask_bottom_features(cols_to_feature, k)
-
     feature_dimension = []
     output_tensors = []
     alphas = []
