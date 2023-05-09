@@ -31,14 +31,14 @@ cd data/criteo
 sh download_and_process.sh
 ```
 
-### Amazon-Books
+<!-- ### Amazon-Books
 
 我们提供了数据集的下载、解压、预处理等步骤，处理完成后会得到**amazon_train_data**和**amazon_test_data**两个文件。
 
 ```
 cd data/amazon_books
 sh download_and_process.sh
-```
+``` -->
 
 # Edit Config
 
@@ -205,5 +205,3 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 | MovieLens-1M    | AutoInt   | 0.8513 |
 | Criteo-Research | FM        | 0.7577 |
 | Criteo-Research | DeepFM    | 0.7967 |
-| AmazonBooks     | DeepFM    |        |
-| AmazonBooks     | DIN       |        |
