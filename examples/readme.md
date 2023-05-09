@@ -1,8 +1,22 @@
-# Introduction
+# 介绍
 
-为了验证算法的准确性、帮助用户更好的使用EasyRec，我们提供了在一些公开数据集上使用EasyRec训练模型的demo实验，供用户更好的理解和使用EasyRec。主要包括数据集下载、预处理、模型配置、训练及评估等过程。
+为了帮助用户更快地使用EasyRec，用公开数据集跑通模型训练任务，快速体验EasyRec。
 
-# Install EasyRec
+我们提供了在一些公开数据集上使用EasyRec训练模型的demo实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
+
+# 环境准备
+
+Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
+
+**Anaconda**
+
+```
+conda create -n py36_tf12 python=3.6.8
+conda activate py36_tf12
+pip install tensorflow==1.12.0
+```
+
+# EasyRec安装
 
 ```
 git clone https://github.com/alibaba/EasyRec.git
@@ -13,7 +27,7 @@ python setup.py install
 
 # Prepare Data
 
-我们提供了数据集的下载、解压、预处理等步骤，处理完成后会得到**xxx_train_data**和**xxx_test_data**两个文件。预处理细节可在[data](data/) 查看。
+我们在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
 
 - MovieLens-1M
 
@@ -40,20 +54,58 @@ sh download_and_process.sh
 
 # 示例Config
 
-EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。
-我们提供了用于demo实验的完整示例config文件，详细见: [configs](configs/)。
+EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。 我们提供了用于demo实验的完整示例config文件，详细见: [configs/](configs/)。
+
+- wide_and_deep_on_movieslen.config
+- deepfm_on_movieslen.config
+- dcn_on_movieslen.config
+- autoint_on_movieslen.config
+- fm_on_criteo.config
+- deepfm_on_criteo.config
 
 # 训练及评估
 
 通过指定对应的config文件即可启动命令训练模型。
 
-例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
+### MovieLens-1M 数据集
 
-更多模型训练命令参考[rank_model](rank_model/) 和[match_model](match_model/)。
+在此数据集中, 我们提供了4个模型上的demo示例（[Wide&Deep](wide_and_deep.md) / [DeepFM](deepfm.md) / [DCN](dcn.md) / [AutoInt](din.md)）。更多模型可参考[models](../../docs/source/models/)。
+
+- Wide & Deep
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/wide_and_deep_on_movieslen.config `
+
+- DeepFM
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movieslen.config `
+
+- DCN
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dcn_on_movieslen.config `
+
+- AutoInt
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/autoint_on_movieslen.config `
+
+### Criteo Research Kaggle 数据集
+
+在此数据集中, 我们提供了2个模型上的demo示例（[FM](fm.md) / [DeepFM](deepfm.md)）。
+
+- FM
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/fm_on_criteo.config`
+
+- DeepFM
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
+
+<!-- 例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
 
 ```
 python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movieslen.config
 ```
+
+更多数据集和模型训练任务的命令参考[rank_model/](rank_model/) 和[match_model/](match_model/)。 -->
 
 # Results
 
