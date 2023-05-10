@@ -27,7 +27,7 @@ python setup.py install
 
 # 准备数据集
 
-我们在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
+在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
 
 - MovieLens-1M
 
@@ -69,7 +69,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### MovieLens-1M 数据集
 
-在此数据集中, 我们提供了4个模型上的demo示例（[Wide&Deep](wide_and_deep.md) / [DeepFM](deepfm.md) / [DCN](dcn.md) / [AutoInt](din.md)）。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](wide_and_deep.md) / [DeepFM](deepfm.md) / [DCN](dcn.md) / [AutoInt](din.md)）。更多模型可参考[models](../../docs/source/models/)。
 
 - Wide & Deep
 
@@ -89,7 +89,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### Criteo Research Kaggle 数据集
 
-在此数据集中, 我们提供了2个模型上的demo示例（[FM](fm.md) / [DeepFM](deepfm.md)）。
+在此数据集中, 提供了2个模型上的demo示例（[FM](fm.md) / [DeepFM](deepfm.md)）。
 
 - FM
 
@@ -109,7 +109,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 # 评估结果
 
-我们提供了在公开数据集上的demo实验以及评估结果，仅供参考。
+在公开数据集上的demo实验以及评估结果如下，仅供参考。
 
 <!-- ### Match Model
 
