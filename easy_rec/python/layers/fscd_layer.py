@@ -1,16 +1,19 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
-from collections import OrderedDict
-import math
 import json
+import logging
+import math
+from collections import OrderedDict
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework.meta_graph import read_meta_graph_file
+
+from easy_rec.python.compat.sort_ops import argsort
+
 from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
 from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn  # NOQA
-from easy_rec.python.compat.sort_ops import argsort
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -32,14 +35,14 @@ def sigmoid(x):
 
 def get_feature_importance(pipeline_config, feature_group_name=None):
   assert pipeline_config.model_config.HasField(
-    'variational_dropout'), 'variational_dropout must be in model_config'
+      'variational_dropout'), 'variational_dropout must be in model_config'
 
   checkpoint_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
   meta_graph_def = read_meta_graph_file(checkpoint_path + '.meta')
 
   features_map = dict()
   for col_def in meta_graph_def.collection_def[
-    'variational_dropout'].bytes_list.value:
+      'variational_dropout'].bytes_list.value:
     features = json.loads(col_def)
     features_map.update(features)
 
@@ -50,7 +53,12 @@ def get_feature_importance(pipeline_config, feature_group_name=None):
     group_name = feature_group.group_name
     if feature_group_name is not None and feature_group_name != group_name:
       continue
-    assert group_name in features_map, "%s not in feature map" % group_name
+    # assert group_name in features_map, "%s not in feature map" % group_name
+    if group_name not in features_map:
+      # for now, sequence feature groups are not supported
+      logging.warn('%s not in feature map' % group_name)
+      continue
+
     feature_dims = features_map[group_name]
 
     delta_name = 'fscd_delta_%s' % group_name
@@ -71,26 +79,27 @@ def get_feature_importance(pipeline_config, feature_group_name=None):
       if feature in feature_importance:
         raw = feature_importance[feature]
         if probs[i] > raw:
-          logging.info("%s importance change from %d to %d", feature, raw, probs[i])
+          logging.info('%s importance change from %d to %d', feature, raw,
+                       probs[i])
           feature_importance[feature] = probs[i]
       else:
         feature_importance[feature] = probs[i]
   return feature_importance
 
 
-def get_top_and_bottom_features(pipeline_config, top_k):
-  feature_score = get_feature_importance(pipeline_config)
-  top_features = set()
-  bottom_features = set()
-  for feature, score in feature_score.iteritems():
-    if len(top_features) < top_k:
-      top_features.add(feature)
-    else:
-      bottom_features.add(feature)
-
-  print("selected top %d features:" % top_k, ','.join(top_features))
-  print("removed bottom features:", ','.join(bottom_features))
-  return top_features, bottom_features
+# def get_top_and_bottom_features(pipeline_config, top_k):
+#   feature_score = get_feature_importance(pipeline_config)
+#   top_features = set()
+#   bottom_features = set()
+#   for feature, score in feature_score.iteritems():
+#     if len(top_features) < top_k:
+#       top_features.add(feature)
+#     else:
+#       bottom_features.add(feature)
+#
+#   print("selected top %d features:" % top_k, ','.join(top_features))
+#   print("removed bottom features:", ','.join(bottom_features))
+#   return top_features, bottom_features
 
 
 class FSCDLayer(object):
@@ -114,10 +123,10 @@ class FSCDLayer(object):
   def compute_dropout_mask(self, n, temperature=0.1):
     delta_name = 'fscd_delta_%s' % self.name
     delta = tf.get_variable(
-      name=delta_name,
-      shape=[n],
-      dtype=tf.float32,
-      initializer=tf.constant_initializer(0.))
+        name=delta_name,
+        shape=[n],
+        dtype=tf.float32,
+        initializer=tf.constant_initializer(0.))
     delta = tf.nn.sigmoid(delta)
 
     EPSILON = np.finfo(float).eps
@@ -146,8 +155,9 @@ class FSCDLayer(object):
       theta = 1.0 - sig_c
       alpha = math.log(sig_c) - math.log(theta)
       alphas[fc] = alpha
-      print(str(fc.raw_name), "complexity:", complexity, "cardinality:", cardinal,
-            "dimension:", dim, "c:", c, "theta:", theta, "alpha:", alpha)
+      print(
+          str(fc.raw_name), 'complexity:', complexity, 'cardinality:', cardinal,
+          'dimension:', dim, 'c:', c, 'theta:', theta, 'alpha:', alpha)
     return alphas
 
   def __call__(self, cols_to_feature):
@@ -171,7 +181,8 @@ class FSCDLayer(object):
       feature_dimension.append((column.raw_name, int(value.shape[-1])))
 
     output_features = tf.concat(output_tensors, 1)
-    tf.add_to_collection('variational_dropout', json.dumps({self.name: feature_dimension}))
+    tf.add_to_collection('variational_dropout',
+                         json.dumps({self.name: feature_dimension}))
 
     batch_size = tf.shape(output_features)[0]
     t_alpha = tf.convert_to_tensor(alphas, dtype=tf.float32)

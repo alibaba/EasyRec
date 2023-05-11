@@ -1329,11 +1329,10 @@ def numeric_column(key,
 
 
 def constant_numeric_column(key,
-                   shape=(1,),
-                   default_value=None,
-                   dtype=dtypes.float32,
-                   normalizer_fn=None,
-                   feature_name=None):
+                            shape=(1,),
+                            default_value=None,
+                            dtype=dtypes.float32,
+                            feature_name=None):
   """Represents real valued or numerical features.
 
   Example:
@@ -1368,12 +1367,6 @@ def constant_numeric_column(key,
       the shape of the `default_value` should be equal to the given `shape`.
     dtype: defines the type of values. Default value is `tf.float32`. Must be a
       non-quantized, real integer or floating point type.
-    normalizer_fn: If not `None`, a function that can be used to normalize the
-      value of the tensor after `default_value` is applied for parsing.
-      Normalizer function takes the input `Tensor` as its argument, and returns
-      the output `Tensor`. (e.g. lambda x: (x - 3.0) / 4.2). Please note that
-      even though the most common use case of this function is normalization, it
-      can be used for any kind of Tensorflow transformations.
 
   Returns:
     A `NumericColumn`.
@@ -1391,18 +1384,13 @@ def constant_numeric_column(key,
                      'dtype: {}, key: {}'.format(dtype, key))
   default_value = fc_utils.check_default_value(shape, default_value, dtype, key)
 
-  if normalizer_fn is not None and not callable(normalizer_fn):
-    raise TypeError(
-        'normalizer_fn must be a callable. Given: {}'.format(normalizer_fn))
-
   fc_utils.assert_key_is_string(key)
   return ConstantNumericColumn(
       feature_name=feature_name,
       key=key,
       shape=shape,
       default_value=default_value,
-      dtype=dtype,
-      normalizer_fn=normalizer_fn)
+      dtype=dtype)
 
 
 def bucketized_column(source_column, boundaries):
@@ -2701,7 +2689,7 @@ class ConstantNumericColumn(
     fc_old._DenseColumn,  # pylint: disable=protected-access
     collections.namedtuple('ConstantNumericColumn',
                            ('feature_name', 'key', 'shape', 'default_value',
-                            'dtype', 'normalizer_fn'))):
+                            'dtype'))):
   """see `numeric_column`."""
 
   @property
@@ -2734,8 +2722,11 @@ class ConstantNumericColumn(
     return self.parse_example_spec
 
   def _transform_input_tensor(self, input_tensor):
+    shape = [1] + list(self.shape)
     def_val = 0 if self.default_value is None else self.default_value
-    return tf.constant(def_val, dtypes.float32, self.shape)
+    row = tf.constant(def_val, dtypes.float32, shape)
+    batch_size = tf.shape(input_tensor)[0]
+    return tf.tile(row, [batch_size, 1])
 
   @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
                           _FEATURE_COLUMN_DEPRECATION)
@@ -2745,8 +2736,6 @@ class ConstantNumericColumn(
 
   def transform_feature(self, transformation_cache, state_manager):
     """See `FeatureColumn` base class.
-
-    In this case, we apply the `normalizer_fn` to the input tensor.
 
     Args:
       transformation_cache: A `FeatureTransformationCache` object to access

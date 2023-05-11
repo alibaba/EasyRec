@@ -23,7 +23,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
 from tensorflow.python.framework import constant_op
 from tensorflow.python.framework import ops as framework_ops
 from tensorflow.python.framework import tensor_util
@@ -126,8 +125,8 @@ def _sort_or_argsort(values, axis, direction, return_argsort):
     ValueError: If axis is not a constant scalar, or the direction is invalid.
   """
   if direction not in _SORT_IMPL:
-    raise ValueError('%s should be one of %s' % (direction, ', '.join(
-      sorted(_SORT_IMPL.keys()))))
+    raise ValueError('%s should be one of %s' %
+                     (direction, ', '.join(sorted(_SORT_IMPL.keys()))))
   # Axis must be an integer, not a Tensor.
   axis = framework_ops.convert_to_tensor(axis, name='axis')
   axis_static = tensor_util.constant_value(axis)
@@ -169,30 +168,30 @@ def _descending_sort(values, axis, return_argsort=False):
       # Prefer to calculate the transposition array in NumPy and make it a
       # constant.
       transposition = constant_op.constant(
-        np.r_[
-          # Axes up to axis are unchanged.
-          np.arange(axis),
-          # Swap axis and rank - 1.
-          [static_rank - 1],
-          # Axes in [axis + 1, rank - 1) are unchanged.
-          np.arange(axis + 1, static_rank - 1),
-          # Swap axis and rank - 1.
-          [axis]],
-        name='transposition')
+          np.r_[
+              # Axes up to axis are unchanged.
+              np.arange(axis),
+              # Swap axis and rank - 1.
+              [static_rank - 1],
+              # Axes in [axis + 1, rank - 1) are unchanged.
+              np.arange(axis + 1, static_rank - 1),
+              # Swap axis and rank - 1.
+              [axis]],
+          name='transposition')
     else:
       # Generate the transposition array from the tensors.
       transposition = array_ops.concat(
-        [
-          # Axes up to axis are unchanged.
-          math_ops.range(axis),
-          # Swap axis and rank - 1.
-          [rank - 1],
-          # Axes in [axis + 1, rank - 1) are unchanged.
-          math_ops.range(axis + 1, rank - 1),
-          # Swap axis and rank - 1.
-          [axis]
-        ],
-        axis=0)
+          [
+              # Axes up to axis are unchanged.
+              math_ops.range(axis),
+              # Swap axis and rank - 1.
+              [rank - 1],
+              # Axes in [axis + 1, rank - 1) are unchanged.
+              math_ops.range(axis + 1, rank - 1),
+              # Swap axis and rank - 1.
+              [axis]
+          ],
+          axis=0)
     top_k_input = array_ops.transpose(values, transposition)
 
   values, indices = nn_ops.top_k(top_k_input, k)

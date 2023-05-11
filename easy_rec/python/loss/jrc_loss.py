@@ -13,6 +13,7 @@ def jrc_loss(labels,
              session_ids,
              alpha=0.5,
              auto_weight=False,
+             sample_weights=1.0,
              name=''):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
@@ -24,13 +25,16 @@ def jrc_loss(labels,
     session_ids: a `Tensor` with shape [batch_size]. Session ids of each sample, used to max GAUC metric. e.g. user_id
     alpha: the weight to balance ranking loss and calibration loss
     auto_weight: bool, whether to learn loss weight between ranking loss and calibration loss
+    sample_weights: Coefficients for the loss. This must be scalar or broadcastable to
+      `labels` (i.e. same rank and each dimension is either 1 or the same).
     name: the name of loss
   """
   loss_name = name if name else 'jrc_loss'
   logging.info('[{}] alpha: {}, auto_weight: {}'.format(loss_name, alpha,
                                                         auto_weight))
 
-  ce_loss = tf.losses.sparse_softmax_cross_entropy(labels, logits)
+  ce_loss = tf.losses.sparse_softmax_cross_entropy(
+      labels, logits, weights=sample_weights)
 
   labels = tf.expand_dims(labels, 1)  # [B, 1]
   labels = tf.concat([1 - labels, labels], axis=1)  # [B, 2]
@@ -53,6 +57,13 @@ def jrc_loss(labels,
   logits = logits + (1 - mask3d) * -1e9
   y_neg, y_pos = y[:, :, 0], y[:, :, 1]
   l_neg, l_pos = logits[:, :, 0], logits[:, :, 1]
+
+  if tf.is_numeric_tensor(sample_weights):
+    logging.info('[%s] use sample weight' % loss_name)
+    weights = tf.expand_dims(tf.cast(sample_weights, tf.float32), 0)
+    pairwise_weights = tf.tile(weights, tf.stack([batch_size, 1]))
+    y_pos *= pairwise_weights
+    y_neg *= pairwise_weights
 
   # Compute list-wise generative loss -log p(x|y, z)
   loss_pos = -tf.reduce_sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
