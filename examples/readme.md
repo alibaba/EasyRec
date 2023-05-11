@@ -43,6 +43,13 @@ python setup.py install
   sh download_and_process.sh
   ```
 
+- Amazon Books
+
+  ```
+  cd examples/data/amazon_books_data
+  sh download_and_process.sh
+  ```
+
 <!-- ### Amazon-Books
 
 我们提供了数据集的下载、解压、预处理等步骤，处理完成后会得到**amazon_train_data**和**amazon_test_data**两个文件。
@@ -56,12 +63,23 @@ sh download_and_process.sh
 
 EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。 我们提供了用于demo实验的完整示例config文件，详细见: [configs/](configs/)。
 
+排序任务
+
 - wide_and_deep_on_movieslen.config
+
 - deepfm_on_movieslen.config
+
 - dcn_on_movieslen.config
+
 - autoint_on_movieslen.config
+
 - fm_on_criteo.config
+
 - deepfm_on_criteo.config
+
+  召回任务
+
+- mind_on_books.config
 
 # 训练及评估
 
@@ -69,7 +87,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### MovieLens-1M 数据集
 
-在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](wide_and_deep.md) / [DeepFM](deepfm.md) / [DCN](dcn.md) / [AutoInt](din.md)）。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](rank_model/wide_and_deep.md) / [DeepFM](rank_model/deepfm.md) / [DCN](rank_model/dcn.md) / [AutoInt](rank_model/din.md)）。更多模型可参考[models](../../docs/source/models/)。
 
 - Wide & Deep
 
@@ -89,7 +107,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### Criteo Research Kaggle 数据集
 
-在此数据集中, 提供了2个模型上的demo示例（[FM](fm.md) / [DeepFM](deepfm.md)）。
+在此数据集中, 提供了2个模型上的demo示例（[FM](rank_model/fm.md) / [DeepFM](rank_model/deepfm.md)）。
 
 - FM
 
@@ -98,6 +116,18 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 - DeepFM
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
+
+### Amazon Books 数据集
+
+在此数据集中, 提供了2个模型上的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md)。更多模型可参考[models](../../docs/source/models/)。
+
+- MIND
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books.config `
+
+- DSSM
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
 
 <!-- 例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
 
@@ -110,13 +140,6 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 # 评估结果
 
 在公开数据集上的demo实验以及评估结果如下，仅供参考。
-
-<!-- ### Match Model
-
-| DataSet | Model | HitRate |
-| ------- | ----- | ------- |
-|         | MIND  |         |
-|         | DSSM  |         | -->
 
 ### Rank Model
 
@@ -135,3 +158,12 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | ------ | ----- | ------ |
   | FM     | 1     | 0.7577 |
   | DeepFM | 1     | 0.7967 |
+
+### Match Model
+
+- Amazon Books Data
+
+| Model | Epoch | AUC |
+| ----- | ----- | --- |
+| MIND  |       |     |
+| DSSM  |       |     |
