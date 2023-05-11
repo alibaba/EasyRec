@@ -16,9 +16,9 @@ MovieLens 1M 数据集，包含6000个用户在近4000部电影上的1亿条评�
 
 可以看出UserID、Gender、Age和Occupation都是类别字段，其中邮编字段是我们不使用的。
 
-- Gender is denoted by a "M" for male and "F" for female
+- 性别用“M”表示男性，“F”表示女性
 
-- Age is chosen from the following ranges:
+- 年龄来自以下范围：
 
   ```
   1: "Under 18"
@@ -30,7 +30,7 @@ MovieLens 1M 数据集，包含6000个用户在近4000部电影上的1亿条评�
   56: "56+"
   ```
 
-- Occupation is chosen from the following choices:
+- 职业包含以下几种：
 
   ```
   0: "other" or not specified
@@ -58,15 +58,15 @@ MovieLens 1M 数据集，包含6000个用户在近4000部电影上的1亿条评�
 
 ## 电影数据
 
-分别有电影ID、电影名和电影风格等字段。
+分别有电影ID、电影标题和电影风格等字段。
 
 数据中的格式：`MovieID::Title::Genres`
 
 MovieID是类别字段，Title是文本，Genres也是类别字段
 
-- Titles are identical to titles provided by the IMDB (including year of release)
+- 标题与 IMDB 提供的标题相同（包括发行年份）
 
-- Genres are pipe-separated and are selected from the following genres:
+- 电影风格类型有以下几种：
 
   ```
   Action
@@ -97,19 +97,21 @@ MovieID是类别字段，Title是文本，Genres也是类别字段
 
 评分字段Rating就是我们要学习的label，时间戳字段我们不使用。
 
-- UserIDs range between 1 and 6040
+- UserIDs 范围在 1 到 6040 之间
 
-- MovieIDs range between 1 and 3952
+- MovieIDs 范围在 1 到 3952 之间
 
-- Ratings are made on a 5-star scale (whole-star ratings only)
+- 评级采用 5 星制（仅限全星评级）
 
-- Timestamp is represented in seconds since the epoch as returned by time(2)
+- 时间戳以 time(2) 返回的纪元以来的秒数表示
 
-- Each user has at least 20 ratings
+- 每个用户至少有 20 个评分
 
 # 数据预处理
 
 我们参考了[AutoInt论文](https://dl.acm.org/doi/pdf/10.1145/3357384.3357925)中的处理方法，将评分小于 3 的样本视为负样本，因为低分表示用户不喜欢这部电影；将评分大于 3 的样本视为正样本，并删除中性样本，即评分等于 3。
+
+详细处理细节见 [process_ml_1m.py](process_ml_1m.py)
 
 - label：将评分大于3的作为正样本（label=1），将评分小于3的作为负样本（label=0），进行点击率预估任务。
 - UserID、Occupation和MovieID不用变。
