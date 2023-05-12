@@ -176,7 +176,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
   | Model | Epoch | AUC    |
   | ----- | ----- | ------ |
-  | DSSM  | 2     | 0.     |
+  | DSSM  | 2     | 0.8173 |
   | MIND  | 2     | 0.7511 |
 
 - Amazon Books Data 负采样版
