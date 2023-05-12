@@ -23,9 +23,12 @@ def set_on_ds():
 
 def cache_ckpt(pipeline_config):
   fine_tune_ckpt_path = pipeline_config.train_config.fine_tune_checkpoint
-  if fine_tune_ckpt_path.startswith('hdfs://') and (
-      estimator_utils.is_ps() or estimator_utils.is_chief() or
-      estimator_utils.is_master()):
+  if not fine_tune_ckpt_path.startswith('hdfs://'):
+    # there is no need to cache if remote directories are mounted
+    return
+
+  if estimator_utils.is_ps() or estimator_utils.is_chief(
+  ) or estimator_utils.is_master():
     tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
     tmpdir = os.path.join('/tmp/experiments', tmpdir)
     logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
