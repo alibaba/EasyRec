@@ -65,21 +65,24 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 **排序任务**
 
-- wide_and_deep_on_movieslen.config
+- [wide_and_deep_on_movieslen.config](configs/wide_and_deep_on_movielens.config)
 
-- deepfm_on_movieslen.config
+- [deepfm_on_movieslen.config](configs/deepfm_on_movielens.config)
 
-- dcn_on_movieslen.config
+- [dcn_on_movieslen.config](configs/dcn_on_movielens.config)
 
-- autoint_on_movieslen.config
+- [autoint_on_movieslen.config](configs/autoint_on_movielens.config)
 
-- fm_on_criteo.config
+- [fm_on_criteo.config](configs/fm_on_criteo.config)
 
-- deepfm_on_criteo.config
+- [deepfm_on_criteo.config](configs/deepfm_on_criteo.config)
 
 **召回任务**
 
-- mind_on_books.config
+- [dssm_on_books.config](configs/dssm_on_books.config)
+- [mind_on_books.config](configs/mind_on_books.config)
+- [dssm_on_books_negative_sample.config](configs/dssm_on_books_negative_sample.config)
+- [mind_on_books_negative_sample.config](configs/mind_on_books_negative_sample.config)
 
 # 训练及评估
 
