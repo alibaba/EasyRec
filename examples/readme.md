@@ -63,7 +63,7 @@ sh download_and_process.sh
 
 EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。 我们提供了用于demo实验的完整示例config文件，详细见: [configs/](configs/)。
 
-排序任务
+**排序任务**
 
 - wide_and_deep_on_movieslen.config
 
@@ -77,7 +77,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 - deepfm_on_criteo.config
 
-  召回任务
+**召回任务**
 
 - mind_on_books.config
 
@@ -170,8 +170,9 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 ### Match Model
 
 - Amazon Books Data
-  |Model | Epoch | AUC    |
-  | \----- | ----- | ------ |
+
+  | Model | Epoch | AUC    |
+  | ----- | ----- | ------ |
   | DSSM  | 2     | 0.     |
   | MIND  | 2     | 0.7511 |
 
