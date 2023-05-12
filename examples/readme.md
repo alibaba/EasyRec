@@ -86,7 +86,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 # 训练及评估
 
-通过指定对应的config文件即可启动命令训练模型。
+通过指定对应的config文件即可启动命令训练模型并评估。
 
 ### MovieLens-1M 数据集
 
@@ -147,6 +147,16 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 ```
 
 更多数据集和模型训练任务的命令参考[rank_model/](rank_model/) 和[match_model/](match_model/)。 -->
+
+# 评估及导出
+
+- 模型评估
+
+  `CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
+
+- 模型导出
+
+  `CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
 
 # 评估结果
 
