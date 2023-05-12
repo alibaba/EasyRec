@@ -92,4 +92,15 @@ train_set_df.to_csv(
 print('Start writing amazon_test_data...')
 test_set_df.to_csv(
     r'amazon_test_data', index=False, sep='\t', mode='a', header=False)
+
+print('Negative Sampling')
+train_book = train[['BookID']].drop_duplicates()
+test_book = test[['BookID']].drop_duplicates()
+negative_book = pd.concat([train_book, test_book]).drop_duplicates()
+df_ones = pd.DataFrame(
+    1, index=negative_book.index, columns=negative_book.columns)
+negative_book_data = pd.concat([negative_book, df_ones, negative_book], axis=1)
+new_header = ['id:int64', 'weight:float', 'feature:string']
+negative_book_data.to_csv(
+    r'negative_book_data', index=False, sep='\t', mode='a', header=new_header)
 print('Done.')

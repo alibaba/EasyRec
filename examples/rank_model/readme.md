@@ -1,6 +1,6 @@
 # Introduction
 
-在实验中，我们提供了两个公开数据集（MovieLens-1M, Criteo Research Kaggle）的模型demo。
+在排序任务的模型实验中，我们提供了两个公开数据集（MovieLens-1M, Criteo Research Kaggle）的模型demo。
 
 # MovieLens-1M 数据集
 
