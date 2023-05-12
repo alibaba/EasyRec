@@ -4,7 +4,7 @@
 
 双塔召回模型，支持训练时负采样。
 
-![dssm](../../images/models/dssm_neg_sampler.png)
+![dssm](../../docs/images/models/dssm_neg_sampler.png)
 
 当物品池很大上百万甚至是上亿的时候，双塔召回模型常常需要在物品池中针对每个正样本采样一千甚至一万的负样本才能达到比较好的召回效果，
 意味着正负样本比例达到了1: 1k，甚至是1: 1w， 要支持这个正负样本比例的训练，如果用离线构造样本的方式会导致离线存储和离线计算的压力都激增。
@@ -12,6 +12,10 @@
 使得离线存储和离线计算的压力都大大降低。
 
 注：训练样本一般只需准备点击（正样本）的样本即可
+
+### 参考论文
+
+[DSSM.pdf](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/cikm2013_DSSM_fullversion.pdf)
 
 ### 配置说明
 
@@ -37,15 +41,11 @@ eval_config {
 data_config: {
   ...
   negative_sampler {
-    input_path: 'data/test/tb_data/taobao_ad_feature_gl'
+    input_path: 'examples/data/book_data/negative_book_data'
     num_sample: 1024
-    num_eval_sample: 2048
-    attr_fields: 'adgroup_id'
-    attr_fields: 'cate_id'
-    attr_fields: 'campaign_id'
-    attr_fields: 'customer'
-    attr_fields: 'brand'
-    item_id_field: 'adgroup_id'
+    num_eval_sample: 1024
+    attr_fields: 'book_id'
+    item_id_field: 'book_id'
   }
 }
 
@@ -54,17 +54,11 @@ model_config:{
   feature_groups: {
     group_name: 'user'
     feature_names: 'user_id'
-    feature_names: 'cms_segid'
-    ...
-    feature_names: 'tag_brand_list'
     wide_deep:DEEP
   }
   feature_groups: {
     group_name: "item"
-    feature_names: 'adgroup_id'
-    feature_names: 'cate_id'
-    ...
-    feature_names: 'brand'
+    feature_names: 'book_id'
     wide_deep:DEEP
   }
   dssm {
@@ -72,11 +66,10 @@ model_config:{
       id: "user_id"
       dnn {
         hidden_units: [256, 128, 64, 32]
-        # dropout_ratio : [0.1, 0.1, 0.1, 0.1]
       }
     }
     item_tower {
-      id: "adgroup_id"
+      id: "book_id"
       dnn {
         hidden_units: [256, 128, 64, 32]
       }
@@ -141,6 +134,8 @@ model_config:{
 
 ### 示例Config
 
+[dssm_on_books_negative_sample.config](../configs/dssm_on_books_negative_sample.config)
+
 [DSSM_NegSampler.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dssm_neg_sampler_on_taobao.config)
 
 [DSSM_NegSamplerV2.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dssm_neg_sampler_v2_on_taobao.config)
@@ -152,7 +147,3 @@ model_config:{
 ### 效果评估
 
 [效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
-
-### 参考论文
-
-[DSSM.pdf](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/cikm2013_DSSM_fullversion.pdf)

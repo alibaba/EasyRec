@@ -4,7 +4,11 @@
 
 双塔召回模型，分为user塔和item塔。
 注：使用时需指定user id和item id。
-![dssm](../../images/models/dssm.png)
+![dssm](../../docs/images/models/dssm.png)
+
+### 参考论文
+
+[DSSM.pdf](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/cikm2013_DSSM_fullversion.pdf)
 
 ### 配置说明
 
@@ -14,17 +18,20 @@ model_config:{
   feature_groups: {
     group_name: 'user'
     feature_names: 'user_id'
-    feature_names: 'cms_segid'
-    ...
-    feature_names: 'tag_brand_list'
     wide_deep:DEEP
+    sequence_features: {
+      group_name: "seq_fea"
+      tf_summary: false
+      allow_key_search: true
+      seq_att_map: {
+        key: "book_id"
+        hist_seq: "book_id_seq"
+      }
+    }
   }
   feature_groups: {
     group_name: "item"
-    feature_names: 'adgroup_id'
-    feature_names: 'cate_id'
-    ...
-    feature_names: 'pid'
+    feature_names: 'book_id'
     wide_deep:DEEP
   }
   dssm {
@@ -32,16 +39,14 @@ model_config:{
       id: "user_id"
       dnn {
         hidden_units: [256, 128, 64, 32]
-        # dropout_ratio : [0.1, 0.1, 0.1, 0.1]
       }
     }
     item_tower {
-      id: "adgroup_id"
+      id: "book_id"
       dnn {
         hidden_units: [256, 128, 64, 32]
       }
     }
-    simi_func: INNER_PRODUCT
     l2_regularization: 1e-6
   }
   embedding_regularization: 5e-5
@@ -50,6 +55,7 @@ model_config:{
 
 - model_class: 'DSSM', 不需要修改
 - feature_groups: 需要两个feature_group: user和item, **group name不能变**
+- sequence_features: 配置序列特征
 - dssm: dssm相关的参数，必须配置user_tower和item_tower
 - user_tower/item_tower:
   - dnn: deep part的参数配置
@@ -66,12 +72,8 @@ model_config:{
 
 ### 示例Config
 
-[DSSM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dssm.config)
+[dssm_on_books.config](../configs/dssm_on_books.config)
 
 ### 效果评估
 
 [效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
-
-### 参考论文
-
-[DSSM.pdf](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/cikm2013_DSSM_fullversion.pdf)

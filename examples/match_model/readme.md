@@ -6,30 +6,30 @@
 
 在此数据集中, 提供了2个模型及其负采样版的demo示例 [DSSM](dssm.md) /  [DSSM-Negative-Sample](dssm_negative_sample.md) / [MIND](mind.md) / [MIND-Negative-Sample](mind_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
 
-- DSSM
+- DSSM  [dssm.md](dssm.md)
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
 
-- DSSM with Negative Sample
+- DSSM with Negative Sample  [dssm_negative_sample.md](dssm_negative_sample.md)
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books_negative_sample.config `
 
-- MIND
+- MIND  [mind.md](mind.md)
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books.config `
 
-- MIND with Negative Sample
+- MIND with Negative Sample [mind_negative_sample.md](mind_negative_sample.md)
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books_negative_sample.config `
 
 ### Results
 
-| DataSet      | Model | Epoch | AUC |
-| ------------ | ----- | ----- | --- |
-| Amazon-Books | DSSM  | 2     | 0.  |
-| Amazon-Books | MIND  | 2     | 0.  |
+| DataSet      | Model | Epoch | AUC    |
+| ------------ | ----- | ----- | ------ |
+| Amazon-Books | DSSM  | 2     | 0.     |
+| Amazon-Books | MIND  | 2     | 0.7511 |
 
 | DataSet      | Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
 | ------------ | -------------------- | ----- | ----------- | ------------ | ------------- |
 | Amazon-Books | DSSM_negative_sample | 2     | -           | -            | -             |
-| Amazon-Books | MIND_negative_sample | 2     | -           | -            | -             |
+| Amazon-Books | MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |

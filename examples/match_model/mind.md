@@ -3,92 +3,70 @@
 ### 简介
 
 mind召回模型, 在dssm的基础上加入了兴趣聚类功能，支持多兴趣召回，能够显著的提升召回层的效果.
-![mind](../../images/models/mind.png)
+![mind](../../docs/images/models/mind.png)
+
+### 参考论文
+
+[MIND.pdf](https://arxiv.org/pdf/1904.08030.pdf)
 
 ### 配置说明
 
 ```protobuf
   ...
-feature_configs {
-  input_names: "tag_category_list"
-  feature_type: SequenceFeature
-  embedding_dim: 16
-  hash_bucket_size: 1000000
-  separator: ","
-}
-
-feature_configs {
-  input_names: "tag_brand_list"
-  feature_type: SequenceFeature
-  embedding_dim: 16
-  hash_bucket_size: 1000000
-  separator: ","
-}
-
-feature_configs {
-  input_names: "seq_ts_gap"
-  feature_type: SequenceFeature
-  embedding_dim: 1
-  hash_bucket_size: 100000
-  separator: ","
-}
+  features: {
+    input_names: 'user_id'
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 500000
+  }
+  features: {
+    input_names: 'book_id'
+    feature_type: IdFeature
+    embedding_dim: 16
+    hash_bucket_size: 400000
+  }
+  features: {
+    input_names: 'book_id_seq'
+    feature_type: SequenceFeature
+    separator: '|'
+    hash_bucket_size: 400000
+    embedding_dim: 16
+  }
 
 model_config:{
   model_class: "MIND"
   feature_groups: {
     group_name: 'hist'
-    feature_names: 'tag_category_list'
-    feature_names: 'tag_brand_list'
-    feature_names: 'seq_ts_gap'
+    feature_names: 'book_id_seq'
   }
   feature_groups: {
     group_name: 'user'
     feature_names: 'user_id'
-    feature_names: 'cms_segid'
-    feature_names: 'cms_group_id'
-    feature_names: 'age_level'
-    feature_names: 'pvalue_level'
-    feature_names: 'shopping_level'
-    feature_names: 'occupation'
-    feature_names: 'new_user_class_level'
     wide_deep:DEEP
   }
   feature_groups: {
     group_name: "item"
-    feature_names: 'adgroup_id'
-    feature_names: 'cate_id'
-    feature_names: 'campaign_id'
-    feature_names: 'customer'
-    feature_names: 'brand'
-    feature_names: 'price'
-    feature_names: 'pid'
+    feature_names: 'book_id'
     wide_deep:DEEP
   }
   mind {
     user_dnn {
-      hidden_units: [256, 128, 64, 32]
+      hidden_units: [128, 64, 32]
     }
     item_dnn {
-      hidden_units: [256, 128, 64, 32]
-      use_bn: false
+      hidden_units: [128, 64, 32]
     }
+
     concat_dnn {
-      hidden_units: 64
-      hidden_units: 32
+      hidden_units: [64, 32]
     }
 
     capsule_config {
-      max_k: 5
-      max_seq_len: 64
-      high_dim: 32
-      squash_pow: 0.2
-      # use the same numer of capsules for all users
-      const_caps_num: true
+      max_k: 3
+      max_seq_len: 50
+      high_dim: 64
     }
-
-    simi_pow: 20
     l2_regularization: 1e-6
-    time_id_fea: "seq_ts_gap"
   }
   embedding_regularization: 5e-5
 }
@@ -120,42 +98,10 @@ model_config:{
 - user_seq_combine:
   - CONCAT: 多个seq之间采取concat的方式融合
   - SUM: 多个seq之间采取sum的方式融合, default是SUM
-- time_id_fea: time_id feature的name, 对应feature_config里面定义的特征
-  - 注意embedding_dimension必须是1
-
-### time_id_fea
-
-- 行为序列特征可以加上time_id, time_id经过1 dimension的embedding后, 在time维度进行softmax, 然后和其它sequence feature的embedding相乘
-
-- time_id取值的方式可参考:
-
-  - 训练数据:  Math.round((2 * Math.log1p((labelTime - itemTime) / 60.) / Math.log(2.))) + 1
-  - inference: Math.round((2 * Math.log1p((currentTime - itemTime) / 60.) / Math.log(2.))) + 1
-  - 此处的时间(labelTime, itemTime, currentTime) 为seconds
-
-### 调参建议
-
-- 使用增量训练，增量训练可以防止负采样的穿越。
-
-- 使用HPO对squash_pow\[0.1 - 1.0\]和simi_pow\[10 - 100\]进行搜索调优。
-
-- 要看的指标是召回率，准确率和兴趣损失，三个指标要一起看。
-
-- 使用全网的点击数据来生成训练样本，全网的行为会更加丰富，这有利于mind模型的训练。
-
-- 数据清洗:
-
-  - 把那些行为太少的item直接在构造行为序列的时候就挖掉
-  - 排除爬虫或者作弊用户
-
-- 数据采样:
-
-  - mind模型的训练默认是以点击为目标
-  - 如果业务指标是到交易，那么可以对交易的样本重采样
 
 ### 示例Config
 
-[MIND_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mind_on_taobao_neg_sam.config)
+[mind_on_books.config](../configs/mind_on_books.config)
 
 ### 效果评估
 
@@ -238,7 +184,3 @@ pai -name tensorflow1120_cpu_ext
   ```text
      hitrate    :  double
   ```
-
-### 参考论文
-
-[MIND.pdf](https://arxiv.org/pdf/1904.08030.pdf)
