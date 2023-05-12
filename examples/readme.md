@@ -86,11 +86,11 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 # 训练及评估
 
-通过指定对应的config文件即可启动命令训练模型并评估。
+通过指定对应的config文件即可启动命令训练模型并评估。更多模型可参考[models](../../docs/source/models/)。
 
 ### MovieLens-1M 数据集
 
-在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](rank_model/wide_and_deep.md) / [DeepFM](rank_model/deepfm.md) / [DCN](rank_model/dcn.md) / [AutoInt](rank_model/din.md)）。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](rank_model/wide_and_deep.md) / [DeepFM](rank_model/deepfm.md) / [DCN](rank_model/dcn.md) / [AutoInt](rank_model/din.md)）。
 
 - Wide & Deep
 
@@ -122,7 +122,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### Amazon Books 数据集
 
-在此数据集中, 提供了2个模型及其负采样版的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md) / [MIND-Negative-Sample](match_model/mind_negative_sample.md) / [DSSM-Negative-Sample](match_model/dssm_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了2个模型及其负采样版的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md) / [MIND-Negative-Sample](match_model/mind_negative_sample.md) / [DSSM-Negative-Sample](match_model/dssm_negative_sample.md)。
 
 - DSSM
 
