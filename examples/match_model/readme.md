@@ -6,19 +6,19 @@
 
 在此数据集中, 提供了2个模型及其负采样版的demo示例 [DSSM](dssm.md) /  [DSSM-Negative-Sample](dssm_negative_sample.md) / [MIND](mind.md) / [MIND-Negative-Sample](mind_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
 
-- DSSM  [dssm.md](dssm.md)
+- DSSM
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
 
-- DSSM with Negative Sample  [dssm_negative_sample.md](dssm_negative_sample.md)
+- DSSM with Negative Sample
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books_negative_sample.config `
 
-- MIND  [mind.md](mind.md)
+- MIND
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books.config `
 
-- MIND with Negative Sample [mind_negative_sample.md](mind_negative_sample.md)
+- MIND with Negative Sample
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books_negative_sample.config `
 

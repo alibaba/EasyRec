@@ -119,15 +119,23 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 ### Amazon Books 数据集
 
-在此数据集中, 提供了2个模型上的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md)。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了2个模型及其负采样版的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md) / [MIND-Negative-Sample](match_model/mind_negative_sample.md) / [DSSM-Negative-Sample](match_model/dssm_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
+
+- DSSM
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
+
+- DSSM with Negative Sample
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books_negative_sample.config `
 
 - MIND
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books.config `
 
-- DSSM
+- MIND with Negative Sample
 
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books_negative_sample.config `
 
 <!-- 例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
 
@@ -162,8 +170,14 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 ### Match Model
 
 - Amazon Books Data
+  |Model | Epoch | AUC    |
+  | \----- | ----- | ------ |
+  | DSSM  | 2     | 0.     |
+  | MIND  | 2     | 0.7511 |
 
-| Model | Epoch | AUC |
-| ----- | ----- | --- |
-| MIND  |       |     |
-| DSSM  |       |     |
+- Amazon Books Data 负采样版
+
+| Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
+| -------------------- | ----- | ----------- | ------------ | ------------- |
+| DSSM_negative_sample | 2     | -           | -            | -             |
+| MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |
