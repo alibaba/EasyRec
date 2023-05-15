@@ -103,6 +103,13 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
+    enum LossWeightStrategy {
+        Fixed = 0;
+        Uncertainty = 1;
+        Random = 2;
+    }
+    required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
+
     // dnn layers after sequence feature
-    optional DNN sequence_dnn = 16;
+    optional DNN sequence_dnn = 17;
 }

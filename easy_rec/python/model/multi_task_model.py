@@ -88,6 +88,17 @@ class MultiTaskModel(RankModel):
 
   def build_loss_graph(self):
     """Build loss graph for multi task model."""
+    strategy = self._base_model_config.loss_weight_strategy
+    loss_weight_arr = [1.0] * len(self._task_towers)
+    if strategy == self._base_model_config.Random:
+      num = 0
+      for task_tower_cfg in self._task_towers:
+        losses = task_tower_cfg.losses
+        num += 1 if len(losses) == 0 else len(losses)
+      weights = tf.random_normal([num])
+      loss_weight_arr = tf.nn.softmax(weights)
+
+    offset = 0
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       loss_weight = task_tower_cfg.weight
@@ -111,8 +122,12 @@ class MultiTaskModel(RankModel):
             loss_weight=loss_weight,
             num_class=task_tower_cfg.num_class,
             suffix='_%s' % tower_name)
+        if strategy == self._base_model_config.Random:
+          for loss_name in loss_dict.keys():
+            loss_dict[loss_name] = loss_dict[loss_name] * loss_weight_arr[offset]
+        offset += 1
       else:
-        for loss in losses:
+        for i, loss in enumerate(losses):
           loss_param = loss.WhichOneof('loss_param')
           if loss_param is not None:
             loss_param = getattr(loss, loss_param)
@@ -125,19 +140,26 @@ class MultiTaskModel(RankModel):
               loss_name=loss.loss_name,
               loss_param=loss_param)
           for loss_name, loss_value in loss_ops.items():
-            if loss.learn_loss_weight:
-              uncertainty = tf.Variable(
+            if strategy == self._base_model_config.Fixed:
+              loss_dict[loss_name] = loss_value * loss.weight
+            elif strategy == self._base_model_config.Uncertainty:
+              if loss.learn_loss_weight:
+                uncertainty = tf.Variable(
                   0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
-              tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
-              if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
-                loss_dict[loss_name] = 0.5 * tf.exp(
+                tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
+                if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+                  loss_dict[loss_name] = 0.5 * tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
+                else:
+                  loss_dict[loss_name] = tf.exp(
                     -uncertainty) * loss_value + 0.5 * uncertainty
               else:
-                loss_dict[loss_name] = tf.exp(
-                    -uncertainty) * loss_value + 0.5 * uncertainty
+                loss_dict[loss_name] = loss_value * loss.weight
+            elif strategy == self._base_model_config.Random:
+              loss_dict[loss_name] = loss_value * loss_weight_arr[i + offset]
             else:
-              loss_dict[loss_name] = loss_value * loss.weight
-
+              raise ValueError("Unsupported loss weight strategy: " + strategy.Name)
+        offset += len(losses)
       self._loss_dict.update(loss_dict)
 
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,

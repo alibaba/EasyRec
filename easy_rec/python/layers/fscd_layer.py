@@ -87,21 +87,6 @@ def get_feature_importance(pipeline_config, feature_group_name=None):
   return feature_importance
 
 
-# def get_top_and_bottom_features(pipeline_config, top_k):
-#   feature_score = get_feature_importance(pipeline_config)
-#   top_features = set()
-#   bottom_features = set()
-#   for feature, score in feature_score.iteritems():
-#     if len(top_features) < top_k:
-#       top_features.add(feature)
-#     else:
-#       bottom_features.add(feature)
-#
-#   print("selected top %d features:" % top_k, ','.join(top_features))
-#   print("removed bottom features:", ','.join(bottom_features))
-#   return top_features, bottom_features
-
-
 class FSCDLayer(object):
   """Rank features by variational dropout.
 

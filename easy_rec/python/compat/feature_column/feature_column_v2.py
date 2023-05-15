@@ -1338,7 +1338,7 @@ def constant_numeric_column(key,
   Example:
 
   ```python
-  price = numeric_column('price')
+  price = constant_numeric_column('price')
   columns = [price, ...]
   features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
   dense_tensor = input_layer(features, columns)
@@ -1369,7 +1369,7 @@ def constant_numeric_column(key,
       non-quantized, real integer or floating point type.
 
   Returns:
-    A `NumericColumn`.
+    A `ConstantNumericColumn`.
 
   Raises:
     TypeError: if any dimension in shape is not an int
