@@ -162,7 +162,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 在公开数据集上的demo实验以及评估结果如下，仅供参考。
 
-### Rank Model
+### 排序模型
 
 - MovieLens-1M
 
@@ -180,7 +180,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | FM     | 1     | 0.7577 |
   | DeepFM | 1     | 0.7967 |
 
-### Match Model
+### 召回模型
 
 - Amazon Books Data
 
@@ -193,5 +193,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 | Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
 | -------------------- | ----- | ----------- | ------------ | ------------- |
-| DSSM_negative_sample | 2     | -           | -            | -             |
+| DSSM_negative_sample | 2     | 0.1241      | 0.6326       | 0.9988        |
 | MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |
+
+注：召回模型建议参考HitRate指标，具体评估见[HitRate效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)

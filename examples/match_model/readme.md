@@ -29,7 +29,9 @@
 | Amazon-Books | DSSM  | 2     | 0.     |
 | Amazon-Books | MIND  | 2     | 0.7511 |
 
-| DataSet      | Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
-| ------------ | -------------------- | ----- | ----------- | ------------ | ------------- |
-| Amazon-Books | DSSM_negative_sample | 2     | -           | -            | -             |
-| Amazon-Books | MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |
+| Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
+| -------------------- | ----- | ----------- | ------------ | ------------- |
+| DSSM_negative_sample | 2     | 0.1241      | 0.6326       | 0.9988        |
+| MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |
+
+注：召回模型建议参考HitRate指标，具体评估见[HitRate效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
