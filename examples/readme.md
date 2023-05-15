@@ -1,8 +1,8 @@
 # 介绍
 
-为了帮助用户更快地使用EasyRec，用公开数据集跑通模型训练任务，快速体验EasyRec。
+我们准备了一系列的demo帮助用户快速体验EasyRec的功能，降低使用EasyRec的门槛。
 
-我们提供了在一些公开数据集上使用EasyRec训练模型的demo实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
+这些Demo包含了在公开数据集上针对不同模型做的多种实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
 
 # 环境准备
 
@@ -10,7 +10,7 @@ Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
 
 **Anaconda**
 
-```
+```bash
 conda create -n py36_tf12 python=3.6.8
 conda activate py36_tf12
 pip install tensorflow==1.12.0
@@ -18,7 +18,7 @@ pip install tensorflow==1.12.0
 
 # 安装EasyRec
 
-```
+```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
 bash scripts/init.sh
@@ -29,23 +29,25 @@ python setup.py install
 
 在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
 
-- MovieLens-1M   (详细见:[data/movielens_1m/](data/movielens_1m/))
+下面分别是三种常用数据集的下载和预处理：
 
-  ```
+- MovieLens-1M  (详细见:[data/movielens_1m/](data/movielens_1m/))
+
+  ```bash
   cd examples/data/movielens_1m
   sh download_and_process.sh
   ```
 
 - Criteo-Research-Kaggle   (详细见:[data/criteo/](data/criteo/))
 
-  ```
+  ```bash
   cd examples/data/criteo
   sh download_and_process.sh
   ```
 
 - Amazon Books   (详细见:[data/amazon_books_data/](data/amazon_books_data/))
 
-  ```
+  ```bash
   cd examples/data/amazon_books_data
   sh download_and_process.sh
   ```
@@ -54,14 +56,16 @@ python setup.py install
 
 我们提供了数据集的下载、解压、预处理等步骤，处理完成后会得到**amazon_train_data**和**amazon_test_data**两个文件。
 
-```
+```bash
 cd data/amazon_books
 sh download_and_process.sh
 ``` -->
 
 # 示例Config
 
-EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。 我们提供了用于demo实验的完整示例config文件，详细见: [configs/](configs/)。
+EasyRec的模型训练和评估都是基于config配置文件的，配置文件采用prototxt格式。在大多数任务中，我们只需要创建config文件就能满足相应的应用。
+
+我们提供了用于demo实验的完整示例config文件，详细见: [configs](configs/)。
 
 **排序任务**
 
