@@ -26,7 +26,7 @@
 
 | DataSet      | Model | Epoch | AUC    |
 | ------------ | ----- | ----- | ------ |
-| Amazon-Books | DSSM  | 2     | 0.     |
+| Amazon-Books | DSSM  | 2     | 0.8173 |
 | Amazon-Books | MIND  | 2     | 0.7511 |
 
 <!-- | Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
