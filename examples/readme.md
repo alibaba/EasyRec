@@ -1,6 +1,6 @@
 # 介绍
 
-我们准备了一系列的demo帮助用户快速体验EasyRec的功能，降低使用EasyRec的门槛。
+我们准备了一系列的Demo帮助用户快速体验EasyRec的功能，降低使用EasyRec的门槛。
 
 这些Demo包含了在公开数据集上针对不同模型做的多种实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
 
@@ -202,4 +202,4 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 | DSSM_negative_sample | 2     | 0.1241      | 0.6326       | 0.9988        |
 | MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        | -->
 
-注：评估召回模型及负采样版的效果建议参考HitRate指标，具体评估方法见[HitRate评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
+注：评估召回模型及负采样版的效果建议参考HitRate指标，具体评估方法见[HitRate评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)。
