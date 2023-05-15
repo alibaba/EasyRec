@@ -61,7 +61,7 @@ def process_data():
       engine='python',
       encoding='ISO-8859-1')
   ratings = ratings.filter(regex='UserID|MovieID|ratings')
-  # ratings of 4 and 5 are viewed as positivee samples [label:1]
+  # ratings of 4 and 5 are viewed as positive samples [label:1]
   # ratings of 0, 1 and 2 are viewed as negative samples [label:0]
   # discard samples of rating = 3
   label_map = {1: 0, 2: 0, 3: 2, 4: 1, 5: 1}
@@ -70,7 +70,7 @@ def process_data():
   # concat users, movies and ratings
   data = pd.merge(pd.merge(ratings, users), movies)
 
-  # let fiedl 'label' to postion 1
+  # let field 'label' to postion 1
   new_order = ['label'] + [col for col in data.columns if col != 'label']
   data = data.reindex(columns=new_order)
   # shuffle samples
