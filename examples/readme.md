@@ -88,7 +88,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 通过指定对应的config文件即可启动命令训练模型并评估。更多模型可参考[models](../../docs/source/models/)。
 
-### MovieLens-1M 数据集
+### 排序任务 + MovieLens-1M 数据集
 
 在此数据集中, 提供了4个模型上的demo示例（[Wide&Deep](rank_model/wide_and_deep.md) / [DeepFM](rank_model/deepfm.md) / [DCN](rank_model/dcn.md) / [AutoInt](rank_model/din.md)）。
 
@@ -108,7 +108,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/autoint_on_movieslen.config `
 
-### Criteo Research Kaggle 数据集
+### 排序任务 + Criteo Research Kaggle 数据集
 
 在此数据集中, 提供了2个模型上的demo示例（[FM](rank_model/fm.md) / [DeepFM](rank_model/deepfm.md)）。
 
@@ -120,21 +120,21 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
 
-### Amazon Books 数据集
+### 召回任务 + Amazon Books 数据集
 
-在此数据集中, 提供了2个模型及其负采样版的demo示例（[MIND](match_model/mind.md) / [DSSM](match_model/dssm.md) / [MIND-Negative-Sample](match_model/mind_negative_sample.md) / [DSSM-Negative-Sample](match_model/dssm_negative_sample.md)。
+在此数据集中, 提供了2个模型及其负采样版的demo示例 [DSSM](match_model/dssm.md) / [MIND](match_model/mind.md) / [DSSM-Negative-Sample](match_model/dssm_negative_sample.md) / [MIND-Negative-Sample](match_model/mind_negative_sample.md) 。
 
 - DSSM
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books.config `
 
-- DSSM with Negative Sample
-
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books_negative_sample.config `
-
 - MIND
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books.config `
+
+- DSSM with Negative Sample
+
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dssm_on_books_negative_sample.config `
 
 - MIND with Negative Sample
 
@@ -157,6 +157,8 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 - 模型导出
 
   `CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
+
+通过修改config文件即可评估及导出对应的模型。
 
 # 评估结果
 
@@ -189,11 +191,11 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | DSSM  | 2     | 0.8173 |
   | MIND  | 2     | 0.7511 |
 
-- Amazon Books Data 负采样版
+<!-- - Amazon Books Data 负采样版
 
 | Model                | Epoch | Recall@Top1 | Recall@Top10 | Recall@Top100 |
 | -------------------- | ----- | ----------- | ------------ | ------------- |
 | DSSM_negative_sample | 2     | 0.1241      | 0.6326       | 0.9988        |
-| MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        |
+| MIND_negative_sample | 2     | 0.0096      | 0.0443       | 0.1994        | -->
 
-注：召回模型建议参考HitRate指标，具体评估见[HitRate效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
+注：评估召回模型及负采样版的效果建议参考HitRate指标，具体评估方法见[HitRate评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)
