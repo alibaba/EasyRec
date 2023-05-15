@@ -31,7 +31,7 @@
   Tsinghua Cloud: https://cloud.tsinghua.edu.cn/f/e5c4211255bc40cba828/?dl=1
   Dropbox: https://www.dropbox.com/s/m41kahhhx0a5z0u/data.tar.gz?dl=1
 
-# 预处理
+# 数据预处理
 
 我们基于[ComiRec](https://github.com/THUDM/ComiRec/tree/master)提供的AmazonBooks数据集进行进一步处理，使其适配EasyRec的召回模型样本格式。
 
