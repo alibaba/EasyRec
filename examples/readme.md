@@ -29,21 +29,21 @@ python setup.py install
 
 在`data/xxx/download_and_process.sh`文件中提供了数据集的下载、解压、数据预处理等步骤，执行完成后会在目录下得到`xxx_train_data`和`xxx_test_data`两个文件。
 
-- MovieLens-1M
+- MovieLens-1M   (详细见:[data/movielens_1m/](data/movielens_1m/))
 
   ```
   cd examples/data/movielens_1m
   sh download_and_process.sh
   ```
 
-- Criteo-Research-Kaggle
+- Criteo-Research-Kaggle   (详细见:[data/criteo/](data/criteo/))
 
   ```
   cd examples/data/criteo
   sh download_and_process.sh
   ```
 
-- Amazon Books
+- Amazon Books   (详细见:[data/amazon_books_data/](data/amazon_books_data/))
 
   ```
   cd examples/data/amazon_books_data
