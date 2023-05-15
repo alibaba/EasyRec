@@ -109,13 +109,13 @@ MovieID是类别字段，Title是文本，Genres也是类别字段
 
 # 数据预处理
 
-我们参考了[AutoInt论文](https://dl.acm.org/doi/pdf/10.1145/3357384.3357925)中的处理方法，将评分小于 3 的样本视为负样本，因为低分表示用户不喜欢这部电影；将评分大于 3 的样本视为正样本，并删除中性样本，即评分等于 3。
+我们参考了[AutoInt论文](https://dl.acm.org/doi/pdf/10.1145/3357384.3357925)中的处理方法，将评分小于 3 的样本视为负样本，因为低分表示用户不喜欢这部电影；将评分大于 3 的样本视为正样本；最后删除中性样本，即评分等于 3。
 
 详细处理细节见 [process_ml_1m.py](process_ml_1m.py)
 
-- label：将评分大于3的作为正样本（label=1），将评分小于3的作为负样本（label=0），进行点击率预估任务。
+- label：将评分大于3的作为正样本（label=1），将评分小于3的作为负样本（label=0），作为点击率预估任务的目标。
 - UserID、Occupation和MovieID不用变。
-- Gender字段：需要将‘F’和‘M’转换成0和1。
-- Age字段：要转成7个连续数字0~6。
+- Gender字段：将‘F’和‘M’变换成0和1。
+- Age字段：把年龄离散化为0-6之间的数字（共7个数字）。
 - Genres字段：无需处理，直接转换为EasyRec的TagFeature
 - Title字段：将标题和年份拆开为两个特征，其中标题为SequenceFeature，年份为IDFeature。
