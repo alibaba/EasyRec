@@ -3,13 +3,13 @@
 - 任务：CTR预估/排序
 
 - 简介：
-  
+
   该数据集由 Criteo 提供，包含数百万展示广告的特征值和点击反馈。 其目的是对点击率 (CTR) 预估的算法进行基准测试。该数据集包括4500万用户的点击记录。有13个连续特征和26个分类特征。
 
 - 下载：
-  
+
   [官网](https://ailab.criteo.com/ressources/)下载地址：https://go.criteo.net/criteo-research-kaggle-display-advertising-challenge-dataset.tar.gz
-  
+
   天池下载地址：https://tianchi.aliyun.com/dataset/144733
 
 - 详细描述：
