@@ -2,13 +2,14 @@
 
 - 任务：CTR预估/排序
 
-- 简介：该数据集由 Criteo 提供，包含数百万展示广告的特征值和点击反馈。 其目的是对点击率 (CTR) 预估的算法进行基准测试。该数据集包括4500万用户的点击记录。有13个连续特征和26个分类特征。
+- 简介：
+  
+  该数据集由 Criteo 提供，包含数百万展示广告的特征值和点击反馈。 其目的是对点击率 (CTR) 预估的算法进行基准测试。该数据集包括4500万用户的点击记录。有13个连续特征和26个分类特征。
 
 - 下载：
-  官网下载地址：https://ailab.criteo.com/ressources/
-
-  https://go.criteo.net/criteo-research-kaggle-display-advertising-challenge-dataset.tar.gz
-
+  
+  [官网](https://ailab.criteo.com/ressources/)下载地址：https://go.criteo.net/criteo-research-kaggle-display-advertising-challenge-dataset.tar.gz
+  
   天池下载地址：https://tianchi.aliyun.com/dataset/144733
 
 - 详细描述：
@@ -23,7 +24,7 @@
 
 - 格式：
 
-  这些列使用以下模式进行制表符分隔：<label> \<integer feature 1> ... \<integer feature 13> \<categorical feature 1> ... \<categorical feature 26>
+  数据列之间使用制表符作为分隔符：<label> \<integer feature 1> ... \<integer feature 13> \<categorical feature 1> ... \<categorical feature 26>
 
   当缺少一个值时，该字段只是空的。 测试集中没有标签字段。
 
