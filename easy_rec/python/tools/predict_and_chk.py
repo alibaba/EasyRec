@@ -75,6 +75,22 @@ if __name__ == '__main__':
         args.label_id
     ) == 0, 'label_id should not be set if rtp feature format is used.'
 
+  fg_json_path = os.path.join(args.saved_model_dir, 'assets/fg.json')
+  if os.path.exists(fg_json_path):
+    with open(fg_json_path, 'r') as fin:
+      fg_json = json.load(fin)
+      fg_features = fg_json['features']
+      fg_feature_names = []
+      for k in fg_features:
+        if 'feature_name' in k:
+          fg_feature_names.append(k['feature_name'])
+        elif 'sequence_name' in k:
+          sub_feas = k['features']
+          seq_name = k['sequence_name']
+          for sub_k in sub_feas:
+            fg_feature_names.append(seq_name + '__' + sub_k['feature_name'])
+  else:
+    fg_feature_names = None
   with open(args.input_path, 'r') as fin:
     batch_input = []
     for line_str in fin:
@@ -85,7 +101,9 @@ if __name__ == '__main__':
           x for fid, x in enumerate(feature.split(args.separator))
           if fid not in args.label_id
       ]
-      if 'features' in predictor.input_names:
+      if fg_json is not None:
+        feature = { k:v for k,v in zip(fg_feature_names, feature) }
+      elif 'features' in predictor.input_names:
         feature = args.separator.join(feature)
       batch_input.append(feature)
     output = predictor.predict(batch_input, batch_size=1024)

@@ -597,7 +597,8 @@ class Predictor(PredictorInterface):
     for data in data_list:
       if isinstance(data, dict):
         for key in data:
-          batch_input[key].append(data[key])
+          if key in batch_input:
+            batch_input[key].append(data[key])
       elif isinstance(data, list):
         assert len(self._predictor_impl.input_names) == len(data), \
             'input fields number incorrect, should be %d, but %d' \

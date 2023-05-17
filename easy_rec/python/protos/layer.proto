@@ -80,6 +80,7 @@ message SequenceEncoder {
     oneof encoder {
         BSTEncoder bst = 101;
         DINEncoder din = 102;
+        DIENEncoder dien = 103;
     }
     required bool force_share_embeddings = 1 [default = true];
 }
@@ -108,6 +109,16 @@ message BSTEncoder {
 }
 
 message DINEncoder {
+    // din attention layer
+    required DNN attention_dnn = 1;
+    // whether to keep target item feature
+    required bool need_target_feature = 2 [default = true];
+    // option: softmax, sigmoid
+    required string attention_normalizer = 3 [default = 'softmax'];
+    optional double softmax_eps = 4 [default=0.0];
+}
+
+message DIENEncoder {
     // din attention layer
     required DNN attention_dnn = 1;
     // whether to keep target item feature

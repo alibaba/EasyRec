@@ -6,6 +6,8 @@ import tensorflow as tf
 
 from easy_rec.python.layers.bst import BST
 from easy_rec.python.layers.din import DIN
+from easy_rec.python.layers.din import DIN
+from easy_rec.python.layers.dien import DIEN
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':
@@ -80,6 +82,10 @@ class SequenceEncoder(object):
       elif encoder_type == 'din':
         din = DIN(encoder.din, self._l2_reg, name=group_name)
         encoding = din([seq_features, target_feature], is_training)
+        outputs.append(encoding)
+      elif encoder_type == 'dien':
+        dien = DIEN(encoder.dien, self._l2_reg, name=group_name)
+        encoding = dien([seq_features, target_feature], is_training)
         outputs.append(encoding)
       else:
         assert False, 'unsupported sequence encode type: ' + encoder_type

@@ -57,6 +57,11 @@ class DIN(object):
     scores = tf.where(seq_mask, scores, paddings)  # [B, 1, L]
     if self.config.attention_normalizer == 'softmax':
       scores = tf.nn.softmax(scores)  # (B, 1, L)
+    elif self.config.attention_normalizer == 'softmax_eps':
+      scores = scores - tf.reduce_max(scores, axis=2, keepdims=True)
+      scores = tf.math.exp(scores)
+      scores = scores / (tf.reduce_sum(scores, axis=2, keepdims=True) +
+                 self.config.softmax_eps)
     elif self.config.attention_normalizer == 'sigmoid':
       scores = scores / (seq_emb_size**0.5)
       scores = tf.nn.sigmoid(scores)
