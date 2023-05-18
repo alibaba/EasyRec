@@ -69,7 +69,7 @@ EasyRec implements state of the art deep learning models used in common recommen
 
 Running Platform:
 
-- [Local](docs/source/quick_start/local_tutorial.md)
+- [Local Demo](examples/readme.md)
 - [MaxCompute](docs/source/quick_start/mc_tutorial.md)
 - [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
 - [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
