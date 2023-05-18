@@ -98,19 +98,19 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 - Wide & Deep
 
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/wide_and_deep_on_movieslen.config `
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/wide_and_deep_on_movielens.config `
 
 - DeepFM
 
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movieslen.config `
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movielens.config `
 
 - DCN
 
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dcn_on_movieslen.config `
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dcn_on_movielens.config `
 
 - AutoInt
 
-  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/autoint_on_movieslen.config `
+  `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/autoint_on_movielens.config `
 
 ### 排序任务 + Criteo Research Kaggle 数据集
 
