@@ -69,13 +69,13 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 **排序任务**
 
-- [wide_and_deep_on_movieslen.config](configs/wide_and_deep_on_movielens.config)
+- [wide_and_deep_on_movielens.config](configs/wide_and_deep_on_movielens.config)
 
-- [deepfm_on_movieslen.config](configs/deepfm_on_movielens.config)
+- [deepfm_on_movielens.config](configs/deepfm_on_movielens.config)
 
-- [dcn_on_movieslen.config](configs/dcn_on_movielens.config)
+- [dcn_on_movielens.config](configs/dcn_on_movielens.config)
 
-- [autoint_on_movieslen.config](configs/autoint_on_movielens.config)
+- [autoint_on_movielens.config](configs/autoint_on_movielens.config)
 
 - [fm_on_criteo.config](configs/fm_on_criteo.config)
 
@@ -90,7 +90,7 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 # 训练及评估
 
-通过指定对应的config文件即可启动命令训练模型并评估。更多模型可参考[models](../../docs/source/models/)。
+通过指定对应的pipeline_config_path文件即可启动命令训练模型并评估。更多模型可参考[models](../../docs/source/models/)。
 
 ### 排序任务 + MovieLens-1M 数据集
 
@@ -144,25 +144,54 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
   `python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/mind_on_books_negative_sample.config `
 
+#### GPU单机单卡:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval --pipeline_config_path *.config
+```
+
+- --pipeline_config_path: 训练用的配置文件
+- --continue_train: 是否继续训
+
+#### GPU PS训练
+
+- ps跑在CPU上
+- master跑在GPU:0上
+- worker跑在GPU:1上
+- Note: 本地只支持ps, master, worker模式，不支持ps, chief, worker, evaluator模式
+
+```bash
+wget https://easyrec.oss-cn-beijing.aliyuncs.com/scripts/train_2gpu.sh
+sh train_2gpu.sh *.config
+```
+
+<!-- #### CPU训练/评估/导出
+
+不指定CUDA_VISIBLE_DEVICES即可，例如:
+
+```bash
+ python -m easy_rec.python.train_eval --pipeline_config_path *.config
+``` -->
+
 <!-- 例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
 
 ```
-python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movieslen.config
+python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/deepfm_on_movielens.config
 ```
 
 更多数据集和模型训练任务的命令参考[rank_model/](rank_model/) 和[match_model/](match_model/)。 -->
 
 # 评估及导出
 
+通过修改pipeline_config_path文件即可评估及导出对应的模型。
+
 - 模型评估
 
-  `CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
+  `python -m easy_rec.python.eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
 
 - 模型导出
 
-  `CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
-
-通过修改config文件即可评估及导出对应的模型。
+  `python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
 
 # 评估结果
 
