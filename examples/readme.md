@@ -167,7 +167,7 @@ sh train_2gpu.sh *.config
 
 #### CPU训练/评估/导出
 
-不指定CUDA_VISIBLE_DEVICES即可，例如：
+不指定CUDA_VISIBLE_DEVICES即可，例如:
 
 ```bash
  python -m easy_rec.python.train_eval --pipeline_config_path *.config
