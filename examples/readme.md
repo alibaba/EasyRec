@@ -165,13 +165,13 @@ wget https://easyrec.oss-cn-beijing.aliyuncs.com/scripts/train_2gpu.sh
 sh train_2gpu.sh *.config
 ```
 
-#### CPU训练/评估/导出
+<!-- #### CPU训练/评估/导出
 
 不指定CUDA_VISIBLE_DEVICES即可，例如:
 
 ```bash
  python -m easy_rec.python.train_eval --pipeline_config_path *.config
-```
+``` -->
 
 <!-- 例如，在`movielens-1m`数据集上训练`DeepFM`模型并得到评估结果。
 
@@ -183,15 +183,15 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 # 评估及导出
 
+通过修改pipeline_config_path文件即可评估及导出对应的模型。
+
 - 模型评估
 
-  `CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
+  `python -m easy_rec.python.eval --pipeline_config_path examples/configs/deepfm_on_criteo.config`
 
 - 模型导出
 
-  `CUDA_VISIBLE_DEVICES='' python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
-
-通过修改config文件即可评估及导出对应的模型。
+  `python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
 
 # 评估结果
 
