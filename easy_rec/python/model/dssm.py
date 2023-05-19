@@ -101,12 +101,16 @@ class DSSM(MatchModel):
         tf.as_string(user_tower_emb), axis=-1, separator=',')
     self._prediction_dict['item_emb'] = tf.reduce_join(
         tf.as_string(item_tower_emb), axis=-1, separator=',')
+    self._prediction_dict['logits_out'] = tf.diag_part(
+        self._prediction_dict['logits'])
+    self._prediction_dict['probs_out'] = tf.diag_part(
+        self._prediction_dict['probs'])
     return self._prediction_dict
 
   def get_outputs(self):
     if self._loss_type in (LossType.CLASSIFICATION,
                            LossType.SOFTMAX_CROSS_ENTROPY):
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return ['logits_out', 'probs_out', 'user_emb', 'item_emb']
     elif self._loss_type == LossType.L2_LOSS:
       return ['y', 'user_emb', 'item_emb']
     else:
