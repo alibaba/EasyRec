@@ -113,7 +113,7 @@ MovieID是类别字段，Title是文本，Genres也是类别字段
 
 详细处理细节见 [process_ml_1m.py](process_ml_1m.py)
 
-也可跳过预处理，直接通过链接直接下载处理后的数据集： [movies_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_train_data)、[movies_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_test_data)。
+也可跳过预处理，直接通过链接下载处理后的数据集： [movies_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_train_data)、[movies_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_test_data)。
 
 - label：将评分大于3的作为正样本（label=1），将评分小于3的作为负样本（label=0），作为点击率预估任务的目标。
 - UserID、Occupation和MovieID不用变。

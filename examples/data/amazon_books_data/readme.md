@@ -37,7 +37,7 @@
 
 详细处理细节见 [process_amazon.py](process_amazon.py)
 
-也可跳过预处理，直接通过链接直接下载处理后的数据集： [amazon_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_train_data)、[amazon_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_test_data)、[negative_book_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/negative_book_data)。
+也可跳过预处理，直接通过链接下载处理后的数据集： [amazon_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_train_data)、[amazon_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_test_data)、[negative_book_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/negative_book_data)。
 
 - 序列特征构造：
 
