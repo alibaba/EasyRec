@@ -246,10 +246,17 @@ class RocketLaunching(RankModel):
 
   def get_outputs(self):
     outputs = []
-    outputs.extend(
-        self._get_outputs_impl(
-            self._loss_type, self._num_class, suffix='_light'))
-    outputs.extend(
-        self._get_outputs_impl(
-            self._loss_type, self._num_class, suffix='_booster'))
-    return outputs
+    if len(self._losses) == 0:
+      outputs.extend(
+          self._get_outputs_impl(
+              self._loss_type, self._num_class, suffix='_light'))
+      outputs.extend(
+          self._get_outputs_impl(
+              self._loss_type, self._num_class, suffix='_booster'))
+    else:
+      for loss in self._losses:
+        outputs.extend(
+          self._get_outputs_impl(loss.loss_type, self._num_class, suffix='_light'))
+        outputs.extend(
+          self._get_outputs_impl(loss.loss_type, self._num_class, suffix='_booster'))
+    return list(set(outputs))
