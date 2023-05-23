@@ -47,7 +47,8 @@ def build(loss_type,
         'alpha')
     session = kwargs.get('session_ids', None)
     return jrc_loss(
-        label, pred, session, alpha, auto_weight=auto_weight, name=loss_name)
+        label, pred, session, alpha, auto_weight=auto_weight, 
+        sample_weights=loss_weight, name=loss_name)
   elif loss_type == LossType.PAIR_WISE_LOSS:
     session = kwargs.get('session_ids', None)
     margin = 0 if loss_param is None else loss_param.margin

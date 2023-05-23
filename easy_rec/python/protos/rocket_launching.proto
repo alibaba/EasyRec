@@ -3,6 +3,7 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/simi.proto";
+import "easy_rec/python/protos/loss.proto";
 
 message RocketLaunching {
     required DNN share_dnn = 1;
@@ -12,4 +13,6 @@ message RocketLaunching {
     optional bool feature_based_distillation = 5 [default = false];
     // COSINE = 0; EUCLID = 1;
     optional Similarity feature_distillation_function = 6 [default=COSINE];
+    // whether to user sequence encoder
+    required bool use_sequence_encoder = 7 [default = false];
 }

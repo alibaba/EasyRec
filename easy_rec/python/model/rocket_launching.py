@@ -60,26 +60,27 @@ class RocketLaunching(RankModel):
 
   def build_predict_graph(self):
     self.hidden_layer_feature_output = self._model_config.feature_based_distillation
+    
+    features = self._features
+    if self._model_config.use_sequence_encoder:
+      seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+      if seq_encoding is not None:
+        features = tf.concat([features, seq_encoding], axis=-1)
+
     if self._model_config.HasField('share_dnn'):
       share_dnn_layer = dnn.DNN(self._model_config.share_dnn, self._l2_reg,
                                 'share_dnn', self._is_training)
-      share_feature = share_dnn_layer(self._features)
+      features = share_dnn_layer(features)
+
     booster_dnn_layer = dnn.DNN(self._model_config.booster_dnn, self._l2_reg,
                                 'booster_dnn', self._is_training)
     light_dnn_layer = dnn.DNN(self._model_config.light_dnn, self._l2_reg,
                               'light_dnn', self._is_training)
-    if self._model_config.HasField('share_dnn'):
-      self.booster_feature = booster_dnn_layer(share_feature,
-                                               self.hidden_layer_feature_output)
-      input_embedding_stop_gradient = tf.stop_gradient(share_feature)
-      self.light_feature = light_dnn_layer(input_embedding_stop_gradient,
-                                           self.hidden_layer_feature_output)
-    else:
-      self.booster_feature = booster_dnn_layer(self._features,
-                                               self.hidden_layer_feature_output)
-      input_embedding_stop_gradient = tf.stop_gradient(self._features)
-      self.light_feature = light_dnn_layer(input_embedding_stop_gradient,
-                                           self.hidden_layer_feature_output)
+    self.booster_feature = booster_dnn_layer(features,
+                                              self.hidden_layer_feature_output)
+    input_embedding_stop_gradient = tf.stop_gradient(features)
+    self.light_feature = light_dnn_layer(input_embedding_stop_gradient,
+                                          self.hidden_layer_feature_output)
 
     if self._model_config.feature_based_distillation:
       booster_out = tf.layers.dense(
@@ -105,19 +106,39 @@ class RocketLaunching(RankModel):
           self._num_class,
           kernel_regularizer=self._l2_reg,
           name='light_output')
-
-    self._prediction_dict.update(
-        self._output_to_prediction_impl(
-            booster_out,
-            self._loss_type,
-            num_class=self._num_class,
-            suffix='_booster'))
-    self._prediction_dict.update(
-        self._output_to_prediction_impl(
-            light_out,
-            self._loss_type,
-            num_class=self._num_class,
-            suffix='_light'))
+    
+    if len(self._losses) == 0:
+      self._prediction_dict.update(
+          self._output_to_prediction_impl(
+              booster_out, 
+              loss_type=self._loss_type, 
+              num_class=self._num_class,
+              suffix='_booster'))
+      self._prediction_dict.update(
+          self._output_to_prediction_impl(
+              light_out, 
+              loss_type=self._loss_type, 
+              num_class=self._num_class,
+              suffix='_light'))
+    else:
+      for loss in self._losses:
+        loss_param = loss.WhichOneof('loss_param')
+        if loss_param is not None:
+          loss_param = getattr(loss, loss_param)
+        self._prediction_dict.update(
+            self._output_to_prediction_impl(
+                booster_out,
+                loss_type=loss.loss_type,
+                num_class=self._num_class,
+                loss_param=loss_param,
+                suffix='_booster'))
+        self._prediction_dict.update(
+            self._output_to_prediction_impl(
+                light_out,
+                loss_type=loss.loss_type,
+                num_class=self._num_class,
+                loss_param=loss_param,
+                suffix='_light'))
 
     return self._prediction_dict
 
@@ -141,29 +162,57 @@ class RocketLaunching(RankModel):
             count += 1
             break
 
-    self._loss_dict.update(
-        self._build_loss_impl(
-            LossType.CLASSIFICATION,
+    if len(self._losses) == 0:
+      self._loss_dict.update(
+          self._build_loss_impl(
+              self._loss_type,
+              label_name=self._label_name,
+              loss_weight=self._sample_weight,
+              num_class=self._num_class,
+              suffix='_booster'))
+      self._loss_dict.update(
+          self._build_loss_impl(
+              self._loss_type,
+              label_name=self._label_name,
+              loss_weight=self._sample_weight,
+              num_class=self._num_class,
+              suffix='_light'))
+    else:
+      for loss in self._losses:
+        loss_param = loss.WhichOneof('loss_param')
+        if loss_param is not None:
+          loss_param = getattr(loss, loss_param)
+        booster_loss_ops = self._build_loss_impl(
+            loss.loss_type,
             label_name=self._label_name,
             loss_weight=self._sample_weight,
             num_class=self._num_class,
-            suffix='_booster'))
-
-    self._loss_dict.update(
-        self._build_loss_impl(
-            LossType.CLASSIFICATION,
+            suffix='_booster',
+            loss_name=loss.loss_name,
+            loss_param=loss_param)
+        light_loss_ops = self._build_loss_impl(
+            loss.loss_type,
             label_name=self._label_name,
             loss_weight=self._sample_weight,
             num_class=self._num_class,
-            suffix='_light'))
+            suffix='_light',
+            loss_name=loss.loss_name,
+            loss_param=loss_param)
+        for loss_name, loss_value in booster_loss_ops.items():
+            self._loss_dict[loss_name] = loss_value * loss.weight
+        for loss_name, loss_value in light_loss_ops.items():
+            self._loss_dict[loss_name] = loss_value * loss.weight
 
     booster_logits_no_grad = tf.stop_gradient(logits_booster)
 
+    sample_weight = self._sample_weight
+    if self._num_class > 1:
+      sample_weight = self._sample_weight[:, tf.newaxis]
     self._loss_dict['hint_loss'] = loss_builder.build(
         LossType.L2_LOSS,
         label=booster_logits_no_grad,
         pred=logits_light,
-        loss_weight=self._sample_weight)
+        loss_weight=sample_weight)
 
     if self._model_config.feature_based_distillation:
       for key, value in self._prediction_dict.items():
@@ -175,18 +224,21 @@ class RocketLaunching(RankModel):
 
   def build_metric_graph(self, eval_config):
     metric_dict = {}
+    loss_types = {self._loss_type}
+    if len(self._losses) > 0:
+      loss_types = {loss.loss_type for loss in self._losses}
     for metric in eval_config.metrics_set:
       metric_dict.update(
           self._build_metric_impl(
               metric,
-              loss_type=LossType.CLASSIFICATION,
+              loss_type=loss_types,
               label_name=self._label_name,
               num_class=self._num_class,
               suffix='_light'))
       metric_dict.update(
           self._build_metric_impl(
               metric,
-              loss_type=LossType.CLASSIFICATION,
+              loss_type=loss_types,
               label_name=self._label_name,
               num_class=self._num_class,
               suffix='_booster'))
@@ -194,10 +246,17 @@ class RocketLaunching(RankModel):
 
   def get_outputs(self):
     outputs = []
-    outputs.extend(
-        self._get_outputs_impl(
-            self._loss_type, self._num_class, suffix='_light'))
-    outputs.extend(
-        self._get_outputs_impl(
-            self._loss_type, self._num_class, suffix='_booster'))
-    return outputs
+    if len(self._losses) == 0:
+      outputs.extend(
+          self._get_outputs_impl(
+              self._loss_type, self._num_class, suffix='_light'))
+      outputs.extend(
+          self._get_outputs_impl(
+              self._loss_type, self._num_class, suffix='_booster'))
+    else:
+      for loss in self._losses:
+        outputs.extend(
+          self._get_outputs_impl(loss.loss_type, self._num_class, suffix='_light'))
+        outputs.extend(
+          self._get_outputs_impl(loss.loss_type, self._num_class, suffix='_booster'))
+    return list(set(outputs))
