@@ -205,6 +205,7 @@ class RocketLaunching(RankModel):
 
     booster_logits_no_grad = tf.stop_gradient(logits_booster)
 
+    sample_weight = self._sample_weight
     if self._num_class > 1:
       sample_weight = self._sample_weight[:, tf.newaxis]
     self._loss_dict['hint_loss'] = loss_builder.build(

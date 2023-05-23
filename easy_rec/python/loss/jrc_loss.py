@@ -47,6 +47,11 @@ def jrc_loss(labels,
       tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0))
   mask = tf.to_float(mask)
 
+  session_length = tf.reduce_sum(mask, axis=-1)
+  tf.summary.scalar('session_length/mean', tf.reduce_mean(session_length))
+  tf.summary.scalar('session_length/max', tf.reduce_max(session_length))
+  tf.summary.scalar('session_length/min', tf.reduce_min(session_length))
+
   # Tile logits and label: [B, 2]->[B, B, 2]
   logits = tf.tile(tf.expand_dims(logits, 1), [1, batch_size, 1])
   y = tf.tile(tf.expand_dims(labels, 1), [1, batch_size, 1])
