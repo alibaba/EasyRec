@@ -38,6 +38,8 @@ python setup.py install
   sh download_and_process.sh
   ```
 
+  也可跳过预处理，直接通过链接直接下载处理后的数据集： [movies_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_train_data)、[movies_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/movielens_1m/movies_test_data)。
+
 - Criteo-Research-Kaggle   (详细见:[data/criteo/](data/criteo/))
 
   ```bash
@@ -45,12 +47,16 @@ python setup.py install
   sh download_and_process.sh
   ```
 
+  也可跳过预处理，直接通过链接直接下载处理后的数据集： [criteo_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/criteo_kaggle/criteo_train_data)、[criteo_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/criteo_kaggle/criteo_test_data)。
+
 - Amazon Books   (详细见:[data/amazon_books_data/](data/amazon_books_data/))
 
   ```bash
   cd examples/data/amazon_books_data
   sh download_and_process.sh
   ```
+
+  也可跳过预处理，直接通过链接直接下载处理后的数据集： [amazon_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_train_data)、[amazon_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_test_data)、[negative_book_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/negative_book_data)。
 
 <!-- ### Amazon-Books
 

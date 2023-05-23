@@ -37,6 +37,8 @@
 
 详细处理细节见 [process_amazon.py](process_amazon.py)
 
+也可跳过预处理，直接通过链接直接下载处理后的数据集： [amazon_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_train_data)、[amazon_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/amazon_test_data)、[negative_book_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/amazon_books/negative_book_data)。
+
 - 序列特征构造：
 
   为丰富样本特征，充分利用EasyRec处理序列特征的能力，我们对数据集进一步处理。ComiRec数据集中每一行代表一次交互，包含三个字段\<user_id>,\<item_id>,\<time_stamp>。通过对用户进行分组，得到多条序列特征，用'|'分隔。为提高训练效率，我们设定序列特征的最大长度为50。
