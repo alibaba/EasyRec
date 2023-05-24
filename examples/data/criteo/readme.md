@@ -34,4 +34,6 @@
 
 详细处理细节见 [process_criteo_kaggle.py](process_criteo_kaggle.py)
 
+也可跳过预处理，直接通过链接下载处理后的数据集： [criteo_train_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/criteo_kaggle/criteo_train_data)、[criteo_test_data](https://easy-rec.oss-cn-hangzhou.aliyuncs.com/data/criteo_kaggle/criteo_test_data)。
+
 注：由于测试集中没有标签，无法评估，故在我们的demo实验中没有使用。
