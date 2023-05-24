@@ -81,8 +81,8 @@ def jrc_loss(labels,
   else:
     logging.info('[%s] disable same_label_loss' % loss_name)
     diag = tf.one_hot(tf.range(batch_size), batch_size)
-    l_pos = diag * l_pos + (1 - diag) * y_neg * l_pos
-    l_neg = diag * l_neg + (1 - diag) * y_pos * l_neg
+    l_pos = l_pos + (1 - diag) * y_pos * -1e9
+    l_neg = l_neg + (1 - diag) * y_neg * -1e9
     loss_pos = -tf.linalg.diag_part(y_pos * tf.nn.log_softmax(l_pos, axis=0))
     loss_neg = -tf.linalg.diag_part(y_neg * tf.nn.log_softmax(l_neg, axis=0))
     ge_loss = tf.reduce_mean(loss_pos + loss_neg)
