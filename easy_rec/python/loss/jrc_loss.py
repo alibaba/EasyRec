@@ -14,6 +14,7 @@ def jrc_loss(labels,
              alpha=0.5,
              auto_weight=False,
              sample_weights=1.0,
+             same_label_loss=True,
              name=''):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
@@ -27,6 +28,7 @@ def jrc_loss(labels,
     auto_weight: bool, whether to learn loss weight between ranking loss and calibration loss
     sample_weights: Coefficients for the loss. This must be scalar or broadcastable to
       `labels` (i.e. same rank and each dimension is either 1 or the same).
+    same_label_loss: enable ge_loss for sample with same label in a session or not.
     name: the name of loss
   """
   loss_name = name if name else 'jrc_loss'
@@ -71,9 +73,22 @@ def jrc_loss(labels,
     y_neg *= pairwise_weights
 
   # Compute list-wise generative loss -log p(x|y, z)
-  loss_pos = -tf.reduce_sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
-  loss_neg = -tf.reduce_sum(y_neg * tf.nn.log_softmax(l_neg, axis=0), axis=0)
-  ge_loss = tf.reduce_mean((loss_pos + loss_neg) / tf.reduce_sum(mask, axis=0))
+  if same_label_loss:
+    logging.info('[%s] enable same_label_loss' % loss_name)
+    loss_pos = -tf.reduce_sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
+    loss_neg = -tf.reduce_sum(y_neg * tf.nn.log_softmax(l_neg, axis=0), axis=0)
+    ge_loss = tf.reduce_mean((loss_pos + loss_neg) / tf.reduce_sum(mask, axis=0))
+  else:
+    logging.info('[%s] disable same_label_loss' % loss_name)
+    diag = tf.one_hot(tf.range(batch_size), batch_size)
+    l_pos = diag * l_pos + (1 - diag) * y_neg * l_pos
+    l_neg = diag * l_neg + (1 - diag) * y_pos * l_neg
+    loss_pos = -tf.linalg.diag_part(y_pos * tf.nn.log_softmax(l_pos, axis=0))
+    loss_neg = -tf.linalg.diag_part(y_neg * tf.nn.log_softmax(l_neg, axis=0))
+    ge_loss = tf.reduce_mean(loss_pos + loss_neg)
+
+  tf.summary.scalar('loss/%s_ce' % loss_name, ce_loss)
+  tf.summary.scalar('loss/%s_ge' % loss_name, ge_loss)
 
   # The final JRC model
   if auto_weight:
