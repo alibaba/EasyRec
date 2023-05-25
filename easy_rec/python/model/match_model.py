@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import os
 
 import tensorflow as tf
 
@@ -85,7 +86,14 @@ class MatchModel(EasyRecModel):
     # pos_user_item_sim = tf.reduce_sum(
     #     tf.multiply(user_emb, pos_item_emb), axis=1, keep_dims=True)
     # neg_user_item_sim = tf.matmul(user_emb, tf.transpose(neg_item_emb))
-    simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
+    # simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
+
+    _mode = os.environ['tf.estimator.mode']
+    if _mode == tf.estimator.ModeKeys.PREDICT:
+      simple_user_item_sim = tf.reduce_sum(
+          tf.multiply(user_emb, simple_item_emb), axis=1, keep_dims=True)
+    else:
+      simple_user_item_sim = tf.matmul(user_emb, tf.transpose(simple_item_emb))
 
     if hard_neg_indices is None:
       return simple_user_item_sim
