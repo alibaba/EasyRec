@@ -107,10 +107,10 @@ class DSSM(MatchModel):
     if self._loss_type == LossType.CLASSIFICATION:
       return ['logits', 'probs', 'user_emb', 'item_emb']
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
-      self._prediction_dict['logits'] = tf.diag_part(
+      self._prediction_dict['logits'] = tf.squeeze(
+          self._prediction_dict['logits'], axis=-1)
+      self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
-      self._prediction_dict['probs'] = tf.diag_part(
-          self._prediction_dict['probs'])
       return ['logits', 'probs', 'user_emb', 'item_emb']
     elif self._loss_type == LossType.L2_LOSS:
       return ['y', 'user_emb', 'item_emb']
