@@ -6,6 +6,8 @@ from easy_rec.python.layers import cmbf
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
 from easy_rec.python.layers import uniter
+from easy_rec.python.layers import fibinet
+from easy_rec.python.layers import mask_net
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.protos.dbmtl_pb2 import DBMTL as DBMTLConfig
 
@@ -37,6 +39,13 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
+    elif self._model_config.HasField('bottom_fibinet'):
+      self._fibinet_layer = fibinet.FiBiNetLayer(self._model_config.bottom_fibinet,
+                                                 features,
+                                                 self._input_layer)
+    elif self._model_config.HasField('bottom_mask_net'):
+      self._mask_net_layer = mask_net.MaskNet(self._model_config.bottom_mask_net)
+      self._features, _ = self._input_layer(self._feature_dict, 'all')
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
@@ -60,6 +69,10 @@ class DBMTL(MultiTaskModel):
       bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_uniter'):
       bottom_fea = self._uniter_layer(self._is_training, l2_reg=self._l2_reg)
+    elif self._model_config.HasField('bottom_fibinet'):
+      bottom_fea = self._fibinet_layer('all', self._is_training, l2_reg=self._l2_reg)
+    elif self._model_config.HasField('bottom_mask_net'):
+      bottom_fea = self._mask_net_layer(self._features, self._is_training, l2_reg=self._l2_reg)
     elif self._model_config.HasField('bottom_dnn'):
       bottom_dnn = dnn.DNN(
           self._model_config.bottom_dnn,

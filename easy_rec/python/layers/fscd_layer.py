@@ -35,14 +35,14 @@ def sigmoid(x):
 
 def get_feature_importance(pipeline_config, feature_group_name=None):
   assert pipeline_config.model_config.HasField(
-      'variational_dropout'), 'variational_dropout must be in model_config'
+    'variational_dropout'), 'variational_dropout must be in model_config'
 
   checkpoint_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
   meta_graph_def = read_meta_graph_file(checkpoint_path + '.meta')
 
   features_map = dict()
   for col_def in meta_graph_def.collection_def[
-      'variational_dropout'].bytes_list.value:
+    'variational_dropout'].bytes_list.value:
     features = json.loads(col_def)
     features_map.update(features)
 
@@ -105,24 +105,30 @@ class FSCDLayer(object):
     self.name = name
     self.feature_complexity = get_feature_complexity(feature_configs)
 
-  def compute_dropout_mask(self, n, temperature=0.1):
+  def compute_dropout_mask(self, n):
     delta_name = 'fscd_delta_%s' % self.name
     delta = tf.get_variable(
-        name=delta_name,
-        shape=[n],
-        dtype=tf.float32,
-        initializer=tf.constant_initializer(0.))
+      name=delta_name,
+      shape=[n],
+      dtype=tf.float32,
+      initializer=tf.constant_initializer(0.))
     delta = tf.nn.sigmoid(delta)
+    epsilon = np.finfo(float).eps
+    max_keep_ratio = self._config.max_keep_ratio
+    min_keep_ratio = self._config.min_keep_ratio
+    if max_keep_ratio >= 1.0:
+      max_keep_ratio = 1.0 - epsilon
+    if min_keep_ratio <= 0.0:
+      min_keep_ratio = epsilon
+    delta = tf.clip_by_value(delta, min_keep_ratio, max_keep_ratio)
 
-    EPSILON = np.finfo(float).eps
     unif_noise = tf.random_uniform([n],
                                    dtype=tf.float32,
                                    seed=None,
                                    name='uniform_noise')
-    approx = (
-        tf.log(delta + EPSILON) - tf.log(1. - delta + EPSILON) +
-        tf.log(unif_noise + EPSILON) - tf.log(1. - unif_noise + EPSILON))
-    return tf.sigmoid(approx / temperature)
+    approx = (tf.log(delta) - tf.log(1. - delta) +
+              tf.log(unif_noise) - tf.log(1. - unif_noise))
+    return tf.sigmoid(approx / self._config.temperature), delta
 
   def compute_regular_params(self, cols_to_feature):
     alphas = {}
@@ -141,8 +147,8 @@ class FSCDLayer(object):
       alpha = math.log(sig_c) - math.log(theta)
       alphas[fc] = alpha
       print(
-          str(fc.raw_name), 'complexity:', complexity, 'cardinality:', cardinal,
-          'dimension:', dim, 'c:', c, 'theta:', theta, 'alpha:', alpha)
+        str(fc.raw_name), 'complexity:', complexity, 'cardinality:', cardinal,
+        'dimension:', dim, 'c:', c, 'theta:', theta, 'alpha:', alpha)
     return alphas
 
   def __call__(self, cols_to_feature):
@@ -152,14 +158,21 @@ class FSCDLayer(object):
     feature_dimension = []
     output_tensors = []
     alphas = []
-    z = self.compute_dropout_mask(len(cols_to_feature))  # keep ratio
+    z, delta = self.compute_dropout_mask(len(cols_to_feature))  # keep ratio
+    tf.summary.histogram('fscd_keep_ratio', delta)
+    tf.summary.histogram('fscd_keep_mask', z)
     regular = self.compute_regular_params(cols_to_feature)
+
     feature_columns = cols_to_feature.keys()
     for column in sorted(feature_columns, key=lambda x: x.name):
       value = cols_to_feature[column]
       alpha = regular[column]
       i = len(output_tensors)
-      out = value * z[i] if self.is_training else value
+      if self.is_training:
+        scaled_value = tf.div(value, delta[i])
+        out = tf.multiply(scaled_value, z[i], name='fscd_dropout')
+      else:
+        out = value
       cols_to_feature[column] = out
       output_tensors.append(out)
       alphas.append(alpha)
@@ -175,3 +188,15 @@ class FSCDLayer(object):
 
     tf.add_to_collection('variational_dropout_loss', loss)
     return output_features
+
+
+# def dropout(p):
+#    u = np.random.uniform()
+#    x = math.log(p) - math.log(1-p) + math.log(u) - math.log(1-u)
+#    z = sigmoid(x/0.1)
+#    return z
+#
+#
+# if __name__ == '__main__':
+#    for i in range(100):
+#      print(dropout(0.5))

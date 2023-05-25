@@ -124,7 +124,8 @@ class MultiTaskModel(RankModel):
             suffix='_%s' % tower_name)
         if strategy == self._base_model_config.Random:
           for loss_name in loss_dict.keys():
-            loss_dict[loss_name] = loss_dict[loss_name] * loss_weight_arr[offset]
+            loss_dict[
+                loss_name] = loss_dict[loss_name] * loss_weight_arr[offset]
         offset += 1
       else:
         for i, loss in enumerate(losses):
@@ -145,20 +146,24 @@ class MultiTaskModel(RankModel):
             elif strategy == self._base_model_config.Uncertainty:
               if loss.learn_loss_weight:
                 uncertainty = tf.Variable(
-                  0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
-                tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
-                if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+                    0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
+                tf.summary.scalar('loss/%s_uncertainty' % loss_name,
+                                  uncertainty)
+                if loss.loss_type in {
+                    LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS
+                }:
                   loss_dict[loss_name] = 0.5 * tf.exp(
-                    -uncertainty) * loss_value + 0.5 * uncertainty
+                      -uncertainty) * loss_value + 0.5 * uncertainty
                 else:
                   loss_dict[loss_name] = tf.exp(
-                    -uncertainty) * loss_value + 0.5 * uncertainty
+                      -uncertainty) * loss_value + 0.5 * uncertainty
               else:
                 loss_dict[loss_name] = loss_value * loss.weight
             elif strategy == self._base_model_config.Random:
               loss_dict[loss_name] = loss_value * loss_weight_arr[i + offset]
             else:
-              raise ValueError("Unsupported loss weight strategy: " + strategy.Name)
+              raise ValueError('Unsupported loss weight strategy: ' +
+                               strategy.Name)
         offset += len(losses)
       self._loss_dict.update(loss_dict)
 

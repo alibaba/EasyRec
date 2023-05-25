@@ -423,7 +423,7 @@ class FSCD(object):
     for feature_config in config_util.get_compatible_feature_configs(config):
       feature_name = feature_config.input_names[0]
       if feature_config.HasField('feature_name'):
-          feature_name = feature_config.feature_name
+        feature_name = feature_config.feature_name
       if feature_name in excluded_features:
         feature_config.feature_type = FeatureConfig.FeatureType.ConstFeature
 

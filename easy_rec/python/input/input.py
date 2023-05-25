@@ -515,8 +515,9 @@ class Input(six.with_metaclass(_meta_type, object)):
       multiples[0] = batch_size
       return tf.tile(input_tensor, multiples)
 
-    input_tensor = tf.cond(tf.equal(tf.shape(input_tensor)[0], batch_size),
-                           lambda: input_tensor, expand_input)
+    input_tensor = tf.cond(
+        tf.equal(tf.shape(input_tensor)[0], batch_size), lambda: input_tensor,
+        expand_input)
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
     parsed_dict[feature_name] = input_tensor
 

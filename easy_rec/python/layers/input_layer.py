@@ -38,7 +38,8 @@ class InputLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
-               is_training=False):
+               is_training=False,
+               do_feature_normalize=False):
     self._feature_configs = feature_configs
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
@@ -66,6 +67,7 @@ class InputLayer(object):
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
     self._variational_dropout_config = variational_dropout_config
+    self._do_feature_normalize = do_feature_normalize
 
   def has_group(self, group_name):
     return group_name in self._feature_groups
@@ -135,7 +137,8 @@ class InputLayer(object):
             features,
             group_columns,
             cols_to_output_tensors=cols_to_output_tensors,
-            feature_name_to_output_tensors=feature_name_to_output_tensors)
+            feature_name_to_output_tensors=feature_name_to_output_tensors,
+            do_normalize=self._do_feature_normalize)
         group_features = [cols_to_output_tensors[x] for x in group_columns]
 
         for col, val in cols_to_output_tensors.items():
@@ -185,7 +188,8 @@ class InputLayer(object):
         features,
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
-        feature_name_to_output_tensors=feature_name_to_output_tensors)
+        feature_name_to_output_tensors=feature_name_to_output_tensors,
+        do_normalize=self._do_feature_normalize)
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)

@@ -4,12 +4,18 @@ package protos;
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/tower.proto";
 import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/fibinet.proto";
+import "easy_rec/python/protos/masknet.proto";
 
 message DBMTL {
     // shared bottom cmbf layer
     optional CMBFTower bottom_cmbf = 101;
     // shared bottom uniter layer
     optional UniterTower bottom_uniter = 102;
+    // shared bottom fibinet layer
+    optional FiBiNetTower bottom_fibinet = 103;
+    // shared bottom mask net layer
+    optional MaskNet bottom_mask_net = 104;
     // shared bottom dnn layer
     optional DNN bottom_dnn = 1;
     // mmoe expert dnn layer definition

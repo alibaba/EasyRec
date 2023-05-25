@@ -112,4 +112,6 @@ message EasyRecModel {
 
     // dnn layers after sequence feature
     optional DNN sequence_dnn = 17;
+
+    optional bool do_feature_normalize = 18;
 }

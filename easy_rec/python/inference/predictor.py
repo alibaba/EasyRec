@@ -223,7 +223,7 @@ class PredictorImpl(object):
               input_name = tensor.name
               input_name, _ = input_name.split(':')
               input_op = self._graph.get_operation_by_name(input_name)
-              if input_op.type == "PlaceholderWithDefault":
+              if input_op.type == 'PlaceholderWithDefault':
                 continue
               try:
                 input_id = input_name.split('_')[-1]

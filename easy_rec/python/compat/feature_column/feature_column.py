@@ -167,6 +167,7 @@ from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.layers.common_layers import layer_norm
 
 
 def _internal_input_layer(features,
@@ -177,7 +178,8 @@ def _internal_input_layer(features,
                           scope=None,
                           cols_to_output_tensors=None,
                           from_template=False,
-                          feature_name_to_output_tensors=None):
+                          feature_name_to_output_tensors=None,
+                          do_normalize=False):
   """See input_layer, `scope` is a name or variable scope to use."""
   feature_columns = _normalize_feature_columns(feature_columns)
   for column in feature_columns:
@@ -208,6 +210,18 @@ def _internal_input_layer(features,
         batch_size = array_ops.shape(tensor)[0]
         output_tensor = array_ops.reshape(
             tensor, shape=(batch_size, num_elements))
+        if do_normalize:
+          from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn, NumericColumn, \
+            WeightedCategoricalColumn
+          from tensorflow.python.layers.normalization import batch_normalization
+          if isinstance(column, EmbeddingColumn) or isinstance(column, _SharedEmbeddingColumn):
+            fc = column.categorical_column
+            if isinstance(fc, WeightedCategoricalColumn) and fc.weight_feature_key.endswith('_raw_proj_val'):
+              output_tensor = layer_norm(output_tensor, name='ln_' + column.name)
+            else:
+              output_tensor = batch_normalization(output_tensor, name='bn_'+column.name)
+          elif isinstance(column, NumericColumn) and int(column.shape[-1]) > 1:
+            output_tensor = layer_norm(output_tensor, name='ln_' + column.name)
         output_tensors.append(output_tensor)
         if cols_to_vars is not None:
           # Retrieve any variables created (some _DenseColumn's don't create
@@ -239,7 +253,8 @@ def input_layer(features,
                 trainable=True,
                 cols_to_vars=None,
                 cols_to_output_tensors=None,
-                feature_name_to_output_tensors=None):
+                feature_name_to_output_tensors=None,
+                do_normalize=False):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -287,6 +302,8 @@ def input_layer(features,
     cols_to_output_tensors: If not `None`, must be a dictionary that will be
       filled with a mapping from '_FeatureColumn' to the associated
       output `Tensor`s.
+    do_normalize: Whether to do layer normalization for numerical features and
+      batch normalization operation for categorical features.
 
   Returns:
     A `Tensor` which represents input layer of a model. Its shape
@@ -303,7 +320,8 @@ def input_layer(features,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
       cols_to_output_tensors=cols_to_output_tensors,
-      feature_name_to_output_tensors=feature_name_to_output_tensors)
+      feature_name_to_output_tensors=feature_name_to_output_tensors,
+      do_normalize=do_normalize)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it

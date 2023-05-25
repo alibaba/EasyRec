@@ -2687,9 +2687,9 @@ def _normalize_feature_columns(feature_columns):
 class ConstantNumericColumn(
     DenseColumn,
     fc_old._DenseColumn,  # pylint: disable=protected-access
-    collections.namedtuple('ConstantNumericColumn',
-                           ('feature_name', 'key', 'shape', 'default_value',
-                            'dtype'))):
+    collections.namedtuple(
+        'ConstantNumericColumn',
+        ('feature_name', 'key', 'shape', 'default_value', 'dtype'))):
   """see `numeric_column`."""
 
   @property

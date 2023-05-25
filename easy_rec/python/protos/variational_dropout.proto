@@ -13,5 +13,9 @@ message VariationalDropoutLayer {
     optional float feature_complexity_weight = 4 [default = 1.0];
     optional float feature_dimension_weight = 5 [default = 1e-2];
     optional float feature_cardinality_weight = 6 [default = 1e-7];
-    optional uint32 fine_tune_use_top_k_features = 7;
+    // temperature
+    optional float temperature = 7 [default = 0.1];
+
+    optional float min_keep_ratio = 8 [default = 1e-3];
+    optional float max_keep_ratio = 9 [default = 1.0];
 }
