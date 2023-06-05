@@ -60,8 +60,9 @@ class DIN(object):
     elif self.config.attention_normalizer == 'softmax_eps':
       scores = scores - tf.reduce_max(scores, axis=2, keepdims=True)
       scores = tf.math.exp(scores)
-      scores = scores / (tf.reduce_sum(scores, axis=2, keepdims=True) +
-                 self.config.softmax_eps)
+      scores = scores / (
+          tf.reduce_sum(scores, axis=2, keepdims=True) +
+          self.config.softmax_eps)
     elif self.config.attention_normalizer == 'sigmoid':
       scores = scores / (seq_emb_size**0.5)
       scores = tf.nn.sigmoid(scores)

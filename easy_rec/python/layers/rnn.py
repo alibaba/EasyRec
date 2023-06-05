@@ -159,6 +159,7 @@ def _rnn_step(time,
     for r, new_state_r in enumerate(new_state)
   ])
   return (final_output, final_state)
+
   Args:
     time: Python int, the current time step
     sequence_length: int32 `Tensor` vector of size [batch_size]
@@ -175,16 +176,17 @@ def _rnn_step(time,
       calculations.  This is useful for `dynamic_rnn`, where the input tensor
       matches `max_sequence_length`, and using conditionals just slows
       everything down.
+
   Returns:
     A tuple of (`final_output`, `final_state`) as given by the pseudocode above:
       final_output is a `Tensor` matrix of shape [batch_size, output_size]
       final_state is either a single `Tensor` matrix, or a tuple of such
         matrices (matching length and shapes of input `state`).
+
   Raises:
     ValueError: If the cell returns a state tuple whose length does not match
       that returned by `state_size`.
   """
-
   # Convert state to a list for ease of use
   flat_state = nest.flatten(state)
   flat_zero_output = nest.flatten(zero_output)
@@ -398,7 +400,6 @@ def bidirectional_dynamic_rnn(cell_fw,
   Raises:
     TypeError: If `cell_fw` or `cell_bw` is not an instance of `RNNCell`.
   """
-
   if not _like_rnncell(cell_fw):
     raise TypeError('cell_fw must be an instance of RNNCell')
   if not _like_rnncell(cell_bw):
@@ -774,7 +775,6 @@ def _dynamic_rnn_loop(cell,
     Returns:
       The tuple (time + 1, output_ta_t with updated flow, new_state).
     """
-
     input_t = tuple(ta.read(time) for ta in input_ta)
     # Restore some shape information
     for input_, shape in zip(input_t, inputs_got_shape):
@@ -1009,7 +1009,6 @@ def raw_rnn(cell,
     TypeError: If `cell` is not an instance of RNNCell, or `loop_fn` is not
       a `callable`.
   """
-
   if not _like_rnncell(cell):
     raise TypeError('cell must be an instance of RNNCell')
   if not callable(loop_fn):
@@ -1215,7 +1214,6 @@ def static_rnn(cell,
     ValueError: If `inputs` is `None` or an empty list, or if the input depth
       (column size) cannot be inferred from inputs via shape inference.
   """
-
   if not _like_rnncell(cell):
     raise TypeError('cell must be an instance of RNNCell')
   if not nest.is_sequence(inputs):
@@ -1452,7 +1450,6 @@ def static_bidirectional_rnn(cell_fw,
     TypeError: If `cell_fw` or `cell_bw` is not an instance of `RNNCell`.
     ValueError: If inputs is None or an empty list.
   """
-
   if not _like_rnncell(cell_fw):
     raise TypeError('cell_fw must be an instance of RNNCell')
   if not _like_rnncell(cell_bw):

@@ -261,7 +261,8 @@ class RankModel(EasyRecModel):
           elif strategy == self._base_model_config.Random:
             loss_dict[loss_name] = loss_value * loss_weight[i]
           else:
-            raise ValueError("Unsupported loss weight strategy: " + strategy.Name)
+            raise ValueError('Unsupported loss weight strategy: ' +
+                             strategy.Name)
 
     self._loss_dict.update(loss_dict)
 

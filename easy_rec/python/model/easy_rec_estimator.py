@@ -141,7 +141,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       regularization_losses = tf.add_n(
           regularization_losses, name='regularization_loss')
       loss_dict['regularization_loss'] = regularization_losses
- 
+
     aux_losses = tf.get_collection('AUX_LOSSES')
     if aux_losses:
       loss_dict['aux_loss'] = tf.add_n(aux_losses)

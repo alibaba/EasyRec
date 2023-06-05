@@ -3,12 +3,12 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.ops.rnn_cell import GRUCell
 
 from easy_rec.python.layers import dnn
-from easy_rec.python.utils.shape_utils import get_shape_list
 from easy_rec.python.layers.rnn import dynamic_rnn
-from tensorflow.python.ops.rnn_cell import GRUCell
 from easy_rec.python.utils.rnn_utils import VecAttGRUCell
+from easy_rec.python.utils.shape_utils import get_shape_list
 
 # from tensorflow.python.keras.layers import Layer
 
@@ -68,16 +68,19 @@ class DIEN(object):
         assert False, 'the embedding size of target item is larger than the one of sequence'
 
     seq_len = seq_features[0][1]
-    rnn_outputs,_ = dynamic_rnn(GRUCell(seq_emb_size),
-       inputs=hist_id_col, sequence_length=seq_len,
-       dtype=tf.float32, scope='%s/dien/gru1' % self.name)
+    rnn_outputs, _ = dynamic_rnn(
+        GRUCell(seq_emb_size),
+        inputs=hist_id_col,
+        sequence_length=seq_len,
+        dtype=tf.float32,
+        scope='%s/dien/gru1' % self.name)
 
     seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)
     if self.config.aux_loss_weight > 0 and is_training:
-      logging.info('add dien aux_loss[weight=%.3f]' % self.config.aux_loss_weight)
+      logging.info('add dien aux_loss[weight=%.3f]' %
+                   self.config.aux_loss_weight)
       neg_cur_id = target_feature[batch_size:, ...]
-      neg_cur_id = tf.tile(
-          neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
+      neg_cur_id = tf.tile(neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
       aux_loss = self.auxiliary_loss(
           rnn_outputs[:, :-1, :],
           hist_id_col[:, 1:, :target_emb_size],
@@ -88,13 +91,14 @@ class DIEN(object):
       aux_loss = None
 
     queries = tf.tile(tf.expand_dims(query, 1), [1, max_seq_len, 1])
-    din_all = tf.concat([queries, rnn_outputs, queries - rnn_outputs, queries * rnn_outputs],
-                        axis=-1)
+    din_all = tf.concat(
+        [queries, rnn_outputs, queries - rnn_outputs, queries * rnn_outputs],
+        axis=-1)
     din_layer = dnn.DNN(
         self.config.attention_dnn,
         self.l2_reg,
         self.name + '/din_attention',
-        training,
+        is_training,
         last_layer_no_activation=True,
         last_layer_no_batch_norm=True)
     output = din_layer(din_all)  # [B, L, 1]
@@ -125,7 +129,10 @@ class DIEN(object):
 
     output = tf.squeeze(tf.matmul(scores, rnn_outputs), axis=[1])
     item_his_eb_sum = tf.reduce_sum(hist_id_col, 1)
-    output = tf.concat([output, target_feature, item_his_eb_sum,
-          target_feature * item_his_eb_sum[:, :target_emb_size], final_state2], axis=-1)
+    output = tf.concat([
+        output, target_feature, item_his_eb_sum,
+        target_feature * item_his_eb_sum[:, :target_emb_size], final_state2
+    ],
+                       axis=-1)  # noqa: E126
     logging.info('dien output shape: ' + str(output.shape))
     return output, aux_loss

@@ -48,8 +48,12 @@ def build(loss_type,
     session = kwargs.get('session_ids', None)
     same_label_loss = True if loss_param is None else loss_param.same_label_loss
     return jrc_loss(
-        label, pred, session, alpha, auto_weight=auto_weight, 
-        sample_weights=loss_weight, 
+        label,
+        pred,
+        session,
+        alpha,
+        auto_weight=auto_weight,
+        sample_weights=loss_weight,
         same_label_loss=same_label_loss,
         name=loss_name)
   elif loss_type == LossType.PAIR_WISE_LOSS:

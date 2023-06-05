@@ -102,7 +102,7 @@ if __name__ == '__main__':
           if fid not in args.label_id
       ]
       if fg_json is not None:
-        feature = { k:v for k,v in zip(fg_feature_names, feature) }
+        feature = {k: v for k, v in zip(fg_feature_names, feature)}
       elif 'features' in predictor.input_names:
         feature = args.separator.join(feature)
       batch_input.append(feature)

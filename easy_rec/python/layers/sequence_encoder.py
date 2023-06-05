@@ -5,9 +5,8 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.layers.bst import BST
-from easy_rec.python.layers.din import DIN
-from easy_rec.python.layers.din import DIN
 from easy_rec.python.layers.dien import DIEN
+from easy_rec.python.layers.din import DIN
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':
@@ -87,7 +86,7 @@ class SequenceEncoder(object):
         dien = DIEN(encoder.dien, self._l2_reg, name=group_name)
         encoding, aux_loss = dien([seq_features, target_feature], is_training)
         if aux_loss is not None and 'loss_dict' in kwargs:
-          kwargs['loss_dict'].update({'seq_aux_loss/' + group_name : aux_loss})
+          kwargs['loss_dict'].update({'seq_aux_loss/' + group_name: aux_loss})
         outputs.append(encoding)
       else:
         assert False, 'unsupported sequence encode type: ' + encoder_type

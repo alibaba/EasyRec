@@ -239,8 +239,7 @@ def main(argv):
   pai_util.set_on_pai()
   if FLAGS.enable_avx_str_split:
     constant.enable_avx_str_split()
-    logging.info('will enable avx str split: %s' %
-                 constant.has_avx_str_split())
+    logging.info('will enable avx str split: %s' % constant.has_avx_str_split())
 
   if FLAGS.distribute_eval:
     os.environ['distribute_eval'] = 'True'

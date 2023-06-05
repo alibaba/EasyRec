@@ -11,6 +11,7 @@ class QAAttGRUCell(RNNCell):
   """Gated Recurrent Unit cell (cf.
 
   http://arxiv.org/abs/1406.1078).
+
   Args:
     num_units: int, The number of units in the GRU cell.
     activation: Nonlinearity to use.  Default: `tanh`.
@@ -81,6 +82,7 @@ class VecAttGRUCell(RNNCell):
   """Gated Recurrent Unit cell (cf.
 
   http://arxiv.org/abs/1406.1078).
+
   Args:
     num_units: int, The number of units in the GRU cell.
     activation: Nonlinearity to use.  Default: `tanh`.
@@ -168,7 +170,6 @@ def calc_auc(raw_arr):
   Returns:
       TYPE: Description
   """
-
   arr = sorted(raw_arr, key=lambda d: d[0], reverse=True)
   pos, neg = 0., 0.
   for record in arr:
