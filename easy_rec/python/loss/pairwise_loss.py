@@ -41,30 +41,25 @@ def pairwise_loss(labels,
     logits /= temperature
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0)) - margin
-  pairwise_mask = tf.greater(
-      tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
-  if session_ids is not None:
-    logging.info('[%s] use session ids' % loss_name)
-    group_equal = tf.equal(
-        tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
-    pairwise_mask = tf.logical_and(pairwise_mask, group_equal)
+
+  pairwise_mask = tf.equal(
+      tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
 
   pairwise_logits = tf.boolean_mask(pairwise_logits, pairwise_mask)
   num_pair = tf.size(pairwise_logits)
   tf.summary.scalar('loss/%s_num_of_pairs' % loss_name, num_pair)
 
-  if tf.is_numeric_tensor(weights):
-    logging.info('[%s] use sample weight' % loss_name)
-    weights = tf.expand_dims(tf.cast(weights, tf.float32), -1)
-    batch_size, _ = get_shape_list(weights, 2)
-    pairwise_weights = tf.tile(weights, tf.stack([1, batch_size]))
-    pairwise_weights = tf.boolean_mask(pairwise_weights, pairwise_mask)
-  else:
-    pairwise_weights = weights
+  pairwise_labels = tf.math.subtract(
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+  pairwise_labels = tf.boolean_mask(pairwise_labels, pairwise_mask)
+  pairwise_pseudo_labels = tf.where(tf.greater(pairwise_labels, 0),
+                                    tf.ones_like(pairwise_labels), tf.zeros_like(pairwise_labels))
 
-  pairwise_pseudo_labels = tf.ones_like(pairwise_logits)
+  # pairwise_weight = tf.abs(pairwise_labels) #v17
+  pairwise_weight = 1.0  # v17_2
+  print('pairwise loss weight: ', pairwise_weight)
   loss = tf.losses.sigmoid_cross_entropy(
-      pairwise_pseudo_labels, pairwise_logits, weights=pairwise_weights)
+      pairwise_pseudo_labels, pairwise_logits, weights=pairwise_weight)
   # set rank loss to zero if a batch has no positive sample.
   # loss = tf.where(tf.is_nan(loss), tf.zeros_like(loss), loss)
   return loss

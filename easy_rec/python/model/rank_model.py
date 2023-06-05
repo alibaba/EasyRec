@@ -174,7 +174,17 @@ class RankModel(EasyRecModel):
     if loss_param is not None:
       if hasattr(loss_param, 'session_name'):
         kwargs['session_ids'] = self._feature_dict[loss_param.session_name]
-    loss_dict[loss_name] = loss_builder.build(
+    if loss_type in [binary_loss_type]:
+      loss_dict[loss_name] = loss_builder.build(
+            loss_type,
+            self._labels['ws_ctr'],
+            pred,
+            loss_weight,
+            num_class,
+            loss_param=loss_param,
+            **kwargs)
+    else:
+      loss_dict[loss_name] = loss_builder.build(
         loss_type,
         self._labels[label_name],
         pred,
