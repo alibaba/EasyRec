@@ -85,7 +85,9 @@ class SequenceEncoder(object):
         outputs.append(encoding)
       elif encoder_type == 'dien':
         dien = DIEN(encoder.dien, self._l2_reg, name=group_name)
-        encoding = dien([seq_features, target_feature], is_training)
+        encoding, aux_loss = dien([seq_features, target_feature], is_training)
+        if aux_loss is not None and 'loss_dict' in kwargs:
+          kwargs['loss_dict'].update({'seq_aux_loss/' + group_name : aux_loss})
         outputs.append(encoding)
       else:
         assert False, 'unsupported sequence encode type: ' + encoder_type

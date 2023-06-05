@@ -48,15 +48,15 @@ class DIEN(object):
     y_hat = tf.nn.softmax(dnn3) + 0.00000001
     return y_hat
 
-  def __call__(self, inputs, training=None, **kwargs):
+  def __call__(self, inputs, is_training=False, **kwargs):
     seq_features, target_feature = inputs
     seq_input = [seq_fea for seq_fea, _ in seq_features]
-    keys = tf.concat(seq_input, axis=-1)
-    hist_id_col = keys
+    hist_id_col = tf.concat(seq_input, axis=-1)
+    batch_size, max_seq_len, _ = get_shape_list(hist_id_col, 3)
 
-    query = target_feature
+    query = target_feature[:batch_size, ...]
     target_emb_size = target_feature.shape.as_list()[-1]
-    seq_emb_size = keys.shape.as_list()[-1]
+    seq_emb_size = hist_id_col.shape.as_list()[-1]
     if target_emb_size != seq_emb_size:
       logging.info(
           '<din> the embedding size of sequence [%d] and target item [%d] is not equal'
@@ -69,23 +69,26 @@ class DIEN(object):
 
     seq_len = seq_features[0][1]
     rnn_outputs,_ = dynamic_rnn(GRUCell(seq_emb_size),
-       inputs=keys, sequence_length=seq_len,
+       inputs=hist_id_col, sequence_length=seq_len,
        dtype=tf.float32, scope='%s/dien/gru1' % self.name)
-    keys = rnn_outputs
 
-    batch_size, max_seq_len, _ = get_shape_list(keys, 3)
-    # neg_cur_id = tf.tile(
-    #     neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
-    # aux_loss_1 = self.auxiliary_loss(
-    #     rnn_outputs[:, :-1, :],
-    #     hist_id_col[:, 1:, :],
-    #     neg_cur_id[:, 1:, :],
-    #     mask[:, 1:],
-    #     stag='dien/gru')
-
+    seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)
+    if self.config.aux_loss_weight > 0 and is_training:
+      logging.info('add dien aux_loss[weight=%.3f]' % self.config.aux_loss_weight)
+      neg_cur_id = target_feature[batch_size:, ...]
+      neg_cur_id = tf.tile(
+          neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
+      aux_loss = self.auxiliary_loss(
+          rnn_outputs[:, :-1, :],
+          hist_id_col[:, 1:, :target_emb_size],
+          neg_cur_id[:, 1:, :],
+          seq_mask[:, 1:],
+          stag=self.name + '/dien/aux_loss') * self.config.aux_loss_weight
+    else:
+      aux_loss = None
 
     queries = tf.tile(tf.expand_dims(query, 1), [1, max_seq_len, 1])
-    din_all = tf.concat([queries, keys, queries - keys, queries * keys],
+    din_all = tf.concat([queries, rnn_outputs, queries - rnn_outputs, queries * rnn_outputs],
                         axis=-1)
     din_layer = dnn.DNN(
         self.config.attention_dnn,
@@ -97,7 +100,6 @@ class DIEN(object):
     output = din_layer(din_all)  # [B, L, 1]
     scores = tf.transpose(output, [0, 2, 1])  # [B, 1, L]
 
-    seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)
     seq_mask = tf.expand_dims(seq_mask, 1)
     paddings = tf.ones_like(scores) * (-2**32 + 1)
     scores = tf.where(seq_mask, scores, paddings)  # [B, 1, L]
@@ -119,11 +121,11 @@ class DIEN(object):
         scope='%s/dien/gru2' % self.name)
 
     # if target_emb_size < seq_emb_size:
-    #   keys = keys[:, :, :target_emb_size]  # [B, L, E]
+    #   hist_id_col = hist_id_col[:, :, :target_emb_size]  # [B, L, E]
 
     output = tf.squeeze(tf.matmul(scores, rnn_outputs), axis=[1])
     item_his_eb_sum = tf.reduce_sum(hist_id_col, 1)
     output = tf.concat([output, target_feature, item_his_eb_sum,
           target_feature * item_his_eb_sum[:, :target_emb_size], final_state2], axis=-1)
-    print('dien output shape:', output.shape)
-    return output
+    logging.info('dien output shape: ' + str(output.shape))
+    return output, aux_loss

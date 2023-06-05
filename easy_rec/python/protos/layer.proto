@@ -125,4 +125,5 @@ message DIENEncoder {
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid
     required string attention_normalizer = 3 [default = 'softmax'];
+    optional float aux_loss_weight = 4 [default=1];
 }
