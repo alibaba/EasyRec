@@ -109,4 +109,11 @@ message EasyRecModel {
 
     // dnn layers after sequence feature
     optional DNN sequence_dnn = 18;
+
+    enum LossWeightStrategy {
+        Fixed = 0;
+        Uncertainty = 1;
+        Random = 2;
+    }
+    required LossWeightStrategy loss_weight_strategy = 19 [default = Fixed];
 }

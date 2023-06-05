@@ -226,7 +226,12 @@ class RankModel(EasyRecModel):
           loss_weight=self._sample_weight,
           num_class=self._num_class)
     else:
-      for loss in self._losses:
+      strategy = self._base_model_config.loss_weight_strategy
+      loss_weight = [1.0]
+      if strategy == self._base_model_config.Random and len(self._losses) > 1:
+        weights = tf.random_normal([len(self._losses)])
+        loss_weight = tf.nn.softmax(weights)
+      for i, loss in enumerate(self._losses):
         loss_param = loss.WhichOneof('loss_param')
         if loss_param is not None:
           loss_param = getattr(loss, loss_param)
@@ -238,18 +243,25 @@ class RankModel(EasyRecModel):
             loss_name=loss.loss_name,
             loss_param=loss_param)
         for loss_name, loss_value in loss_ops.items():
-          if loss.learn_loss_weight:
-            uncertainty = tf.Variable(
-                0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
-            tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
-            if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
-              loss_dict[loss_name] = 0.5 * tf.exp(
-                  -uncertainty) * loss_value + 0.5 * uncertainty
-            else:
-              loss_dict[loss_name] = tf.exp(
-                  -uncertainty) * loss_value + 0.5 * uncertainty
-          else:
+          if strategy == self._base_model_config.Fixed:
             loss_dict[loss_name] = loss_value * loss.weight
+          elif strategy == self._base_model_config.Uncertainty:
+            if loss.learn_loss_weight:
+              uncertainty = tf.Variable(
+                  0, name='%s_loss_weight' % loss_name, dtype=tf.float32)
+              tf.summary.scalar('loss/%s_uncertainty' % loss_name, uncertainty)
+              if loss.loss_type in {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+                loss_dict[loss_name] = 0.5 * tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
+              else:
+                loss_dict[loss_name] = tf.exp(
+                    -uncertainty) * loss_value + 0.5 * uncertainty
+            else:
+              loss_dict[loss_name] = loss_value * loss.weight
+          elif strategy == self._base_model_config.Random:
+            loss_dict[loss_name] = loss_value * loss_weight[i]
+          else:
+            raise ValueError("Unsupported loss weight strategy: " + strategy.Name)
 
     self._loss_dict.update(loss_dict)
 
