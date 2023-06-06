@@ -220,6 +220,9 @@ def _internal_input_layer(features,
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
+    all_batch_size = [array_ops.shape(x)[0] for x in output_tensors]
+    min_batch_size = math_ops.reduce_min(all_batch_size)
+    output_tensors = [x[:min_batch_size, ...] for x in output_tensors]
     return array_ops.concat(output_tensors, 1)
 
   # If we're constructing from the `make_template`, that by default adds a

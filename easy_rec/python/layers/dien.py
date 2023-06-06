@@ -3,13 +3,15 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.ops import array_ops
+# from tensorflow.python.ops import math_ops
 from tensorflow.python.ops.rnn_cell import GRUCell
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.rnn import dynamic_rnn
 from easy_rec.python.utils.rnn_utils import VecAttGRUCell
-from easy_rec.python.utils.shape_utils import get_shape_list
 
+# from easy_rec.python.utils.shape_utils import get_shape_list
 # from tensorflow.python.keras.layers import Layer
 
 
@@ -23,16 +25,18 @@ class DIEN(object):
 
   def auxiliary_loss(self, h_states, click_seq, noclick_seq, mask, stag=None):
     mask = tf.cast(mask, tf.float32)
-    click_input_ = tf.concat([h_states, click_seq], -1)
-    noclick_input_ = tf.concat([h_states, noclick_seq], -1)
-    click_prop_ = self.auxiliary_net(click_input_, stag=stag)[:, :, 0]
-    noclick_prop_ = self.auxiliary_net(noclick_input_, stag=stag)[:, :, 0]
-    click_loss_ = -tf.reshape(
-        tf.log(click_prop_), [-1, tf.shape(click_seq)[1]]) * mask
-    noclick_loss_ = -tf.reshape(
-        tf.log(1.0 - noclick_prop_), [-1, tf.shape(noclick_seq)[1]]) * mask
-    loss_ = tf.reduce_mean(click_loss_ + noclick_loss_)
-    return loss_
+    max_seq_len = tf.shape(click_seq)[0]
+    click_input = tf.concat([h_states, click_seq], -1)
+    h_states_neg = tf.concat([h_states] * self.config.negative_num, axis=0)
+    mask_neg = tf.concat([mask] * self.config.negative_num, axis=0)
+    noclick_input = tf.concat([h_states_neg, noclick_seq], -1)
+    click_prop = self.auxiliary_net(click_input, stag=stag)[:, :, 0]
+    noclick_prop = self.auxiliary_net(noclick_input, stag=stag)[:, :, 0]
+    click_loss = -tf.reshape(tf.log(click_prop), [-1, max_seq_len]) * mask
+    noclick_loss = -tf.reshape(tf.log(1.0 - noclick_prop),
+                               [-1, max_seq_len]) * mask_neg
+    loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
+    return loss
 
   def auxiliary_net(self, in_, stag='auxiliary_net'):
     bn1 = tf.layers.batch_normalization(
@@ -52,8 +56,20 @@ class DIEN(object):
     seq_features, target_feature = inputs
     seq_input = [seq_fea for seq_fea, _ in seq_features]
     hist_id_col = tf.concat(seq_input, axis=-1)
-    batch_size, max_seq_len, _ = get_shape_list(hist_id_col, 3)
+    seq_len = seq_features[0][1]
+    hist_id_col = array_ops.reverse_sequence(
+        hist_id_col,
+        seq_len,
+        seq_axis=1,
+        batch_axis=0,
+        name='%s/seq_reverse' % self.name)
 
+    # batch_size, max_seq_len, _ = get_shape_list(hist_id_col, 3)
+    batch_size = tf.shape(hist_id_col)[0]
+    max_seq_len = tf.shape(hist_id_col)[1]
+
+    # target_feature = tf.Print(target_feature, [tf.shape(target_feature),
+    #     batch_size, max_seq_len], message='target_feature_shape')
     query = target_feature[:batch_size, ...]
     target_emb_size = target_feature.shape.as_list()[-1]
     seq_emb_size = hist_id_col.shape.as_list()[-1]
@@ -62,12 +78,10 @@ class DIEN(object):
           '<din> the embedding size of sequence [%d] and target item [%d] is not equal'
           ' in feature group: %s', seq_emb_size, target_emb_size, self.name)
       if target_emb_size < seq_emb_size:
-        query = tf.pad(target_feature,
-                       [[0, 0], [0, seq_emb_size - target_emb_size]])
+        query = tf.pad(query, [[0, 0], [0, seq_emb_size - target_emb_size]])
       else:
         assert False, 'the embedding size of target item is larger than the one of sequence'
 
-    seq_len = seq_features[0][1]
     rnn_outputs, _ = dynamic_rnn(
         GRUCell(seq_emb_size),
         inputs=hist_id_col,
@@ -80,11 +94,17 @@ class DIEN(object):
       logging.info('add dien aux_loss[weight=%.3f]' %
                    self.config.aux_loss_weight)
       neg_cur_id = target_feature[batch_size:, ...]
+      neg_cur_id = target_feature[:(max_seq_len - 1) * self.config.negative_num,
+                                  ...]
       neg_cur_id = tf.tile(neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
+      neg_cur_id = tf.reshape(neg_cur_id, [
+          batch_size * self.config.negative_num, max_seq_len - 1,
+          target_emb_size
+      ])
       aux_loss = self.auxiliary_loss(
           rnn_outputs[:, :-1, :],
           hist_id_col[:, 1:, :target_emb_size],
-          neg_cur_id[:, 1:, :],
+          neg_cur_id,
           seq_mask[:, 1:],
           stag=self.name + '/dien/aux_loss') * self.config.aux_loss_weight
     else:
@@ -131,7 +151,8 @@ class DIEN(object):
     item_his_eb_sum = tf.reduce_sum(hist_id_col, 1)
     output = tf.concat([
         output, target_feature[:batch_size, ...], item_his_eb_sum,
-        target_feature * item_his_eb_sum[:, :target_emb_size], final_state2
+        target_feature[:batch_size, ...] * item_his_eb_sum[:, :target_emb_size],
+        final_state2
     ],
                        axis=-1)  # noqa: E126
     logging.info('dien output shape: ' + str(output.shape))
