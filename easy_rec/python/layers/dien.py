@@ -38,17 +38,17 @@ class DIEN(object):
     loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
     return loss
 
-  def auxiliary_net(self, in_, stag='auxiliary_net'):
+  def auxiliary_net(self, in_fea, stag='auxiliary_net'):
     bn1 = tf.layers.batch_normalization(
-        inputs=in_, name='bn1' + stag, reuse=tf.AUTO_REUSE)
+        inputs=in_fea, name=stag + '/bn1', reuse=tf.AUTO_REUSE)
     dnn1 = tf.layers.dense(
-        bn1, 100, activation=None, name='f1' + stag, reuse=tf.AUTO_REUSE)
+        bn1, 100, activation=None, name=stag + '/f1', reuse=tf.AUTO_REUSE)
     dnn1 = tf.nn.sigmoid(dnn1)
     dnn2 = tf.layers.dense(
-        dnn1, 50, activation=None, name='f2' + stag, reuse=tf.AUTO_REUSE)
+        dnn1, 50, activation=None, name=stag + '/f2', reuse=tf.AUTO_REUSE)
     dnn2 = tf.nn.sigmoid(dnn2)
     dnn3 = tf.layers.dense(
-        dnn2, 2, activation=None, name='f3' + stag, reuse=tf.AUTO_REUSE)
+        dnn2, 2, activation=None, name=stag + '/f3', reuse=tf.AUTO_REUSE)
     y_hat = tf.nn.softmax(dnn3) + 0.00000001
     return y_hat
 
