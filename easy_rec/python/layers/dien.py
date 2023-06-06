@@ -130,7 +130,7 @@ class DIEN(object):
     output = tf.squeeze(tf.matmul(scores, rnn_outputs), axis=[1])
     item_his_eb_sum = tf.reduce_sum(hist_id_col, 1)
     output = tf.concat([
-        output, target_feature, item_his_eb_sum,
+        output, target_feature[:batch_size, ...], item_his_eb_sum,
         target_feature * item_his_eb_sum[:, :target_emb_size], final_state2
     ],
                        axis=-1)  # noqa: E126
