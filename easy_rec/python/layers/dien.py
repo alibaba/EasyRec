@@ -114,18 +114,19 @@ class DIEN(object):
     if self.config.aux_loss_weight > 0 and is_training:
       logging.info('add dien aux_loss[weight=%.3f]' %
                    self.config.aux_loss_weight)
-      neg_cur_id = target_feature[batch_size:, ...]
-      neg_cur_id = target_feature[:(max_seq_len - 1) * self.config.negative_num,
-                                  ...]
-      neg_cur_id = tf.tile(neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
-      neg_cur_id = tf.reshape(neg_cur_id, [
+      neg_item_embed = target_feature[batch_size:, ...]
+      neg_item_num = self.config.negative_num * (max_seq_len - 1)
+      neg_item_embed = shape_utils.pad_or_clip_tensor(neg_item_embed,
+                                                      neg_item_num)
+      neg_item_embed = tf.tile(
+          neg_item_embed[None, :, :], multiples=[batch_size, 1, 1])
+      neg_item_embed = tf.reshape(neg_item_embed, [
           batch_size, self.config.negative_num, max_seq_len - 1, target_emb_size
       ])
 
       item_ids = self.features[self.config.item_id]
       neg_item_ids = item_ids[batch_size:]
-      neg_item_ids = shape_utils.pad_or_clip_tensor(
-          neg_item_ids, self.config.negative_num * (max_seq_len - 1))
+      neg_item_ids = shape_utils.pad_or_clip_tensor(neg_item_ids, neg_item_num)
       # neg_item_ids = tf.Print(
       #     neg_item_ids, [tf.shape(item_ids), batch_size, max_seq_len],
       #     message='dump_item_ids_shape')
@@ -139,7 +140,7 @@ class DIEN(object):
       aux_loss = self.auxiliary_loss(
           rnn_outputs[:, :-1, :],
           hist_id_col[:, 1:, :target_emb_size],
-          neg_cur_id,
+          neg_item_embed,
           seq_mask[:, 1:],
           pos_item_ids[:, 1:],
           neg_item_ids,
