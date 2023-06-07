@@ -9,6 +9,7 @@ from tensorflow.python.ops.rnn_cell import GRUCell
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.rnn import dynamic_rnn
+from easy_rec.python.utils import shape_utils
 from easy_rec.python.utils.rnn_utils import VecAttGRUCell
 
 # from easy_rec.python.utils.shape_utils import get_shape_list
@@ -123,7 +124,13 @@ class DIEN(object):
 
       item_ids = self.features[self.config.item_id]
       neg_item_ids = item_ids[batch_size:]
-      neg_item_ids = item_ids[:(self.config.negative_num * (max_seq_len - 1))]
+      neg_item_ids = shape_utils.pad_or_clip_tensor(
+          neg_item_ids, self.config.negative_num * (max_seq_len - 1))
+      # neg_item_ids = tf.Print(
+      #     neg_item_ids, [tf.shape(item_ids), batch_size, max_seq_len],
+      #     message='dump_item_ids_shape')
+      # neg_item_ids = neg_item_ids[:(self.config.negative_num *
+      #                               (max_seq_len - 1))]
       neg_item_ids = tf.tile(neg_item_ids[None, :], [batch_size, 1])
       neg_item_ids = tf.reshape(
           neg_item_ids, [batch_size, self.config.negative_num, max_seq_len - 1])
