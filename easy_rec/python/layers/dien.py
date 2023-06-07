@@ -4,7 +4,7 @@ import logging
 
 import tensorflow as tf
 from tensorflow.python.ops import array_ops
-# from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.ops.rnn_cell import GRUCell
 
 from easy_rec.python.layers import dnn
@@ -17,24 +17,44 @@ from easy_rec.python.utils.rnn_utils import VecAttGRUCell
 
 class DIEN(object):
 
-  def __init__(self, config, l2_reg, name='dien', **kwargs):
+  def __init__(self, config, l2_reg, name='dien', features=None, **kwargs):
     # super(DIN, self).__init__(name=name, **kwargs)
     self.name = name
     self.l2_reg = l2_reg
     self.config = config
+    self.features = features
 
-  def auxiliary_loss(self, h_states, click_seq, noclick_seq, mask, stag=None):
+  def auxiliary_loss(self,
+                     h_states,
+                     click_seq,
+                     noclick_seq,
+                     mask,
+                     pos_item_ids,
+                     neg_item_ids,
+                     stag=None):
+
     mask = tf.cast(mask, tf.float32)
-    max_seq_len = tf.shape(click_seq)[0]
     click_input = tf.concat([h_states, click_seq], -1)
-    h_states_neg = tf.concat([h_states] * self.config.negative_num, axis=0)
-    mask_neg = tf.concat([mask] * self.config.negative_num, axis=0)
+    # batch_size, neg_num, max_seq_len, embed_dim
+    h_states_neg = tf.tile(h_states[:, None, :, :],
+                           [1, self.config.negative_num, 1, 1])
+    # batch_size, neg_num, max_seq_len
+    mask_neg = tf.tile(mask[:, None, :], [1, self.config.negative_num, 1])
+    # batch_size, neg_num, max_seq_len, embed_dim * 2
     noclick_input = tf.concat([h_states_neg, noclick_seq], -1)
+    # batch_size, neg_num, max_seq_len
+    pos_item_ids = tf.tile(pos_item_ids[:, None, :],
+                           [1, self.config.negative_num, 1])
+
+    mask_neg_eq_pos = (1 - tf.to_float(tf.equal(pos_item_ids, neg_item_ids)))
+    mask_neg = mask_neg_eq_pos * mask_neg
+    tf.summary.scalar('dien/aux_loss/mask_neg_eq_pos',
+                      math_ops.reduce_mean(mask_neg_eq_pos))
+    tf.summary.scalar('dien/aux_loss/mask_neg', math_ops.reduce_mean(mask_neg))
     click_prop = self.auxiliary_net(click_input, stag=stag)[:, :, 0]
-    noclick_prop = self.auxiliary_net(noclick_input, stag=stag)[:, :, 0]
-    click_loss = -tf.reshape(tf.log(click_prop), [-1, max_seq_len]) * mask
-    noclick_loss = -tf.reshape(tf.log(1.0 - noclick_prop),
-                               [-1, max_seq_len]) * mask_neg
+    noclick_prop = self.auxiliary_net(noclick_input, stag=stag)[:, :, :, 0]
+    click_loss = -tf.log(click_prop) * mask
+    noclick_loss = -tf.log(1.0 - noclick_prop) * mask_neg
     loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
     return loss
 
@@ -98,14 +118,24 @@ class DIEN(object):
                                   ...]
       neg_cur_id = tf.tile(neg_cur_id[None, :, :], multiples=[batch_size, 1, 1])
       neg_cur_id = tf.reshape(neg_cur_id, [
-          batch_size * self.config.negative_num, max_seq_len - 1,
-          target_emb_size
+          batch_size, self.config.negative_num, max_seq_len - 1, target_emb_size
       ])
+
+      item_ids = self.features[self.config.item_id]
+      neg_item_ids = item_ids[batch_size:]
+      neg_item_ids = item_ids[:(self.config.negative_num * (max_seq_len - 1))]
+      neg_item_ids = tf.tile(neg_item_ids[None, :], [batch_size, 1])
+      neg_item_ids = tf.reshape(
+          neg_item_ids, [batch_size, self.config.negative_num, max_seq_len - 1])
+      pos_item_ids = tf.sparse.to_dense(
+          self.features[self.config.seq_item_id], default_value='')
       aux_loss = self.auxiliary_loss(
           rnn_outputs[:, :-1, :],
           hist_id_col[:, 1:, :target_emb_size],
           neg_cur_id,
           seq_mask[:, 1:],
+          pos_item_ids[:, 1:],
+          neg_item_ids,
           stag=self.name + '/dien/aux_loss') * self.config.aux_loss_weight
     else:
       aux_loss = None

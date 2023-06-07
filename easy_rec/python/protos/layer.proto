@@ -127,4 +127,6 @@ message DIENEncoder {
     required string attention_normalizer = 3 [default = 'softmax'];
     optional float aux_loss_weight = 4 [default=1];
     optional int32 negative_num = 5 [default=5];
+    required string item_id = 6;
+    required string seq_item_id = 7;
 }
