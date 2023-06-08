@@ -178,6 +178,10 @@ class MultiTaskModel(RankModel):
         offset += len(losses)
       self._loss_dict.update(loss_dict)
 
+    for k in self._loss_dict:
+      self._loss_dict[k] = tf.Print(
+          self._loss_dict[k], [self._loss_dict[k]], message='loss_%s' % k)
+
     if self._base_model_config.grad_norm:
       shared_ws = self.get_shared_ws()
       loss_keys = list(self._loss_dict.keys())

@@ -48,15 +48,31 @@ class DIEN(object):
                            [1, self.config.negative_num, 1])
 
     mask_neg_eq_pos = (1 - tf.to_float(tf.equal(pos_item_ids, neg_item_ids)))
+    tmp_div = math_ops.reduce_mean(mask_neg)
     mask_neg = mask_neg_eq_pos * mask_neg
-    tf.summary.scalar('dien/aux_loss/mask_neg_eq_pos',
+    tf.summary.scalar('dien/aux_loss/neg_not_eq_pos',
                       math_ops.reduce_mean(mask_neg_eq_pos))
     tf.summary.scalar('dien/aux_loss/mask_neg', math_ops.reduce_mean(mask_neg))
+    tf.summary.scalar('dien/aux_loss/neg_not_eq_pos_normed',
+                      math_ops.reduce_mean(mask_neg) / (tmp_div + 1e-10))
     click_prop = self.auxiliary_net(click_input, stag=stag)[:, :, 0]
     noclick_prop = self.auxiliary_net(noclick_input, stag=stag)[:, :, :, 0]
     click_loss = -tf.log(click_prop) * mask
     noclick_loss = -tf.log(1.0 - noclick_prop) * mask_neg
     loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
+    loss = tf.Print(
+        loss, [
+            tf.reduce_mean(click_loss),
+            tf.reduce_mean(noclick_loss),
+            tf.shape(h_states),
+            tf.shape(click_seq),
+            tf.shape(noclick_seq),
+            tf.shape(mask),
+            tf.shape(mask_neg),
+            tf.shape(pos_item_ids),
+            tf.shape(neg_item_ids), tmp_div
+        ],
+        message='aux_loss')
     return loss
 
   def auxiliary_net(self, in_fea, stag='auxiliary_net'):
@@ -88,6 +104,9 @@ class DIEN(object):
     # batch_size, max_seq_len, _ = get_shape_list(hist_id_col, 3)
     batch_size = tf.shape(hist_id_col)[0]
     max_seq_len = tf.shape(hist_id_col)[1]
+
+    tf.summary.scalar('max_seq_len', max_seq_len)
+    tf.summary.scalar('avg_seq_len', math_ops.reduce_mean(tf.to_float(seq_len)))
 
     # target_feature = tf.Print(target_feature, [tf.shape(target_feature),
     #     batch_size, max_seq_len], message='target_feature_shape')
