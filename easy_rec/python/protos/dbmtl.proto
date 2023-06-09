@@ -3,19 +3,14 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/tower.proto";
-import "easy_rec/python/protos/layer.proto";
-import "easy_rec/python/protos/fibinet.proto";
-import "easy_rec/python/protos/masknet.proto";
+import "easy_rec/python/protos/cmbf.proto";
+import "easy_rec/python/protos/uniter.proto";
 
 message DBMTL {
     // shared bottom cmbf layer
     optional CMBFTower bottom_cmbf = 101;
     // shared bottom uniter layer
     optional UniterTower bottom_uniter = 102;
-    // shared bottom fibinet layer
-    optional FiBiNetTower bottom_fibinet = 103;
-    // shared bottom mask net layer
-    optional MaskNet bottom_mask_net = 104;
     // shared bottom dnn layer
     optional DNN bottom_dnn = 1;
     // mmoe expert dnn layer definition
@@ -26,10 +21,9 @@ message DBMTL {
     repeated BayesTaskTower task_towers = 4;
     // l2 regularization
     optional float l2_regularization = 5 [default = 1e-4];
-    // Whether to user sequence encoder
-    required bool use_sequence_encoder = 6 [default = false];
-    // Whether to user sequence encoder
-    required bool use_input_batch_norm = 7 [default = false];
-    // input layer dropout rate
-    optional float input_dropout_rate = 8 [default = 0];
+
+    // Whether to use self supervised learning
+    required bool use_self_supervised_learning = 9 [default = false];
+    optional float ssl_loss_weight = 10 [default = 1.0];
+    optional float ssl_loss_temperature = 11 [default = 0.1];
 }

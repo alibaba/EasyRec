@@ -10,17 +10,22 @@ if tf.__version__ >= '2.0':
 
 
 class MaskBlock(object):
-  def __init__(self, mask_block_config):
+
+  def __init__(self, mask_block_config, name='mask_block', reuse=None):
     self.mask_block_config = mask_block_config
+    self.name = name
+    self.reuse = reuse
 
   def __call__(self, net, mask_input):
     mask_input_dim = int(mask_input.shape[-1])
     if self.mask_block_config.HasField('reduction_factor'):
-      aggregation_size = int(mask_input_dim * self.mask_block_config.reduction_factor)
+      aggregation_size = int(mask_input_dim *
+                             self.mask_block_config.reduction_factor)
     elif self.mask_block_config.HasField('aggregation_size') is not None:
       aggregation_size = self.mask_block_config.aggregation_size
     else:
-      raise ValueError("Need one of reduction factor or aggregation size for MaskBlock.")
+      raise ValueError(
+          'Need one of reduction factor or aggregation size for MaskBlock.')
 
     if self.mask_block_config.input_layer_norm:
       input_name = net.name.replace(':', '_')
@@ -28,45 +33,66 @@ class MaskBlock(object):
 
     # initializer = tf.initializers.variance_scaling()
     initializer = tf.glorot_uniform_initializer()
-    mask = tf.layers.dense(mask_input, aggregation_size,
-                           activation=tf.nn.relu,
-                           kernel_initializer=initializer)
-    mask = tf.layers.dense(mask, net.shape[-1])
+    mask = tf.layers.dense(
+        mask_input,
+        aggregation_size,
+        activation=tf.nn.relu,
+        kernel_initializer=initializer,
+        name='%s/hidden' % self.name,
+        reuse=self.reuse)
+    mask = tf.layers.dense(
+        mask, net.shape[-1], name='%s/mask' % self.name, reuse=self.reuse)
     masked_net = net * mask
 
     output_size = self.mask_block_config.output_size
-    hidden_layer_output = tf.layers.dense(masked_net, output_size)
-    return layer_norm(hidden_layer_output)
+    hidden_layer_output = tf.layers.dense(
+        masked_net, output_size, name='%s/output' % self.name, reuse=self.reuse)
+    return layer_norm(
+        hidden_layer_output, name='%s/ln_output' % self.name, reuse=self.reuse)
 
 
 class MaskNet(object):
-  def __init__(self, mask_net_config, name='mask_net'):
+
+  def __init__(self, mask_net_config, name='mask_net', reuse=None):
     self.mask_net_config = mask_net_config
     self.name = name
+    self.reuse = reuse
 
   def __call__(self, inputs, is_training, l2_reg=None):
     conf = self.mask_net_config
     if conf.use_parallel:
       mask_outputs = []
-      for block_conf in self.mask_net_config.mask_blocks:
-        mask_layer = MaskBlock(block_conf)
+      for i, block_conf in enumerate(self.mask_net_config.mask_blocks):
+        mask_layer = MaskBlock(
+            block_conf, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
         mask_outputs.append(mask_layer(mask_input=inputs, net=inputs))
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
 
       if conf.HasField('mlp'):
-        mlp = dnn.DNN(conf.mlp, l2_reg, name='%s/mlp' % self.name, is_training=is_training)
+        mlp = dnn.DNN(
+            conf.mlp,
+            l2_reg,
+            name='%s/mlp' % self.name,
+            is_training=is_training,
+            reuse=self.reuse)
         output = mlp(all_mask_outputs)
       else:
         output = all_mask_outputs
       return output
     else:
       net = inputs
-      for block_conf in self.mask_net_config.mask_blocks:
-        mask_layer = MaskBlock(block_conf)
+      for i, block_conf in enumerate(self.mask_net_config.mask_blocks):
+        mask_layer = MaskBlock(
+            block_conf, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
         net = mask_layer(net=net, mask_input=inputs)
 
       if conf.HasField('mlp'):
-        mlp = dnn.DNN(conf.mlp, l2_reg, name='%s/mlp' % self.name, is_training=is_training)
+        mlp = dnn.DNN(
+            conf.mlp,
+            l2_reg,
+            name='%s/mlp' % self.name,
+            is_training=is_training,
+            reuse=self.reuse)
         output = mlp(net)
       else:
         output = net

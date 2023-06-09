@@ -211,15 +211,19 @@ def _internal_input_layer(features,
         output_tensor = array_ops.reshape(
             tensor, shape=(batch_size, num_elements))
         if do_normalize:
-          from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn, NumericColumn, \
-            WeightedCategoricalColumn
+          from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn,\
+            NumericColumn, WeightedCategoricalColumn
           from tensorflow.python.layers.normalization import batch_normalization
-          if isinstance(column, EmbeddingColumn) or isinstance(column, _SharedEmbeddingColumn):
+          if isinstance(column, EmbeddingColumn) or isinstance(
+              column, _SharedEmbeddingColumn):
             fc = column.categorical_column
-            if isinstance(fc, WeightedCategoricalColumn) and fc.weight_feature_key.endswith('_raw_proj_val'):
-              output_tensor = layer_norm(output_tensor, name='ln_' + column.name)
+            if isinstance(fc, WeightedCategoricalColumn
+                          ) and fc.weight_feature_key.endswith('_raw_proj_val'):
+              output_tensor = layer_norm(
+                  output_tensor, name='ln_' + column.name)
             else:
-              output_tensor = batch_normalization(output_tensor, name='bn_'+column.name)
+              output_tensor = batch_normalization(
+                  output_tensor, name='bn_' + column.name)
           elif isinstance(column, NumericColumn) and int(column.shape[-1]) > 1:
             output_tensor = layer_norm(output_tensor, name='ln_' + column.name)
         output_tensors.append(output_tensor)
@@ -2552,9 +2556,10 @@ class _SharedEmbeddingColumn(
 
   @property
   def cardinality(self):
-    from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, BucketizedColumn, \
-      WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, CrossedColumn, IdentityCategoricalColumn, \
-      VocabularyListCategoricalColumn, VocabularyFileCategoricalColumn
+    from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn,\
+      BucketizedColumn, WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, \
+      CrossedColumn, IdentityCategoricalColumn, VocabularyListCategoricalColumn,\
+      VocabularyFileCategoricalColumn
 
     fc = self.categorical_column
     if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):

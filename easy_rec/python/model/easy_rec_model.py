@@ -11,7 +11,7 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
-from easy_rec.python.layers import dnn
+from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.layers import input_layer
 from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
@@ -66,6 +66,22 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                                              model_config.feature_groups,
                                              self._l2_reg)
     self._sequence_encoding_by_group_name = {}
+    if model_config.HasField('backbone'):
+      self._backbone = Backbone(model_config.backbone, self, features,
+                                input_layer=self._input_layer,
+                                l2_reg=self._l2_reg)
+    else:
+      self._backbone = None
+
+  @property
+  def has_backbone(self):
+    return self._base_model_config.HasField('backbone')
+
+  @property
+  def backbone(self):
+    if self._backbone:
+      return self._backbone(self._is_training)
+    return None
 
   @property
   def embedding_regularization(self):
@@ -104,8 +120,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=self._is_training,
-        do_feature_normalize=model_config.do_feature_normalize)
+        is_training=self._is_training)
 
   def get_sequence_encoding(self, group_name=None, is_training=True):
     if group_name is not None:
@@ -143,13 +158,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     else:
       return None
 
-    if self._base_model_config.HasField('sequence_dnn'):
-      sequence_dnn = dnn.DNN(
-          self._base_model_config.sequence_dnn,
-          self._l2_reg,
-          name='sequence_dnn',
-          is_training=self._is_training)
-      encoding = sequence_dnn(encoding)
+    # if self._base_model_config.HasField('sequence_dnn'):
+    #   sequence_dnn = dnn.DNN(
+    #       self._base_model_config.sequence_dnn,
+    #       self._l2_reg,
+    #       name='sequence_dnn',
+    #       is_training=self._is_training)
+    #   encoding = sequence_dnn(encoding)
     return encoding
 
   @abstractmethod

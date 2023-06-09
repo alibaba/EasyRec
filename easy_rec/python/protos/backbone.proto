@@ -1,0 +1,44 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/fibinet.proto";
+import "easy_rec/python/protos/masknet.proto";
+
+message NumericalEmbedding {
+    required uint32 embedding_dim = 1;
+    required float  coef_stddev = 2 [default = 1.0];
+}
+
+message SequenceLayer {
+    optional DNN mlp = 1;
+}
+
+message InputLayer {
+    optional bool do_batch_norm = 1;
+    optional bool do_layer_norm = 2;
+    optional float dropout_rate = 3;
+    optional float feature_dropout_rate = 4;
+    optional bool output_feature_list = 5;
+}
+
+message Block {
+    required string name = 1;
+    // the input names of feature groups or other blocks
+    repeated string inputs = 2;
+    oneof layer {
+        InputLayer input_layer = 100;
+        NumericalEmbedding numerical_embedding = 101;
+        SequenceLayer sequence_encoder = 102;
+        MaskNet masknet = 103;
+        SENet senet = 104;
+        FiBiNetTower fibinet = 105;
+        DNN mlp = 106;
+    }
+}
+
+message BackboneTower {
+    repeated Block blocks = 1;
+    repeated string concat_blocks = 2;
+    optional DNN top_mlp = 3;
+}

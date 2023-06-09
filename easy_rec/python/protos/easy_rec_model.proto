@@ -1,9 +1,9 @@
 syntax = "proto2";
 package protos;
 
+import "easy_rec/python/protos/backbone.proto";
 import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
-import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/wide_and_deep.proto";
 import "easy_rec/python/protos/multi_tower.proto";
 import "easy_rec/python/protos/dlrm.proto";
@@ -110,8 +110,7 @@ message EasyRecModel {
     }
     required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
 
-    // dnn layers after sequence feature
-    optional DNN sequence_dnn = 17;
+    optional BackboneTower backbone = 17;
 
-    optional bool do_feature_normalize = 18;
+    // optional bool do_feature_normalize = 18;
 }

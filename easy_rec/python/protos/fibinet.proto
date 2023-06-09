@@ -3,13 +3,21 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 
+message SENet {
+    required uint32 reduction_ratio = 1 [default = 4];
+    optional uint32 num_squeeze_group = 2 [default = 2];
+    optional bool use_skip_connection = 3 [default = true];
+    optional bool use_output_layer_norm = 4 [default = true];
+}
+
+message Bilinear {
+    required string type = 1 [default = 'interaction'];
+    required bool use_plus = 2 [default = true];
+    required uint32 output_units = 3;
+}
+
 message FiBiNetTower {
-    required string bilinear_type = 1 [default = 'interaction'];
-    required bool use_bilinear_plus = 2 [default = true];
-    required uint32 bilinear_output_units = 3;
-
-    required uint32 senet_reduction_ratio = 4 [default = 3];
-    optional uint32 num_senet_squeeze_group = 5 [default = 2];
-
-    required DNN mlp = 6;
+    optional Bilinear bilinear = 1;
+    required SENet senet = 2;
+    optional DNN mlp = 8;
 }

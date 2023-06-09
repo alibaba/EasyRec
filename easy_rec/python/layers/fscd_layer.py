@@ -35,14 +35,14 @@ def sigmoid(x):
 
 def get_feature_importance(pipeline_config, feature_group_name=None):
   assert pipeline_config.model_config.HasField(
-    'variational_dropout'), 'variational_dropout must be in model_config'
+      'variational_dropout'), 'variational_dropout must be in model_config'
 
   checkpoint_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
   meta_graph_def = read_meta_graph_file(checkpoint_path + '.meta')
 
   features_map = dict()
   for col_def in meta_graph_def.collection_def[
-    'variational_dropout'].bytes_list.value:
+      'variational_dropout'].bytes_list.value:
     features = json.loads(col_def)
     features_map.update(features)
 
@@ -108,10 +108,10 @@ class FSCDLayer(object):
   def compute_dropout_mask(self, n):
     delta_name = 'fscd_delta_%s' % self.name
     delta = tf.get_variable(
-      name=delta_name,
-      shape=[n],
-      dtype=tf.float32,
-      initializer=tf.constant_initializer(0.))
+        name=delta_name,
+        shape=[n],
+        dtype=tf.float32,
+        initializer=tf.constant_initializer(0.))
     delta = tf.nn.sigmoid(delta)
     epsilon = np.finfo(float).eps
     max_keep_ratio = self._config.max_keep_ratio
@@ -126,8 +126,9 @@ class FSCDLayer(object):
                                    dtype=tf.float32,
                                    seed=None,
                                    name='uniform_noise')
-    approx = (tf.log(delta) - tf.log(1. - delta) +
-              tf.log(unif_noise) - tf.log(1. - unif_noise))
+    approx = (
+        tf.log(delta) - tf.log(1. - delta) + tf.log(unif_noise) -
+        tf.log(1. - unif_noise))
     return tf.sigmoid(approx / self._config.temperature), delta
 
   def compute_regular_params(self, cols_to_feature):
@@ -147,14 +148,12 @@ class FSCDLayer(object):
       alpha = math.log(sig_c) - math.log(theta)
       alphas[fc] = alpha
       print(
-        str(fc.raw_name), 'complexity:', complexity, 'cardinality:', cardinal,
-        'dimension:', dim, 'c:', c, 'theta:', theta, 'alpha:', alpha)
+          str(fc.raw_name), 'complexity:', complexity, 'cardinality:', cardinal,
+          'dimension:', dim, 'c:', c, 'theta:', theta, 'alpha:', alpha)
     return alphas
 
   def __call__(self, cols_to_feature):
-    """
-    cols_to_feature: an ordered dict mapping feature_column to feature_values
-    """
+    """cols_to_feature: an ordered dict mapping feature_column to feature_values."""
     feature_dimension = []
     output_tensors = []
     alphas = []

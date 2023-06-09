@@ -41,16 +41,17 @@ def build(loss_type,
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.JRC_LOSS:
-    alpha = 0.5 if loss_param is None else loss_param.alpha
-    auto = False if loss_param is None else not loss_param.HasField('alpha')
     session = kwargs.get('session_ids', None)
+    if loss_param is None:
+      return jrc_loss(label, pred, session, name=loss_name)
     return jrc_loss(
         label,
         pred,
         session,
-        alpha,
-        auto_weight=auto,
+        loss_param.alpha,
+        loss_weight_strategy=loss_param.loss_weight_strategy,
         sample_weights=loss_weight,
+        same_label_loss=loss_param.same_label_loss,
         name=loss_name)
   elif loss_type == LossType.PAIR_WISE_LOSS:
     session = kwargs.get('session_ids', None)
