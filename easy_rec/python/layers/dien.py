@@ -4,6 +4,7 @@ import logging
 
 import tensorflow as tf
 from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops.rnn_cell import GRUCell
 
@@ -60,22 +61,26 @@ class DIEN(object):
     click_loss = -tf.log(click_prop) * mask
     noclick_loss = -tf.log(1.0 - noclick_prop) * mask_neg
     loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
-    # loss = tf.Print(
-    #     loss, [
-    #         tf.reduce_mean(click_loss),
-    #         tf.reduce_mean(noclick_loss),
-    #         tf.shape(h_states),
-    #         tf.shape(click_seq),
-    #         tf.shape(noclick_seq),
-    #         tf.shape(mask),
-    #         tf.shape(mask_neg),
-    #         tf.shape(pos_item_ids),
-    #         tf.shape(neg_item_ids), tmp_div
-    #     ],
-    #     message='aux_loss')
+    loss = tf.Print(
+        loss, [
+            tf.reduce_mean(click_loss),
+            tf.reduce_mean(noclick_loss),
+            tf.shape(h_states),
+            tf.shape(click_seq),
+            tf.shape(noclick_seq),
+            tf.shape(mask),
+            tf.shape(mask_neg),
+            tf.shape(pos_item_ids),
+            tf.shape(neg_item_ids), tmp_div,
+            math_ops.reduce_max(noclick_prop),
+            math_ops.reduce_min(noclick_prop),
+            math_ops.reduce_min(mask_neg),
+            math_ops.reduce_max(mask_neg)
+        ],
+        message='aux_loss')
     return loss
 
-  def auxiliary_net(self, in_fea, stag='auxiliary_net'):
+  def auxiliary_net(self, in_fea, stag='auxiliary_net', eps=1e-10):
     bn1 = tf.layers.batch_normalization(
         inputs=in_fea, name=stag + '/bn1', reuse=tf.AUTO_REUSE)
     dnn1 = tf.layers.dense(
@@ -86,7 +91,7 @@ class DIEN(object):
     dnn2 = tf.nn.sigmoid(dnn2)
     dnn3 = tf.layers.dense(
         dnn2, 2, activation=None, name=stag + '/f3', reuse=tf.AUTO_REUSE)
-    y_hat = tf.nn.softmax(dnn3) + 0.00000001
+    y_hat = clip_ops.clip_by_value(tf.nn.softmax(dnn3), eps, 1 - eps)
     return y_hat
 
   def __call__(self, inputs, is_training=False, **kwargs):
