@@ -60,19 +60,19 @@ class DIEN(object):
     click_loss = -tf.log(click_prop) * mask
     noclick_loss = -tf.log(1.0 - noclick_prop) * mask_neg
     loss = tf.reduce_mean(click_loss) + tf.reduce_mean(noclick_loss)
-    loss = tf.Print(
-        loss, [
-            tf.reduce_mean(click_loss),
-            tf.reduce_mean(noclick_loss),
-            tf.shape(h_states),
-            tf.shape(click_seq),
-            tf.shape(noclick_seq),
-            tf.shape(mask),
-            tf.shape(mask_neg),
-            tf.shape(pos_item_ids),
-            tf.shape(neg_item_ids), tmp_div
-        ],
-        message='aux_loss')
+    # loss = tf.Print(
+    #     loss, [
+    #         tf.reduce_mean(click_loss),
+    #         tf.reduce_mean(noclick_loss),
+    #         tf.shape(h_states),
+    #         tf.shape(click_seq),
+    #         tf.shape(noclick_seq),
+    #         tf.shape(mask),
+    #         tf.shape(mask_neg),
+    #         tf.shape(pos_item_ids),
+    #         tf.shape(neg_item_ids), tmp_div
+    #     ],
+    #     message='aux_loss')
     return loss
 
   def auxiliary_net(self, in_fea, stag='auxiliary_net'):
