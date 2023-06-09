@@ -164,6 +164,9 @@ class DIEN(object):
           pos_item_ids[:, 1:],
           neg_item_ids,
           stag=self.name + '/dien/aux_loss') * self.config.aux_loss_weight
+      aux_loss = tf.cond(
+          tf.greater(max_seq_len, 1), lambda: aux_loss,
+          lambda: tf.constant(0.0, dtype=tf.float32))
     else:
       aux_loss = None
 
