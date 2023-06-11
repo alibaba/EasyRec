@@ -80,7 +80,7 @@ class DIEN(object):
         message='aux_loss')
     return loss
 
-  def auxiliary_net(self, in_fea, stag='auxiliary_net', eps=1e-10):
+  def auxiliary_net(self, in_fea, stag='auxiliary_net', eps=1e-6):
     bn1 = tf.layers.batch_normalization(
         inputs=in_fea, name=stag + '/bn1', reuse=tf.AUTO_REUSE)
     dnn1 = tf.layers.dense(
