@@ -66,10 +66,13 @@ class SequenceEncoder(object):
     if len(group_config.sequence_encoders) == 0:
       return None
 
-    seq_features, target_feature, target_features = self._input_layer(
+    seq_features, _, target_features = self._input_layer(
         features, group_name, is_combine=False)
+    target_feature = tf.concat(target_features, axis=1)
     assert len(
         seq_features) > 0, 'sequence feature is empty in group: ' + group_name
+    assert len(
+        target_features) > 0, 'target features is empty in group: ' + group_name
 
     outputs = []
     for encoder in group_config.sequence_encoders:

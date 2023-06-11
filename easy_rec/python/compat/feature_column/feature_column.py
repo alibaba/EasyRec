@@ -223,6 +223,16 @@ def _internal_input_layer(features,
     all_batch_size = [array_ops.shape(x)[0] for x in output_tensors]
     min_batch_size = math_ops.reduce_min(all_batch_size)
     output_tensors = [x[:min_batch_size, ...] for x in output_tensors]
+
+    if feature_name_to_output_tensors is not None:
+      for fea_name in feature_name_to_output_tensors:
+        x = feature_name_to_output_tensors[fea_name]
+        feature_name_to_output_tensors[fea_name] = x[:min_batch_size]
+    if cols_to_output_tensors is not None:
+      for fea_col in cols_to_output_tensors:
+        x = cols_to_output_tensors[fea_col]
+        cols_to_output_tensors[fea_col] = x[:min_batch_size]
+
     return array_ops.concat(output_tensors, 1)
 
   # If we're constructing from the `make_template`, that by default adds a
