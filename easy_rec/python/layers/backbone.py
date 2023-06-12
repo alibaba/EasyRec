@@ -6,8 +6,8 @@ import tensorflow as tf
 
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers.common_layers import layer_norm, SENet
-from easy_rec.python.layers.numerical_embedding import NumericalEmbedding
+from easy_rec.python.layers.common_layers import layer_norm, SENet, highway
+from easy_rec.python.layers.numerical_embedding import PeriodicEmbedding, AutoDisEmbedding
 from easy_rec.python.layers.fibinet import FiBiNetLayer
 from easy_rec.python.layers.mask_net import MaskNet
 
@@ -97,6 +97,7 @@ class Backbone(object):
     block_outputs = {}
     blocks = self._dag.topological_sort()
     logging.info("backbone topological: " + ','.join(blocks))
+    print("backbone topological: " + ','.join(blocks))
     for block in blocks:
       config = self._name_to_blocks[block]
       layer = config.WhichOneof('layer')
@@ -106,12 +107,26 @@ class Backbone(object):
         input_layer = EnhancedInputLayer(conf, self._input_layer, self._features)
         output = input_layer(config.inputs[0], is_training)
         block_outputs[block] = output
-      elif layer == 'numerical_embedding':
-        conf = config.numerical_embedding
-        num_emb = NumericalEmbedding(conf.embedding_dim, stddev=conf.coef_stddev,
-                                     scope='%s_numerical_embedding' % block)
+      elif layer == 'periodic_embedding':
+        conf = config.periodic_embedding
+        num_emb = PeriodicEmbedding(conf.embedding_dim, stddev=conf.coef_stddev, scope=block)
         input_feature = self.block_input(config, block_outputs)
         block_outputs[block] = num_emb(input_feature)
+      elif layer == 'auto_dis_embedding':
+        conf = config.auto_dis_embedding
+        num_emb = AutoDisEmbedding(conf, scope=block)
+        input_feature = self.block_input(config, block_outputs)
+        block_outputs[block] = num_emb(input_feature)
+      elif layer == 'highway':
+        conf = config.highway
+        input_feature = self.block_input(config, block_outputs)
+        highway_fea = highway(
+          input_feature,
+          conf.emb_size,
+          activation=conf.activation,
+          dropout=conf.dropout_rate,
+          scope=block)
+        block_outputs[block] = highway_fea(input_feature)
       elif layer == 'mlp':
         mlp = dnn.DNN(
           config.mlp,

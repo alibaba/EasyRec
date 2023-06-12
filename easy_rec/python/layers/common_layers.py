@@ -2,10 +2,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import itertools
 import logging
-
+import six
 import tensorflow as tf
 
 from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -18,6 +19,8 @@ def highway(x,
             scope='highway',
             dropout=0.0,
             reuse=None):
+  if isinstance(activation, six.string_types):
+    activation = get_activation(activation)
   with tf.variable_scope(scope, reuse):
     if size is None:
       size = x.shape.as_list()[-1]

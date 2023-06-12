@@ -3,7 +3,7 @@ package protos;
 
 import "easy_rec/python/protos/hyperparams.proto";
 import "easy_rec/python/protos/dnn.proto";
-import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/seq_encoder.proto";
 enum WideOrDeep {
     DEEP = 0;
     WIDE = 1;

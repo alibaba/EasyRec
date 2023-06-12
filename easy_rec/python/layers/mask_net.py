@@ -45,15 +45,19 @@ class MaskBlock(object):
     masked_net = net * mask
 
     output_size = self.mask_block_config.output_size
-    hidden_layer_output = tf.layers.dense(
-        masked_net, output_size, name='%s/output' % self.name, reuse=self.reuse)
-    return layer_norm(
-        hidden_layer_output, name='%s/ln_output' % self.name, reuse=self.reuse)
+    hidden = tf.layers.dense(
+        masked_net, output_size, use_bias=False, name='%s/output' % self.name, reuse=self.reuse)
+    ln_hidden = layer_norm(hidden, name='%s/ln_output' % self.name, reuse=self.reuse)
+    return tf.nn.relu(ln_hidden)
 
 
 class MaskNet(object):
 
   def __init__(self, mask_net_config, name='mask_net', reuse=None):
+    """MaskNet: Introducing Feature-Wise Multiplication to CTR Ranking Models by Instance-Guided Mask.
+
+    Refer: https://arxiv.org/pdf/2102.07619.pdf
+    """
     self.mask_net_config = mask_net_config
     self.name = name
     self.reuse = reuse

@@ -56,6 +56,7 @@ message EasyRecModel {
 
     // model parameters
     oneof model {
+        RankModel rank_model = 100;
         DummyModel dummy = 101;
         WideAndDeep wide_and_deep = 102;
         DeepFM deepfm = 103;
@@ -111,6 +112,4 @@ message EasyRecModel {
     required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
 
     optional BackboneTower backbone = 17;
-
-    // optional bool do_feature_normalize = 18;
 }

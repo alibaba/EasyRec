@@ -29,6 +29,15 @@ class RankModel(EasyRecModel):
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
 
+  def build_predict_graph(self):
+    if not self.has_backbone:
+      raise NotImplementedError('method `build_predict_graph` must be implemented when backbone network do not exits')
+
+    net = self.backbone
+    output = tf.layers.dense(net, self._num_class, name='output')
+    self._add_to_prediction_dict(output)
+    return self._prediction_dict
+
   def _output_to_prediction_impl(self,
                                  output,
                                  loss_type,
