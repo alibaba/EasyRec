@@ -77,6 +77,10 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 - [autoint_on_movielens.config](configs/autoint_on_movielens.config)
 
+- [masknet_on_movielens.config](configs/masknet_on_movielens.config)
+
+- [fibinet_on_movielens.config](configs/fibinet_on_movielens.config)
+
 - [fm_on_criteo.config](configs/fm_on_criteo.config)
 
 - [deepfm_on_criteo.config](configs/deepfm_on_criteo.config)

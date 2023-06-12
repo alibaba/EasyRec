@@ -11,8 +11,9 @@ data_train = pd.read_csv(
 samples_num = data_train.shape[0]
 print('samples_num:', samples_num, round(samples_num * 0.9))
 
-data_train[:round(samples_num * 0.9)].to_csv(
+train_num = int(round(samples_num * 0.9))
+data_train[:train_num].to_csv(
     r'criteo_train_data', index=False, sep='\t', mode='a', header=False)
-data_train[round(samples_num * 0.9):].to_csv(
+data_train[train_num:].to_csv(
     r'criteo_test_data', index=False, sep='\t', mode='a', header=False)
 print('Done.')

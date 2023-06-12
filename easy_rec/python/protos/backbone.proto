@@ -2,6 +2,7 @@ syntax = "proto2";
 package protos;
 
 import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/layer.proto";
 import "easy_rec/python/protos/fibinet.proto";
 import "easy_rec/python/protos/masknet.proto";
@@ -25,6 +26,7 @@ message Block {
         MaskNet masknet = 107;
         SENet senet = 108;
         FiBiNetTower fibinet = 109;
+        FM fm = 110;
     }
 }
 

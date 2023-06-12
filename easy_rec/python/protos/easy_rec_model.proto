@@ -31,6 +31,7 @@ message DummyModel {
 }
 // configure backbone network in a free style way
 message RankModel {
+    optional float l2_regularization = 1;
 }
 
 // for knowledge distillation

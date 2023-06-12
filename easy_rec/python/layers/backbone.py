@@ -10,6 +10,7 @@ from easy_rec.python.layers.common_layers import layer_norm, SENet, highway
 from easy_rec.python.layers.numerical_embedding import PeriodicEmbedding, AutoDisEmbedding
 from easy_rec.python.layers.fibinet import FiBiNetLayer
 from easy_rec.python.layers.mask_net import MaskNet
+from easy_rec.python.layers.fm import FMLayer
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -96,8 +97,8 @@ class Backbone(object):
   def __call__(self, is_training, *args, **kwargs):
     block_outputs = {}
     blocks = self._dag.topological_sort()
-    logging.info("backbone topological: " + ','.join(blocks))
-    print("backbone topological: " + ','.join(blocks))
+    logging.info("backbone topological order: " + ','.join(blocks))
+    print("backbone topological order: " + ','.join(blocks))
     for block in blocks:
       config = self._name_to_blocks[block]
       layer = config.WhichOneof('layer')
@@ -108,60 +109,59 @@ class Backbone(object):
         output = input_layer(config.inputs[0], is_training)
         block_outputs[block] = output
       elif layer == 'periodic_embedding':
+        input_feature = self.block_input(config, block_outputs)
         conf = config.periodic_embedding
         num_emb = PeriodicEmbedding(conf.embedding_dim, stddev=conf.coef_stddev, scope=block)
-        input_feature = self.block_input(config, block_outputs)
         block_outputs[block] = num_emb(input_feature)
       elif layer == 'auto_dis_embedding':
-        conf = config.auto_dis_embedding
-        num_emb = AutoDisEmbedding(conf, scope=block)
         input_feature = self.block_input(config, block_outputs)
+        num_emb = AutoDisEmbedding(config.auto_dis_embedding, scope=block)
         block_outputs[block] = num_emb(input_feature)
       elif layer == 'highway':
-        conf = config.highway
         input_feature = self.block_input(config, block_outputs)
-        highway_fea = highway(
+        conf = config.highway
+        highway_layer = highway(
           input_feature,
           conf.emb_size,
           activation=conf.activation,
           dropout=conf.dropout_rate,
           scope=block)
-        block_outputs[block] = highway_fea(input_feature)
+        block_outputs[block] = highway_layer(input_feature)
       elif layer == 'mlp':
+        input_feature = self.block_input(config, block_outputs)
         mlp = dnn.DNN(
           config.mlp,
           self._l2_reg,
           name='%s_mlp' % block,
           is_training=is_training)
-        input_feature = self.block_input(config, block_outputs)
-        output = mlp(input_feature)
-        block_outputs[block] = output
+        block_outputs[block] = mlp(input_feature)
       elif layer == 'sequence_encoder':
         block_outputs[block] = self.sequence_encoder(config, is_training)
       elif layer == 'masknet':
-        conf = config.masknet
+        input_feature = self.block_input(config, block_outputs)
         mask_net = MaskNet(
-          conf,
+          config.masknet,
           name=block,
           reuse=tf.AUTO_REUSE)
-        input_feature = self.block_input(config, block_outputs)
         output = mask_net(
           input_feature, is_training, l2_reg=self._l2_reg)
         block_outputs[block] = output
       elif layer == 'senet':
-        conf = config.senet
-        senet = SENet(conf, name=block)
         input_feature = self.block_input(config, block_outputs)
+        senet = SENet(config.senet, name=block)
         output = senet(input_feature)
         block_outputs[block] = output
       elif layer == 'fibinet':
-        conf = config.fibinet
-        fibinet = FiBiNetLayer(conf, name=block)
         input_feature = self.block_input(config, block_outputs)
+        fibinet = FiBiNetLayer(config.fibinet, name=block)
         output = fibinet(input_feature, is_training, l2_reg=self._l2_reg)
         block_outputs[block] = output
+      elif layer == 'fm':
+        input_feature = self.block_input(config, block_outputs)
+        fm = FMLayer()
+        block_outputs[block] = fm(input_feature)
       else:
-        raise ValueError('Unsupported backbone layer:' + layer)
+        raise NotImplementedError('Unsupported backbone layer:' + layer)
 
     temp = []
     for output in self._config.concat_blocks:
