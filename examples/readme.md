@@ -207,6 +207,8 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | DeepFM    | 1     | 0.8688 |
   | DCN       | 1     | 0.8576 |
   | AutoInt   | 1     | 0.8513 |
+  | MaskNet   | 1     | 0.8872 |
+  | FibiNet   | 1     | 0.8879 |
 
 - Criteo-Research
 

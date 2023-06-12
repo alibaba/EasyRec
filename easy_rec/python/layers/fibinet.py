@@ -32,7 +32,7 @@ class FiBiNetLayer(object):
     if self._config.HasField('bilinear'):
       conf = self._config.bilinear
       bilinear = BiLinear(
-          output_size=conf.output_units,
+          output_size=conf.num_output_units,
           bilinear_type=conf.type,
           bilinear_plus=conf.use_plus,
           name='%s_bilinear' % self.name)

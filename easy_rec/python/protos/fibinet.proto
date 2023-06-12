@@ -13,7 +13,7 @@ message SENet {
 message Bilinear {
     required string type = 1 [default = 'interaction'];
     required bool use_plus = 2 [default = true];
-    required uint32 output_units = 3;
+    required uint32 num_output_units = 3;
 }
 
 message FiBiNetTower {
