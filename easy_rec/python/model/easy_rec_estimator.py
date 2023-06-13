@@ -201,6 +201,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     hooks = []
+    import horovod.tensorflow as hvd
+    optimizer = hvd.DistributedOptimizer(optimizer, backward_passes_per_step=1)
+    bcast_hook = hvd.BroadcastGlobalVariablesHook(0)
+    hooks.append(bcast_hook)
+    
     # for distributed and synced training
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
       logging.info('sync_replicas: num_worker_replias = %d' %

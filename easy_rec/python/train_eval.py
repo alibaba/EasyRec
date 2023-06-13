@@ -19,6 +19,8 @@ from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.config_util import set_train_input_path
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
+import horovod.tensorflow as hvd
+hvd.init()
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

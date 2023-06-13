@@ -31,6 +31,7 @@ from easy_rec.python.utils.config_util import get_train_input_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
+import horovod.tensorflow as hvd
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -97,6 +98,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=False)
+  gpu_options.visible_device_list = str(hvd.local_rank())
   session_config = ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
