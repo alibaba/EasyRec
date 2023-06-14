@@ -514,7 +514,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self.feature_configs,
         features,
         labels=None,
-        is_training=False)
+        is_training=False,
+        is_predicting=True)
     model.build_predict_graph()
 
     export_config = self._pipeline_config.export_config

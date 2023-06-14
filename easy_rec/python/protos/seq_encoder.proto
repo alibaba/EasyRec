@@ -50,4 +50,3 @@ message DINEncoder {
     // option: softmax, sigmoid
     required string attention_normalizer = 3 [default = 'softmax'];
 }
-

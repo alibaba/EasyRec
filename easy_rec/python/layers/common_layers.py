@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import itertools
 import logging
+
 import six
 import tensorflow as tf
 
@@ -78,6 +79,88 @@ def layer_norm(input_tensor, name=None, reuse=None):
       begin_params_axis=-1,
       reuse=reuse,
       scope=name)
+
+
+class EnhancedInputLayer(object):
+
+  def __init__(self, config, input_layer, feature_dict):
+    if config.do_batch_norm and config.do_layer_norm:
+      raise ValueError(
+          'can not do batch norm and layer norm for input layer at the same time'
+      )
+    self._config = config
+    self._input_layer = input_layer
+    self._feature_dict = feature_dict
+
+  def __call__(self, feature_group, is_training, *args, **kwargs):
+    features, feature_list = self._input_layer(self._feature_dict,
+                                               feature_group)
+    num_features = len(feature_list)
+
+    do_feature_dropout = 0.0 < self._config.feature_dropout_rate < 1.0
+    if self._config.output_feature_list or do_feature_dropout:
+      if self._config.do_layer_norm or self._config.do_batch_norm:
+        for i in range(num_features):
+          fea = feature_list[i]
+          if self._config.do_batch_norm:
+            fea = tf.layers.batch_normalization(fea, training=is_training)
+          elif self._config.do_layer_norm:
+            fea = layer_norm(fea)
+          feature_list[i] = fea
+    elif self._config.do_batch_norm:
+      features = tf.layers.batch_normalization(features, training=is_training)
+    elif self._config.do_layer_norm:
+      features = layer_norm(features)
+
+    if do_feature_dropout and is_training:
+      keep_prob = 1.0 - self._config.feature_dropout_rate
+      bern = tf.distributions.Bernoulli(probs=keep_prob)
+      mask = bern.sample(num_features)
+      for i in range(num_features):
+        fea = tf.div(feature_list[i], keep_prob) * mask[i]
+        feature_list[i] = fea
+      features = tf.concat(feature_list, axis=-1)
+
+    do_dropout = 0.0 < self._config.dropout_rate < 1.0
+    if self._config.output_feature_list:
+      if do_dropout:
+        for i in range(num_features):
+          fea = feature_list[i]
+          fea = tf.layers.dropout(
+              fea, self._config.dropout_rate, training=is_training)
+          feature_list[i] = fea
+      if self._config.output_3d_tensor:
+        for i in range(num_features):
+          feature_list[i] = tf.expand_dims(feature_list[i], axis=1)
+        return tf.concat(feature_list, axis=1)
+      return feature_list
+
+    if do_dropout:
+      features = tf.layers.dropout(
+          features, self._config.dropout_rate, training=is_training)
+
+    if self._config.output_3d_tensor:
+      dim = int(feature_list[0].shape[-1])
+      return tf.reshape(features, [-1, num_features, dim])
+    return features
+
+
+class Concatenate(object):
+
+  def __init__(self, config):
+    self.config = config
+
+  def __call__(self, inputs, *args, **kwargs):
+    if self.config.HasField('expand_dim_before'):
+      dim = self.config.expand_dim_before
+      output = tf.stack(inputs, axis=dim)
+    else:
+      output = tf.concat(inputs, axis=self.config.axis)
+
+    if self.config.HasField('expand_dim_after'):
+      dim = self.config.expand_dim_after
+      output = tf.expand_dims(output, dim)
+    return output
 
 
 class SENet(object):

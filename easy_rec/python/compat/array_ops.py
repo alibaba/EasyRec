@@ -194,7 +194,7 @@ def repeat_with_axis(data, repeats, axis, name=None):
 
 
 def repeat(input, repeats, axis=None, name=None):  # pylint: disable=redefined-builtin
-  """Repeat elements of `input`
+  """Repeat elements of `input`.
 
   Args:
     input: An `N`-dimensional Tensor.

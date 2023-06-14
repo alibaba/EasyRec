@@ -46,9 +46,9 @@ class FiBiNetLayer(object):
 
     if self._config.HasField('mlp'):
       final_dnn = dnn.DNN(
-        self._config.mlp,
-        l2_reg,
-        name='%s_fibinet_mlp' % self.name,
-        is_training=is_training)
+          self._config.mlp,
+          l2_reg,
+          name='%s_fibinet_mlp' % self.name,
+          is_training=is_training)
       feature = final_dnn(feature)
     return feature

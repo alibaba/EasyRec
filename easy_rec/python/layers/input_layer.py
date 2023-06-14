@@ -4,6 +4,7 @@ import logging
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope
 
@@ -16,12 +17,9 @@ from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.layers.fscd_layer import FSCDLayer
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
-from easy_rec.python.utils import shape_utils
+from easy_rec.python.utils import shape_utils, conditional
 
-from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
-from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn  # NOQA
-
-from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
+from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column
 
 
 class InputLayer(object):
@@ -39,7 +37,7 @@ class InputLayer(object):
                embedding_regularizer=None,
                kernel_regularizer=None,
                is_training=False,
-               do_feature_normalize=False):
+               is_predicting=False):
     self._feature_configs = feature_configs
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
@@ -66,8 +64,8 @@ class InputLayer(object):
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
+    self._is_predicting = is_predicting
     self._variational_dropout_config = variational_dropout_config
-    self._do_feature_normalize = do_feature_normalize
 
   def has_group(self, group_name):
     return group_name in self._feature_groups
@@ -97,7 +95,8 @@ class InputLayer(object):
     feature_name_to_output_tensors = {}
     negative_sampler = self._feature_groups[group_name]._config.negative_sampler
     if is_combine:
-      concat_features, group_features = self.single_call_input_layer(
+      with conditional(self._is_predicting, ops.device('/CPU:0')):
+        concat_features, group_features = self.single_call_input_layer(
           features, group_name, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
         # for target attention
@@ -121,7 +120,7 @@ class InputLayer(object):
         return concat_features, group_features
     else:  # return sequence feature in raw format instead of combine them
       if self._variational_dropout_config is not None:
-        logging.warn(
+        logging.warning(
             'variational dropout is not supported in not combined mode now.')
 
       feature_group = self._feature_groups[group_name]
@@ -138,13 +137,11 @@ class InputLayer(object):
             group_columns,
             cols_to_output_tensors=cols_to_output_tensors,
             feature_name_to_output_tensors=feature_name_to_output_tensors,
-            do_normalize=self._do_feature_normalize)
+            sort_feature_columns_by_name=False)
         group_features = [cols_to_output_tensors[x] for x in group_columns]
 
         for col, val in cols_to_output_tensors.items():
-          if isinstance(col, EmbeddingColumn) or isinstance(
-              col, _SharedEmbeddingColumn) or isinstance(
-                  col, SharedEmbeddingColumn):
+          if is_embedding_column(col):
             embedding_reg_lst.append(val)
 
       builder = feature_column._LazyBuilder(features)
@@ -188,8 +185,7 @@ class InputLayer(object):
         features,
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
-        feature_name_to_output_tensors=feature_name_to_output_tensors,
-        do_normalize=self._do_feature_normalize)
+        feature_name_to_output_tensors=feature_name_to_output_tensors)
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)
@@ -197,7 +193,8 @@ class InputLayer(object):
     for column in sorted(group_seq_columns, key=lambda x: x.name):
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):
-        seq_feature, seq_len = column._get_sequence_dense_tensor(builder)
+        with conditional(self._is_predicting, ops.device('/CPU:0')):
+          seq_feature, seq_len = column._get_sequence_dense_tensor(builder)
         embedding_reg_lst.append(seq_feature)
 
         sequence_combiner = column.sequence_combiner
@@ -265,8 +262,7 @@ class InputLayer(object):
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
     for fc, val in cols_to_output_tensors.items():
-      if isinstance(fc, EmbeddingColumn) or isinstance(
-          fc, _SharedEmbeddingColumn) or isinstance(fc, SharedEmbeddingColumn):
+      if is_embedding_column(fc):
         embedding_reg_lst.append(val)
 
     if embedding_reg_lst:

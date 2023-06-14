@@ -31,7 +31,8 @@ message DummyModel {
 }
 // configure backbone network in a free style way
 message RankModel {
-    optional float l2_regularization = 1;
+  optional float l2_regularization = 1;
+  optional bool add_head_logits_layer = 2 [default=true];
 }
 
 // for knowledge distillation
@@ -49,7 +50,6 @@ message KD {
   optional float loss_weight = 4 [default=1.0];
   // only for loss_type == CROSS_ENTROPY_LOSS
   optional float temperature = 5 [default=1.0];
-
 }
 
 message EasyRecModel {

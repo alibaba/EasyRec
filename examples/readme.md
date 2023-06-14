@@ -73,6 +73,8 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 - [deepfm_on_movielens.config](configs/deepfm_on_movielens.config)
 
+- [deepfm_backbone_on_movielens.config](configs/deepfm_backbone_on_movielens.config)
+
 - [dcn_on_movielens.config](configs/dcn_on_movielens.config)
 
 - [autoint_on_movielens.config](configs/autoint_on_movielens.config)
@@ -84,6 +86,8 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 - [fm_on_criteo.config](configs/fm_on_criteo.config)
 
 - [deepfm_on_criteo.config](configs/deepfm_on_criteo.config)
+
+- [deepfm_backbone_on_criteo.config](configs/deepfm_backbone_on_criteo.config)
 
 **召回任务**
 
@@ -209,6 +213,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | --------- | ----- | ------ |
   | Wide&Deep | 1     | 0.8558 |
   | DeepFM    | 1     | 0.8688 |
+  | DeepFM(Backbone)|1| 0.8876 |
   | DCN       | 1     | 0.8576 |
   | AutoInt   | 1     | 0.8513 |
   | MaskNet   | 1     | 0.8872 |
@@ -220,6 +225,9 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | ------ | ----- | ------ |
   | FM     | 1     | 0.7577 |
   | DeepFM | 1     | 0.7967 |
+  | DeepFM(backbone)| 1 | 0.7965 |
+  | DeepFM(periodic)| 1 | 0.7982 |
+  | DeepFM(autodis) | 1 | 0.7983 |
 
 ### 召回模型
 

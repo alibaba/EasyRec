@@ -12,3 +12,16 @@ message DNN {
     // use batch normalization
     optional bool use_bn = 4 [default = true];
 }
+
+message MLP {
+    // hidden units for each layer
+    repeated uint32 hidden_units = 1;
+    // ratio of dropout
+    repeated float dropout_ratio = 2;
+    // activation function
+    optional string activation = 3 [default = 'tf.nn.relu'];
+    // use batch normalization
+    optional bool use_bn = 4 [default = true];
+    optional bool last_layer_no_activation = 5 [default = false];
+    optional bool last_layer_no_batch_norm = 6 [default = false];
+}

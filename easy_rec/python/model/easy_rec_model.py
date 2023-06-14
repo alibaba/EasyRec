@@ -11,8 +11,8 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
-from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
@@ -34,10 +34,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                feature_configs,
                features,
                labels=None,
-               is_training=False):
+               is_training=False,
+               is_predicting=False):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
+    self._is_predicting = is_predicting
     self._feature_dict = features
 
     # embedding variable parameters
@@ -67,9 +69,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                                              self._l2_reg)
     self._sequence_encoding_by_group_name = {}
     if model_config.HasField('backbone'):
-      self._backbone = Backbone(model_config.backbone, self, features,
-                                input_layer=self._input_layer,
-                                l2_reg=self._l2_reg)
+      self._backbone = Backbone(
+          model_config.backbone,
+          self,
+          features,
+          input_layer=self._input_layer,
+          l2_reg=self._l2_reg)
     else:
       self._backbone = None
 
@@ -120,7 +125,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=self._is_training)
+        is_training=self._is_training,
+        is_predicting=self._is_predicting)
 
   def get_sequence_encoding(self, group_name=None, is_training=True):
     if group_name is not None:

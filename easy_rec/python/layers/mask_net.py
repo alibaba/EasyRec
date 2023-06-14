@@ -46,8 +46,13 @@ class MaskBlock(object):
 
     output_size = self.mask_block_config.output_size
     hidden = tf.layers.dense(
-        masked_net, output_size, use_bias=False, name='%s/output' % self.name, reuse=self.reuse)
-    ln_hidden = layer_norm(hidden, name='%s/ln_output' % self.name, reuse=self.reuse)
+        masked_net,
+        output_size,
+        use_bias=False,
+        name='%s/output' % self.name,
+        reuse=self.reuse)
+    ln_hidden = layer_norm(
+        hidden, name='%s/ln_output' % self.name, reuse=self.reuse)
     return tf.nn.relu(ln_hidden)
 
 
