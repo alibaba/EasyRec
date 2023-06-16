@@ -32,6 +32,7 @@ class FMLayer(object):
   References
     - [Factorization Machines](https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf)
   """
+
   def __init__(self, config, name='fm'):
     self.name = name
     self.config = config
@@ -59,8 +60,8 @@ class FMLayer(object):
 
     with tf.name_scope(self.name):
       square_of_sum = tf.square(tf.reduce_sum(fea, axis=1))
-      sum_of_square = tf.reduce_sum(fea * fea, axis=1)
-      cross_term = square_of_sum - sum_of_square
+      sum_of_square = tf.reduce_sum(tf.square(fea), axis=1)
+      cross_term = tf.subtract(square_of_sum, sum_of_square)
       if self.config.use_variant:
         cross_term = 0.5 * cross_term
       else:

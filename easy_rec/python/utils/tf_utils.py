@@ -62,7 +62,7 @@ def dot_op(features):
   """Compute inner dot between any two pair tensors.
 
   Args:
-    features:
+    features: must be one of
     - List of 2D tensor with shape: ``(batch_size,embedding_size)``.
     - Or a 3D tensor with shape: ``(batch_size,field_size,embedding_size)``
   Return:

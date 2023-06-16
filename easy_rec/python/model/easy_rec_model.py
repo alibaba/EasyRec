@@ -50,7 +50,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
-    self._wide_output_dim = -1
+    self._wide_output_dim = self.get_wide_output_dim()
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)
@@ -114,6 +114,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     elif hasattr(model_config, 'l2_regularization'):
       l2_regularization = model_config.l2_regularization
     return l2_regularization
+
+  def get_wide_output_dim(self):
+    model_config = getattr(self._base_model_config,
+                           self._base_model_config.WhichOneof('model'))
+    if hasattr(model_config, 'wide_output_dim'):
+      return model_config.wide_output_dim
+    return -1
 
   def build_input_layer(self, model_config, feature_configs):
     self._input_layer = input_layer.InputLayer(

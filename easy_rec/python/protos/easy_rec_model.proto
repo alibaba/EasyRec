@@ -33,6 +33,7 @@ message DummyModel {
 message RankModel {
   optional float l2_regularization = 1;
   optional bool add_head_logits_layer = 2 [default=true];
+  optional uint32 wide_output_dim = 3;
 }
 
 // for knowledge distillation

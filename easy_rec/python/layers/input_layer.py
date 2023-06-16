@@ -17,9 +17,10 @@ from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.layers.fscd_layer import FSCDLayer
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
-from easy_rec.python.utils import shape_utils, conditional
+from easy_rec.python.utils import conditional
+from easy_rec.python.utils import shape_utils
 
-from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column
+from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
 
 
 class InputLayer(object):
@@ -97,7 +98,7 @@ class InputLayer(object):
     if is_combine:
       with conditional(self._is_predicting, ops.device('/CPU:0')):
         concat_features, group_features = self.single_call_input_layer(
-          features, group_name, feature_name_to_output_tensors)
+            features, group_name, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
         # for target attention
         group_seq_arr = self._group_name_to_seq_features[group_name]

@@ -8,8 +8,9 @@ message InputLayer {
     optional bool do_layer_norm = 2;
     optional float dropout_rate = 3;
     optional float feature_dropout_rate = 4;
-    optional bool output_feature_list = 5;
-    optional bool output_3d_tensor = 6;
+    optional bool only_output_feature_list = 5;
+    optional bool only_output_3d_tensor = 6;
+    optional bool output_2d_tensor_and_feature_list = 7;
 }
 
 message HighWayTower {
@@ -25,6 +26,7 @@ message PeriodicEmbedding {
     optional bool add_linear_layer = 3 [default = true];
     optional string linear_activation = 4 [default = 'relu'];
     optional bool output_3d_tensor = 5;
+    optional bool output_tensor_list = 6;
 }
 
 message AutoDisEmbedding {
@@ -33,6 +35,7 @@ message AutoDisEmbedding {
     required float keep_prob = 3 [default = 0.8];
     required float temperature = 4;
     optional bool output_3d_tensor = 5;
+    optional bool output_tensor_list = 6;
 }
 
 message Concatenate {

@@ -82,6 +82,7 @@ def layer_norm(input_tensor, name=None, reuse=None):
 
 
 class EnhancedInputLayer(object):
+  """Enhance the raw input layer."""
 
   def __init__(self, config, input_layer, feature_dict):
     if config.do_batch_norm and config.do_layer_norm:
@@ -92,56 +93,49 @@ class EnhancedInputLayer(object):
     self._input_layer = input_layer
     self._feature_dict = feature_dict
 
-  def __call__(self, feature_group, is_training, *args, **kwargs):
-    features, feature_list = self._input_layer(self._feature_dict,
-                                               feature_group)
+  def __call__(self, group, is_training, *args, **kwargs):
+    features, feature_list = self._input_layer(self._feature_dict, group)
     num_features = len(feature_list)
 
-    do_feature_dropout = 0.0 < self._config.feature_dropout_rate < 1.0
-    if self._config.output_feature_list or do_feature_dropout:
-      if self._config.do_layer_norm or self._config.do_batch_norm:
-        for i in range(num_features):
-          fea = feature_list[i]
-          if self._config.do_batch_norm:
-            fea = tf.layers.batch_normalization(fea, training=is_training)
-          elif self._config.do_layer_norm:
-            fea = layer_norm(fea)
-          feature_list[i] = fea
-    elif self._config.do_batch_norm:
-      features = tf.layers.batch_normalization(features, training=is_training)
-    elif self._config.do_layer_norm:
-      features = layer_norm(features)
-
-    if do_feature_dropout and is_training:
+    do_ln = self._config.do_layer_norm
+    do_bn = self._config.do_batch_norm
+    do_feature_dropout = is_training and 0.0 < self._config.feature_dropout_rate < 1.0
+    if do_feature_dropout:
       keep_prob = 1.0 - self._config.feature_dropout_rate
       bern = tf.distributions.Bernoulli(probs=keep_prob)
       mask = bern.sample(num_features)
-      for i in range(num_features):
-        fea = tf.div(feature_list[i], keep_prob) * mask[i]
-        feature_list[i] = fea
-      features = tf.concat(feature_list, axis=-1)
+    elif do_bn:
+      features = tf.layers.batch_normalization(features, training=is_training)
+    elif do_ln:
+      features = layer_norm(features)
 
     do_dropout = 0.0 < self._config.dropout_rate < 1.0
-    if self._config.output_feature_list:
-      if do_dropout:
-        for i in range(num_features):
-          fea = feature_list[i]
+    if do_feature_dropout or do_ln or do_bn or do_dropout:
+      for i in range(num_features):
+        fea = feature_list[i]
+        if self._config.do_batch_norm:
+          fea = tf.layers.batch_normalization(fea, training=is_training)
+        elif self._config.do_layer_norm:
+          fea = layer_norm(fea)
+        if do_dropout:
           fea = tf.layers.dropout(
               fea, self._config.dropout_rate, training=is_training)
-          feature_list[i] = fea
-      if self._config.output_3d_tensor:
-        for i in range(num_features):
-          feature_list[i] = tf.expand_dims(feature_list[i], axis=1)
-        return tf.concat(feature_list, axis=1)
-      return feature_list
+        if do_feature_dropout:
+          fea = tf.div(fea, keep_prob) * mask[i]
+        feature_list[i] = fea
+      if do_feature_dropout:
+        features = tf.concat(feature_list, axis=-1)
 
-    if do_dropout:
+    if do_dropout and not do_feature_dropout:
       features = tf.layers.dropout(
           features, self._config.dropout_rate, training=is_training)
 
-    if self._config.output_3d_tensor:
-      dim = int(feature_list[0].shape[-1])
-      return tf.reshape(features, [-1, num_features, dim])
+    if self._config.only_output_feature_list:
+      return feature_list
+    if self._config.only_output_3d_tensor:
+      return tf.stack(feature_list, axis=1)
+    if self._config.output_2d_tensor_and_feature_list:
+      return features, feature_list
     return features
 
 

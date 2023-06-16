@@ -47,6 +47,7 @@ class NLinear(object):
         d_in: the input dimension
         d_out: the output dimension
         bias: indicates if the underlying linear layers have biases
+        scope: variable scope name
     """
     with tf.variable_scope(scope):
       self.weight = tf.get_variable(
@@ -100,6 +101,7 @@ class PeriodicEmbedding(object):
         A similar grid would be ``[1e-2, 1e-1, 1e0, 1e1, 1e2]``.
         If possible, add more intermidiate values to this grid.
       config.output_3d_tensor: whether to output a 3d tensor
+      scope: variable scope name
     """
     self.config = config
     if config.embedding_dim % 2:
@@ -130,19 +132,22 @@ class PeriodicEmbedding(object):
         act = get_activation(self.config.linear_activation)
         if callable(act):
           emb = act(emb)
+      output = tf.reshape(emb, [-1, num_features * dim])
 
+      if self.config.output_tensor_list:
+        return output, tf.unstack(emb, axis=1)
       if self.config.output_3d_tensor:
-        return emb
-      return tf.reshape(emb, [-1, num_features * dim])
+        return output, emb
+      return output
 
 
 class AutoDisEmbedding(object):
+  """An Embedding Learning Framework for Numerical Features in CTR Prediction.
+
+  Refer: https://arxiv.org/pdf/2012.08986v2.pdf
+  """
 
   def __init__(self, config, scope='auto_dis'):
-    """An Embedding Learning Framework for Numerical Features in CTR Prediction.
-
-    Refer: https://arxiv.org/pdf/2012.08986v2.pdf
-    """
     self.config = config
     self.emb_dim = config.embedding_dim
     self.num_bins = config.num_bins
@@ -161,22 +166,25 @@ class AutoDisEmbedding(object):
       mat = tf.get_variable(
           'project_mat', shape=[1, num_features, self.num_bins, self.num_bins])
 
-      x = tf.expand_dims(inputs, axis=-1)  # [B, num_fea, 1]
-      hidden = tf.nn.leaky_relu(w * x)  # [B, num_fea, num_bin]
+      x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
+      hidden = tf.nn.leaky_relu(w * x)  # [B, N, num_bin]
 
-      y = tf.matmul(mat, hidden[..., None])  # [B, num_fea, num_bin, 1]
-      y = tf.squeeze(y, axis=3)  # [B, num_fea, num_bin]
+      y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
+      y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
 
-      # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect; (float, keep_prob=0.8)
+      # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
       alpha = self.config.keep_prob
-      x_bar = y + alpha * hidden  # [B, num_fea, num_bin]
+      x_bar = y + alpha * hidden  # [B, N, num_bin]
       t = self.config.temperature
-      x_hat = tf.nn.softmax(x_bar / t)  # [B, num_fea, num_bin]
+      x_hat = tf.nn.softmax(x_bar / t)  # [B, N, num_bin]
 
-      emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, num_fea, 1, emb_dim]
-      # emb = tf.squeeze(emb, axis=2)  # [B, num_fea, emb_dim]
+      emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
+      emb = tf.squeeze(emb, axis=2)  # [B, N, D]
+      output = tf.reshape(emb, [-1, self.emb_dim * num_features])  # [B, N*D]
+
+      if self.config.output_tensor_list:
+        return output, tf.unstack(emb, axis=1)
+
       if self.config.output_3d_tensor:
-        return tf.reshape(
-            emb, [-1, num_features, self.emb_dim])  # [B, num_fea, emb_dim]
-      return tf.reshape(
-          emb, [-1, self.emb_dim * num_features])  # [B, num_fea*emb_dim]
+        return output, emb
+      return output

@@ -5,15 +5,20 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers.common_layers import SENet, EnhancedInputLayer
-from easy_rec.python.layers.common_layers import highway, Concatenate
+from easy_rec.python.layers.common_layers import Concatenate
+from easy_rec.python.layers.common_layers import EnhancedInputLayer
+from easy_rec.python.layers.common_layers import SENet
+from easy_rec.python.layers.common_layers import highway
 from easy_rec.python.layers.fibinet import FiBiNetLayer
-from easy_rec.python.layers.fm import FM, FMLayer
+from easy_rec.python.layers.fm import FMLayer
 from easy_rec.python.layers.mask_net import MaskNet
 from easy_rec.python.layers.numerical_embedding import AutoDisEmbedding
 from easy_rec.python.layers.numerical_embedding import PeriodicEmbedding
+from easy_rec.python.protos import backbone_pb2
+from easy_rec.python.protos import layer_pb2
 from easy_rec.python.utils.dag import DAG
-from easy_rec.python.utils.tf_utils import add_op, dot_op
+from easy_rec.python.utils.tf_utils import add_op
+from easy_rec.python.utils.tf_utils import dot_op
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -29,24 +34,67 @@ class Backbone(object):
     self._l2_reg = l2_reg
     self._dag = DAG()
     self._name_to_blocks = {}
+    input_feature_groups = set()
     for block in config.blocks:
-      self._name_to_blocks[block.name] = block
       self._dag.add_node(block.name)
-    num_blocks = len(self._name_to_blocks)
+      self._name_to_blocks[block.name] = block
+      layer = block.WhichOneof('layer')
+      if layer == 'input_layer':
+        if len(block.inputs) != 0:
+          raise ValueError('no input allowed for input_layer: ' + block.name)
+        input_name = block.name
+        if input_name in input_feature_groups:
+          raise ValueError('input `%s` already exists in other block' %
+                           input_name)
+        else:
+          input_feature_groups.add(input_name)
+
+    num_groups = len(input_feature_groups)
+    num_blocks = len(self._name_to_blocks) - num_groups
     assert num_blocks > 0, 'there must be at least one block in backbone'
+
     for block in config.blocks:
+      layer = block.WhichOneof('layer')
+      if layer == 'input_layer':
+        continue
+      if block.name in input_feature_groups:
+        raise KeyError('block name can not be one of feature groups:' +
+                       block.name)
       assert len(block.inputs) > 0, 'no input for block: %s' % block.name
-      for node in block.inputs:
-        if node in self._name_to_blocks:
-          self._dag.add_edge(node, block.name)
+
+      for input_node in block.inputs:
+        input_name = input_node.name
+        if input_name in self._name_to_blocks:
+          assert input_name != block.name, 'input name can not equal to block name:' + input_name
+          self._dag.add_edge(input_name, block.name)
+        elif input_name not in input_feature_groups:
+          if input_layer.has_group(input_name):
+            logging.info('adding an input_layer block: ' + input_name)
+            new_block = backbone_pb2.Block()
+            new_block.name = input_name
+            new_block.input_layer.CopyFrom(layer_pb2.InputLayer())
+            self._name_to_blocks[input_name] = new_block
+            self._dag.add_node(input_name)
+            self._dag.add_edge(input_name, block.name)
+            input_feature_groups.add(block.name)
+          else:
+            raise KeyError(
+                'invalid input name `%s`, must be the name of either a feature group or an another block'
+                % input_name)
+    num_groups = len(input_feature_groups)
+    assert num_groups > 0, 'there must be at least one input layer'
 
   def block_input(self, config, block_outputs, output_list=False):
     inputs = []
-    for input_name in config.inputs:
+    for input_node in config.inputs:
+      input_name = input_node.name
       if input_name in block_outputs:
         input_feature = block_outputs[input_name]
       else:
-        input_feature, _ = self._input_layer(self._features, input_name)
+        raise KeyError('input name `%s` does not exists' % input_name)
+      if input_node.HasField('input_fn'):
+        fn = eval(input_node.input_fn)
+        input_feature = fn(input_feature)
       inputs.append(input_feature)
 
     if output_list:
@@ -67,14 +115,12 @@ class Backbone(object):
     for block in blocks:
       config = self._name_to_blocks[block]
       layer = config.WhichOneof('layer')
-      if layer == 'input_layer':
-        if len(config.inputs) != 1:
-          raise ValueError('only one input allowed for input_layer: ' +
-                           block.name)
+      if layer is None:  # identity layer
+        block_outputs[block] = self.block_input(config, block_outputs)
+      elif layer == 'input_layer':
         conf = config.input_layer
-        input_layer = EnhancedInputLayer(conf, self._input_layer,
-                                         self._features)
-        output = input_layer(config.inputs[0], is_training)
+        input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
+        output = input_fn(block, is_training)
         block_outputs[block] = output
       elif layer == 'periodic_embedding':
         input_feature = self.block_input(config, block_outputs)
@@ -131,9 +177,11 @@ class Backbone(object):
         block_outputs[block] = concat(input_feature)
       elif layer == 'reshape':
         input_feature = self.block_input(config, block_outputs)
-        block_outputs[block] = tf.reshape(input_feature, list(config.reshape.dims))
+        block_outputs[block] = tf.reshape(input_feature,
+                                          list(config.reshape.dims))
       elif layer == 'add':
-        input_feature = self.block_input(config, block_outputs, output_list=True)
+        input_feature = self.block_input(
+            config, block_outputs, output_list=True)
         block_outputs[block] = add_op(input_feature)
       elif layer == 'dot':
         input_feature = self.block_input(config, block_outputs)
@@ -142,9 +190,9 @@ class Backbone(object):
         input_feature = self.block_input(config, block_outputs)
         fn = eval(config.Lambda.expression)
         block_outputs[block] = fn(input_feature)
-      elif layer == 'chain':
-        input_feature = self.block_input(config, block_outputs)
-        block_outputs[block] = op_chain(input_feature, config.chain.ops)
+      # elif layer == 'chain':
+      #   input_feature = self.block_input(config, block_outputs)
+      #   block_outputs[block] = op_chain(input_feature, config.chain.ops)
       else:
         raise NotImplementedError('Unsupported backbone layer:' + layer)
 
@@ -154,8 +202,8 @@ class Backbone(object):
         temp.append(block_outputs[output])
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
-
     output = concat_inputs(temp, msg='backbone')
+
     if self._config.HasField('top_mlp'):
       no_act = self._config.top_mlp.last_layer_no_activation
       no_bn = self._config.top_mlp.last_layer_no_batch_norm
@@ -202,66 +250,66 @@ def concat_inputs(inputs, axis=-1, msg=''):
   raise ValueError('no inputs to be concat:' + msg)
 
 
-def op_chain(inputs, ops):
-  output = inputs
-  for op in ops:
-    op_name = op.WhichOneOf('Op')
-    output = run_op(output, op_name, op, block='op_chain')
-  return output
-
-
-def run_op(inputs, op_name, config, block='', is_training=False, l2_reg=None):
-  if op_name == 'periodic_embedding':
-    num_emb = PeriodicEmbedding(config.periodic_embedding, scope=block)
-    return num_emb(inputs)
-  elif op_name == 'auto_dis_embedding':
-    num_emb = AutoDisEmbedding(config.auto_dis_embedding, scope=block)
-    return num_emb(inputs)
-  elif op_name == 'highway':
-    conf = config.highway
-    highway_op_name = highway(
-      inputs,
-      conf.emb_size,
-      activation=conf.activation,
-      dropout=conf.dropout_rate,
-      scope=block)
-    return highway_op_name(inputs)
-  elif op_name == 'mlp':
-    mlp = dnn.DNN(
-      config.mlp,
-      l2_reg,
-      name='%s_mlp' % block,
-      is_training=is_training,
-      last_layer_no_activation=config.mlp.last_layer_no_activation,
-      last_layer_no_batch_norm=config.mlp.last_layer_no_batch_norm)
-    return mlp(inputs)
-  elif op_name == 'masknet':
-    mask_net = MaskNet(config.masknet, name=block, reuse=tf.AUTO_REUSE)
-    output = mask_net(inputs, is_training, l2_reg=l2_reg)
-    return output
-  elif op_name == 'senet':
-    senet = SENet(config.senet, name=block)
-    output = senet(inputs)
-    return output
-  elif op_name == 'fibinet':
-    fibinet = FiBiNetLayer(config.fibinet, name=block)
-    output = fibinet(inputs, is_training, l2_reg=l2_reg)
-    return output
-  elif op_name == 'fm':
-    fm = FMLayer(config.fm, name=block)
-    return fm(inputs)
-  if op_name == 'Lambda':
-    fn = eval(config.Lambda.expression)
-    output = fn(inputs)
-  elif op_name == 'concat':
-    concat = Concatenate(config.concat)
-    output = concat(inputs)
-  elif op_name == 'reshape':
-    output = tf.reshape(inputs, list(config.reshape.dims))
-  elif op_name == 'add':
-    output = add_op(inputs)
-  elif op_name == 'dot':
-    output = dot_op(inputs)
-  else:
-    raise NotImplementedError('Unsupported op:' + op_name)
-  return output
+# def op_chain(inputs, ops):
+#  output = inputs
+#  for op in ops:
+#    op_name = op.WhichOneOf('Op')
+#    output = run_op(output, op_name, op, block='op_chain')
+#  return output
+#
+#
+# def run_op(inputs, op_name, config, block='', is_training=False, l2_reg=None):
+#  if op_name == 'periodic_embedding':
+#    num_emb = PeriodicEmbedding(config.periodic_embedding, scope=block)
+#    return num_emb(inputs)
+#  elif op_name == 'auto_dis_embedding':
+#    num_emb = AutoDisEmbedding(config.auto_dis_embedding, scope=block)
+#    return num_emb(inputs)
+#  elif op_name == 'highway':
+#    conf = config.highway
+#    highway_op_name = highway(
+#      inputs,
+#      conf.emb_size,
+#      activation=conf.activation,
+#      dropout=conf.dropout_rate,
+#      scope=block)
+#    return highway_op_name(inputs)
+#  elif op_name == 'mlp':
+#    mlp = dnn.DNN(
+#      config.mlp,
+#      l2_reg,
+#      name='%s_mlp' % block,
+#      is_training=is_training,
+#      last_layer_no_activation=config.mlp.last_layer_no_activation,
+#      last_layer_no_batch_norm=config.mlp.last_layer_no_batch_norm)
+#    return mlp(inputs)
+#  elif op_name == 'masknet':
+#    mask_net = MaskNet(config.masknet, name=block, reuse=tf.AUTO_REUSE)
+#    output = mask_net(inputs, is_training, l2_reg=l2_reg)
+#    return output
+#  elif op_name == 'senet':
+#    senet = SENet(config.senet, name=block)
+#    output = senet(inputs)
+#    return output
+#  elif op_name == 'fibinet':
+#    fibinet = FiBiNetLayer(config.fibinet, name=block)
+#    output = fibinet(inputs, is_training, l2_reg=l2_reg)
+#    return output
+#  elif op_name == 'fm':
+#    fm = FMLayer(config.fm, name=block)
+#    return fm(inputs)
+#  if op_name == 'Lambda':
+#    fn = eval(config.Lambda.expression)
+#    output = fn(inputs)
+#  elif op_name == 'concat':
+#    concat = Concatenate(config.concat)
+#    output = concat(inputs)
+#  elif op_name == 'reshape':
+#    output = tf.reshape(inputs, list(config.reshape.dims))
+#  elif op_name == 'add':
+#    output = add_op(inputs)
+#  elif op_name == 'dot':
+#    output = dot_op(inputs)
+#  else:
+#    raise NotImplementedError('Unsupported op:' + op_name)
+#  return output

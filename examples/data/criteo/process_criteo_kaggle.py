@@ -5,6 +5,12 @@ dense_features = ['I' + str(i) for i in range(1, 14)]
 target_columns = ['label']
 columns = target_columns + dense_features + category_features
 
+# data_train = pd.read_csv(
+#     'criteo_train_data', sep='\t', names=columns)
+#
+# for col in category_features:
+#     print(col, data_train[col].nunique())
+
 data_train = pd.read_csv(
     'criteo_kaggle_display/train.txt', sep='\t', names=columns)
 

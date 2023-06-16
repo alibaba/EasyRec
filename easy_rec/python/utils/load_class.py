@@ -220,3 +220,30 @@ def get_register_class_meta(class_map, have_abstract_class=True):
       return newclass
 
   return RegisterABCMeta
+
+
+def load_keras_layer(name):
+  """Load keras layer class.
+
+  Args:
+    name: keras layer name
+
+  Return:
+    modules or functions or classes
+  """
+  name = name.strip()
+  if name == '' or name is None:
+    return None
+
+  path = 'easy_rec.python.layers.keras.' + name
+  try:
+    return pydoc.locate(path)
+  except pydoc.ErrorDuringImport:
+    path = 'tensorflow.keras.layers.' + name
+    try:
+      return pydoc.locate(path)
+    except pydoc.ErrorDuringImport:
+      print('load keras layer %s failed' % name)
+      logging.error('load keras layer %s failed: %s' %
+                    (name, traceback.format_exc()))
+      return None
