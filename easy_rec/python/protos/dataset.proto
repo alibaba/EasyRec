@@ -297,5 +297,5 @@ message DatasetConfig {
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
 
-
+    optional bool uniq_seq = 1003 [default = false];
 }

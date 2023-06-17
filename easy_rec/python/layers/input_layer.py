@@ -152,10 +152,18 @@ class InputLayer(object):
 
       builder = feature_column._LazyBuilder(features)
       seq_features = []
+
       for fc in group_seq_columns:
         with variable_scope.variable_scope('input_layer/' +
                                            fc.categorical_column.name):
           tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
+          uniq_index_name = 'uniq_idx/' + fc.categorical_column.name
+          if hasattr(fc.categorical_column, 'source_column'):
+            uniq_index_name = 'uniq_idx/' + fc.categorical_column.source_column.name
+          assert uniq_index_name in features, 'failed to find uniq_index[%s] in features' % uniq_index_name
+          tmp_index = features[uniq_index_name]
+          tmp_embedding = array_ops.gather(tmp_embedding, tmp_index)
+          tmp_seq_len = array_ops.gather(tmp_seq_len, tmp_index)
           if fc.max_seq_length > 0:
             tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(
                 tmp_embedding, tmp_seq_len, fc.max_seq_length)
