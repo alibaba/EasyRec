@@ -3,11 +3,10 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.utils.shape_utils import get_shape_list
-
-from tensorflow.python.keras.layers import Layer
 
 
 class DIN(Layer):

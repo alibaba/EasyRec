@@ -245,5 +245,5 @@ def load_keras_layer(name):
   except pydoc.ErrorDuringImport:
     print('load keras layer %s failed' % name)
     logging.error('load keras layer %s failed: %s' %
-                   (name, traceback.format_exc()))
+                  (name, traceback.format_exc()))
     return None, False

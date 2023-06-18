@@ -1,13 +1,13 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.input.augment import input_aug_data
 from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.loss.nce_loss import nce_loss
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
-from tensorflow.python.keras.layers import Layer
 
 
 class BST(Layer):

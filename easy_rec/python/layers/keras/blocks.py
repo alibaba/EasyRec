@@ -2,8 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convenience blocks for building models."""
 import logging
-from easy_rec.python.utils.activation import get_activation
+
 import tensorflow as tf
+
+from easy_rec.python.utils.activation import get_activation
 
 
 class MLP(tf.keras.layers.Layer):
@@ -31,9 +33,9 @@ class MLP(tf.keras.layers.Layer):
     units = list(params.hidden_units)
     logging.info(
         'MLP(%s) units: %s, dropout: %r, activate=%s, use_bn=%r, final_bn=%r,'
-        ' final_activate=%s, bias=%r, initializer=%s, bn_after_activation=%r'
-        % (name, units, dropout_rate, activation, use_bn, use_final_bn,
-           final_activation, use_bias, initializer, use_bn_after_act))
+        ' final_activate=%s, bias=%r, initializer=%s, bn_after_activation=%r' %
+        (name, units, dropout_rate, activation, use_bn, use_final_bn,
+         final_activation, use_bias, initializer, use_bn_after_act))
 
     num_dropout = len(dropout_rate)
     self._sub_layers = []
@@ -41,13 +43,15 @@ class MLP(tf.keras.layers.Layer):
       name = 'dnn_%d' % i
       drop_rate = dropout_rate[i] if i < num_dropout else 0.0
       self.add_rich_layer(num_units, use_bn, drop_rate, activation, initializer,
-                          use_bias, use_bn_after_act, name, params.l2_regularizer)
+                          use_bias, use_bn_after_act, name,
+                          params.l2_regularizer)
 
     n = len(units) - 1
     drop_rate = dropout_rate[n] if num_dropout > n else 0.0
     name = 'dnn_%d' % n
     self.add_rich_layer(units[-1], use_final_bn, drop_rate, final_activation,
-                        initializer, use_bias, use_bn_after_act, name, params.l2_regularizer)
+                        initializer, use_bias, use_bn_after_act, name,
+                        params.l2_regularizer)
 
   def add_rich_layer(self,
                      num_units,
@@ -70,7 +74,8 @@ class MLP(tf.keras.layers.Layer):
       self._sub_layers.append(dense)
       # bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name)
       # keras BN layer have a stale issue on some versions of tf
-      bn = lambda x, training: tf.layers.batch_normalization(x, training=training, name='%s/bn' % name)
+      bn = lambda x, training: tf.layers.batch_normalization(
+          x, training=training, name='%s/%s/bn' % (self.name, name))
       self._sub_layers.append(bn)
       act = tf.keras.layers.Activation(act_fn, name='%s/act' % name)
       self._sub_layers.append(act)
@@ -84,7 +89,8 @@ class MLP(tf.keras.layers.Layer):
           name=name)
       self._sub_layers.append(dense)
       if use_bn and use_bn_after_activation:
-        bn = lambda x, training: tf.layers.batch_normalization(x, training=training, name='%s/bn' % name)
+        bn = lambda x, training: tf.layers.batch_normalization(
+            x, training=training, name='%s/%s/bn' % (self.name, name))
         self._sub_layers.append(bn)
 
     if 0.0 < dropout_rate < 1.0:
@@ -101,6 +107,7 @@ class MLP(tf.keras.layers.Layer):
 
 
 class Highway(tf.keras.layers.Layer):
+
   def __init__(self, params, name='highway', **kwargs):
     super(Highway, self).__init__(name, **kwargs)
     params.check_required('emb_size')
@@ -111,7 +118,9 @@ class Highway(tf.keras.layers.Layer):
 
   def call(self, inputs, training=None, **kwargs):
     from easy_rec.python.layers.common_layers import highway
-    return highway(inputs, self.emb_size,
-                   activation=self.activation,
-                   num_layers=self.num_layers,
-                   dropout=self.dropout_rate if training else 0.0)
+    return highway(
+        inputs,
+        self.emb_size,
+        activation=self.activation,
+        num_layers=self.num_layers,
+        dropout=self.dropout_rate if training else 0.0)

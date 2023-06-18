@@ -1,7 +1,8 @@
-from .blocks import MLP, Highway
+from .blocks import MLP
+from .blocks import Highway
 from .bst import BST
-from .din import DIN
 from .dcn import Cross
+from .din import DIN
 from .dot_interaction import DotInteraction
 from .fibinet import BiLinear
 from .fibinet import FiBiNet

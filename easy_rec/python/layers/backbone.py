@@ -3,6 +3,7 @@
 import logging
 
 import tensorflow as tf
+from google.protobuf import struct_pb2
 
 from easy_rec.python.layers.common_layers import EnhancedInputLayer
 from easy_rec.python.layers.keras import MLP
@@ -10,7 +11,6 @@ from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.load_class import load_keras_layer
-from google.protobuf import struct_pb2
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -127,7 +127,8 @@ class Backbone(object):
         block_outputs[block] = output
       else:
         inputs = block_input(config, block_outputs)
-        block_outputs[block] = self.call_layer(inputs, config, block, is_training)
+        block_outputs[block] = self.call_layer(inputs, config, block,
+                                               is_training)
 
     temp = []
     for output in self._config.concat_blocks:
@@ -170,10 +171,10 @@ class Backbone(object):
       return layer(inputs, training=training)
 
   def call_sequential_layers(self, inputs, layers, name, training):
-   output = inputs
-   for layer in layers:
-     output = self.call_layer(output, layer, name, training)
-   return output
+    output = inputs
+    for layer in layers:
+      output = self.call_layer(output, layer, name, training)
+    return output
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')
@@ -221,4 +222,3 @@ def convert_to_dict(struct):
   for key, value in struct.items():
     kwargs[str(key)] = format_value(value)
   return kwargs
-

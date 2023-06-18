@@ -94,7 +94,7 @@ class EnhancedInputLayer(object):
   def __call__(self, group, is_training, *args, **kwargs):
     if self._config.output_seq_and_normal_feature:
       seq_features, target_feature, target_features = self._input_layer(
-        self._feature_dict, group, is_combine=False)
+          self._feature_dict, group, is_combine=False)
       return seq_features, target_features
 
     features, feature_list = self._input_layer(self._feature_dict, group)

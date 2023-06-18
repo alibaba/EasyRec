@@ -4,6 +4,8 @@
 
 import tensorflow as tf
 
+from easy_rec.python.utils.activation import get_activation
+
 
 class Cross(tf.keras.layers.Layer):
   """Cross Layer in Deep & Cross Network to learn explicit feature interactions.
@@ -70,7 +72,8 @@ class Cross(tf.keras.layers.Layer):
     self._diag_scale = params.get_or_default('diag_scale', 0.0)
     self._use_bias = params.get_or_default('use_bias', True)
     preactivation = params.get_or_default('preactivation', None)
-    self._preactivation = tf.keras.activations.get(preactivation)
+    preact = get_activation(preactivation)
+    self._preactivation = tf.keras.activations.get(preact)
     kernel_initializer = params.get_or_default('kernel_initializer',
                                                'truncated_normal')
     self._kernel_initializer = tf.keras.initializers.get(kernel_initializer)
@@ -89,7 +92,7 @@ class Cross(tf.keras.layers.Layer):
               self._diag_scale))
 
   def build(self, input_shape):
-    last_dim = input_shape[-1]
+    last_dim = input_shape[0][-1]
 
     if self._projection_dim is None:
       self._dense = tf.keras.layers.Dense(
@@ -154,7 +157,7 @@ class Cross(tf.keras.layers.Layer):
     else:
       prod_output = self._dense_v(self._dense_u(x))
 
-    prod_output = tf.cast(prod_output, self.compute_dtype)
+    # prod_output = tf.cast(prod_output, self.compute_dtype)
 
     if self._diag_scale:
       prod_output = prod_output + self._diag_scale * x
