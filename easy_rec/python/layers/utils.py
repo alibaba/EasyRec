@@ -158,3 +158,60 @@ def mark_input_src(name, src_desc):
                             'name': name,
                             'src': src_desc
                         }))
+
+
+class Parameter(object):
+
+  def __init__(self, params, is_struct, l2_reg=None):
+    self.params = params
+    self.is_struct = is_struct
+    self._l2_reg = l2_reg
+
+  @staticmethod
+  def make_from_pb(config):
+    return Parameter(config, False)
+
+  def get_pb_config(self):
+    assert not self.is_struct, 'Struct parameter can not convert to pb config'
+    return self.params
+
+  @property
+  def l2_regularizer(self):
+    return self._l2_reg
+
+  @l2_regularizer.setter
+  def l2_regularizer(self, value):
+    self._l2_reg = value
+
+  def __getattr__(self, key):
+    if self.is_struct:
+      return self.params[key]
+    return getattr(self.params, key)
+
+  def __getitem__(self, key):
+    if self.is_struct:
+      return self.params[key]
+    return getattr(self.params, key)
+
+  def get_or_default(self, key, def_val):
+    if self.is_struct:
+      if key in self.params:
+        return self.params[key]
+      return def_val
+    else:  # pb message
+      return getattr(self.params, key)
+
+  def check_required(self, keys):
+    if not self.is_struct:
+      return
+    if not isinstance(keys, (list, tuple)):
+      keys = [keys]
+    for key in keys:
+      if key not in self.params:
+        raise KeyError('%s must be set in params')
+
+  def has_field(self, key):
+    if self.is_struct:
+      return key in self.params
+    else:
+      return self.params.HasField(key)

@@ -4,8 +4,8 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.layers.bst import BST
-from easy_rec.python.layers.din import DIN
+from easy_rec.python.layers.keras.bst import BST
+from easy_rec.python.layers.keras.din import DIN
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':

@@ -35,17 +35,19 @@ class RankModel(EasyRecModel):
           'method `build_predict_graph` must be implemented when backbone network do not exits'
       )
     output = self.backbone
-
-    model_config = getattr(self._base_model_config,
-                           self._base_model_config.WhichOneof('model'))
-    if hasattr(model_config, 'add_head_logits_layer') and \
-        model_config.HasField('add_head_logits_layer'):
-      add_head_logits_layer = model_config.add_head_logits_layer
-    else:
-      add_head_logits_layer = True
-    if add_head_logits_layer:
+    if int(output.shape[-1]) != self._num_class:
       logging.info('add head logits layer for rank model')
       output = tf.layers.dense(output, self._num_class, name='output')
+    # model_config = getattr(self._base_model_config,
+    #                        self._base_model_config.WhichOneof('model'))
+    # if hasattr(model_config, 'add_head_logits_layer') and \
+    #     model_config.HasField('add_head_logits_layer'):
+    #   add_head_logits_layer = model_config.add_head_logits_layer
+    # else:
+    #   add_head_logits_layer = True
+    # if add_head_logits_layer:
+    #   logging.info('add head logits layer for rank model')
+    #   output = tf.layers.dense(output, self._num_class, name='output')
 
     self._add_to_prediction_dict(output)
     return self._prediction_dict

@@ -27,14 +27,9 @@ class DotInteraction(tf.keras.layers.Layer):
     name: String name of the layer.
   """
 
-  def __init__(self,
-               config,
-               self_interaction=False,
-               skip_gather=False,
-               name=None,
-               **kwargs):
-    self._self_interaction = config.self_interaction
-    self._skip_gather = config.skip_gather
+  def __init__(self, params, name=None, **kwargs):
+    self._self_interaction = params.get_or_default('self_interaction', False)
+    self._skip_gather = params.get_or_default('skip_gather', False)
     super(DotInteraction, self).__init__(name=name, **kwargs)
 
   def call(self, inputs, **kwargs):
@@ -53,20 +48,22 @@ class DotInteraction(tf.keras.layers.Layer):
       `num_features * (num_features + 1) / 2` if self_interaction is True and
       `num_features * (num_features - 1) / 2` if self_interaction is False.
     """
-    num_features = len(inputs)
-    batch_size = tf.shape(inputs[0])[0]
-    feature_dim = tf.shape(inputs[0])[1]
-    # concat_features shape: batch_size, num_features, feature_dim
-    try:
-      concat_features = tf.concat(inputs, axis=-1)
-      concat_features = tf.reshape(concat_features,
-                                   [batch_size, -1, feature_dim])
-    except (ValueError, tf.errors.InvalidArgumentError) as e:
-      raise ValueError('Input tensors` dimensions must be equal, original'
-                       'error message: {}'.format(e))
+    if isinstance(inputs, (list, tuple)):
+      # concat_features shape: batch_size, num_features, feature_dim
+      try:
+        concat_features = tf.stack(inputs, axis=1)
+      except (ValueError, tf.errors.InvalidArgumentError) as e:
+        raise ValueError('Input tensors` dimensions must be equal, original'
+                         'error message: {}'.format(e))
+    else:
+      assert inputs.shape.ndims == 3, 'input of dot func must be a 3D tensor or a list of 2D tensors'
+      concat_features = inputs
+
+    batch_size = tf.shape(concat_features)[0]
 
     # Interact features, select lower-triangular portion, and re-shape.
     xactions = tf.matmul(concat_features, concat_features, transpose_b=True)
+    num_features = xactions.shape[-1]
     ones = tf.ones_like(xactions)
     if self._self_interaction:
       # Selecting lower-triangular portion including the diagonal.

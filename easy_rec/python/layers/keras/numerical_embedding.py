@@ -77,88 +77,95 @@ class NLinear(object):
     return x
 
 
-class PeriodicEmbedding(object):
+class PeriodicEmbedding(tf.keras.layers.Layer):
   """Periodic embeddings for numerical features described in [1].
 
   References:
     * [1] Yury Gorishniy, Ivan Rubachev, Artem Babenko,
     "On Embeddings for Numerical Features in Tabular Deep Learning", 2022
     https://arxiv.org/pdf/2203.05556.pdf
+
+  Attributes:
+    embedding_dim: the embedding size, must be an even positive integer.
+    sigma: the scale of the weight initialization.
+      **This is a super important parameter which significantly affects performance**.
+      Its optimal value can be dramatically different for different datasets, so
+      no "default value" can exist for this parameter, and it must be tuned for
+      each dataset. In the original paper, during hyperparameter tuning, this
+      parameter was sampled from the distribution ``LogUniform[1e-2, 1e2]``.
+      A similar grid would be ``[1e-2, 1e-1, 1e0, 1e1, 1e2]``.
+      If possible, add more intermediate values to this grid.
+    output_3d_tensor: whether to output a 3d tensor
+    output_tensor_list: whether to output the list of embedding
   """
 
-  def __init__(self, config, scope='periodic_embedding'):
-    """Init with a pb config.
-
-    Args:
-      config: pb config
-      config.embedding_dim: the embedding size, must be an even positive integer.
-      config.sigma: the scale of the weight initialization.
-        **This is a super important parameter which significantly affects performance**.
-        Its optimal value can be dramatically different for different datasets, so
-        no "default value" can exist for this parameter, and it must be tuned for
-        each dataset. In the original paper, during hyperparameter tuning, this
-        parameter was sampled from the distribution ``LogUniform[1e-2, 1e2]``.
-        A similar grid would be ``[1e-2, 1e-1, 1e0, 1e1, 1e2]``.
-        If possible, add more intermidiate values to this grid.
-      config.output_3d_tensor: whether to output a 3d tensor
-      scope: variable scope name
-    """
-    self.config = config
-    if config.embedding_dim % 2:
+  def __init__(self, params, name='periodic_embedding', **kwargs):
+    super(PeriodicEmbedding, self).__init__(name, **kwargs)
+    params.check_required(['embedding_dim', 'sigma'])
+    self.embedding_dim = int(params.embedding_dim)
+    if self.embedding_dim % 2:
       raise ValueError('embedding_dim must be even')
-    self.emb_dim = config.embedding_dim // 2
-    self.scope = scope
-    self.initializer = tf.random_normal_initializer(stddev=config.sigma)
+    sigma = params.sigma
+    self.initializer = tf.random_normal_initializer(stddev=sigma)
+    self.add_linear_layer = params.get_or_default('add_linear_layer', True)
+    self.linear_activation = params.get_or_default('linear_activation', 'relu')
+    self.output_tensor_list = params.get_or_default('output_tensor_list', False)
+    self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def __call__(self, inputs, *args, **kwargs):
+  def call(self, inputs, **kwargs):
     if inputs.shape.ndims != 2:
       raise ValueError('inputs of PeriodicEmbedding must have 2 dimensions.')
 
     num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.scope):
+    emb_dim = self.embedding_dim // 2
+    with tf.variable_scope(self.name):
       c = tf.get_variable(
           'coefficients',
-          shape=[1, num_features, self.emb_dim],
+          shape=[1, num_features, emb_dim],
           initializer=self.initializer)
 
       features = inputs[..., None]  # [B, N, 1]
       v = 2 * math.pi * c * features  # [B, N, E]
       emb = tf.concat([tf.sin(v), tf.cos(v)], axis=-1)  # [B, N, 2E]
 
-      dim = self.config.embedding_dim
-      if self.config.add_linear_layer:
+      dim = self.embedding_dim
+      if self.add_linear_layer:
         linear = NLinear(num_features, dim, dim)
         emb = linear(emb)
-        act = get_activation(self.config.linear_activation)
+        act = get_activation(self.linear_activation)
         if callable(act):
           emb = act(emb)
       output = tf.reshape(emb, [-1, num_features * dim])
 
-      if self.config.output_tensor_list:
+      if self.output_tensor_list:
         return output, tf.unstack(emb, axis=1)
-      if self.config.output_3d_tensor:
+      if self.output_3d_tensor:
         return output, emb
       return output
 
 
-class AutoDisEmbedding(object):
+class AutoDisEmbedding(tf.keras.layers.Layer):
   """An Embedding Learning Framework for Numerical Features in CTR Prediction.
 
   Refer: https://arxiv.org/pdf/2012.08986v2.pdf
   """
 
-  def __init__(self, config, scope='auto_dis'):
-    self.config = config
-    self.emb_dim = config.embedding_dim
-    self.num_bins = config.num_bins
-    self.scope = scope
+  def __init__(self, params, name='auto_dis_embedding', **kwargs):
+    super(AutoDisEmbedding, self).__init__(name, **kwargs)
+    params.check_required(['embedding_dim', 'num_bins', 'temperature'])
+    self.emb_dim = int(params.embedding_dim)
+    self.num_bins = int(params.num_bins)
+    self.temperature = params.temperature
+    self.keep_prob = params.get_or_default('keep_prob', 0.8)
+    self.output_tensor_list = params.get_or_default('output_tensor_list', False)
+    self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def __call__(self, inputs, *args, **kwargs):
+  def call(self, inputs, **kwargs):
     if inputs.shape.ndims != 2:
-      raise ValueError('inputs of PeriodicEmbedding must have 2 dimensions.')
+      raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
 
     num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.scope):
+    with tf.variable_scope(self.name):
       meta_emb = tf.get_variable(
           'meta_embedding',
           shape=[1, num_features, self.num_bins, self.emb_dim])
@@ -173,18 +180,17 @@ class AutoDisEmbedding(object):
       y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
 
       # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
-      alpha = self.config.keep_prob
+      alpha = self.keep_prob
       x_bar = y + alpha * hidden  # [B, N, num_bin]
-      t = self.config.temperature
-      x_hat = tf.nn.softmax(x_bar / t)  # [B, N, num_bin]
+      x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
 
       emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
       emb = tf.squeeze(emb, axis=2)  # [B, N, D]
       output = tf.reshape(emb, [-1, self.emb_dim * num_features])  # [B, N*D]
 
-      if self.config.output_tensor_list:
+      if self.output_tensor_list:
         return output, tf.unstack(emb, axis=1)
 
-      if self.config.output_3d_tensor:
+      if self.output_3d_tensor:
         return output, emb
       return output

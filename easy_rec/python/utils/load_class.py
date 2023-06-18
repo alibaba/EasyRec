@@ -229,7 +229,7 @@ def load_keras_layer(name):
     name: keras layer name
 
   Return:
-    modules or functions or classes
+    (layer_class, is_customize)
   """
   name = name.strip()
   if name == '' or name is None:
@@ -237,13 +237,13 @@ def load_keras_layer(name):
 
   path = 'easy_rec.python.layers.keras.' + name
   try:
-    return pydoc.locate(path)
-  except pydoc.ErrorDuringImport:
+    cls = pydoc.locate(path)
+    if cls is not None:
+      return cls, True
     path = 'tensorflow.keras.layers.' + name
-    try:
-      return pydoc.locate(path)
-    except pydoc.ErrorDuringImport:
-      print('load keras layer %s failed' % name)
-      logging.error('load keras layer %s failed: %s' %
-                    (name, traceback.format_exc()))
-      return None
+    return pydoc.locate(path), False
+  except pydoc.ErrorDuringImport:
+    print('load keras layer %s failed' % name)
+    logging.error('load keras layer %s failed: %s' %
+                   (name, traceback.format_exc()))
+    return None, False

@@ -212,8 +212,8 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | Model            | Epoch | AUC    |
   | ---------------- | ----- | ------ |
   | Wide&Deep        | 1     | 0.8558 |
-  | DeepFM           | 1     | 0.8688 |
-  | DeepFM(Backbone) | 1     | 0.8876 |
+  | DeepFM           | 1     | 0.8867 |
+  | DeepFM(Backbone) | 1     | 0.8872 |
   | DCN              | 1     | 0.8576 |
   | AutoInt          | 1     | 0.8513 |
   | MaskNet          | 1     | 0.8872 |
@@ -221,17 +221,18 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 - Criteo-Research
 
-  | Model             | Epoch | AUC    |
-  | ----------------- | ----- | ------ |
-  | FM                | 1     | 0.7577 |
-  | DeepFM            | 1     | 0.7970 |
-  | DeepFM (backbone) | 1     | 0.7970 |
-  | DeepFM (periodic) | 1     | 0.7980 |
-  | DeepFM (autodis)  | 1     | 0.7979 |
+  | Model             | Epoch | AUC     |
+  | ----------------- | ----- | ------- |
+  | FM                | 1     | 0.7577  |
+  | DeepFM            | 1     | 0.7970  |
+  | DeepFM (backbone) | 1     | 0.7970  |
+  | DeepFM (periodic) | 1     | 0.7980  |
+  | DeepFM (autodis)  | 1     | 0.7979  |
   | DLRM              | 1     | 0.79785 |
-  | DLRM (backbone)   | 1     | 0.7993 |
-  | DLRM (standard)   | 1     | 0.7949 |
-  | DLRM (autodis)    | 1     | 0.7984 |
+  | DLRM (backbone)   | 1     | 0.7993  |
+  | DLRM (standard)   | 1     | 0.7949  |
+  | DLRM (autodis)    | 1     | 0.7989  |
+  | DLRM (periodic)   | 1     | 0.7998  |
 
 ### 召回模型
 

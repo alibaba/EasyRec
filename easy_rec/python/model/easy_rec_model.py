@@ -64,14 +64,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
 
-    self._sequence_encoder = SequenceEncoder(self._input_layer, feature_configs,
-                                             model_config.feature_groups,
-                                             self._l2_reg)
-    self._sequence_encoding_by_group_name = {}
+    # self._sequence_encoder = SequenceEncoder(self._input_layer, feature_configs,
+    #                                          model_config.feature_groups,
+    #                                          self._l2_reg)
+    # self._sequence_encoding_by_group_name = {}
     if model_config.HasField('backbone'):
       self._backbone = Backbone(
           model_config.backbone,
-          self,
           features,
           input_layer=self._input_layer,
           l2_reg=self._l2_reg)
@@ -85,7 +84,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
   @property
   def backbone(self):
     if self._backbone:
-      return self._backbone(self._is_training)
+      output = self._backbone(self._is_training)
+      loss_dict = self._backbone.loss_dict
+      self._loss_dict.update(loss_dict)
+      return output
     return None
 
   @property
@@ -135,50 +137,50 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         is_training=self._is_training,
         is_predicting=self._is_predicting)
 
-  def get_sequence_encoding(self, group_name=None, is_training=True):
-    if group_name is not None:
-      if group_name in self._sequence_encoding_by_group_name:
-        return self._sequence_encoding_by_group_name[group_name]
-      encoding = self._sequence_encoder(
-          self._feature_dict,
-          group_name,
-          is_training,
-          loss_dict=self._loss_dict)
-      self._sequence_encoding_by_group_name[group_name] = encoding
-      return encoding
-
-    seq_encoding = []
-    for group in self.feature_groups:
-      if len(group.sequence_encoders) == 0:
-        continue
-      group_name = group.group_name
-      if group_name in self._sequence_encoding_by_group_name:
-        encoding = self._sequence_encoding_by_group_name[group_name]
-      else:
-        encoding = self._sequence_encoder(
-            self._feature_dict,
-            group_name,
-            is_training,
-            loss_dict=self._loss_dict)
-        self._sequence_encoding_by_group_name[group_name] = encoding
-      if encoding is not None:
-        seq_encoding.append(encoding)
-
-    if len(seq_encoding) > 1:
-      encoding = tf.concat(seq_encoding, axis=-1)
-    elif len(seq_encoding) == 1:
-      encoding = seq_encoding[0]
-    else:
-      return None
-
-    # if self._base_model_config.HasField('sequence_dnn'):
-    #   sequence_dnn = dnn.DNN(
-    #       self._base_model_config.sequence_dnn,
-    #       self._l2_reg,
-    #       name='sequence_dnn',
-    #       is_training=self._is_training)
-    #   encoding = sequence_dnn(encoding)
-    return encoding
+  # def get_sequence_encoding(self, group_name=None, is_training=True):
+  #   if group_name is not None:
+  #     if group_name in self._sequence_encoding_by_group_name:
+  #       return self._sequence_encoding_by_group_name[group_name]
+  #     encoding = self._sequence_encoder(
+  #         self._feature_dict,
+  #         group_name,
+  #         is_training,
+  #         loss_dict=self._loss_dict)
+  #     self._sequence_encoding_by_group_name[group_name] = encoding
+  #     return encoding
+  #
+  #   seq_encoding = []
+  #   for group in self.feature_groups:
+  #     if len(group.sequence_encoders) == 0:
+  #       continue
+  #     group_name = group.group_name
+  #     if group_name in self._sequence_encoding_by_group_name:
+  #       encoding = self._sequence_encoding_by_group_name[group_name]
+  #     else:
+  #       encoding = self._sequence_encoder(
+  #           self._feature_dict,
+  #           group_name,
+  #           is_training,
+  #           loss_dict=self._loss_dict)
+  #       self._sequence_encoding_by_group_name[group_name] = encoding
+  #     if encoding is not None:
+  #       seq_encoding.append(encoding)
+  #
+  #   if len(seq_encoding) > 1:
+  #     encoding = tf.concat(seq_encoding, axis=-1)
+  #   elif len(seq_encoding) == 1:
+  #     encoding = seq_encoding[0]
+  #   else:
+  #     return None
+  #
+  #   # if self._base_model_config.HasField('sequence_dnn'):
+  #   #   sequence_dnn = dnn.DNN(
+  #   #       self._base_model_config.sequence_dnn,
+  #   #       self._l2_reg,
+  #   #       name='sequence_dnn',
+  #   #       is_training=self._is_training)
+  #   #   encoding = sequence_dnn(encoding)
+  #   return encoding
 
   @abstractmethod
   def build_predict_graph(self):

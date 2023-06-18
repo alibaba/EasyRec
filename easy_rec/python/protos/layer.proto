@@ -3,16 +3,6 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 
-message InputLayer {
-    optional bool do_batch_norm = 1;
-    optional bool do_layer_norm = 2;
-    optional float dropout_rate = 3;
-    optional float feature_dropout_rate = 4;
-    optional bool only_output_feature_list = 5;
-    optional bool only_output_3d_tensor = 6;
-    optional bool output_2d_tensor_and_feature_list = 7;
-}
-
 message HighWayTower {
     optional string input = 1;
     required uint32 emb_size = 2;
@@ -38,18 +28,34 @@ message AutoDisEmbedding {
     optional bool output_tensor_list = 6;
 }
 
-message Concatenate {
-    required int32 axis = 1;
-    optional int32 expand_dim_before = 2;
-    optional int32 expand_dim_after = 3;
+message SENet {
+    required uint32 reduction_ratio = 1 [default = 4];
+    optional uint32 num_squeeze_group = 2 [default = 2];
+    optional bool use_skip_connection = 3 [default = true];
+    optional bool use_output_layer_norm = 4 [default = true];
 }
 
-message Reshape {
-    repeated int32 dims = 1;
+message Bilinear {
+    required string type = 1 [default = 'interaction'];
+    required bool use_plus = 2 [default = true];
+    required uint32 num_output_units = 3;
 }
 
-message Add {
+message FiBiNet {
+    optional Bilinear bilinear = 1;
+    required SENet senet = 2;
+    optional MLP mlp = 8;
 }
 
-message Dot {
+message MaskBlock {
+    optional float reduction_factor = 1;
+    required uint32 output_size = 2;
+    optional uint32 aggregation_size = 3;
+    optional bool input_layer_norm = 4 [default = true];
+}
+
+message MaskNet {
+    repeated MaskBlock mask_blocks = 1;
+    required bool use_parallel = 2 [default = true];
+    optional MLP mlp = 3;
 }

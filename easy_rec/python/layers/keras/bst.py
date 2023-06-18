@@ -7,17 +7,15 @@ from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.loss.nce_loss import nce_loss
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
+from tensorflow.python.keras.layers import Layer
 
-# from tensorflow.python.keras.layers import Layer
 
+class BST(Layer):
 
-class BST(object):
-
-  def __init__(self, config, l2_reg, name='bst', **kwargs):
-    # super(BST, self).__init__(name=name, **kwargs)
-    self.name = name
+  def __init__(self, params, name='bst', l2_reg=None, **kwargs):
+    super(BST, self).__init__(name=name, **kwargs)
     self.l2_reg = l2_reg
-    self.config = config
+    self.config = params.get_pb_config()
 
   def encode(self, seq_input, max_position):
     seq_fea = multihead_cross_attention.embedding_postprocessor(
@@ -44,15 +42,16 @@ class BST(object):
         hidden_dropout_prob=self.config.hidden_dropout_prob,
         attention_probs_dropout_prob=self.config.attention_probs_dropout_prob,
         initializer_range=self.config.initializer_range,
-        name=self.name + '/bst',
+        name=self.name + '/transformer',
         reuse=tf.AUTO_REUSE)
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
     return out_fea
 
-  def __call__(self, inputs, training=None, **kwargs):
-    seq_features, target_feature = inputs
+  def call(self, inputs, training=None, **kwargs):
+    seq_features, target_features = inputs
+    assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
     if not training:
       self.config.hidden_dropout_prob = 0.0
       self.config.attention_probs_dropout_prob = 0.0
@@ -70,7 +69,7 @@ class BST(object):
     with tf.control_dependencies([valid_len]):
       # seq_input: [batch_size, seq_len, embed_size]
       seq_input = tf.concat(seq_embeds, axis=-1)
-    if target_feature is not None:
+    if len(target_features) > 0:
       max_position += 1
 
     seq_embed_size = seq_input.shape.as_list()[-1]
@@ -97,7 +96,8 @@ class BST(object):
       loss_dict['%s_contrastive_loss' % self.name] = loss
       # tf.summary.scalar('loss/%s_contrastive_loss' % self.name, loss)
 
-    if target_feature is not None:
+    if len(target_features) > 0:
+      target_feature = tf.concat(target_features, axis=-1)
       target_size = target_feature.shape.as_list()[-1]
       assert seq_embed_size == target_size, 'the embedding size of sequence and target item is not equal' \
                                             ' in feature group:' + self.name

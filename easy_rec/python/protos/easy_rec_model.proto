@@ -29,11 +29,12 @@ import "easy_rec/python/protos/multi_tower_recall.proto";
 // for input performance test
 message DummyModel {
 }
+
 // configure backbone network in a free style way
 message RankModel {
   optional float l2_regularization = 1;
-  optional bool add_head_logits_layer = 2 [default=true];
-  optional uint32 wide_output_dim = 3;
+  optional uint32 wide_output_dim = 2;
+  // optional bool add_head_logits_layer = 3 [default=true];
 }
 
 // for knowledge distillation
