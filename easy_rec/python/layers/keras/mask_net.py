@@ -60,12 +60,13 @@ class MaskNet(tf.keras.layers.Layer):
   Refer: https://arxiv.org/pdf/2102.07619.pdf
   """
 
-  def __init__(self, params, name='mask_net', l2_reg=None, **kwargs):
+  def __init__(self, params, name='mask_net', **kwargs):
     super(MaskNet, self).__init__(name, **kwargs)
     self.config = params.get_pb_config()
     if self.config.HasField('mlp'):
       p = Parameter.make_from_pb(self.config.mlp)
-      self.mlp = MLP(p, name='%s/mlp' % name, l2_reg=l2_reg)
+      p.l2_regularizer = params.l2_regularizer
+      self.mlp = MLP(p, name='%s/mlp' % name)
     else:
       self.mlp = None
 
@@ -75,7 +76,7 @@ class MaskNet(tf.keras.layers.Layer):
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
         mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
+            params, name='%s/block_%d' % (self.name, i))
         mask_outputs.append(mask_layer((inputs, inputs)))
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
 
@@ -89,7 +90,7 @@ class MaskNet(tf.keras.layers.Layer):
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
         mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
+            params, name='%s/block_%d' % (self.name, i))
         net = mask_layer((net, inputs))
 
       if self.mlp is not None:

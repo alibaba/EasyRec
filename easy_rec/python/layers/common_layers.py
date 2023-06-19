@@ -91,7 +91,11 @@ class EnhancedInputLayer(object):
     self._input_layer = input_layer
     self._feature_dict = feature_dict
 
-  def __call__(self, group, is_training, *args, **kwargs):
+  def __call__(self, group, is_training, **kwargs):
+    with tf.name_scope('input_' + group):
+      return self.call(group, is_training)
+
+  def call(self, group, is_training):
     if self._config.output_seq_and_normal_feature:
       seq_features, target_feature, target_features = self._input_layer(
           self._feature_dict, group, is_combine=False)

@@ -220,7 +220,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | DCN (Backbone)      | 1     | 0.8770 |
   | AutoInt             | 1     | 0.8513 |
   | MaskNet             | 1     | 0.8872 |
-  | FibiNet             | 1     | 0.8879 |
+  | FibiNet             | 1     | 0.8893 |
 
   备注：`MovieLens-1M` 数据集较小，评估指标方差较大，以上结果仅供参考。
 
