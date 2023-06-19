@@ -48,21 +48,22 @@ class CoMetricLearningI2I(EasyRecModel):
       raise ValueError('unsupported loss type: %s' %
                        LossType.Name(self._loss_type))
 
-    self._highway_features = {}
-    self._highway_num = len(self._model_config.highway)
-    for _id in range(self._highway_num):
-      highway_cfg = self._model_config.highway[_id]
-      highway_feature, _ = self._input_layer(self._feature_dict,
-                                             highway_cfg.input)
-      self._highway_features[highway_cfg.input] = highway_feature
+    if not self.has_backbone:
+      self._highway_features = {}
+      self._highway_num = len(self._model_config.highway)
+      for _id in range(self._highway_num):
+        highway_cfg = self._model_config.highway[_id]
+        highway_feature, _ = self._input_layer(self._feature_dict,
+                                               highway_cfg.input)
+        self._highway_features[highway_cfg.input] = highway_feature
 
-    self.input_features = []
-    if self._model_config.HasField('input'):
-      input_feature, _ = self._input_layer(self._feature_dict,
-                                           self._model_config.input)
-      self.input_features.append(input_feature)
+      self.input_features = []
+      if self._model_config.HasField('input'):
+        input_feature, _ = self._input_layer(self._feature_dict,
+                                             self._model_config.input)
+        self.input_features.append(input_feature)
 
-    self.dnn = copy_obj(self._model_config.dnn)
+      self.dnn = copy_obj(self._model_config.dnn)
 
     if self._labels is not None:
       if self._model_config.HasField('session_id'):
@@ -79,32 +80,35 @@ class CoMetricLearningI2I(EasyRecModel):
       self.sample_id = None
 
   def build_predict_graph(self):
-    for _id in range(self._highway_num):
-      highway_cfg = self._model_config.highway[_id]
-      highway_fea = tf.layers.batch_normalization(
-          self._highway_features[highway_cfg.input],
-          training=self._is_training,
-          trainable=True,
-          name='highway_%s_bn' % highway_cfg.input)
-      highway_fea = highway(
-          highway_fea,
-          highway_cfg.emb_size,
-          activation=gelu,
-          scope='highway_%s' % _id)
-      print('highway_fea: ', highway_fea)
-      self.input_features.append(highway_fea)
+    if self.has_backbone:
+      tower_emb = self.backbone
+    else:
+      for _id in range(self._highway_num):
+        highway_cfg = self._model_config.highway[_id]
+        highway_fea = tf.layers.batch_normalization(
+            self._highway_features[highway_cfg.input],
+            training=self._is_training,
+            trainable=True,
+            name='highway_%s_bn' % highway_cfg.input)
+        highway_fea = highway(
+            highway_fea,
+            highway_cfg.emb_size,
+            activation=gelu,
+            scope='highway_%s' % _id)
+        print('highway_fea: ', highway_fea)
+        self.input_features.append(highway_fea)
 
-    feature = tf.concat(self.input_features, axis=1)
+      feature = tf.concat(self.input_features, axis=1)
 
-    num_dnn_layer = len(self.dnn.hidden_units)
-    last_hidden = self.dnn.hidden_units.pop()
-    dnn_net = dnn.DNN(self.dnn, self._l2_reg, 'dnn', self._is_training)
-    net_output = dnn_net(feature)
-    tower_emb = tf.layers.dense(
-        inputs=net_output,
-        units=last_hidden,
-        kernel_regularizer=self._l2_reg,
-        name='dnn/dnn_%d' % (num_dnn_layer - 1))
+      num_dnn_layer = len(self.dnn.hidden_units)
+      last_hidden = self.dnn.hidden_units.pop()
+      dnn_net = dnn.DNN(self.dnn, self._l2_reg, 'dnn', self._is_training)
+      net_output = dnn_net(feature)
+      tower_emb = tf.layers.dense(
+          inputs=net_output,
+          units=last_hidden,
+          kernel_regularizer=self._l2_reg,
+          name='dnn/dnn_%d' % (num_dnn_layer - 1))
 
     if self._model_config.output_l2_normalized_emb:
       norm_emb = tf.nn.l2_normalize(tower_emb, axis=-1)

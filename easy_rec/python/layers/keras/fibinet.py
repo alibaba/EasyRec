@@ -5,7 +5,6 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.layers import dnn
 from easy_rec.python.layers.common_layers import layer_norm
 from easy_rec.python.layers.keras.blocks import MLP
 from easy_rec.python.layers.utils import Parameter
@@ -15,9 +14,20 @@ if tf.__version__ >= '2.0':
 
 
 class SENet(tf.keras.layers.Layer):
-  """SENet+ Layer used in FiBiNET，支持不同field的embedding dimension不等.
+  """SENET Layer used in FiBiNET.
 
-  arxiv: 2209.05016
+  Input shape
+    - A list of 2D tensor with shape: ``(batch_size,embedding_size)``.
+      The ``embedding_size`` of each field can have different value.
+
+  Output shape
+    - A 2D tensor with shape: ``(batch_size,sum_of_embedding_size)``.
+
+  References:
+    1. [FiBiNET](https://arxiv.org/pdf/1905.09433.pdf)
+      Combining Feature Importance and Bilinear feature Interaction for Click-Through Rate Prediction
+    2. [FiBiNet++](https://arxiv.org/pdf/2209.05016.pdf)
+      Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
   def __init__(self, params, name='SENet', **kwargs):
@@ -25,8 +35,6 @@ class SENet(tf.keras.layers.Layer):
     self.config = params.get_pb_config()
 
   def call(self, inputs, **kwargs):
-    """embedding_list:  - A list of 2D tensor with shape: ``(batch_size,embedding_size)``."""
-    print('SENET layer with %d inputs' % len(inputs))
     g = self.config.num_squeeze_group
     for emb in inputs:
       assert emb.shape.ndims == 2, 'field embeddings must be rank 2 tensors'
@@ -88,14 +96,26 @@ def _full_interaction(v_i, v_j):
 
 
 class BiLinear(tf.keras.layers.Layer):
-  """双线性特征交互层，支持不同field embeddings的size不等.
+  """BilinearInteraction Layer used in FiBiNET.
 
-  arxiv: 2209.05016
+  Input shape
+    - A list of 2D tensor with shape: ``(batch_size,embedding_size)``.
+      Its length is ``filed_size``.
+      The ``embedding_size`` of each field can have different value.
+
+  Output shape
+    - 2D tensor with shape: ``(batch_size,output_size)``.
 
   Attributes:
-    num_output_units: 输出的size
-    type: ['all', 'each', 'interaction']，支持其中一种
-    use_plus: 是否使用bi-linear+
+    num_output_units: the number of output units
+    type: ['all', 'each', 'interaction'], types of bilinear functions used in this layer
+    use_plus: whether to use bi-linear+
+
+  References:
+    1. [FiBiNET](https://arxiv.org/pdf/1905.09433.pdf)
+      Combining Feature Importance and Bilinear feature Interaction for Click-Through Rate Prediction
+    2. [FiBiNet++](https://arxiv.org/pdf/2209.05016.pdf)
+      Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
   def __init__(self, params, name='bilinear', **kwargs):
@@ -186,36 +206,32 @@ class BiLinear(tf.keras.layers.Layer):
 class FiBiNet(tf.keras.layers.Layer):
   """FiBiNet++:Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction.
 
-  This is almost an exact implementation of the original FiBiNet++ model.
-  See the original paper:
-  https://arxiv.org/pdf/2209.05016.pdf
+  References:
+    - [FiBiNet++](https://arxiv.org/pdf/2209.05016.pdf)
+      Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
-  def __init__(self, params, name='fibinet', l2_reg=None, **kwargs):
+  def __init__(self, params, name='fibinet', **kwargs):
     super(FiBiNet, self).__init__(name, **kwargs)
     self._config = params.get_pb_config()
     if self._config.HasField('mlp'):
-      # self.final_dnn = dnn.DNN(
-      #   self._config.mlp,
-      #   kwargs['l2_reg'] if 'l2_reg' in kwargs else None,
-      #   name='%s_fibinet_mlp' % self.name,
-      #   is_training=False)
       p = Parameter.make_from_pb(self._config.mlp)
-      self.final_dnn = MLP(p, name=name, l2_reg=l2_reg)
+      p.l2_regularizer = params.l2_regularizer
+      self.final_mlp = MLP(p, name=name)
     else:
-      self.final_dnn = None
+      self.final_mlp = None
 
   def call(self, inputs, training=None, **kwargs):
     feature_list = []
 
     params = Parameter.make_from_pb(self._config.senet)
-    senet = SENet(params, name='%s_senet' % self.name)
+    senet = SENet(params, name='%s/senet' % self.name)
     senet_output = senet(inputs)
     feature_list.append(senet_output)
 
     if self._config.HasField('bilinear'):
       params = Parameter.make_from_pb(self._config.bilinear)
-      bilinear = BiLinear(params, name='%s_bilinear' % self.name)
+      bilinear = BiLinear(params, name='%s/bilinear' % self.name)
       bilinear_output = bilinear(inputs)
       feature_list.append(bilinear_output)
 
@@ -224,6 +240,6 @@ class FiBiNet(tf.keras.layers.Layer):
     else:
       feature = feature_list[0]
 
-    if self.final_dnn is not None:
-      feature = self.final_dnn(feature, training=training)
+    if self.final_mlp is not None:
+      feature = self.final_mlp(feature, training=training)
     return feature

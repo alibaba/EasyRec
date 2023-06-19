@@ -34,7 +34,7 @@ class WideAndDeep(RankModel):
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
-    has_final = len(model_config.wide_and_deep.final_dnn.hidden_units) > 0
+    has_final = len(model_config.wide_and_deep.final_mlp.hidden_units) > 0
     self._wide_output_dim = model_config.wide_and_deep.wide_output_dim
     if not has_final:
       model_config.wide_and_deep.wide_output_dim = model_config.num_class
@@ -55,11 +55,11 @@ class WideAndDeep(RankModel):
     logging.info('output deep features dimension: %d' %
                  deep_fea.get_shape()[-1])
 
-    has_final = len(self._model_config.final_dnn.hidden_units) > 0
+    has_final = len(self._model_config.final_mlp.hidden_units) > 0
     print('wide_deep has_final_dnn layers = %d' % has_final)
     if has_final:
       all_fea = tf.concat([wide_fea, deep_fea], axis=1)
-      final_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg,
+      final_layer = dnn.DNN(self._model_config.final_mlp, self._l2_reg,
                             'final_dnn', self._is_training)
       all_fea = final_layer(all_fea)
       output = tf.layers.dense(
@@ -87,7 +87,7 @@ class WideAndDeep(RankModel):
     Return:
       list of list of variables.
     """
-    assert len(self._model_config.final_dnn.hidden_units) == 0, \
+    assert len(self._model_config.final_mlp.hidden_units) == 0, \
         'if use different optimizers for wide group and deep group, '\
         + ' final_dnn should not be set.'
     wide_vars = []

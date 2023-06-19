@@ -13,7 +13,6 @@ from tensorflow.python.ops.variables import PartitionedVariable
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
 from easy_rec.python.layers.backbone import Backbone
-from easy_rec.python.layers.sequence_encoder import SequenceEncoder
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter

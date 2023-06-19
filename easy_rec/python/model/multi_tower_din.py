@@ -120,7 +120,7 @@ class MultiTowerDIN(RankModel):
       tower_fea_arr.append(tower_fea)
 
     all_fea = tf.concat(tower_fea_arr, axis=1)
-    final_dnn_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg,
+    final_dnn_layer = dnn.DNN(self._model_config.final_mlp, self._l2_reg,
                               'final_dnn', self._is_training)
     all_fea = final_dnn_layer(all_fea)
     output = tf.layers.dense(all_fea, self._num_class, name='output')

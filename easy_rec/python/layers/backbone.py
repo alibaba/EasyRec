@@ -10,7 +10,6 @@ from easy_rec.python.layers.common_layers import EnhancedInputLayer
 from easy_rec.python.layers.keras import MLP
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
-from easy_rec.python.protos import keras_layer_pb2
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.load_class import load_keras_layer
 
@@ -204,13 +203,17 @@ class Backbone(object):
       output = inputs
       for i in range(conf.num_steps):
         name_i = '%s_%d' % (name, i)
-        output_i = self.call_keras_layer(conf.keras_layer, output, name_i, training)
+        layer = conf.keras_layer
+        output_i = self.call_keras_layer(layer, output, name_i, training)
         if fixed_input_index >= 0:
           j = 0
           for idx in range(len(output)):
             if idx == fixed_input_index:
               continue
-            output[idx] = output_i[j] if type(output_i) in (tuple, list) else output_i
+            if type(output_i) in (tuple, list):
+              output[idx] = output_i[j]
+            else:
+              output[idx] = output_i
             j += 1
         else:
           output = output_i
