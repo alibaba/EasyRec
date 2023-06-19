@@ -24,6 +24,20 @@ message Input {
     optional string input_fn = 2;
 }
 
+message RecurrentLayer {
+    required uint32 num_steps = 1 [default = 1];
+    optional uint32 fixed_input_index = 2;
+    required KerasLayer keras_layer = 3;
+}
+
+message Layer {
+    oneof layer {
+        Lambda lambda = 1;
+        KerasLayer keras_layer = 2;
+        RecurrentLayer recurrent = 3;
+    }
+}
+
 message Block {
     required string name = 1;
     // the input names of feature groups or other blocks
@@ -31,11 +45,15 @@ message Block {
     optional int32 input_concat_axis = 3 [default = -1];
     optional bool merge_inputs_into_list = 4;
     optional string extra_input_fn = 5;
+
+    // sequential layers
+    repeated Layer layers = 6;
+    // only take effect when there are no layers
     oneof layer {
         InputLayer input_layer = 101;
         Lambda lambda = 102;
         KerasLayer keras_layer = 103;
-        Sequential sequential = 104;
+        RecurrentLayer recurrent = 104;
     }
 }
 
@@ -43,15 +61,4 @@ message BackboneTower {
     repeated Block blocks = 1;
     repeated string concat_blocks = 2;
     optional MLP top_mlp = 3;
-}
-
-message Layer {
-    oneof layer {
-        Lambda lambda = 101;
-        KerasLayer keras_layer = 102;
-    }
-}
-
-message Sequential {
-    repeated Layer layers = 1;
 }

@@ -209,16 +209,20 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 - MovieLens-1M
 
-  | Model            | Epoch | AUC    |
-  | ---------------- | ----- | ------ |
-  | Wide&Deep        | 1     | 0.8558 |
-  | DeepFM           | 1     | 0.8867 |
-  | DeepFM(Backbone) | 1     | 0.8872 |
-  | DCN              | 1     | 0.8576 |
-  | DCN (Backbone)   | 1     | 0.8770 |
-  | AutoInt          | 1     | 0.8513 |
-  | MaskNet          | 1     | 0.8872 |
-  | FibiNet          | 1     | 0.8879 |
+  | Model               | Epoch | AUC    |
+  | ------------------- | ----- | ------ |
+  | MLP                 | 1     | 0.8616 |
+  | Wide&Deep           | 1     | 0.8558 |
+  | Wide&Deep(Backbone) | 1     | 0.8854 |
+  | DeepFM              | 1     | 0.8867 |
+  | DeepFM(Backbone)    | 1     | 0.8872 |
+  | DCN                 | 1     | 0.8576 |
+  | DCN (Backbone)      | 1     | 0.8770 |
+  | AutoInt             | 1     | 0.8513 |
+  | MaskNet             | 1     | 0.8872 |
+  | FibiNet             | 1     | 0.8879 |
+
+  备注：`MovieLens-1M` 数据集较小，评估指标方差较大，以上结果仅供参考。
 
 - Criteo-Research
 

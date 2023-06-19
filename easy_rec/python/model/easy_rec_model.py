@@ -68,6 +68,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     #                                          model_config.feature_groups,
     #                                          self._l2_reg)
     # self._sequence_encoding_by_group_name = {}
+    self._backbone_output = None
     if model_config.HasField('backbone'):
       self._backbone = Backbone(
           model_config.backbone,
@@ -83,11 +84,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
   @property
   def backbone(self):
+    if self._backbone_output:
+      return self._backbone_output
     if self._backbone:
-      output = self._backbone(self._is_training)
+      self._backbone_output = self._backbone(self._is_training)
       loss_dict = self._backbone.loss_dict
       self._loss_dict.update(loss_dict)
-      return output
+      return self._backbone_output
     return None
 
   @property

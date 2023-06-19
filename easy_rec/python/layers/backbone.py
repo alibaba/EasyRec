@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 
+import six
 import tensorflow as tf
 from google.protobuf import struct_pb2
 
@@ -9,6 +10,7 @@ from easy_rec.python.layers.common_layers import EnhancedInputLayer
 from easy_rec.python.layers.keras import MLP
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
+from easy_rec.python.protos import keras_layer_pb2
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.load_class import load_keras_layer
 
@@ -112,6 +114,14 @@ class Backbone(object):
     print('backbone topological order: ' + ','.join(blocks))
     for block in blocks:
       config = self._name_to_blocks[block]
+      if config.layers:  # sequential layers
+        logging.info('call sequential %d layers' % len(config.layers))
+        output = block_input(config, block_outputs)
+        for layer in config.layers:
+          output = self.call_layer(output, layer, block, is_training)
+        block_outputs[block] = output
+        continue
+      # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
         block_outputs[block] = block_input(config, block_outputs)
@@ -121,14 +131,11 @@ class Backbone(object):
         output = input_fn(block, is_training)
         block_outputs[block] = output
       elif layer == 'sequential':
-        inputs = block_input(config, block_outputs)
-        layers = config.sequential.layers
-        output = self.call_sequential_layers(inputs, layers, block, is_training)
-        block_outputs[block] = output
+        print(config)
       else:
         inputs = block_input(config, block_outputs)
-        block_outputs[block] = self.call_layer(inputs, config, block,
-                                               is_training)
+        output = self.call_layer(inputs, config, block, is_training)
+        block_outputs[block] = output
 
     temp = []
     for output in self._config.concat_blocks:
@@ -166,15 +173,18 @@ class Backbone(object):
         layer = layer_cls(name=name)
       else:
         assert param_type == 'st_params', 'internal keras layer only support st_params'
-        kwargs = convert_to_dict(layer_conf.st_params)
-        layer = layer_cls(name=name, **kwargs)
+        try:
+          kwargs = convert_to_dict(layer_conf.st_params)
+          logging.info('call %s layer with params %r' %
+                       (layer_conf.class_name, kwargs))
+          layer = layer_cls(name=name, **kwargs)
+        except TypeError as e:
+          logging.warning(e)
+          args = map(format_value, layer_conf.st_params.values())
+          logging.info('try to call %s layer with params %r' %
+                       (layer_conf.class_name, args))
+          layer = layer_cls(*args, name=name)
       return layer(inputs, training=training)
-
-  def call_sequential_layers(self, inputs, layers, name, training):
-    output = inputs
-    for layer in layers:
-      output = self.call_layer(output, layer, name, training)
-    return output
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')
@@ -184,6 +194,33 @@ class Backbone(object):
       conf = getattr(config, 'lambda')
       fn = eval(conf.expression)
       return fn(inputs)
+    if layer_name == 'recurrent':
+      conf = config.recurrent
+      fixed_input_index = -1
+      if conf.HasField('fixed_input_index'):
+        fixed_input_index = conf.fixed_input_index
+      if fixed_input_index >= 0:
+        assert type(inputs) in (tuple, list), '%s inputs must be a list'
+      output = inputs
+      for i in range(conf.num_steps):
+        name_i = '%s_%d' % (name, i)
+        output_i = self.call_keras_layer(conf.keras_layer, output, name_i, training)
+        if fixed_input_index >= 0:
+          j = 0
+          for idx in range(len(output)):
+            if idx == fixed_input_index:
+              continue
+            output[idx] = output_i[j] if type(output_i) in (tuple, list) else output_i
+            j += 1
+        else:
+          output = output_i
+      if fixed_input_index >= 0:
+        del output[fixed_input_index]
+        if len(output) == 1:
+          return output[0]
+        return output
+      return output
+
     raise NotImplementedError('Unsupported backbone layer:' + layer_name)
 
 
@@ -205,7 +242,7 @@ def concat_inputs(inputs, axis=-1, msg=''):
 
 def format_value(value):
   value_type = type(value)
-  if value_type in (unicode, str):
+  if value_type == six.text_type:
     return str(value)
   if value_type == float:
     int_v = int(value)
