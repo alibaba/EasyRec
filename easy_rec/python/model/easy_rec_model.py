@@ -33,12 +33,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                feature_configs,
                features,
                labels=None,
-               is_training=False,
-               is_predicting=False):
+               is_training=False):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
-    self._is_predicting = is_predicting
+    self._is_predicting = labels is None
     self._feature_dict = features
 
     # embedding variable parameters
