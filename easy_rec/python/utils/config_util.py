@@ -5,6 +5,7 @@
 Such as Hyper parameter tuning or automatic feature expanding.
 """
 
+import argparse
 import datetime
 import json
 import logging
@@ -605,3 +606,95 @@ def process_multi_file_input_path(sampler_config_input_path):
     input_path = sampler_config_input_path
 
   return input_path
+
+
+def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
+  """Reads config from a file containing pipeline_pb2.EasyRecConfig.
+
+  Args:
+    pipeline_config_path: Path to pipeline_pb2.EasyRecConfig text
+      proto.
+    groups: the names of feature group to be changed
+    emb_dim: target embedding dimension
+
+  Returns:
+    Dictionary of configuration objects. Keys are `model`, `train_config`,
+      `train_input_config`, `eval_config`, `eval_input_config`. Value are the
+      corresponding config objects.
+  """
+  if isinstance(pipeline_config_path, pipeline_pb2.EasyRecConfig):
+    return pipeline_config_path
+
+  assert tf.gfile.Exists(
+      pipeline_config_path
+  ), 'pipeline_config_path [%s] not exists' % pipeline_config_path
+
+  pipeline_config = pipeline_pb2.EasyRecConfig()
+  with tf.gfile.GFile(pipeline_config_path, 'r') as f:
+    config_str = f.read()
+    if pipeline_config_path.endswith('.config'):
+      text_format.Merge(config_str, pipeline_config)
+    elif pipeline_config_path.endswith('.json'):
+      json_format.Parse(config_str, pipeline_config)
+    else:
+      assert False, 'invalid file format(%s), currently support formats: .config(prototxt) .json' % pipeline_config_path
+
+  target_groups = set(groups.split(','))
+  features = set()
+  conf = pipeline_config.model_config
+  for group in conf.feature_groups:
+    if group.group_name not in target_groups:
+      continue
+    for feature in group.feature_names:
+      features.add(feature)
+
+  feature_configs = get_compatible_feature_configs(pipeline_config)
+  for fea_conf in feature_configs:
+    fea_name = fea_conf.input_names[0]
+    if fea_conf.HasField('feature_name'):
+      fea_name = fea_conf.feature_name
+    if fea_name in features:
+      fea_conf.embedding_dim = emb_dim
+
+  return pipeline_config
+
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+    '--pipeline_config_path',
+    type=str,
+    default=None,
+    help='Path to pipeline config file.')
+  parser.add_argument(
+    '--feature_groups',
+    type=str,
+    default=None,
+    help='The name of feature group to be changed.')
+  parser.add_argument(
+    '--embedding_dim',
+    type=int,
+    default=None,
+    help='The embedding dim to be changed to.')
+  parser.add_argument(
+    '--save_config_path',
+    type=str,
+    default=None,
+    help='Path to save changed config.')
+
+  args, extra_args = parser.parse_known_args()
+  if args.pipeline_config_path is None:
+    raise ValueError('--pipeline_config_path must be set')
+  if args.save_config_path is None:
+    raise ValueError('--save_config_path must be set')
+  if args.feature_groups is None:
+    raise ValueError('--feature_groups must be set')
+  if args.embedding_dim is None:
+    raise ValueError('--embedding_dim must be set')
+
+  # 传入一个不存在的feature group，可以起到format配置文件的效果
+  config = change_configured_embedding_dim(
+    args.pipeline_config_path,
+    args.feature_groups,
+    args.embedding_dim)
+  save_message(config, args.save_config_path)

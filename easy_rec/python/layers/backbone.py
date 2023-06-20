@@ -129,20 +129,22 @@ class Backbone(object):
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
         output = input_fn(block, is_training)
         block_outputs[block] = output
-      elif layer == 'sequential':
-        print(config)
       else:
         inputs = block_input(config, block_outputs)
         output = self.call_layer(inputs, config, block, is_training)
         block_outputs[block] = output
 
-    temp = []
+    outputs = []
     for output in self._config.concat_blocks:
       if output in block_outputs:
-        temp.append(block_outputs[output])
+        temp = block_outputs[output]
+        if type(temp) in (tuple, list):
+          outputs.extend(temp)
+        else:
+          outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
-    output = concat_inputs(temp, msg='backbone')
+    output = concat_inputs(outputs, msg='backbone')
 
     if self._config.HasField('top_mlp'):
       params = Parameter.make_from_pb(self._config.top_mlp)
@@ -193,6 +195,19 @@ class Backbone(object):
       conf = getattr(config, 'lambda')
       fn = eval(conf.expression)
       return fn(inputs)
+    if layer_name == 'repeat':
+      conf = config.repeat
+      n_loop = conf.num_repeat
+      outputs = []
+      for i in range(n_loop):
+        name_i = '%s_%d' % (name, i)
+        output = self.call_keras_layer(conf.keras_layer, inputs, name_i, training)
+        outputs.append(output)
+      if len(outputs) == 1:
+        return outputs[0]
+      if conf.HasField('output_concat_axis'):
+        return tf.concat(outputs, conf.output_concat_axis)
+      return outputs
     if layer_name == 'recurrent':
       conf = config.recurrent
       fixed_input_index = -1

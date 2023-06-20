@@ -109,7 +109,7 @@ class EnhancedInputLayer(object):
     do_feature_dropout = is_training and 0.0 < self._config.feature_dropout_rate < 1.0
     if do_feature_dropout:
       keep_prob = 1.0 - self._config.feature_dropout_rate
-      bern = tf.distributions.Bernoulli(probs=keep_prob)
+      bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
       mask = bern.sample(num_features)
     elif do_bn:
       features = tf.layers.batch_normalization(features, training=is_training)

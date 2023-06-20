@@ -101,8 +101,16 @@ class MLP(tf.keras.layers.Layer):
 
   def call(self, x, training=None, **kwargs):
     """Performs the forward computation of the block."""
+    from inspect import isfunction
     for layer in self._sub_layers:
-      x = layer(x, training=training)
+      if isfunction(layer):
+        x = layer(x, training=training)
+      else:
+        cls = layer.__class__.__name__
+        if cls in ('Dropout', 'BatchNormalization'):
+          x = layer(x, training=training)
+        else:
+          x = layer(x)
     return x
 
 

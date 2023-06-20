@@ -30,11 +30,19 @@ message RecurrentLayer {
     required KerasLayer keras_layer = 3;
 }
 
+message RepeatLayer {
+    required uint32 num_repeat = 1 [default = 1];
+    // default output the list of multiple outputs
+    optional int32 output_concat_axis = 2;
+    required KerasLayer keras_layer = 3;
+}
+
 message Layer {
     oneof layer {
         Lambda lambda = 1;
         KerasLayer keras_layer = 2;
         RecurrentLayer recurrent = 3;
+        RepeatLayer repeat = 4;
     }
 }
 
@@ -54,6 +62,7 @@ message Block {
         Lambda lambda = 102;
         KerasLayer keras_layer = 103;
         RecurrentLayer recurrent = 104;
+        RepeatLayer repeat = 105;
     }
 }
 
