@@ -75,8 +75,7 @@ class MaskNet(tf.keras.layers.Layer):
       mask_outputs = []
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
-        mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i))
+        mask_layer = MaskBlock(params, name='%s/block_%d' % (self.name, i))
         mask_outputs.append(mask_layer((inputs, inputs)))
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
 
@@ -89,8 +88,7 @@ class MaskNet(tf.keras.layers.Layer):
       net = inputs
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
-        mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i))
+        mask_layer = MaskBlock(params, name='%s/block_%d' % (self.name, i))
         net = mask_layer((net, inputs))
 
       if self.mlp is not None:

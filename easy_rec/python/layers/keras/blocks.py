@@ -63,6 +63,11 @@ class MLP(tf.keras.layers.Layer):
                      use_bn_after_activation=False,
                      name='mlp',
                      l2_reg=None):
+
+    def batch_norm(x, training):
+      return tf.layers.batch_normalization(
+          x, training=training, name='%s/%s/bn' % (self.name, name))
+
     act_fn = get_activation(activation)
     if use_bn and not use_bn_after_activation:
       dense = tf.keras.layers.Dense(
@@ -72,11 +77,10 @@ class MLP(tf.keras.layers.Layer):
           kernel_regularizer=l2_reg,
           name=name)
       self._sub_layers.append(dense)
+
       # bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name)
       # keras BN layer have a stale issue on some versions of tf
-      bn = lambda x, training: tf.layers.batch_normalization(
-          x, training=training, name='%s/%s/bn' % (self.name, name))
-      self._sub_layers.append(bn)
+      self._sub_layers.append(batch_norm)
       act = tf.keras.layers.Activation(act_fn, name='%s/act' % name)
       self._sub_layers.append(act)
     else:
@@ -89,9 +93,7 @@ class MLP(tf.keras.layers.Layer):
           name=name)
       self._sub_layers.append(dense)
       if use_bn and use_bn_after_activation:
-        bn = lambda x, training: tf.layers.batch_normalization(
-            x, training=training, name='%s/%s/bn' % (self.name, name))
-        self._sub_layers.append(bn)
+        self._sub_layers.append(batch_norm)
 
     if 0.0 < dropout_rate < 1.0:
       dropout = tf.keras.layers.Dropout(dropout_rate, name='%s/dropout' % name)

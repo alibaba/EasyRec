@@ -662,25 +662,25 @@ def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-    '--pipeline_config_path',
-    type=str,
-    default=None,
-    help='Path to pipeline config file.')
+      '--pipeline_config_path',
+      type=str,
+      default=None,
+      help='Path to pipeline config file.')
   parser.add_argument(
-    '--feature_groups',
-    type=str,
-    default=None,
-    help='The name of feature group to be changed.')
+      '--feature_groups',
+      type=str,
+      default=None,
+      help='The name of feature group to be changed.')
   parser.add_argument(
-    '--embedding_dim',
-    type=int,
-    default=None,
-    help='The embedding dim to be changed to.')
+      '--embedding_dim',
+      type=int,
+      default=None,
+      help='The embedding dim to be changed to.')
   parser.add_argument(
-    '--save_config_path',
-    type=str,
-    default=None,
-    help='Path to save changed config.')
+      '--save_config_path',
+      type=str,
+      default=None,
+      help='Path to save changed config.')
 
   args, extra_args = parser.parse_known_args()
   if args.pipeline_config_path is None:
@@ -693,8 +693,7 @@ if __name__ == '__main__':
     raise ValueError('--embedding_dim must be set')
 
   # 传入一个不存在的feature group，可以起到format配置文件的效果
-  config = change_configured_embedding_dim(
-    args.pipeline_config_path,
-    args.feature_groups,
-    args.embedding_dim)
+  config = change_configured_embedding_dim(args.pipeline_config_path,
+                                           args.feature_groups,
+                                           args.embedding_dim)
   save_message(config, args.save_config_path)

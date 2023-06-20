@@ -201,7 +201,8 @@ class Backbone(object):
       outputs = []
       for i in range(n_loop):
         name_i = '%s_%d' % (name, i)
-        output = self.call_keras_layer(conf.keras_layer, inputs, name_i, training)
+        output = self.call_keras_layer(conf.keras_layer, inputs, name_i,
+                                       training)
         outputs.append(output)
       if len(outputs) == 1:
         return outputs[0]

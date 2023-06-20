@@ -2541,9 +2541,9 @@ class _SharedEmbeddingColumn(
   @property
   def cardinality(self):
     from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, \
-      BucketizedColumn, WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, \
-      CrossedColumn, IdentityCategoricalColumn, VocabularyListCategoricalColumn, \
-      VocabularyFileCategoricalColumn
+        BucketizedColumn, WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, \
+        CrossedColumn, IdentityCategoricalColumn, VocabularyListCategoricalColumn, \
+        VocabularyFileCategoricalColumn
 
     fc = self.categorical_column
     if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
