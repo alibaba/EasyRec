@@ -38,7 +38,7 @@ class CMBF(RankModel):
 
   def build_predict_graph(self):
     hidden = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
-    final_dnn_layer = dnn.DNN(self._model_config.final_mlp, self._l2_reg,
+    final_dnn_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg,
                               'final_dnn', self._is_training)
     all_fea = final_dnn_layer(hidden)
 
