@@ -32,7 +32,7 @@ class MIND(MatchModel):
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.mind
 
-    self._hist_seq_features = self._input_layer(
+    self._hist_seq_features, _, _ = self._input_layer(
         self._feature_dict, 'hist', is_combine=False)
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
     self._item_features, _ = self._input_layer(self._feature_dict, 'item')
