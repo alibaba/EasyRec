@@ -312,6 +312,14 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               saveable_objects.append(s)
           init_op = saveable_objects[0].restore([ckpt_path], None)
           part_var._initializer_op = init_op
+      elif 'embedding_weights/AdamAsync' in variable_name:
+        var_name_tmp = variable_name.replace(
+            'embedding_weights/AdamAsync', 'embedding_weights/part_0/AdamAsync')
+        if var_name_tmp in ckpt_var2shape_map:
+          print('restore %s from %s' % (variable_name, var_name_tmp))
+          vars_in_ckpt[var_name_tmp] = variable
+        else:
+          fail_restore_vars.append(variable_name)
       else:
         fail_restore_vars.append(variable_name)
     for variable_name in fail_restore_vars:

@@ -599,7 +599,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
     field = field_dict[input_0]
 
-    if self._data_config.uniq_seq:
+    if self._data_config.uniq_seq and self._mode != tf.estimator.ModeKeys.PREDICT:
+      parsed_dict['uniq_idx'] = tf.constant([1], dtype=tf.int32)
 
       def _uniq_seq(seq):
         batch_size = len(seq)
@@ -608,15 +609,15 @@ class Input(six.with_metaclass(_meta_type, object)):
         uniq_idx = np.zeros([batch_size], dtype=np.int32)
         for i in range(0, batch_size):
           uniq_idx[i] = seq_lst.index(seq[i])
-        # logging.info('len(uniq_idx)=%d len(seq_data)=%d max(uniq_idx)=%d type(seq[0])=%s' % (len(uniq_idx),
-        #   len(seq_data), np.max(uniq_idx), type(seq[0])))
         return seq_data, uniq_idx
 
       field, uniq_idx = tf.py_func(
           _uniq_seq, [field], Tout=[tf.string, tf.int32])
       field.set_shape([None])
       uniq_idx.set_shape([None])
-      parsed_dict['uniq_idx/' + feature_name] = uniq_idx
+      uniq_idx_name = 'uniq_idx/' + feature_name
+      logging.info('add uniq_idx: %s' % uniq_idx_name)
+      parsed_dict[uniq_idx_name] = uniq_idx
 
     sub_feature_type = fc.sub_feature_type
     # Construct the output of SeqFeature according to the dimension of field_dict.

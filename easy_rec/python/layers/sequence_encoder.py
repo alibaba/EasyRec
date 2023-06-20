@@ -7,6 +7,7 @@ import tensorflow as tf
 from easy_rec.python.layers.bst import BST
 from easy_rec.python.layers.dien import DIEN
 from easy_rec.python.layers.din import DIN
+from easy_rec.python.layers.sam import SAM
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 
 if tf.__version__ >= '2.0':
@@ -91,6 +92,11 @@ class SequenceEncoder(object):
         encoding, aux_loss = dien([seq_features, target_feature], is_training)
         if aux_loss is not None and 'loss_dict' in kwargs:
           kwargs['loss_dict'].update({'seq_aux_loss/' + group_name: aux_loss})
+        outputs.append(encoding)
+      elif encoder_type == 'sam':
+        sam = SAM(
+            encoder.sam, self._l2_reg, is_training=is_training, name=group_name)
+        encoding = sam([seq_features, target_feature], is_training)
         outputs.append(encoding)
       else:
         assert False, 'unsupported sequence encode type: ' + encoder_type

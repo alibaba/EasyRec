@@ -81,6 +81,7 @@ message SequenceEncoder {
         BSTEncoder bst = 101;
         DINEncoder din = 102;
         DIENEncoder dien = 103;
+        SAMEncoder sam = 104;
     }
     required bool force_share_embeddings = 1 [default = true];
 }
@@ -115,7 +116,7 @@ message DINEncoder {
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid
     required string attention_normalizer = 3 [default = 'softmax'];
-    optional double softmax_eps = 4 [default=0.0];
+    optional double softmax_eps = 4 [default=1e-2];
 }
 
 message DIENEncoder {
@@ -129,4 +130,14 @@ message DIENEncoder {
     optional int32 negative_num = 5 [default=5];
     required string item_id = 6;
     required string seq_item_id = 7;
+}
+
+message SAMEncoder {
+    // din attention layer
+    required DNN attention_dnn = 1;
+    required int32 num_mem_pass = 2 [default = 3];
+    optional string attention_normalizer = 3 [default = 'softmax'];
+    optional double softmax_eps = 4 [default=1e-2];
+    optional bool gru_out = 5 [default = true];
+    // required int32 mem_units = 6 [default = 32];
 }
