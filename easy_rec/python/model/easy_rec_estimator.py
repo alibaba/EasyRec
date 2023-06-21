@@ -410,6 +410,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       chief_hooks = []
       if estimator_utils.is_chief():
         hooks.append(saver_hook)
+        hooks.append(
+            basic_session_run_hooks.StepCounterHook(
+                every_n_steps=log_step_count_steps, output_dir=self.model_dir))
 
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_chief():

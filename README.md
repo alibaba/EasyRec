@@ -12,6 +12,17 @@ EasyRec implements state of the art deep learning models used in common recommen
 
 &#160;
 
+## Get Started
+
+Running Platform:
+
+- [Local examples](examples/readme.md)
+- [MaxCompute](docs/source/quick_start/mc_tutorial.md)
+- [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
+- [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
+
+&#160;
+
 ## Why EasyRec?
 
 ### Run everywhere
@@ -62,17 +73,6 @@ EasyRec implements state of the art deep learning models used in common recommen
 ### Fast vector retrieve
 
 - Run [knn algorithm](docs/source/vector_retrieve.md) of vectors in distribute environment
-
-&#160;
-
-## Get Started
-
-Running Platform:
-
-- [Local](docs/source/quick_start/local_tutorial.md)
-- [MaxCompute](docs/source/quick_start/mc_tutorial.md)
-- [EMR-DataScience](docs/source/quick_start/emr_tutorial.md)
-- [PAI-DSW (DEMO)](https://dsw-dev.data.aliyun.com/#/?fileUrl=http://easyrec.oss-cn-beijing.aliyuncs.com/dsw/easy_rec_demo.ipynb&fileName=EasyRec_DeepFM.ipynb)
 
 &#160;
 

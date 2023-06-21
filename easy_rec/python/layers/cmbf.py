@@ -325,6 +325,10 @@ class CMBF(object):
     return txt_embeddings
 
   def __call__(self, is_training, *args, **kwargs):
+    if not is_training:
+      self._model_config.hidden_dropout_prob = 0.0
+      self._model_config.attention_probs_dropout_prob = 0.0
+
     # shape: [batch_size, image_num/image_dim, hidden_size]
     img_attention_fea = self.image_self_attention_tower()
 
