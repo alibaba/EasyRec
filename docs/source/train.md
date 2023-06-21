@@ -155,7 +155,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - PAIRWISE_FOCAL_LOSS 的参数配置
 
   - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，  $\\frac{\\alpha}{1-\\alpha}=\\frac{#Neg}{#Pos}$
+  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
   - session_name: pair分组的字段名，比如user_id
   - hinge_margin: 当pair的logit之差大于该参数值时，当前样本的loss为0，默认值为1.0
   - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
@@ -179,7 +179,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - BINARY_FOCAL_LOSS 的参数配置
 
   - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，  $\\frac{\\alpha}{1-\\alpha}=\\frac{#Neg}{#Pos}$
+  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
   - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
   - label_smoothing: 标签平滑系数
 
@@ -188,12 +188,12 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - alpha: ranking loss 与 calibration loss 的相对权重系数；不设置该值时，触发权重自适应学习
   - session_name: list分组的字段名，比如user_id
   - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
-  - 使用示例： [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
+  - 使用示例: [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
 
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
 
-多目标排序模型同时使用多个损失函数的完整示例：
+多目标排序模型同时使用多个损失函数的完整示例:
 [dbmtl_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
 
 ##### 损失函数权重自适应学习
