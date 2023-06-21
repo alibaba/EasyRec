@@ -917,7 +917,7 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
         assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
     else:
       assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
-  elif gfile.Exists(checkpoint_path + '.meta'):
+  elif gfile.Exists(checkpoint_path + '.index'):
     ckpt_path = checkpoint_path
     logging.info('update fine_tune_checkpoint to %s' % checkpoint_path)
   else:

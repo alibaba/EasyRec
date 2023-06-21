@@ -312,14 +312,6 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               saveable_objects.append(s)
           init_op = saveable_objects[0].restore([ckpt_path], None)
           part_var._initializer_op = init_op
-      elif 'embedding_weights/AdamAsync' in variable_name:
-        var_name_tmp = variable_name.replace(
-            'embedding_weights/AdamAsync', 'embedding_weights/part_0/AdamAsync')
-        if var_name_tmp in ckpt_var2shape_map:
-          print('restore %s from %s' % (variable_name, var_name_tmp))
-          vars_in_ckpt[var_name_tmp] = variable
-        else:
-          fail_restore_vars.append(variable_name)
       else:
         fail_restore_vars.append(variable_name)
     for variable_name in fail_restore_vars:
@@ -355,8 +347,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     for one_var in all_vars:
       var_name = re.sub(VAR_SUFIX_PATTERN, '', one_var.name)
       if re.search(PARTITION_PATTERN,
-                   var_name) and (not var_name.endswith('/AdamAsync_2') and
-                                  not var_name.endswith('/AdamAsync_3')):
+                   var_name) and one_var._save_slice_info is not None:
         var_name = re.sub(PARTITION_PATTERN, '', var_name)
         is_part = True
       else:
