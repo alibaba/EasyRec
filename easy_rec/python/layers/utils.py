@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import json
 
+from google.protobuf import struct_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops import variables
@@ -185,18 +186,25 @@ class Parameter(object):
 
   def __getattr__(self, key):
     if self.is_struct:
-      return self.params[key]
+      value = self.params[key]
+      if type(value) == struct_pb2.Struct:
+        return Parameter(value, True, self._l2_reg)
+      else:
+        return value
     return getattr(self.params, key)
 
   def __getitem__(self, key):
-    if self.is_struct:
-      return self.params[key]
-    return getattr(self.params, key)
+    return self.__getattr__(key)
 
   def get_or_default(self, key, def_val):
     if self.is_struct:
       if key in self.params:
-        return self.params[key]
+        if def_val is None:
+          return self.params[key]
+        value = self.params[key]
+        if type(value) == float:
+          return type(def_val)(value)
+        return value
       return def_val
     else:  # pb message
       return getattr(self.params, key)

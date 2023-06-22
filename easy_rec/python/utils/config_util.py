@@ -609,7 +609,7 @@ def process_multi_file_input_path(sampler_config_input_path):
 
 
 def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
-  """Reads config from a file containing pipeline_pb2.EasyRecConfig.
+  """Change the embedding dimension of the features in groups.
 
   Args:
     pipeline_config_path: Path to pipeline_pb2.EasyRecConfig text
@@ -622,22 +622,7 @@ def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
       `train_input_config`, `eval_config`, `eval_input_config`. Value are the
       corresponding config objects.
   """
-  if isinstance(pipeline_config_path, pipeline_pb2.EasyRecConfig):
-    return pipeline_config_path
-
-  assert tf.gfile.Exists(
-      pipeline_config_path
-  ), 'pipeline_config_path [%s] not exists' % pipeline_config_path
-
-  pipeline_config = pipeline_pb2.EasyRecConfig()
-  with tf.gfile.GFile(pipeline_config_path, 'r') as f:
-    config_str = f.read()
-    if pipeline_config_path.endswith('.config'):
-      text_format.Merge(config_str, pipeline_config)
-    elif pipeline_config_path.endswith('.json'):
-      json_format.Parse(config_str, pipeline_config)
-    else:
-      assert False, 'invalid file format(%s), currently support formats: .config(prototxt) .json' % pipeline_config_path
+  pipeline_config = get_configs_from_pipeline_file(pipeline_config_path, False)
 
   target_groups = set(groups.split(','))
   features = set()
@@ -658,13 +643,50 @@ def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
 
   return pipeline_config
 
+def remove_redundant_config(pipeline_config_path):
+  """Remove redundant configs from a file containing pipeline_pb2.EasyRecConfig.
+
+  Args:
+    pipeline_config_path: Path to pipeline_pb2.EasyRecConfig text
+      proto.
+
+  Returns:
+    Dictionary of configuration objects. Keys are `model`, `train_config`,
+      `train_input_config`, `eval_config`, `eval_input_config`. Value are the
+      corresponding config objects.
+  """
+  pipeline_config = get_configs_from_pipeline_file(pipeline_config_path, False)
+
+  features = set()
+  conf = pipeline_config.model_config
+  for group in conf.feature_groups:
+    for feature in group.feature_names:
+      features.add(feature)
+
+  feature_configs = get_compatible_feature_configs(pipeline_config)
+  for fea_conf in feature_configs:
+    fea_name = fea_conf.input_names[0]
+    if fea_conf.HasField('feature_name'):
+      fea_name = fea_conf.feature_name
+    if fea_name not in features:
+      logging.info("redundant feature:" + fea_name)
+      fea_conf.Clear()
+  return pipeline_config
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--pipeline_config_path',
+    '--cmd',
+    type=str,
+    choices=['format', 'set_emb_dim', 'rm_redundancy'],
+    required=True,
+    help='Path to pipeline config file.')
+  parser.add_argument(
+      '-c', '--pipeline_config_path',
       type=str,
       default=None,
+      required=True,
       help='Path to pipeline config file.')
   parser.add_argument(
       '--feature_groups',
@@ -677,23 +699,26 @@ if __name__ == '__main__':
       default=None,
       help='The embedding dim to be changed to.')
   parser.add_argument(
-      '--save_config_path',
+      '-o', '--save_config_path',
       type=str,
       default=None,
+      required=True,
       help='Path to save changed config.')
 
   args, extra_args = parser.parse_known_args()
-  if args.pipeline_config_path is None:
-    raise ValueError('--pipeline_config_path must be set')
-  if args.save_config_path is None:
-    raise ValueError('--save_config_path must be set')
-  if args.feature_groups is None:
-    raise ValueError('--feature_groups must be set')
-  if args.embedding_dim is None:
-    raise ValueError('--embedding_dim must be set')
+  if args.cmd == 'format':
+    config = get_configs_from_pipeline_file(args.pipeline_config_path)
+    save_message(config, args.save_config_path)
+  elif args.cmd == 'set_emb_dim':
+    if args.feature_groups is None:
+      raise ValueError('--feature_groups must be set')
+    if args.embedding_dim is None:
+      raise ValueError('--embedding_dim must be set')
 
-  # 传入一个不存在的feature group，可以起到format配置文件的效果
-  config = change_configured_embedding_dim(args.pipeline_config_path,
-                                           args.feature_groups,
-                                           args.embedding_dim)
-  save_message(config, args.save_config_path)
+    config = change_configured_embedding_dim(args.pipeline_config_path,
+                                             args.feature_groups,
+                                             args.embedding_dim)
+    save_message(config, args.save_config_path)
+  elif args.cmd == 'rm_redundancy':
+    config = remove_redundant_config(args.pipeline_config_path)
+    save_message(config, args.save_config_path)

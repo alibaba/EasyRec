@@ -960,6 +960,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_distribute_eval_deepfm_single_cls(self):
     cur_eval_path = 'data/test/distribute_eval_test/dwd_distribute_eval_avazu_out_test_combo'
+    #cur_eval_path = '/Users/weisu.yxd/Code/EasyRec/experiments/distribute_eval_test/dwd_distribute_eval_avazu_out_test_combo'
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/deepfm_distribute_eval_combo_on_avazu_ctr.config',
         cur_eval_path, self._test_dir)
