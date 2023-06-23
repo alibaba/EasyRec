@@ -140,4 +140,5 @@ message SAMEncoder {
     optional double softmax_eps = 4 [default=1e-2];
     optional bool gru_out = 5 [default = true];
     // required int32 mem_units = 6 [default = 32];
+    optional bool need_target_feature = 7 [default = false];
 }

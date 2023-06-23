@@ -119,11 +119,15 @@ class SAM(object):
         mem_out = target_feature if mem_out is None else mem_out
         mem_out, _ = mem_cell(attn_out, mem_out)  # mem out is initial state
         outputs.extend([attn_out, mem_out])
-    output = tf.concat(outputs, axis=-1)
+    # output.append(mem_out)
+    # output = tf.concat(outputs, axis=-1)
     if not self.config.gru_out:
       #   return layers.batch_norm(
       #       attention_output_layer, scale=True, is_training=self._is_training)
-      return output
+      if self.config.need_target_feature:
+        return tf.concat([target_feature, mem_out], axis=-1)
+      else:
+        return mem_out  # output
     else:
       with variable_scope.variable_scope('gru_out'):
         output_cell = tf.nn.rnn_cell.GRUCell(num_units=target_emb_size)
@@ -137,4 +141,7 @@ class SAM(object):
               reuse=tf.AUTO_REUSE)
           concat_layer = tf.concat([trans_state, target_feature], axis=-1)
           output, state = output_cell(concat_layer, state)
-      return output
+      if self.config.need_target_feature:
+        return tf.concat([target_feature, output], axis=-1)
+      else:
+        return output
