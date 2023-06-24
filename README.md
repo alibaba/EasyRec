@@ -41,6 +41,7 @@ Running Platform:
 ### Simple to config
 
 - Flexible feature config and simple model config
+- Build models by adding a few components
 - Efficient and robust feature generation\[used in taobao\]
 - Nice web interface in development
 
@@ -67,6 +68,7 @@ Running Platform:
 
 ### Easy to customize
 
+- Support component-based development
 - Easy to implement [customized models](docs/source/models/user_define.md)
 - Not need to care about data pipelines
 
