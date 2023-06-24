@@ -38,9 +38,9 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
-    elif self._model_config.HasField('sequence_dnn'):
-      self._features, _, self._seq_features = self._input_layer(
-          self._feature_dict, 'all', return_sequence=True)
+    # elif self._model_config.HasField('sequence_dnn'):
+    #   self._features, _, self._seq_features = self._input_layer(
+    #       self._feature_dict, 'all', return_sequence=True)
     else:
       self._features, _ = self._input_layer(self._feature_dict, 'all')
 
@@ -101,30 +101,55 @@ class DBMTL(MultiTaskModel):
     else:
       bottom_fea = self._features
 
-    if self._model_config.HasField('sequence_dnn'):
-      sequence_dnn = dnn.DNN(
-          self._model_config.sequence_dnn,
-          self._l2_reg,
-          name='sequence_dnn',
-          is_training=self._is_training)
-      sequence_fea = sequence_dnn(self._seq_features)
-      bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
+    # if self._model_config.HasField('sequence_dnn'):
+    #   sequence_dnn = dnn.DNN(
+    #       self._model_config.sequence_dnn,
+    #       self._l2_reg,
+    #       name='sequence_dnn',
+    #       is_training=self._is_training)
+    #   sequence_fea = sequence_dnn(self._seq_features)
+    #   bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
 
+    task_input_list = [bottom_fea] * self._task_num
     if self._model_config.use_sequence_encoder:
       seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+      if self._model_config.use_feature_ln and seq_encoding is not None:
+        seq_encoding = layer_norm.layer_norm(
+            seq_encoding, trainable=True, scope='feat/seq/ln')
       if seq_encoding is not None:
-        bottom_fea = tf.concat([bottom_fea, seq_encoding], axis=-1)
+        if self._model_config.HasField('sequence_dnn'):
+          if self._model_config.separate_dnn:
+            for i in range(self._task_num):
+              sequence_dnn = dnn.DNN(
+                  self._model_config.sequence_dnn,
+                  self._l2_reg,
+                  name='sequence_dnn_%d' % i,
+                  is_training=self._is_training)
+              seq_fea = sequence_dnn(seq_encoding)
+              task_input_list[i] = tf.concat([task_input_list[i], seq_fea],
+                                             axis=-1)
+          else:
+            sequence_dnn = dnn.DNN(
+                self._model_config.sequence_dnn,
+                self._l2_reg,
+                name='sequence_dnn',
+                is_training=self._is_training)
+            seq_fea = sequence_dnn(seq_encoding)
+            task_input_list[i] = [tf.concat([bottom_fea, seq_fea], axis=-1)
+                                  ] * self._task_num
+        else:
+          task_input_list[i] = tf.concat([task_input_list[i], seq_encoding],
+                                         axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):
+      assert not self._model_config.separate_dnn, 'mmoe cannot be used with separate_dnn'
       mmoe_layer = mmoe.MMOE(
           self._model_config.expert_dnn,
           l2_reg=self._l2_reg,
           num_task=self._task_num,
           num_expert=self._model_config.num_expert)
-      task_input_list = mmoe_layer(bottom_fea)
-    else:
-      task_input_list = [bottom_fea] * self._task_num
+      task_input_list = mmoe_layer(task_input_list[0])
 
     tower_features = {}
     # task specify network

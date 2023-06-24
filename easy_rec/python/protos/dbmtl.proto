@@ -31,4 +31,6 @@ message DBMTL {
     required bool use_sequence_encoder = 9 [default = false];
     // input layer dropout rate
     optional float input_dropout_rate = 10 [default = 0];
+
+    optional bool separate_dnn = 11 [default = false];
 }
