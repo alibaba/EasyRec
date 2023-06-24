@@ -643,12 +643,14 @@ def change_configured_embedding_dim(pipeline_config_path, groups, emb_dim):
 
   return pipeline_config
 
-def remove_redundant_config(pipeline_config_path):
+
+def remove_redundant_config(pipeline_config_path, remove_input=False):
   """Remove redundant configs from a file containing pipeline_pb2.EasyRecConfig.
 
   Args:
     pipeline_config_path: Path to pipeline_pb2.EasyRecConfig text
       proto.
+    remove_input: whether to remove input configs
 
   Returns:
     Dictionary of configuration objects. Keys are `model`, `train_config`,
@@ -657,6 +659,7 @@ def remove_redundant_config(pipeline_config_path):
   """
   pipeline_config = get_configs_from_pipeline_file(pipeline_config_path, False)
 
+  inputs = set()
   features = set()
   conf = pipeline_config.model_config
   for group in conf.feature_groups:
@@ -664,13 +667,30 @@ def remove_redundant_config(pipeline_config_path):
       features.add(feature)
 
   feature_configs = get_compatible_feature_configs(pipeline_config)
-  for fea_conf in feature_configs:
+  offset = 0
+  for i in range(len(feature_configs)):
+    fea_conf = feature_configs[i - offset]
     fea_name = fea_conf.input_names[0]
     if fea_conf.HasField('feature_name'):
       fea_name = fea_conf.feature_name
     if fea_name not in features:
       logging.info("redundant feature:" + fea_name)
-      fea_conf.Clear()
+      del feature_configs[i - offset]
+      offset += 1
+    elif remove_input:
+      for input_name in fea_conf.input_names:
+        inputs.add(input_name)
+
+  if remove_input:
+    for label in pipeline_config.data_config.label_fields:
+      inputs.add(label)
+    input_fields = pipeline_config.data_config.input_fields
+    offset = 0
+    for i in range(len(input_fields)):
+      field = input_fields[i - offset]
+      if field.input_name not in inputs:
+        del input_fields[i - offset]
+        offset += 1
   return pipeline_config
 
 
@@ -689,12 +709,17 @@ if __name__ == '__main__':
       required=True,
       help='Path to pipeline config file.')
   parser.add_argument(
-      '--feature_groups',
+      '-g', '--feature_groups',
       type=str,
       default=None,
       help='The name of feature group to be changed.')
   parser.add_argument(
-      '--embedding_dim',
+      '--rm_input',
+      type=bool,
+      default=False,
+      help='Whether to remove redundancy input.')
+  parser.add_argument(
+      '-d', '--embedding_dim',
       type=int,
       default=None,
       help='The embedding dim to be changed to.')

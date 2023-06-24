@@ -151,8 +151,8 @@ class Gate(tf.keras.layers.Layer):
       if i == self.weight_index:
         continue
       if j == 0:
-        output = weights[:, j] * x
+        output = weights[:, j, None] * x
       else:
-        output += weights[:, j] * x
+        output += weights[:, j, None] * x
       j += 1
     return output
