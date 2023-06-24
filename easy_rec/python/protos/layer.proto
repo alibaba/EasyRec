@@ -52,6 +52,7 @@ message MaskBlock {
     required uint32 output_size = 2;
     optional uint32 aggregation_size = 3;
     optional bool input_layer_norm = 4 [default = true];
+    optional uint32 projection_dim = 5;
 }
 
 message MaskNet {

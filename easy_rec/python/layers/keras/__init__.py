@@ -1,4 +1,5 @@
 from .blocks import MLP
+from .blocks import Gate
 from .blocks import Highway
 from .bst import BST
 from .din import DIN

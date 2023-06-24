@@ -134,3 +134,25 @@ class Highway(tf.keras.layers.Layer):
         activation=self.activation,
         num_layers=self.num_layers,
         dropout=self.dropout_rate if training else 0.0)
+
+
+class Gate(tf.keras.layers.Layer):
+  """Weighted sum gate."""
+
+  def __init__(self, params, name='gate', **kwargs):
+    super(Gate, self).__init__(name, **kwargs)
+    self.weight_index = params.get_or_default("weight_index", 0)
+
+  def call(self, inputs, **kwargs):
+    assert len(inputs) > 1, 'input of Gate layer must be a list containing at least 2 elements'
+    weights = inputs[self.weight_index]
+    j = 0
+    for i, x in enumerate(inputs):
+      if i == self.weight_index:
+        continue
+      if j == 0:
+        output = weights[:, j] * x
+      else:
+        output += weights[:, j] * x
+      j += 1
+    return output

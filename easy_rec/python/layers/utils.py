@@ -207,7 +207,9 @@ class Parameter(object):
         return value
       return def_val
     else:  # pb message
-      return getattr(self.params, key)
+      if self.params.HasField(key):
+        return getattr(self.params, key)
+      return def_val
 
   def check_required(self, keys):
     if not self.is_struct:
