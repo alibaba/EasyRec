@@ -12,6 +12,7 @@ from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
@@ -36,6 +37,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
+    self._is_predicting = labels is None
     self._feature_dict = features
 
     # embedding variable parameters
@@ -46,7 +48,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
-    self._wide_output_dim = -1
+    self._wide_output_dim = self.get_wide_output_dim()
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)
@@ -59,6 +61,31 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._sample_weight = 1.0
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
+
+    self._backbone_output = None
+    if model_config.HasField('backbone'):
+      self._backbone = Backbone(
+          model_config.backbone,
+          features,
+          input_layer=self._input_layer,
+          l2_reg=self._l2_reg)
+    else:
+      self._backbone = None
+
+  @property
+  def has_backbone(self):
+    return self._base_model_config.HasField('backbone')
+
+  @property
+  def backbone(self):
+    if self._backbone_output:
+      return self._backbone_output
+    if self._backbone:
+      self._backbone_output = self._backbone(self._is_training)
+      loss_dict = self._backbone.loss_dict
+      self._loss_dict.update(loss_dict)
+      return self._backbone_output
+    return None
 
   @property
   def embedding_regularization(self):
@@ -87,6 +114,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       l2_regularization = model_config.l2_regularization
     return l2_regularization
 
+  def get_wide_output_dim(self):
+    model_config = getattr(self._base_model_config,
+                           self._base_model_config.WhichOneof('model'))
+    if hasattr(model_config, 'wide_output_dim'):
+      return model_config.wide_output_dim
+    return -1
+
   def build_input_layer(self, model_config, feature_configs):
     self._input_layer = input_layer.InputLayer(
         feature_configs,
@@ -97,7 +131,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=self._is_training)
+        is_training=self._is_training,
+        is_predicting=self._is_predicting)
 
   @abstractmethod
   def build_predict_graph(self):

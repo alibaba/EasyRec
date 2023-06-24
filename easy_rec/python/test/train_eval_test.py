@@ -80,9 +80,19 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_wide_and_deep_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/wide_and_deep_backbone_on_avazau.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dlrm(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dlrm_on_taobao.config', self._test_dir)
+
+  def test_dlrm_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dlrm_backbone_on_taobao.config', self._test_dir)
 
   def test_adamw_optimizer(self):
     self._success = test_utils.test_single_train_eval(
@@ -309,6 +319,21 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dcn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dcn_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_fibinet(self):
+    self._success = test_utils.test_single_train_eval(
+      'samples/model_config/fibinet_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_masknet(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/masknet_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dcn_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dcn_backbone_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dcn_with_f1(self):
@@ -726,6 +751,16 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/deepfm_on_criteo_batch_tfrecord.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_autodis_embedding(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/deepfm_on_criteo_with_autodis.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_periodic_embedding(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/deepfm_on_criteo_with_periodic.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_sample_weight(self):

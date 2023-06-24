@@ -37,24 +37,27 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
-    else:
-      self._features, _ = self._input_layer(self._feature_dict, 'all')
+    elif not self.has_backbone:
+      self._features, self._feature_list = self._input_layer(
+          self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
-    if self._model_config.HasField('bottom_cmbf'):
-      bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
-    elif self._model_config.HasField('bottom_uniter'):
-      bottom_fea = self._uniter_layer(self._is_training, l2_reg=self._l2_reg)
-    elif self._model_config.HasField('bottom_dnn'):
-      bottom_dnn = dnn.DNN(
-          self._model_config.bottom_dnn,
-          self._l2_reg,
-          name='bottom_dnn',
-          is_training=self._is_training)
-      bottom_fea = bottom_dnn(self._features)
-    else:
-      bottom_fea = self._features
+    bottom_fea = self.backbone
+    if bottom_fea is None:
+      if self._model_config.HasField('bottom_cmbf'):
+        bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
+      elif self._model_config.HasField('bottom_uniter'):
+        bottom_fea = self._uniter_layer(self._is_training, l2_reg=self._l2_reg)
+      elif self._model_config.HasField('bottom_dnn'):
+        bottom_dnn = dnn.DNN(
+            self._model_config.bottom_dnn,
+            self._l2_reg,
+            name='bottom_dnn',
+            is_training=self._is_training)
+        bottom_fea = bottom_dnn(self._features)
+      else:
+        bottom_fea = self._features
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

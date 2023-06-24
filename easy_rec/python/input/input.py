@@ -1,15 +1,18 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import os
 from abc import abstractmethod
 from collections import OrderedDict
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.check_utils import check_split
@@ -952,11 +955,15 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
+        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
         if export_config.multi_placeholder:
-          inputs, features = self.create_multi_placeholders(export_config)
+          with conditional(place_on_cpu, ops.device('/CPU:0')):
+            inputs, features = self.create_multi_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
-          inputs, features = self.create_placeholders(export_config)
+          with conditional(place_on_cpu, ops.device('/CPU:0')):
+            inputs, features = self.create_placeholders(export_config)
           print('built feature placeholders. features: {}'.format(
               features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)
