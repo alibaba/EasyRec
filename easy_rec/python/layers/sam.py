@@ -77,8 +77,6 @@ class SAM(object):
     if target_emb_size < seq_emb_size:
       keys = keys[:, :, :target_emb_size]  # [B, L, E]
     output = tf.squeeze(tf.matmul(scores, keys), axis=[1])
-    # if self.config.need_target_feature:
-    #   output = tf.concat([output, target_feature], axis=-1)
     return output, scores
 
   def _avg_entropy_per_batch(self, att_vec):
@@ -122,8 +120,6 @@ class SAM(object):
     # output.append(mem_out)
     # output = tf.concat(outputs, axis=-1)
     if not self.config.gru_out:
-      #   return layers.batch_norm(
-      #       attention_output_layer, scale=True, is_training=self._is_training)
       if self.config.need_target_feature:
         return tf.concat([target_feature, mem_out], axis=-1)
       else:
