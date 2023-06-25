@@ -26,6 +26,12 @@ Welcome to easy_rec's documentation!
 
 .. toctree::
    :maxdepth: 3
+   :caption: BACKBONE & COMPONENT
+
+   component/backbone
+
+.. toctree::
+   :maxdepth: 3
    :caption: MODEL
 
    models/recall
@@ -37,7 +43,6 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: TRAIN & EVAL & EXPORT
 
-   loss
    train
    incremental_train
    online_train
