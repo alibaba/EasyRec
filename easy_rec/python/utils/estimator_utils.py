@@ -8,12 +8,14 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 
 import numpy as np
 import six
 import tensorflow as tf
 from tensorflow.core.framework.summary_pb2 import Summary
+from tensorflow.python.client import device_lib
 from tensorflow.python.framework import errors_impl
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.framework import ops
@@ -30,6 +32,11 @@ from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import shape_utils
 
 from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
+
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
 
 try:
   from kafka import KafkaProducer, KafkaAdminClient
@@ -442,6 +449,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer = None
 
   def after_create_session(self, session, coord):
+    if not is_chief():
+      return
+
     global_step = session.run(self._global_step_tensor)
     if self._write_graph:
       # We do write graph and saver_def at the first call of before_run.
@@ -581,6 +591,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
         % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
+    if not is_chief():
+      return
+
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     stale_global_step = run_values.results
     global_step = -1
@@ -637,6 +650,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
     return should_stop
 
   def end(self, session):
+    if not is_chief():
+      return
     super(CheckpointSaverHook, self).end(session)
     global_step = session.run(self._global_step_tensor)
     if self._dense_timer is not None and \
@@ -951,6 +966,8 @@ def is_chief():
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'task' in tf_config:
       return tf_config['task']['type'] in ['chief', 'master']
+  elif 'HOROVOD_RANK' in os.environ:
+    return int(os.environ['HOROVOD_RANK']) == 0
   return True
 
 
@@ -968,3 +985,22 @@ def is_evaluator():
     if 'task' in tf_config:
       return tf_config['task']['type'] == 'evaluator'
   return False
+
+
+def has_hvd():
+  return hvd is not None and 'HOROVOD_RANK' in os.environ
+
+
+def init_hvd():
+  if hvd is None:
+    logging.error(
+        'horovod is not installed: HOROVOD_WITH_TENSORFLOW=1 pip install horovod'
+    )
+    sys.exit(1)
+
+  hvd.init()
+
+
+def get_available_gpus():
+  local_device_protos = device_lib.list_local_devices()
+  return [x.name for x in local_device_protos if x.device_type == 'GPU']

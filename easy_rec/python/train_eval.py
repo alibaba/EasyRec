@@ -147,6 +147,9 @@ if __name__ == '__main__':
       if pipeline_config.train_config.fine_tune_checkpoint:
         ds_util.cache_ckpt(pipeline_config)
 
+    if 'HOROVOD_RANK' in os.environ:
+      estimator_utils.init_hvd()
+
     if args.hpo_param_path:
       with gfile.GFile(args.hpo_param_path, 'r') as fin:
         hpo_config = json.load(fin)
