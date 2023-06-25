@@ -110,9 +110,12 @@ class DBMTL(MultiTaskModel):
     #   sequence_fea = sequence_dnn(self._seq_features)
     #   bottom_fea = tf.concat([bottom_fea, sequence_fea], axis=-1)
 
+    tf.summary.scalar('bottom_fea', tf.norm(bottom_fea))
+
     task_input_list = [bottom_fea] * self._task_num
     if self._model_config.use_sequence_encoder:
       seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+      tf.summary.scalar('seq_norm', tf.norm(seq_encoding))
       if self._model_config.use_feature_ln and seq_encoding is not None:
         seq_encoding = layer_norm.layer_norm(
             seq_encoding, trainable=True, scope='feat/seq/ln')
@@ -138,8 +141,8 @@ class DBMTL(MultiTaskModel):
             task_input_list[i] = [tf.concat([bottom_fea, seq_fea], axis=-1)
                                   ] * self._task_num
         else:
-          task_input_list[i] = tf.concat([task_input_list[i], seq_encoding],
-                                         axis=-1)
+          for i in range(self._task_num):
+            task_input_list[i] = tf.concat([bottom_fea, seq_encoding], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

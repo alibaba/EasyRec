@@ -138,7 +138,7 @@ message SAMEncoder {
     required int32 num_mem_pass = 2 [default = 3];
     optional string attention_normalizer = 3 [default = 'softmax'];
     optional double softmax_eps = 4 [default=1e-2];
-    optional bool gru_out = 5 [default = true];
+    optional bool gru_out = 5 [default = false];
     // required int32 mem_units = 6 [default = 32];
     optional bool need_target_feature = 7 [default = false];
 }
