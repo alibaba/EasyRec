@@ -865,9 +865,8 @@ def get_ckpt_version(ckpt_path):
 def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
                                                ignore_ckpt_error):
   ckpt_path = None
-  if checkpoint_path.endswith('/') or tf.gfile.IsDirectory(checkpoint_path +
-                                                           '/'):
-    if tf.gfile.Exists(checkpoint_path):
+  if checkpoint_path.endswith('/') or gfile.IsDirectory(checkpoint_path + '/'):
+    if gfile.Exists(checkpoint_path):
       ckpt_path = latest_checkpoint(checkpoint_path)
       if ckpt_path:
         logging.info(
@@ -877,7 +876,7 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
         assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
     else:
       assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
-  elif tf.gfile.Exists(checkpoint_path + '.meta'):
+  elif gfile.Exists(checkpoint_path + '.index'):
     ckpt_path = checkpoint_path
     logging.info('update fine_tune_checkpoint to %s' % checkpoint_path)
   else:
