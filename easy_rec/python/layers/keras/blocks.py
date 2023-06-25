@@ -7,6 +7,9 @@ import tensorflow as tf
 
 from easy_rec.python.utils.activation import get_activation
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 class MLP(tf.keras.layers.Layer):
   """Sequential multi-layer perceptron (MLP) block.

@@ -6,6 +6,9 @@ from easy_rec.python.layers.common_layers import layer_norm
 from easy_rec.python.layers.keras.blocks import MLP
 from easy_rec.python.layers.utils import Parameter
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 class MaskBlock(tf.keras.layers.Layer):
   """MaskBlock use in MaskNet.
