@@ -207,7 +207,13 @@ class Parameter(object):
         return value
       return def_val
     else:  # pb message
-      return getattr(self.params, key)
+      value = getattr(self.params, key)
+      if hasattr(value, '__len__'):
+        if len(value) > 0:
+          return value
+      elif self.params.HasField(key):
+        return value
+      return def_val
 
   def check_required(self, keys):
     if not self.is_struct:

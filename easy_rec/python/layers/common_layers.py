@@ -144,21 +144,3 @@ class EnhancedInputLayer(object):
     if self._config.output_2d_tensor_and_feature_list:
       return features, feature_list
     return features
-
-
-class Concatenate(object):
-
-  def __init__(self, config):
-    self.config = config
-
-  def __call__(self, inputs, *args, **kwargs):
-    if self.config.HasField('expand_dim_before'):
-      dim = self.config.expand_dim_before
-      output = tf.stack(inputs, axis=dim)
-    else:
-      output = tf.concat(inputs, axis=self.config.axis)
-
-    if self.config.HasField('expand_dim_after'):
-      dim = self.config.expand_dim_after
-      output = tf.expand_dims(output, dim)
-    return output
