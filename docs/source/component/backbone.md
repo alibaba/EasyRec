@@ -724,6 +724,7 @@ class FM(tf.keras.layers.Layer):
 # 如何搭建模型
 
 `组件块`的搭建主干网络的核心部件，本小节将会介绍`组件块`的类型、功能和配置参数。
+通过`组件块`搭建模型的示例请参考[案例](#wide-deep)。
 
 `组件块`的protobuf定义如下：
 
@@ -802,7 +803,7 @@ message InputLayer {
 
 ## 3. Lambda组件块
 
-`Lambda组件块`可以配置一个lambda函数，执行一些教简单的操作。
+`Lambda组件块`可以配置一个lambda函数，执行一些较简单的操作。
 
 ## 4. KerasLayer组件块
 

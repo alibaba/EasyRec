@@ -22,6 +22,8 @@ input:
 
 ### 配置说明
 
+#### 1. 内置模型
+
 ```protobuf
 model_config {
   model_class: 'DLRM'
@@ -108,9 +110,113 @@ model_config {
 
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
+#### 2. 组件化模型
+
+```
+model_config: {
+  model_class: 'RankModel'
+  feature_groups {
+    group_name: 'dense'
+    feature_names: 'age_level'
+    feature_names: 'pvalue_level'
+    feature_names: 'shopping_level'
+    feature_names: 'new_user_class_level'
+    feature_names: 'price'
+    wide_deep: DEEP
+  }
+  feature_groups {
+    group_name: 'sparse'
+    feature_names: 'user_id'
+    feature_names: 'cms_segid'
+    feature_names: 'cms_group_id'
+    feature_names: 'occupation'
+    feature_names: 'adgroup_id'
+    feature_names: 'cate_id'
+    feature_names: 'campaign_id'
+    feature_names: 'customer'
+    feature_names: 'brand'
+    feature_names: 'pid'
+    feature_names: 'tag_category_list'
+    feature_names: 'tag_brand_list'
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: 'bottom_mlp'
+      inputs {
+        name: 'dense'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [64, 32, 16]
+        }
+      }
+    }
+    blocks {
+      name: 'sparse'
+      input_layer {
+        output_2d_tensor_and_feature_list: true
+      }
+    }
+    blocks {
+      name: 'dot'
+      inputs {
+        name: 'bottom_mlp'
+        input_fn: 'lambda x: [x]'
+      }
+      inputs {
+        name: 'sparse'
+        input_fn: 'lambda x: x[1]'
+      }
+      keras_layer {
+        class_name: 'DotInteraction'
+      }
+    }
+    blocks {
+      name: 'sparse_2d'
+      inputs {
+        name: 'sparse'
+        input_fn: 'lambda x: x[0]'
+      }
+    }
+    concat_blocks: ['bottom_mlp', 'sparse_2d', 'dot']
+    top_mlp {
+      hidden_units: [256, 128, 64]
+    }
+  }
+  rank_model {
+    l2_regularization: 1e-5
+  }
+  embedding_regularization: 1e-5
+}
+```
+
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
+
+- feature_groups: 特征组
+
+  - 包含两个feature_group: dense 和sparse group
+
+  - wide_deep: dlrm模型使用的都是Deep features, 所以都设置成DEEP
+
+- backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
+
+  - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
+  - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
+
+- rank_model: 
+
+  - l2_regularization: 对DNN参数的regularization, 减少overfit
+
+- embedding_regularization: 对embedding部分加regularization, 减少overfit
+
+
 ### 示例Config
 
-[DLRM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dlrm_on_taobao.config)
+1. 内置模型：[DLRM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dlrm_on_taobao.config)
+2. 组件化模型：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
 
 ### 参考论文
 

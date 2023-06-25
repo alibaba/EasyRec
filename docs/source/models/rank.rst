@@ -14,6 +14,8 @@
    din
    bst
    rocket_launching
+   masknet
+   fibinet
    regression
    multi_cls
 

@@ -4,9 +4,18 @@
 
 Deep＆Cross Network（DCN）是在DNN模型的基础上，引入了一种新型的交叉网络，该网络在学习某些特征交叉时效率更高。特别是，DCN显式地在每一层应用特征交叉，不需要人工特征工程，并且只增加了很小的额外复杂性。
 
-![deepfm.png](../../images/models/dcn.png)
+![dcn.png](../../images/models/dcn.png)
 
-### 配置说明
+DCN-V2相对于前一个版本的模型，主要的改进点在于：
+
+(1) Wide侧-Cross Network中用矩阵替代向量；
+
+(2) 提出2种模型结构，传统的Wide&Deep并行 + Wide&Deep串行。
+
+![dcn_v2](../../images/models/dcn_v2.jpg)
+![dcn_v2_cross](../../images/models/dcn_v2_cross.jpg)
+
+### DCN v1 配置说明
 
 ```protobuf
 model_config: {
@@ -74,10 +83,84 @@ model_config: {
 
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
+### DCN v2 配置说明
+
+```protobuf
+model_config {
+  model_class: 'RankModel'
+  feature_groups: {
+    group_name: 'all'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
+    feature_names: 'job_id'
+    feature_names: 'age'
+    feature_names: 'gender'
+    feature_names: 'year'
+    feature_names: 'genres'
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: "deep"
+      inputs {
+        name: 'all'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [256, 128, 64]
+        }
+      }
+    }
+    blocks {
+      name: "dcn"
+      inputs {
+        name: 'all'
+        input_fn: 'lambda x: [x, x]'
+      }
+      recurrent {
+        num_steps: 3
+        fixed_input_index: 0
+        keras_layer {
+          class_name: 'Cross'
+        }
+      }
+    }
+    concat_blocks: ['deep', 'dcn']
+    top_mlp {
+      hidden_units: [64, 32, 16]
+    }
+  }
+  rank_model {
+    l2_regularization: 1e-4
+  }
+  embedding_regularization: 1e-4
+}
+```
+
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
+
+- feature_groups: 配置一个名为'all'的feature_group。
+
+- backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
+
+  - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
+  - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
+
+- rank_model: 
+
+  - l2_regularization: 对DNN参数的regularization, 减少overfit
+
+- embedding_regularization: 对embedding部分加regularization, 减少overfit
+
 ### 示例Config
 
-[DCN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dcn.config)
+1. DCN V1: [DCN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dcn.config)
+2. DCN V2: [dcn_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)
 
 ### 参考论文
 
 [DCN](https://arxiv.org/abs/1708.05123)
+
+[DCN v2](https://arxiv.org/abs/2008.13535)
