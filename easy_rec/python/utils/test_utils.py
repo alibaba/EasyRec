@@ -664,6 +664,7 @@ def test_distributed_train_eval(pipeline_config_path,
 
   if use_hvd:
     pipeline_config.train_config.sync_replicas = False
+    pipeline_config.train_config.train_distribute = DistributionStrategy.HorovodStrategy
 
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)

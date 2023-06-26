@@ -966,8 +966,8 @@ def is_chief():
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'task' in tf_config:
       return tf_config['task']['type'] in ['chief', 'master']
-  elif 'HOROVOD_RANK' in os.environ:
-    return int(os.environ['HOROVOD_RANK']) == 0
+  elif has_hvd():
+    return hvd.rank() == 0
   return True
 
 
@@ -999,6 +999,7 @@ def init_hvd():
     sys.exit(1)
 
   hvd.init()
+  os.environ['HOROVOD_RANK'] = str(hvd.rank())
 
 
 def get_available_gpus():
