@@ -171,13 +171,11 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
           shape=[1, num_features, self.num_bins, self.emb_dim])
       w = tf.get_variable('project_w', shape=[1, num_features, self.num_bins])
       mat = tf.get_variable(
-          'project_mat', shape=[1, num_features, self.num_bins, self.num_bins])
+          'project_mat', shape=[num_features, self.num_bins, self.num_bins])
 
       x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
       hidden = tf.nn.leaky_relu(w * x)  # [B, N, num_bin]
-
-      y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
-      y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
+      y = tf.einsum('nik,bnk->bni', mat, hidden)  # [B, N, num_bin]
 
       # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
       alpha = self.keep_prob

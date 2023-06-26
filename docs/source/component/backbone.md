@@ -675,6 +675,9 @@ def call(self, inputs, training=None, **kwargs):
 - 【不建议，会限定传参方式】获取自定义的proto对象：`params.get_pb_config()` 
 - 读写`l2_regularizer`属性：`params.l2_regularizer`，传给Dense层或dense函数。
 
+【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
+再把参数注册到定义在`easy_rec/python/protos/keras_layer.proto`的`KerasLayer.params`消息体中。
+
 `call`方法用来实现主要的模块逻辑，其`inputs`参数可以是一个tenor，或者是一个tensor列表。可选的`training`参数用来标识当前是否是训练模型。
 
 最后也是最重要的一点，新开发的Layer需要在`easy_rec.python.layers.keras.__init__.py`文件中导出才能被框架识别为组件库中的一员。例如要导出`blocks.py`文件中的`MLP`类，则需要添加：`from .blocks import MLP`。

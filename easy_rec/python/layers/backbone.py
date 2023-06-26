@@ -185,7 +185,10 @@ class Backbone(object):
           logging.info('try to call %s layer with params %r' %
                        (layer_conf.class_name, args))
           layer = layer_cls(*args, name=name)
-      return layer(inputs, training=training)
+      try:
+        return layer(inputs, training=training)
+      except TypeError:
+        return layer(inputs)
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')
