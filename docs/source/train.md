@@ -2,7 +2,7 @@
 
 ## train_config
 
-- log_step_count_steps: 200    # 每200轮打印一行log
+- log_step_count_steps: 200    # 每200步打印一行log
 
 - optimizer_config     # 优化器相关的参数
 
@@ -62,11 +62,11 @@
     print(key)
   ```
 
-- save_checkpoints_steps: 每隔多少轮保存一次checkpoint, 默认是1000
+- save_checkpoints_steps: 每隔多少步保存一次checkpoint, 默认是1000。当训练数据量很大的时候，这个值要设置大一些
 
 - save_checkpoints_secs: 每隔多少s保存一次checkpoint, 不可以和save_checkpoints_steps同时指定
 
-- keep_checkpoint_max: 最多保存多少个checkpoint, 默认是10
+- keep_checkpoint_max: 最多保存多少个checkpoint, 默认是10。当模型较大的时候可以设置为5，可节约存储
 
 - log_step_count_steps: 每隔多少轮，打印一次训练信息，默认是10
 
