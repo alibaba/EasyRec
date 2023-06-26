@@ -71,6 +71,9 @@ def jrc_loss(labels,
     pairwise_weights = tf.tile(weights, tf.stack([batch_size, 1]))
     y_pos *= pairwise_weights
     y_neg *= pairwise_weights
+  else:
+    y_pos *= sample_weights
+    y_neg *= sample_weights
 
   # Compute list-wise generative loss -log p(x|y, z)
   if same_label_loss:
