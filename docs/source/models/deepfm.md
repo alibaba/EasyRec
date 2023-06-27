@@ -99,7 +99,7 @@ model_config: {
     blocks {
       name: 'wide_logit'
       inputs {
-        name: 'wide'
+        feature_group_name: 'wide'
       }
       lambda {
         expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
@@ -107,6 +107,9 @@ model_config: {
     }
     blocks {
       name: 'features'
+      inputs {
+        feature_group_name: 'features'
+      }
       input_layer {
         output_2d_tensor_and_feature_list: true
       }
@@ -114,7 +117,7 @@ model_config: {
     blocks {
       name: 'fm'
       inputs {
-        name: 'features'
+        block_name: 'features'
         input_fn: 'lambda x: x[1]'
       }
       keras_layer {
@@ -124,7 +127,7 @@ model_config: {
     blocks {
       name: 'deep'
       inputs {
-        name: 'features'
+        block_name: 'features'
         input_fn: 'lambda x: x[0]'
       }
       keras_layer {
@@ -139,13 +142,13 @@ model_config: {
     blocks {
       name: 'add'
       inputs {
-        name: 'wide_logit'
+        block_name: 'wide_logit'
       }
       inputs {
-        name: 'fm'
+        block_name: 'fm'
       }
       inputs {
-        name: 'deep'
+        block_name: 'deep'
       }
       merge_inputs_into_list: true
       keras_layer {

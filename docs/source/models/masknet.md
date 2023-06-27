@@ -27,7 +27,7 @@ model_config {
     blocks {
       name: "mask_net"
       inputs {
-        name: "all"
+        feature_group_name: "all"
       }
       keras_layer {
         class_name: 'MaskNet'

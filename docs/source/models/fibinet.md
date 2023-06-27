@@ -35,6 +35,9 @@ model_config {
   backbone {
     blocks {
       name: "all"
+      inputs {
+        feature_group_name: "all"
+      }
       input_layer {
         do_batch_norm: true
         only_output_feature_list: true
@@ -43,7 +46,7 @@ model_config {
     blocks {
       name: "fibinet"
       inputs {
-        name: "all"
+        block_name: "all"
       }
       keras_layer {
         class_name: 'FiBiNet'

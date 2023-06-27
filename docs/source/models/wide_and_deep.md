@@ -99,6 +99,9 @@ model_config: {
   backbone {
     blocks {
       name: 'wide'
+      inputs {
+        feature_group_name: 'wide'
+      }
       input_layer {
         only_output_feature_list: true
       }
@@ -106,7 +109,7 @@ model_config: {
     blocks {
       name: 'deep_logit'
       inputs {
-        name: 'deep'
+        feature_group_name: 'deep'
       }
       keras_layer {
         class_name: 'MLP'
@@ -120,11 +123,11 @@ model_config: {
     blocks {
       name: 'final_logit'
       inputs {
-        name: 'wide'
+        block_name: 'wide'
         input_fn: 'lambda x: tf.add_n(x)'
       }
       inputs {
-        name: 'deep_logit'
+        block_name: 'deep_logit'
       }
       merge_inputs_into_list: true
       keras_layer {

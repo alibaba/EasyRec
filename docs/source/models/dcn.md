@@ -104,7 +104,7 @@ model_config {
     blocks {
       name: "deep"
       inputs {
-        name: 'all'
+        feature_group_name: 'all'
       }
       keras_layer {
         class_name: 'MLP'
@@ -116,7 +116,7 @@ model_config {
     blocks {
       name: "dcn"
       inputs {
-        name: 'all'
+        feature_group_name: 'all'
         input_fn: 'lambda x: [x, x]'
       }
       recurrent {

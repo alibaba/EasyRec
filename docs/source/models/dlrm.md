@@ -145,7 +145,7 @@ model_config: {
     blocks {
       name: 'bottom_mlp'
       inputs {
-        name: 'dense'
+        feature_group_name: 'dense'
       }
       keras_layer {
         class_name: 'MLP'
@@ -156,6 +156,9 @@ model_config: {
     }
     blocks {
       name: 'sparse'
+      inputs {
+        feature_group_name: 'sparse'
+      }
       input_layer {
         output_2d_tensor_and_feature_list: true
       }
@@ -163,11 +166,11 @@ model_config: {
     blocks {
       name: 'dot'
       inputs {
-        name: 'bottom_mlp'
+        block_name: 'bottom_mlp'
         input_fn: 'lambda x: [x]'
       }
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[1]'
       }
       keras_layer {
@@ -177,7 +180,7 @@ model_config: {
     blocks {
       name: 'sparse_2d'
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[0]'
       }
     }
