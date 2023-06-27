@@ -54,26 +54,23 @@ class Backbone(object):
     self.loss_dict = {}
     input_feature_groups = set()
     for block in config.blocks:
-      assert len(
-          block.inputs) > 0, 'block takes at least one input: %s' % block.name
+      if len(block.inputs) == 0:
+        raise ValueError('block takes at least one input: %s' % block.name)
       self._dag.add_node(block.name)
       self._name_to_blocks[block.name] = block
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
-        assert len(
-            block.inputs
-        ) == 1, 'input layer block `%s` takes only one input' % block.name
+        if len(block.inputs) != 1:
+          raise ValueError('input layer `%s` takes only one input' % block.name)
         one_input = block.inputs[0]
         name = one_input.WhichOneof('name')
         if name != 'feature_group_name':
           raise KeyError(
-              '`feature_group_name` should be set for input layer block: ' +
+              '`feature_group_name` should be set for input layer: ' +
               block.name)
         input_name = one_input.feature_group_name
         if not input_layer.has_group(input_name):
-          raise KeyError(
-              'input_layer\'s name must be one of feature group, invalid: ' +
-              input_name)
+          raise KeyError('invalid feature group name: ' + input_name)
         if input_name in input_feature_groups:
           logging.warning('input `%s` already exists in other block' %
                           input_name)
@@ -107,7 +104,7 @@ class Backbone(object):
             self._name_to_blocks[input_name] = new_block
             self._dag.add_node(input_name)
             self._dag.add_edge(input_name, block.name)
-            input_feature_groups.add(block.name)
+            input_feature_groups.add(input_name)
           else:
             raise KeyError(
                 'invalid input name `%s`, must be the name of either a feature group or an another block'

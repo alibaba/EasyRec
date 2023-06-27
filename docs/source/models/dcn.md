@@ -148,7 +148,7 @@ model_config {
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
   - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
 
-- rank_model: 
+- rank_model:
 
   - l2_regularization: 对DNN参数的regularization, 减少overfit
 
@@ -157,7 +157,7 @@ model_config {
 ### 示例Config
 
 1. DCN V1: [DCN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dcn.config)
-2. DCN V2: [dcn_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)
+1. DCN V2: [dcn_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)
 
 ### 参考论文
 

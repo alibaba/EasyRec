@@ -206,17 +206,16 @@ model_config: {
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
   - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
 
-- rank_model: 
+- rank_model:
 
   - l2_regularization: 对DNN参数的regularization, 减少overfit
 
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
-
 ### 示例Config
 
 1. 内置模型：[DLRM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dlrm_on_taobao.config)
-2. 组件化模型：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
+1. 组件化模型：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
 
 ### 参考论文
 

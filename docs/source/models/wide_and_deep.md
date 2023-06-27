@@ -151,7 +151,7 @@ model_config: {
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
 
-- rank_model: 
+- rank_model:
 
   - l2_regularization: 对DNN参数的regularization, 减少overfit
   - wide_output_dim: wide部分输出的tensor的维度
@@ -161,7 +161,7 @@ model_config: {
 ### 示例Config
 
 1. 内置模型：[WideAndDeep_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/wide_and_deep.config)
-2. 组件化模型：[wide_and_deep_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/wide_and_deep_backbone_on_movielens.config)
+1. 组件化模型：[wide_and_deep_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/wide_and_deep_backbone_on_movielens.config)
 
 ### 参考论文
 

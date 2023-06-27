@@ -66,7 +66,7 @@ model_config {
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
 
-- rank_model: 
+- rank_model:
 
   - l2_regularization: (可选) 对DNN参数的regularization, 减少overfit
 

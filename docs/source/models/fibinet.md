@@ -7,10 +7,10 @@ FiBiNet 模型包含两个核心模块, 分别是:
 - SENET(Squeeze-Excitation network)
 - Bilinear Feature Interaction
 
-其中 SENET 是借鉴计算机视觉中的网络, 可以动态地学习特征的重要性, 对于越重要的特征, 将学习出更大的权重, 并且减小不那么重要的特征的权重; 
+其中 SENET 是借鉴计算机视觉中的网络, 可以动态地学习特征的重要性, 对于越重要的特征, 将学习出更大的权重, 并且减小不那么重要的特征的权重;
 
-另外对于特征交叉的问题, 经典的方法主要采用 Inner Product 或者 Hadamard Product 来构造交叉特征, 作者认为这些方法比较简单, 
-可能无法对交叉特征进行有效的建模, 因此提出了 Bilinear Feature Interaction 方法, 结合了 Inner Product 以及 Hadamard Product 二者, 
+另外对于特征交叉的问题, 经典的方法主要采用 Inner Product 或者 Hadamard Product 来构造交叉特征, 作者认为这些方法比较简单,
+可能无法对交叉特征进行有效的建模, 因此提出了 Bilinear Feature Interaction 方法, 结合了 Inner Product 以及 Hadamard Product 二者,
 在两个要交叉的特征间插入一个权重矩阵, 以动态学习到特征间的组合关系.
 
 ![FiBiNet](../../images/models/fibinet.jpg)
@@ -77,7 +77,7 @@ model_config {
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
 
-- rank_model: 
+- rank_model:
 
   - l2_regularization: (可选) 对DNN参数的regularization, 减少overfit
 
@@ -90,6 +90,6 @@ model_config {
 ### 参考论文
 
 1. [FiBiNET](https://arxiv.org/pdf/1905.09433.pdf)
-  Combining Feature Importance and Bilinear feature Interaction for Click-Through Rate Prediction
-2. [FiBiNet++](https://arxiv.org/pdf/2209.05016.pdf)
-  Improving FiBiNet by Greatly Reducing Model Size for CTR Predictio
+   Combining Feature Importance and Bilinear feature Interaction for Click-Through Rate Prediction
+1. [FiBiNet++](https://arxiv.org/pdf/2209.05016.pdf)
+   Improving FiBiNet by Greatly Reducing Model Size for CTR Predictio
