@@ -372,8 +372,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     for one_var in all_vars:
       var_name = re.sub(VAR_SUFIX_PATTERN, '', one_var.name)
       if re.search(PARTITION_PATTERN,
-                   var_name) and (not var_name.endswith('/AdamAsync_2') and
-                                  not var_name.endswith('/AdamAsync_3')):
+                   var_name) and one_var._save_slice_info is not None:
         var_name = re.sub(PARTITION_PATTERN, '', var_name)
         is_part = True
       else:
