@@ -231,10 +231,10 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | FM                | 1     | 0.7577  |
   | DeepFM            | 1     | 0.7970  |
   | DeepFM (backbone) | 1     | 0.7970  |
-  | DeepFM (periodic) | 1     | 0.7980  |
-  | DeepFM (autodis)  | 1     | 0.7979  |
+  | DeepFM (periodic) | 1     | 0.7979  |
+  | DeepFM (autodis)  | 1     | 0.7982  |
   | DLRM              | 1     | 0.79785 |
-  | DLRM (backbone)   | 1     | 0.7993  |
+  | DLRM (backbone)   | 1     | 0.7983  |
   | DLRM (standard)   | 1     | 0.7949  |
   | DLRM (autodis)    | 1     | 0.7989  |
   | DLRM (periodic)   | 1     | 0.7998  |

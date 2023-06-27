@@ -55,6 +55,8 @@ message KD {
 
 message EasyRecModel {
     required string model_class = 1;
+    // just a name for backbone config
+    optional string model_name = 99;
 
     // actually input layers, each layer produce a group of feature
     repeated FeatureGroupConfig feature_groups = 2;

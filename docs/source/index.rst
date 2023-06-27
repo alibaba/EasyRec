@@ -29,6 +29,7 @@ Welcome to easy_rec's documentation!
    :caption: BACKBONE & COMPONENT
 
    component/backbone
+   component/component
 
 .. toctree::
    :maxdepth: 3

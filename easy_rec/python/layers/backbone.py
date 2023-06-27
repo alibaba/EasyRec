@@ -20,7 +20,7 @@ if tf.__version__ >= '2.0':
 def block_input(config, block_outputs):
   inputs = []
   for input_node in config.inputs:
-    input_name = input_node.name
+    input_name = getattr(input_node, input_node.WhichOneof('name'))
     if input_name in block_outputs:
       input_feature = block_outputs[input_name]
     else:
@@ -54,22 +54,30 @@ class Backbone(object):
     self.loss_dict = {}
     input_feature_groups = set()
     for block in config.blocks:
+      assert len(
+          block.inputs) > 0, 'block takes at least one input: %s' % block.name
       self._dag.add_node(block.name)
       self._name_to_blocks[block.name] = block
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
-        if len(block.inputs) != 0:
-          raise ValueError('no input allowed for input_layer: ' + block.name)
-        input_name = block.name
+        assert len(
+            block.inputs
+        ) == 1, 'input layer block `%s` takes only one input' % block.name
+        one_input = block.inputs[0]
+        name = one_input.WhichOneof('name')
+        if name != 'feature_group_name':
+          raise KeyError(
+              '`feature_group_name` should be set for input layer block: ' +
+              block.name)
+        input_name = one_input.feature_group_name
         if not input_layer.has_group(input_name):
           raise KeyError(
               'input_layer\'s name must be one of feature group, invalid: ' +
               input_name)
         if input_name in input_feature_groups:
-          raise ValueError('input `%s` already exists in other block' %
-                           input_name)
-        else:
-          input_feature_groups.add(input_name)
+          logging.warning('input `%s` already exists in other block' %
+                          input_name)
+        input_feature_groups.add(input_name)
 
     num_groups = len(input_feature_groups)
     num_blocks = len(self._name_to_blocks) - num_groups
@@ -82,10 +90,8 @@ class Backbone(object):
       if block.name in input_feature_groups:
         raise KeyError('block name can not be one of feature groups:' +
                        block.name)
-      assert len(block.inputs) > 0, 'no input for block: %s' % block.name
-
       for input_node in block.inputs:
-        input_name = input_node.name
+        input_name = getattr(input_node, input_node.WhichOneof('name'))
         if input_name in self._name_to_blocks:
           assert input_name != block.name, 'input name can not equal to block name:' + input_name
           self._dag.add_edge(input_name, block.name)
@@ -94,6 +100,9 @@ class Backbone(object):
             logging.info('adding an input_layer block: ' + input_name)
             new_block = backbone_pb2.Block()
             new_block.name = input_name
+            input_cfg = backbone_pb2.Input()
+            input_cfg.feature_group_name = input_name
+            new_block.inputs.append(input_cfg)
             new_block.input_layer.CopyFrom(backbone_pb2.InputLayer())
             self._name_to_blocks[input_name] = new_block
             self._dag.add_node(input_name)

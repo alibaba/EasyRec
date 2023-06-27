@@ -39,6 +39,7 @@ class MLP(tf.keras.layers.Layer):
         ' final_activate=%s, bias=%r, initializer=%s, bn_after_activation=%r' %
         (name, units, dropout_rate, activation, use_bn, use_final_bn,
          final_activation, use_bias, initializer, use_bn_after_act))
+    assert len(units) > 0, 'MLP(%s) takes at least one hidden units' % name
 
     num_dropout = len(dropout_rate)
     self._sub_layers = []

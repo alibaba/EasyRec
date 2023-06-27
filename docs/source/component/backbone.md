@@ -24,7 +24,6 @@
 
 ![](../../images/component/backbone.jpg)
 
-
 ## 案例1. Wide&Deep 模型
 
 配置文件：[wide_and_deep_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/wide_and_deep_backbone_on_movielens.config)
@@ -57,6 +56,9 @@ model_config: {
   backbone {
     blocks {
       name: 'wide'
+      inputs {
+        feature_group_name: 'wide'
+      }
       input_layer {
         only_output_feature_list: true
       }
@@ -64,7 +66,7 @@ model_config: {
     blocks {
       name: 'deep_logit'
       inputs {
-        name: 'deep'
+        feature_group_name: 'deep'
       }
       keras_layer {
         class_name: 'MLP'
@@ -78,11 +80,11 @@ model_config: {
     blocks {
       name: 'final_logit'
       inputs {
-        name: 'wide'
+        block_name: 'wide'
         input_fn: 'lambda x: tf.add_n(x)'
       }
       inputs {
-        name: 'deep_logit'
+        block_name: 'deep_logit'
       }
       merge_inputs_into_list: true
       keras_layer {
@@ -115,7 +117,7 @@ MovieLens-1M数据集效果对比：
 - 所有`block`根据输入与输出的关系组成一个有向无环图（DAG），框架自动解析出DAG的拓扑关系，按照拓扑排序执行块所关联的模块。
 - 当`block`有多个输出时，返回一个python元组（tuple），下游`block`可以通过自定义的`input_fn`配置一个lambda表达式函数获取元组的某个值。
 - 每个`block`关联的模块通常是一个keras layer对象，实现了一个可复用的子网络模块。框架支持加载自定义的keras layer，以及所有系统内置的keras layer。
-- 可以为`block`关联一个`input_layer`对输入的`feature group`配置的特征做一些额外的加工，比如执行`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）。注意：**当`block`关联的模块是`input_layer`时，不能配置任何输入，并且name必须为某个`feature group`的名字**
+- 可以为`block`关联一个`input_layer`对输入的`feature group`配置的特征做一些额外的加工，比如执行`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）。注意：**当`block`关联的模块是`input_layer`时，必须设定feature_group_name为某个`feature group`的名字**,当`block`关联的模块不是`input_layer`时，block的name不可与某个`feature group`重名。
 - 还有一些特殊的`block`关联了一个特殊的模块，包括`lambda layer`、`sequential layers`、`repeated layer`和`recurrent layer`。这些特殊layer分别实现了自定义表达式、顺序执行多个layer、重复执行某个layer、循环执行某个layer的功能。
 - DAG的输出节点名由`concat_blocks`配置项指定，配置了多个输出节点时自动执行tensor的concat操作。
 - 可以为主干网络配置一个可选的`MLP`模块。
@@ -156,7 +158,7 @@ model_config: {
     blocks {
       name: 'wide_logit'
       inputs {
-        name: 'wide'
+        feature_group_name: 'wide'
       }
       lambda {
         expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
@@ -164,6 +166,9 @@ model_config: {
     }
     blocks {
       name: 'features'
+      inputs {
+        feature_group_name: 'features'
+      }
       input_layer {
         output_2d_tensor_and_feature_list: true
       }
@@ -171,7 +176,7 @@ model_config: {
     blocks {
       name: 'fm'
       inputs {
-        name: 'features'
+        block_name: 'features'
         input_fn: 'lambda x: x[1]'
       }
       keras_layer {
@@ -181,7 +186,7 @@ model_config: {
     blocks {
       name: 'deep'
       inputs {
-        name: 'features'
+        block_name: 'features'
         input_fn: 'lambda x: x[0]'
       }
       keras_layer {
@@ -196,13 +201,13 @@ model_config: {
     blocks {
       name: 'add'
       inputs {
-        name: 'wide_logit'
+        block_name: 'wide_logit'
       }
       inputs {
-        name: 'fm'
+        block_name: 'fm'
       }
       inputs {
-        name: 'deep'
+        block_name: 'deep'
       }
       merge_inputs_into_list: true
       keras_layer {
@@ -218,19 +223,19 @@ model_config: {
   embedding_regularization: 1e-4
 }
 ```
+
 MovieLens-1M数据集效果对比：
 
-| Model               | Epoch | AUC    |
-| ------------------- | ----- | ------ |
-| DeepFM              | 1     | 0.8867 |
-| DeepFM(Backbone)    | 1     | 0.8872 |
+| Model            | Epoch | AUC    |
+| ---------------- | ----- | ------ |
+| DeepFM           | 1     | 0.8867 |
+| DeepFM(Backbone) | 1     | 0.8872 |
 
-## 案例3：DCN v2 模型
+## 案例3：DCN 模型
 
 配置文件：[dcn_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)
 
-这个Case重点关注一个特殊的 DCN `block`，用了`recurrent layer`实现了循环调用某个模块多次的效果。
-该Case还是在DAG之上添加了顶部MLP模块。
+这个Case重点关注一个特殊的 DCN `block`，用了`recurrent layer`实现了循环调用某个模块多次的效果。通过该Case还是在DAG之上添加了MLP模块。
 
 ```
 model_config: {
@@ -250,7 +255,7 @@ model_config: {
     blocks {
       name: "deep"
       inputs {
-        name: 'all'
+        feature_group_name: 'all'
       }
       keras_layer {
         class_name: 'MLP'
@@ -262,7 +267,7 @@ model_config: {
     blocks {
       name: "dcn"
       inputs {
-        name: 'all'
+        feature_group_name: 'all'
         input_fn: 'lambda x: [x, x]'
       }
       recurrent {
@@ -290,15 +295,15 @@ model_config: {
 ```
 x1 = Cross()(x0, x0)
 x2 = Cross()(x0, x1)
-x3 = Cross()(x0, x2)    
+x3 = Cross()(x0, x2)
 ```
 
 MovieLens-1M数据集效果对比：
 
-| Model               | Epoch | AUC    |
-| ------------------- | ----- | ------ |
-| DCN （内置）         | 1     | 0.8576 |
-| DCN_v2 （backbone）  | 1     | 0.8770 |
+| Model             | Epoch | AUC    |
+| ----------------- | ----- | ------ |
+| DCN （内置）          | 1     | 0.8576 |
+| DCN_v2 （backbone） | 1     | 0.8770 |
 
 备注：新实现的`Cross`组件对应了参数量更多的v2版本的DCN，而内置的DCN模型对应了v1版本的DCN。
 
@@ -328,7 +333,7 @@ model_config: {
     blocks {
       name: 'bottom_mlp'
       inputs {
-        name: 'dense'
+        feature_group_name: 'dense'
       }
       keras_layer {
         class_name: 'MLP'
@@ -339,6 +344,9 @@ model_config: {
     }
     blocks {
       name: 'sparse'
+      inputs {
+        feature_group_name: 'sparse'
+      }
       input_layer {
         output_2d_tensor_and_feature_list: true
       }
@@ -346,11 +354,11 @@ model_config: {
     blocks {
       name: 'dot'
       inputs {
-        name: 'bottom_mlp'
+        block_name: 'bottom_mlp'
         input_fn: 'lambda x: [x]'
       }
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[1]'
       }
       keras_layer {
@@ -360,7 +368,7 @@ model_config: {
     blocks {
       name: 'sparse_2d'
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[0]'
       }
     }
@@ -378,10 +386,10 @@ model_config: {
 
 Criteo数据集效果对比：
 
-| Model             | Epoch | AUC     |
-| ----------------- | ----- | ------- |
-| DLRM              | 1     | 0.79785 |
-| DLRM (backbone)   | 1     | 0.7993  |
+| Model           | Epoch | AUC     |
+| --------------- | ----- | ------- |
+| DLRM            | 1     | 0.79785 |
+| DLRM (backbone) | 1     | 0.7993  |
 
 备注：`DotInteraction` 是新开发的特征两两交叉做内积运算的模块。
 
@@ -414,7 +422,7 @@ model_config: {
     blocks {
       name: 'num_emb'
       inputs {
-        name: 'dense'
+        feature_group_name: 'dense'
       }
       keras_layer {
         class_name: 'PeriodicEmbedding'
@@ -436,6 +444,9 @@ model_config: {
     }
     blocks {
       name: 'sparse'
+      inputs {
+        feature_group_name: 'sparse'
+      }
       input_layer {
         output_2d_tensor_and_feature_list: true
       }
@@ -443,11 +454,11 @@ model_config: {
     blocks {
       name: 'dot'
       inputs {
-        name: 'num_emb'
+        block_name: 'num_emb'
         input_fn: 'lambda x: x[1]'
       }
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[1]'
       }
       keras_layer {
@@ -457,14 +468,14 @@ model_config: {
     blocks {
       name: 'sparse_2d'
       inputs {
-        name: 'sparse'
+        block_name: 'sparse'
         input_fn: 'lambda x: x[0]'
       }
     }
     blocks {
       name: 'num_emb_2d'
       inputs {
-        name: 'num_emb'
+        block_name: 'num_emb'
         input_fn: 'lambda x: x[0]'
       }
     }
@@ -482,11 +493,11 @@ model_config: {
 
 Criteo数据集效果对比：
 
-| Model             | Epoch | AUC     |
-| ----------------- | ----- | ------- |
-| DLRM              | 1     | 0.79785 |
-| DLRM (backbone)   | 1     | 0.7993  |
-| DLRM (periodic)   | 1     | 0.7998  |
+| Model           | Epoch | AUC     |
+| --------------- | ----- | ------- |
+| DLRM            | 1     | 0.79785 |
+| DLRM (backbone) | 1     | 0.7993  |
+| DLRM (periodic) | 1     | 0.7998  |
 
 ## 案例6：使用内置的keras layer搭建DNN模型
 
@@ -516,7 +527,7 @@ model_config: {
     blocks {
       name: 'mlp'
       inputs {
-        name: 'features'
+        feature_group_name: 'features'
       }
       layers {
         keras_layer {
@@ -590,11 +601,12 @@ model_config: {
   embedding_regularization: 1e-4
 }
 ```
+
 MovieLens-1M数据集效果：
 
-| Model               | Epoch | AUC    |
-| ------------------- | ----- | ------ |
-| MLP                 | 1     | 0.8616 |
+| Model | Epoch | AUC    |
+| ----- | ----- | ------ |
+| MLP   | 1     | 0.8616 |
 
 ## 其他案例（FiBiNet & MaskNet）
 
@@ -605,47 +617,49 @@ MovieLens-1M数据集效果：
 
 MovieLens-1M数据集效果：
 
-| Model               | Epoch | AUC    |
-| ------------------- | ----- | ------ |
-| MaskNet             | 1     | 0.8872 |
-| FibiNet             | 1     | 0.8893 |
+| Model   | Epoch | AUC    |
+| ------- | ----- | ------ |
+| MaskNet | 1     | 0.8872 |
+| FibiNet | 1     | 0.8893 |
 
-# 组件库
+# 组件库介绍
 
 ## 1.基础组件
 
-|类名|功能|说明|
-|---|---|---|
-|MLP|多层感知机|支持配置激活函数、初始化方法、Dropout、是否使用BN等|
-|Highway|类似残差链接|可用来对预训练embedding做增量微调，来自Highway Network|
-|Gate|门控|多个输入的加权求和|
-|PeriodicEmbedding|周期激活函数|数值特征Embedding|
-|AutoDisEmbedding|自动离散化|数值特征Embedding|
+| 类名                | 功能     | 说明                                      |
+| ----------------- | ------ | --------------------------------------- |
+| MLP               | 多层感知机  | 支持配置激活函数、初始化方法、Dropout、是否使用BN等          |
+| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调，来自Highway Network |
+| Gate              | 门控     | 多个输入的加权求和                               |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                           |
+| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                           |
 
 ## 2.特征交叉组件
 
-|类名|功能|说明|
-|---|---|---|
-|FM| 二阶交叉 |DeepFM模型的组件|
-|DotInteraction|二阶内积交叉|DLRM模型的组件|
-|Cross|bit-wise交叉|DCN v2模型的组件|
-|BiLinear|双线性|FiBiNet模型的组件|
-|FiBiNet|SENet & BiLinear|FiBiNet模型|
+| 类名             | 功能               | 说明           |
+| -------------- | ---------------- | ------------ |
+| FM             | 二阶交叉             | DeepFM模型的组件  |
+| DotInteraction | 二阶内积交叉           | DLRM模型的组件    |
+| Cross          | bit-wise交叉       | DCN v2模型的组件  |
+| BiLinear       | 双线性              | FiBiNet模型的组件 |
+| FiBiNet        | SENet & BiLinear | FiBiNet模型    |
 
 ## 3.特征重要度学习组件
 
-|类名|功能|说明|
-|---|---|---|
-|SENet|  |FiBiNet模型的组件|
-|MaskBlock| |MaskNet模型的组件|
-|MaskNet|多个串行或并行的MaskBlock|MaskNet模型|
+| 类名        | 功能                | 说明           |
+| --------- | ----------------- | ------------ |
+| SENet     |                   | FiBiNet模型的组件 |
+| MaskBlock |                   | MaskNet模型的组件 |
+| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    |
 
 ## 4. 序列特征编码组件
 
-|类名|功能|说明|
-|---|---|---|
-|DIN|target attention|DIN模组的组件|
-|BST|transformer|BST模型的组件|
+| 类名  | 功能               | 说明       |
+| --- | ---------------- | -------- |
+| DIN | target attention | DIN模组的组件 |
+| BST | transformer      | BST模型的组件 |
+
+各组件的详细参数请参考 "[组件详细参数](component.md)"。
 
 # 如何自定义组件
 
@@ -672,7 +686,7 @@ def call(self, inputs, training=None, **kwargs):
 - 指定默认值读取，返回值会被强制转换为与默认值同类型：`activation = params.get_or_default('activation', 'relu')`
 - 支持嵌套子结构的默认值读取：`params.field.get_or_default('key', def_val)`
 - 判断某个参数是否存在：`params.has_field(key)`
-- 【不建议，会限定传参方式】获取自定义的proto对象：`params.get_pb_config()` 
+- 【不建议，会限定传参方式】获取自定义的proto对象：`params.get_pb_config()`
 - 读写`l2_regularizer`属性：`params.l2_regularizer`，传给Dense层或dense函数。
 
 【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
@@ -727,7 +741,7 @@ class FM(tf.keras.layers.Layer):
 # 如何搭建模型
 
 `组件块`的搭建主干网络的核心部件，本小节将会介绍`组件块`的类型、功能和配置参数。
-通过`组件块`搭建模型的示例请参考[案例](#wide-deep)。
+通过`组件块`搭建模型的配置方法请参考 [案例](#wide-deep)。
 
 `组件块`的protobuf定义如下：
 
@@ -793,6 +807,7 @@ message InputLayer {
     optional bool output_seq_and_normal_feature = 8;
 }
 ```
+
 输入层的定义如上，配置下说明如下：
 
 - `do_batch_norm` 是否对输入特征做`batch normalization`
@@ -817,6 +832,7 @@ message InputLayer {
 - 还可以用自定义的protobuf message的格式传递参数给加载的Layer对象。
 
 配置示例：
+
 ```
 keras_layer {
   class_name: 'MLP'
@@ -824,7 +840,7 @@ keras_layer {
     hidden_units: [64, 32, 16]
   }
 }
-      
+
 keras_layer {
   class_name: 'Dropout'
   st_params {
@@ -833,7 +849,7 @@ keras_layer {
       value: { number_value: 0.5 }
     }
   }
-}    
+}
 ```
 
 ## 5. 循环组件块
@@ -849,12 +865,13 @@ recurrent {
   }
 }
 ```
+
 上述配置对`Cross` Layer循环调用了3次，逻辑上等价于执行如下语句：
 
 ```python
 x1 = Cross()(x0, x0)
 x2 = Cross()(x0, x1)
-x3 = Cross()(x0, x2)    
+x3 = Cross()(x0, x2)
 ```
 
 - `num_steps` 配置循环执行的次数
@@ -891,7 +908,7 @@ repeat {
 blocks {
   name: 'mlp'
   inputs {
-    name: 'features'
+    feature_group_name: 'features'
   }
   layers {
     keras_layer {
@@ -901,7 +918,7 @@ blocks {
           key: 'units'
           value: { number_value: 256 }
         }
-        
+
         fields {
           key: 'activation'
           value: { string_value: 'relu' }

@@ -20,8 +20,11 @@ message Lambda {
 }
 
 message Input {
-    required string name = 1;
-    optional string input_fn = 2;
+    oneof name {
+        string feature_group_name = 1;
+        string block_name = 2;
+    }
+    optional string input_fn = 3;
 }
 
 message RecurrentLayer {

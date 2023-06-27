@@ -167,14 +167,16 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
     num_features = int(inputs.shape[-1])
     with tf.variable_scope(self.name):
       meta_emb = tf.get_variable(
-          'meta_embedding',
-          shape=[1, num_features, self.num_bins, self.emb_dim])
+          'meta_embedding', shape=[num_features, self.num_bins, self.emb_dim])
       w = tf.get_variable('project_w', shape=[1, num_features, self.num_bins])
       mat = tf.get_variable(
           'project_mat', shape=[num_features, self.num_bins, self.num_bins])
 
       x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
       hidden = tf.nn.leaky_relu(w * x)  # [B, N, num_bin]
+      # 低版本的tf(1.12) matmul 不支持广播，所以改成 einsum
+      # y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
+      # y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
       y = tf.einsum('nik,bnk->bni', mat, hidden)  # [B, N, num_bin]
 
       # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
@@ -182,8 +184,10 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
       x_bar = y + alpha * hidden  # [B, N, num_bin]
       x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
 
-      emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
-      emb = tf.squeeze(emb, axis=2)  # [B, N, D]
+      # emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
+      # emb = tf.squeeze(emb, axis=2)  # [B, N, D]
+      emb = tf.einsum('bnk,nkd->bnd', x_hat, meta_emb)
+
       output = tf.reshape(emb, [-1, self.emb_dim * num_features])  # [B, N*D]
 
       if self.output_tensor_list:
