@@ -114,6 +114,7 @@ model_config {
 
 ```
 model_config: {
+  model_name: 'DLRM'
   model_class: 'RankModel'
   feature_groups {
     group_name: 'dense'
@@ -191,6 +192,8 @@ model_config: {
   embedding_regularization: 1e-5
 }
 ```
+
+- model_name: 任意自定义字符串，仅有注释作用
 
 - model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
 
