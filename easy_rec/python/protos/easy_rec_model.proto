@@ -30,8 +30,8 @@ import "easy_rec/python/protos/multi_tower_recall.proto";
 message DummyModel {
 }
 
-// configure backbone network in a free style way
-message RankModel {
+// configure backbone network common parameters
+message ModelParams {
   optional float l2_regularization = 1;
   optional uint32 wide_output_dim = 2;
 }
@@ -63,7 +63,7 @@ message EasyRecModel {
 
     // model parameters
     oneof model {
-        RankModel rank_model = 100;
+        ModelParams model_params = 100;
         DummyModel dummy = 101;
         WideAndDeep wide_and_deep = 102;
         DeepFM deepfm = 103;

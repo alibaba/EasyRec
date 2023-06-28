@@ -124,6 +124,12 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/multi_tower_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_multi_tower_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/multi_tower_backbone_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_multi_tower_gauc(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_on_taobao_gauc.config',

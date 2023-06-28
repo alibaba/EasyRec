@@ -189,7 +189,7 @@ model_config: {
       hidden_units: [256, 128, 64]
     }
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-5
   }
   embedding_regularization: 1e-5
@@ -209,10 +209,13 @@ model_config: {
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
 
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+  - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
+  - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
   - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
 
-- rank_model:
+- model_params:
 
   - l2_regularization: 对DNN参数的regularization, 减少overfit
 

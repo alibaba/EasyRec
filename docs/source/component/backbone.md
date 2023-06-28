@@ -2,7 +2,7 @@
 
 ## 1. 依靠动态可插拔的公共组件，方便为现有模型添加新特性。
 
-过去一个新开发的公共可选模块，比如`Dense Feature Embedding Layer`、 `SENet`添加到现有模型中，需要修改所有模型的代码才能用上新的特性，过程繁琐易出错。随着模型数量和公共模块数量的增加，为所有模型集成所有公共可选模块将产生组合爆炸的不可控局面。组件化实现了底层公开模块与上层模型的解耦。
+过去一个新开发的公共可选模块，比如`Dense Feature Embedding Layer`、 `SENet`添加到现有模型中，需要修改所有模型的代码才能用上新的特性，过程繁琐易出错。随着模型数量和公共模块数量的增加，为所有模型集成所有公共可选模块将产生组合爆炸的不可控局面。组件化实现了底层公共模块与上层模型的解耦。
 
 ## 2. 通过重组已有组件，实现“搭积木”式新模型开发。
 
@@ -93,7 +93,7 @@ model_config: {
     }
     concat_blocks: 'final_logit'
   }
-  rank_model {
+  model_params {
     wide_output_dim: 1
     l2_regularization: 1e-4
   }
@@ -113,7 +113,7 @@ MovieLens-1M数据集效果对比：
 通过protobuf message `backbone` 来定义主干网络，主干网络有多个积木块（`block`）组成，每个`block`代表一个可复用的组件。
 
 - 每个`block`有一个唯一的名字（name），并且有一个或多个输入和输出。
-- 每个输入只能是某个`feature group`的name，或者另一个`block`的name。当一个`block`有多个输入时，会自动执行merge操作（输入为list时自动合并，输入为tensor时自动concat）。
+- 每个输入只能是某个`feature group`的name，或者另一个`block`的name，或者是一个`block package`的名字。当一个`block`有多个输入时，会自动执行merge操作（输入为list时自动合并，输入为tensor时自动concat）。
 - 所有`block`根据输入与输出的关系组成一个有向无环图（DAG），框架自动解析出DAG的拓扑关系，按照拓扑排序执行块所关联的模块。
 - 当`block`有多个输出时，返回一个python元组（tuple），下游`block`可以通过自定义的`input_fn`配置一个lambda表达式函数获取元组的某个值。
 - 每个`block`关联的模块通常是一个keras layer对象，实现了一个可复用的子网络模块。框架支持加载自定义的keras layer，以及所有系统内置的keras layer。
@@ -216,7 +216,7 @@ model_config: {
     }
     concat_blocks: 'add'
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-4
     wide_output_dim: 1
   }
@@ -283,7 +283,7 @@ model_config: {
       hidden_units: [64, 32, 16]
     }
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-4
   }
   embedding_regularization: 1e-4
@@ -377,7 +377,7 @@ model_config: {
       hidden_units: [256, 128, 64]
     }
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-5
   }
   embedding_regularization: 1e-5
@@ -484,7 +484,7 @@ model_config: {
       hidden_units: [256, 128, 64]
     }
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-5
   }
   embedding_regularization: 1e-5
@@ -595,7 +595,7 @@ model_config: {
     }
     concat_blocks: 'mlp'
   }
-  rank_model {
+  model_params {
     l2_regularization: 1e-4
   }
   embedding_regularization: 1e-4
@@ -607,6 +607,98 @@ MovieLens-1M数据集效果：
 | Model | Epoch | AUC    |
 | ----- | ----- | ------ |
 | MLP   | 1     | 0.8616 |
+
+## 案例7: 使用组件包(Multi-Tower)
+
+配置文件：[multi_tower_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/multi_tower_on_movielens.config)
+
+该案例为了演示`block package`的使用，`block package`可以打包一组`block`，构成一个可被复用的子网络，即被打包的子网络可以以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的`block`是不能被多次调用的（但是可以多次复用结果）。
+
+`block package`主要为自监督学习、对比学习等场景设计。
+
+```
+model_config: {
+  model_name: "multi tower"
+  model_class: "RankModel"
+  feature_groups: {
+    group_name: 'user'
+    feature_names: 'user_id'
+    feature_names: 'job_id'
+    feature_names: 'age'
+    feature_names: 'gender'
+    wide_deep: DEEP
+  }
+  feature_groups: {
+    group_name: 'item'
+    feature_names: 'movie_id'
+    feature_names: 'year'
+    feature_names: 'genres'
+    wide_deep: DEEP
+  }
+  backbone {
+    packages {
+      name: 'user'
+      blocks {
+        name: 'mlp'
+        inputs {
+          feature_group_name: 'user'
+        }
+        keras_layer {
+          class_name: 'MLP'
+          mlp {
+            hidden_units: [256, 128]
+          }
+        }
+      }
+      concat_blocks: 'mlp'
+    }
+    packages {
+      name: 'item'
+      blocks {
+        name: 'mlp'
+        inputs {
+          feature_group_name: 'item'
+        }
+        keras_layer {
+          class_name: 'MLP'
+          mlp {
+            hidden_units: [256, 128]
+          }
+        }
+      }
+      concat_blocks: 'mlp'
+    }
+    blocks {
+      name: 'top_mlp'
+      inputs {
+        package_name: 'user'
+      }
+      inputs {
+        package_name: 'item'
+      }
+      layers {
+        keras_layer {
+          class_name: 'MLP'
+          mlp {
+            hidden_units: [128, 64]
+          }
+        }
+      }
+    }
+    concat_blocks: 'top_mlp'
+  }
+  model_params {
+    l2_regularization: 1e-4
+  }
+  embedding_regularization: 1e-4
+}
+```
+
+MovieLens-1M数据集效果：
+
+| Model      | Epoch | AUC    |
+| ---------- | ----- | ------ |
+| MultiTower | 1     | 0.8808 |
 
 ## 其他案例（FiBiNet & MaskNet）
 
@@ -830,6 +922,7 @@ message InputLayer {
 - `class_name`是要加载的Keras Layer的类名，支持加载自定义的类和系统内置的Layer类。
 - `st_params`是以`google.protobuf.Struct`对象格式配置的参数；
 - 还可以用自定义的protobuf message的格式传递参数给加载的Layer对象。
+- 自定义Layer的详细参数请参考 "[组件详细参数](component.md)"
 
 配置示例：
 

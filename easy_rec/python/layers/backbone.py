@@ -17,32 +17,9 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def block_input(config, block_outputs):
-  inputs = []
-  for input_node in config.inputs:
-    input_name = getattr(input_node, input_node.WhichOneof('name'))
-    if input_name in block_outputs:
-      input_feature = block_outputs[input_name]
-    else:
-      raise KeyError('input name `%s` does not exists' % input_name)
-    if input_node.HasField('input_fn'):
-      fn = eval(input_node.input_fn)
-      input_feature = fn(input_feature)
-    inputs.append(input_feature)
-
-  if config.merge_inputs_into_list:
-    output = inputs
-  else:
-    output = concat_inputs(inputs, config.input_concat_axis, config.name)
-
-  if config.HasField('extra_input_fn'):
-    fn = eval(config.extra_input_fn)
-    output = fn(output)
-  return output
-
-
-class Backbone(object):
-  """Configurable Backbone Network."""
+class Package(object):
+  """A sub DAG of tf ops for reuse."""
+  __packages = {}
 
   def __init__(self, config, features, input_layer, l2_reg=None):
     self._config = config
@@ -111,8 +88,44 @@ class Backbone(object):
                 % input_name)
     num_groups = len(input_feature_groups)
     assert num_groups > 0, 'there must be at least one input layer'
+    Package.__packages[self._config.name] = self
+
+  def block_input(self, config, block_outputs, training=None):
+    inputs = []
+    for input_node in config.inputs:
+      input_type = input_node.WhichOneof('name')
+      input_name = getattr(input_node, input_type)
+      if input_type == 'package_name':
+        if input_name not in Package.__packages:
+          raise KeyError('package name `%s` does not exists' % input_name)
+        package = Package.__packages[input_name]
+        input_feature = package(training)
+        if len(package.loss_dict) > 0:
+          self.loss_dict.update(package.loss_dict)
+      elif input_name in block_outputs:
+        input_feature = block_outputs[input_name]
+      else:
+        raise KeyError('input name `%s` does not exists' % input_name)
+      if input_node.HasField('input_fn'):
+        fn = eval(input_node.input_fn)
+        input_feature = fn(input_feature)
+      inputs.append(input_feature)
+
+    if config.merge_inputs_into_list:
+      output = inputs
+    else:
+      output = concat_inputs(inputs, config.input_concat_axis, config.name)
+
+    if config.HasField('extra_input_fn'):
+      fn = eval(config.extra_input_fn)
+      output = fn(output)
+    return output
 
   def __call__(self, is_training, **kwargs):
+    with tf.variable_scope(self._config.name, reuse=tf.AUTO_REUSE):
+      return self.call(is_training)
+
+  def call(self, is_training):
     block_outputs = {}
     blocks = self._dag.topological_sort()
     logging.info('backbone topological order: ' + ','.join(blocks))
@@ -121,7 +134,7 @@ class Backbone(object):
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
         logging.info('call sequential %d layers' % len(config.layers))
-        output = block_input(config, block_outputs)
+        output = self.block_input(config, block_outputs, is_training)
         for layer in config.layers:
           output = self.call_layer(output, layer, block, is_training)
         block_outputs[block] = output
@@ -129,14 +142,15 @@ class Backbone(object):
       # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
-        block_outputs[block] = block_input(config, block_outputs)
+        block_outputs[block] = self.block_input(config, block_outputs,
+                                                is_training)
       elif layer == 'input_layer':
         conf = config.input_layer
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
         output = input_fn(block, is_training)
         block_outputs[block] = output
       else:
-        inputs = block_input(config, block_outputs)
+        inputs = self.block_input(config, block_outputs, is_training)
         output = self.call_layer(inputs, config, block, is_training)
         block_outputs[block] = output
 
@@ -151,12 +165,6 @@ class Backbone(object):
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
     output = concat_inputs(outputs, msg='backbone')
-
-    if self._config.HasField('top_mlp'):
-      params = Parameter.make_from_pb(self._config.top_mlp)
-      params.l2_regularizer = self._l2_reg
-      final_mlp = MLP(params, name='backbone_top_mlp')
-      output = final_mlp(output, training=is_training)
     return output
 
   def call_keras_layer(self, layer_conf, inputs, name, training):
@@ -250,6 +258,35 @@ class Backbone(object):
       return output
 
     raise NotImplementedError('Unsupported backbone layer:' + layer_name)
+
+
+class Backbone(object):
+  """Configurable Backbone Network."""
+
+  def __init__(self, config, features, input_layer, l2_reg=None):
+    self._config = config
+    self._l2_reg = l2_reg
+    self.loss_dict = {}
+    for pkg in config.packages:
+      Package(pkg, features, input_layer, l2_reg)
+
+    main_pkg = backbone_pb2.BlockPackage()
+    main_pkg.name = 'backbone'
+    main_pkg.blocks.MergeFrom(config.blocks)
+    main_pkg.concat_blocks.extend(config.concat_blocks)
+    self._main_pkg = Package(main_pkg, features, input_layer, l2_reg)
+
+  def __call__(self, is_training, **kwargs):
+    output = self._main_pkg(is_training, **kwargs)
+    if len(self._main_pkg.loss_dict) > 0:
+      self.loss_dict = self._main_pkg.loss_dict
+
+    if self._config.HasField('top_mlp'):
+      params = Parameter.make_from_pb(self._config.top_mlp)
+      params.l2_regularizer = self._l2_reg
+      final_mlp = MLP(params, name='backbone_top_mlp')
+      output = final_mlp(output, training=is_training)
+    return output
 
 
 def concat_inputs(inputs, axis=-1, msg=''):
