@@ -20,8 +20,12 @@ message Lambda {
 }
 
 message Input {
-    required string name = 1;
-    optional string input_fn = 2;
+    optional string input_fn = 1;
+    oneof name {
+        string feature_group_name = 2;
+        string block_name = 3;
+        string package_name = 4;
+    }
 }
 
 message RecurrentLayer {
@@ -56,6 +60,7 @@ message Block {
 
     // sequential layers
     repeated Layer layers = 6;
+
     // only take effect when there are no layers
     oneof layer {
         InputLayer input_layer = 101;
@@ -66,8 +71,23 @@ message Block {
     }
 }
 
+// a package of blocks for reuse; e.g. call in a contrastive learning manner
+message BlockPackage {
+    // package name
+    required string name = 1;
+    // a few blocks generating a DAG
+    repeated Block blocks = 2;
+    // the names of output blocks
+    repeated string concat_blocks = 3;
+}
+
 message BackboneTower {
-    repeated Block blocks = 1;
-    repeated string concat_blocks = 2;
-    optional MLP top_mlp = 3;
+    // a few sub DAGs
+    repeated BlockPackage packages = 1;
+    // a few blocks generating a DAG
+    repeated Block blocks = 2;
+    // the names of output blocks
+    repeated string concat_blocks = 3;
+    // optional top mlp layer
+    optional MLP top_mlp = 4;
 }

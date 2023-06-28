@@ -55,6 +55,7 @@ message KD {
 }
 
 message EasyRecModel {
+    required string model_name = 99;
     required string model_class = 1;
 
     // actually input layers, each layer produce a group of feature
