@@ -555,6 +555,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/mmoe_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_mmoe_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_backbone_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_mmoe_with_multi_loss(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_taobao_with_multi_loss.config',
@@ -585,6 +590,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dbmtl(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_dbmtl_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dbmtl_backbone_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dbmtl_cmbf(self):

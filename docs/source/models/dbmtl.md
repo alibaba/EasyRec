@@ -82,6 +82,95 @@ model_config {
     - 注：label_fields需与task_towers一一对齐。
   - embedding_regularization: 对embedding部分加regularization，防止overfit
 
+#### DBMTL Based On Backbone
+
+```protobuf
+model_config {
+  model_class: "DBMTL"
+  feature_groups {
+    group_name: "all"
+    feature_names: "user_id"
+    feature_names: "cms_segid"
+    ...
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: "mask_net"
+      inputs {
+        feature_group_name: "all"
+      }
+      keras_layer {
+        class_name: 'MaskNet'
+        masknet {
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mlp {
+            hidden_units: [512, 256]
+          }
+        }
+      }
+    }
+    concat_blocks: ['mask_net']
+  }
+  dbmtl {
+    task_towers {
+      tower_name: "ctr"
+      label_name: "clk"
+      loss_type: CLASSIFICATION
+      metrics_set: {
+        auc {}
+      }
+      dnn {
+        hidden_units: [256, 128, 64, 32]
+      }
+      relation_dnn {
+        hidden_units: [32]
+      }
+      weight: 1.0
+    }
+    task_towers {
+      tower_name: "cvr"
+      label_name: "buy"
+      loss_type: CLASSIFICATION
+      metrics_set: {
+        auc {}
+      }
+      dnn {
+        hidden_units: [256, 128, 64, 32]
+      }
+      relation_tower_names: ["ctr"]
+      relation_dnn {
+        hidden_units: [32]
+      }
+      weight: 1.0
+    }
+    l2_regularization: 1e-6
+  }
+  embedding_regularization: 5e-6
+}
+```
+
+- backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
+
+  - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+  - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
+  - masknet: MaskNet模型的参数，详见[参考文档](../component/component.md#id4)
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
+
+- 其余与dbmtl一致
+
 #### DBMTL+MMOE
 
 ```protobuf
@@ -374,6 +463,7 @@ model_config: {
 
 - [DBMTL_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dbmtl.config)
 - [DBMTL_MMOE_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dbmtl_mmoe.config)
+- [DBMTL_Backbone_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_backbone_on_taobao.config)
 - [DBMTL_CMBF_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_cmbf_on_movielens.config)
 - [DBMTL_UNITER_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_uniter_on_movielens.config)
 

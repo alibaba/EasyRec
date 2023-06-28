@@ -1,3 +1,4 @@
+import logging
 from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
@@ -23,7 +24,7 @@ class DAG(object):
     try:
       self.add_node(node_name, graph=graph)
     except KeyError:
-      pass
+      logging.info("node %s already exist" % node_name)
 
   def delete_node(self, node_name, graph=None):
     """Deletes this node and all edges referencing it."""
@@ -41,7 +42,7 @@ class DAG(object):
     try:
       self.delete_node(node_name, graph=graph)
     except KeyError:
-      pass
+      logging.info("node %s does not exist" % node_name)
 
   def add_edge(self, ind_node, dep_node, graph=None):
     """Add an edge (dependency) between the specified nodes."""
@@ -139,7 +140,7 @@ class DAG(object):
     """Restore the graph to an empty state."""
     self.graph = OrderedDict()
 
-  def ind_nodes(self, graph=None):
+  def independent_nodes(self, graph=None):
     """Returns a list of all nodes in the graph with no dependencies."""
     if graph is None:
       graph = self.graph
@@ -151,7 +152,7 @@ class DAG(object):
   def validate(self, graph=None):
     """Returns (Boolean, message) of whether DAG is valid."""
     graph = graph if graph is not None else self.graph
-    if len(self.ind_nodes(graph)) == 0:
+    if len(self.independent_nodes(graph)) == 0:
       return False, 'no independent nodes detected'
     try:
       self.topological_sort(graph)
@@ -189,17 +190,3 @@ class DAG(object):
 
   def size(self):
     return len(self.graph)
-
-
-if __name__ == '__main__':
-  dag = DAG()
-  dag.add_node('a')
-  dag.add_node('b')
-  dag.add_node('c')
-  dag.add_node('d')
-  dag.add_edge('a', 'b')
-  dag.add_edge('a', 'd')
-  dag.add_edge('b', 'c')
-  print(dag.topological_sort())
-  print(dag.graph)
-  print(dag.all_downstreams('b'))
