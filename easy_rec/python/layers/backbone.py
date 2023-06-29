@@ -57,6 +57,7 @@ class Package(object):
     num_blocks = len(self._name_to_blocks) - num_groups
     assert num_blocks > 0, 'there must be at least one block in backbone'
 
+    num_pkg_input = 0
     for block in config.blocks:
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
@@ -65,7 +66,11 @@ class Package(object):
         raise KeyError('block name can not be one of feature groups:' +
                        block.name)
       for input_node in block.inputs:
-        input_name = getattr(input_node, input_node.WhichOneof('name'))
+        input_type = input_node.WhichOneof('name')
+        if input_type == 'package_name':
+          num_pkg_input += 1
+          continue
+        input_name = getattr(input_node, input_type)
         if input_name in self._name_to_blocks:
           assert input_name != block.name, 'input name can not equal to block name:' + input_name
           self._dag.add_edge(input_name, block.name)
@@ -87,7 +92,13 @@ class Package(object):
                 'invalid input name `%s`, must be the name of either a feature group or an another block'
                 % input_name)
     num_groups = len(input_feature_groups)
-    assert num_groups > 0, 'there must be at least one input layer'
+    assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
+
+    if len(config.concat_blocks) == 0:
+      leaf = self._dag.all_leaves()
+      logging.warning("%s has no `concat_blocks`, try to use all leaf blocks: %s" % (config.name, ','.join(leaf)))
+      self._config.concat_blocks.extend(leaf)
+
     Package.__packages[self._config.name] = self
 
   def block_input(self, config, block_outputs, training=None):

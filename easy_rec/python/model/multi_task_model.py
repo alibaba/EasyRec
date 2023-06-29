@@ -3,7 +3,7 @@
 import logging
 
 import tensorflow as tf
-
+from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
@@ -26,6 +26,70 @@ class MultiTaskModel(RankModel):
     self._task_towers = []
     self._task_num = None
     self._label_name_dict = {}
+
+  def build_predict_graph(self):
+    if not self.has_backbone:
+      raise NotImplementedError(
+          'method `build_predict_graph` must be implemented when backbone network do not exits'
+      )
+    model = self._model_config.WhichOneof('model')
+    assert model == 'model_params', '`model_params` must be configured'
+    config = self._model_config.model_params
+
+    self._init_towers(config.task_towers)
+
+    backbone = self.backbone
+    if type(backbone) in (list, tuple):
+      if len(backbone) != len(config.task_towers):
+        raise ValueError('The number of backbone outputs and task towers must be equal')
+      task_input_list = backbone
+    else:
+      task_input_list = [backbone] * len(config.task_towers)
+
+    tower_features = {}
+    for i, task_tower_cfg in enumerate(config.task_towers):
+      tower_name = task_tower_cfg.tower_name
+      if task_tower_cfg.HasField('dnn'):
+        tower_dnn = DNN(
+            task_tower_cfg.dnn,
+            self._l2_reg,
+            name=tower_name,
+            is_training=self._is_training)
+        tower_output = tower_dnn(task_input_list[i])
+      else:
+        tower_output = task_input_list[i]
+      tower_features[tower_name] = tower_output
+
+    tower_outputs = {}
+    relation_features = {}
+    # bayes network
+    for task_tower_cfg in config.task_towers:
+      tower_name = task_tower_cfg.tower_name
+      if task_tower_cfg.HasField('relation_dnn'):
+        relation_dnn = DNN(
+          task_tower_cfg.relation_dnn,
+          self._l2_reg,
+          name=tower_name + '/relation_dnn',
+          is_training=self._is_training)
+        tower_inputs = [tower_features[tower_name]]
+        for relation_tower_name in task_tower_cfg.relation_tower_names:
+          tower_inputs.append(relation_features[relation_tower_name])
+        relation_input = tf.concat(
+          tower_inputs, axis=-1, name=tower_name + '/relation_input')
+        relation_fea = relation_dnn(relation_input)
+        relation_features[tower_name] = relation_fea
+      else:
+        relation_fea = tower_features[tower_name]
+
+      output_logits = tf.layers.dense(
+        relation_fea,
+        task_tower_cfg.num_class,
+        kernel_regularizer=self._l2_reg,
+        name=tower_name + '/output')
+      tower_outputs[tower_name] = output_logits
+
+    self._add_to_prediction_dict(tower_outputs)
+    return self._prediction_dict
 
   def _init_towers(self, task_tower_configs):
     """Init task towers."""

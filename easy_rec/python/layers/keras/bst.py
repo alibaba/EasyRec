@@ -3,9 +3,7 @@
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 
-# from easy_rec.python.input.augment import input_aug_data
 from easy_rec.python.layers import multihead_cross_attention
-# from easy_rec.python.loss.nce_loss import nce_loss
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
 
@@ -80,22 +78,6 @@ class BST(Layer):
           activation=tf.nn.relu,
           kernel_regularizer=self.l2_reg)
 
-    # seq_len: [batch_size, 1], the true length of each sequence
-    # seq_len = seq_features[0][1]
-
-    # if self.config.need_contrastive_learning:
-    #   assert 'loss_dict' in kwargs, 'no `loss_dict` in kwargs of bst layer: %s' % self.name
-    #   loss = self.contrastive_loss(seq_input, seq_len, max_position)
-    #   if self.config.auto_contrastive_loss_weight:
-    #     uncertainty = tf.Variable(
-    #         0, name='%s_contrastive_loss_weight' % self.name, dtype=tf.float32)
-    #     loss = tf.exp(-uncertainty) * loss + 0.5 * uncertainty
-    #   else:
-    #     loss *= self.config.contrastive_loss_weight
-    #   loss_dict = kwargs['loss_dict']
-    #   loss_dict['%s_contrastive_loss' % self.name] = loss
-    #   # tf.summary.scalar('loss/%s_contrastive_loss' % self.name, loss)
-
     if len(target_features) > 0:
       target_feature = tf.concat(target_features, axis=-1)
       target_size = target_feature.shape.as_list()[-1]
@@ -113,10 +95,3 @@ class BST(Layer):
       seq_input = tf.concat([target_feature, seq_input], axis=1)
 
     return self.encode(seq_input, max_position)
-
-  # def contrastive_loss(self, seq_input, seq_len, max_position):
-  #   aug_seq1, aug_seq2, aug_len1, aug_len2 = input_aug_data(seq_input, seq_len)
-  #   seq_output1 = self.encode(aug_seq1, max_position)
-  #   seq_output2 = self.encode(aug_seq2, max_position)
-  #   loss = nce_loss(seq_output1, seq_output2)
-  #   return loss

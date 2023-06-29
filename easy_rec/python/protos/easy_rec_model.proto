@@ -25,6 +25,7 @@ import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
+import "easy_rec/python/protos/tower.proto";
 
 // for input performance test
 message DummyModel {
@@ -34,6 +35,7 @@ message DummyModel {
 message ModelParams {
   optional float l2_regularization = 1;
   optional uint32 wide_output_dim = 2;
+  repeated BayesTaskTower task_towers = 3;
 }
 
 // for knowledge distillation

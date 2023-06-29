@@ -141,7 +141,7 @@ model_config {
 
 - model_name: 任意自定义字符串，仅有注释作用
 
-- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
 
 - feature_groups: 配置一个名为'all'的feature_group。
 
@@ -152,7 +152,7 @@ model_config {
   - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - recurrent: 循环调用指定的Keras Layer，参考 [循环组件块](../component/backbone.md#id16)
-  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
   - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
 
 - model_params:

@@ -60,3 +60,12 @@ message MaskNet {
     required bool use_parallel = 2 [default = true];
     optional MLP mlp = 3;
 }
+
+message MMoELayer {
+    // number of tasks
+    required uint32 num_task = 1;
+    // mmoe expert mlp layer definition
+    optional MLP expert_mlp = 2;
+    // number of mmoe experts
+    optional uint32 num_expert = 3;
+}

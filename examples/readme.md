@@ -214,7 +214,7 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
   | MLP                  | 1     | 0.8616 |
   | Wide&Deep            | 1     | 0.8558 |
   | Wide&Deep(Backbone)  | 1     | 0.8854 |
-  | MultiTower(Backbone) | 1     | 0.8808 |
+  | MultiTower(Backbone) | 1     | 0.8814 |
   | DeepFM               | 1     | 0.8867 |
   | DeepFM(Backbone)     | 1     | 0.8872 |
   | DCN                  | 1     | 0.8576 |

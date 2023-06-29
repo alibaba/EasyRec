@@ -22,5 +22,6 @@ message KerasLayer {
         MLP mlp = 11;
         DINEncoder din = 12;
         BSTEncoder bst = 13;
+        MMoELayer mmoe = 14;
     }
 }

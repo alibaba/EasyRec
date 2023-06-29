@@ -86,12 +86,14 @@ model_config {
 
 ```protobuf
 model_config {
-  model_class: "DBMTL"
+  model_name: "DBMTL"
+  model_class: "MultiTaskModel"
   feature_groups {
     group_name: "all"
     feature_names: "user_id"
     feature_names: "cms_segid"
     ...
+    feature_names: "tag_brand_list"
     wide_deep: DEEP
   }
   backbone {
@@ -121,9 +123,8 @@ model_config {
         }
       }
     }
-    concat_blocks: ['mask_net']
   }
-  dbmtl {
+  model_params {
     task_towers {
       tower_name: "ctr"
       label_name: "clk"
@@ -161,13 +162,16 @@ model_config {
 }
 ```
 
+该案例添加了一个额外的`MaskNet`层，为了展示以组件化方式搭建模型的灵活性。
+
+- model_name: 任意自定义字符串，仅有注释作用
+- model_class: 'MultiTaskModel', 不需要修改, 通过组件化方式搭建的多目标排序模型都叫这个名字
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
 
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - masknet: MaskNet模型的参数，详见[参考文档](../component/component.md#id4)
-  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
 
 - 其余与dbmtl一致
 

@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import json
-
+from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf import struct_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
@@ -161,6 +161,11 @@ def mark_input_src(name, src_desc):
                         }))
 
 
+def is_proto_message(pb_obj, field):
+  field_type = pb_obj.DESCRIPTOR.fields_by_name[field].type
+  return field_type == FieldDescriptor.TYPE_MESSAGE
+
+
 class Parameter(object):
 
   def __init__(self, params, is_struct, l2_reg=None):
@@ -191,7 +196,11 @@ class Parameter(object):
         return Parameter(value, True, self._l2_reg)
       else:
         return value
-    return getattr(self.params, key)
+
+    value = getattr(self.params, key)
+    if is_proto_message(self.params, key):
+      return Parameter(value, False, self._l2_reg)
+    return value
 
   def __getitem__(self, key):
     return self.__getattr__(key)

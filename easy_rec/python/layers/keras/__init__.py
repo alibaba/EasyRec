@@ -13,3 +13,4 @@ from .mask_net import MaskBlock
 from .mask_net import MaskNet
 from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
+from .multi_task import MMoE

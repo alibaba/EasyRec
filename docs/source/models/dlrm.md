@@ -198,7 +198,7 @@ model_config: {
 
 - model_name: 任意自定义字符串，仅有注释作用
 
-- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
 
 - feature_groups: 特征组
 

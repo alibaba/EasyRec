@@ -47,6 +47,7 @@ message Layer {
         KerasLayer keras_layer = 2;
         RecurrentLayer recurrent = 3;
         RepeatLayer repeat = 4;
+        InputLayer input_layer = 5;
     }
 }
 

@@ -147,9 +147,9 @@ model_config: {
   }
   backbone {
     packages {
-      name: "user"
+      name: "user_tower"
       blocks {
-        name: "user"
+        name: "mlp"
         inputs {
           feature_group_name: "user"
         }
@@ -160,12 +160,11 @@ model_config: {
           }
         }
       }
-      concat_blocks: "user"
     }
     packages {
-      name: "item"
+      name: "item_tower"
       blocks {
-        name: "item"
+        name: "mlp"
         inputs {
           feature_group_name: "item"
         }
@@ -176,12 +175,11 @@ model_config: {
           }
         }
       }
-      concat_blocks: "item"
     }
     packages {
-      name: "combo"
+      name: "combo_tower"
       blocks {
-        name: "combo"
+        name: "mlp"
         inputs {
           feature_group_name: "combo"
         }
@@ -192,18 +190,17 @@ model_config: {
           }
         }
       }
-      concat_blocks: "combo"
     }
     blocks {
       name: "top_mlp"
       inputs {
-        package_name: "user"
+        package_name: "user_tower"
       }
       inputs {
-        package_name: "item"
+        package_name: "item_tower"
       }
       inputs {
-        package_name: "combo"
+        package_name: "combo_tower"
       }
       keras_layer {
         class_name: "MLP"
@@ -212,7 +209,6 @@ model_config: {
         }
       }
     }
-    concat_blocks: "top_mlp"
   }
   model_params {
     l2_regularization: 1e-6
@@ -223,7 +219,7 @@ model_config: {
 
 - model_name: 任意自定义字符串，仅有注释作用
 
-- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的排序模型都叫这个名字
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
 
 - feature_groups: 特征组
 
@@ -236,7 +232,7 @@ model_config: {
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
-  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 
 - model_params:
 
