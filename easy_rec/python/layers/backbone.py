@@ -162,7 +162,8 @@ class Package(object):
       elif layer == 'input_layer':
         conf = config.input_layer
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
-        output = input_fn(config.feature_group_name, is_training)
+        feature_group = config.inputs[0].feature_group_name
+        output = input_fn(feature_group, is_training)
         block_outputs[block] = output
       else:
         inputs = self.block_input(config, block_outputs, is_training)
