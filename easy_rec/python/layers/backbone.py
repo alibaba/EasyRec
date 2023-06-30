@@ -143,8 +143,8 @@ class Package(object):
   def call(self, is_training):
     block_outputs = {}
     blocks = self._dag.topological_sort()
-    logging.info('backbone topological order: ' + ','.join(blocks))
-    print('backbone topological order: ' + ','.join(blocks))
+    logging.info(self._config.name + ' topological order: ' + ','.join(blocks))
+    print(self._config.name + ' topological order: ' + ','.join(blocks))
     for block in blocks:
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
@@ -162,7 +162,7 @@ class Package(object):
       elif layer == 'input_layer':
         conf = config.input_layer
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
-        output = input_fn(block, is_training)
+        output = input_fn(config.feature_group_name, is_training)
         block_outputs[block] = output
       else:
         inputs = self.block_input(config, block_outputs, is_training)
