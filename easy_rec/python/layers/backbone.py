@@ -43,8 +43,8 @@ class Package(object):
         name = one_input.WhichOneof('name')
         if name != 'feature_group_name':
           raise KeyError(
-            '`feature_group_name` should be set for input layer: ' +
-            block.name)
+              '`feature_group_name` should be set for input layer: ' +
+              block.name)
         input_name = one_input.feature_group_name
         if not input_layer.has_group(input_name):
           raise KeyError('invalid feature group name: ' + input_name)
@@ -57,6 +57,7 @@ class Package(object):
     num_blocks = len(self._name_to_blocks) - num_groups
     assert num_blocks > 0, 'there must be at least one block in backbone'
 
+    num_pkg_input = 0
     for block in config.blocks:
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
@@ -65,7 +66,11 @@ class Package(object):
         raise KeyError('block name can not be one of feature groups:' +
                        block.name)
       for input_node in block.inputs:
-        input_name = getattr(input_node, input_node.WhichOneof('name'))
+        input_type = input_node.WhichOneof('name')
+        if input_type == 'package_name':
+          num_pkg_input += 1
+          continue
+        input_name = getattr(input_node, input_type)
         if input_name in self._name_to_blocks:
           assert input_name != block.name, 'input name can not equal to block name:' + input_name
           self._dag.add_edge(input_name, block.name)
@@ -84,10 +89,16 @@ class Package(object):
             input_feature_groups.add(input_name)
           else:
             raise KeyError(
-              'invalid input name `%s`, must be the name of either a feature group or an another block'
-              % input_name)
+                'invalid input name `%s`, must be the name of either a feature group or an another block'
+                % input_name)
     num_groups = len(input_feature_groups)
-    assert num_groups > 0, 'there must be at least one input layer'
+    assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
+
+    if len(config.concat_blocks) == 0:
+      leaf = self._dag.all_leaves()
+      logging.warning("%s has no `concat_blocks`, try to use all leaf blocks: %s" % (config.name, ','.join(leaf)))
+      self._config.concat_blocks.extend(leaf)
+
     Package.__packages[self._config.name] = self
 
   def block_input(self, config, block_outputs, training=None):
@@ -106,6 +117,10 @@ class Package(object):
         input_feature = block_outputs[input_name]
       else:
         raise KeyError('input name `%s` does not exists' % input_name)
+
+      if input_node.HasField('input_slice'):
+        fn = 'lambda x: x' + input_node.input_slice.strip()
+        input_feature = fn(input_feature)
       if input_node.HasField('input_fn'):
         fn = eval(input_node.input_fn)
         input_feature = fn(input_feature)
@@ -114,7 +129,7 @@ class Package(object):
     if config.merge_inputs_into_list:
       output = inputs
     else:
-      output = concat_inputs(inputs, config.input_concat_axis, config.name)
+      output = merge_inputs(inputs, config.input_concat_axis, config.name)
 
     if config.HasField('extra_input_fn'):
       fn = eval(config.extra_input_fn)
@@ -142,7 +157,8 @@ class Package(object):
       # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
-        block_outputs[block] = self.block_input(config, block_outputs, is_training)
+        block_outputs[block] = self.block_input(config, block_outputs,
+                                                is_training)
       elif layer == 'input_layer':
         conf = config.input_layer
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
@@ -163,13 +179,7 @@ class Package(object):
           outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
-    output = concat_inputs(outputs, msg='backbone')
-
-    # if self._config.HasField('top_mlp'):
-    #   params = Parameter.make_from_pb(self._config.top_mlp)
-    #   params.l2_regularizer = self._l2_reg
-    #   final_mlp = MLP(params, name='backbone_top_mlp')
-    #   output = final_mlp(output, training=is_training)
+    output = merge_inputs(outputs, msg='backbone')
     return output
 
   def call_keras_layer(self, layer_conf, inputs, name, training):
@@ -294,20 +304,24 @@ class Backbone(object):
     return output
 
 
-def concat_inputs(inputs, axis=-1, msg=''):
-  if len(inputs) > 1:
-    if all(map(lambda x: type(x) == list, inputs)):
-      # merge multiple lists into a list
-      from functools import reduce
-      return reduce(lambda x, y: x + y, inputs)
-
-    if axis != -1:
-      logging.info('concat inputs %s axis=%d' % (msg, axis))
-    return tf.concat(inputs, axis=axis)
-
+def merge_inputs(inputs, axis=-1, msg=''):
+  if len(inputs) == 0:
+    raise ValueError('no inputs to be concat:' + msg)
   if len(inputs) == 1:
     return inputs[0]
-  raise ValueError('no inputs to be concat:' + msg)
+
+  from functools import reduce
+  if all(map(lambda x: type(x) == list, inputs)):
+    # merge multiple lists into a list
+    return reduce(lambda x, y: x + y, inputs)
+
+  if any(map(lambda x: type(x) == list, inputs)):
+    logging.warning('%s: try to merge inputs into list' % msg)
+    return reduce(lambda x, y: x + y, [e if type(e) == list else [e] for e in inputs])
+
+  if axis != -1:
+    logging.info('concat inputs %s axis=%d' % (msg, axis))
+  return tf.concat(inputs, axis=axis)
 
 
 def format_value(value):
