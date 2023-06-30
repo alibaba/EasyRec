@@ -96,3 +96,13 @@
 ## 4. 序列特征编码组件
 
 请参考Protobuf Message的定义，文件路径：`easy_rec/python/protos/seq_encoder.proto`
+
+## 5. 多任务学习组件
+
+- MMoE
+
+| 参数         | 类型     | 默认值 | 说明           |
+| ---------- | ------ | --- | ------------ |
+| num_task   | uint32 |     | 任务数          |
+| num_expert | uint32 | 0   | expert数量     |
+| expert_mlp | MLP    | 可选  | expert的mlp参数 |

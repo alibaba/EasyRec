@@ -18,8 +18,9 @@ from __future__ import division
 from __future__ import print_function
 
 import json
-from google.protobuf.descriptor import FieldDescriptor
+
 from google.protobuf import struct_pb2
+from google.protobuf.descriptor import FieldDescriptor
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops import variables

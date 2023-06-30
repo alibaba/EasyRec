@@ -3,8 +3,9 @@
 import logging
 
 import tensorflow as tf
-from easy_rec.python.layers.dnn import DNN
+
 from easy_rec.python.builders import loss_builder
+from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.loss_pb2 import LossType
@@ -41,7 +42,8 @@ class MultiTaskModel(RankModel):
     backbone = self.backbone
     if type(backbone) in (list, tuple):
       if len(backbone) != len(config.task_towers):
-        raise ValueError('The number of backbone outputs and task towers must be equal')
+        raise ValueError(
+            'The number of backbone outputs and task towers must be equal')
       task_input_list = backbone
     else:
       task_input_list = [backbone] * len(config.task_towers)
@@ -67,25 +69,25 @@ class MultiTaskModel(RankModel):
       tower_name = task_tower_cfg.tower_name
       if task_tower_cfg.HasField('relation_dnn'):
         relation_dnn = DNN(
-          task_tower_cfg.relation_dnn,
-          self._l2_reg,
-          name=tower_name + '/relation_dnn',
-          is_training=self._is_training)
+            task_tower_cfg.relation_dnn,
+            self._l2_reg,
+            name=tower_name + '/relation_dnn',
+            is_training=self._is_training)
         tower_inputs = [tower_features[tower_name]]
         for relation_tower_name in task_tower_cfg.relation_tower_names:
           tower_inputs.append(relation_features[relation_tower_name])
         relation_input = tf.concat(
-          tower_inputs, axis=-1, name=tower_name + '/relation_input')
+            tower_inputs, axis=-1, name=tower_name + '/relation_input')
         relation_fea = relation_dnn(relation_input)
         relation_features[tower_name] = relation_fea
       else:
         relation_fea = tower_features[tower_name]
 
       output_logits = tf.layers.dense(
-        relation_fea,
-        task_tower_cfg.num_class,
-        kernel_regularizer=self._l2_reg,
-        name=tower_name + '/output')
+          relation_fea,
+          task_tower_cfg.num_class,
+          kernel_regularizer=self._l2_reg,
+          name=tower_name + '/output')
       tower_outputs[tower_name] = output_logits
 
     self._add_to_prediction_dict(tower_outputs)

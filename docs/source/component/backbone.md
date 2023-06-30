@@ -28,7 +28,7 @@
 
 配置文件：[wide_and_deep_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/wide_and_deep_backbone_on_movielens.config)
 
-```
+```protobuf
 model_config: {
   model_class: "RankModel"
   feature_groups: {
@@ -115,11 +115,12 @@ MovieLens-1M数据集效果对比：
 - 每个`block`有一个唯一的名字（name），并且有一个或多个输入和输出。
 - 每个输入只能是某个`feature group`的name，或者另一个`block`的name，或者是一个`block package`的名字。当一个`block`有多个输入时，会自动执行merge操作（输入为list时自动合并，输入为tensor时自动concat）。
 - 所有`block`根据输入与输出的关系组成一个有向无环图（DAG），框架自动解析出DAG的拓扑关系，按照拓扑排序执行块所关联的模块。
-- 当`block`有多个输出时，返回一个python元组（tuple），下游`block`可以通过自定义的`input_fn`配置一个lambda表达式函数获取元组的某个值。
+- 当`block`有多个输出时，返回一个python元组（tuple），下游`block`可以配置`input_slice`通过python切片语法获取到输入元组的某个元素作为输入，或者通过自定义的`input_fn`配置一个lambda表达式函数获取元组的某个值。
 - 每个`block`关联的模块通常是一个keras layer对象，实现了一个可复用的子网络模块。框架支持加载自定义的keras layer，以及所有系统内置的keras layer。
 - 可以为`block`关联一个`input_layer`对输入的`feature group`配置的特征做一些额外的加工，比如执行`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）。注意：**当`block`关联的模块是`input_layer`时，必须设定feature_group_name为某个`feature group`的名字**,当`block`关联的模块不是`input_layer`时，block的name不可与某个`feature group`重名。
 - 还有一些特殊的`block`关联了一个特殊的模块，包括`lambda layer`、`sequential layers`、`repeated layer`和`recurrent layer`。这些特殊layer分别实现了自定义表达式、顺序执行多个layer、重复执行某个layer、循环执行某个layer的功能。
 - DAG的输出节点名由`concat_blocks`配置项指定，配置了多个输出节点时自动执行tensor的concat操作。
+- 如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - 可以为主干网络配置一个可选的`MLP`模块。
 
 ## 案例2：DeepFM 模型
@@ -128,7 +129,7 @@ MovieLens-1M数据集效果对比：
 
 这个Case重点关注下两个特殊的`block`，一个使用了`lambda`表达式配置了一个自定义函数；另一个的加载了一个内置的keras layer [`tf.keras.layers.Add`](https://keras.io/api/layers/merging_layers/add/)。
 
-```
+```protobuf
 model_config: {
   model_class: 'RankModel'
   feature_groups: {
@@ -177,7 +178,7 @@ model_config: {
       name: 'fm'
       inputs {
         block_name: 'features'
-        input_fn: 'lambda x: x[1]'
+        input_slice: '[1]'
       }
       keras_layer {
         class_name: 'FM'
@@ -187,7 +188,7 @@ model_config: {
       name: 'deep'
       inputs {
         block_name: 'features'
-        input_fn: 'lambda x: x[0]'
+        input_slice: '[0]'
       }
       keras_layer {
         class_name: 'MLP'
@@ -237,7 +238,7 @@ MovieLens-1M数据集效果对比：
 
 这个Case重点关注一个特殊的 DCN `block`，用了`recurrent layer`实现了循环调用某个模块多次的效果。通过该Case还是在DAG之上添加了MLP模块。
 
-```
+```protobuf
 model_config: {
   model_class: 'RankModel'
   feature_groups: {
@@ -292,7 +293,7 @@ model_config: {
 
 上述配置对`Cross` Layer循环调用了3次，逻辑上等价于执行如下语句：
 
-```
+```python
 x1 = Cross()(x0, x0)
 x2 = Cross()(x0, x1)
 x3 = Cross()(x0, x2)
@@ -311,7 +312,7 @@ MovieLens-1M数据集效果对比：
 
 配置文件：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
 
-```
+```protobuf
 model_config: {
   model_class: 'RankModel'
   feature_groups: {
@@ -355,11 +356,10 @@ model_config: {
       name: 'dot'
       inputs {
         block_name: 'bottom_mlp'
-        input_fn: 'lambda x: [x]'
       }
       inputs {
         block_name: 'sparse'
-        input_fn: 'lambda x: x[1]'
+        input_slice: '[1]'
       }
       keras_layer {
         class_name: 'DotInteraction'
@@ -369,7 +369,7 @@ model_config: {
       name: 'sparse_2d'
       inputs {
         block_name: 'sparse'
-        input_fn: 'lambda x: x[0]'
+        input_slice: '[0]'
       }
     }
     concat_blocks: ['sparse_2d', 'dot']
@@ -393,6 +393,8 @@ Criteo数据集效果对比：
 
 备注：`DotInteraction` 是新开发的特征两两交叉做内积运算的模块。
 
+这个案例中'dot' block的第一个输入是一个tensor，第二个输入是一个list，这种情况下第一个输入会插入到list中，合并成一个更大的list，作为block的输入。
+
 ## 案例5：为 DLRM 模型添加一个新的数值特征Embedding组件
 
 配置文件：[dlrm_on_criteo_with_periodic.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_periodic.config)
@@ -401,7 +403,7 @@ Criteo数据集效果对比：
 
 重点关注一下`PeriodicEmbedding` Layer的参数配置方式，这里并没有使用自定义protobuf message的传参方式，而是采用了内置的`google.protobuf.Struct`对象作为自定义Layer的参数。实际上，该自定义Layer也支持通过自定义message传参。框架提供了一个通用的`Parameter` API 用通用的方式处理两种传参方式。
 
-```
+```protobuf
 model_config: {
   model_class: 'RankModel'
   feature_groups: {
@@ -455,11 +457,11 @@ model_config: {
       name: 'dot'
       inputs {
         block_name: 'num_emb'
-        input_fn: 'lambda x: x[1]'
+        input_slice: '[1]'
       }
       inputs {
         block_name: 'sparse'
-        input_fn: 'lambda x: x[1]'
+        input_slice: '[1]'
       }
       keras_layer {
         class_name: 'DotInteraction'
@@ -469,14 +471,14 @@ model_config: {
       name: 'sparse_2d'
       inputs {
         block_name: 'sparse'
-        input_fn: 'lambda x: x[0]'
+        input_slice: '[0]'
       }
     }
     blocks {
       name: 'num_emb_2d'
       inputs {
         block_name: 'num_emb'
-        input_fn: 'lambda x: x[0]'
+        input_slice: '[0]'
       }
     }
     concat_blocks: ['num_emb_2d', 'dot', 'sparse_2d']
@@ -509,7 +511,7 @@ Criteo数据集效果对比：
 
 备注：调用系统内置的keras layer，自能通过`google.proto.Struct`的格式传参。
 
-```
+```protobuf
 model_config: {
   model_class: "RankModel"
   feature_groups: {
@@ -616,7 +618,7 @@ MovieLens-1M数据集效果：
 
 `block package`主要为自监督学习、对比学习等场景设计。
 
-```
+```protobuf
 model_config: {
   model_name: "multi tower"
   model_class: "RankModel"
@@ -637,7 +639,7 @@ model_config: {
   }
   backbone {
     packages {
-      name: 'user'
+      name: 'user_tower'
       blocks {
         name: 'mlp'
         inputs {
@@ -650,10 +652,9 @@ model_config: {
           }
         }
       }
-      concat_blocks: 'mlp'
     }
     packages {
-      name: 'item'
+      name: 'item_tower'
       blocks {
         name: 'mlp'
         inputs {
@@ -666,15 +667,14 @@ model_config: {
           }
         }
       }
-      concat_blocks: 'mlp'
     }
     blocks {
       name: 'top_mlp'
       inputs {
-        package_name: 'user'
+        package_name: 'user_tower'
       }
       inputs {
-        package_name: 'item'
+        package_name: 'item_tower'
       }
       layers {
         keras_layer {
@@ -685,7 +685,6 @@ model_config: {
         }
       }
     }
-    concat_blocks: 'top_mlp'
   }
   model_params {
     l2_regularization: 1e-4
@@ -694,11 +693,189 @@ model_config: {
 }
 ```
 
+注意该案例没有为package和backbone配置`concat_blocks`，框架会自动设置为DAG的所有叶子节点。
+
 MovieLens-1M数据集效果：
 
 | Model      | Epoch | AUC    |
 | ---------- | ----- | ------ |
-| MultiTower | 1     | 0.8808 |
+| MultiTower | 1     | 0.8814 |
+
+## 案例8：多目标模型 MMoE
+
+多目标模型的model_class一般配置为"MultiTaskModel"，并且需要在`model_params`里配置多个目标对应的Tower。`model_name`为任意自定义字符串，仅有注释作用。
+
+```protobuf
+model_config {
+  model_name: "MMoE"
+  model_class: "MultiTaskModel"
+  feature_groups {
+    group_name: "all"
+    feature_names: "user_id"
+    feature_names: "cms_segid"
+    ...
+    feature_names: "tag_brand_list"
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: 'all'
+      inputs {
+        feature_group_name: 'all'
+      }
+      input_layer {
+        only_output_feature_list: true
+      }
+    }
+    blocks {
+      name: "senet"
+      inputs {
+        block_name: "all"
+      }
+      keras_layer {
+        class_name: 'SENet'
+        senet {
+          reduction_ratio: 4
+        }
+      }
+    }
+    blocks {
+      name: "mmoe"
+      inputs {
+        block_name: "senet"
+      }
+      keras_layer {
+        class_name: 'MMoE'
+        mmoe {
+          num_task: 2
+          num_expert: 3
+          expert_mlp {
+            hidden_units: [256, 128]
+          }
+        }
+      }
+    }
+  }
+  model_params {
+    task_towers {
+      tower_name: "ctr"
+      label_name: "clk"
+      dnn {
+        hidden_units: [128, 64]
+      }
+      num_class: 1
+      weight: 1.0
+      loss_type: CLASSIFICATION
+      metrics_set: {
+       auc {}
+      }
+    }
+    task_towers {
+      tower_name: "cvr"
+      label_name: "buy"
+      dnn {
+        hidden_units: [128, 64]
+      }
+      num_class: 1
+      weight: 1.0
+      loss_type: CLASSIFICATION
+      metrics_set: {
+       auc {}
+      }
+    }
+    l2_regularization: 1e-06
+  }
+  embedding_regularization: 5e-05
+}
+```
+
+注意这个案例没有为backbone配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
+
+## 案例9：多目标模型 DBMTL
+
+多目标模型的model_class一般配置为"MultiTaskModel"，并且需要在`model_params`里配置多个目标对应的Tower。`model_name`为任意自定义字符串，仅有注释作用。
+
+```protobuf
+model_config {
+  model_name: "DBMTL"
+  model_class: "MultiTaskModel"
+  feature_groups {
+    group_name: "all"
+    feature_names: "user_id"
+    feature_names: "cms_segid"
+    ...
+    feature_names: "tag_brand_list"
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: "mask_net"
+      inputs {
+        feature_group_name: "all"
+      }
+      keras_layer {
+        class_name: 'MaskNet'
+        masknet {
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mask_blocks {
+            aggregation_size: 512
+            output_size: 256
+          }
+          mlp {
+            hidden_units: [512, 256]
+          }
+        }
+      }
+    }
+  }
+  model_params {
+    task_towers {
+      tower_name: "ctr"
+      label_name: "clk"
+      loss_type: CLASSIFICATION
+      metrics_set: {
+        auc {}
+      }
+      dnn {
+        hidden_units: [256, 128, 64]
+      }
+      relation_dnn {
+        hidden_units: [32]
+      }
+      weight: 1.0
+    }
+    task_towers {
+      tower_name: "cvr"
+      label_name: "buy"
+      loss_type: CLASSIFICATION
+      metrics_set: {
+        auc {}
+      }
+      dnn {
+        hidden_units: [256, 128, 64]
+      }
+      relation_tower_names: ["ctr"]
+      relation_dnn {
+        hidden_units: [32]
+      }
+      weight: 1.0
+    }
+    l2_regularization: 1e-6
+  }
+  embedding_regularization: 5e-6
+}
+```
+
+DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_dnn`，同时还需要通`relation_tower_names`配置任务间的依赖关系。
+
+这个案例同样没有为backbone配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
 
 ## 其他案例（FiBiNet & MaskNet）
 
@@ -714,7 +891,7 @@ MovieLens-1M数据集效果：
 | MaskNet | 1     | 0.8872 |
 | FibiNet | 1     | 0.8893 |
 
-# 组件库介绍
+## 四、组件库介绍
 
 ## 1.基础组件
 
@@ -740,20 +917,24 @@ MovieLens-1M数据集效果：
 
 | 类名        | 功能                | 说明           |
 | --------- | ----------------- | ------------ |
-| SENet     |                   | FiBiNet模型的组件 |
-| MaskBlock |                   | MaskNet模型的组件 |
+| SENet     | 建模特征重要度           | FiBiNet模型的组件 |
+| MaskBlock | 建模特征重要度           | MaskNet模型的组件 |
 | MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    |
 
 ## 4. 序列特征编码组件
 
 | 类名  | 功能               | 说明       |
 | --- | ---------------- | -------- |
-| DIN | target attention | DIN模组的组件 |
+| DIN | target attention | DIN模型的组件 |
 | BST | transformer      | BST模型的组件 |
 
-各组件的详细参数请参考 "[组件详细参数](component.md)"。
+## 5. 多目标学习组件
 
-# 如何自定义组件
+| 类名   | 功能                          | 说明        |
+| ---- | --------------------------- | --------- |
+| MMoE | Multiple Mixture of Experts | MMoE模型的组件 |
+
+## 五、如何自定义组件
 
 在 `easy_rec/python/layers/keras` 目录下新建一个`py`文件，也可直接添加到一个已有的文件中。我们建议目标类似的组件定义在同一个文件中，减少文件数量；比如特征交叉的组件都放在`interaction.py`里。
 
@@ -830,14 +1011,15 @@ class FM(tf.keras.layers.Layer):
     return cross_term
 ```
 
-# 如何搭建模型
+## 六、如何搭建模型
 
-`组件块`的搭建主干网络的核心部件，本小节将会介绍`组件块`的类型、功能和配置参数。
-通过`组件块`搭建模型的配置方法请参考 [案例](#wide-deep)。
+`组件块`和`组件包`是搭建主干网络的核心部件，本小节将会介绍`组件块`的类型、功能和配置参数；同时还会介绍专门为参数共享子网络设计的`组件包`。
+
+通过`组件块`和`组件包`搭建模型的配置方法请参考上文描述的各个 [案例](#wide-deep)。
 
 `组件块`的protobuf定义如下：
 
-```
+```protobuf
 message Block {
     required string name = 1;
     // the input names of feature groups or other blocks
@@ -859,20 +1041,28 @@ message Block {
 }
 ```
 
-`组件块`会自动合并多个输入，默认是执行输入tensors按照最后一个维度做拼接(concat)，以下配置项可以改变默认行为：
+`组件块`会自动合并多个输入：
+
+1. 若多路输入中某一路的输入类型是`list`，则最终结果被Merge成一个大的list，保持顺序不变；
+1. 若多路输入中的每一路输入都是tensor，默认是执行输入tensors按照最后一个维度做拼接(concat)，以下配置项可以改变默认行为：
 
 - `input_concat_axis` 用来指定输入tensors拼接的维度
 - `merge_inputs_into_list` 设为true，则把输入合并到一个列表里，不做concat操作
 
-```
+```protobuf
 message Input {
-    required string name = 1;
-    optional string input_fn = 2;
+    oneof name {
+        string feature_group_name = 1;
+        string block_name = 2;
+        string package_name = 3;
+    }
+    optional string input_fn = 11;
+    optional string input_slice = 12;
 }
 ```
 
-每一路输入可以配置一个可选的`input_fn`，指定一个lambda函数对输入做一些简单的变换。比如，当某路输入是一个列表对象是，可以用`input_fn: 'lambda x: x[1]'`配置项获取列表的第二个元素值作为这一路的输入。
-
+- 每一路输入可以配置一个可选的`input_fn`，指定一个lambda函数对输入做一些简单的变换。比如配置`input_fn: 'lambda x: [x]'`可以把输入变成列表格式。
+- `input_slice`可以用来获取输入元组/列表的某个切片。比如，当某路输入是一个列表对象是，可以用`input_slice: '[1]'`配置项获取列表的第二个元素值作为这一路的输入。
 - `extra_input_fn` 是一个可选的配置项，用来对合并后的多路输入结果做一些额外的变换，需要配置成lambda函数的格式。
 
 目前总共有7种类型的`组件块`，分别是`空组件块`、`输入组件块`、`Lambda组件块`、`KerasLayer组件块`、`循环组件块`、`重复组件块`、`序列组件块`。
@@ -885,9 +1075,27 @@ message Input {
 
 `输入组件块`关联一个`input_layer`，获取、加工并返回原始的特征输入。
 
-`输入组件块`比较特殊，它不能配置输入，并且`输入组件块`的名字必须为某个`feature group`的`group_name`。
+`输入组件块`比较特殊，它只能有且只有一路输入，并且只能用`feature_group_name`项配置输入为一个`feature_group`的`name`。
 
+`输入组件块`有一个特权：它的名字可以与其输入的`feature_group`同名。其他`组件块`则无此殊荣。
+
+配置示例：
+
+```protobuf
+blocks {
+  name: 'all'
+  inputs {
+    feature_group_name: 'all'
+  }
+  input_layer {
+    only_output_feature_list: true
+  }
+}
 ```
+
+InputLayer可以通过配置获取不同格式的输入，并且可以执行一下如`dropout`之类的额外操作，其参数定义的protobuf如下：
+
+```protobuf
 message InputLayer {
     optional bool do_batch_norm = 1;
     optional bool do_layer_norm = 2;
@@ -913,7 +1121,19 @@ message InputLayer {
 
 ## 3. Lambda组件块
 
-`Lambda组件块`可以配置一个lambda函数，执行一些较简单的操作。
+`Lambda组件块`可以配置一个lambda函数，执行一些较简单的操作。示例如下：
+
+```protobuf
+blocks {
+  name: 'wide_logit'
+  inputs {
+    feature_group_name: 'wide'
+  }
+  lambda {
+    expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
+  }
+}
+```
 
 ## 4. KerasLayer组件块
 
@@ -922,11 +1142,10 @@ message InputLayer {
 - `class_name`是要加载的Keras Layer的类名，支持加载自定义的类和系统内置的Layer类。
 - `st_params`是以`google.protobuf.Struct`对象格式配置的参数；
 - 还可以用自定义的protobuf message的格式传递参数给加载的Layer对象。
-- 自定义Layer的详细参数请参考 "[组件详细参数](component.md)"
 
 配置示例：
 
-```
+```protobuf
 keras_layer {
   class_name: 'MLP'
   mlp {
@@ -949,7 +1168,7 @@ keras_layer {
 
 `循环组件块`可以实现类似RNN的循环调用结构，可以执行某个Layer多次，每次执行的输入包含了上一次执行的输出。在[DCN](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)网络中有循环组件块的示例，如下：
 
-```
+```protobuf
 recurrent {
   num_steps: 3
   fixed_input_index: 0
@@ -975,7 +1194,7 @@ x3 = Cross()(x0, x2)
 
 `重复组件块` 可以使用相同的输入重复执行某个组件多次，实现`multi-head`的逻辑。示例如下：
 
-```
+```protobuf
 repeat {
   num_repeat: 2
   keras_layer {
@@ -997,7 +1216,7 @@ repeat {
 
 `序列组件块`可以依次执行配置的多个Layer，前一个Layer的输出是后一个Layer的输入。`序列组件块`相对于配置多个首尾相连的普通组件块要更加简单。示例如下：
 
-```
+```protobuf
 blocks {
   name: 'mlp'
   inputs {
@@ -1041,5 +1260,131 @@ blocks {
       }
     }
   }
+}
+```
+
+## 通过`组件包`实现参数共享的子网络
+
+`组件包`封装了由多个`组件块`搭建的一个子网络DAG，作为整体可以被以参数共享的方式多次调用，通常用在 *自监督学习* 模型中。
+
+`组件包`的protobuf消息定义如下：
+
+```protobuf
+message BlockPackage {
+    // package name
+    required string name = 1;
+    // a few blocks generating a DAG
+    repeated Block blocks = 2;
+    // the names of output blocks
+    repeated string concat_blocks = 3;
+}
+```
+
+`组件块`通过`package_name`参数配置一路输入来调用`组件包`。
+
+一个使用`组件包`来实现 *对比学习* 的案例如下：
+
+```protobuf
+model_config {
+  model_class: "RankModel"
+  feature_groups {
+    group_name: "all"
+    feature_names: "adgroup_id"
+    feature_names: "user"
+    ...
+    feature_names: "pid"
+    wide_deep: DEEP
+  }
+
+  backbone {
+    packages {
+      name: 'feature_encoder'
+      blocks {
+        name: "fea_dropout"
+        inputs {
+          feature_group_name: "all"
+        }
+        input_layer {
+          dropout_rate: 0.5
+          only_output_3d_tensor: true
+        }
+      }
+      blocks {
+        name: "encode"
+        inputs {
+          block_name: "fea_dropout"
+        }
+        layers {
+          keras_layer {
+            class_name: 'BSTCTR'
+            bst {
+              hidden_size: 128
+              num_attention_heads: 4
+              num_hidden_layers: 3
+              intermediate_size: 128
+              hidden_act: 'gelu'
+              max_position_embeddings: 50
+              hidden_dropout_prob: 0.1
+              attention_probs_dropout_prob: 0
+            }
+          }
+        }
+        layers {
+          keras_layer {
+            class_name: 'Dense'
+            st_params {
+              fields {
+                key: 'units'
+                value: { number_value: 128 }
+              }
+              fields {
+                key: 'kernel_initializer'
+                value: { string_value: 'zeros' }
+              }
+            }
+          }
+        }
+      }
+    }
+    blocks {
+      name: "all"
+      inputs {
+        name: "all"
+      }
+      input_layer {
+        only_output_3d_tensor: true
+      }
+    }
+    blocks {
+      name: "loss_ctr"
+      merge_inputs_into_list: true
+      inputs {
+        package_name: 'feature_encoder'
+      }
+      inputs {
+        package_name: 'feature_encoder'
+      }
+      inputs {
+        package_name: 'all'
+      }
+      keras_layer {
+        class_name: 'LOSSCTR'
+        st_params{
+          fields {
+            key: 'cl_weight'
+            value: { number_value: 1 }
+          }
+          fields {
+            key: 'au_weight'
+            value: { number_value: 0.01 }
+          }
+        }
+      }
+    }
+  }
+  model_params {
+    l2_regularization: 1e-5
+  }
+  embedding_regularization: 1e-5
 }
 ```

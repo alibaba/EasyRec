@@ -125,7 +125,9 @@ model_config {
 ```
 
 - model_name: 任意自定义字符串，仅有注释作用
+
 - model_class: 'MultiTaskModel', 不需要修改, 通过组件化方式搭建的多目标排序模型都叫这个名字
+
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
 
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图

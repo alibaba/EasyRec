@@ -24,7 +24,7 @@ class DAG(object):
     try:
       self.add_node(node_name, graph=graph)
     except KeyError:
-      logging.info("node %s already exist" % node_name)
+      logging.info('node %s already exist' % node_name)
 
   def delete_node(self, node_name, graph=None):
     """Deletes this node and all edges referencing it."""
@@ -42,7 +42,7 @@ class DAG(object):
     try:
       self.delete_node(node_name, graph=graph)
     except KeyError:
-      logging.info("node %s does not exist" % node_name)
+      logging.info('node %s does not exist' % node_name)
 
   def add_edge(self, ind_node, dep_node, graph=None):
     """Add an edge (dependency) between the specified nodes."""

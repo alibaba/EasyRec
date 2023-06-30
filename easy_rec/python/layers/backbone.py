@@ -96,7 +96,9 @@ class Package(object):
 
     if len(config.concat_blocks) == 0:
       leaf = self._dag.all_leaves()
-      logging.warning("%s has no `concat_blocks`, try to use all leaf blocks: %s" % (config.name, ','.join(leaf)))
+      logging.warning(
+          '%s has no `concat_blocks`, try to use all leaf blocks: %s' %
+          (config.name, ','.join(leaf)))
       self._config.concat_blocks.extend(leaf)
 
     Package.__packages[self._config.name] = self
@@ -117,6 +119,10 @@ class Package(object):
         input_feature = block_outputs[input_name]
       else:
         raise KeyError('input name `%s` does not exists' % input_name)
+
+      if input_node.HasField('input_slice'):
+        fn = eval('lambda x: x' + input_node.input_slice.strip())
+        input_feature = fn(input_feature)
       if input_node.HasField('input_fn'):
         fn = eval(input_node.input_fn)
         input_feature = fn(input_feature)
@@ -125,7 +131,7 @@ class Package(object):
     if config.merge_inputs_into_list:
       output = inputs
     else:
-      output = concat_inputs(inputs, config.input_concat_axis, config.name)
+      output = merge_inputs(inputs, config.input_concat_axis, config.name)
 
     if config.HasField('extra_input_fn'):
       fn = eval(config.extra_input_fn)
@@ -139,8 +145,8 @@ class Package(object):
   def call(self, is_training):
     block_outputs = {}
     blocks = self._dag.topological_sort()
-    logging.info('backbone topological order: ' + ','.join(blocks))
-    print('backbone topological order: ' + ','.join(blocks))
+    logging.info(self._config.name + ' topological order: ' + ','.join(blocks))
+    print(self._config.name + ' topological order: ' + ','.join(blocks))
     for block in blocks:
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
@@ -158,7 +164,8 @@ class Package(object):
       elif layer == 'input_layer':
         conf = config.input_layer
         input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
-        output = input_fn(block, is_training)
+        feature_group = config.inputs[0].feature_group_name
+        output = input_fn(feature_group, is_training)
         block_outputs[block] = output
       else:
         inputs = self.block_input(config, block_outputs, is_training)
@@ -175,7 +182,7 @@ class Package(object):
           outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
-    output = concat_inputs(outputs, msg='backbone')
+    output = merge_inputs(outputs, msg='backbone')
     return output
 
   def call_keras_layer(self, layer_conf, inputs, name, training):
@@ -300,20 +307,25 @@ class Backbone(object):
     return output
 
 
-def concat_inputs(inputs, axis=-1, msg=''):
-  if len(inputs) > 1:
-    if all(map(lambda x: type(x) == list, inputs)):
-      # merge multiple lists into a list
-      from functools import reduce
-      return reduce(lambda x, y: x + y, inputs)
-
-    if axis != -1:
-      logging.info('concat inputs %s axis=%d' % (msg, axis))
-    return tf.concat(inputs, axis=axis)
-
+def merge_inputs(inputs, axis=-1, msg=''):
+  if len(inputs) == 0:
+    raise ValueError('no inputs to be concat:' + msg)
   if len(inputs) == 1:
     return inputs[0]
-  raise ValueError('no inputs to be concat:' + msg)
+
+  from functools import reduce
+  if all(map(lambda x: type(x) == list, inputs)):
+    # merge multiple lists into a list
+    return reduce(lambda x, y: x + y, inputs)
+
+  if any(map(lambda x: type(x) == list, inputs)):
+    logging.warning('%s: try to merge inputs into list' % msg)
+    return reduce(lambda x, y: x + y,
+                  [e if type(e) == list else [e] for e in inputs])
+
+  if axis != -1:
+    logging.info('concat inputs %s axis=%d' % (msg, axis))
+  return tf.concat(inputs, axis=axis)
 
 
 def format_value(value):

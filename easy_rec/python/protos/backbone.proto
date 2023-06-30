@@ -20,12 +20,13 @@ message Lambda {
 }
 
 message Input {
-    optional string input_fn = 1;
     oneof name {
-        string feature_group_name = 2;
-        string block_name = 3;
-        string package_name = 4;
+        string feature_group_name = 1;
+        string block_name = 2;
+        string package_name = 3;
     }
+    optional string input_fn = 11;
+    optional string input_slice = 12;
 }
 
 message RecurrentLayer {
