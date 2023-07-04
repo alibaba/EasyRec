@@ -1,7 +1,7 @@
 # MaxCompute(Inner) Tutorial
 
 ```
-EasyRec在MaxCompute内部版本上的使用文档.
+此文档是针对阿里集团内部用户，在MaxCompute上使用EasyRec的说明。
 ```
 
 ### 输入数据:
