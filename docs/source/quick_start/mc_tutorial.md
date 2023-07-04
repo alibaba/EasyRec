@@ -1,12 +1,8 @@
 # MaxCompute Tutorial
 
-```
-此文档是针对公网用户（非阿里内部开发），在MaxCompute公有云版本上使用EasyRec的说明。
+**此文档是针对公网用户（非阿里内部开发**，在MaxCompute公有云版本上使用EasyRec的说明。
 
 针对阿里集团内部用户，请参考[mc_tutorial_inner](mc_tutorial_inner.md)。
-
-
-```
 
 ### 输入数据:
 
