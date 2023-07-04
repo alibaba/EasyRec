@@ -11,7 +11,7 @@
 - train: your_own_project.dwd_avazu_ctr_deepmodel_train
 - test: your_own_project.dwd_avazu_ctr_deepmodel_test
 
-说明：这两张表是自己odps project的表，由于内部无法访问公共云的pai_online_project，可以通过自行下载数据集到本地，并使用odpscmd [tunnel upload](https://help.aliyun.com/document_detail/27833.html?spm=a2c4g.27797.0.i1)命令上传至自己的project进行使用。
+说明：这两张表是自己odps project的表，由于阿里集团内部无法访问公共云的pai_online_project，可以通过自行下载数据集到本地，并使用odpscmd [tunnel upload](https://help.aliyun.com/document_detail/27833.html?spm=a2c4g.27797.0.i1)命令上传至自己的project进行使用。
 
 - dwd_avazu_ctr_deepmodel_train.csv (http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
 
