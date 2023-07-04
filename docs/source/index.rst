@@ -96,6 +96,7 @@ Welcome to easy_rec's documentation!
 
    reference
    metrics
+   examples
    benchmark
    faq
    get_role_arn
