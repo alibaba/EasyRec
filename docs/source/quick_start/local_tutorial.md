@@ -1,5 +1,29 @@
 # Local Tutorial
 
+
+### 环境准备
+我们提供了`本地Anaconda安装`和`Docker镜像启动`两种方式。
+
+**Anaconda**
+
+Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
+
+```bash
+conda create -n py36_tf12 python=3.6.8
+conda activate py36_tf12
+pip install tensorflow==1.12.0
+```
+
+**Docker**
+
+Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
+
+```bash
+sh scripts/build_docker.sh
+sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-${easyrec_version}
+sudo docker exec -it ${image_id} bash
+```
+
 ### 下载安装EasyRec
 
 ```bash
