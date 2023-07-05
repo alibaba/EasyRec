@@ -4,10 +4,10 @@
 
 这些Demo包含了在公开数据集上针对不同模型做的多种实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
 
-# 环境准备
+# 安装EasyRec
 我们提供了`本地Anaconda安装`和`Docker镜像启动`两种方式。
 
-**Anaconda**
+## 本地Anaconda安装
 
 Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
 
@@ -17,7 +17,15 @@ conda activate py36_tf12
 pip install tensorflow==1.12.0
 ```
 
-**Docker**
+```bash
+git clone https://github.com/alibaba/EasyRec.git
+cd EasyRec
+bash scripts/init.sh
+python setup.py install
+
+```
+
+## Docker镜像启动
 
 Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
 
@@ -26,16 +34,7 @@ git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
 bash scripts/build_docker.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
-sudo docker exec -it <image_id> bash
-```
-
-# 安装EasyRec
-
-```bash
-git clone https://github.com/alibaba/EasyRec.git
-cd EasyRec
-bash scripts/init.sh
-python setup.py install
+sudo docker exec -it <CONTAINER_ID> bash
 ```
 
 # 准备数据集
