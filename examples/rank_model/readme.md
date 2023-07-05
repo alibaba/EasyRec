@@ -32,10 +32,12 @@
 | MovieLens-1M | DeepFM    | 0.8688 |
 | MovieLens-1M | DCN       | 0.8576 |
 | MovieLens-1M | AutoInt   | 0.8513 |
+| MovieLens-1M | MaskNet   | 0.8872 |
+| MovieLens-1M | FibiNet   | 0.8879 |
 
 # Criteo Research Kaggle 数据集
 
-在MovieLens-1M 数据集中, 我们提供了2个模型上的demo示例。
+在 `Criteo Research Kaggle` 数据集中, 我们提供了2个模型上的demo示例。
 
 [FM](fm.md) / [DeepFM](deepfm.md)
 

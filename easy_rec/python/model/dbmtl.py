@@ -37,24 +37,56 @@ class DBMTL(MultiTaskModel):
                                          features,
                                          self._model_config.bottom_uniter,
                                          self._input_layer)
-    else:
-      self._features, _ = self._input_layer(self._feature_dict, 'all')
+    elif not self.has_backbone:
+      self._features, self._feature_list = self._input_layer(
+          self._feature_dict, 'all')
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):
-    if self._model_config.HasField('bottom_cmbf'):
-      bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
-    elif self._model_config.HasField('bottom_uniter'):
-      bottom_fea = self._uniter_layer(self._is_training, l2_reg=self._l2_reg)
-    elif self._model_config.HasField('bottom_dnn'):
-      bottom_dnn = dnn.DNN(
-          self._model_config.bottom_dnn,
-          self._l2_reg,
-          name='bottom_dnn',
-          is_training=self._is_training)
-      bottom_fea = bottom_dnn(self._features)
-    else:
-      bottom_fea = self._features
+    # if self._model_config.use_self_supervised_learning:
+    #   bern = tf.distributions.Bernoulli(probs=0.5)
+    #   num_features = len(self._feature_list)
+    #   mask = bern.sample(num_features)
+    #   left_features, right_features = [], []
+    #   for i in range(num_features):
+    #     fea = self._feature_list[i]
+    #     zero = tf.zeros_like(fea)
+    #     left, right = tf.cond(
+    #         tf.equal(mask[i], 1), lambda: (fea, zero), lambda: (zero, fea))
+    #     left_features.append(left)
+    #     right_features.append(right)
+    #   left_feature = tf.concat(left_features, axis=-1)
+    #   right_feature = tf.concat(right_features, axis=-1)
+    #   if self._model_config.HasField('bottom_mask_net'):
+    #     left_encoding = self._mask_net_layer(
+    #         left_feature, self._is_training, l2_reg=self._l2_reg)
+    #     right_encoding = self._mask_net_layer(
+    #         right_feature, self._is_training, l2_reg=self._l2_reg)
+    #   else:
+    #     raise ValueError(
+    #         'Unsupported bottom layer when use self supervised learning')
+    #
+    #   loss = info_nce_loss(
+    #       left_encoding,
+    #       right_encoding,
+    #       temperature=self._model_config.ssl_loss_temperature)
+    #   self._loss_dict['ssl_loss'] = loss * self._model_config.ssl_loss_weight
+
+    bottom_fea = self.backbone
+    if bottom_fea is None:
+      if self._model_config.HasField('bottom_cmbf'):
+        bottom_fea = self._cmbf_layer(self._is_training, l2_reg=self._l2_reg)
+      elif self._model_config.HasField('bottom_uniter'):
+        bottom_fea = self._uniter_layer(self._is_training, l2_reg=self._l2_reg)
+      elif self._model_config.HasField('bottom_dnn'):
+        bottom_dnn = dnn.DNN(
+            self._model_config.bottom_dnn,
+            self._l2_reg,
+            name='bottom_dnn',
+            is_training=self._is_training)
+        bottom_fea = bottom_dnn(self._features)
+      else:
+        bottom_fea = self._features
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

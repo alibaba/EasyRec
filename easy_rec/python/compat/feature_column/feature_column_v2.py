@@ -1328,6 +1328,71 @@ def numeric_column(key,
       normalizer_fn=normalizer_fn)
 
 
+def constant_numeric_column(key,
+                            shape=(1,),
+                            default_value=None,
+                            dtype=dtypes.float32,
+                            feature_name=None):
+  """Represents real valued or numerical features.
+
+  Example:
+
+  ```python
+  price = constant_numeric_column('price')
+  columns = [price, ...]
+  features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
+  dense_tensor = input_layer(features, columns)
+
+  # or
+  bucketized_price = bucketized_column(price, boundaries=[...])
+  columns = [bucketized_price, ...]
+  features = tf.io.parse_example(..., features=make_parse_example_spec(columns))
+  linear_prediction = linear_model(features, columns)
+  ```
+
+  Args:
+    key: A unique string identifying the input feature. It is used as the
+      column name and the dictionary key for feature parsing configs, feature
+      `Tensor` objects, and feature columns.
+    shape: An iterable of integers specifies the shape of the `Tensor`. An
+      integer can be given which means a single dimension `Tensor` with given
+      width. The `Tensor` representing the column will have the shape of
+      [batch_size] + `shape`.
+    default_value: A single value compatible with `dtype` or an iterable of
+      values compatible with `dtype` which the column takes on during
+      `tf.Example` parsing if data is missing. A default value of `None` will
+      cause `tf.io.parse_example` to fail if an example does not contain this
+      column. If a single value is provided, the same value will be applied as
+      the default value for every item. If an iterable of values is provided,
+      the shape of the `default_value` should be equal to the given `shape`.
+    dtype: defines the type of values. Default value is `tf.float32`. Must be a
+      non-quantized, real integer or floating point type.
+
+  Returns:
+    A `ConstantNumericColumn`.
+
+  Raises:
+    TypeError: if any dimension in shape is not an int
+    ValueError: if any dimension in shape is not a positive integer
+    TypeError: if `default_value` is an iterable but not compatible with `shape`
+    TypeError: if `default_value` is not compatible with `dtype`.
+    ValueError: if `dtype` is not convertible to `tf.float32`.
+  """
+  shape = _check_shape(shape, key)
+  if not (dtype.is_integer or dtype.is_floating):
+    raise ValueError('dtype must be convertible to float. '
+                     'dtype: {}, key: {}'.format(dtype, key))
+  default_value = fc_utils.check_default_value(shape, default_value, dtype, key)
+
+  fc_utils.assert_key_is_string(key)
+  return ConstantNumericColumn(
+      feature_name=feature_name,
+      key=key,
+      shape=shape,
+      default_value=default_value,
+      dtype=dtype)
+
+
 def bucketized_column(source_column, boundaries):
   """Represents discretized dense input.
 
@@ -2619,6 +2684,131 @@ def _normalize_feature_columns(feature_columns):
   return sorted(feature_columns, key=lambda x: x.name)
 
 
+class ConstantNumericColumn(
+    DenseColumn,
+    fc_old._DenseColumn,  # pylint: disable=protected-access
+    collections.namedtuple(
+        'ConstantNumericColumn',
+        ('feature_name', 'key', 'shape', 'default_value', 'dtype'))):
+  """see `numeric_column`."""
+
+  @property
+  def _is_v2_column(self):
+    return True
+
+  @property
+  def name(self):
+    """See `FeatureColumn` base class."""
+    return self.feature_name if self.feature_name else self.key
+
+  @property
+  def raw_name(self):
+    """See `FeatureColumn` base class."""
+    return self.key
+
+  @property
+  def parse_example_spec(self):
+    """See `FeatureColumn` base class."""
+    return {
+        self.key:
+            parsing_ops.FixedLenFeature(self.shape, self.dtype,
+                                        self.default_value)
+    }
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _parse_example_spec(self):
+    return self.parse_example_spec
+
+  def _transform_input_tensor(self, input_tensor):
+    shape = [1] + list(self.shape)
+    def_val = 0 if self.default_value is None else self.default_value
+    row = tf.constant(def_val, dtypes.float32, shape)
+    batch_size = tf.shape(input_tensor)[0]
+    return tf.tile(row, [batch_size, 1])
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _transform_feature(self, inputs):
+    input_tensor = inputs.get(self.key)
+    return self._transform_input_tensor(input_tensor)
+
+  def transform_feature(self, transformation_cache, state_manager):
+    """See `FeatureColumn` base class.
+
+    Args:
+      transformation_cache: A `FeatureTransformationCache` object to access
+        features.
+      state_manager: A `StateManager` to create / access resources such as
+        lookup tables.
+
+    Returns:
+      Normalized input tensor.
+
+    Raises:
+      ValueError: If a SparseTensor is passed in.
+    """
+    input_tensor = transformation_cache.get(self.key, state_manager)
+    return self._transform_input_tensor(input_tensor)
+
+  @property
+  def variable_shape(self):
+    """See `DenseColumn` base class."""
+    return tensor_shape.TensorShape(self.shape)
+
+  @property
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _variable_shape(self):
+    return self.variable_shape
+
+  def get_dense_tensor(self, transformation_cache, state_manager):
+    """Returns dense `Tensor` representing numeric feature.
+
+    Args:
+      transformation_cache: A `FeatureTransformationCache` object to access
+        features.
+      state_manager: A `StateManager` to create / access resources such as
+        lookup tables.
+
+    Returns:
+      Dense `Tensor` created within `transform_feature`.
+    """
+    # Feature has been already transformed. Return the intermediate
+    # representation created by _transform_feature.
+    return transformation_cache.get(self, state_manager)
+
+  @deprecation.deprecated(_FEATURE_COLUMN_DEPRECATION_DATE,
+                          _FEATURE_COLUMN_DEPRECATION)
+  def _get_dense_tensor(self, inputs, weight_collections=None, trainable=None):
+    del weight_collections
+    del trainable
+    return inputs.get(self)
+
+  @property
+  def parents(self):
+    """See 'FeatureColumn` base class."""
+    return [self.key]
+
+  def _get_config(self):
+    """See 'FeatureColumn` base class."""
+    config = dict(zip(self._fields, self))
+    config['normalizer_fn'] = utils.serialize_keras_object(self.normalizer_fn)
+    config['dtype'] = self.dtype.name
+    return config
+
+  @classmethod
+  def _from_config(cls, config, custom_objects=None, columns_by_name=None):
+    """See 'FeatureColumn` base class."""
+    _check_config_keys(config, cls._fields)
+    kwargs = config.copy()
+    kwargs['normalizer_fn'] = utils.deserialize_keras_object(
+        config['normalizer_fn'], custom_objects=custom_objects)
+    kwargs['dtype'] = dtypes.as_dtype(config['dtype'])
+    return cls(**kwargs)
+
+
 class NumericColumn(
     DenseColumn,
     fc_old._DenseColumn,  # pylint: disable=protected-access
@@ -3378,6 +3568,40 @@ class EmbeddingColumn(
     return self.categorical_column.raw_name
 
   @property
+  def cardinality(self):
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(
+        fc, SequenceWeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(
+          sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
+
+  @property
   def parse_example_spec(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.parse_example_spec
@@ -3726,6 +3950,40 @@ class SharedEmbeddingColumn(
   def raw_name(self):
     """See `FeatureColumn` base class."""
     return self.categorical_column.raw_name
+
+  @property
+  def cardinality(self):
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(
+        fc, SequenceWeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(
+          sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
 
   @property
   def parse_example_spec(self):
@@ -5193,3 +5451,13 @@ def deserialize_feature_columns(configs, custom_objects=None):
       deserialize_feature_column(c, custom_objects, columns_by_name)
       for c in configs
   ]
+
+
+def is_embedding_column(fc):
+  if isinstance(fc, EmbeddingColumn):
+    return True
+  if isinstance(fc, fc_old._SharedEmbeddingColumn):
+    return True
+  if isinstance(fc, SharedEmbeddingColumn):
+    return True
+  return False

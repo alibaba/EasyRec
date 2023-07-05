@@ -3,7 +3,8 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/tower.proto";
-import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/cmbf.proto";
+import "easy_rec/python/protos/uniter.proto";
 
 message DBMTL {
     // shared bottom cmbf layer
@@ -20,4 +21,9 @@ message DBMTL {
     repeated BayesTaskTower task_towers = 4;
     // l2 regularization
     optional float l2_regularization = 5 [default = 1e-4];
+
+    // Whether to use self supervised learning
+    required bool use_self_supervised_learning = 9 [default = false];
+    optional float ssl_loss_weight = 10 [default = 1.0];
+    optional float ssl_loss_temperature = 11 [default = 0.1];
 }

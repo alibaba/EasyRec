@@ -177,7 +177,8 @@ def _internal_input_layer(features,
                           scope=None,
                           cols_to_output_tensors=None,
                           from_template=False,
-                          feature_name_to_output_tensors=None):
+                          feature_name_to_output_tensors=None,
+                          sort_feature_columns_by_name=True):
   """See input_layer, `scope` is a name or variable scope to use."""
   feature_columns = _normalize_feature_columns(feature_columns)
   for column in feature_columns:
@@ -195,9 +196,11 @@ def _internal_input_layer(features,
   def _get_logits():  # pylint: disable=missing-docstring
     builder = _LazyBuilder(features)
     output_tensors = []
-    ordered_columns = []
-    for column in sorted(feature_columns, key=lambda x: x.name):
-      ordered_columns.append(column)
+    if sort_feature_columns_by_name:
+      ordered_columns = sorted(feature_columns, key=lambda x: x.name)
+    else:
+      ordered_columns = feature_columns
+    for column in ordered_columns:
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         tensor = column._get_dense_tensor(  # pylint: disable=protected-access
@@ -239,7 +242,8 @@ def input_layer(features,
                 trainable=True,
                 cols_to_vars=None,
                 cols_to_output_tensors=None,
-                feature_name_to_output_tensors=None):
+                feature_name_to_output_tensors=None,
+                sort_feature_columns_by_name=True):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -287,6 +291,7 @@ def input_layer(features,
     cols_to_output_tensors: If not `None`, must be a dictionary that will be
       filled with a mapping from '_FeatureColumn' to the associated
       output `Tensor`s.
+    sort_feature_columns_by_name: whether to sort feature columns
 
   Returns:
     A `Tensor` which represents input layer of a model. Its shape
@@ -303,7 +308,8 @@ def input_layer(features,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
       cols_to_output_tensors=cols_to_output_tensors,
-      feature_name_to_output_tensors=feature_name_to_output_tensors)
+      feature_name_to_output_tensors=feature_name_to_output_tensors,
+      sort_feature_columns_by_name=sort_feature_columns_by_name)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it
@@ -2530,7 +2536,46 @@ class _SharedEmbeddingColumn(
 
   @property
   def raw_name(self):
-    return self.categorical_column.name
+    return self.categorical_column.raw_name
+
+  @property
+  def cardinality(self):
+    from easy_rec.python.compat.feature_column.feature_column_v2 import HashedCategoricalColumn, \
+        BucketizedColumn, WeightedCategoricalColumn, SequenceWeightedCategoricalColumn, \
+        CrossedColumn, IdentityCategoricalColumn, VocabularyListCategoricalColumn, \
+        VocabularyFileCategoricalColumn
+
+    fc = self.categorical_column
+    if isinstance(fc, HashedCategoricalColumn) or isinstance(fc, CrossedColumn):
+      return fc.hash_bucket_size
+
+    if isinstance(fc, IdentityCategoricalColumn):
+      return fc.num_buckets
+
+    if isinstance(fc, BucketizedColumn):
+      return len(fc.boundaries) + 1
+
+    if isinstance(fc, VocabularyListCategoricalColumn):
+      return len(fc.vocabulary_list) + fc.num_oov_buckets
+
+    if isinstance(fc, VocabularyFileCategoricalColumn):
+      return len(fc.vocabulary_size) + fc.num_oov_buckets
+
+    if isinstance(fc, WeightedCategoricalColumn) or isinstance(
+        fc, SequenceWeightedCategoricalColumn):
+      sub_fc = fc.categorical_column
+      if isinstance(sub_fc, HashedCategoricalColumn) or isinstance(
+          sub_fc, CrossedColumn):
+        return sub_fc.hash_bucket_size
+      if isinstance(sub_fc, IdentityCategoricalColumn):
+        return sub_fc.num_buckets
+      if isinstance(sub_fc, VocabularyListCategoricalColumn):
+        return len(sub_fc.vocabulary_list) + fc.num_oov_buckets
+      if isinstance(sub_fc, VocabularyFileCategoricalColumn):
+        return len(sub_fc.vocabulary_size) + fc.num_oov_buckets
+      if isinstance(sub_fc, BucketizedColumn):
+        return len(sub_fc.boundaries) + 1
+    return 1
 
   @property
   def _var_scope_name(self):
@@ -2605,7 +2650,7 @@ class _SharedEmbeddingColumn(
           # get zero embedding
           import os
           if os.environ.get('tf.estimator.mode', '') != \
-             os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
+              os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
             initializer = init_ops.zeros_initializer()
           else:
             initializer = self.initializer

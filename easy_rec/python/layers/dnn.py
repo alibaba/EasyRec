@@ -18,7 +18,8 @@ class DNN:
                name='dnn',
                is_training=False,
                last_layer_no_activation=False,
-               last_layer_no_batch_norm=False):
+               last_layer_no_batch_norm=False,
+               reuse=None):
     """Initializes a `DNN` Layer.
 
     Args:
@@ -28,6 +29,7 @@ class DNN:
       is_training: train phase or not, impact batch_norm and dropout
       last_layer_no_activation: in last layer, use or not use activation
       last_layer_no_batch_norm: in last layer, use or not use batch norm
+      reuse: Boolean, whether to reuse the weights of a previous layer by the same name.
     """
     self._config = dnn_config
     self._l2_reg = l2_reg
@@ -38,6 +40,7 @@ class DNN:
         self._config.activation, training=is_training)
     self._last_layer_no_activation = last_layer_no_activation
     self._last_layer_no_batch_norm = last_layer_no_batch_norm
+    self._reuse = reuse
 
   @property
   def hidden_units(self):
@@ -59,14 +62,16 @@ class DNN:
           units=unit,
           kernel_regularizer=self._l2_reg,
           activation=None,
-          name='%s/dnn_%d' % (self._name, i))
+          name='%s/dnn_%d' % (self._name, i),
+          reuse=self._reuse)
       if self._config.use_bn and ((i + 1 < hidden_units_len) or
                                   not self._last_layer_no_batch_norm):
         deep_fea = tf.layers.batch_normalization(
             deep_fea,
             training=self._is_training,
             trainable=True,
-            name='%s/dnn_%d/bn' % (self._name, i))
+            name='%s/dnn_%d/bn' % (self._name, i),
+            reuse=self._reuse)
       if (i + 1 < hidden_units_len) or not self._last_layer_no_activation:
         deep_fea = self.activation(
             deep_fea, name='%s/dnn_%d/act' % (self._name, i))

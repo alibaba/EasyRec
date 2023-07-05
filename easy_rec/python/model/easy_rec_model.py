@@ -12,6 +12,7 @@ from tensorflow.python.ops.variables import PartitionedVariable
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
@@ -36,6 +37,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
+    self._is_predicting = labels is None
     self._feature_dict = features
 
     # embedding variable parameters
@@ -46,7 +48,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
-    self._wide_output_dim = -1
+    self._wide_output_dim = self.get_wide_output_dim()
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)
@@ -59,6 +61,35 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._sample_weight = 1.0
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
+
+    # self._sequence_encoder = SequenceEncoder(self._input_layer, feature_configs,
+    #                                          model_config.feature_groups,
+    #                                          self._l2_reg)
+    # self._sequence_encoding_by_group_name = {}
+    self._backbone_output = None
+    if model_config.HasField('backbone'):
+      self._backbone = Backbone(
+          model_config.backbone,
+          features,
+          input_layer=self._input_layer,
+          l2_reg=self._l2_reg)
+    else:
+      self._backbone = None
+
+  @property
+  def has_backbone(self):
+    return self._base_model_config.HasField('backbone')
+
+  @property
+  def backbone(self):
+    if self._backbone_output:
+      return self._backbone_output
+    if self._backbone:
+      self._backbone_output = self._backbone(self._is_training)
+      loss_dict = self._backbone.loss_dict
+      self._loss_dict.update(loss_dict)
+      return self._backbone_output
+    return None
 
   @property
   def embedding_regularization(self):
@@ -87,6 +118,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       l2_regularization = model_config.l2_regularization
     return l2_regularization
 
+  def get_wide_output_dim(self):
+    model_config = getattr(self._base_model_config,
+                           self._base_model_config.WhichOneof('model'))
+    if hasattr(model_config, 'wide_output_dim'):
+      return model_config.wide_output_dim
+    return -1
+
   def build_input_layer(self, model_config, feature_configs):
     self._input_layer = input_layer.InputLayer(
         feature_configs,
@@ -97,7 +135,53 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=self._is_training)
+        is_training=self._is_training,
+        is_predicting=self._is_predicting)
+
+  # def get_sequence_encoding(self, group_name=None, is_training=True):
+  #   if group_name is not None:
+  #     if group_name in self._sequence_encoding_by_group_name:
+  #       return self._sequence_encoding_by_group_name[group_name]
+  #     encoding = self._sequence_encoder(
+  #         self._feature_dict,
+  #         group_name,
+  #         is_training,
+  #         loss_dict=self._loss_dict)
+  #     self._sequence_encoding_by_group_name[group_name] = encoding
+  #     return encoding
+  #
+  #   seq_encoding = []
+  #   for group in self.feature_groups:
+  #     if len(group.sequence_encoders) == 0:
+  #       continue
+  #     group_name = group.group_name
+  #     if group_name in self._sequence_encoding_by_group_name:
+  #       encoding = self._sequence_encoding_by_group_name[group_name]
+  #     else:
+  #       encoding = self._sequence_encoder(
+  #           self._feature_dict,
+  #           group_name,
+  #           is_training,
+  #           loss_dict=self._loss_dict)
+  #       self._sequence_encoding_by_group_name[group_name] = encoding
+  #     if encoding is not None:
+  #       seq_encoding.append(encoding)
+  #
+  #   if len(seq_encoding) > 1:
+  #     encoding = tf.concat(seq_encoding, axis=-1)
+  #   elif len(seq_encoding) == 1:
+  #     encoding = seq_encoding[0]
+  #   else:
+  #     return None
+  #
+  #   # if self._base_model_config.HasField('sequence_dnn'):
+  #   #   sequence_dnn = dnn.DNN(
+  #   #       self._base_model_config.sequence_dnn,
+  #   #       self._l2_reg,
+  #   #       name='sequence_dnn',
+  #   #       is_training=self._is_training)
+  #   #   encoding = sequence_dnn(encoding)
+  #   return encoding
 
   @abstractmethod
   def build_predict_graph(self):

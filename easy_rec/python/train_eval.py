@@ -95,7 +95,11 @@ if __name__ == '__main__':
       help='is use check mode')
   parser.add_argument(
       '--selected_cols', type=str, default=None, help='select input columns')
+  parser.add_argument('--gpu', type=str, default=None, help='gpu id')
   args, extra_args = parser.parse_known_args()
+
+  if args.gpu is not None:
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
   edit_config_json = {}
   if args.edit_config_json:

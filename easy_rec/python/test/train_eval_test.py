@@ -306,6 +306,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/bst_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  # def test_bst_contrastive_learning(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/bst_cl_on_taobao.config', self._test_dir)
+  #   self.assertTrue(self._success)
+
   def test_dcn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dcn_on_taobao.config', self._test_dir)
@@ -955,6 +960,7 @@ class TrainEvalTest(tf.test.TestCase):
 
   def test_distribute_eval_deepfm_single_cls(self):
     cur_eval_path = 'data/test/distribute_eval_test/dwd_distribute_eval_avazu_out_test_combo'
+    #cur_eval_path = '/Users/weisu.yxd/Code/EasyRec/experiments/distribute_eval_test/dwd_distribute_eval_avazu_out_test_combo'
     self._success = test_utils.test_distributed_eval(
         'samples/model_config/deepfm_distribute_eval_combo_on_avazu_ctr.config',
         cur_eval_path, self._test_dir)

@@ -222,6 +222,9 @@ class PredictorImpl(object):
               logging.info('Load input binding: %s -> %s' % (name, tensor.name))
               input_name = tensor.name
               input_name, _ = input_name.split(':')
+              input_op = self._graph.get_operation_by_name(input_name)
+              if input_op.type == 'PlaceholderWithDefault':
+                continue
               try:
                 input_id = input_name.split('_')[-1]
                 input_id = int(input_id)

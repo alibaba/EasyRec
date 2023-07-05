@@ -1,6 +1,7 @@
 syntax = "proto2";
 package protos;
 
+import "easy_rec/python/protos/backbone.proto";
 import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
 import "easy_rec/python/protos/wide_and_deep.proto";
@@ -24,9 +25,16 @@ import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
+
 // for input performance test
 message DummyModel {
+}
 
+// configure backbone network in a free style way
+message RankModel {
+  optional float l2_regularization = 1;
+  optional uint32 wide_output_dim = 2;
+  // optional bool add_head_logits_layer = 3 [default=true];
 }
 
 // for knowledge distillation
@@ -44,10 +52,10 @@ message KD {
   optional float loss_weight = 4 [default=1.0];
   // only for loss_type == CROSS_ENTROPY_LOSS
   optional float temperature = 5 [default=1.0];
-
 }
 
 message EasyRecModel {
+    required string model_name = 99;
     required string model_class = 1;
 
     // actually input layers, each layer produce a group of feature
@@ -55,6 +63,7 @@ message EasyRecModel {
 
     // model parameters
     oneof model {
+        RankModel rank_model = 100;
         DummyModel dummy = 101;
         WideAndDeep wide_and_deep = 102;
         DeepFM deepfm = 103;
@@ -102,4 +111,12 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
+    enum LossWeightStrategy {
+        Fixed = 0;
+        Uncertainty = 1;
+        Random = 2;
+    }
+    required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
+
+    optional BackboneTower backbone = 17;
 }
