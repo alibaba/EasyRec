@@ -336,28 +336,46 @@ class Input(six.with_metaclass(_meta_type, object)):
     # for compatibility with existing implementations
     feature_name = fc.feature_name if fc.HasField(
         'feature_name') else fc.input_names[0]
-    if fc.cross_separator == '':
+
+    if len(fc.combo_input_seps) > 0:
+      assert len(fc.combo_input_seps) == len(fc.input_names), \
+          'len(combo_separator)[%d] != len(fc.input_names)[%d]' % (
+          len(fc.combo_input_seps), len(fc.input_names))
+
+    def _get_input_sep(input_id):
+      if input_id < len(fc.combo_input_seps):
+        return fc.combo_input_seps[input_id]
+      else:
+        return ''
+
+    if len(fc.combo_join_sep) == 0:
       for input_id, input_name in enumerate(fc.input_names):
         if input_id > 0:
           key = feature_name + '_' + str(input_id)
         else:
           key = feature_name
-        if fc.separator != '':
-          parsed_dict[key] = tf.string_split(field_dict[input_name])
+        input_sep = _get_input_sep(input_id)
+        if input_sep != '':
+          parsed_dict[key] = tf.string_split(field_dict[input_name], input_sep)
         else:
           parsed_dict[key] = field_dict[input_name]
     else:
-      if fc.separator != '':
+      if len(fc.combo_input_seps) > 0:
         split_inputs = []
-        for input_name in fc.input_names:
-          split_inputs.append(
-              tf.string_split(field_dict[input_name], fc.separator))
+        for input_id, input_name in enumerate(fc.input_names):
+          input_sep = fc.combo_input_seps[input_id]
+          if len(input_sep) > 0:
+            split_inputs.append(
+                tf.string_split(field_dict[input_name],
+                                fc.combo_input_seps[input_id]))
+          else:
+            split_inputs.append(tf.reshape(field_dict[input_name], [-1, 1]))
         parsed_dict[feature_name] = sparse_ops.sparse_cross(
-            split_inputs, fc.cross_separator)
+            split_inputs, fc.combo_join_sep)
       else:
         inputs = [field_dict[input_name] for input_name in fc.input_names]
         parsed_dict[feature_name] = string_ops.string_join(
-            inputs, fc.cross_separator)
+            inputs, fc.combo_join_sep)
 
   def _parse_tag_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]

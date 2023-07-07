@@ -426,7 +426,7 @@ class FeatureColumnParser(object):
         else None
     assert len(config.input_names) >= 2
 
-    if config.cross_separator == '':
+    if len(config.combo_join_sep) == 0:
       input_names = []
       for input_id in range(len(config.input_names)):
         if input_id == 0:

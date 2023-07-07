@@ -131,9 +131,11 @@ message FeatureConfig {
     // for combo feature:
     //   if not set, use cross_column
     //   otherwise, the input features are first joined
-    //     and then handled like TagFeature
-    optional string cross_separator = 401 [default = ''];
-
+    //     and then passed to categorical_column
+    optional string combo_join_sep = 401 [default = ''];
+    // separator for each inputs
+    // if not set, combo inputs will not be split
+    repeated string combo_input_seps = 402;
 }
 
 message FeatureConfigV2 {
