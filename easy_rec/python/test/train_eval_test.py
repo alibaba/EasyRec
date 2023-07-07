@@ -51,6 +51,18 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/deepfm_combo_on_avazu_ctr.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_deepfm_with_combo_v2_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_v2_on_avazu_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_combo_v3_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_v3_on_avazu_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_deepfm_freeze_gradient(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_freeze_gradient.config', self._test_dir)

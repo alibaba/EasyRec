@@ -10,7 +10,9 @@ eval_config {
   }
 }
 ```
+
 当转化率很低（万分之3左右）的时候，可以在auc中再设置一个参数num_thresholds：
+
 ```sql
 auc {
   num_thresholds: 10000

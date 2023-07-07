@@ -127,6 +127,13 @@ message FeatureConfig {
 
     // embedding variable params
     optional EVParams ev_params = 31;
+
+    // for combo feature:
+    //   if not set, use cross_column
+    //   otherwise, the input features are first joined
+    //     and then handled like TagFeature
+    optional string cross_separator = 401 [default = ''];
+
 }
 
 message FeatureConfigV2 {
