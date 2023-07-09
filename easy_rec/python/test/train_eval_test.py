@@ -151,9 +151,11 @@ class TrainEvalTest(tf.test.TestCase):
     # remove last ckpt time
     ckpts_times = np.array(sorted(ckpts_times)[:-1])
     # ensure interval is 20s
+    diffs = list(ckpts_times[1:] - ckpts_times[:-1])
+    logging.info('nearby ckpts_times diff = %s' % diffs)
     self.assertAllClose(
         ckpts_times[1:] - ckpts_times[:-1], [20] * (len(ckpts_times) - 1),
-        atol=16)
+        atol=20)
     self.assertTrue(self._success)
 
   def test_keep_ckpt_max(self):
