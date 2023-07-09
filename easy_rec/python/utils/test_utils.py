@@ -16,6 +16,7 @@ import shutil
 import string
 import subprocess
 import time
+import six
 from multiprocessing import Process
 from subprocess import getstatusoutput
 from tensorflow.python.platform import gfile
@@ -27,7 +28,8 @@ from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
-TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1200))
+# parallel run of tests could take more time
+TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1800))
 
 
 def get_hdfs_tmp_dir(test_dir):
@@ -45,6 +47,8 @@ def proc_wait(proc, timeout=1200):
   while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1)
   if proc.poll() is None:
+    logging.warning('proc[pid=%d] timeout[%d], will kill the proc' %
+                    (proc.pid, timeout))
     proc.terminate()
   while proc.poll() is None:
     time.sleep(1)
@@ -95,8 +99,12 @@ def run_cmd(cmd_str, log_file, env=None):
   cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
   logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True, env=env)
+    if six.PY2:
+      # for debug purpose
+      proc.args = cmd_str
+    return proc
 
 
 def RunAsSubprocess(f):
@@ -224,7 +232,9 @@ def test_datahub_train_eval(pipeline_config_path,
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
-    logging.error('train %s failed' % test_pipeline_config_path)
+    logging.warning(
+        'train %s failed[pid=%d][code=%d][args=%s]' %
+        (test_pipeline_config_path, proc.pid, proc.returncode, proc.args))
     return False
   if post_check_func:
     return post_check_func(pipeline_config)
