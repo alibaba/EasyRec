@@ -25,6 +25,18 @@ python setup.py install
 
 Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
 
+##### 方法一：拉取已上传的镜像（推荐）
+
+```bash
+git clone https://github.com/alibaba/EasyRec.git
+cd EasyRec
+docker pull mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
+docker exec -it <CONTAINER_ID> bash
+```
+
+##### 方法二：自行构建Docker镜像
+
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
@@ -32,6 +44,8 @@ bash scripts/build_docker.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
 sudo docker exec -it <CONTAINER_ID> bash
 ```
+
+注：<easyrec_version>需匹配当前EasyRec版本。
 
 ### 输入数据:
 
