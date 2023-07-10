@@ -402,7 +402,7 @@ class Input(six.with_metaclass(_meta_type, object)):
             split_inputs, fc.combo_join_sep)
       else:
         inputs = [
-            self._as_string(field_dict[input_name])
+            self._as_string(field_dict[input_name], fc)
             for input_name in fc.input_names
         ]
         parsed_dict[feature_name] = string_ops.string_join(
