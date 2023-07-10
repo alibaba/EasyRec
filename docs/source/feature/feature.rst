@@ -373,6 +373,8 @@ ComboFeature：组合特征
    来自data\_config.input\_fields.input\_name
 -  embedding\_dim: embedding的维度，同IdFeature
 -  hash\_bucket\_size: hash bucket的大小
+-  combo_join_sep: 连接多个特征的分隔符, 如age是20, sex是'F', combo_join_sep是'X', 那么产生的特征是'20_X_F'
+-  combo_input_seps: 分隔符数组, 对应每个输入(input_names)的分隔符, 如果不需要分割, 填空字符串''; 如果所有的输入都不需要分割, 可以不设置
 
 
 ExprFeature：表达式特征
