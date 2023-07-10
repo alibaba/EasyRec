@@ -24,6 +24,11 @@ try:
 except Exception:
   gl = None
 
+try:
+  import horovod as hvd
+except Exception:
+  hvd = None
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -1037,6 +1042,14 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_horovod(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_ctr.config',
+        self._test_dir,
+        use_hvd=True)
     self.assertTrue(self._success)
 
 
