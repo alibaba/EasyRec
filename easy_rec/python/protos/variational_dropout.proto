@@ -2,7 +2,7 @@ syntax = "proto2";
 package protos;
 
 
-message VariationalDropoutLayer {
+message  VariationalDropoutLayer{
     // regularization coefficient lambda
     optional float regularization_lambda = 1 [default = 0.01];
     // variational_dropout dimension

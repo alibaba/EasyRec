@@ -4,15 +4,6 @@ package protos;
 import "easy_rec/python/protos/dnn.proto";
 
 
-message SequenceEncoder {
-    // encoder parameters
-    oneof encoder {
-        BSTEncoder bst = 101;
-        DINEncoder din = 102;
-    }
-    required bool force_share_embeddings = 1 [default = true];
-}
-
 message BSTEncoder {
     // Size of the encoder layers and the pooler layer
     required uint32 hidden_size = 1;
@@ -34,12 +25,6 @@ message BSTEncoder {
     required bool use_position_embeddings = 9 [default = true];
     // The stddev of the truncated_normal_initializer for initializing all weight matrices
     required float initializer_range = 10 [default = 0.02];
-    // need contrastive learning
-    required bool need_contrastive_learning = 11 [default = false];
-    // the weight of contrastive learning loss
-    optional float contrastive_loss_weight = 12 [default = 1.0];
-    // whether need auto learn contrastive loss weight
-    optional bool auto_contrastive_loss_weight = 13 [default = false];
 }
 
 message DINEncoder {
