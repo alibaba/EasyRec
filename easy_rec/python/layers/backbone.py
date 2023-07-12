@@ -96,7 +96,9 @@ class Package(object):
 
     if len(config.concat_blocks) == 0:
       leaf = self._dag.all_leaves()
-      logging.warning("%s has no `concat_blocks`, try to use all leaf blocks: %s" % (config.name, ','.join(leaf)))
+      logging.warning(
+          '%s has no `concat_blocks`, try to use all leaf blocks: %s' %
+          (config.name, ','.join(leaf)))
       self._config.concat_blocks.extend(leaf)
 
     Package.__packages[self._config.name] = self
@@ -119,7 +121,7 @@ class Package(object):
         raise KeyError('input name `%s` does not exists' % input_name)
 
       if input_node.HasField('input_slice'):
-        fn = 'lambda x: x' + input_node.input_slice.strip()
+        fn = eval('lambda x: x' + input_node.input_slice.strip())
         input_feature = fn(input_feature)
       if input_node.HasField('input_fn'):
         fn = eval(input_node.input_fn)
@@ -318,7 +320,8 @@ def merge_inputs(inputs, axis=-1, msg=''):
 
   if any(map(lambda x: type(x) == list, inputs)):
     logging.warning('%s: try to merge inputs into list' % msg)
-    return reduce(lambda x, y: x + y, [e if type(e) == list else [e] for e in inputs])
+    return reduce(lambda x, y: x + y,
+                  [e if type(e) == list else [e] for e in inputs])
 
   if axis != -1:
     logging.info('concat inputs %s axis=%d' % (msg, axis))
