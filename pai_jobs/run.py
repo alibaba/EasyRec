@@ -166,6 +166,8 @@ tf.app.flags.DEFINE_integer('oss_write_kv', 1,
 tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
 
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
+tf.app.flags.DEFINE_bool('place_embedding_on_cpu', False,
+                         'whether to place embedding variables on cpu')
 
 # for automl hyper parameter tuning
 tf.app.flags.DEFINE_string('model_dir', None, 'model directory')
@@ -434,7 +436,10 @@ def main(argv):
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')
-
+    if FLAGS.place_embedding_on_cpu:
+      os.environ['place_embedding_on_cpu'] = 'True'
+    else:
+      os.environ['place_embedding_on_cpu'] = 'False'
     redis_params = {}
     if FLAGS.redis_url:
       redis_params['redis_url'] = FLAGS.redis_url
