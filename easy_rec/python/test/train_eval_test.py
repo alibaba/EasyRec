@@ -315,6 +315,12 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/fm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_place_embed_on_cpu(self):
+    os.environ['place_embedding_on_cpu'] = 'True'
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_din(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/din_on_taobao.config', self._test_dir)
