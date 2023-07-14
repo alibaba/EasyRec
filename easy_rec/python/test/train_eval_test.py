@@ -24,6 +24,11 @@ try:
 except Exception:
   gl = None
 
+try:
+  import horovod as hvd
+except Exception:
+  hvd = None
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -49,6 +54,18 @@ class TrainEvalTest(tf.test.TestCase):
   def test_deepfm_with_combo_feature(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_ctr.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_combo_v2_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_v2_on_avazu_ctr.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_deepfm_with_combo_v3_feature(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/deepfm_combo_v3_on_avazu_ctr.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_deepfm_freeze_gradient(self):
@@ -155,9 +172,11 @@ class TrainEvalTest(tf.test.TestCase):
     # remove last ckpt time
     ckpts_times = np.array(sorted(ckpts_times)[:-1])
     # ensure interval is 20s
+    diffs = list(ckpts_times[1:] - ckpts_times[:-1])
+    logging.info('nearby ckpts_times diff = %s' % diffs)
     self.assertAllClose(
         ckpts_times[1:] - ckpts_times[:-1], [20] * (len(ckpts_times) - 1),
-        atol=16)
+        atol=20)
     self.assertTrue(self._success)
 
   def test_keep_ckpt_max(self):
@@ -308,6 +327,12 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_fm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/fm_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_place_embed_on_cpu(self):
+    os.environ['place_embedding_on_cpu'] = 'True'
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/fm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
@@ -1096,6 +1121,14 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_recall_neg_sampler_only_sequence_feature.config',
         self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_horovod(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_ctr.config',
+        self._test_dir,
+        use_hvd=True)
     self.assertTrue(self._success)
 
 

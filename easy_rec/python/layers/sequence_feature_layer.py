@@ -1,10 +1,12 @@
 import logging
+import os
 
 import tensorflow as tf
-
+from tensorflow.python.framework import ops
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import seq_input_layer
+from easy_rec.python.utils import conditional
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -18,7 +20,8 @@ class SequenceFeatureLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
-               is_training=False):
+               is_training=False,
+               is_predicting=False):
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -33,6 +36,7 @@ class SequenceFeatureLayer(object):
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
+    self._is_predicting = is_predicting
 
   def negative_sampler_target_attention(self,
                                         dnn_config,
@@ -199,9 +203,14 @@ class SequenceFeatureLayer(object):
       need_key_feature = seq_att_map_config.need_key_feature
       allow_key_transform = seq_att_map_config.allow_key_transform
       transform_dnn = seq_att_map_config.transform_dnn
-      seq_features = self._seq_input_layer(features, group_name,
-                                           feature_name_to_output_tensors,
-                                           allow_key_search, scope_name)
+
+      place_on_cpu = os.getenv('place_embedding_on_cpu')
+      place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+      with conditional(self._is_predicting and place_on_cpu,
+                       ops.device('/CPU:0')):
+        seq_features = self._seq_input_layer(features, group_name,
+                                             feature_name_to_output_tensors,
+                                             allow_key_search, scope_name)
 
       # apply regularization for sequence feature key in seq_input_layer.
 

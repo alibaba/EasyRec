@@ -32,6 +32,11 @@ from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
 
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
+
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
   from tensorflow.core.protobuf import config_pb2
@@ -97,6 +102,16 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=False)
+
+  if hvd is not None:
+    gpus = estimator_utils.get_available_gpus()
+    if len(gpus) > 0:
+      local_rnk = hvd.local_rank()
+      num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+      sid = local_rnk * num_gpus_per_worker
+      eid = sid + num_gpus_per_worker
+      gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+
   session_config = ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,

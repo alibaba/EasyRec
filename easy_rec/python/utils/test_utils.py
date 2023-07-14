@@ -16,6 +16,7 @@ import shutil
 import string
 import subprocess
 import time
+import six
 from multiprocessing import Process
 from subprocess import getstatusoutput
 from tensorflow.python.platform import gfile
@@ -27,7 +28,8 @@ from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
-TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1200))
+# parallel run of tests could take more time
+TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1800))
 
 
 def get_hdfs_tmp_dir(test_dir):
@@ -45,6 +47,8 @@ def proc_wait(proc, timeout=1200):
   while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1)
   if proc.poll() is None:
+    logging.warning('proc[pid=%d] timeout[%d], will kill the proc' %
+                    (proc.pid, timeout))
     proc.terminate()
   while proc.poll() is None:
     time.sleep(1)
@@ -95,8 +99,12 @@ def run_cmd(cmd_str, log_file, env=None):
   cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
   logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True, env=env)
+    if six.PY2:
+      # for debug purpose
+      proc.args = cmd_str
+    return proc
 
 
 def RunAsSubprocess(f):
@@ -224,7 +232,9 @@ def test_datahub_train_eval(pipeline_config_path,
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
-    logging.error('train %s failed' % test_pipeline_config_path)
+    logging.warning(
+        'train %s failed[pid=%d][code=%d][args=%s]' %
+        (test_pipeline_config_path, proc.pid, proc.returncode, proc.args))
     return False
   if post_check_func:
     return post_check_func(pipeline_config)
@@ -633,16 +643,38 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
   return procs
 
 
+def _multi_worker_hvd_train(pipeline_config_path, test_dir, num_worker):
+  gpus = get_available_gpus()
+  # not enough gpus, run on cpu only
+  if len(gpus) < num_worker:
+    gpus = ''
+  else:
+    gpus = ','.join(gpus)
+  set_gpu_id(gpus)
+  ports = _get_ports(num_worker)
+  hosts = ','.join(['localhost:%d' % ports[i] for i in range(num_worker)])
+  train_cmd = 'horovodrun -np %d --hosts %s python -m easy_rec.python.train_eval --pipeline_config_path %s' % (
+      num_worker, hosts, pipeline_config_path)
+  proc = run_cmd(train_cmd, '%s/log_hvd.txt' % test_dir)
+  proc_wait(proc, timeout=1200)
+  return proc.returncode == 0
+
+
 def test_distributed_train_eval(pipeline_config_path,
                                 test_dir,
                                 total_steps=50,
                                 num_evaluator=0,
-                                edit_config_json=None):
+                                edit_config_json=None,
+                                use_hvd=False):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps)
   if edit_config_json is not None:
     config_util.edit_config(pipeline_config, edit_config_json)
+
+  if use_hvd:
+    pipeline_config.train_config.sync_replicas = False
+    pipeline_config.train_config.train_distribute = DistributionStrategy.HorovodStrategy
 
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
@@ -651,6 +683,8 @@ def test_distributed_train_eval(pipeline_config_path,
   task_failed = None
   procs = None
   try:
+    if use_hvd:
+      return _multi_worker_hvd_train(test_pipeline_config_path, test_dir, 2)
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
       procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker,

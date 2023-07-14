@@ -8,6 +8,8 @@ from collections import OrderedDict
 import six
 import tensorflow as tf
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import sparse_ops
+from tensorflow.python.ops import string_ops
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
@@ -333,6 +335,82 @@ class Input(six.with_metaclass(_meta_type, object)):
          labels[x].get_shape()[1] == 1 else labels[x]) for x in labels
     ])
 
+  def _as_string(self, field, fc):
+    if field.dtype == tf.string:
+      return field
+    if field.dtype in [tf.float32, tf.double]:
+      feature_name = fc.feature_name if fc.HasField(
+          'feature_name') else fc.input_names[0]
+      assert fc.precision > 0, 'fc.precision not set for feature[%s], it is dangerous to convert ' \
+                               'float or double to string due to precision problem, it is suggested ' \
+                               ' to convert them into string format before using EasyRec; ' \
+                               'if you really need to do so, please set precision (the number of ' \
+                               'decimal digits) carefully.' % feature_name
+    precision = None
+    if field.dtype in [tf.float32, tf.double]:
+      if fc.precision > 0:
+        precision = fc.precision
+
+    # convert to string
+    if 'as_string' in dir(tf.strings):
+      return tf.strings.as_string(field, precision=precision)
+    else:
+      return tf.as_string(field, precision=precision)
+
+  def _parse_combo_feature(self, fc, parsed_dict, field_dict):
+    # for compatibility with existing implementations
+    feature_name = fc.feature_name if fc.HasField(
+        'feature_name') else fc.input_names[0]
+
+    if len(fc.combo_input_seps) > 0:
+      assert len(fc.combo_input_seps) == len(fc.input_names), \
+          'len(combo_separator)[%d] != len(fc.input_names)[%d]' % (
+          len(fc.combo_input_seps), len(fc.input_names))
+
+    def _get_input_sep(input_id):
+      if input_id < len(fc.combo_input_seps):
+        return fc.combo_input_seps[input_id]
+      else:
+        return ''
+
+    if len(fc.combo_join_sep) == 0:
+      for input_id, input_name in enumerate(fc.input_names):
+        if input_id > 0:
+          key = feature_name + '_' + str(input_id)
+        else:
+          key = feature_name
+        input_sep = _get_input_sep(input_id)
+        if input_sep != '':
+          assert field_dict[
+              input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
+                  input_name, field_dict[input_name].dtype)
+          parsed_dict[key] = tf.string_split(field_dict[input_name], input_sep)
+        else:
+          parsed_dict[key] = self._as_string(field_dict[input_name], fc)
+    else:
+      if len(fc.combo_input_seps) > 0:
+        split_inputs = []
+        for input_id, input_name in enumerate(fc.input_names):
+          input_sep = fc.combo_input_seps[input_id]
+          if len(input_sep) > 0:
+            assert field_dict[
+                input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
+                    input_name, field_dict[input_name].dtype)
+            split_inputs.append(
+                tf.string_split(field_dict[input_name],
+                                fc.combo_input_seps[input_id]))
+          else:
+            split_inputs.append(tf.reshape(field_dict[input_name], [-1, 1]))
+        parsed_dict[feature_name] = sparse_ops.sparse_cross(
+            split_inputs, fc.combo_join_sep)
+      else:
+        inputs = [
+            self._as_string(field_dict[input_name], fc)
+            for input_name in fc.input_names
+        ]
+        parsed_dict[feature_name] = string_ops.string_join(
+            inputs, fc.combo_join_sep)
+
   def _parse_tag_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
@@ -444,24 +522,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     parsed_dict[feature_name] = field_dict[input_0]
     if fc.HasField('hash_bucket_size'):
       if field_dict[input_0].dtype != tf.string:
-        if field_dict[input_0].dtype in [tf.float32, tf.double]:
-          assert fc.precision > 0, 'it is dangerous to convert float or double to string due to ' \
-                                   'precision problem, it is suggested to convert them into string ' \
-                                   'format during feature generalization before using EasyRec; ' \
-                                   'if you really need to do so, please set precision (the number of ' \
-                                   'decimal digits) carefully.'
-        precision = None
-        if field_dict[input_0].dtype in [tf.float32, tf.double]:
-          if fc.precision > 0:
-            precision = fc.precision
-        # convert to string
-
-        if 'as_string' in dir(tf.strings):
-          parsed_dict[feature_name] = tf.strings.as_string(
-              field_dict[input_0], precision=precision)
-        else:
-          parsed_dict[feature_name] = tf.as_string(
-              field_dict[input_0], precision=precision)
+        parsed_dict[feature_name] = self._as_string(field_dict[input_0], fc)
     elif fc.num_buckets > 0:
       if parsed_dict[feature_name].dtype == tf.string:
         check_list = [
@@ -782,6 +843,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         self._parse_id_feature(fc, parsed_dict, field_dict)
       elif feature_type == fc.ExprFeature:
         self._parse_expr_feature(fc, parsed_dict, field_dict)
+      elif feature_type == fc.ComboFeature:
+        self._parse_combo_feature(fc, parsed_dict, field_dict)
       else:
         feature_name = fc.feature_name if fc.HasField(
             'feature_name') else fc.input_names[0]

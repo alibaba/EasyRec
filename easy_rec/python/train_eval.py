@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import _train_and_evaluate_impl
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import ds_util
 from easy_rec.python.utils import estimator_utils
@@ -150,6 +151,9 @@ if __name__ == '__main__':
       set_tf_config_and_get_train_worker_num_on_ds()
       if pipeline_config.train_config.fine_tune_checkpoint:
         ds_util.cache_ckpt(pipeline_config)
+
+    if pipeline_config.train_config.train_distribute == DistributionStrategy.HorovodStrategy:
+      estimator_utils.init_hvd()
 
     if args.hpo_param_path:
       with gfile.GFile(args.hpo_param_path, 'r') as fin:
