@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import os
 from collections import OrderedDict
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope
 
@@ -14,6 +16,7 @@ from easy_rec.python.layers import sequence_feature_layer
 from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.common_layers import text_cnn
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
 
 from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
@@ -36,13 +39,14 @@ class InputLayer(object):
                ev_params=None,
                embedding_regularizer=None,
                kernel_regularizer=None,
-               is_training=False):
+               is_training=False,
+               is_predicting=False):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
         feature_configs, feature_groups_config, ev_params,
-        embedding_regularizer, kernel_regularizer, is_training)
+        embedding_regularizer, kernel_regularizer, is_training, is_predicting)
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -62,6 +66,7 @@ class InputLayer(object):
     self._embedding_regularizer = embedding_regularizer
     self._kernel_regularizer = kernel_regularizer
     self._is_training = is_training
+    self._is_predicting = is_predicting
     self._variational_dropout_config = variational_dropout_config
 
   def has_group(self, group_name):
@@ -92,7 +97,11 @@ class InputLayer(object):
     feature_name_to_output_tensors = {}
     negative_sampler = self._feature_groups[group_name]._config.negative_sampler
     if is_combine:
-      concat_features, group_features = self.single_call_input_layer(
+      place_on_cpu = os.getenv('place_embedding_on_cpu')
+      place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+      with conditional(self._is_predicting and place_on_cpu,
+                       ops.device('/CPU:0')):
+        concat_features, group_features = self.single_call_input_layer(
           features, group_name, feature_name_to_output_tensors)
       if group_name in self._group_name_to_seq_features:
         # for target attention
