@@ -41,7 +41,7 @@ Running Platform:
 ### Simple to config
 
 - Flexible feature config and simple model config
-- [Build models by adding a few components](docs/source/component/backbone.md)
+- [Build models by combining some components](docs/source/component/backbone.md)
 - Efficient and robust feature generation\[used in taobao\]
 - Nice web interface in development
 
@@ -70,7 +70,7 @@ Running Platform:
 ### Easy to customize
 
 - Support [component-based development](docs/source/component/backbone.md)
-- Easy to implement [customized models](docs/source/models/user_define.md)
+- Easy to implement [customized models](docs/source/models/user_define.md) and [components](docs/source/component/backbone.md#id12)
 - Not need to care about data pipelines
 
 ### Fast vector retrieve

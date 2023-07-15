@@ -19,10 +19,7 @@ from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
 
-from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
-from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn  # NOQA
-
-from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
+from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
 
 
 class InputLayer(object):
@@ -132,12 +129,24 @@ class InputLayer(object):
       group_columns, group_seq_columns = feature_group.select_columns(
           self._fc_parser)
 
-      assert len(group_columns) == 0, \
-          'there are none sequence columns: %s' % str(group_columns)
+      embedding_reg_lst = []
+      output_features = None
+      group_features = []
+      if group_columns:
+        cols_to_output_tensors = OrderedDict()
+        output_features = feature_column.input_layer(
+            features,
+            group_columns,
+            cols_to_output_tensors=cols_to_output_tensors,
+            feature_name_to_output_tensors=feature_name_to_output_tensors)
+        group_features = [cols_to_output_tensors[x] for x in group_columns]
+
+        for col, val in cols_to_output_tensors.items():
+          if is_embedding_column(col):
+            embedding_reg_lst.append(val)
 
       builder = feature_column._LazyBuilder(features)
       seq_features = []
-      embedding_reg_lst = []
       for fc in group_seq_columns:
         with variable_scope.variable_scope('input_layer/' +
                                            fc.categorical_column.name):
@@ -149,7 +158,7 @@ class InputLayer(object):
           embedding_reg_lst.append(tmp_embedding)
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
-      return seq_features
+      return seq_features, output_features, group_features
 
   def single_call_input_layer(self,
                               features,
@@ -178,12 +187,8 @@ class InputLayer(object):
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
         feature_name_to_output_tensors=feature_name_to_output_tensors)
-    # embedding_reg_lst = [output_features]
+
     embedding_reg_lst = []
-    for col, val in cols_to_output_tensors.items():
-      if isinstance(col, EmbeddingColumn) or isinstance(col,
-                                                        SharedEmbeddingColumn):
-        embedding_reg_lst.append(val)
     builder = feature_column._LazyBuilder(features)
     seq_features = []
     for column in sorted(group_seq_columns, key=lambda x: x.name):
@@ -243,9 +248,12 @@ class InputLayer(object):
       group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
-      if embedding_reg_lst:
-        regularizers.apply_regularization(
-            self._embedding_regularizer, weights_list=embedding_reg_lst)
+    for fc, val in cols_to_output_tensors.items():
+      if is_embedding_column(fc):
+        embedding_reg_lst.append(val)
+    if embedding_reg_lst:
+      regularizers.apply_regularization(
+        self._embedding_regularizer, weights_list=embedding_reg_lst)
     return concat_features, group_features
 
   def get_wide_deep_dict(self):
