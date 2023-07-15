@@ -109,3 +109,8 @@ def train_and_evaluate(estimator, train_spec, eval_spec):
       fout.write('Train Done.')
 
   return result
+
+
+def estimator_train_done(estimator):
+  train_done_file = os.path.join(estimator.model_dir, 'ESTIMATOR_TRAIN_DONE')
+  return gfile.Exists(train_done_file)

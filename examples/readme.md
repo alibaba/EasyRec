@@ -5,6 +5,7 @@
 这些Demo包含了在公开数据集上针对不同模型做的多种实验，涵盖了推荐系统中的召回任务和排序任务，主要包括数据集下载、预处理、模型配置、训练及评估等过程。
 
 # 安装EasyRec
+
 我们提供了`本地Anaconda安装`和`Docker镜像启动`两种方式。
 
 ## 本地Anaconda安装
@@ -49,7 +50,7 @@ sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry
 sudo docker exec -it <CONTAINER_ID> bash
 ```
 
-注：<easyrec_version>需匹配当前EasyRec版本。
+注：\<easyrec_version>需匹配当前EasyRec版本。
 
 # 准备数据集
 

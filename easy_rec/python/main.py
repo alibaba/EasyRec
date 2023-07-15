@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import time
 
 import six
 import tensorflow as tf
@@ -279,7 +280,9 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
 
 def _train_and_evaluate_impl(pipeline_config,
                              continue_train=False,
-                             check_mode=False):
+                             check_mode=False,
+                             fit_on_eval=False,
+                             fit_on_eval_steps=None):
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
@@ -301,15 +304,12 @@ def _train_and_evaluate_impl(pipeline_config,
   estimator, run_config = _create_estimator(
       pipeline_config, distribution=distribution, params=params)
 
-  master_stat_file = os.path.join(pipeline_config.model_dir, 'master.stat')
   version_file = os.path.join(pipeline_config.model_dir, 'version')
   if estimator_utils.is_chief():
     _check_model_dir(pipeline_config.model_dir, continue_train)
     config_util.save_pipeline_config(pipeline_config, pipeline_config.model_dir)
     with gfile.GFile(version_file, 'w') as f:
       f.write(easy_rec.__version__ + '\n')
-    if gfile.Exists(master_stat_file):
-      gfile.Remove(master_stat_file)
 
   train_steps = None
   if train_config.HasField('num_steps'):
@@ -347,6 +347,24 @@ def _train_and_evaluate_impl(pipeline_config,
   from easy_rec.python.compat import estimator_train
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
+  if fit_on_eval and (not estimator_utils.is_evaluator()):
+    logging.info('Start continue training on eval data')
+    eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
+                                  **input_fn_kwargs)
+    if fit_on_eval_steps is not None:
+      # wait estimator train done to get the correct train_steps
+      while not estimator_train.estimator_train_done(estimator):
+        time.sleep(1)
+      train_steps = estimator_utils.get_trained_steps(estimator.model_dir)
+      logging.info('\ttrain_steps=%d fit_on_eval_steps=%d' %
+                   (train_steps, fit_on_eval_steps))
+      fit_on_eval_steps += train_steps
+    estimator.train(
+        input_fn=eval_input_fn,
+        max_steps=fit_on_eval_steps,
+        hooks=list(train_spec.hooks),
+        saving_listeners=train_spec.saving_listeners)
+    logging.info('Finished training on eval data')
 
 
 def evaluate(pipeline_config,

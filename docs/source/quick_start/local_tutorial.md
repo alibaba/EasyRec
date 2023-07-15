@@ -1,6 +1,7 @@
 # Local Tutorial
 
 ### 安装EasyRec
+
 我们提供了`本地Anaconda安装`和`Docker镜像启动`两种方式。
 
 #### 本地Anaconda安装
@@ -45,7 +46,7 @@ sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry
 sudo docker exec -it <CONTAINER_ID> bash
 ```
 
-注：<easyrec_version>需匹配当前EasyRec版本。
+注：\<easyrec_version>需匹配当前EasyRec版本。
 
 ### 输入数据:
 

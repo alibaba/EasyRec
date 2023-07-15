@@ -922,6 +922,14 @@ def latest_checkpoint(model_dir):
     return None
 
 
+def get_trained_steps(model_dir):
+  ckpt_path = latest_checkpoint(model_dir)
+  if ckpt_path is not None:
+    return int(ckpt_path.split('-')[-1])
+  else:
+    return 0
+
+
 def master_to_chief():
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])

@@ -68,6 +68,16 @@ if __name__ == '__main__':
       default=None,
       help='eval data input path')
   parser.add_argument(
+      'fit_on_eval',
+      type=bool,
+      default=False,
+      help='Fit evaluation data after fitting and evaluating train data')
+  parser.add_argument(
+      'fit_on_eval_steps',
+      type=int,
+      default=None,
+      help='Fit evaluation data steps')
+  parser.add_argument(
       '--fine_tune_checkpoint',
       type=str,
       default=None,
@@ -165,7 +175,11 @@ if __name__ == '__main__':
           has_evaluator=False)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, args.continue_train,
-                               args.check_mode)
+      _train_and_evaluate_impl(
+          pipeline_config,
+          args.continue_train,
+          args.check_mode,
+          fit_on_eval=args.fit_on_eval,
+          fit_on_eval_steps=args.fit_on_eval_steps)
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')
