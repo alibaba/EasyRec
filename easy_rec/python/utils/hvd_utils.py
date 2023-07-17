@@ -1,0 +1,46 @@
+# -*- encoding: utf-8 -*-
+import logging
+
+import tensorflow as tf
+# from horovod.tensorflow.compression import Compression
+from horovod.tensorflow.functions import broadcast_variables
+from tensorflow.python.training import session_run_hook
+
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
+
+class BroadcastGlobalVariablesHook(session_run_hook.SessionRunHook):
+  """SessionRunHook that will broadcast all global variables from root rank to all other processes during initialization.
+
+  This is necessary to ensure consistent initialization of all workers when
+  training is started with random weights or restored from a checkpoint.
+  """  # noqa: E501
+
+  def __init__(self, root_rank, device=''):
+    """Construct a new BroadcastGlobalVariablesHook that will broadcast all global variables from root rank to all other processes during initialization.
+
+    Args:
+      root_rank:
+        Rank that will send data, other ranks will receive data.
+      device:
+        Device to be used for broadcasting. Uses GPU by default
+        if Horovod was built with HOROVOD_GPU_OPERATIONS.
+    """  # noqa: E501
+    super(BroadcastGlobalVariablesHook, self).__init__()
+    self.root_rank = root_rank
+    self.bcast_op = None
+    self.device = device
+
+  def begin(self):
+    bcast_vars = []
+    for x in tf.global_variables():
+      if '/embedding' not in x.name:
+        bcast_vars.append(x)
+        logging.info('will broadcast variable: %s' % x.name)
+    if not self.bcast_op or self.bcast_op.graph != tf.get_default_graph():
+      with tf.device(self.device):
+        self.bcast_op = broadcast_variables(bcast_vars, self.root_rank)
+
+  def after_create_session(self, session, coord):
+    session.run(self.bcast_op)

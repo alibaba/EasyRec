@@ -174,6 +174,11 @@ try:
 except Exception:
   sok = None
 
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
+
 
 def _internal_input_layer(features,
                           feature_columns,
@@ -230,6 +235,7 @@ def _internal_input_layer(features,
 
   def _get_logits_with_sok():  # pylint: disable=missing-docstring
     assert sok is not None, 'sok is not installed'
+    assert hvd is not None, 'horovod is not installed'
     builder = _LazyBuilder(features)
     output_tensors = []
     ordered_columns = []
@@ -256,8 +262,9 @@ def _internal_input_layer(features,
               column._get_dense_tensor(
                   builder, weight_collections, trainable=trainable))
           continue
-        embedding_shape = (column.categorical_column.num_buckets,
-                           column.dimension)
+        num_buckets = column.categorical_column.num_buckets + hvd.size() - 1
+        per_worker_buckets = num_buckets // hvd.size()
+        embedding_shape = (per_worker_buckets, column.dimension)
         if 'SharedEmbedding' in str(type(column)):
           shared_name = column.shared_embedding_collection_name
           if shared_name in shared_weights:
@@ -281,7 +288,9 @@ def _internal_input_layer(features,
               trainable=column.trainable and trainable,
               partitioner=column.partitioner,
               collections=weight_collections)
-        sparse_tensors = column._get_sparse_tensors(
+        # required by sok
+        embedding_weights.target_gpu = -1
+        sparse_tensors = column.categorical_column._get_sparse_tensors(
             builder, weight_collections=weight_collections, trainable=trainable)
         output_id = len(output_tensors)
         output_tensors.append(None)

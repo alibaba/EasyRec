@@ -40,6 +40,11 @@ from tensorflow.python.training import training as train
 from easy_rec.python.ops.incr_record import set_sparse_indices
 from easy_rec.python.utils import estimator_utils
 
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
+
 OPTIMIZER_CLS_NAMES = {
     'Adagrad':
         train.AdagradOptimizer,
@@ -254,6 +259,24 @@ def optimize_loss(loss,
         variables,
         colocate_gradients_with_ops=colocate_gradients_with_ops)
 
+    if estimator_utils.has_hvd():
+      if not estimator_utils.has_sok():
+        reduced_grads = []
+        for g, v in gradients:
+          reduced_grads.append((hvd.allreduce(
+              g, op=hvd.Average,
+              compression=hvd.compression.NoneCompressor), v))
+        gradients = reduced_grads
+      else:
+        reduced_grads = []
+        for g, v in gradients:
+          if '/embedding' not in v.name:
+            reduced_grads.append((hvd.allreduce(
+                g, op=hvd.Average,
+                compression=hvd.compression.NoneCompressor), v))
+          else:
+            reduced_grads.append((g, v))
+
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:
       gradients = _add_scaled_noise_to_gradients(gradients,
@@ -304,7 +327,7 @@ def optimize_loss(loss,
       summary.scalar('global_norm/clipped_gradient_norm',
                      clip_ops.global_norm(list(zip(*gradients))[0]))
 
-    task_index, _ = estimator_utils.get_task_index_and_num()
+    # task_index, _ = estimator_utils.get_task_index_and_num()
 
     # Create gradient updates.
     def _apply_grad():
