@@ -135,6 +135,7 @@ from __future__ import print_function
 import abc
 import collections
 import math
+import os
 
 import numpy as np
 import six
@@ -167,6 +168,11 @@ from tensorflow.python.util import nest
 
 from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat.feature_column import utils as fc_utils
+
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
 
 
 def _internal_input_layer(features,
@@ -222,6 +228,113 @@ def _internal_input_layer(features,
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
 
+  def _get_logits_with_sok():  # pylint: disable=missing-docstring
+    assert sok is not None, 'sok is not installed'
+    builder = _LazyBuilder(features)
+    output_tensors = []
+    ordered_columns = []
+
+    lookup_embeddings = []
+    lookup_indices = []
+    lookup_combiners = []
+    lookup_cols = []
+    lookup_output_ids = []
+
+    lookup_embeddings_with_wgt = []
+    lookup_indices_with_wgt = []
+    lookup_wgts = []
+    lookup_cols_with_wgt = []
+    lookup_combiners_with_wgt = []
+    lookup_output_ids_with_wgt = []
+    shared_weights = {}
+    for column in sorted(feature_columns, key=lambda x: x.name):
+      ordered_columns.append(column)
+      with variable_scope.variable_scope(
+          None, default_name=column._var_scope_name):  # pylint: disable=protected-access
+        if 'Embedding' not in str(type(column)):
+          output_tensors.append(
+              column._get_dense_tensor(
+                  builder, weight_collections, trainable=trainable))
+          continue
+        embedding_shape = (column.categorical_column.num_buckets,
+                           column.dimension)
+        if 'SharedEmbedding' in str(type(column)):
+          shared_name = column.shared_embedding_collection_name
+          if shared_name in shared_weights:
+            embedding_weights = shared_weights[shared_name]
+          else:
+            embedding_weights = variable_scope.get_variable(
+                name='embedding_weights',
+                shape=embedding_shape,
+                dtype=dtypes.float32,
+                initializer=column.initializer,
+                trainable=column.trainable and trainable,
+                partitioner=column.partitioner,
+                collections=weight_collections)
+            shared_weights[shared_name] = embedding_weights
+        else:
+          embedding_weights = variable_scope.get_variable(
+              name='embedding_weights',
+              shape=embedding_shape,
+              dtype=dtypes.float32,
+              initializer=column.initializer,
+              trainable=column.trainable and trainable,
+              partitioner=column.partitioner,
+              collections=weight_collections)
+        sparse_tensors = column._get_sparse_tensors(
+            builder, weight_collections=weight_collections, trainable=trainable)
+        output_id = len(output_tensors)
+        output_tensors.append(None)
+        if sparse_tensors.weight_tensor is not None:
+          lookup_embeddings_with_wgt.append(embedding_weights)
+          lookup_indices_with_wgt.append(sparse_tensors.id_tensor)
+          lookup_wgts.append(sparse_tensors.weight_tensor)
+          lookup_output_ids_with_wgt.append(output_id)
+          lookup_combiners_with_wgt.append(column.combiner)
+          lookup_cols_with_wgt.append(column)
+        else:
+          lookup_embeddings.append(embedding_weights)
+          lookup_indices.append(sparse_tensors.id_tensor)
+          lookup_output_ids.append(output_id)
+          lookup_combiners.append(column.combiner)
+          lookup_cols.append(column)
+        if cols_to_vars is not None:
+          cols_to_vars[column] = ops.get_collection(
+              ops.GraphKeys.GLOBAL_VARIABLES,
+              scope=variable_scope.get_variable_scope().name)
+
+    # do sok lookup
+    if len(lookup_output_ids) > 0:
+      outputs = sok.lookup_sparse(
+          lookup_embeddings, lookup_indices, combiners=lookup_combiners)
+      for output, output_id, col in zip(outputs, lookup_output_ids,
+                                        lookup_cols):
+        output_tensors[output_id] = output
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[column.raw_name] = output
+    else:
+      outputs = sok.lookup_sparse(
+          lookup_embeddings_with_wgt,
+          lookup_indices_with_wgt,
+          lookup_wgts,
+          combiners=lookup_combiners_with_wgt)
+      for output, output_id, col in zip(outputs, lookup_output_ids_with_wgt,
+                                        lookup_cols_with_wgt):
+        output_tensors[output_id] = output
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[column.raw_name] = output
+
+    if feature_name_to_output_tensors is not None:
+      for column, output_tensor in zip(
+          sorted(feature_columns, key=lambda x: x.name), output_tensors):
+        feature_name_to_output_tensors[column.raw_name] = output_tensor
+    _verify_static_batch_size_equality(output_tensors, ordered_columns)
+    return array_ops.concat(output_tensors, 1)
+
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to
   # add another `variable_scope` as that would break checkpoints.
@@ -230,7 +343,10 @@ def _internal_input_layer(features,
   else:
     with variable_scope.variable_scope(
         scope, default_name='input_layer', values=features.values()):
-      return _get_logits()
+      if 'ENABLE_SOK' in os.environ:
+        return _get_logits_with_sok()
+      else:
+        return _get_logits()
 
 
 def input_layer(features,

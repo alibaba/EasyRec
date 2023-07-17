@@ -21,6 +21,7 @@ enum DistributionStrategy {
     MultiWorkerMirroredStrategy = 5;
     // use horovod strategy
     HorovodStrategy = 6;
+    SokStrategy = 7;
 }
 
 message IncrementSaveConfig {

@@ -1001,6 +1001,17 @@ def init_hvd():
   os.environ['HOROVOD_RANK'] = str(hvd.rank())
 
 
+def init_sok():
+  try:
+    from sparse_operation_kit import experiment as sok
+    sok.init()
+    os.environ['ENABLE_SOK'] = '1'
+    return True
+  except Exception:
+    logging.error('sok is not installed')
+    return False
+
+
 def get_available_gpus():
   local_device_protos = device_lib.list_local_devices()
   return [x.name for x in local_device_protos if x.device_type == 'GPU']
