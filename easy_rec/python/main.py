@@ -359,12 +359,16 @@ def _train_and_evaluate_impl(pipeline_config,
       logging.info('\ttrain_steps=%d fit_on_eval_steps=%d' %
                    (train_steps, fit_on_eval_steps))
       fit_on_eval_steps += train_steps
+    # Do not use estimator_train.train_and_evaluate as it starts tf.Server,
+    # which is redundant and reports port not available error.
     estimator.train(
         input_fn=eval_input_fn,
         max_steps=fit_on_eval_steps,
         hooks=list(train_spec.hooks),
         saving_listeners=train_spec.saving_listeners)
     logging.info('Finished training on eval data')
+  # return estimator for custom training using estimator.train
+  return estimator
 
 
 def evaluate(pipeline_config,
