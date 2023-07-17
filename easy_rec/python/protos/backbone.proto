@@ -13,6 +13,7 @@ message InputLayer {
     optional bool only_output_3d_tensor = 6;
     optional bool output_2d_tensor_and_feature_list = 7;
     optional bool output_seq_and_normal_feature = 8;
+    optional uint32 wide_output_dim = 9;
 }
 
 message Lambda {

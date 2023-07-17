@@ -34,7 +34,7 @@ message DummyModel {
 // configure backbone network common parameters
 message ModelParams {
   optional float l2_regularization = 1;
-  optional uint32 wide_output_dim = 2;
+
   repeated BayesTaskTower task_towers = 3;
 }
 

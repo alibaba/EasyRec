@@ -552,11 +552,6 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
-  # def test_deepfm_with_sequence_attention(self):
-  #   self._success = test_utils.test_single_train_eval(
-  #       'samples/model_config/deppfm_seq_attn_on_taobao.config', self._test_dir)
-  #   self.assertTrue(self._success)
-
   def test_deepfm_with_embedding_learning_rate(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_emblr_ctr.config',

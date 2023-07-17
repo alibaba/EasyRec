@@ -40,6 +40,8 @@ class DBMTL(MultiTaskModel):
     elif not self.has_backbone:
       self._features, self._feature_list = self._input_layer(
           self._feature_dict, 'all')
+    else:
+      assert False, 'invalid code branch'
     self._init_towers(self._model_config.task_towers)
 
   def build_predict_graph(self):

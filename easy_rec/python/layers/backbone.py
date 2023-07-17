@@ -306,6 +306,26 @@ class Backbone(object):
       output = final_mlp(output, training=is_training)
     return output
 
+  @classmethod
+  def wide_embed_dim(cls, config):
+    wide_embed_dim = None
+    for pkg in config.packages:
+      wide_embed_dim = get_wide_embed_dim(pkg.blocks, wide_embed_dim)
+    return get_wide_embed_dim(config.blocks, wide_embed_dim)
+
+
+def get_wide_embed_dim(blocks, wide_embed_dim=None):
+  for block in blocks:
+    layer = block.WhichOneof('layer')
+    if layer == 'input_layer':
+      if block.input_layer.HasField('wide_output_dim'):
+        wide_dim = block.input_layer.wide_output_dim
+        if wide_embed_dim:
+          assert wide_embed_dim == wide_dim, 'wide_output_dim must be consistent'
+        else:
+          wide_embed_dim = wide_dim
+  return wide_embed_dim
+
 
 def merge_inputs(inputs, axis=-1, msg=''):
   if len(inputs) == 0:
