@@ -97,12 +97,12 @@ model_config: {
   }
   backbone {
     blocks {
-      name: 'wide_logit'
+      name: 'wide'
       inputs {
         feature_group_name: 'wide'
       }
-      lambda {
-        expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
+      input_layer {
+        wide_output_dim: 1
       }
     }
     blocks {
@@ -118,7 +118,7 @@ model_config: {
       name: 'fm'
       inputs {
         block_name: 'features'
-        input_fn: 'lambda x: x[1]'
+        input_slice: '[1]'
       }
       keras_layer {
         class_name: 'FM'
@@ -128,7 +128,7 @@ model_config: {
       name: 'deep'
       inputs {
         block_name: 'features'
-        input_fn: 'lambda x: x[0]'
+        input_slice: '[0]'
       }
       keras_layer {
         class_name: 'MLP'
@@ -142,7 +142,8 @@ model_config: {
     blocks {
       name: 'add'
       inputs {
-        block_name: 'wide_logit'
+        block_name: 'wide'
+        input_fn: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
       }
       inputs {
         block_name: 'fm'
@@ -159,33 +160,26 @@ model_config: {
   }
   model_params {
     l2_regularization: 1e-4
-    wide_output_dim: 1
   }
   embedding_regularization: 1e-4
 }
 ```
 
 - model_name: 任意自定义字符串，仅有注释作用
-
 - model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
-
 - feature_groups: 特征组
-
   - 包含两个feature_group: wide 和 features group
-
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
-
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+    - input_slice: 用来获取输入元组/列表的某个切片
+    - input_fn: 配置一个lambda函数对输入做一些简单的变换
   - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
+    - wide_output_dim: wide部分输出的tensor的维度
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
-
 - model_params:
-
   - l2_regularization: 对DNN参数的regularization, 减少overfit
-  - wide_output_dim: wide部分输出的tensor的维度
-
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
 ### 示例Config

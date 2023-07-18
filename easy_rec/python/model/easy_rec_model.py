@@ -51,8 +51,9 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._wide_output_dim = -1
     if self.has_backbone:
       wide_dim = Backbone.wide_embed_dim(model_config.backbone)
-      self._wide_output_dim = wide_dim
-      logging.info('set `wide_output_dim` to %d' % wide_dim)
+      if wide_dim:
+        self._wide_output_dim = wide_dim
+        logging.info('set `wide_output_dim` to %d' % wide_dim)
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)

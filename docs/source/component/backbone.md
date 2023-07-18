@@ -14,7 +14,9 @@
 
 # 组件化的目标
 
-> 不再需要实现新的模型，只需要实现新的组件！ 模型通过组装组件完成。
+```{hint} 目标
+不再需要实现新的模型，只需要实现新的组件！ 模型通过组装组件完成。
+```
 
 各个组件专注自身功能的实现，模块中代码高度聚合，只负责一项任务，也就是常说的单一职责原则。
 
@@ -30,6 +32,7 @@
 
 ```protobuf
 model_config: {
+  model_name: "WideAndDeep"
   model_class: "RankModel"
   feature_groups: {
     group_name: 'wide'
@@ -61,6 +64,7 @@ model_config: {
       }
       input_layer {
         only_output_feature_list: true
+        wide_output_dim: 1
       }
     }
     blocks {
@@ -94,7 +98,6 @@ model_config: {
     concat_blocks: 'final_logit'
   }
   model_params {
-    wide_output_dim: 1
     l2_regularization: 1e-4
   }
   embedding_regularization: 1e-4
@@ -131,6 +134,7 @@ MovieLens-1M数据集效果对比：
 
 ```protobuf
 model_config: {
+  model_name: 'DeepFM'
   model_class: 'RankModel'
   feature_groups: {
     group_name: 'wide'
@@ -161,8 +165,8 @@ model_config: {
       inputs {
         feature_group_name: 'wide'
       }
-      lambda {
-        expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
+      input_layer {
+        wide_output_dim: 1
       }
     }
     blocks {
@@ -203,6 +207,7 @@ model_config: {
       name: 'add'
       inputs {
         block_name: 'wide_logit'
+        input_fn: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
       }
       inputs {
         block_name: 'fm'
@@ -219,7 +224,6 @@ model_config: {
   }
   model_params {
     l2_regularization: 1e-4
-    wide_output_dim: 1
   }
   embedding_regularization: 1e-4
 }
@@ -240,6 +244,7 @@ MovieLens-1M数据集效果对比：
 
 ```protobuf
 model_config: {
+  model_name: 'DCN V2'
   model_class: 'RankModel'
   feature_groups: {
     group_name: 'all'
@@ -314,6 +319,7 @@ MovieLens-1M数据集效果对比：
 
 ```protobuf
 model_config: {
+  model_name: 'DLRM'
   model_class: 'RankModel'
   feature_groups: {
     group_name: "dense"

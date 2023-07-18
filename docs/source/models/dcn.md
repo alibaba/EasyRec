@@ -140,25 +140,22 @@ model_config {
 ```
 
 - model_name: 任意自定义字符串，仅有注释作用
-
 - model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
-
 - feature_groups: 配置一个名为'all'的feature_group。
-
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
-
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+    - input_fn: 配置一个lambda函数对输入做一些简单的变换
   - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - recurrent: 循环调用指定的Keras Layer，参考 [循环组件块](../component/backbone.md#id16)
+    - num_steps 配置循环执行的次数
+    - fixed_input_index 配置每次执行的多路输入组成的列表中固定不变的元素
+    - keras_layer: 同上
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
   - top_mlp: 各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层
-
 - model_params:
-
   - l2_regularization: 对DNN参数的regularization, 减少overfit
-
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
 ### 示例Config
@@ -168,6 +165,5 @@ model_config {
 
 ### 参考论文
 
-[DCN](https://arxiv.org/abs/1708.05123)
-
-[DCN v2](https://arxiv.org/abs/2008.13535)
+1. [DCN v1](https://arxiv.org/abs/1708.05123)
+2. [DCN v2](https://arxiv.org/abs/2008.13535)
