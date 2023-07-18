@@ -127,8 +127,7 @@ class InputLayer(object):
         group_name, ','.join([x for x in self._feature_groups]))
 
     feature_group = self._feature_groups[group_name]
-    group_columns, group_seq_columns = feature_group.select_columns(
-        self._fc_parser)
+    group_columns, _ = feature_group.select_columns(self._fc_parser)
     if not group_columns:
       return None, []
 
