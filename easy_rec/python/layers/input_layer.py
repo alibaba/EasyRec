@@ -70,6 +70,18 @@ class InputLayer(object):
     return group_name in self._feature_groups
 
   def get_combined_feature(self, features, group_name, is_dict=False):
+    """Get combined features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+      is_dict: whether to return group_features in dict
+
+    Return:
+      features: all features concatenate together
+      group_features: list of features
+      feature_name_to_output_tensors: dict, feature_name to feature_value, only present when is_dict is True
+    """
     feature_name_to_output_tensors = {}
     negative_sampler = self._feature_groups[group_name]._config.negative_sampler
 
@@ -100,32 +112,62 @@ class InputLayer(object):
     else:
       return concat_features, group_features
 
-  def get_sequence_and_plain_feature(self, features, group_name):
+  def get_plain_feature(self, features, group_name):
+    """Get plain features by group_name. Exclude sequence features.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all features concatenate together
+      group_features: list of features
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+
+    feature_group = self._feature_groups[group_name]
+    group_columns, group_seq_columns = feature_group.select_columns(
+        self._fc_parser)
+    if not group_columns:
+      return None, []
+
+    cols_to_output_tensors = OrderedDict()
+    output_features = feature_column.input_layer(
+        features, group_columns, cols_to_output_tensors=cols_to_output_tensors)
+    group_features = [cols_to_output_tensors[x] for x in group_columns]
+
+    embedding_reg_lst = []
+    for col, val in cols_to_output_tensors.items():
+      if is_embedding_column(col):
+        embedding_reg_lst.append(val)
+    regularizers.apply_regularization(
+        self._embedding_regularizer, weights_list=embedding_reg_lst)
+    return output_features, group_features
+
+  def get_sequence_feature(self, features, group_name):
+    """Get sequence features by group_name. Exclude plain features.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+        seq_features: list of sequence features, each element is a tuple:
+          3d embedding tensor (batch_size, max_seq_len, embedding_dimension),
+          1d sequence length tensor.
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+
     if self._variational_dropout_config is not None:
       raise ValueError(
           'variational dropout is not supported in not combined mode now.')
 
-    feature_name_to_output_tensors = {}
     feature_group = self._feature_groups[group_name]
-    group_columns, group_seq_columns = feature_group.select_columns(
-        self._fc_parser)
+    _, group_seq_columns = feature_group.select_columns(self._fc_parser)
 
     embedding_reg_lst = []
-    output_features = None
-    group_features = []
-    if group_columns:
-      cols_to_output_tensors = OrderedDict()
-      output_features = feature_column.input_layer(
-          features,
-          group_columns,
-          cols_to_output_tensors=cols_to_output_tensors,
-          feature_name_to_output_tensors=feature_name_to_output_tensors)
-      group_features = [cols_to_output_tensors[x] for x in group_columns]
-
-      for col, val in cols_to_output_tensors.items():
-        if is_embedding_column(col):
-          embedding_reg_lst.append(val)
-
     builder = feature_column._LazyBuilder(features)
     seq_features = []
     for fc in group_seq_columns:
@@ -139,7 +181,7 @@ class InputLayer(object):
         embedding_reg_lst.append(tmp_embedding)
     regularizers.apply_regularization(
         self._embedding_regularizer, weights_list=embedding_reg_lst)
-    return seq_features, output_features, group_features
+    return seq_features
 
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.
@@ -167,7 +209,14 @@ class InputLayer(object):
       return self.get_combined_feature(features, group_name, is_dict)
 
     # return sequence feature in raw format instead of combine them
-    return self.get_sequence_and_plain_feature(features, group_name)
+    place_on_cpu = os.getenv('place_embedding_on_cpu')
+    place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+    with conditional(self._is_predicting and place_on_cpu,
+                     ops.device('/CPU:0')):
+      seq_features = self.get_sequence_feature(features, group_name)
+      plain_features, feature_list = self.get_plain_feature(
+          features, group_name)
+    return seq_features, plain_features, feature_list
 
   def single_call_input_layer(self,
                               features,

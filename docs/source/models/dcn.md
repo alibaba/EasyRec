@@ -166,4 +166,4 @@ model_config {
 ### 参考论文
 
 1. [DCN v1](https://arxiv.org/abs/1708.05123)
-2. [DCN v2](https://arxiv.org/abs/2008.13535)
+1. [DCN v2](https://arxiv.org/abs/2008.13535)
