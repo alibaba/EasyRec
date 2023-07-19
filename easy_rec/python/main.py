@@ -312,7 +312,7 @@ def _train_and_evaluate_impl(pipeline_config,
       f.write(easy_rec.__version__ + '\n')
 
   train_steps = None
-  if train_config.HasField('num_steps'):
+  if train_config.HasField('num_steps') and train_config.num_steps > 0:
     train_steps = train_config.num_steps
   assert train_steps is not None or data_config.num_epochs > 0, (
       'either num_steps and num_epochs must be set to an integer > 0.')
@@ -348,6 +348,7 @@ def _train_and_evaluate_impl(pipeline_config,
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
   if fit_on_eval and (not estimator_utils.is_evaluator()):
+    tf.reset_default_graph()
     logging.info('Start continue training on eval data')
     eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
                                   **input_fn_kwargs)

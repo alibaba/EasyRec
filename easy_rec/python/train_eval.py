@@ -68,12 +68,12 @@ if __name__ == '__main__':
       default=None,
       help='eval data input path')
   parser.add_argument(
-      'fit_on_eval',
-      type=bool,
+      '--fit_on_eval',
+      action='store_true',
       default=False,
       help='Fit evaluation data after fitting and evaluating train data')
   parser.add_argument(
-      'fit_on_eval_steps',
+      '--fit_on_eval_steps',
       type=int,
       default=None,
       help='Fit evaluation data steps')

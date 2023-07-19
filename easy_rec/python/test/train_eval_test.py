@@ -722,6 +722,15 @@ class TrainEvalTest(tf.test.TestCase):
         fit_on_eval=True)
     self.assertTrue(self._success)
 
+  def test_unbalance_data(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/multi_tower_on_taobao_unblanace.config',
+        self._test_dir,
+        total_steps=0,
+        num_epoch=1,
+        num_evaluator=1)
+    self.assertTrue(self._success)
+
   def test_train_with_ps_worker_with_evaluator(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_on_taobao.config',

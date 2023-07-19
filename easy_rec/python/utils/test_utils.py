@@ -159,7 +159,10 @@ def _replace_data_for_test(data_path):
   return data_path
 
 
-def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
+def _load_config_for_test(pipeline_config_path,
+                          test_dir,
+                          total_steps=50,
+                          num_epochs=0):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
   train_config = pipeline_config.train_config
@@ -171,7 +174,7 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
   pipeline_config.model_dir = os.path.join(test_dir, 'train')
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
-  data_config.num_epochs = 0
+  data_config.num_epochs = num_epochs
   return pipeline_config
 
 
@@ -672,10 +675,11 @@ def test_distributed_train_eval(pipeline_config_path,
                                 num_evaluator=0,
                                 edit_config_json=None,
                                 use_hvd=False,
-                                fit_on_eval=False):
+                                fit_on_eval=False,
+                                num_epoch=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                          total_steps)
+                                          total_steps, num_epoch)
   if edit_config_json is not None:
     config_util.edit_config(pipeline_config, edit_config_json)
 
