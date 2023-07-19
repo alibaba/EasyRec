@@ -366,7 +366,8 @@ def _train_and_evaluate_impl(pipeline_config,
         input_fn=eval_input_fn,
         max_steps=fit_on_eval_steps,
         hooks=list(train_spec.hooks),
-        saving_listeners=train_spec.saving_listeners)
+        saving_listeners=train_spec.saving_listeners if hasattr(
+            train_spec, 'saving_listeners') else None)
     logging.info('Finished training on eval data')
   # return estimator for custom training using estimator.train
   return estimator
