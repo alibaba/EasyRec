@@ -159,7 +159,10 @@ def _replace_data_for_test(data_path):
   return data_path
 
 
-def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
+def _load_config_for_test(pipeline_config_path,
+                          test_dir,
+                          total_steps=50,
+                          num_epochs=0):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
   train_config = pipeline_config.train_config
@@ -171,7 +174,7 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
   pipeline_config.model_dir = os.path.join(test_dir, 'train')
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
-  data_config.num_epochs = 0
+  data_config.num_epochs = num_epochs
   return pipeline_config
 
 
@@ -529,7 +532,9 @@ def _get_ports(num_worker):
 def _ps_worker_train(pipeline_config_path,
                      test_dir,
                      num_worker,
-                     num_evaluator=0):
+                     num_evaluator=0,
+                     fit_on_eval=False,
+                     fit_on_eval_steps=None):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
   if len(gpus) < num_worker:
@@ -547,6 +552,10 @@ def _ps_worker_train(pipeline_config_path,
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % pipeline_config_path
+  if fit_on_eval:
+    train_cmd += ' --fit_on_eval'
+    if fit_on_eval_steps is not None:
+      train_cmd += ' --fit_on_eval_steps ' + str(int(fit_on_eval_steps))
   procs[chief_or_master] = run_cmd(
       train_cmd, '%s/log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
@@ -665,10 +674,12 @@ def test_distributed_train_eval(pipeline_config_path,
                                 total_steps=50,
                                 num_evaluator=0,
                                 edit_config_json=None,
-                                use_hvd=False):
+                                use_hvd=False,
+                                fit_on_eval=False,
+                                num_epoch=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                          total_steps)
+                                          total_steps, num_epoch)
   if edit_config_json is not None:
     config_util.edit_config(pipeline_config, edit_config_json)
 
@@ -687,8 +698,13 @@ def test_distributed_train_eval(pipeline_config_path,
       return _multi_worker_hvd_train(test_pipeline_config_path, test_dir, 2)
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker,
-                               num_evaluator)
+      procs = _ps_worker_train(
+          test_pipeline_config_path,
+          test_dir,
+          num_worker,
+          num_evaluator,
+          fit_on_eval,
+          fit_on_eval_steps=int(total_steps // 2))
     elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:
       num_worker = 2
       procs = _multi_worker_mirror_train(test_pipeline_config_path, test_dir,
