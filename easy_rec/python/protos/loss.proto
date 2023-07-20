@@ -13,16 +13,27 @@ enum LossType {
     SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING = 7;
     PAIR_WISE_LOSS = 8;
     F1_REWEIGHTED_LOSS = 9;
+    BINARY_FOCAL_LOSS = 10;
+    PAIRWISE_FOCAL_LOSS = 11;
+    PAIRWISE_LOGISTIC_LOSS = 12;
+    JRC_LOSS = 13;
 }
 
 message Loss {
   required LossType loss_type = 1;
-  required float weight = 2 [default = 1.0];
+  optional float weight = 2 [default = 1.0];
+  optional string loss_name = 3;
+  optional bool learn_loss_weight = 4 [default = false];
   oneof loss_param {
     F1ReweighedLoss f1_reweighted_loss = 101;
     SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
     CircleLoss circle_loss = 103;
     MultiSimilarityLoss multi_simi_loss = 104;
+    BinaryFocalLoss binary_focal_loss = 105;
+    PairwiseLoss pairwise_loss = 106;
+    PairwiseFocalLoss pairwise_focal_loss = 107;
+    PairwiseLogisticLoss pairwise_logistic_loss = 108;
+    JRCLoss jrc_loss = 109;
   }
 };
 
@@ -48,4 +59,40 @@ message MultiSimilarityLoss {
 message F1ReweighedLoss {
   required float f1_beta_square = 1 [default = 1.0];
   required float label_smoothing = 2 [default = 0];
+}
+
+message BinaryFocalLoss {
+  required float gamma = 1 [default = 2.0];
+  optional float alpha = 2;
+  optional float ohem_ratio = 3 [default = 1.0];
+  optional float label_smoothing = 4 [default = 0];
+}
+
+message PairwiseLoss {
+  required float margin = 1 [default = 0];
+  optional string session_name = 2;
+  optional float temperature = 3 [default = 1.0];
+}
+
+message PairwiseFocalLoss {
+  required float gamma = 1 [default = 2.0];
+  optional float alpha = 2;
+  optional float hinge_margin = 3 [default = 1.0];
+  optional string session_name = 4;
+  optional float ohem_ratio = 5 [default = 1.0];
+  optional float temperature = 6 [default = 1.0];
+}
+
+message PairwiseLogisticLoss {
+  required float temperature = 1 [default = 1.0];
+  optional string session_name = 2;
+  optional float hinge_margin = 3 [default = 1.0];
+  optional float ohem_ratio = 4 [default = 1.0];
+}
+
+message JRCLoss {
+  required string session_name = 1;
+  optional float alpha = 2 [default = 0.5];
+  optional bool same_label_loss = 3 [default = true];
+  required string loss_weight_strategy = 4 [default = 'fixed'];
 }

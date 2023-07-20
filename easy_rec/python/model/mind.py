@@ -32,7 +32,7 @@ class MIND(MatchModel):
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.mind
 
-    self._hist_seq_features = self._input_layer(
+    self._hist_seq_features, _, _ = self._input_layer(
         self._feature_dict, 'hist', is_combine=False)
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
     self._item_features, _ = self._input_layer(self._feature_dict, 'item')
@@ -422,8 +422,13 @@ class MIND(MatchModel):
     return metric_dict
 
   def get_outputs(self):
-    if self._loss_type in (LossType.CLASSIFICATION,
-                           LossType.SOFTMAX_CROSS_ENTROPY):
+    if self._loss_type == LossType.CLASSIFICATION:
+      return ['logits', 'probs', 'user_emb', 'item_emb', 'user_emb_num']
+    elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
+      self._prediction_dict['logits'] = tf.squeeze(
+          self._prediction_dict['logits'], axis=-1)
+      self._prediction_dict['probs'] = tf.nn.sigmoid(
+          self._prediction_dict['logits'])
       return ['logits', 'probs', 'user_emb', 'item_emb', 'user_emb_num']
     elif self._loss_type == LossType.L2_LOSS:
       return ['y', 'user_emb', 'item_emb', 'user_emb_num']

@@ -135,6 +135,8 @@ class SyncReplicasOptimizer(optimizer.Optimizer):
   ```
   """
 
+  sync_que_id = -1
+
   def __init__(self,
                opt,
                replicas_to_aggregate,
@@ -142,7 +144,8 @@ class SyncReplicasOptimizer(optimizer.Optimizer):
                variable_averages=None,
                variables_to_average=None,
                use_locking=False,
-               name='sync_replicas'):
+               name='sync_replicas',
+               **extra_args):
     """Construct a sync_replicas optimizer.
 
     Args:
@@ -298,15 +301,24 @@ class SyncReplicasOptimizer(optimizer.Optimizer):
         update_op = self._opt.apply_gradients(aggregated_grads_and_vars,
                                               global_step)
 
+      def _get_token_qname():
+        SyncReplicasOptimizer.sync_que_id += 1
+        if SyncReplicasOptimizer.sync_que_id == 0:
+          return 'sync_token_q'
+        else:
+          return 'sync_token_q_' + str(SyncReplicasOptimizer.sync_que_id)
+
       # Create token queue.
+      token_qname = _get_token_qname()
+      logging.info('create sync_token_queue[%s]' % token_qname)
       with ops.device(global_step.device), ops.name_scope(''):
         sync_token_queue = (
             data_flow_ops.FIFOQueue(
                 -1,
                 global_step.dtype.base_dtype,
                 shapes=(),
-                name='sync_token_q',
-                shared_name='sync_token_q'))
+                name=token_qname,
+                shared_name=token_qname))
         self._sync_token_queue = sync_token_queue
         self._is_sync_que_closed = sync_token_queue.is_closed()
         self._close_sync_que = sync_token_queue.close(
@@ -341,6 +353,8 @@ class SyncReplicasOptimizer(optimizer.Optimizer):
 
         self._chief_queue_runner = queue_runner.QueueRunner(
             dummy_queue, [sync_op])
+        ops.add_to_collection(ops.GraphKeys.QUEUE_RUNNERS,
+                              self._chief_queue_runner)
       for accum, dev in self._accumulator_list:
         with ops.device(dev):
           chief_init_ops.append(
@@ -478,14 +492,12 @@ class _SyncReplicasOptimizerHook(session_run_hook.SessionRunHook):
       self._local_init_op = self._sync_optimizer.chief_init_op
       self._ready_for_local_init_op = (
           self._sync_optimizer.ready_for_local_init_op)
-      self._q_runner = self._sync_optimizer.get_chief_queue_runner()
       self._init_tokens_op = self._sync_optimizer.get_init_tokens_op(
           self._num_tokens)
     else:
       self._local_init_op = self._sync_optimizer.local_step_init_op
       self._ready_for_local_init_op = (
           self._sync_optimizer.ready_for_local_init_op)
-      self._q_runner = None
       self._init_tokens_op = None
 
   def after_create_session(self, session, coord):
@@ -499,11 +511,10 @@ class _SyncReplicasOptimizerHook(session_run_hook.SessionRunHook):
           'local_init. Init op: %s, error: %s' %
           (self._local_init_op.name, msg))
     session.run(self._local_init_op)
+    is_closed = session.run(self._sync_optimizer._is_sync_que_closed)
+    assert not is_closed, 'sync_que is closed'
     if self._init_tokens_op is not None:
       session.run(self._init_tokens_op)
-    if self._q_runner is not None:
-      self._q_runner.create_threads(
-          session, coord=coord, daemon=True, start=True)
 
   def end(self, session):
     try:

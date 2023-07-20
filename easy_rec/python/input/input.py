@@ -1,15 +1,20 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+import os
 from abc import abstractmethod
 from collections import OrderedDict
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import sparse_ops
+from tensorflow.python.ops import string_ops
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
 from easy_rec.python.utils.check_utils import check_split
@@ -127,11 +132,11 @@ class Input(six.with_metaclass(_meta_type, object)):
       metrics = self._pipeline_config.eval_config.metrics_set
       for metric in metrics:
         metric_name = metric.WhichOneof('metric')
-        if metric_name == 'GAUC':
+        if metric_name == 'gauc':
           uid = metric.gauc.uid_field
           if uid not in self._effective_fields:
             self._effective_fields.append(uid)
-        elif metric_name == 'SessionAUC':
+        elif metric_name == 'session_auc':
           sid = metric.session_auc.session_id_field
           if sid not in self._effective_fields:
             self._effective_fields.append(sid)
@@ -139,27 +144,19 @@ class Input(six.with_metaclass(_meta_type, object)):
       # check multi task model's metrics
       model_config = self._pipeline_config.model_config
       model_name = model_config.WhichOneof('model')
-      model = None
-      if model_name == 'MMoE':
-        model = model_config.mmoe
-      elif model_name == 'ESMM':
-        model = model_config.esmm
-      elif model_name == 'DBMTL':
-        model = model_config.dbmtl
-      elif model_name == 'SimpleMultiTask':
-        model = model_config.simple_multi_task
-      elif model_name == 'PLE':
-        model = model_config.ple
-      if model is not None:
-        for tower in model.task_towers:
+      if model_name in {'mmoe', 'esmm', 'dbmtl', 'simple_multi_task', 'ple'}:
+        model = getattr(model_config, model_name)
+        towers = [model.ctr_tower, model.cvr_tower
+                  ] if model_name == 'esmm' else model.task_towers
+        for tower in towers:
           metrics = tower.metrics_set
           for metric in metrics:
             metric_name = metric.WhichOneof('metric')
-            if metric_name == 'GAUC':
+            if metric_name == 'gauc':
               uid = metric.gauc.uid_field
               if uid not in self._effective_fields:
                 self._effective_fields.append(uid)
-            elif metric_name == 'SessionAUC':
+            elif metric_name == 'session_auc':
               sid = metric.session_auc.session_id_field
               if sid not in self._effective_fields:
                 self._effective_fields.append(sid)
@@ -263,6 +260,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     inputs = {}
     for fid in effective_fids:
       input_name = self._input_fields[fid]
+      if input_name == sample_weight_field:
+        continue
       if placeholder_named_by_input:
         placeholder_name = input_name
       else:
@@ -335,6 +334,82 @@ class Input(six.with_metaclass(_meta_type, object)):
         (x, tf.squeeze(labels[x], axis=1) if len(labels[x].get_shape()) == 2 and
          labels[x].get_shape()[1] == 1 else labels[x]) for x in labels
     ])
+
+  def _as_string(self, field, fc):
+    if field.dtype == tf.string:
+      return field
+    if field.dtype in [tf.float32, tf.double]:
+      feature_name = fc.feature_name if fc.HasField(
+          'feature_name') else fc.input_names[0]
+      assert fc.precision > 0, 'fc.precision not set for feature[%s], it is dangerous to convert ' \
+                               'float or double to string due to precision problem, it is suggested ' \
+                               ' to convert them into string format before using EasyRec; ' \
+                               'if you really need to do so, please set precision (the number of ' \
+                               'decimal digits) carefully.' % feature_name
+    precision = None
+    if field.dtype in [tf.float32, tf.double]:
+      if fc.precision > 0:
+        precision = fc.precision
+
+    # convert to string
+    if 'as_string' in dir(tf.strings):
+      return tf.strings.as_string(field, precision=precision)
+    else:
+      return tf.as_string(field, precision=precision)
+
+  def _parse_combo_feature(self, fc, parsed_dict, field_dict):
+    # for compatibility with existing implementations
+    feature_name = fc.feature_name if fc.HasField(
+        'feature_name') else fc.input_names[0]
+
+    if len(fc.combo_input_seps) > 0:
+      assert len(fc.combo_input_seps) == len(fc.input_names), \
+          'len(combo_separator)[%d] != len(fc.input_names)[%d]' % (
+          len(fc.combo_input_seps), len(fc.input_names))
+
+    def _get_input_sep(input_id):
+      if input_id < len(fc.combo_input_seps):
+        return fc.combo_input_seps[input_id]
+      else:
+        return ''
+
+    if len(fc.combo_join_sep) == 0:
+      for input_id, input_name in enumerate(fc.input_names):
+        if input_id > 0:
+          key = feature_name + '_' + str(input_id)
+        else:
+          key = feature_name
+        input_sep = _get_input_sep(input_id)
+        if input_sep != '':
+          assert field_dict[
+              input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
+                  input_name, field_dict[input_name].dtype)
+          parsed_dict[key] = tf.string_split(field_dict[input_name], input_sep)
+        else:
+          parsed_dict[key] = self._as_string(field_dict[input_name], fc)
+    else:
+      if len(fc.combo_input_seps) > 0:
+        split_inputs = []
+        for input_id, input_name in enumerate(fc.input_names):
+          input_sep = fc.combo_input_seps[input_id]
+          if len(input_sep) > 0:
+            assert field_dict[
+                input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
+                    input_name, field_dict[input_name].dtype)
+            split_inputs.append(
+                tf.string_split(field_dict[input_name],
+                                fc.combo_input_seps[input_id]))
+          else:
+            split_inputs.append(tf.reshape(field_dict[input_name], [-1, 1]))
+        parsed_dict[feature_name] = sparse_ops.sparse_cross(
+            split_inputs, fc.combo_join_sep)
+      else:
+        inputs = [
+            self._as_string(field_dict[input_name], fc)
+            for input_name in fc.input_names
+        ]
+        parsed_dict[feature_name] = string_ops.string_join(
+            inputs, fc.combo_join_sep)
 
   def _parse_tag_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]
@@ -447,24 +522,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     parsed_dict[feature_name] = field_dict[input_0]
     if fc.HasField('hash_bucket_size'):
       if field_dict[input_0].dtype != tf.string:
-        if field_dict[input_0].dtype in [tf.float32, tf.double]:
-          assert fc.precision > 0, 'it is dangerous to convert float or double to string due to ' \
-                                   'precision problem, it is suggested to convert them into string ' \
-                                   'format during feature generalization before using EasyRec; ' \
-                                   'if you really need to do so, please set precision (the number of ' \
-                                   'decimal digits) carefully.'
-        precision = None
-        if field_dict[input_0].dtype in [tf.float32, tf.double]:
-          if fc.precision > 0:
-            precision = fc.precision
-        # convert to string
-
-        if 'as_string' in dir(tf.strings):
-          parsed_dict[feature_name] = tf.strings.as_string(
-              field_dict[input_0], precision=precision)
-        else:
-          parsed_dict[feature_name] = tf.as_string(
-              field_dict[input_0], precision=precision)
+        parsed_dict[feature_name] = self._as_string(field_dict[input_0], fc)
     elif fc.num_buckets > 0:
       if parsed_dict[feature_name].dtype == tf.string:
         check_list = [
@@ -482,52 +540,21 @@ class Input(six.with_metaclass(_meta_type, object)):
     input_0 = fc.input_names[0]
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
     if field_dict[input_0].dtype == tf.string:
-
-      def combine(x):
-        seq = tf.string_split([x], fc.seq_multi_sep)
-        seq_len = tf.size(seq)
-        if fc.raw_input_dim > 1:
-          check_list = [
-              tf.py_func(
-                  check_split,
-                  [seq.values, fc.separator, fc.raw_input_dim, input_0],
-                  Tout=tf.bool)
-          ] if self._check_mode else []
-          with tf.control_dependencies(check_list):
-            emb = tf.string_split(seq.values, fc.separator).values
-        else:
-          emb = seq.values
-        check_list = [
-            tf.py_func(check_string_to_number, [emb, input_0], Tout=tf.bool)
-        ] if self._check_mode else []
-        with tf.control_dependencies(check_list):
-          emb_val = tf.string_to_number(emb)
-        emb_vec = tf.reshape(emb_val, [seq_len, -1])
-
-        if fc.combiner == 'max':
-          emb_vec = tf.reduce_max(emb_vec, axis=0)
-        elif fc.combiner == 'min':
-          emb_vec = tf.reduce_min(emb_vec, axis=0)
-        elif fc.combiner == 'sum':
-          emb_vec = tf.reduce_sum(emb_vec, axis=0)
-        elif fc.combiner == 'mean':
-          emb_vec = tf.reduce_mean(emb_vec, axis=0)
-        else:
-          assert False, 'unsupported combine operator: ' + fc.combiner
-        return emb_vec
-
       if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
-        parsed_dict[feature_name] = tf.map_fn(
-            combine, field_dict[input_0], dtype=tf.float32)
-      elif fc.raw_input_dim > 1:
+        fea = tf.string_split(field_dict[input_0], fc.seq_multi_sep)
+        segment_ids = fea.indices[:, 0]
+        vals = fea.values
+      else:
+        vals = field_dict[input_0]
+        segment_ids = tf.range(0, tf.shape(vals)[0])
+      if fc.raw_input_dim > 1:
         check_list = [
             tf.py_func(
-                check_split,
-                [field_dict[input_0], fc.separator, fc.raw_input_dim, input_0],
+                check_split, [vals, fc.separator, fc.raw_input_dim, input_0],
                 Tout=tf.bool)
         ] if self._check_mode else []
         with tf.control_dependencies(check_list):
-          tmp_fea = tf.string_split(field_dict[input_0], fc.separator)
+          tmp_fea = tf.string_split(vals, fc.separator)
         check_list = [
             tf.py_func(
                 check_string_to_number, [tmp_fea.values, input_0], Tout=tf.bool)
@@ -537,11 +564,43 @@ class Input(six.with_metaclass(_meta_type, object)):
               tmp_fea.values,
               tf.float32,
               name='multi_raw_fea_to_flt_%s' % input_0)
-        parsed_dict[feature_name] = tf.sparse_to_dense(
-            tmp_fea.indices,
-            [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
-            tmp_vals,
-            default_value=0)
+        if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
+          emb = tf.reshape(tmp_vals, [-1, fc.raw_input_dim])
+          if fc.combiner == 'max':
+            emb = tf.segment_max(emb, segment_ids)
+          elif fc.combiner == 'sum':
+            emb = tf.segment_sum(emb, segment_ids)
+          elif fc.combiner == 'min':
+            emb = tf.segment_min(emb, segment_ids)
+          elif fc.combiner == 'mean':
+            emb = tf.segment_mean(emb, segment_ids)
+          else:
+            assert False, 'unsupported combine operator: ' + fc.combiner
+          parsed_dict[feature_name] = emb
+        else:
+          parsed_dict[feature_name] = tf.sparse_to_dense(
+              tmp_fea.indices,
+              [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
+              tmp_vals,
+              default_value=0)
+      elif fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
+        check_list = [
+            tf.py_func(check_string_to_number, [vals, input_0], Tout=tf.bool)
+        ] if self._check_mode else []
+        with tf.control_dependencies(check_list):
+          emb = tf.string_to_number(
+              vals, tf.float32, name='raw_fea_to_flt_%s' % input_0)
+        if fc.combiner == 'max':
+          emb = tf.segment_max(emb, segment_ids)
+        elif fc.combiner == 'sum':
+          emb = tf.segment_sum(emb, segment_ids)
+        elif fc.combiner == 'min':
+          emb = tf.segment_min(emb, segment_ids)
+        elif fc.combiner == 'mean':
+          emb = tf.segment_mean(emb, segment_ids)
+        else:
+          assert False, 'unsupported combine operator: ' + fc.combiner
+        parsed_dict[feature_name] = emb
       else:
         check_list = [
             tf.py_func(
@@ -563,7 +622,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           fc.max_val - fc.min_val)
 
     if fc.HasField('normalizer_fn'):
-      logging.info('apply normalizer_fn %s' % fc.normalizer_fn)
+      logging.info('apply normalizer_fn %s to `%s`' %
+                   (fc.normalizer_fn, feature_name))
       parsed_dict[feature_name] = self._normalizer_fn[feature_name](
           parsed_dict[feature_name])
 
@@ -783,6 +843,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         self._parse_id_feature(fc, parsed_dict, field_dict)
       elif feature_type == fc.ExprFeature:
         self._parse_expr_feature(fc, parsed_dict, field_dict)
+      elif feature_type == fc.ComboFeature:
+        self._parse_combo_feature(fc, parsed_dict, field_dict)
       else:
         feature_name = fc.feature_name if fc.HasField(
             'feature_name') else fc.input_names[0]
@@ -845,6 +907,9 @@ class Input(six.with_metaclass(_meta_type, object)):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
+
+    if Input.DATA_OFFSET in field_dict:
+      parsed_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
     return {'feature': parsed_dict, 'label': label_dict}
 
   def _lookup_preprocess(self, fc, field_dict):
@@ -953,11 +1018,15 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
+        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
         if export_config.multi_placeholder:
-          inputs, features = self.create_multi_placeholders(export_config)
+          with conditional(place_on_cpu, ops.device('/CPU:0')):
+            inputs, features = self.create_multi_placeholders(export_config)
           return tf.estimator.export.ServingInputReceiver(features, inputs)
         else:
-          inputs, features = self.create_placeholders(export_config)
+          with conditional(place_on_cpu, ops.device('/CPU:0')):
+            inputs, features = self.create_placeholders(export_config)
           print('built feature placeholders. features: {}'.format(
               features.keys()))
           return tf.estimator.export.ServingInputReceiver(features, inputs)

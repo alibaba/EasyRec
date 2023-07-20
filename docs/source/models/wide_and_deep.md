@@ -8,6 +8,8 @@ WideAndDeep包含Wide和Deep两部分，Wide部分负责记忆，Deep部分负�
 
 ### 配置说明
 
+#### 1. 内置模型
+
 ```protobuf
 model_config:{
   model_class: "WideAndDeep"
@@ -66,9 +68,102 @@ model_config:{
 
 - input_type: 如果在提交到pai-tf集群上面运行，读取max compute 表作为输入数据，data_config：input_type要设置为OdpsInputV2。
 
+#### 2. 组件化模型
+
+```protobuf
+model_config: {
+  model_name: 'wide and deep'
+  model_class: "RankModel"
+  feature_groups: {
+    group_name: 'wide'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
+    feature_names: 'job_id'
+    feature_names: 'age'
+    feature_names: 'gender'
+    feature_names: 'year'
+    feature_names: 'genres'
+    wide_deep: WIDE
+  }
+  feature_groups: {
+    group_name: 'deep'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
+    feature_names: 'job_id'
+    feature_names: 'age'
+    feature_names: 'gender'
+    feature_names: 'year'
+    feature_names: 'genres'
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: 'wide'
+      inputs {
+        feature_group_name: 'wide'
+      }
+      input_layer {
+        wide_output_dim: 1
+        only_output_feature_list: true
+      }
+    }
+    blocks {
+      name: 'deep_logit'
+      inputs {
+        feature_group_name: 'deep'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [256, 256, 256, 1]
+          use_final_bn: false
+          final_activation: 'linear'
+        }
+      }
+    }
+    blocks {
+      name: 'final_logit'
+      inputs {
+        block_name: 'wide'
+        input_fn: 'lambda x: tf.add_n(x)'
+      }
+      inputs {
+        block_name: 'deep_logit'
+      }
+      merge_inputs_into_list: true
+      keras_layer {
+        class_name: 'Add'
+      }
+    }
+    concat_blocks: 'final_logit'
+  }
+  model_params {
+    l2_regularization: 1e-4
+  }
+  embedding_regularization: 1e-4
+}
+```
+
+- model_name: 任意自定义字符串，仅有注释作用
+- model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
+- feature_groups: 特征组
+  - 包含两个feature_group: wide 和 deep group
+- backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
+  - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+    - input_fn: 配置一个lambda函数对输入做一些简单的变换
+  - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
+    - wide_output_dim: wide部分输出的tensor的维度
+  - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
+  - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
+- model_params:
+  - l2_regularization: 对DNN参数的regularization, 减少overfit
+- embedding_regularization: 对embedding部分加regularization, 减少overfit
+
 ### 示例Config
 
-[WideAndDeep_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/wide_and_deep.config)
+1. 内置模型：[WideAndDeep_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/wide_and_deep.config)
+1. 组件化模型：[wide_and_deep_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/wide_and_deep_backbone_on_movielens.config)
 
 ### 参考论文
 

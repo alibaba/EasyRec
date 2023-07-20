@@ -14,11 +14,13 @@
    din
    bst
    rocket_launching
+   masknet
+   fibinet
    regression
    multi_cls
 
 多模态排序模型
-========
+==============
 
 .. toctree::
    :maxdepth: 2

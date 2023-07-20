@@ -16,12 +16,15 @@ from easy_rec.python.inference.predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
 from easy_rec.python.utils.distribution_utils import set_distribution_config
+
+os.environ['IS_ON_PAI'] = '1'
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
@@ -163,6 +166,8 @@ tf.app.flags.DEFINE_integer('oss_write_kv', 1,
 tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
 
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
+tf.app.flags.DEFINE_bool('place_embedding_on_cpu', False,
+                         'whether to place embedding variables on cpu')
 
 # for automl hyper parameter tuning
 tf.app.flags.DEFINE_string('model_dir', None, 'model directory')
@@ -175,6 +180,8 @@ tf.app.flags.DEFINE_string('hpo_metric_save_path', None,
 tf.app.flags.DEFINE_string('asset_files', None, 'extra files to add to export')
 tf.app.flags.DEFINE_bool('check_mode', False, 'is use check mode')
 tf.app.flags.DEFINE_string('fg_json_path', None, '')
+tf.app.flags.DEFINE_bool('enable_avx_str_split', False,
+                         'enable avx str split to speedup')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -220,7 +227,7 @@ def _wait_ckpt(ckpt_path, max_wait_ts):
         break
   else:
     while time.time() - start_ts < max_wait_ts:
-      if gfile.Exists(ckpt_path + '.index'):
+      if not gfile.Exists(ckpt_path + '.index'):
         logging.info('wait for checkpoint[%s]' % ckpt_path)
         time.sleep(30)
       else:
@@ -230,6 +237,11 @@ def _wait_ckpt(ckpt_path, max_wait_ts):
 
 def main(argv):
   pai_util.set_on_pai()
+  if FLAGS.enable_avx_str_split:
+    constant.enable_avx_str_split()
+    logging.info('will enable avx str split: %s' %
+                 constant.is_avx_str_split_enabled())
+
   if FLAGS.distribute_eval:
     os.environ['distribute_eval'] = 'True'
 
@@ -278,7 +290,8 @@ def main(argv):
       pipeline_config.model_dir += '/'
 
   if FLAGS.clear_model:
-    if gfile.IsDirectory(pipeline_config.model_dir):
+    if gfile.IsDirectory(
+        pipeline_config.model_dir) and estimator_utils.is_chief():
       gfile.DeleteRecursively(pipeline_config.model_dir)
 
   if FLAGS.max_wait_ckpt_ts > 0:
@@ -380,7 +393,7 @@ def main(argv):
     # TODO: support multi-worker evaluation
     if not FLAGS.distribute_eval:
       assert len(
-          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 woker'
+          FLAGS.worker_hosts.split(',')) == 1, 'evaluate only need 1 worker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
     if FLAGS.eval_tables:
@@ -423,7 +436,10 @@ def main(argv):
   elif FLAGS.cmd == 'export':
     check_param('export_dir')
     check_param('config')
-
+    if FLAGS.place_embedding_on_cpu:
+      os.environ['place_embedding_on_cpu'] = 'True'
+    else:
+      os.environ['place_embedding_on_cpu'] = 'False'
     redis_params = {}
     if FLAGS.redis_url:
       redis_params['redis_url'] = FLAGS.redis_url

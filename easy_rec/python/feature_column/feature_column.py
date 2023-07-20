@@ -86,6 +86,8 @@ class FeatureColumnParser(object):
             'shared embed info of [%s] is not matched [%s] vs [%s]' % (
                 embed_name, config, self._share_embed_infos[embed_name])
         self._share_embed_names[embed_name] += 1
+        if config.feature_type == FeatureConfig.FeatureType.SequenceFeature:
+          self._share_embed_infos[embed_name] = copy_obj(config)
       else:
         self._share_embed_names[embed_name] = 1
         self._share_embed_infos[embed_name] = copy_obj(config)
@@ -156,6 +158,11 @@ class FeatureColumnParser(object):
             combiner=self._share_embed_infos[embed_name].combiner,
             partitioner=partitioner,
             ev_params=ev_params)
+        config = self._share_embed_infos[embed_name]
+        max_seq_len = config.max_seq_len if config.HasField(
+            'max_seq_len') else -1
+        for fc in share_embed_fcs:
+          fc.max_seq_length = max_seq_len
         self._deep_share_embed_columns[embed_name] = share_embed_fcs
 
       # for handling wide share embedding columns
@@ -168,6 +175,11 @@ class FeatureColumnParser(object):
             combiner='sum',
             partitioner=partitioner,
             ev_params=ev_params)
+        config = self._share_embed_infos[embed_name]
+        max_seq_len = config.max_seq_len if config.HasField(
+            'max_seq_len') else -1
+        for fc in share_embed_fcs:
+          fc.max_seq_length = max_seq_len
         self._wide_share_embed_columns[embed_name] = share_embed_fcs
 
     for fc_name in self._deep_columns:
@@ -413,17 +425,24 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else None
     assert len(config.input_names) >= 2
-    input_names = []
-    for input_id in range(len(config.input_names)):
-      if input_id == 0:
-        input_names.append(feature_name)
-      else:
-        input_names.append(feature_name + '_' + str(input_id))
-    fc = feature_column.crossed_column(
-        input_names,
-        self._get_hash_bucket_size(config),
-        hash_key=None,
-        feature_name=feature_name)
+
+    if len(config.combo_join_sep) == 0:
+      input_names = []
+      for input_id in range(len(config.input_names)):
+        if input_id == 0:
+          input_names.append(feature_name)
+        else:
+          input_names.append(feature_name + '_' + str(input_id))
+      fc = feature_column.crossed_column(
+          input_names,
+          self._get_hash_bucket_size(config),
+          hash_key=None,
+          feature_name=feature_name)
+    else:
+      fc = feature_column.categorical_column_with_hash_bucket(
+          feature_name,
+          hash_bucket_size=self._get_hash_bucket_size(config),
+          feature_name=feature_name)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)

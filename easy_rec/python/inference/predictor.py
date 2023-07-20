@@ -155,7 +155,9 @@ class PredictorImpl(object):
     elif len(dir_list) > 1:
       if self._use_latest:
         logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
-        dir_list = sorted(dir_list, key=lambda x: int(x.split('/')[-1]))
+        dir_list = sorted(
+            dir_list,
+            key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)]))
         return dir_list[-1]
       else:
         raise ValueError('multiple saved model found in directory %s' %
@@ -491,9 +493,9 @@ class Predictor(PredictorInterface):
             else:
               assert self._all_input_names, 'must set fg_json_path when use fg input'
               assert fg_input_size == len(self._all_input_names), (
-                  'The size of features in fg_json != the size of fg input. '
-                  'The size of features in fg_json is: %s; The size of fg input is: %s'
-                  % (fg_input_size, len(self._all_input_names)))
+                  'The number of features defined in fg_json != the size of fg input. '
+                  'The number of features defined in fg_json is: %d; The size of fg input is: %d'
+                  % (len(self._all_input_names), fg_input_size))
               for i, k in enumerate(self._all_input_names):
                 split_index.append(k)
                 split_vals[k] = []

@@ -42,9 +42,9 @@
 
 - 数据集采集自手机淘宝移动客户端的推荐系统日志，其中包含点击和与之关联的转化数据。[天池比赛链接](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408)
 
-- 训练数据表：pai_rec_dev.AliCCP_sample_train_data_processed
+- 训练数据表：pai_online_project.aliccp_sample_train_kv_split_score
 
-- 测试数据表：pai_rec_dev.AliCCP_sample_test_data_processeds
+- 测试数据表：pai_online_project.aliccp_sample_test_kv_split_score_1000w (只截取了1000万条)
 
 - 在PAI上面测试使用的资源包括2个parameter server，9个worker，其中一个worker做评估:
 
@@ -70,5 +70,5 @@
 ### CENSUS
 
 - CENSUS有48842个样本数据，每个样本14个属性，包括age, occupation, education, income等。样本的标注值为收入水平，例如>50K、\<=50K。[Census Income数据集链接](https://archive.ics.uci.edu/ml/datasets/census+income)
-- 训练数据表：pai_rec_dev.census_income_train
-- 测试数据表：pai_rec_dev.census_income_test
+- 训练数据表：pai_online_project.census_income_train
+- 测试数据表：pai_online_project.census_income_test
