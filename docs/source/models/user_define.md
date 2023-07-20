@@ -1,5 +1,8 @@
 # 自定义模型
 
+**推荐使用[组件化](../component/backbone.md)的方式[搭建模型](../component/backbone.md#id13)，可[自定义组件](../component/backbone.md#id12)添加新的特性和模型**。
+EasyRec组件化升级后不再需要使用如下方式开发新模型。
+
 ### 获取EasyRec源码
 
 ```bash

@@ -41,6 +41,7 @@ Running Platform:
 ### Simple to config
 
 - Flexible feature config and simple model config
+- [Build models by combining some components](docs/source/component/backbone.md)
 - Efficient and robust feature generation\[used in taobao\]
 - Nice web interface in development
 
@@ -60,14 +61,16 @@ Running Platform:
 ### A variety of models
 
 - [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) / [DropoutNet](docs/source/models/dropoutnet.md) / [CoMetricLearningI2I](docs/source/models/co_metric_learning_i2i.md)
-- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)
+- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [FiBiNet](docs/source/models/fibinet.md) / [MaskNet](docs/source/models/masknet.md)
+- [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md)
 - [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
 - [CMBF](docs/source/models/cmbf.md) / [UNITER](docs/source/models/uniter.md)
 - More models in development
 
 ### Easy to customize
 
-- Easy to implement [customized models](docs/source/models/user_define.md)
+- Support [component-based development](docs/source/component/backbone.md)
+- Easy to implement [customized models](docs/source/models/user_define.md) and [components](docs/source/component/backbone.md#id12)
 - Not need to care about data pipelines
 
 ### Fast vector retrieve

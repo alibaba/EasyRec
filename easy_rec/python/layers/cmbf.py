@@ -33,7 +33,8 @@ class CMBF(object):
       has_feature = True
     self._txt_seq_features = None
     if input_layer.has_group('text'):
-      self._txt_seq_features = input_layer(features, 'text', is_combine=False)
+      self._txt_seq_features, _, _ = input_layer(
+          features, 'text', is_combine=False)
       has_feature = True
     self._other_features = None
     if input_layer.has_group('other'):  # e.g. statistical feature

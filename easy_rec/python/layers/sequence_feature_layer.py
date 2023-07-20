@@ -3,6 +3,7 @@ import os
 
 import tensorflow as tf
 from tensorflow.python.framework import ops
+
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import seq_input_layer

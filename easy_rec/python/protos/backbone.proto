@@ -1,0 +1,96 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/keras_layer.proto";
+
+message InputLayer {
+    optional bool do_batch_norm = 1;
+    optional bool do_layer_norm = 2;
+    optional float dropout_rate = 3;
+    optional float feature_dropout_rate = 4;
+    optional bool only_output_feature_list = 5;
+    optional bool only_output_3d_tensor = 6;
+    optional bool output_2d_tensor_and_feature_list = 7;
+    optional bool output_seq_and_normal_feature = 8;
+    optional uint32 wide_output_dim = 9;
+}
+
+message Lambda {
+    required string expression = 1;
+}
+
+message Input {
+    oneof name {
+        string feature_group_name = 1;
+        string block_name = 2;
+        string package_name = 3;
+    }
+    optional string input_fn = 11;
+    optional string input_slice = 12;
+}
+
+message RecurrentLayer {
+    required uint32 num_steps = 1 [default = 1];
+    optional uint32 fixed_input_index = 2;
+    required KerasLayer keras_layer = 3;
+}
+
+message RepeatLayer {
+    required uint32 num_repeat = 1 [default = 1];
+    // default output the list of multiple outputs
+    optional int32 output_concat_axis = 2;
+    required KerasLayer keras_layer = 3;
+}
+
+message Layer {
+    oneof layer {
+        Lambda lambda = 1;
+        KerasLayer keras_layer = 2;
+        RecurrentLayer recurrent = 3;
+        RepeatLayer repeat = 4;
+        InputLayer input_layer = 5;
+    }
+}
+
+message Block {
+    required string name = 1;
+    // the input names of feature groups or other blocks
+    repeated Input inputs = 2;
+    optional int32 input_concat_axis = 3 [default = -1];
+    optional bool merge_inputs_into_list = 4;
+    optional string extra_input_fn = 5;
+
+    // sequential layers
+    repeated Layer layers = 6;
+
+    // only take effect when there are no layers
+    oneof layer {
+        InputLayer input_layer = 101;
+        Lambda lambda = 102;
+        KerasLayer keras_layer = 103;
+        RecurrentLayer recurrent = 104;
+        RepeatLayer repeat = 105;
+    }
+}
+
+// a package of blocks for reuse; e.g. call in a contrastive learning manner
+message BlockPackage {
+    // package name
+    required string name = 1;
+    // a few blocks generating a DAG
+    repeated Block blocks = 2;
+    // the names of output blocks
+    repeated string concat_blocks = 3;
+}
+
+message BackboneTower {
+    // a few sub DAGs
+    repeated BlockPackage packages = 1;
+    // a few blocks generating a DAG
+    repeated Block blocks = 2;
+    // the names of output blocks
+    repeated string concat_blocks = 3;
+    // optional top mlp layer
+    optional MLP top_mlp = 4;
+}
