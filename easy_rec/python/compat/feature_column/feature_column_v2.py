@@ -5193,3 +5193,13 @@ def deserialize_feature_columns(configs, custom_objects=None):
       deserialize_feature_column(c, custom_objects, columns_by_name)
       for c in configs
   ]
+
+
+def is_embedding_column(fc):
+  if isinstance(fc, EmbeddingColumn):
+    return True
+  if isinstance(fc, fc_old._SharedEmbeddingColumn):
+    return True
+  if isinstance(fc, SharedEmbeddingColumn):
+    return True
+  return False

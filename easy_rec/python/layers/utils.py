@@ -19,6 +19,8 @@ from __future__ import print_function
 
 import json
 
+from google.protobuf import struct_pb2
+from google.protobuf.descriptor import FieldDescriptor
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops import variables
@@ -158,3 +160,82 @@ def mark_input_src(name, src_desc):
                             'name': name,
                             'src': src_desc
                         }))
+
+
+def is_proto_message(pb_obj, field):
+  field_type = pb_obj.DESCRIPTOR.fields_by_name[field].type
+  return field_type == FieldDescriptor.TYPE_MESSAGE
+
+
+class Parameter(object):
+
+  def __init__(self, params, is_struct, l2_reg=None):
+    self.params = params
+    self.is_struct = is_struct
+    self._l2_reg = l2_reg
+
+  @staticmethod
+  def make_from_pb(config):
+    return Parameter(config, False)
+
+  def get_pb_config(self):
+    assert not self.is_struct, 'Struct parameter can not convert to pb config'
+    return self.params
+
+  @property
+  def l2_regularizer(self):
+    return self._l2_reg
+
+  @l2_regularizer.setter
+  def l2_regularizer(self, value):
+    self._l2_reg = value
+
+  def __getattr__(self, key):
+    if self.is_struct:
+      value = self.params[key]
+      if type(value) == struct_pb2.Struct:
+        return Parameter(value, True, self._l2_reg)
+      else:
+        return value
+
+    value = getattr(self.params, key)
+    if is_proto_message(self.params, key):
+      return Parameter(value, False, self._l2_reg)
+    return value
+
+  def __getitem__(self, key):
+    return self.__getattr__(key)
+
+  def get_or_default(self, key, def_val):
+    if self.is_struct:
+      if key in self.params:
+        if def_val is None:
+          return self.params[key]
+        value = self.params[key]
+        if type(value) == float:
+          return type(def_val)(value)
+        return value
+      return def_val
+    else:  # pb message
+      value = getattr(self.params, key)
+      if hasattr(value, '__len__'):
+        if len(value) > 0:
+          return value
+      elif self.params.HasField(key):
+        return value
+      return def_val
+
+  def check_required(self, keys):
+    if not self.is_struct:
+      return
+    if not isinstance(keys, (list, tuple)):
+      keys = [keys]
+    for key in keys:
+      if key not in self.params:
+        raise KeyError('%s must be set in params')
+
+  def has_field(self, key):
+    if self.is_struct:
+      return key in self.params
+    else:
+      return self.params.HasField(key)

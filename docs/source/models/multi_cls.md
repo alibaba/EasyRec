@@ -5,6 +5,8 @@
 如下图所示, 和CTR模型相比增加了:
 num_class: 2
 
+## 1. 内置模型
+
 ```protobuf
 model_config:{
   model_class: "DeepFM"
@@ -38,6 +40,87 @@ model_config:{
     l2_regularization: 1e-5
   }
   embedding_regularization: 1e-7
+  num_class: 2
+}
+```
+
+## 2. 组件化模型
+
+```protobuf
+model_config: {
+  model_name: 'DeepFM'
+  model_class: 'RankModel'
+  feature_groups: {
+    group_name: 'wide'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
+    ...
+    wide_deep: WIDE
+  }
+  feature_groups: {
+    group_name: 'features'
+    feature_names: 'user_id'
+    feature_names: 'movie_id'
+    ...
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: 'wide_logit'
+      inputs {
+        feature_group_name: 'wide'
+      }
+      lambda {
+        expression: 'lambda x: tf.reduce_sum(x, axis=1, keepdims=True)'
+      }
+    }
+    blocks {
+      name: 'features'
+      inputs {
+        feature_group_name: 'features'
+      }
+      input_layer {
+        output_2d_tensor_and_feature_list: true
+      }
+    }
+    blocks {
+      name: 'fm'
+      inputs {
+        block_name: 'features'
+        input_fn: 'lambda x: x[1]'
+      }
+      keras_layer {
+        class_name: 'FM'
+        fm {
+          use_variant: true
+        }
+      }
+    }
+    blocks {
+      name: 'deep'
+      inputs {
+        block_name: 'features'
+        input_fn: 'lambda x: x[0]'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [256, 128, 64]
+          use_final_bn: false
+          final_activation: 'linear'
+        }
+      }
+    }
+    concat_blocks: ['wide_logit', 'fm', 'deep']
+    top_mlp {
+      hidden_units: [128, 64]
+    }
+  }
+  model_params {
+    l2_regularization: 1e-5
+    wide_output_dim: 16
+  }
+  embedding_regularization: 1e-4
   num_class: 2
 }
 ```

@@ -100,13 +100,21 @@ EasyRec的模型训练和评估都是基于config配置文件的，配置文件�
 
 - [deepfm_on_movielens.config](configs/deepfm_on_movielens.config)
 
+- [deepfm_backbone_on_movielens.config](configs/deepfm_backbone_on_movielens.config)
+
 - [dcn_on_movielens.config](configs/dcn_on_movielens.config)
 
 - [autoint_on_movielens.config](configs/autoint_on_movielens.config)
 
+- [masknet_on_movielens.config](configs/masknet_on_movielens.config)
+
+- [fibinet_on_movielens.config](configs/fibinet_on_movielens.config)
+
 - [fm_on_criteo.config](configs/fm_on_criteo.config)
 
 - [deepfm_on_criteo.config](configs/deepfm_on_criteo.config)
+
+- [deepfm_backbone_on_criteo.config](configs/deepfm_backbone_on_criteo.config)
 
 **召回任务**
 
@@ -228,19 +236,36 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
 - MovieLens-1M
 
-  | Model     | Epoch | AUC    |
-  | --------- | ----- | ------ |
-  | Wide&Deep | 1     | 0.8558 |
-  | DeepFM    | 1     | 0.8688 |
-  | DCN       | 1     | 0.8576 |
-  | AutoInt   | 1     | 0.8513 |
+  | Model                | Epoch | AUC    |
+  | -------------------- | ----- | ------ |
+  | MLP                  | 1     | 0.8616 |
+  | Wide&Deep            | 1     | 0.8558 |
+  | Wide&Deep(Backbone)  | 1     | 0.8854 |
+  | MultiTower(Backbone) | 1     | 0.8814 |
+  | DeepFM               | 1     | 0.8867 |
+  | DeepFM(Backbone)     | 1     | 0.8872 |
+  | DCN                  | 1     | 0.8576 |
+  | DCN_v2               | 1     | 0.8770 |
+  | AutoInt              | 1     | 0.8513 |
+  | MaskNet              | 1     | 0.8872 |
+  | FibiNet              | 1     | 0.8893 |
+
+  备注：`MovieLens-1M` 数据集较小，评估指标方差较大，以上结果仅供参考。
 
 - Criteo-Research
 
-  | Model  | Epoch | AUC    |
-  | ------ | ----- | ------ |
-  | FM     | 1     | 0.7577 |
-  | DeepFM | 1     | 0.7967 |
+  | Model             | Epoch | AUC     |
+  | ----------------- | ----- | ------- |
+  | FM                | 1     | 0.7577  |
+  | DeepFM            | 1     | 0.7970  |
+  | DeepFM (backbone) | 1     | 0.7970  |
+  | DeepFM (periodic) | 1     | 0.7979  |
+  | DeepFM (autodis)  | 1     | 0.7982  |
+  | DLRM              | 1     | 0.79785 |
+  | DLRM (backbone)   | 1     | 0.7983  |
+  | DLRM (standard)   | 1     | 0.7949  |
+  | DLRM (autodis)    | 1     | 0.7989  |
+  | DLRM (periodic)   | 1     | 0.7998  |
 
 ### 召回模型
 

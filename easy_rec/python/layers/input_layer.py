@@ -19,10 +19,7 @@ from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
 
-from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
-from easy_rec.python.compat.feature_column.feature_column_v2 import SharedEmbeddingColumn  # NOQA
-
-from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
+from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
 
 
 class InputLayer(object):
@@ -72,6 +69,119 @@ class InputLayer(object):
   def has_group(self, group_name):
     return group_name in self._feature_groups
 
+  def get_combined_feature(self, features, group_name, is_dict=False):
+    """Get combined features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+      is_dict: whether to return group_features in dict
+
+    Return:
+      features: all features concatenate together
+      group_features: list of features
+      feature_name_to_output_tensors: dict, feature_name to feature_value, only present when is_dict is True
+    """
+    feature_name_to_output_tensors = {}
+    negative_sampler = self._feature_groups[group_name]._config.negative_sampler
+
+    place_on_cpu = os.getenv('place_embedding_on_cpu')
+    place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+    with conditional(self._is_predicting and place_on_cpu,
+                     ops.device('/CPU:0')):
+      concat_features, group_features = self.single_call_input_layer(
+          features, group_name, feature_name_to_output_tensors)
+    if group_name in self._group_name_to_seq_features:
+      # for target attention
+      group_seq_arr = self._group_name_to_seq_features[group_name]
+      concat_features, all_seq_fea = self.sequence_feature_layer(
+          features,
+          concat_features,
+          group_seq_arr,
+          feature_name_to_output_tensors,
+          negative_sampler=negative_sampler,
+          scope_name=group_name)
+      group_features.extend(all_seq_fea)
+      for col, fea in zip(group_seq_arr, all_seq_fea):
+        feature_name_to_output_tensors['seq_fea/' + col.group_name] = fea
+      all_seq_fea = array_ops.concat(all_seq_fea, axis=-1)
+      concat_features = array_ops.concat([concat_features, all_seq_fea],
+                                         axis=-1)
+    if is_dict:
+      return concat_features, group_features, feature_name_to_output_tensors
+    else:
+      return concat_features, group_features
+
+  def get_plain_feature(self, features, group_name):
+    """Get plain features by group_name. Exclude sequence features.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all features concatenate together
+      group_features: list of features
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+
+    feature_group = self._feature_groups[group_name]
+    group_columns, _ = feature_group.select_columns(self._fc_parser)
+    if not group_columns:
+      return None, []
+
+    cols_to_output_tensors = OrderedDict()
+    output_features = feature_column.input_layer(
+        features, group_columns, cols_to_output_tensors=cols_to_output_tensors)
+    group_features = [cols_to_output_tensors[x] for x in group_columns]
+
+    embedding_reg_lst = []
+    for col, val in cols_to_output_tensors.items():
+      if is_embedding_column(col):
+        embedding_reg_lst.append(val)
+    regularizers.apply_regularization(
+        self._embedding_regularizer, weights_list=embedding_reg_lst)
+    return output_features, group_features
+
+  def get_sequence_feature(self, features, group_name):
+    """Get sequence features by group_name. Exclude plain features.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+        seq_features: list of sequence features, each element is a tuple:
+          3d embedding tensor (batch_size, max_seq_len, embedding_dimension),
+          1d sequence length tensor.
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+
+    if self._variational_dropout_config is not None:
+      raise ValueError(
+          'variational dropout is not supported in not combined mode now.')
+
+    feature_group = self._feature_groups[group_name]
+    _, group_seq_columns = feature_group.select_columns(self._fc_parser)
+
+    embedding_reg_lst = []
+    builder = feature_column._LazyBuilder(features)
+    seq_features = []
+    for fc in group_seq_columns:
+      with variable_scope.variable_scope('input_layer/' +
+                                         fc.categorical_column.name):
+        tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
+        if fc.max_seq_length > 0:
+          tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(
+              tmp_embedding, tmp_seq_len, fc.max_seq_length)
+        seq_features.append((tmp_embedding, tmp_seq_len))
+        embedding_reg_lst.append(tmp_embedding)
+    regularizers.apply_regularization(
+        self._embedding_regularizer, weights_list=embedding_reg_lst)
+    return seq_features
+
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.
 
@@ -94,62 +204,18 @@ class InputLayer(object):
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
         group_name, ','.join([x for x in self._feature_groups]))
-    feature_name_to_output_tensors = {}
-    negative_sampler = self._feature_groups[group_name]._config.negative_sampler
     if is_combine:
-      place_on_cpu = os.getenv('place_embedding_on_cpu')
-      place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
-      with conditional(self._is_predicting and place_on_cpu,
-                       ops.device('/CPU:0')):
-        concat_features, group_features = self.single_call_input_layer(
-            features, group_name, feature_name_to_output_tensors)
-      if group_name in self._group_name_to_seq_features:
-        # for target attention
-        group_seq_arr = self._group_name_to_seq_features[group_name]
-        concat_features, all_seq_fea = self.sequence_feature_layer(
-            features,
-            concat_features,
-            group_seq_arr,
-            feature_name_to_output_tensors,
-            negative_sampler=negative_sampler,
-            scope_name=group_name)
-        group_features.extend(all_seq_fea)
-        for col, fea in zip(group_seq_arr, all_seq_fea):
-          feature_name_to_output_tensors['seq_fea/' + col.group_name] = fea
-        all_seq_fea = array_ops.concat(all_seq_fea, axis=-1)
-        concat_features = array_ops.concat([concat_features, all_seq_fea],
-                                           axis=-1)
-      if is_dict:
-        return concat_features, group_features, feature_name_to_output_tensors
-      else:
-        return concat_features, group_features
-    else:  # return sequence feature in raw format instead of combine them
-      if self._variational_dropout_config is not None:
-        raise ValueError(
-            'variational dropout is not supported in not combined mode now.')
+      return self.get_combined_feature(features, group_name, is_dict)
 
-      feature_group = self._feature_groups[group_name]
-      group_columns, group_seq_columns = feature_group.select_columns(
-          self._fc_parser)
-
-      assert len(group_columns) == 0, \
-          'there are none sequence columns: %s' % str(group_columns)
-
-      builder = feature_column._LazyBuilder(features)
-      seq_features = []
-      embedding_reg_lst = []
-      for fc in group_seq_columns:
-        with variable_scope.variable_scope('input_layer/' +
-                                           fc.categorical_column.name):
-          tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
-          if fc.max_seq_length > 0:
-            tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(
-                tmp_embedding, tmp_seq_len, fc.max_seq_length)
-          seq_features.append((tmp_embedding, tmp_seq_len))
-          embedding_reg_lst.append(tmp_embedding)
-      regularizers.apply_regularization(
-          self._embedding_regularizer, weights_list=embedding_reg_lst)
-      return seq_features
+    # return sequence feature in raw format instead of combine them
+    place_on_cpu = os.getenv('place_embedding_on_cpu')
+    place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+    with conditional(self._is_predicting and place_on_cpu,
+                     ops.device('/CPU:0')):
+      seq_features = self.get_sequence_feature(features, group_name)
+      plain_features, feature_list = self.get_plain_feature(
+          features, group_name)
+    return seq_features, plain_features, feature_list
 
   def single_call_input_layer(self,
                               features,
@@ -178,12 +244,8 @@ class InputLayer(object):
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
         feature_name_to_output_tensors=feature_name_to_output_tensors)
-    # embedding_reg_lst = [output_features]
+
     embedding_reg_lst = []
-    for col, val in cols_to_output_tensors.items():
-      if isinstance(col, EmbeddingColumn) or isinstance(col,
-                                                        SharedEmbeddingColumn):
-        embedding_reg_lst.append(val)
     builder = feature_column._LazyBuilder(features)
     seq_features = []
     for column in sorted(group_seq_columns, key=lambda x: x.name):
@@ -243,9 +305,12 @@ class InputLayer(object):
       group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
-      if embedding_reg_lst:
-        regularizers.apply_regularization(
-            self._embedding_regularizer, weights_list=embedding_reg_lst)
+    for fc, val in cols_to_output_tensors.items():
+      if is_embedding_column(fc):
+        embedding_reg_lst.append(val)
+    if embedding_reg_lst:
+      regularizers.apply_regularization(
+          self._embedding_regularizer, weights_list=embedding_reg_lst)
     return concat_features, group_features
 
   def get_wide_deep_dict(self):
