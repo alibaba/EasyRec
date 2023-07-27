@@ -1,10 +1,10 @@
-# PAI-NNI-HPO
+## PAI-NNI-HPO
 
 HPO是对模型参数、训练超参数（opt、lr）等进行自动搜索调优的一个工具，从而获取较优参数，提升模型效果。可以大大地节省算法同学调参的时间，聚焦在建模和业务上。我们对NNI、PAI产品和算法等进行集成，支持多平台0代码修改调参，并做了加速、监控、调度、续跑等功能增强。
 
-NNI参考：https://nni.readthedocs.io/en/stable/hpo/overview.html
+[NNI参考](https://nni.readthedocs.io/en/stable/hpo/overview.html)
 
-# 安装
+## 安装
 
 系统：Ubuntu >= 18.04, Windows 10 >= 21H2, macOS >= 11.
 
@@ -12,7 +12,7 @@ python环境：注意NNI仅支持python>=3.7,因此请配置python>=3.7的环境
 
 java环境：如果需要运行MC的PAI命令，需要java8
 
-## 下载安装hpo-tools
+### 下载安装hpo-tools
 
 安装命令为
 
@@ -23,7 +23,7 @@ source install_hpo_tools.sh $1 $2
 - 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
 - 第二个参数为aliyun/eflops/mac-dlc/mac-arm-dlc，用来控制安装dlc的版本，如果没写，则默认安装aliyun版本的dlc
 
-### Linux
+#### Linux
 
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
@@ -31,7 +31,7 @@ source install_hpo_tools.sh ./ aliyun
 source ~/.bashrc
 ```
 
-### MAC
+#### MAC
 
 ```
 # 如果是mac系统 将zsh->bash
@@ -44,7 +44,7 @@ source install_hpo_tools.sh ./ mac-dlc
 source ~/.bashrc
 ```
 
-### MAC ARM
+#### MAC ARM
 
 ```
 # 如果是mac系统 将zsh->bash
@@ -63,14 +63,14 @@ source ~/.bashrc
 - 默认会安装dlc命令行工具，用于提交dlc作业
 - 默认会安装odpscmd命令行工具，用于提交maxcompute作业
 
-## 提供镜像包（可选）
+### 提供镜像包（可选）
 
 提供镜像用于用户免安装使用，支持local/dlc/mc/trainingservice/paiflow
 
 - 弹外GPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:gpu-latest
 - 弹外CPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:cpu-latest
 
-### 启动镜像
+#### 启动镜像
 
 ```
 mkdir -p ./examples
@@ -95,7 +95,7 @@ cd /HpoTools/test/search
 ### 查看具体案例 去本地UI查看调优结果，第4章节
 ```
 
-# 配置
+## 配置
 
 HPO启动配置包含exp.yml. trial.ini, search_space.json三个模块。
 
@@ -111,7 +111,7 @@ nnictl create --config exp.yml
 
 配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
 
-## exp.yml 示例
+### exp.yml 示例
 
 ```
 experimentName: maxcompute_easyrec
@@ -133,7 +133,7 @@ assessor:
     start_step: 1
 ```
 
-## trial.ini 示例
+### trial.ini 示例
 
 可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini,执行在PAI MaxCompute平台
 
@@ -181,7 +181,7 @@ metric_dict={'auc':1}
 
 ```
 
-## trial_local.ini 示例
+### trial_local.ini 示例
 
 可以查看安装目录下examples/local_easyrec/trial.ini其中执行的命令的是在本地的，而不是在PAI MaxCompute平台
 
@@ -203,7 +203,7 @@ final_mode=final
 metric_dict={'auc':1}
 ```
 
-### CPU/GPU
+#### CPU/GPU
 
 [NNI Local配置参考手册](https://nni.readthedocs.io/zh/stable/reference/experiment_config.html#localconfig)
 
@@ -211,7 +211,7 @@ metric_dict={'auc':1}
 - 如果想将任务执行在CPU上，则使用config_local.yml
   ![image.png](../../images/automl/nni_local.jpg)
 
-## 配置超参搜索空间search_space.json
+### 配置超参搜索空间search_space.json
 
 - key是Dconfig中的参数名称，相关配置参考[EasyRecConfig参考手册](../reference.md)
 - type是nni中定义的搜索类型，相关配置参考[NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
@@ -225,7 +225,7 @@ metric_dict={'auc':1}
 
 常见搜索空间可以参考：samples/hpo/search_space.json
 
-### key配置注意项
+#### key配置注意项
 
 ${initial_learning_rate} 为search_space.json中的key，需要在easyrec pipeline config中提前进行替换，原理是采用变量替换的方式去引入新的超参
 
@@ -248,7 +248,7 @@ train_config {
   }
 ```
 
-### type配置注意事项
+#### type配置注意事项
 
 [NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
 
@@ -256,11 +256,11 @@ train_config {
 - {"\_type": "randint", "\_value": \[lower, upper\]}：\[low,upper)之间选择一个随机整数。
 - {"\_type": "uniform", "\_value": \[low, high\]}：\[low,upper\]之间随机采样。
 
-## 高级
+### 高级
 
 finetune搜索高级用法参考[HPO finetune](./finetune_config.md)
 
-# 启动调优
+## 启动调优
 
 ```bash
 nnictl create --config config.yml --port=8780
@@ -268,7 +268,7 @@ nnictl create --config config.yml --port=8780
 
 其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。如果遇到问题，请查看FAQ。
 
-您也可以参考[NNI参考手册](https://nni.readthedocs.io/en/v2.1/Tutorial/QuickStart.html)
+您也可以参考[NNI参考手册](https://nni.readthedocs.io/en/stable/reference/nnictl.html)
 查看nnictl的更多用法。
 
 启动成功界面：
@@ -276,7 +276,7 @@ nnictl create --config config.yml --port=8780
 
 如果启动失败，请先查看第6章节FAQ
 
-# HPO调优结果
+## HPO调优结果
 
 点击生成的URL，例如http://127.0.0.1:8780,可以看到webUI
 ![image.png](../../images/automl/pai_nni_overview.jpg)
@@ -285,7 +285,7 @@ nnictl create --config config.yml --port=8780
 
 参考[NNI WebPortal 相关介绍](https://nni.readthedocs.io/en/stable/experiment/web_portal/web_portal.html)
 
-# FAQ
+## FAQ
 
 - 如果是用MAC安装，遇到nni启动权限问题，可以手动解决下
 
