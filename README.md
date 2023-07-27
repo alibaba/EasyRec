@@ -48,7 +48,7 @@ Running Platform:
 ### It is smart
 
 - EarlyStop / Best Checkpoint Saver
-- [Hyper Parameter Search](docs/source/automl/hpo_pai.md) / [AutoFeatureCross](docs/source/automl/auto_cross_emr.md) / [Knowledge Distillation](docs/source/kd.md) / [Features Selection](docs/source/feature/feature.rst#id4)
+- [Hyper Parameter Search](docs/source/automl/pai_nni_hpo.md) / [AutoFeatureCross](docs/source/automl/auto_cross_emr.md) / [Knowledge Distillation](docs/source/kd.md) / [Features Selection](docs/source/feature/feature.rst#id4)
 - In development: NAS
 
 ### Large scale and easy deployment
