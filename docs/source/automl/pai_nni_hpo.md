@@ -1,73 +1,60 @@
 # PAI-NNI-HPO
 
-## GetStarted
+HPO是对模型参数、训练超参数（opt、lr）等进行自动搜索调优的一个工具，从而获取较优参数，提升模型效果。可以大大地节省算法同学调参的时间，聚焦在建模和业务上。我们对NNI、PAI产品和算法等进行集成，支持多平台0代码修改调参，并做了加速、监控、调度、续跑等功能增强。
 
-注意NNI仅支持python>=3.7,因此请配置python>=3.7的环境
+NNI参考：https://nni.readthedocs.io/en/stable/hpo/overview.html
 
-NNI is tested and supported on Ubuntu >= 18.04, Windows 10 >= 21H2, and macOS >= 11.
+# 安装
 
-### 下载安装easyrec
+系统：Ubuntu >= 18.04, Windows 10 >= 21H2, macOS >= 11.
 
-```bash
-git clone https://github.com/alibaba/EasyRec.git
-cd EasyRec
-bash scripts/init.sh
-python setup.py install
-```
+python环境：注意NNI仅支持python>=3.7,因此请配置python>=3.7的环境
 
-### 下载安装hpo-tools
+java环境：如果需要运行MC的PAI命令，需要java8
 
-#### 安装python3.7+以上环境 (可选)
+## 下载安装hpo-tools
+
+安装命令为
 
 ```
-wget http://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/Anaconda3-5.3.1-Linux-x86_64.sh
-bash Anaconda3-5.3.1-Linux-x86_64.sh
-source ~/.bashrc
-conda create -n test python=3.7
-source activate test
+source install_hpo_tools.sh $1 $2
 ```
 
-#### 安装java8及以上环境（可选）
+- 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
+- 第二个参数为aliyun/eflops/mac-dlc/mac-arm-dlc，用来控制安装dlc的版本，如果没写，则默认安装aliyun版本的dlc
 
-如果用户不需要提交maxcompute作业，或者环境已经满足，可以跳过。[odpscmd 参考](https://help.aliyun.com/document_detail/27971.html#section-dje-rvv-jp2)
-
-此处给了一个mac安装java8的教程，一般linux服务器会自带java8
-
-```
-# on mac
-brew install --cask homebrew/cask-versions/adoptopenjdk8
-
-# 接下来获取jdk安装路径，输入 /usr/libexec/java_home -V.红方框內就是jdk的安装路径，复制备用(/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home)
-/usr/libexec/java_home -V
-
-# 设置环境变量 vi /etc/profile
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
-export PATH=$JAVA_HOME/bin:$PATH:.
-export CLASS_PATH=$JAVA_HOME/lib
-source /etc/profile
-java -version
-```
-
-#### 安装hpo_tools
-
-第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
-
-安装2选1，install_hpo_tools.sh默认会安装最新版本，最新版本内的代码和案例都是匹配的，可以正常运行，但可能文档配置未更新。因此可以采用安装当前文档匹配的版本。
-
-#### 安装最新版本（可选）
+### Linux
 
 ```
 wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
 source install_hpo_tools.sh ./ aliyun
-cd ./examples/search/maxcompute_easyrec
+source ~/.bashrc
 ```
 
-#### 安装当前版本（可选）
+### MAC
 
 ```
-wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools_0.1.10.sh
-source install_hpo_tools_0.1.10.sh ./ aliyun
-cd ./examples/search/maxcompute_easyrec
+# 如果是mac系统 将zsh->bash
+chsh -s /bin/bash
+
+# 如果是mac系统，aliyun/eflops/mac-dlc/mac-arm-dlc
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
+source install_hpo_tools.sh ./ mac-dlc
+
+source ~/.bashrc
+```
+
+### MAC ARM
+
+```
+# 如果是mac系统 将zsh->bash
+chsh -s /bin/bash
+
+# 如果是mac系统，aliyun/eflops/mac-dlc/mac-arm-dlc
+wget https://automl-nni.oss-cn-beijing.aliyuncs.com/nni/hpo_tools/scripts/install_hpo_tools.sh
+source install_hpo_tools.sh ./ mac-arm-dlc
+
+source ~/.bashrc
 ```
 
 - 注意如果有旧版本，会先卸载旧版本，升级新版本hpo-tools
@@ -76,124 +63,79 @@ cd ./examples/search/maxcompute_easyrec
 - 默认会安装dlc命令行工具，用于提交dlc作业
 - 默认会安装odpscmd命令行工具，用于提交maxcompute作业
 
-### 卸载hpo-tools（可选）
+## 提供镜像包（可选）
 
-如果需要升级，则需要先卸载之前安装包,第一个参数为原始安装的位置；默认会卸载hpo_tools，删除examples/dlc/odpscmd
+提供镜像用于用户免安装使用，支持local/dlc/mc/trainingservice/paiflow
 
-```
-bash uninstall_hpo_tools.sh ./
-```
+- 弹外GPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:gpu-latest
+- 弹外CPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:cpu-latest
 
-## 配置
-
-### 配置 config.ini
-
-#### config.ini中参数的自动替换：
-
-程序会将config.ini 中以下这些key默认替换成对应的值。参数默认支持值替换、列表替换、字典替换、json替换、文件替换（params_config)
+### 启动镜像
 
 ```
-def update_default_params(cmd, tuner_params={}, params_only=False):
-    """update params in cmd."""
-    trial_id = str(nni.get_trial_id())
-    experment_id = str(nni.get_experiment_id())
+mkdir -p ./examples
+cd examples
+echo $(pwd)
 
-    tuner_params_list = ''
-    tuner_params_dict = ''
-    for p, v in tuner_params.items():
-        cmd = cmd.replace(p, str(v))
-        tuner_params_list += p + ' ' + str(v) + ' '
-        tuner_params_dict += p + '=' + str(v) + ' '
+# 挂载&获取container id
+container_id=`docker run -td --network host  -v $(pwd):/HpoTools/test registry.cn-shanghai.aliyuncs.com/mybigpai/nni:cpu-latest`
+echo $container_id
 
-    # params_only used in replace ak,sk in test at the begining
-    if not params_only:
-        # lower for k8s meta.name
-        cmd = cmd.replace('${exp_id}', experment_id.lower())
-        cmd = cmd.replace('${trial_id}', trial_id.lower())
-        cmd = cmd.replace('${NNI_OUTPUT_DIR}',
-                          os.environ.get('NNI_OUTPUT_DIR', './tmp'))
-        cmd = cmd.replace('${tuner_params_list}', tuner_params_list)
-        cmd = cmd.replace('${tuner_params_dict}', tuner_params_dict)
-        cmd = cmd.replace('${tuner_params_json}', json.dumps(tuner_params))
+# get examples:cp docker examples to local
+docker cp $container_id:/HpoTools/examples/search $(pwd)
+# 配置案例路径
+ls $(pwd)/search
 
-    return cmd
+# 运行镜像
+docker exec -ti $container_id /bin/bash
+cd /HpoTools/test/search
+
+### 查看具体案例 去本地修改$(pwd)/search下面的实验配置，第2章节
+### 查看具体案例 去容器/HpoTools/test/search 启动调优，第3章节
+### 查看具体案例 去本地UI查看调优结果，第4章节
 ```
 
-#### params_config(可选）
+# 配置
 
-- 如果用户的参数是保存在文件中，则需要配置params_config, 用于标记需要修改参数的源文件路径和目标路径;可以为多个params_src_dst_filepathxx=src_path,dst_path,注意以，分割；支持OSS/HDFS/NAS/LOCAL
-- 如果用户想要生成参数，也可以配置params_config,只需要配置目标路径即可
+HPO启动配置包含exp.yml. trial.ini, search_space.json三个模块。
 
-#### platform_config(必选）
-
-用于标记任务执行的平台以及对应的执行命令
+HPO的启动命令是：
 
 ```
-name=DLC/MaxCompute/DataScience/LOCAL/PAI
-cmdxx=xx （执行的命令行）
+nnictl create --config exp.yml
 ```
 
-#### metric_config（必选）
+- 启动入口为exp.yml
+- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务。
+- 通过字段searchSpaceFile: search_space.json    连接 search_space.json;
 
-用于标记任务metric的获取来源、metric类型、最终metric的方式、metric的key以及对应权重、
-其中
+配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
 
-- metric_type=summary/table/api/json/stdout(必选）
-- metric_source=xxx（必选，可以为多个以metric_source开头的，具体可以看finetune案例）
-  - metric_source=oss://lcl-bj/eval_dist_test/model\_${exp_id}\_${trial_id}/eval_val/ 为easyrec model_dir/eval_val/下
-- final_mode=final/best/avg（可选，默认值为best，可选值为final/best/avg）
-- optimize_mode=maximize/minimize （可选，默认值为maximize, 可选值为maximize/minimize)
-- source_list_final_mode=final/best/avg（可选，默认值为final_mode，可选值为final/best/avg,用于有多个metric_source时最终metric如何计算，具体可以看maxcompute_crossvalidation案例）
-- metric_dict示例：对应查询的key以及对应的权重
-  - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25
-    ```
-    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
-    ```
-  - 多目标示例：metric=val(’auc_is_valid_play’)\*0.5+val(’auc_is_like’)\*0.25+val(’auc_is_comment’)\*0.25-val(’loss_play_time’)\*0.25
-    注意：如果config.yml中nni tuner、assessor的配置方式是按metric最大化方式去选择参数的，对于loss这种越小越好的metric，需要定义权重为负值。
-    ```
-    metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25, 'loss_play_time':-0.25}
-    ```
-  - 单目标示例：metric=val(’auc_is_valid_play’)\*1
-    ```
-    metric_dict={'auc_is_valid_play':1}
-    ```
-  - 如果metric_type=stdout类型，则metric_dict对应的key为正则表达式，value为对应的权重,可以查看dlc_mnist/config_local_stdout.ini示例
-    ```
-    [metric_config]
-    # metric type is summary/table
-    metric_type=stdout
-    metric_source=oss://test-nni/examples/search/pai/stdout/stdout_${exp_id}_${trial_id}
-    # best or final,default=best
-    final_mode=best
-    metric_dict={'validation: accuracy=([0-9\\.]+)':1}
-    optimize_mode=maximize
-    ```
-
-#### oss_config （可选）
-
-如果任务需要使用OSS存储，则需要配置OSS config，修改对应的oss_config的值
-
-#### odps_config （可选）
-
-如果任务需要使用maxcompute平台执行任务，则需要配置odps config,修改对应的odps_config的值
-
-#### schedule_config (可选)
-
-支持在指定时间范围内调度AutoML任务
-
-- 天数级：例如：everyday/weekend
-- 分钟级：例如：09:00～21:00
+## exp.yml 示例
 
 ```
-[schedule_config]
-# everyday/weedend
-day=everyday
-start_time=15:15
-end_time=21:59
+experimentName: maxcompute_easyrec
+experimentWorkingDirectory: ../expdir
+searchSpaceFile: search_space.json
+trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini
+trialConcurrency: 1
+maxTrialNumber: 1
+tuner:
+  name: TPE
+  classArgs:
+    optimize_mode: maximize
+trainingService:
+  platform: local
+assessor:
+  name: PAIAssessor
+  classArgs:
+    optimize_mode: maximize
+    start_step: 1
 ```
 
-#### config.ini 示例
+## trial.ini 示例
+
+可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini,执行在PAI MaxCompute平台
 
 ```
 [oss_config]
@@ -239,15 +181,9 @@ metric_dict={'auc':1}
 
 ```
 
-##### easyrec命令配置
+## trial_local.ini 示例
 
-相关参数说明参考[MaxCompute Tutorial](../quick_start/mc_tutorial.md)：
-
-注意pai命令中的value需要用引号，例如DossHost='oss-cn-beijing-internal.aliyuncs.com'
-
-#### config_local.ini 示例
-
-其中执行的命令的是在本地的，而不是在PAI MaxCompute平台
+可以查看安装目录下examples/local_easyrec/trial.ini其中执行的命令的是在本地的，而不是在PAI MaxCompute平台
 
 ```
 [params_config]
@@ -267,7 +203,7 @@ final_mode=final
 metric_dict={'auc':1}
 ```
 
-##### CPU/GPU
+### CPU/GPU
 
 [NNI Local配置参考手册](https://nni.readthedocs.io/zh/stable/reference/experiment_config.html#localconfig)
 
@@ -275,7 +211,7 @@ metric_dict={'auc':1}
 - 如果想将任务执行在CPU上，则使用config_local.yml
   ![image.png](../../images/automl/nni_local.jpg)
 
-### 配置超参搜索空间search_space.json
+## 配置超参搜索空间search_space.json
 
 - key是Dconfig中的参数名称，相关配置参考[EasyRecConfig参考手册](../reference.md)
 - type是nni中定义的搜索类型，相关配置参考[NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
@@ -289,7 +225,7 @@ metric_dict={'auc':1}
 
 常见搜索空间可以参考：samples/hpo/search_space.json
 
-##### key配置注意项
+### key配置注意项
 
 ${initial_learning_rate} 为search_space.json中的key，需要在easyrec pipeline config中提前进行替换，原理是采用变量替换的方式去引入新的超参
 
@@ -312,7 +248,7 @@ train_config {
   }
 ```
 
-##### type配置注意事项
+### type配置注意事项
 
 [NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
 
@@ -320,9 +256,11 @@ train_config {
 - {"\_type": "randint", "\_value": \[lower, upper\]}：\[low,upper)之间选择一个随机整数。
 - {"\_type": "uniform", "\_value": \[low, high\]}：\[low,upper\]之间随机采样。
 
-## 启动调优
+## 高级
 
-### 启动命令
+finetune搜索高级用法参考[HPO finetune](./finetune_config.md)
+
+# 启动调优
 
 ```bash
 nnictl create --config config.yml --port=8780
@@ -336,332 +274,18 @@ nnictl create --config config.yml --port=8780
 启动成功界面：
 ![image.png](../../images/automl/pai_nni_create.jpg)
 
-### config.yml 参数说明
+如果启动失败，请先查看第6章节FAQ
 
-config.yml是作为NNI的配置文件，将代码和搜索空间进行结合，并使用指定的环境来运行您的训练代码，具体参考此config.yml文件。在这里，您还可以还提供其他信息，例如并发度、调优算法、最大Trial数量和最大持续时间等参数。
+# HPO调优结果
 
-[NNI参考手册config.yml](https://nni.readthedocs.io/zh/stable/reference/experiment_config.html#experimentconfig)
-
-```
-experimentWorkingDirectory: ../expdir
-searchSpaceFile: search_space.json
-trialCommand: python3 -m hpo_tools.core.utils.run --config=./config.ini
-trialConcurrency: 1
-maxTrialNumber: 1
-tuner:
-  name: TPE
-  classArgs:
-    optimize_mode: maximize
-debug: true
-logLevel: debug
-trainingService:
-  platform: local
-assessor:
-  name: PAIAssessor
-  classArgs:
-    platform: MAXCOMPUTE
-    optimize_mode: maximize
-    start_step: 1
-```
-
-### 并发度和最大Trial数量、最大运行时间可以实时调整：
-
-建议：刚开始设置为1，调测代码成功后，可以先调大最大运行次数Max trial No.，再调大并发度Concurrency。
-![image.png](../../images/automl/pai_nni_modify.jpg)
-
-## 调优结果
-
-在运行实验后，可以在命令行界面中找到如下的Web界面地址 ：\[Your IP\]:\[Your Port\]
-![image.png](../../images/automl/pai_nni_create.jpg)
-
-### 查看概要页面
-
-点击Overview按钮，在这里可以看到实验相关信息，如配置文件、搜索空间、运行时长、日志路径等。NNI 还支持通过 Experiment summary 按钮下载这些信息和参数。
+点击生成的URL，例如http://127.0.0.1:8780,可以看到webUI
 ![image.png](../../images/automl/pai_nni_overview.jpg)
+查看调优结果没问题后，可以调整最大Trial运行数量MaxTrialNo和并发度Concurrency。
+如果需要更详细的调优结果，可查看[HPO调优结果](./hpo_res.md)
 
-### 查看Trial详情页面
+参考[NNI WebPortal 相关介绍](https://nni.readthedocs.io/en/stable/experiment/web_portal/web_portal.html)
 
-点击Trials detail按钮，您可以在此页面中看到整个实验过程中，每个trial的结果情况。
-其中succeeded代表此次trial成功运行，earlystop表示该组参数运行结果不太好，被提前停止了。停止策略可以查看pai_nni/core/pai_assessor.PaiAssessor，当然也可以根据业务情况去修改。
-![image.png](../../images/automl/pai_nni_detail.jpg)
-
-### 查看作业日志详情
-
-点击每个Trial No，可以看到每个参数Trial的日志、参数详情,报错和输出可以点击以下3个按钮。
-![image.png](../../images/automl/pai_nni_log.jpg)
-
-### 手动停止某组实验超参
-
-如果某些参数的结果不太好，可以进行手动停止。
-例如停止第一组参数。
-![image.png](../../images/automl/nni_stop.png)
-
-### 多目标default metric查看
-
-假设用户配置的metric_config为如下，那么UI中Default metric中显示3项；该组trial最终的metric
-
-- default=auc\*0.5+accuracy\*0.5
-- auc即为最终的auc值
-- accuracy即为最终的accuracy值
-
-```
-auc=0.5
-accuracy=0.5
-```
-
-![image.png](../../images/automl/nni_metric.png)
-
-### 最优模型和参数
-
-可以按照metric排序，获取最优精度的参数，这组实验id kfv91xl5 和trial_id zuKwM,代码中默认设置模型保存路径为以下方式，因此可以在对应的路径下找到该模型
--Dmodel_dir='oss://lcl-bj/eval_dist_test/model\_${exp_id}\_${trial_id}'
-![image.png](../../images/automl/best-model.png)
-
-### 多组参数比较
-
-点击Trail NO，选中后，点击compare, 就可以查看对应参数的相关信
-![image.png](../../images/automl/nni-compare.png)
-
-### 多组实验查看
-
-多组实验可以点击All experiments,然后点击具体的实验ID进入对应的实验详情
-![image.png](../../images/automl/exp-list.png)
-
-### 自定义参数或者失败重试
-
-可以使用自定义参数，也可以使用该功能重启失败的trial。
-点击复制这个按钮，然后跳出Customized trial，点击提交/或者修改即可，此处是新增一组参数，应该记得调高MaxTrialNo
-注意该功能在2.10目前有问题；需要nni\<=2.9
-![image.png](../../images/automl/retry_trial.jpg)
-
-### 一键重试失败的Trial
-
-当用户确认失败原因为没有资源，或者算法偶现失败等原因时，想采取重试策略，可以使用该API发起多个失败的Trial一起重试。在内部其实是将NNI最大运行次数增大，并发数保持不变；并且是新增了多个Trial，每个Trial的参数和之前失败的Trial保持一致。
-
-注意该功能在2.10目前有问题；需要nni\<=2.9
-
-- experiment_id: 重试的实验ID（必选）
-- trial_begin_id: 默认为0（可选，表明重试的开始为第0个trial）；
-- trial_end_id: 默认为-1 （可选，表明重试的结束为最后一个trial）
-
-例如：
-实验exp跑了20组，失败5组；最大运行次数为30
-
-启动第一次重试，参数为（exp,0,-1)；最大运行次数将被修改为35，此时仍有失败2组.
-
-启动第二次重试时，参数为（exp，20，-1）；最大运行次数将被修改为37， 此时全部成功；后续无需重启
-
-```
-python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
-python -m hpo_tools.core.utils.retry_multi_failed_trials --experiment_id=o968matg --trial_begin_id=20 --trial_end_id=-1
-```
-
-### 一键停止运行的Trial
-
-当用户得到想要的模型和参数时，由于NNI停止实验时，只会停止本地的进程，不会将dlc/trainingservice等平台的任务停止，目前提供了接口，可以将实验正常运行的作业给停止掉，并且将最大实验次数调至1(最小的正数），避免停止的瞬间起新的作业。
-
-- experiment_id: 停止的实验ID（必选）
-- trial_begin_id: 默认为0（可选，表明停止的开始为第0个trial）；
-- trial_end_id: 默认为-1 （可选，表明停止的结束为最后一个trial）
-
-```
-python -m hpo_tools.core.utils.kill_multi_running_trials --experiment_id=o968matg --trial_begin_id=0 --trial_end_id=-1
-```
-
-### 停止实验
-
-在停止实验之前，先参考一键停止运行的Trial，再停止实验
-
-```
-nnictl stop exp_id
-```
-
-### 超参数分析
-
-可以点击超参数Hyper-parameter，选中关注的指标，就可以看出来最好的参数大概是哪些；对参数进行分析
-![image.png](../../images/automl/hyper.jpg)
-
-## finetune训练（可选）
-
-由于推荐业务每天都有实时更新的数据，如果用户采用先训练一批历史数据，后面每天finetune更新模型的话，可以利用以上begin调优的最优结果，再在新数据上微调。如果用户每次更新模型都是重新开始训练的话，则不需要此步骤。
-
-### 调优经验
-
-例如：用户有40天历史数据，可以先利用以上步骤调优30天数据，然后根据搜索出的最优参数，再finetuen剩余10天。
-经验是：根据begin训练得出的最优参数，将learning_rate设置为begin结束时的learning_rate。
-例如：
-begin训练时learning_rate如下,begin训练总计为8000步，因此可以设置finetune时initial_learning_rate=1e-6或者1e-7：
-
-```
-learning_rate {
-        exponential_decay_learning_rate {
-          initial_learning_rate: 0.001
-          decay_steps: 1000
-          decay_factor: 0.1
-          min_learning_rate: 1e-07
-        }
-      }
-```
-
-支持手动修改，也支持代码修改配置，修改效果如下：
-![image.png](../../images/automl/modify_lr.jpg)
-
-#### 使用代码修改配置(可选)
-
-支持本地上pipeline文件修改
-
-```bash
-python modify_pipeline_config.py --pipeline_config_path=./samples/pipeline.config --save_path=./samples/pipeline_finetune.config --learning_rate=1e-6
-```
-
-也支持oss上pipeline文件直接修改
-
-```bash
-python modify_pipeline_config.py  --pipeline_config_path=oss://easyrec/pipeline889.config --save_path=oss://easyrec/pipeline889-f.config --learning_rate=1e-6 --oss_config=../config/.ossutilconfig
-```
-
-如果用户想要看是否有更优参数，可以看下级目录启动调优。
-
-### 启动调优(可选)
-
-```bash
-nnictl create --config config_finetune.yml --port=8617
-```
-
-#### config_finetune.ini
-
-```
-[platform_config]
-name=MaxCompute
-{% set date_list = [20220616,20220617] %}
-{% set date_begin = 20220616 %}
-{% for bizdate in date_list %}
-{% set eval_ymd = bizdate +1 %}
-{% set predate = bizdate -1 %}
-{% if bizdate == date_begin %}
-cmd1_{{bizdate}}="PAI -name=easy_rec_ext
-    -project=algo_public
-    -Dscript='oss://automl-nni/easyrec/easy_rec_ext_615_res.tar.gz'
-    -Dtrain_tables='odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify/dt={{bizdate}}'
-    -Deval_tables='odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify/dt={{eval_ymd}}'
-    -Dcmd=train
-    -Deval_method=separate
-    -Dfine_tune_checkpoint="oss://automl-nni/easyrec/finetune/{{predate}}_finetune_model_nni_622"
-    -Dconfig='oss://automl-nni/easyrec/config/easyrec_model_${exp_id}_${trial_id}.config'
-    -Dmodel_dir='oss://automl-nni/easyrec/finetune/{{bizdate}}_finetune_model_nni_622/${exp_id}_${trial_id}'
-    -Dselected_cols='is_valid_play,ln_play_time,is_like,is_comment,features,content_features'
-    -Dbuckets='oss://automl-nni/'
-    -Darn='xxx'
-    -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}} "
-
-{% else %}
-cmd1_{{bizdate}}="PAI -name=easy_rec_ext
-    -project=algo_public
-    -Dscript='oss://automl-nni/easyrec/easy_rec_ext_615_res.tar.gz'
-    -Dtrain_tables='odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify/dt={{bizdate}}'
-    -Deval_tables='odps://pai_rec_dev/tables/rec_sv_rebuild_acc_rnk_rank_sample_embedding_modify/dt={{eval_ymd}}'
-    -Dcmd=train
-    -Deval_method=separate
-    -Dfine_tune_checkpoint="oss://automl-nni/easyrec/finetune/{{predate}}_finetune_model_nni_622/${exp_id}_${trial_id}"
-    -Dconfig='oss://automl-nni/easyrec/config/easyrec_model_${exp_id}_${trial_id}.config'
-    -Dmodel_dir='oss://automl-nni/easyrec/finetune/{{bizdate}}_finetune_model_nni_622/${exp_id}_${trial_id}'
-    -Dselected_cols='is_valid_play,ln_play_time,is_like,is_comment,features,content_features'
-    -Dbuckets='oss://automl-nni/'
-    -Darn='xxx'
-    -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}} "
-{% endif %}
-
-{% endfor %}
-
-
-[metric_config]
-# metric type is summary/table
-metric_type=summary
-{% set date_list = [20220616,20220617] %}
-{% for bizdate in date_list %}
-metric_source_{{bizdate}}=oss://automl-nni/easyrec/finetune/{{bizdate}}_finetune_model_nni_622/${exp_id}_${trial_id}/eval_val/
-{% endfor %}
-# best/final/avg,default=best
-final_mode=final
-source_list_final_mode=avg
-metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
-```
-
-与begin训练的`差异点`:
-
-- 每个配置模块支持jinja模版渲染
-- 配置finetune日期{% set date_list = \[20220616,20220617\] %}
-- 配置finetune开始日志{% set date_begin = 20220616 %}，Dfine_tune_checkpoint开始日期和后续日期采取的model路径不一样
-- 假设每天finetune：
-  - {bizdate} 必须保留，将会在代码中根据当天日期进行替换
-  - {eval_ymd} 必须保留，将会在代码中根据第二天日期进行替换
-  - {predate} 必须保留，将会在代码中根据前一天日期进行替换
-- metric_source也是多条路径，每一天训练结果为summary的最终结果，整组参数finetune的结果为这些天的平均值
-
-#### 配置超参搜索空间search_space.json
-
-参考begin训练阶段中想要搜索的参数即可，注意由于是finetune训练，网络结构相关的参数不要进行搜索，经验是搜索LR
-
-## EarlyStop算法
-
-### 算法介绍
-
-支持将该组中的实验结果和同组中的所有历史进行比较，如果不满足比较标准（例如小于中位数），则停止该组超参数的运行。比如说设置最大运行次数max_trial_num， 实际使用量会显著小于max_trial_num，但具体数量就和实际跑的任务及随机到的超参有关系了。例如max_trial_num=50时，可能最终可能不到 25 次，并且差不多已经是完整探索了50组超参。
-在config.yml中：
-
-- optimize_mode： 最大化优化的方向,maximize/minimize
-- start_step: 从第2步开始进行早停判定
-- moving_avg: 早停判断时，采用所有历史的滑动平均值作为判断标准
-- proportion： 本次超参搜索的最优值和历史记录的proportion值比较
-- patience：metric指标连续下降几次，就停止
-- platform: 目前支持LOCAL/PAI/DLC/DATASCIENCE/MAXCOMPUTE/TRAININGSERVICE
-
-```
-assessor:
-  name: PAIAssessor
-  classArgs:
-    platform: MAXCOMPUTE
-    optimize_mode: maximize
-    start_step: 1
-    moving_avg: true
-    proportion: 0.5
-```
-
-### 算法修改
-
-如果您想设置自定义停止策略，例如到达多少步，精度还没到达0.9，可以修改代码，来加速搜索，可以参考NNI CustomizeAssessor
-注意继承对应平台的assessor函数: hpo_tools/core/assessor/pai_assessor.PAIAssessor
-trial_end函数，该函数是用来当一个实验被停止时，去将平台上运行的任务关闭，同时会去将监听metric的线程给kill掉。
-
-```
-def trial_end(self, trial_job_id, success):
-        logging.info('trial end')
-        # user_cancelled or early_stopped
-        if not success:
-            if self.platform == 'DATASCIENCE':
-                DataScienceTask(trial_id=trial_job_id).stop_job()
-            elif self.platform in ['LOCAL', 'PAI']:
-                logging.info(
-                    "the platform is local or pai, don't need to stop remote job"
-                )
-            elif self.platform == 'DLC':
-                DLCTask(trial_id=trial_job_id).stop_job()
-            elif self.platform == 'MAXCOMPUTE':
-                MaxComputeTask(trial_id=trial_job_id).stop_job()
-            elif self.platform == 'TRAININGSERVICE':
-                TrainingServiceTask(trial_id=trial_job_id).stop_job()
-            else:
-                raise TypeError(
-                    f"the self.platform {self.platform} not "
-                    f"in DATASCIENCE,DLC,MAXCOMPUTE,LOCAL,PAI,TRAININGSERVICE "
-                )
-            # remove json file
-            remove_filepath(trial_id=trial_job_id)
-```
-
-## FAQ
+# FAQ
 
 - 如果是用MAC安装，遇到nni启动权限问题，可以手动解决下
 
