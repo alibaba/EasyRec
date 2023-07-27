@@ -70,7 +70,7 @@ source ~/.bashrc
 - 弹外GPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:gpu-latest
 - 弹外CPU镜像：registry.cn-shanghai.aliyuncs.com/mybigpai/nni:cpu-latest
 
-#### 启动镜像
+##### 启动镜像
 
 ```
 mkdir -p ./examples
@@ -211,7 +211,7 @@ metric_dict={'auc':1}
 - 如果想将任务执行在CPU上，则使用config_local.yml
   ![image.png](../../images/automl/nni_local.jpg)
 
-### 配置超参搜索空间search_space.json
+#### 配置超参搜索空间search_space.json
 
 - key是Dconfig中的参数名称，相关配置参考[EasyRecConfig参考手册](../reference.md)
 - type是nni中定义的搜索类型，相关配置参考[NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
