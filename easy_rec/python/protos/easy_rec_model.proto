@@ -21,6 +21,7 @@ import "easy_rec/python/protos/cmbf.proto";
 import "easy_rec/python/protos/uniter.proto";
 import "easy_rec/python/protos/autoint.proto";
 import "easy_rec/python/protos/mind.proto";
+import "easy_rec/python/protos/ultragcn.proto";
 import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
@@ -82,6 +83,7 @@ message EasyRecModel {
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
+        ULTRAGCN ultragcn = 205;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
