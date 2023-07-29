@@ -2,9 +2,13 @@
 import logging
 
 import tensorflow as tf
-# from horovod.tensorflow.compression import Compression
-from horovod.tensorflow.functions import broadcast_variables
 from tensorflow.python.training import session_run_hook
+
+# from horovod.tensorflow.compression import Compression
+try:
+  from horovod.tensorflow.functions import broadcast_variables
+except Exception:
+  pass
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
