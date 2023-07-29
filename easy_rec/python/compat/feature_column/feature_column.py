@@ -2582,6 +2582,9 @@ class _SharedEmbeddingColumn(
       embedding_shape = (self.categorical_column._num_buckets, self.dimension)  # pylint: disable=protected-access
       shared_embedding_collection = ops.get_collection(
           self.shared_embedding_collection_name)
+      tmp_scope = variable_scope.get_variable_scope()
+      import pdb
+      pdb.set_trace()
       if shared_embedding_collection:
         if len(shared_embedding_collection) > 1:
           raise ValueError(
