@@ -83,7 +83,7 @@ model_config {
 - feature_groups: 需要六个feature_group: u2i_seq, i_seq, i2i_seq, user, item 和 bias.
   **group name不能变, 且u2i_seq, i_seq, i2i_seq的输入均为Sequence Feature**
   特征说明可以参考下图
-  ![pdn_1.png](../../images/models/pdn_1.jpg)
+  ![pdn_1.png](../../images/models/pdn_1.png)
 
   - u2i_seq: u用户对交互过的trigger物品的行为侧信息的序列，如 event_type, click_time等
   - i_seq: 用户交互过的trigger物品的相关特征的序列，如 category, brand等
