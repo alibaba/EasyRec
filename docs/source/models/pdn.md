@@ -81,6 +81,7 @@ model_config {
 - model_class: 'PDN', 不需要修改
 
 - feature_groups: 需要六个feature_group: u2i_seq, i_seq, i2i_seq, user, item 和 bias.
+
   **group name不能变, 且u2i_seq, i_seq, i2i_seq的输入均为Sequence Feature.**
 
   特征说明可以参考下图
