@@ -35,22 +35,43 @@ class PDN(MatchModel):
     else:
       self._bias_features = None
 
-    # user to item behavior info
-    u2i_seqs, _, _ = self._input_layer(
-        self._feature_dict, 'u2i_seq', is_combine=False)
-    self._seq_len = u2i_seqs[0][1]
-    self._u2i_seq = tf.concat([x[0] for x in u2i_seqs], axis=2)
-    # item side info
-    i_seqs, _, _ = self._input_layer(
-        self._feature_dict, 'i_seq', is_combine=False)
-    self._i_seq = tf.concat([x[0] for x in i_seqs], axis=2)
-
-    # item to target similarities
-    i2i_seqs, _, _ = self._input_layer(
-        self._feature_dict, 'i2i_seq', is_combine=False)
-    self._i2i_seq = tf.concat([x[0] for x in i2i_seqs], axis=2)
+    self._u2i_seq, self._seq_len = self._get_seq_features('u2i_seq')
+    self._i_seq, _ = self._get_seq_features('i_seq')
+    self._i2i_seq, _ = self._get_seq_features('i2i_seq')
 
   def build_predict_graph(self):
+    trigger_out = self._build_trigger_net()
+    sim_out = self._build_similarity_net()
+    logits = tf.multiply(sim_out, trigger_out)
+
+    seq_mask = tf.to_float(
+        tf.sequence_mask(self._seq_len,
+                         tf.shape(sim_out)[1]))
+    logits = tf.reduce_sum(logits * seq_mask[:, :, None], axis=1)
+
+    direct_logits = self._build_direct_net()
+    if direct_logits is not None:
+      logits += direct_logits
+
+    bias_logits = self._build_bias_net()
+    if bias_logits is not None:
+      logits += bias_logits
+
+    logits = tf.squeeze(logits, axis=1)
+    probs = 1 - tf.exp(-logits)  # map [0, inf) to [0, 1)
+
+    self._prediction_dict['probs'] = probs
+    self._prediction_dict['logits'] = tf.log(
+        tf.clip_by_value(probs, 1e-8, 1 - 1e-8))
+    return self._prediction_dict
+
+  def _get_seq_features(self, name):
+    seqs, _, _ = self._input_layer(self._feature_dict, name, is_combine=False)
+    seq_len = seqs[0][1]
+    seq = tf.concat([x[0] for x in seqs], axis=2)
+    return seq, seq_len
+
+  def _build_trigger_net(self):
     user_dnn_layer = dnn.DNN(self._model_config.user_dnn, self._l2_reg,
                              'user_dnn', self._is_training)
     user_fea = user_dnn_layer(self._user_features)
@@ -71,6 +92,7 @@ class PDN(MatchModel):
 
     # output: N x seq_len x d, d is usually set to 1
     trigger_out = trigger_dnn_layer(trigger_merge_fea)
+    # exp(x): map (-inf, inf) to (0, inf)
     trigger_out = tf.exp(trigger_out)
 
     self._prediction_dict['trigger_out'] = tf.reduce_join(
@@ -80,7 +102,9 @@ class PDN(MatchModel):
             separator=','),
         axis=1,
         separator=';')
+    return trigger_out
 
+  def _build_similarity_net(self):
     item_dnn_layer = dnn.DNN(self._model_config.item_dnn, self._l2_reg,
                              'item_dnn', self._is_training)
     item_fea = item_dnn_layer(self._item_features)
@@ -105,6 +129,7 @@ class PDN(MatchModel):
         last_layer_no_batch_norm=True)
     # output: N x seq_len x 1
     sim_out = sim_dnn_layer(sim_seq_concat)
+    # exp(x): map (-inf, inf) to (0, inf)
     sim_out = tf.exp(sim_out)
 
     self._prediction_dict['sim_out'] = tf.reduce_join(
@@ -114,34 +139,7 @@ class PDN(MatchModel):
             separator=','),
         axis=1,
         separator=';')
-
-    # log(1 + exp(x)): map (-inf, inf) to (0, inf)
-    # logits = tf.nn.softplus(sim_out + trigger_out)
-    logits = tf.multiply(sim_out, trigger_out)
-
-    # add sequence mask
-    seq_mask = tf.to_float(
-        tf.sequence_mask(self._seq_len,
-                         tf.shape(sim_out)[1]))
-    logits = tf.reduce_sum(logits * seq_mask[:, :, None], axis=1)
-
-    direct_logits = self._build_direct_net()
-    if direct_logits is not None:
-      logits += direct_logits
-
-    bias_logits = self._build_bias_net()
-    if bias_logits is not None:
-      logits += bias_logits
-
-    logits = tf.squeeze(logits, axis=1)
-
-    # map [0, inf) to [0, 1)
-    probs = 1 - tf.exp(-logits)
-
-    self._prediction_dict['probs'] = probs
-    self._prediction_dict['logits'] = tf.log(
-        tf.clip_by_value(probs, 1e-8, 1 - 1e-8))
-    return self._prediction_dict
+    return sim_out
 
   def _build_direct_net(self):
     if self._model_config.HasField('direct_user_dnn') and \
