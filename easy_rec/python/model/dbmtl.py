@@ -114,35 +114,45 @@ class DBMTL(MultiTaskModel):
 
     task_input_list = [bottom_fea] * self._task_num
     if self._model_config.use_sequence_encoder:
-      seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
-      tf.summary.scalar('seq_norm', tf.norm(seq_encoding))
-      if self._model_config.use_feature_ln and seq_encoding is not None:
-        seq_encoding = layer_norm.layer_norm(
-            seq_encoding, trainable=True, scope='feat/seq/ln')
-      if seq_encoding is not None:
-        if self._model_config.HasField('sequence_dnn'):
-          if self._model_config.separate_dnn:
-            for i in range(self._task_num):
-              sequence_dnn = dnn.DNN(
-                  self._model_config.sequence_dnn,
-                  self._l2_reg,
-                  name='sequence_dnn_%d' % i,
-                  is_training=self._is_training)
-              seq_fea = sequence_dnn(seq_encoding)
-              task_input_list[i] = tf.concat([task_input_list[i], seq_fea],
-                                             axis=-1)
-          else:
-            sequence_dnn = dnn.DNN(
-                self._model_config.sequence_dnn,
-                self._l2_reg,
-                name='sequence_dnn',
+      if self._model_config.separate_seq:
+        for i, task_tower_cfg in enumerate(self._model_config.task_towers):
+          tower_name = task_tower_cfg.tower_name
+          with tf.variable_scope('sequence/%s' % tower_name):
+            seq_encoding = self.get_sequence_encoding(
                 is_training=self._is_training)
-            seq_fea = sequence_dnn(seq_encoding)
-            task_input_list[i] = [tf.concat([bottom_fea, seq_fea], axis=-1)
-                                  ] * self._task_num
-        else:
-          for i in range(self._task_num):
+            tf.summary.scalar('seq_norm/%s' % tower_name, tf.norm(seq_encoding))
             task_input_list[i] = tf.concat([bottom_fea, seq_encoding], axis=-1)
+      else:
+        seq_encoding = self.get_sequence_encoding(is_training=self._is_training)
+        tf.summary.scalar('seq_norm', tf.norm(seq_encoding))
+        add_seq_fea = tf.concat([bottom_fea, seq_encoding], axis=-1)
+        task_input_list = [add_seq_fea] * self._task_num
+      # if self._model_config.use_feature_ln and seq_encoding is not None:
+      #   seq_encoding = layer_norm.layer_norm(
+      #       seq_encoding, trainable=True, scope='feat/seq/ln')
+      # if self._model_config.HasField('sequence_dnn'):
+      #   if self._model_config.separate_dnn:
+      #     for i in range(self._task_num):
+      #       sequence_dnn = dnn.DNN(
+      #           self._model_config.sequence_dnn,
+      #           self._l2_reg,
+      #           name='sequence_dnn_%d' % i,
+      #           is_training=self._is_training)
+      #       seq_fea = sequence_dnn(seq_encoding)
+      #       task_input_list[i] = tf.concat([task_input_list[i], seq_fea],
+      #                                      axis=-1)
+      #   else:
+      #     sequence_dnn = dnn.DNN(
+      #         self._model_config.sequence_dnn,
+      #         self._l2_reg,
+      #         name='sequence_dnn',
+      #         is_training=self._is_training)
+      #     seq_fea = sequence_dnn(seq_encoding)
+      #     task_input_list[i] = [tf.concat([bottom_fea, seq_fea], axis=-1)
+      #                           ] * self._task_num
+      # else:
+      #   for i in range(self._task_num):
+      #     task_input_list[i] = tf.concat([bottom_fea, seq_encoding], axis=-1)
 
     # MMOE block
     if self._model_config.HasField('expert_dnn'):

@@ -2,11 +2,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
 
-from easy_rec.python.layers import cmbf
+# from easy_rec.python.layers import cmbf
 from easy_rec.python.layers import dnn
-from easy_rec.python.layers import layer_norm
-from easy_rec.python.layers import mmoe
-from easy_rec.python.layers import uniter
+# from easy_rec.python.layers import layer_norm
+# from easy_rec.python.layers import mmoe
+# from easy_rec.python.layers import uniter
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.protos.dbmtl_pb2 import DBMTL as DBMTLConfig
 
@@ -22,8 +22,8 @@ class DBMTLV2(MultiTaskModel):
                features,
                labels=None,
                is_training=False):
-    super(DBMTLV2, self).__init__(model_config, feature_configs, features, labels,
-                                is_training)
+    super(DBMTLV2, self).__init__(model_config, feature_configs, features,
+                                  labels, is_training)
     assert self._model_config.WhichOneof('model') == 'dbmtl', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.dbmtl
@@ -35,8 +35,8 @@ class DBMTLV2(MultiTaskModel):
     task_input_list = []
     for i, task_tower_cfg in enumerate(self._model_config.task_towers):
       tower_name = task_tower_cfg.tower_name
-      with tf.variable_scope('bottom/%s' % tower_name) as scope:
-        scope.shared_var_collection_name = tower_name
+      tf.add_to_collection('shared_embedding_collection_sufix', tower_name)
+      with tf.variable_scope('bottom/%s' % tower_name):
         bottom_fea, _ = self._input_layer(self._feature_dict, 'all')
         if self._model_config.HasField('bottom_dnn'):
           bottom_dnn = dnn.DNN(
@@ -45,17 +45,20 @@ class DBMTLV2(MultiTaskModel):
               name='bottom_dnn',
               is_training=self._is_training)
           bottom_fea = bottom_dnn(bottom_fea)
-      tf.summary.scalar('bottom_fea/%s' % tower_name, tf.norm(bottom_fea))
-      task_input_list.append(bottom_fea)
+      batch_size_flt = tf.to_float(tf.shape(bottom_fea)[0])
+      tf.summary.scalar('bottom_fea/%s' % tower_name,
+                        tf.norm(bottom_fea) / batch_size_flt)
 
-    if self._model_config.use_sequence_encoder:
-      for i, task_tower_cfg in enumerate(self._model_config.task_towers):
-        tower_name = task_tower_cfg.tower_name
+      if self._model_config.use_sequence_encoder:
         with tf.variable_scope('sequence/%s' % tower_name):
           seq_encoding = self.get_sequence_encoding(
-              is_training=self._is_training)
-          tf.summary.scalar('seq_norm/%s' % tower_name, tf.norm(seq_encoding) / tf.to_float(tf.shape(seq_encoding)[0]))
-          task_input_list[i] = tf.concat([bottom_fea, seq_encoding], axis=-1)
+              is_training=self._is_training, cache_name=tower_name)
+        tf.summary.scalar('seq_norm/%s' % tower_name,
+                          tf.norm(seq_encoding) / batch_size_flt)
+        bottom_fea = tf.concat([bottom_fea, seq_encoding], axis=-1)
+      task_input_list.append(bottom_fea)
+      tf.get_default_graph().clear_collection(
+          'shared_embedding_collection_sufix')
 
     tower_features = {}
     # task specify network

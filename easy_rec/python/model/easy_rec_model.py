@@ -113,16 +113,23 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             self._model_config, 'use_feature_ln') else False,
         is_training=self._is_training)
 
-  def get_sequence_encoding(self, group_name=None, is_training=True):
+  def get_sequence_encoding(self,
+                            group_name=None,
+                            is_training=True,
+                            cache_name=None):
     if group_name is not None:
-      if group_name in self._sequence_encoding_by_group_name:
-        return self._sequence_encoding_by_group_name[group_name]
+      if cache_name is None:
+        cache_name = group_name
+      else:
+        cache_name = group_name + '_' + cache_name
+      if cache_name in self._sequence_encoding_by_group_name:
+        return self._sequence_encoding_by_group_name[cache_name]
       encoding = self._sequence_encoder(
           self._feature_dict,
           group_name,
           is_training,
           loss_dict=self._loss_dict)
-      self._sequence_encoding_by_group_name[group_name] = encoding
+      self._sequence_encoding_by_group_name[cache_name] = encoding
       return encoding
 
     seq_encoding = []
@@ -130,15 +137,19 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       if len(group.sequence_encoders) == 0:
         continue
       group_name = group.group_name
-      if group_name in self._sequence_encoding_by_group_name:
-        encoding = self._sequence_encoding_by_group_name[group_name]
+      if cache_name is None:
+        cache_name = group_name
+      else:
+        cache_name = group_name + '_' + cache_name
+      if cache_name in self._sequence_encoding_by_group_name:
+        encoding = self._sequence_encoding_by_group_name[cache_name]
       else:
         encoding = self._sequence_encoder(
             self._feature_dict,
             group_name,
             is_training,
             loss_dict=self._loss_dict)
-        self._sequence_encoding_by_group_name[group_name] = encoding
+        self._sequence_encoding_by_group_name[cache_name] = encoding
       if encoding is not None:
         seq_encoding.append(encoding)
 

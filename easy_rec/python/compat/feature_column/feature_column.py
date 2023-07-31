@@ -220,18 +220,18 @@ def _internal_input_layer(features,
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
     # _verify_static_batch_size_equality(output_tensors, ordered_columns)
-    all_batch_size = [array_ops.shape(x)[0] for x in output_tensors]
-    min_batch_size = math_ops.reduce_min(all_batch_size)
-    output_tensors = [x[:min_batch_size, ...] for x in output_tensors]
+    # all_batch_size = [array_ops.shape(x)[0] for x in output_tensors]
+    # min_batch_size = math_ops.reduce_min(all_batch_size)
+    # output_tensors = [x[:min_batch_size, ...] for x in output_tensors]
 
-    if feature_name_to_output_tensors is not None:
-      for fea_name in feature_name_to_output_tensors:
-        x = feature_name_to_output_tensors[fea_name]
-        feature_name_to_output_tensors[fea_name] = x[:min_batch_size]
-    if cols_to_output_tensors is not None:
-      for fea_col in cols_to_output_tensors:
-        x = cols_to_output_tensors[fea_col]
-        cols_to_output_tensors[fea_col] = x[:min_batch_size]
+    # if feature_name_to_output_tensors is not None:
+    #   for fea_name in feature_name_to_output_tensors:
+    #     x = feature_name_to_output_tensors[fea_name]
+    #     feature_name_to_output_tensors[fea_name] = x[:min_batch_size]
+    # if cols_to_output_tensors is not None:
+    #   for fea_col in cols_to_output_tensors:
+    #     x = cols_to_output_tensors[fea_col]
+    #     cols_to_output_tensors[fea_col] = x[:min_batch_size]
 
     return array_ops.concat(output_tensors, 1)
 
@@ -2580,11 +2580,14 @@ class _SharedEmbeddingColumn(
       sparse_weights = sparse_tensors.weight_tensor
 
       embedding_shape = (self.categorical_column._num_buckets, self.dimension)  # pylint: disable=protected-access
-      shared_embedding_collection = ops.get_collection(
-          self.shared_embedding_collection_name)
-      tmp_scope = variable_scope.get_variable_scope()
-      import pdb
-      pdb.set_trace()
+      shared_sufix = ops.get_collection('shared_embedding_collection_sufix')
+      collect_name = self.shared_embedding_collection_name
+      if len(shared_sufix) > 0:
+        collect_name = collect_name + '_' + shared_sufix[0]
+      shared_embedding_collection = ops.get_collection(collect_name)
+      logging.info('get shared_embedding %s from %s collect[len=%d]=%s' %
+                   (self.name, collect_name, len(shared_embedding_collection),
+                    str(shared_embedding_collection)))
       if shared_embedding_collection:
         if len(shared_embedding_collection) > 1:
           raise ValueError(
@@ -2636,9 +2639,9 @@ class _SharedEmbeddingColumn(
               if self.ev_params is not None else None,
               filter_options=variables.CounterFilterOptions(
                   self.ev_params.filter_freq))
-
-        ops.add_to_collection(self.shared_embedding_collection_name,
-                              embedding_weights)
+        ops.add_to_collection(collect_name, embedding_weights)
+      logging.info('get shared embedding_weights: %s %s %s' %
+                   (self.name, embedding_weights.name, collect_name))
       if self.ckpt_to_load_from is not None:
         to_restore = embedding_weights
         if isinstance(to_restore, variables.PartitionedVariable):
