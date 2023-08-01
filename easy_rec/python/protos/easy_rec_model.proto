@@ -26,6 +26,7 @@ import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
 import "easy_rec/python/protos/tower.proto";
+import "easy_rec/python/protos/pdn.proto";
 
 // for input performance test
 message DummyModel {
@@ -82,6 +83,7 @@ message EasyRecModel {
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
+        PDN pdn = 205;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;

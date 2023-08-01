@@ -1143,6 +1143,11 @@ class TrainEvalTest(tf.test.TestCase):
         use_hvd=True)
     self.assertTrue(self._success)
 
+  def test_pdn(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/pdn_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
