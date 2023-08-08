@@ -69,7 +69,7 @@ accessKeySecret= xxx
 
 - --selected_cols 表里面用于训练和评估的列, 有助于提高训练速度
 
-- --cluster 定义PS的数目和worker的数目，有一个worker将被用于评估, 其它的worker用于训练.
+- --cluster 定义PS的数目和worker的数目，有一个worker将被用于评估, 其它的worker用于训练
 
 ```bash
    --cluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
@@ -118,7 +118,7 @@ accessKeySecret= xxx
   feature_config.features[input_names[0]=field1].embedding_dim;
   feature_config.features[input_names[0]=field2].embedding_dim
   ```
-- 如果name里面包含了多个参数名称，那么candidates也需要有多个参数值，用";"分割如"32;32"
+- 如果name里面包含了多个参数名称，那么candidates也需要有多个参数值，用";"分割，如"32;32"
 - candidates: 候选值
 - type: 候选值类型, 支持Categorical, Integer, Real
   - Integer类型
@@ -132,7 +132,7 @@ accessKeySecret= xxx
 }
 ```
 
-- Real类型
+   - Real类型
 
 ```json
 {
