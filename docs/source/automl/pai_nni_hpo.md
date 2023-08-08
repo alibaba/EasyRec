@@ -1,6 +1,6 @@
 # PAI-NNI-HPO
 
-HPO是对模型参数、训练超参数（opt、lr）等进行自动搜索调优的一个工具，从而获取较优参数，提升模型效果。可以大大地节省算法同学调参的时间，聚焦在建模和业务上。我们对NNI、PAI产品和算法等进行集成，支持多平台0代码修改调参，并做了加速、监控、调度、续跑等功能增强。
+HPO是一个对模型参数、训练超参数（opt、lr）等进行自动搜索调优的工具，从而获取较优参数，提升模型效果。可以大大地节省算法同学调参的时间，聚焦在建模和业务上。我们对NNI、PAI产品和算法等进行集成，支持多平台0代码修改调参，并对加速、监控、调度、续跑等功能做了增强。
 
 [NNI参考](https://nni.readthedocs.io/en/stable/hpo/overview.html)
 
@@ -20,8 +20,8 @@ java环境：如果需要运行MC的PAI命令，需要java8
 source install_hpo_tools.sh $1 $2
 ```
 
-- 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下; 如果没写目录，默认生成在根目录下。
-- 第二个参数为aliyun/eflops/mac-dlc/mac-arm-dlc，用来控制安装dlc的版本，如果没写，则默认安装aliyun版本的dlc
+- 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下，如果为空，默认生成在根目录下
+- 第二个参数为aliyun/eflops/mac-dlc/mac-arm-dlc，用来控制安装dlc的版本，如果为空，则默认安装aliyun版本的dlc
 
 ##### Linux
 
@@ -90,9 +90,9 @@ ls $(pwd)/search
 docker exec -ti $container_id /bin/bash
 cd /HpoTools/test/search
 
-### 查看具体案例 去本地修改$(pwd)/search下面的实验配置，第2章节
-### 查看具体案例 去容器/HpoTools/test/search 启动调优，第3章节
-### 查看具体案例 去本地UI查看调优结果，第4章节
+### 查看具体案例去本地修改$(pwd)/search下面的实验配置，见第2章节
+### 查看具体案例去容器/HpoTools/test/search 启动调优，见第3章节
+### 查看具体案例去本地UI查看调优结果，见第4章节
 ```
 
 ### 配置
@@ -106,8 +106,8 @@ nnictl create --config exp.yml
 ```
 
 - 启动入口为exp.yml
-- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务。
-- 通过字段searchSpaceFile: search_space.json    连接 search_space.json;
+- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务
+- 通过字段searchSpaceFile: search_space.json    连接 search_space.json
 
 配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
 
