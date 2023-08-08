@@ -20,7 +20,7 @@ java环境：如果需要运行MC的PAI命令，需要java8
 source install_hpo_tools.sh $1 $2
 ```
 
-- 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下，如果为空，默认生成在根目录下
+- 第一个参数为下载examples的位置，默认下载在输入路径下面的examples下，如果为空，则默认生成在根目录下
 - 第二个参数为aliyun/eflops/mac-dlc/mac-arm-dlc，用来控制安装dlc的版本，如果为空，则默认安装aliyun版本的dlc
 
 ##### Linux
@@ -97,7 +97,7 @@ cd /HpoTools/test/search
 
 ### 配置
 
-HPO启动配置包含exp.yml. trial.ini, search_space.json三个模块。
+HPO启动配置包含exp.yml,trial.ini,search_space.json三个模块。
 
 HPO的启动命令是：
 
@@ -135,7 +135,7 @@ assessor:
 
 #### trial.ini 示例
 
-可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini的配置文件,执行在PAI MaxCompute平台
+可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini的配置文件，执行在PAI MaxCompute平台
 
 ```
 [oss_config]
@@ -263,7 +263,7 @@ finetune搜索高级用法参考[HPO finetune](./finetune_config.md)
 ### 启动调优
 
 ```bash
-nnictl create --config config.yml --port=8780
+nnictl create --config config.yml --port 8780
 ```
 
 其中port可以是机器上任意未使用的端口号。需要注意的是，NNI实验不会自动退出，如果需要关闭实验请运行nnictl stop主动关闭。如果遇到问题，请查看FAQ。
@@ -278,7 +278,7 @@ nnictl create --config config.yml --port=8780
 
 ### HPO调优结果
 
-点击生成的URL，例如http://127.0.0.1:8780,可以看到webUI
+点击生成的URL，可以看到webUI，例如http://127.0.0.1:8780
 ![image.png](../../images/automl/pai_nni_overview.jpg)
 查看调优结果没问题后，可以调整最大Trial运行数量MaxTrialNo和并发度Concurrency。
 如果需要更详细的调优结果，可查看[HPO调优结果](./hpo_res.md)
