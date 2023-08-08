@@ -109,7 +109,7 @@ nnictl create --config exp.yml
 - 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务
 - 通过字段searchSpaceFile: search_space.json    连接 search_space.json
 
-配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
+配置案例均可以在安装目录examples/search目录下找到，细节请参考[HPO配置介绍](./hpo_config.md)
 
 #### exp.yml 示例
 
@@ -135,7 +135,7 @@ assessor:
 
 #### trial.ini 示例
 
-可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini,执行在PAI MaxCompute平台
+可以查看安装目录下examples/search/maxcompute_easyrec/trial.ini的配置文件,执行在PAI MaxCompute平台
 
 ```
 [oss_config]
@@ -183,7 +183,7 @@ metric_dict={'auc':1}
 
 #### trial_local.ini 示例
 
-可以查看安装目录下examples/local_easyrec/trial.ini其中执行的命令的是在本地的，而不是在PAI MaxCompute平台
+可以查看安装目录下examples/local_easyrec/trial.ini的配置文件，其中执行的命令是在本地的，而不是在PAI MaxCompute平台
 
 ```
 [params_config]
@@ -207,8 +207,8 @@ metric_dict={'auc':1}
 
 [NNI Local配置参考手册](https://nni.readthedocs.io/zh/stable/reference/experiment_config.html#localconfig)
 
-- 如果想将任务执行在GPU上，则使用config_local_gpu.yml，配置了GPU相关的信息
-- 如果想将任务执行在CPU上，则使用config_local.yml
+- 如果想在GPU上执行任务，则使用config_local_gpu.yml，其中配置了GPU的相关信息
+- 如果想在CPU上执行任务，则使用config_local.yml
   ![image.png](../../images/automl/nni_local.jpg)
 
 #### 配置超参搜索空间search_space.json
