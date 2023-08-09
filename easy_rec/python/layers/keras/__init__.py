@@ -13,3 +13,6 @@ from .mask_net import MaskBlock
 from .mask_net import MaskNet
 from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
+from .bst_cl4ctr import BSTCTR
+from .loss_for_cl4ctr import LOSSCTR
+from .bst_forseq import BSTSEQ

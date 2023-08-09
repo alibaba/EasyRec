@@ -25,6 +25,12 @@ message BSTEncoder {
     required bool use_position_embeddings = 9 [default = true];
     // The stddev of the truncated_normal_initializer for initializing all weight matrices
     required float initializer_range = 10 [default = 0.02];
+    // need contrastive learning
+    required bool need_contrastive_learning = 11 [default = false];
+    // the weight of contrastive learning loss
+    optional float contrastive_loss_weight = 12 [default = 1.0];
+    // seq_fea contrastive learning params
+    optional ContrastLearning cl_param= 13 ;
 }
 
 message DINEncoder {
@@ -34,4 +40,14 @@ message DINEncoder {
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid
     required string attention_normalizer = 3 [default = 'softmax'];
+}
+
+
+message ContrastLearning {
+    //Percentage length of mask original sequence
+    required float mask_param = 1  [default = 0.6];
+    //Percentage left of crop original sequence
+    required float crop_param = 2  [default = 0.2];
+    //Percentage length of reorder original sequence
+    required float reorder_param = 3  [default = 0.6];
 }
