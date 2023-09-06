@@ -25,10 +25,11 @@ class BatchTFRecordInput(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
+               check_mode=False,
+               pipeline_config=None):
     super(BatchTFRecordInput,
           self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode)
+                         task_num, check_mode, pipeline_config)
     assert data_config.HasField(
         'n_data_batch_tfrecord'), 'Need to set n_data_batch_tfrecord in config.'
     self._input_shapes = [x.input_shape for x in data_config.input_fields]

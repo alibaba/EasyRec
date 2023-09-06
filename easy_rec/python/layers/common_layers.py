@@ -1,27 +1,14 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-import numpy as np
+import six
 import tensorflow as tf
+
+from easy_rec.python.compat.layers import layer_norm as tf_layer_norm
+from easy_rec.python.utils.activation import get_activation
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
-
-
-def gelu(x):
-  """Gaussian Error Linear Unit.
-
-  This is a smoother version of the RELU.
-  Original paper: https://arxiv.org/abs/1606.08415
-  Args:
-    x: float Tensor to perform activation.
-
-  Returns:
-    `x` with the GELU activation applied.
-  """
-  cdf = 0.5 * (1.0 + tf.tanh(
-      (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
-  return x * cdf
 
 
 def highway(x,
@@ -31,6 +18,8 @@ def highway(x,
             scope='highway',
             dropout=0.0,
             reuse=None):
+  if isinstance(activation, six.string_types):
+    activation = get_activation(activation)
   with tf.variable_scope(scope, reuse):
     if size is None:
       size = x.shape.as_list()[-1]
@@ -78,3 +67,80 @@ def text_cnn(x,
   pool_flat = tf.concat(
       pooled_outputs, 1)  # shape: (batch_size, num_filters * len(filter_sizes))
   return pool_flat
+
+
+def layer_norm(input_tensor, name=None, reuse=None):
+  """Run layer normalization on the last dimension of the tensor."""
+  return tf_layer_norm(
+      inputs=input_tensor,
+      begin_norm_axis=-1,
+      begin_params_axis=-1,
+      reuse=reuse,
+      scope=name)
+
+
+class EnhancedInputLayer(object):
+  """Enhance the raw input layer."""
+
+  def __init__(self, config, input_layer, feature_dict):
+    if config.do_batch_norm and config.do_layer_norm:
+      raise ValueError(
+          'can not do batch norm and layer norm for input layer at the same time'
+      )
+    self._config = config
+    self._input_layer = input_layer
+    self._feature_dict = feature_dict
+
+  def __call__(self, group, is_training, **kwargs):
+    with tf.name_scope('input_' + group):
+      return self.call(group, is_training)
+
+  def call(self, group, is_training):
+    if self._config.output_seq_and_normal_feature:
+      seq_features, target_feature, target_features = self._input_layer(
+          self._feature_dict, group, is_combine=False)
+      return seq_features, target_features
+
+    features, feature_list = self._input_layer(self._feature_dict, group)
+    num_features = len(feature_list)
+
+    do_ln = self._config.do_layer_norm
+    do_bn = self._config.do_batch_norm
+    do_feature_dropout = is_training and 0.0 < self._config.feature_dropout_rate < 1.0
+    if do_feature_dropout:
+      keep_prob = 1.0 - self._config.feature_dropout_rate
+      bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
+      mask = bern.sample(num_features)
+    elif do_bn:
+      features = tf.layers.batch_normalization(features, training=is_training)
+    elif do_ln:
+      features = layer_norm(features)
+
+    do_dropout = 0.0 < self._config.dropout_rate < 1.0
+    if do_feature_dropout or do_ln or do_bn or do_dropout:
+      for i in range(num_features):
+        fea = feature_list[i]
+        if self._config.do_batch_norm:
+          fea = tf.layers.batch_normalization(fea, training=is_training)
+        elif self._config.do_layer_norm:
+          fea = layer_norm(fea)
+        if do_dropout:
+          fea = tf.layers.dropout(
+              fea, self._config.dropout_rate, training=is_training)
+        if do_feature_dropout:
+          fea = tf.div(fea, keep_prob) * mask[i]
+        feature_list[i] = fea
+      if do_feature_dropout:
+        features = tf.concat(feature_list, axis=-1)
+
+    if do_dropout and not do_feature_dropout:
+      features = tf.layers.dropout(
+          features, self._config.dropout_rate, training=is_training)
+
+    if self._config.only_output_feature_list:
+      return feature_list
+    if self._config.only_output_3d_tensor:
+      return tf.stack(feature_list, axis=1)
+    if self._config.output_2d_tensor_and_feature_list:
+      return features, feature_list
+    return features

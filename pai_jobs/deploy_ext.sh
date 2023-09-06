@@ -130,7 +130,7 @@ tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
 # 2 means generate only
 if [ $mode -ne 2 ]
 then
-  ${ODPSCMD} --config=$odps_config -e "add file $RES_PATH -f;"
+  ${ODPSCMD} --config=$odps_config -e "add archive $RES_PATH -f;"
   if [ $? -ne 0 ]
   then
     echo "add $RES_PATH failed"

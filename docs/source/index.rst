@@ -26,6 +26,13 @@ Welcome to easy_rec's documentation!
 
 .. toctree::
    :maxdepth: 3
+   :caption: BACKBONE & COMPONENT
+
+   component/backbone
+   component/component
+
+.. toctree::
+   :maxdepth: 3
    :caption: MODEL
 
    models/recall
@@ -37,7 +44,6 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: TRAIN & EVAL & EXPORT
 
-   loss
    train
    incremental_train
    online_train
@@ -51,9 +57,11 @@ Welcome to easy_rec's documentation!
    :maxdepth: 2
    :caption: PREDICT
 
+   predict/input_output
    predict/MaxCompute 离线预测
    predict/Local 离线预测
    predict/在线预测
+   predict/processor
    feature/rtp_native
    vector_retrieve
 

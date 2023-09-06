@@ -11,6 +11,7 @@ from tensorflow.python.platform.gfile import GFile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import proto_util
@@ -400,9 +401,12 @@ class MetaGraphEditor:
   def add_oss_lookup_op(self, lookup_input_indices, lookup_input_values,
                         lookup_input_shapes, lookup_input_weights):
     logging.info('add custom lookup operation to lookup embeddings from oss')
-    for i in range(len(lookup_input_values)):
-      if lookup_input_values[i].dtype == tf.int32:
-        lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
+    place_on_cpu = os.getenv('place_embedding_on_cpu')
+    place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+    with conditional(place_on_cpu, ops.device('/CPU:0')):
+      for i in range(len(lookup_input_values)):
+        if lookup_input_values[i].dtype == tf.int32:
+          lookup_input_values[i] = tf.to_int64(lookup_input_values[i])
     # N = len(lookup_input_indices)
     # self._lookup_outs = [ None for _ in range(N) ]
     # for i in range(N):

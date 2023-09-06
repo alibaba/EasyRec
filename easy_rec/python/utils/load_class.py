@@ -7,6 +7,7 @@ import logging
 import os
 import pkgutil
 import pydoc
+import traceback
 from abc import ABCMeta
 
 import six
@@ -36,6 +37,8 @@ def load_by_path(path):
   path = path.strip()
   if path == '' or path is None:
     return None
+  if 'lambda' in path:
+    return eval(path)
   components = path.split('.')
   if components[0] == 'tf':
     components[0] = 'tensorflow'
@@ -43,7 +46,7 @@ def load_by_path(path):
   try:
     return pydoc.locate(path)
   except pydoc.ErrorDuringImport:
-    logging.error('load %s failed' % path)
+    logging.error('load %s failed: %s' % (path, traceback.format_exc()))
     return None
 
 
@@ -217,3 +220,30 @@ def get_register_class_meta(class_map, have_abstract_class=True):
       return newclass
 
   return RegisterABCMeta
+
+
+def load_keras_layer(name):
+  """Load keras layer class.
+
+  Args:
+    name: keras layer name
+
+  Return:
+    (layer_class, is_customize)
+  """
+  name = name.strip()
+  if name == '' or name is None:
+    return None
+
+  path = 'easy_rec.python.layers.keras.' + name
+  try:
+    cls = pydoc.locate(path)
+    if cls is not None:
+      return cls, True
+    path = 'tensorflow.keras.layers.' + name
+    return pydoc.locate(path), False
+  except pydoc.ErrorDuringImport:
+    print('load keras layer %s failed' % name)
+    logging.error('load keras layer %s failed: %s' %
+                  (name, traceback.format_exc()))
+    return None, False

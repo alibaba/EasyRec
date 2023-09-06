@@ -5,6 +5,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
+from easy_rec.python.ops.gen_str_avx_op import str_split_by_chr
 from easy_rec.python.utils.check_utils import check_split
 from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
@@ -35,9 +36,11 @@ class RTPInput(Input):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
-    super(RTPInput, self).__init__(data_config, feature_config, input_path,
-                                   task_index, task_num, check_mode)
+               check_mode=False,
+               pipeline_config=None):
+    super(RTPInput,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
     self._rtp_separator = self._data_config.rtp_separator
@@ -102,7 +105,7 @@ class RTPInput(Input):
             Tout=tf.bool)
     ] if self._check_mode else []
     with tf.control_dependencies(check_list):
-      fields = tf.string_split(
+      fields = str_split_by_chr(
           feature_str, self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_types)])
     rtp_record_defaults = [

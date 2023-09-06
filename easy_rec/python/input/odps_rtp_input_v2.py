@@ -34,10 +34,11 @@ class OdpsRTPInputV2(OdpsRTPInput):
                task_index=0,
                task_num=1,
                check_mode=False,
-               fg_json_path=None):
+               fg_json_path=None,
+               pipeline_config=None):
     super(OdpsRTPInputV2,
           self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode)
+                         task_num, check_mode, pipeline_config)
     if fg_json_path.startswith('!'):
       fg_json_path = fg_json_path[1:]
     self._fg_config_path = fg_json_path
@@ -77,7 +78,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
     print('[OdpsRTPInputV2] built features: {}'.format(features.keys()))
     features = self._preprocess(features)
     print('[OdpsRTPInputV2] processed features: {}'.format(features.keys()))
-    return {'features': inputs_placeholder}, features
+    return {'features': inputs_placeholder}, features['feature']
 
   def create_multi_placeholders(self, *args, **kwargs):
     """Create serving multi-placeholders with rtp_fg."""

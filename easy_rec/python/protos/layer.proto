@@ -4,73 +4,68 @@ package protos;
 import "easy_rec/python/protos/dnn.proto";
 
 message HighWayTower {
-    required string input = 1;
+    optional string input = 1;
     required uint32 emb_size = 2;
+    required string activation = 3 [default = 'gelu'];
+    optional float dropout_rate = 4;
 }
 
-message CMBFTower {
-    // The number of heads of cross modal fusion layer
-    required uint32 multi_head_num = 1 [default = 1];
-    // The number of heads of image feature learning layer
-    required uint32 image_multi_head_num = 101 [default = 1];
-    // The number of heads of text feature learning layer
-    required uint32 text_multi_head_num = 102 [default = 1];
-    // The dimension of text heads
-    required uint32 text_head_size = 2;
-    // The dimension of image heads
-    required uint32 image_head_size = 3 [default = 64];
-    // The number of patches of image feature, take effect when there is only one image feature
-    required uint32 image_feature_patch_num = 4 [default = 1];
-    // Do dimension reduce to this size for image feature before single modal learning module
-    required uint32 image_feature_dim = 5 [default = 0];
-    // The number of self attention layers for image features
-    required uint32 image_self_attention_layer_num = 6 [default = 0];
-    // The number of self attention layers for text features
-    required uint32 text_self_attention_layer_num = 7 [default = 1];
-    // The number of cross modal layers
-    required uint32 cross_modal_layer_num = 8 [default = 1];
-    // The dimension of image cross modal heads
-    required uint32 image_cross_head_size = 9;
-    // The dimension of text cross modal heads
-    required uint32 text_cross_head_size = 10;
-    // Dropout probability for hidden layers
-    required float hidden_dropout_prob = 11 [default = 0.0];
-    // Dropout probability of the attention probabilities
-    required float attention_probs_dropout_prob = 12 [default = 0.0];
-
-    // Whether to add embeddings for different text sequence features
-    required bool use_token_type = 13 [default = false];
-    // Whether to add position embeddings for the position of each token in the text sequence
-    required bool use_position_embeddings = 14 [default = true];
-    // Maximum sequence length that might ever be used with this model
-    required uint32 max_position_embeddings = 15 [default = 0];
-    // Dropout probability for text sequence embeddings
-    required float text_seq_emb_dropout_prob = 16 [default = 0.1];
-    // dnn layers for other features
-    optional DNN other_feature_dnn = 17;
+message PeriodicEmbedding {
+    required uint32 embedding_dim = 1;
+    required float  sigma = 2;
+    optional bool add_linear_layer = 3 [default = true];
+    optional string linear_activation = 4 [default = 'relu'];
+    optional bool output_3d_tensor = 5;
+    optional bool output_tensor_list = 6;
 }
 
-message UniterTower {
-    // Size of the encoder layers and the pooler layer
-    required uint32 hidden_size = 1;
-    // Number of hidden layers in the Transformer encoder
-    required uint32 num_hidden_layers = 2;
-    // Number of attention heads for each attention layer in the Transformer encoder
-    required uint32 num_attention_heads = 3;
-    // The size of the "intermediate" (i.e. feed-forward) layer in the Transformer encoder
-    required uint32 intermediate_size = 4;
-    // The non-linear activation function (function or string) in the encoder and pooler.
-    required string hidden_act = 5 [default = 'gelu'];  // "gelu", "relu", "tanh" and "swish" are supported.
-    // The dropout probability for all fully connected layers in the embeddings, encoder, and pooler
-    required float hidden_dropout_prob = 6 [default = 0.1];
-    // The dropout ratio for the attention probabilities
-    required float attention_probs_dropout_prob = 7 [default = 0.1];
-    // The maximum sequence length that this model might ever be used with
-    required uint32 max_position_embeddings = 8 [default = 512];
-    // Whether to add position embeddings for the position of each token in the text sequence
-    required bool use_position_embeddings = 9 [default = true];
-    // The stddev of the truncated_normal_initializer for initializing all weight matrices
-    required float initializer_range = 10 [default = 0.02];
-    // dnn layers for other features
-    optional DNN other_feature_dnn = 11;
+message AutoDisEmbedding {
+    required uint32 embedding_dim = 1;
+    required uint32 num_bins = 2;
+    required float keep_prob = 3 [default = 0.8];
+    required float temperature = 4;
+    optional bool output_3d_tensor = 5;
+    optional bool output_tensor_list = 6;
+}
+
+message SENet {
+    required uint32 reduction_ratio = 1 [default = 4];
+    optional uint32 num_squeeze_group = 2 [default = 2];
+    optional bool use_skip_connection = 3 [default = true];
+    optional bool use_output_layer_norm = 4 [default = true];
+}
+
+message Bilinear {
+    required string type = 1 [default = 'interaction'];
+    required bool use_plus = 2 [default = true];
+    required uint32 num_output_units = 3;
+}
+
+message FiBiNet {
+    optional Bilinear bilinear = 1;
+    required SENet senet = 2;
+    optional MLP mlp = 8;
+}
+
+message MaskBlock {
+    optional float reduction_factor = 1;
+    required uint32 output_size = 2;
+    optional uint32 aggregation_size = 3;
+    optional bool input_layer_norm = 4 [default = true];
+    optional uint32 projection_dim = 5;
+}
+
+message MaskNet {
+    repeated MaskBlock mask_blocks = 1;
+    required bool use_parallel = 2 [default = true];
+    optional MLP mlp = 3;
+}
+
+message MMoELayer {
+    // number of tasks
+    required uint32 num_task = 1;
+    // mmoe expert mlp layer definition
+    optional MLP expert_mlp = 2;
+    // number of mmoe experts
+    optional uint32 num_expert = 3;
 }

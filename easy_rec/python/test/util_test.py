@@ -4,6 +4,7 @@
 import tensorflow as tf
 
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.expr_util import get_expression
 
 if tf.__version__ >= '2.0':
@@ -56,6 +57,28 @@ class UtilTest(tf.test.TestCase):
     result = get_expression('(age_level>3)|(item_age_level<1)',
                             ['age_level', 'item_age_level'])
     assert result == "tf.greater(parsed_dict['age_level'], 3) | tf.less(parsed_dict['item_age_level'], 1)"
+
+  def test_dag(self):
+    dag = DAG()
+    dag.add_node('a')
+    dag.add_node('b')
+    dag.add_node('c')
+    dag.add_node('d')
+    dag.add_edge('a', 'b')
+    dag.add_edge('a', 'd')
+    dag.add_edge('b', 'c')
+    order = dag.topological_sort()
+    idx_a = order.index('a')
+    idx_b = order.index('b')
+    idx_c = order.index('c')
+    idx_d = order.index('d')
+    assert idx_a < idx_b
+    assert idx_a < idx_d
+    assert idx_b < idx_c
+    c = dag.all_downstreams('b')
+    assert c == ['c']
+    leaf = dag.all_leaves()
+    assert leaf == ['c', 'd']
 
 
 if __name__ == '__main__':

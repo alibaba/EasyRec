@@ -238,7 +238,8 @@ if __name__ == '__main__':
       if line_str.startswith('#'):
         continue
       line_str = line_str.replace('~/', os.environ['HOME'] + '/')
-      line_str = line_str.replace('${TMPDIR}', os.environ.get('TMPDIR', '/tmp'))
+      line_str = line_str.replace('${TMPDIR}/',
+                                  os.environ.get('TMPDIR', '/tmp/'))
       line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
       line_tok = [x.strip() for x in line_str.split('=') if x != '']
       if line_tok[0] == 'host':
@@ -363,7 +364,6 @@ if __name__ == '__main__':
       remote_path = git_bin_url[leaf_path][1]
       _, file_name_with_sig = os.path.split(remote_path)
       tar_tmp_path = '%s/%s.tar.gz' % (git_oss_cache_dir, file_name_with_sig)
-
       max_retry = 5
       while max_retry > 0:
         try:
@@ -373,7 +373,13 @@ if __name__ == '__main__':
               oss_bucket.get_object_to_file(remote_path, tar_tmp_path)
             else:
               url = 'http://%s.%s/%s' % (bucket_name, host, remote_path)
-              subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              # subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              if sys.platform.startswith('linux'):
+                subprocess.check_output(['wget', url, '-O', tar_tmp_path])
+              elif sys.platform.startswith('darwin'):
+                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
+              elif sys.platform.startswith('win'):
+                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
           else:
             in_cache = True
             logging.info('%s is in cache' % file_name_with_sig)

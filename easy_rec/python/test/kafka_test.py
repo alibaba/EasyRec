@@ -311,12 +311,12 @@ class KafkaTest(tf.test.TestCase):
     export_sep_dir = files[0]
 
     predict_cmd = """
-        python processor/test.py --saved_model_dir %s
+        python -m easy_rec.python.inference.processor.test --saved_model_dir %s
            --input_path data/test/rtp/taobao_test_feature.txt
            --output_path %s/processor.out  --test_dir %s
      """ % (export_sep_dir, self._test_dir, self._test_dir)
     envs = dict(os.environ)
-    envs['PYTHONPATH'] = 'processor/'
+    envs['PROCESSOR_TEST'] = '1'
     proc = test_utils.run_cmd(
         predict_cmd, '%s/log_processor.txt' % self._test_dir, env=envs)
     proc.wait()

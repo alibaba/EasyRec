@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import sys
 
 import numpy as np
 import six
@@ -537,9 +538,12 @@ def process_data_path(data_path, hive_util):
 def process_neg_sampler_data_path(pipeline_config):
   # replace neg_sampler hive table => hdfs path
   if pai_util.is_on_pai():
-    return None
+    return
   if not pipeline_config.data_config.HasField('sampler'):
-    return None
+    return
+  # not using hive, so not need to process it
+  if pipeline_config.WhichOneof('train_path') != 'hive_train_input':
+    return
   hive_util = HiveUtils(
       data_config=pipeline_config.data_config,
       hive_config=pipeline_config.hive_train_input)
@@ -560,3 +564,44 @@ def process_neg_sampler_data_path(pipeline_config):
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
     sampler_config.hard_neg_edge_input_path = process_data_path(
         sampler_config.hard_neg_edge_input_path, hive_util)
+
+
+def parse_extra_config_param(extra_args, edit_config_json):
+  arg_num = len(extra_args)
+  arg_id = 0
+  while arg_id < arg_num:
+    if extra_args[arg_id].startswith('--data_config.') or    \
+       extra_args[arg_id].startswith('--train_config.') or   \
+       extra_args[arg_id].startswith('--feature_config.') or \
+       extra_args[arg_id].startswith('--model_config.') or   \
+       extra_args[arg_id].startswith('--export_config.') or  \
+       extra_args[arg_id].startswith('--eval_config.'):
+      tmp_arg = extra_args[arg_id][2:]
+      if '=' in tmp_arg:
+        sep_pos = tmp_arg.find('=')
+        k = tmp_arg[:sep_pos]
+        v = tmp_arg[(sep_pos + 1):]
+        v = v.strip(' "\'')
+        edit_config_json[k] = v
+        arg_id += 1
+      elif arg_id + 1 < len(extra_args):
+        edit_config_json[tmp_arg] = extra_args[arg_id + 1].strip(' "\'')
+        arg_id += 2
+      else:
+        logging.error('missing value for arg: %s' % extra_args[arg_id])
+        sys.exit(1)
+    else:
+      logging.error('unknown args: %s' % extra_args[arg_id])
+      sys.exit(1)
+
+
+def process_multi_file_input_path(sampler_config_input_path):
+
+  if '*' in sampler_config_input_path:
+    input_path = ','.join(
+        file_path
+        for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
+  else:
+    input_path = sampler_config_input_path
+
+  return input_path

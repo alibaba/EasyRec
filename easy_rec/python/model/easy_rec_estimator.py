@@ -21,6 +21,7 @@ from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
+from easy_rec.python.compat import sync_replicas_optimizer
 from easy_rec.python.compat.early_stopping import custom_early_stop_hook
 from easy_rec.python.compat.early_stopping import deadline_stop_hook
 from easy_rec.python.compat.early_stopping import find_early_stop_var
@@ -36,6 +37,11 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -174,7 +180,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
-          logging.info('add dense update %s' % x.inputs[0].name)
           ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
                                 global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
@@ -201,21 +206,29 @@ class EasyRecEstimator(tf.estimator.Estimator):
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     hooks = []
+    if estimator_utils.has_hvd():
+      assert not self.train_config.sync_replicas, \
+          'sync_replicas should not be set when using horovod'
+      optimizer = hvd.DistributedOptimizer(
+          optimizer, backward_passes_per_step=1)
+      bcast_hook = hvd.BroadcastGlobalVariablesHook(0)
+      hooks.append(bcast_hook)
+
     # for distributed and synced training
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
       logging.info('sync_replicas: num_worker_replias = %d' %
                    run_config.num_worker_replicas)
       if pai_util.is_on_pai():
-        extra_args = {
-            'sparse_accumulator_type': self.train_config.sparse_accumulator_type
-        }
+        optimizer = tf.train.SyncReplicasOptimizer(
+            optimizer,
+            replicas_to_aggregate=run_config.num_worker_replicas,
+            total_num_replicas=run_config.num_worker_replicas,
+            sparse_accumulator_type=self.train_config.sparse_accumulator_type)
       else:
-        extra_args = {}
-      optimizer = tf.train.SyncReplicasOptimizer(
-          optimizer,
-          replicas_to_aggregate=run_config.num_worker_replicas,
-          total_num_replicas=run_config.num_worker_replicas,
-          **extra_args)
+        optimizer = sync_replicas_optimizer.SyncReplicasOptimizer(
+            optimizer,
+            replicas_to_aggregate=run_config.num_worker_replicas,
+            total_num_replicas=run_config.num_worker_replicas)
       hooks.append(
           optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
 
@@ -359,7 +372,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
       # for multi worker strategy, we could not replace the
       # inner CheckpointSaverHook, so just use it.
       scaffold = tf.train.Scaffold()
-      chief_hooks = []
     else:
       var_list = (
           tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) +
@@ -393,7 +405,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           saver=tf.train.Saver(
               var_list=var_list,
               sharded=True,
-              max_to_keep=self.train_config.keep_checkpoint_max),
+              max_to_keep=self.train_config.keep_checkpoint_max,
+              save_relative_paths=True),
           local_init_op=tf.group(local_init_ops),
           ready_for_local_init_op=tf.report_uninitialized_variables(
               var_list=initialize_var_list))
@@ -406,9 +419,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
           increment_save_config=self.incr_save_config)
-      chief_hooks = []
+      hooks.append(saver_hook)
       if estimator_utils.is_chief():
-        hooks.append(saver_hook)
+        hooks.append(
+            basic_session_run_hooks.StepCounterHook(
+                every_n_steps=log_step_count_steps, output_dir=self.model_dir))
 
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_chief():
@@ -422,7 +437,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
         predictions=predict_dict,
         train_op=train_op,
         scaffold=scaffold,
-        training_chief_hooks=chief_hooks,
         training_hooks=hooks)
 
   def _eval_model_fn(self, features, labels, run_config):
@@ -494,7 +508,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
     remain_variables = list(
         set(global_variables).difference(set(metric_variables)))
-    cur_saver = tf.train.Saver(var_list=remain_variables)
+    cur_saver = tf.train.Saver(var_list=remain_variables, sharded=True)
     scaffold = tf.train.Scaffold(
         saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
     return tf.estimator.EstimatorSpec(

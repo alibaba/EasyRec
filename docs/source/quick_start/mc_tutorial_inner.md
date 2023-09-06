@@ -1,17 +1,27 @@
 # MaxCompute(Inner) Tutorial
 
-```
-EasyRec在MaxCompute内部版本上的使用文档.
-```
+**此文档是针对阿里集团内部用户**，在MaxCompute上使用EasyRec的说明。
 
 ### 输入数据:
 
 输入一般是odps表:
 
-- train: pai_online_project.dwd_avazu_ctr_deepmodel_train
-- test: pai_online_project.dwd_avazu_ctr_deepmodel_test
+- train: your_own_project.dwd_avazu_ctr_deepmodel_train
+- test: your_own_project.dwd_avazu_ctr_deepmodel_test
 
-说明：原则上这两张表是自己odps的表，为了方便，以上提供case的两张表在任何地方都可以访问。两个表可以带分区，也可以不带分区。
+说明：这两张表是自己odps project的表，由于阿里集团内部无法访问公共云的pai_online_project，可以通过自行下载数据集到本地，并使用odpscmd [tunnel upload](https://help.aliyun.com/document_detail/27833.html?spm=a2c4g.27797.0.i1)命令上传至自己的project进行使用。
+
+- dwd_avazu_ctr_deepmodel_train.csv (http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
+
+- dwd_avazu_ctr_deepmodel_test.csv (http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)
+
+参考命令:
+
+```sql
+create table if not exists dwd_avazu_ctr_deepmodel_train (click bigint, hour string, c1 string, banner_pos string, site_id string, site_domain string, site_category string, app_id string, app_domain string, app_category string, device_id string, device_ip string, device_model string, device_type string, device_conn_type string, c14 string, c15 string, c16 string, c17 string, c18 string, c19 string, c20 string, c21 string);
+
+tunnel upload dwd_avazu_ctr_deepmodel_train.csv your_own_project.dwd_avazu_ctr_deepmodel_train;
+```
 
 ### 训练:
 

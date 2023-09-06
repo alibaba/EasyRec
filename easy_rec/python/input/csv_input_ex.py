@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.csv_input import CSVInput
+from easy_rec.python.ops.gen_str_avx_op import str_split_by_chr
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -17,9 +18,11 @@ class CSVInputEx(CSVInput):
                input_path,
                task_index=0,
                task_num=1,
-               check_mode=False):
-    super(CSVInputEx, self).__init__(data_config, feature_config, input_path,
-                                     task_index, task_num, check_mode)
+               check_mode=False,
+               pipeline_config=None):
+    super(CSVInputEx,
+          self).__init__(data_config, feature_config, input_path, task_index,
+                         task_num, check_mode, pipeline_config)
 
   def _parse_csv(self, line):
     record_defaults = [
@@ -37,7 +40,7 @@ class CSVInputEx(CSVInput):
           (sep, field_num, len(record_defaults))
       return True
 
-    fields = tf.string_split(
+    fields = str_split_by_chr(
         line, self._data_config.separator, skip_empty=False)
     tmp_fields = tf.reshape(fields.values, [-1, len(record_defaults)])
     fields = []

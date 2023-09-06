@@ -8,6 +8,8 @@
 
 ### 配置说明
 
+#### 1.内置模型
+
 ```protobuf
 model_config:{
   model_class: "SimpleMultiTask"
@@ -67,3 +69,68 @@ model_config:{
 SimpleMultiTask模型每个塔的输出名为："logits\_" / "probs\_" / "y\_" + tower_name
 其中，logits/probs/y对应: sigmoid之前的值/概率/回归模型的预测值
 SimpleMultiTask模型每个塔的指标为：指标名+ "\_" + tower_name
+
+#### 2. 组件化模型
+
+```protobuf
+model_config {
+  model_name: "SimpleMultiTask"
+  model_class: "MultiTaskModel"
+  feature_groups {
+    group_name: "all"
+    feature_names: "user_id"
+    feature_names: "cms_segid"
+    ...
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: "identity"
+      inputs {
+        feature_group_name: "all"
+      }
+    }
+  }
+  model_params {
+    task_towers {
+      tower_name: "ctr"
+      label_name: "clk"
+      dnn {
+        hidden_units: [256, 192, 128, 64]
+      }
+      num_class: 1
+      weight: 1.0
+      loss_type: CLASSIFICATION
+      metrics_set: {
+       auc {}
+      }
+    }
+    task_towers {
+      tower_name: "cvr"
+      label_name: "buy"
+      dnn {
+        hidden_units: [256, 192, 128, 64]
+      }
+      num_class: 1
+      weight: 1.0
+      loss_type: CLASSIFICATION
+      metrics_set: {
+       auc {}
+      }
+    }
+    l2_regularization: 1e-07
+  }
+  embedding_regularization: 5e-06
+}
+```
+
+- model_name: 任意自定义字符串，仅有注释作用
+
+- model_class: 'MultiTaskModel', 不需要修改, 通过组件化方式搭建的多目标排序模型都叫这个名字
+
+- backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
+
+  - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
+  - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+
+- 其余与内置模型参数相同

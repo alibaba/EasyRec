@@ -16,6 +16,7 @@ import shutil
 import string
 import subprocess
 import time
+import six
 from multiprocessing import Process
 from subprocess import getstatusoutput
 from tensorflow.python.platform import gfile
@@ -27,7 +28,8 @@ from easy_rec.python.utils.io_util import read_data_from_json_path
 
 TEST_DIR = './tmp/easy_rec_test'
 
-TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1200))
+# parallel run of tests could take more time
+TEST_TIME_OUT = int(os.environ.get('TEST_TIME_OUT', 1800))
 
 
 def get_hdfs_tmp_dir(test_dir):
@@ -45,22 +47,29 @@ def proc_wait(proc, timeout=1200):
   while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1)
   if proc.poll() is None:
+    logging.warning('proc[pid=%d] timeout[%d], will kill the proc' %
+                    (proc.pid, timeout))
     proc.terminate()
   while proc.poll() is None:
     time.sleep(1)
 
 
 def get_tmp_dir():
-  tmp_name = ''.join(
-      [random.choice(string.ascii_letters + string.digits) for i in range(8)])
-  if os.environ.get('TEST_DIR', '') != '':
-    global TEST_DIR
-    TEST_DIR = os.environ['TEST_DIR']
-  dir_name = os.path.join(TEST_DIR, tmp_name)
-  if os.path.exists(dir_name):
-    shutil.rmtree(dir_name)
-  os.makedirs(dir_name)
-  return dir_name
+  max_retry = 5
+  while max_retry > 0:
+    tmp_name = ''.join([
+        random.choice(string.ascii_letters + string.digits) for i in range(12)
+    ])
+    if os.environ.get('TEST_DIR', '') != '':
+      global TEST_DIR
+      TEST_DIR = os.environ['TEST_DIR']
+    dir_name = os.path.join(TEST_DIR, tmp_name)
+    if not os.path.exists(dir_name):
+      os.makedirs(dir_name)
+      return dir_name
+    else:
+      max_retry -= 1
+  raise RuntimeError('Failed to get_tmp_dir: max_retry=%d' % max_retry)
 
 
 def clear_all_tmp_dirs():
@@ -90,8 +99,12 @@ def run_cmd(cmd_str, log_file, env=None):
   cmd_str = cmd_str.replace('\r', ' ').replace('\n', ' ')
   logging.info('RUNCMD: %s > %s 2>&1 ' % (cmd_str, log_file))
   with open(log_file, 'w') as lfile:
-    return subprocess.Popen(
+    proc = subprocess.Popen(
         cmd_str, stdout=lfile, stderr=subprocess.STDOUT, shell=True, env=env)
+    if six.PY2:
+      # for debug purpose
+      proc.args = cmd_str
+    return proc
 
 
 def RunAsSubprocess(f):
@@ -146,7 +159,10 @@ def _replace_data_for_test(data_path):
   return data_path
 
 
-def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
+def _load_config_for_test(pipeline_config_path,
+                          test_dir,
+                          total_steps=50,
+                          num_epochs=0):
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
   train_config = pipeline_config.train_config
@@ -155,10 +171,10 @@ def _load_config_for_test(pipeline_config_path, test_dir, total_steps=50):
 
   train_config.num_steps = total_steps
   # change model_dir
-  pipeline_config.model_dir = test_dir + '/train'
+  pipeline_config.model_dir = os.path.join(test_dir, 'train')
   logging.info('test_model_dir %s' % pipeline_config.model_dir)
   eval_config.num_examples = max(10, data_config.batch_size)
-  data_config.num_epochs = 0
+  data_config.num_epochs = num_epochs
   return pipeline_config
 
 
@@ -219,7 +235,9 @@ def test_datahub_train_eval(pipeline_config_path,
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
-    logging.error('train %s failed' % test_pipeline_config_path)
+    logging.warning(
+        'train %s failed[pid=%d][code=%d][args=%s]' %
+        (test_pipeline_config_path, proc.pid, proc.returncode, proc.args))
     return False
   if post_check_func:
     return post_check_func(pipeline_config)
@@ -240,6 +258,7 @@ def test_single_train_eval(pipeline_config_path,
                            post_check_func=None,
                            check_mode=False,
                            fine_tune_checkpoint=None,
+                           extra_cmd_args=None,
                            timeout=-1):
   gpus = get_available_gpus()
   if len(gpus) > 0:
@@ -266,12 +285,16 @@ def test_single_train_eval(pipeline_config_path,
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-      test_pipeline_config_path, hyperparam_str)
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path=' + test_pipeline_config_path
+  if hyperparam_str:
+    train_cmd += ' --edit_config_json=\'%s\'' % hyperparam_str
   if fine_tune_checkpoint:
-    train_cmd += '--fine_tune_checkpoint %s' % fine_tune_checkpoint
+    train_cmd += ' --fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
-    train_cmd += '--check_mode'
+    train_cmd += ' --check_mode'
+  if extra_cmd_args:
+    train_cmd += ' '
+    train_cmd += extra_cmd_args
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT if timeout < 0 else timeout)
   if proc.returncode != 0:
@@ -483,7 +506,7 @@ def _ports_in_use(ports):
   return stat == 0
 
 
-def _get_ports(num_worker):
+def get_ports_base(num_worker):
   port_base = int(os.environ.get('PORT_BASE', 10000))
   num_try = 10
   for i in range(num_try):
@@ -493,10 +516,25 @@ def _get_ports(num_worker):
     logging.info('ports %s in use, retry...' % ports)
 
 
+def _get_ports(num_worker):
+  # port queue to deals with port conflicts when multiple
+  # test cases run in parallel
+  if 'ports' in os.environ:
+    ports = os.environ['ports']
+    port_arr = [int(x) for x in ports.split(',')]
+    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
+        % (ports, num_worker)
+    return port_arr[:num_worker]
+  else:
+    return get_ports_base(num_worker)
+
+
 def _ps_worker_train(pipeline_config_path,
                      test_dir,
                      num_worker,
-                     num_evaluator=0):
+                     num_evaluator=0,
+                     fit_on_eval=False,
+                     fit_on_eval_steps=None):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
   if len(gpus) < num_worker:
@@ -514,6 +552,10 @@ def _ps_worker_train(pipeline_config_path,
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % pipeline_config_path
+  if fit_on_eval:
+    train_cmd += ' --fit_on_eval'
+    if fit_on_eval_steps is not None:
+      train_cmd += ' --fit_on_eval_steps ' + str(int(fit_on_eval_steps))
   procs[chief_or_master] = run_cmd(
       train_cmd, '%s/log_%s.txt' % (test_dir, chief_or_master))
   tf_config['task'] = {'type': 'ps', 'index': 0}
@@ -610,16 +652,40 @@ def _multi_worker_mirror_train(pipeline_config_path, test_dir, num_worker):
   return procs
 
 
+def _multi_worker_hvd_train(pipeline_config_path, test_dir, num_worker):
+  gpus = get_available_gpus()
+  # not enough gpus, run on cpu only
+  if len(gpus) < num_worker:
+    gpus = ''
+  else:
+    gpus = ','.join(gpus)
+  set_gpu_id(gpus)
+  ports = _get_ports(num_worker)
+  hosts = ','.join(['localhost:%d' % ports[i] for i in range(num_worker)])
+  train_cmd = 'horovodrun -np %d --hosts %s python -m easy_rec.python.train_eval --pipeline_config_path %s' % (
+      num_worker, hosts, pipeline_config_path)
+  proc = run_cmd(train_cmd, '%s/log_hvd.txt' % test_dir)
+  proc_wait(proc, timeout=1200)
+  return proc.returncode == 0
+
+
 def test_distributed_train_eval(pipeline_config_path,
                                 test_dir,
                                 total_steps=50,
                                 num_evaluator=0,
-                                edit_config_json=None):
+                                edit_config_json=None,
+                                use_hvd=False,
+                                fit_on_eval=False,
+                                num_epoch=0):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
-                                          total_steps)
+                                          total_steps, num_epoch)
   if edit_config_json is not None:
     config_util.edit_config(pipeline_config, edit_config_json)
+
+  if use_hvd:
+    pipeline_config.train_config.sync_replicas = False
+    pipeline_config.train_config.train_distribute = DistributionStrategy.HorovodStrategy
 
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
@@ -628,10 +694,17 @@ def test_distributed_train_eval(pipeline_config_path,
   task_failed = None
   procs = None
   try:
+    if use_hvd:
+      return _multi_worker_hvd_train(test_pipeline_config_path, test_dir, 2)
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_train(test_pipeline_config_path, test_dir, num_worker,
-                               num_evaluator)
+      procs = _ps_worker_train(
+          test_pipeline_config_path,
+          test_dir,
+          num_worker,
+          num_evaluator,
+          fit_on_eval,
+          fit_on_eval_steps=int(total_steps // 2))
     elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:
       num_worker = 2
       procs = _multi_worker_mirror_train(test_pipeline_config_path, test_dir,

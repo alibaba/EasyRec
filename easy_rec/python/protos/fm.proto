@@ -2,5 +2,6 @@ syntax = "proto2";
 package protos;
 
 message FM {
+    optional bool use_variant = 1;
     optional float l2_regularization = 5 [default = 1e-4];
 }

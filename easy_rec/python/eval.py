@@ -10,6 +10,7 @@ from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import distribute_evaluate
 from easy_rec.python.main import evaluate
+from easy_rec.python.utils import config_util
 from easy_rec.python.utils import ds_util
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_distribute_eval_worker_num_on_ds  # NOQA
@@ -59,15 +60,19 @@ def main(argv):
   else:
     pipeline_config_path = FLAGS.pipeline_config_path
 
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+  if FLAGS.model_dir:
+    pipeline_config.model_dir = FLAGS.model_dir
+
   if FLAGS.distribute_eval:
     os.environ['distribute_eval'] = 'True'
-    eval_result = distribute_evaluate(pipeline_config_path,
-                                      FLAGS.checkpoint_path,
+    eval_result = distribute_evaluate(pipeline_config, FLAGS.checkpoint_path,
                                       FLAGS.eval_input_path,
                                       FLAGS.eval_result_path)
   else:
     os.environ['distribute_eval'] = 'False'
-    eval_result = evaluate(pipeline_config_path, FLAGS.checkpoint_path,
+    eval_result = evaluate(pipeline_config, FLAGS.checkpoint_path,
                            FLAGS.eval_input_path, FLAGS.eval_result_path)
   if eval_result is not None:
     # when distribute evaluate, only master has eval_result.

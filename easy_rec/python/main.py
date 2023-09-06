@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import time
 
 import six
 import tensorflow as tf
@@ -31,6 +32,11 @@ from easy_rec.python.utils.config_util import get_train_input_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.export_big_model import export_big_model
 from easy_rec.python.utils.export_big_model import export_big_model_to_oss
+
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
 
 if tf.__version__ >= '2.0':
   gfile = tf.compat.v1.gfile
@@ -97,6 +103,16 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=False)
+
+  if hvd is not None:
+    gpus = estimator_utils.get_available_gpus()
+    if len(gpus) > 0:
+      local_rnk = hvd.local_rank()
+      num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+      sid = local_rnk * num_gpus_per_worker
+      eid = sid + num_gpus_per_worker
+      gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+
   session_config = ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
@@ -145,7 +161,7 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
     logging.info('eval_steps = %d' % eval_steps)
   else:
     eval_steps = None
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   # create eval input
@@ -230,7 +246,7 @@ def _get_ckpt_path(pipeline_config, checkpoint_path):
     else:
       ckpt_path = checkpoint_path
   elif gfile.IsDirectory(pipeline_config.model_dir):
-    ckpt_path = tf.train.latest_checkpoint(pipeline_config.model_dir)
+    ckpt_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
                  'will use latest checkpoint %s from %s' %
                  (ckpt_path, pipeline_config.model_dir))
@@ -264,7 +280,9 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
 
 def _train_and_evaluate_impl(pipeline_config,
                              continue_train=False,
-                             check_mode=False):
+                             check_mode=False,
+                             fit_on_eval=False,
+                             fit_on_eval_steps=None):
   train_config = pipeline_config.train_config
   data_config = pipeline_config.data_config
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
@@ -286,18 +304,15 @@ def _train_and_evaluate_impl(pipeline_config,
   estimator, run_config = _create_estimator(
       pipeline_config, distribution=distribution, params=params)
 
-  master_stat_file = os.path.join(pipeline_config.model_dir, 'master.stat')
   version_file = os.path.join(pipeline_config.model_dir, 'version')
   if estimator_utils.is_chief():
     _check_model_dir(pipeline_config.model_dir, continue_train)
     config_util.save_pipeline_config(pipeline_config, pipeline_config.model_dir)
     with gfile.GFile(version_file, 'w') as f:
       f.write(easy_rec.__version__ + '\n')
-    if gfile.Exists(master_stat_file):
-      gfile.Remove(master_stat_file)
 
   train_steps = None
-  if train_config.HasField('num_steps'):
+  if train_config.HasField('num_steps') and train_config.num_steps > 0:
     train_steps = train_config.num_steps
   assert train_steps is not None or data_config.num_epochs > 0, (
       'either num_steps and num_epochs must be set to an integer > 0.')
@@ -312,7 +327,7 @@ def _train_and_evaluate_impl(pipeline_config,
       epoch_str += ' / ' + str(worker_num)
     logging.info('Will train min(%d, %s) steps...' % (train_steps, epoch_str))
 
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
@@ -332,6 +347,30 @@ def _train_and_evaluate_impl(pipeline_config,
   from easy_rec.python.compat import estimator_train
   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
+  if fit_on_eval and (not estimator_utils.is_evaluator()):
+    tf.reset_default_graph()
+    logging.info('Start continue training on eval data')
+    eval_input_fn = _get_input_fn(data_config, feature_configs, eval_data,
+                                  **input_fn_kwargs)
+    if fit_on_eval_steps is not None:
+      # wait estimator train done to get the correct train_steps
+      while not estimator_train.estimator_train_done(estimator):
+        time.sleep(1)
+      train_steps = estimator_utils.get_trained_steps(estimator.model_dir)
+      logging.info('\ttrain_steps=%d fit_on_eval_steps=%d' %
+                   (train_steps, fit_on_eval_steps))
+      fit_on_eval_steps += train_steps
+    # Do not use estimator_train.train_and_evaluate as it starts tf.Server,
+    # which is redundant and reports port not available error.
+    estimator.train(
+        input_fn=eval_input_fn,
+        max_steps=fit_on_eval_steps,
+        hooks=list(train_spec.hooks),
+        saving_listeners=train_spec.saving_listeners if hasattr(
+            train_spec, 'saving_listeners') else None)
+    logging.info('Finished training on eval data')
+  # return estimator for custom training using estimator.train
+  return estimator
 
 
 def evaluate(pipeline_config,
@@ -486,6 +525,13 @@ def distribute_evaluate(pipeline_config,
     set_eval_input_path(pipeline_config, eval_data_path)
   train_config = pipeline_config.train_config
   eval_data = get_eval_input_path(pipeline_config)
+  data_config = pipeline_config.data_config
+  if data_config.HasField('sampler'):
+    logging.warning(
+        'It is not accuracy to use eval with negative sampler, recommand to use hitrate.py!'
+    )
+    eval_result = {}
+    return eval_result
   model_dir = get_model_dir_path(pipeline_config)
   eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
   if not gfile.IsDirectory(eval_tmp_results_dir):
@@ -525,17 +571,7 @@ def distribute_evaluate(pipeline_config,
         server_target = server.target
         print('server_target = %s' % server_target)
 
-  distribution = strategy_builder.build(train_config)
-  estimator, run_config = _create_estimator(pipeline_config, distribution)
-  eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
-  ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
-  ckpt_dir = os.path.dirname(ckpt_path)
-
   if server_target:
-    # evaluate with parameter server
-    input_iter = eval_spec.input_fn(
-        mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
-    input_feas, input_lbls = input_iter.get_next()
     from tensorflow.python.training.device_setter import replica_device_setter
     from tensorflow.python.framework.ops import device
     from tensorflow.python.training.monitored_session import MonitoredSession
@@ -543,8 +579,19 @@ def distribute_evaluate(pipeline_config,
     from tensorflow.python.training.monitored_session import WorkerSessionCreator
     from easy_rec.python.utils.estimator_utils import EvaluateExitBarrierHook
     cur_work_device = '/job:' + cur_job_name + '/task:' + str(cur_task_index)
+    cur_ps_num = len(tf_config['cluster']['ps'])
     with device(
-        replica_device_setter(worker_device=cur_work_device, cluster=cluster)):
+        replica_device_setter(
+            ps_tasks=cur_ps_num, worker_device=cur_work_device,
+            cluster=cluster)):
+      distribution = strategy_builder.build(train_config)
+      estimator, run_config = _create_estimator(pipeline_config, distribution)
+      eval_spec = _create_eval_export_spec(pipeline_config, eval_data)
+      ckpt_path = _get_ckpt_path(pipeline_config, eval_checkpoint_path)
+      ckpt_dir = os.path.dirname(ckpt_path)
+      input_iter = eval_spec.input_fn(
+          mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
+      input_feas, input_lbls = input_iter.get_next()
       estimator_spec = estimator._distribute_eval_model_fn(
           input_feas, input_lbls, run_config)
 
@@ -559,7 +606,7 @@ def distribute_evaluate(pipeline_config,
       global_variables = tf.global_variables()
       remain_variables = list(
           set(global_variables).difference(set(metric_variables)))
-      cur_saver = tf.train.Saver(var_list=remain_variables)
+      cur_saver = tf.train.Saver(var_list=remain_variables, sharded=True)
       cur_scaffold = tf.train.Scaffold(
           saver=cur_saver,
           ready_for_local_init_op=model_ready_for_local_init_op)
@@ -575,7 +622,6 @@ def distribute_evaluate(pipeline_config,
     update_ops = [eval_metric_ops[x][1] for x in eval_metric_ops.keys()]
     metric_ops = {x: eval_metric_ops[x][0] for x in eval_metric_ops.keys()}
     update_op = tf.group(update_ops)
-    count = 0
     cur_worker_num = len(tf_config['cluster']['worker']) + 1
     if cur_job_name == 'master':
       cur_stop_grace_period_sesc = 120
@@ -591,19 +637,11 @@ def distribute_evaluate(pipeline_config,
         stop_grace_period_secs=cur_stop_grace_period_sesc) as sess:
       while True:
         try:
-          count += 1
           sess.run(update_op)
         except tf.errors.OutOfRangeError:
           break
     eval_result = cur_hooks.eval_result
-  else:
-    # this way does not work, wait to be debugged
-    # the variables are not placed to parameter server
-    # with tf.device(
-    #    replica_device_setter(
-    #        worker_device='/job:master/task:0', cluster=cluster)):
-    eval_result = estimator.evaluate(
-        eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+
   logging.info('Evaluate finish')
 
   # write eval result to file
@@ -726,7 +764,7 @@ def export(export_dir,
   # construct serving input fn
   export_config = pipeline_config.export_config
   data_config = pipeline_config.data_config
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
@@ -787,7 +825,7 @@ def export_checkpoint(pipeline_config=None,
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   data_config = pipeline_config.data_config
 
-  input_fn_kwargs = {}
+  input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
 
