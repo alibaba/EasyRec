@@ -490,7 +490,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
 
 ```
 
-- processor: easyrec processor, 目前最新的版本为easyrec-1.5, [历史版本](../predict/processor.md#Release).
+- processor: easyrec processor, 目前最新的版本为easyrec-1.5, [历史版本](../predict/processor.md#release).
 
 - model_config: eas 部署配置。主要控制把 item 特征加载到内存中。目前数据源支持redis和holo
 
