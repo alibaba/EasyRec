@@ -165,7 +165,6 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import deprecation
 from tensorflow.python.util import nest
 
-from easy_rec.python.compat import embedding_ops as ev_embedding_ops
 from easy_rec.python.compat import ops as compat_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
@@ -3433,22 +3432,13 @@ class EmbeddingColumn(
           self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
 
     # Return embedding lookup result.
-    if self.ev_params is None:
-      return embedding_ops.safe_embedding_lookup_sparse(
-          embedding_weights=embedding_weights,
-          sparse_ids=sparse_ids,
-          sparse_weights=sparse_weights,
-          combiner=self.combiner,
-          name='%s_weights' % self.name,
-          max_norm=self.max_norm)
-    else:
-      return ev_embedding_ops.safe_embedding_lookup_sparse(
-          embedding_weights,
-          sparse_ids,
-          sparse_weights,
-          combiner=self.combiner,
-          name='%s_weights' % self.name,
-          max_norm=self.max_norm)
+    return embedding_ops.safe_embedding_lookup_sparse(
+        embedding_weights,
+        sparse_ids,
+        sparse_weights,
+        combiner=self.combiner,
+        name='%s_weights' % self.name,
+        max_norm=self.max_norm)
 
   def _get_dense_tensor_internal(self, sparse_tensors, state_manager):
     """Private method that follows the signature of get_dense_tensor."""
@@ -3483,6 +3473,15 @@ class EmbeddingColumn(
         initializer = init_ops.zeros_initializer()
       else:
         initializer = self.initializer
+      extra_args = {}
+      if 'EmbeddingVariableConfig' in dir(variables):
+        ev_option = variables.EmbeddingVariableOption()
+        ev_option.filter_strategy = variables.CounterFilter(
+            filter_freq=self.ev_params.filter_freq)
+        extra_args['ev_option'] = ev_option
+      else:
+        extra_args['filter_options'] = variables.CounterFilterOptions(
+            self.ev_params.filter_freq)
       embedding_weights = variable_scope.get_embedding_variable(
           name='embedding_weights',
           embedding_dim=self.dimension,
@@ -3490,10 +3489,8 @@ class EmbeddingColumn(
           trainable=self.trainable and trainable,
           partitioner=self.partitioner,
           collections=weight_collections,
-          steps_to_live=self.ev_params.steps_to_live
-          if self.ev_params is not None else None,
-          filter_options=variables.CounterFilterOptions(
-              self.ev_params.filter_freq))
+          steps_to_live=self.ev_params.steps_to_live,
+          **extra_args)
 
     # Write the embedding configuration to RTP-specified collections. This will inform RTP to
     # optimize this embedding operation.

@@ -77,6 +77,7 @@ class OdpsOSSConfig:
     self.algo_project = None
     self.algo_res_project = None
     self.algo_version = None
+    self.algo_name = 'easy_rec_ext'
 
     # default to outer environment
     # the difference are ossHost buckets arn settings
