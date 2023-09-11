@@ -35,7 +35,7 @@
 
 - Feature配置说明：
 
-  - [IdFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/IdFeature.pdf)
+  - [IdFeature](./fg_docs/IdFeature.md)
 
     - is_multi: id_feature是否是多值属性
 
@@ -45,7 +45,7 @@
 
       - 多值分隔符使用chr(29)\[ctrl+v ctrl+\].
 
-      - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
+      - [多值类型说明](./fg_docs/mutiValues.md)
 
     - vocab_file: 词典文件路径，根据词典将对应的输入映射成ID.
 
@@ -61,7 +61,7 @@
 
     - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
-  - [RawFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
+  - [RawFeature](./fg_docs/RawFeature.md)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
@@ -93,10 +93,10 @@
       - 该选项对生成数据有影响.
       - 该选项对生成EasyRec config也有影响, 对应到[feature_config.raw_input_dim](../proto.html#protos.FeatureConfig)
 
-  - [ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+  - [ComboFeature](./fg_docs/ComboFeature.md)
 
     - 需要设置embedding_dimension和hash_bucket_size.
-      方法一：在fg中生成combo特征，见[ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+      方法一：在fg中生成combo特征，见[ComboFeature](./fg_docs/ComboFeature.pdf)
 
     ```
     {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
@@ -125,11 +125,11 @@
     - feature_names: 除当前特征外，参与combo的特征，至少一项.
     - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
-  - [LookupFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
+  - [LookupFeature](./fg_docs/LookupFeature.md)
 
     - 根据id查找对应的value.
 
-  - [MatchFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/MatchFeature.pdf)
+  - [MatchFeature](./fg_docs/MatchFeature.md)
 
     - 双层查找, 根据category和item_id查找value.
 
@@ -141,7 +141,7 @@
 
     - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
-  - [SequenceFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/SequenceFeature.pdf)
+  - [SequenceFeature](./fg_docs/SequenceFeature.md)
 
     - 序列特征用于对用户行为建模, 通常应用于DIN和Transformer模型当中
 
@@ -159,7 +159,7 @@
 
     - Note: item_seq(如item的图片列表)目前还不支持
 
-  - [OverLapFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
+  - [OverLapFeature](./fg_docs/OverLapFeature.md)
 
   - 针对EasyRec的扩展字段:
 

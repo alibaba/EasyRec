@@ -38,7 +38,7 @@
 {"leaf_path": "data/test/movielens_1m", "sig": "99badbeec64f2fcabe0dfa1d2bfd8fb5", "remote_path": "data/git_oss_sample_data/data_test_movielens_1m_99badbeec64f2fcabe0dfa1d2bfd8fb5"}
 {"leaf_path": "data/test/mt_ckpt", "sig": "803499f48e2df5e51ce5606e9649c6d4", "remote_path": "data/git_oss_sample_data/data_test_mt_ckpt_803499f48e2df5e51ce5606e9649c6d4"}
 {"leaf_path": "data/test/rtp", "sig": "76cda60582617ddbb7cd5a49eb68a4b9", "remote_path": "data/git_oss_sample_data/data_test_rtp_76cda60582617ddbb7cd5a49eb68a4b9"}
-{"leaf_path": "data/test/tb_data", "sig": "b1579db090d72b3b70b59ba3c7692701", "remote_path": "data/git_oss_sample_data/data_test_tb_data_b1579db090d72b3b70b59ba3c7692701"}
+{"leaf_path": "data/test/tb_data", "sig": "f1279ca42de1734be321e88f85775d5f", "remote_path": "data/git_oss_sample_data/data_test_tb_data_f1279ca42de1734be321e88f85775d5f"}
 {"leaf_path": "data/test/tb_data/hard_negative_sampler_edge", "sig": "48f994681d719a2546ec4003fcbc638c", "remote_path": "data/git_oss_sample_data/data_test_tb_data_hard_negative_sampler_edge_48f994681d719a2546ec4003fcbc638c"}
 {"leaf_path": "data/test/tb_data/hard_negative_sampler_item", "sig": "f23a9eb9457c14a8e57b455804b1f013", "remote_path": "data/git_oss_sample_data/data_test_tb_data_hard_negative_sampler_item_f23a9eb9457c14a8e57b455804b1f013"}
 {"leaf_path": "data/test/tb_data/hard_negative_sampler_user", "sig": "23514156eae5a4250ac1d0a118883430", "remote_path": "data/git_oss_sample_data/data_test_tb_data_hard_negative_sampler_user_23514156eae5a4250ac1d0a118883430"}
