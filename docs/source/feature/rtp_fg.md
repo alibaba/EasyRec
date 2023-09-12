@@ -1,10 +1,10 @@
 # RTP FG
 
-- RTP FG能够以比较高的效率生成一些复杂的特征，如MatchFeature和LookupFeature, 线上线下使用同一套代码保证一致性.
+- RTP FG能够以比较高的效率生成一些复杂的交叉特征，如match feature和lookup feature, 通过使用同一套c++代码保证离线在线的一致性.
 
 - 其生成的特征可以接入EasyRec进行训练，从RTP FG的配置(fg.json)可以生成EasyRec的配置文件(pipeline.config).
 
-- 线上部署的时候提供带FG功能的EAS processor，一键部署.
+- 线上部署的时候提供带FG功能的[EasyRec Processor](../predict/processor.md)一键部署.
 
 ### 训练
 
@@ -28,14 +28,13 @@
 
  "reserves": [
    "user_id", "campaign_id", "clk"
- ],
- "multi_val_sep": "|"
+ ]
 }
 ```
 
 - Feature配置说明：
 
-  - [IdFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/IdFeature.pdf)
+  - [id_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/IdFeature.pdf)
 
     - is_multi: id_feature是否是多值属性
 
@@ -43,7 +42,7 @@
 
       - 如果设成false, 转换成EasyRec的config时会转成IdFeature, 可以减少字符串分割的开销
 
-      - 多值分隔符使用chr(29)\[ctrl+v ctrl+\].
+      - 多值分隔符使用chr(29)\[ctrl+v ctrl+\], 即"\\u001D".
 
       - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
 
@@ -61,7 +60,7 @@
 
     - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
-  - [RawFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
+  - [raw_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
@@ -93,14 +92,12 @@
       - 该选项对生成数据有影响.
       - 该选项对生成EasyRec config也有影响, 对应到[feature_config.raw_input_dim](../proto.html#protos.FeatureConfig)
 
-  - [ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+  - [combo_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
 
     - 需要设置embedding_dimension和hash_bucket_size.
       方法一：在fg中生成combo特征，见[ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
 
     ```
-    {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
-    {"expression": "user:occupation", "feature_name": "occupation", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 10, "embedding_dim": 16, "group":"user"},
     {"expression" : ["user:user_id", "user:occupation"], "feature_name" : "combo__occupation_age_level", "feature_type" : "combo_feature", "hash_bucket_size": 10, "embedding_dim": 16}
 
     ```
@@ -120,20 +117,20 @@
      }
     ```
 
-    - 最终会生成两列数据（user_id和occupation），config中生成三个特征配置，分别是user_id，occupation，combo\_\_occupation_age_level.
+    - 最终会生成两列数据（user_id和occupation），config中生成三个特征的配置，分别是user_id，occupation，combo\_\_occupation_age_level.
     - final_feature_name: 该combo特征的名字.
     - feature_names: 除当前特征外，参与combo的特征，至少一项.
     - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
-  - [LookupFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
+  - [lookup_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
 
-    - 根据id查找对应的value.
+    - 单层查找, 根据id(如item_id, item_category_id等)查找对应的value.
 
-  - [MatchFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/MatchFeature.pdf)
+  - [match_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/MatchFeature.pdf)
 
     - 双层查找, 根据category和item_id查找value.
 
-    - match Feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号\[,\]， 如:
+    - match feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号\[,\]， 如:
 
     ```
       50011740^107287172:0.2^]36806676:0.3^]122572685:0.5|50006842^16788816:0.1^]10122:0.2^]29889:0.3^]30068:19
@@ -141,7 +138,7 @@
 
     - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
-  - [SequenceFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/SequenceFeature.pdf)
+  - [sequence_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/SequenceFeature.pdf)
 
     - 序列特征用于对用户行为建模, 通常应用于DIN和Transformer模型当中
 
@@ -159,7 +156,7 @@
 
     - Note: item_seq(如item的图片列表)目前还不支持
 
-  - [OverLapFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
+  - [overlap_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
 
   - 针对EasyRec的扩展字段:
 
@@ -185,8 +182,6 @@
     ```
     i_item_id:10539078362,i_seller_id:21776327,...
     ```
-
-  - multi_val_sep: 多值特征的分隔符，不指定默认是chr(29) 即"u001D"
 
   - kv_separator: 多值有权重特征的分隔符，如”体育:0.3|娱乐:0.2|军事:0.5”，不指定默认None，即没有权重
 
@@ -338,14 +333,16 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 - --incol_separator: feature内部的分隔符，即多值分隔符，默认是CTRL_C(u0003)
 
-- --input_type: 输入类型，默认是OdpsRTPInput, 如果在EMR上使用或者本地使用，应该用RTPInput, 如果使用RTPInput那么--selected_cols也需要进行修改, 使用对应的列的id:
+- --input_type: 输入类型
 
-  ```
-  0,4
-  ```
-
-  - 其中第0列是label, 第4列是features
-  - 还需要指定--rtp_separator，表示label和features之间的分隔符, 默认是";"
+  - OdpsRTPInput表示在MaxCompute上使用;
+  - RTPInput, 本地使用, 使用RTPInput时需要指定训练时用到的对应的列的id, 如:
+    ```
+    --selected_cols=0,4
+    ```
+    - 其中第0列是label, 第4列是features
+    - 还需要指定--rtp_separator，表示label和features之间的分隔符, 默认是";"
+  - HiveRTPInput, 用于在DataScience上使用
 
 - --train_input_path, 训练数据路径
 
@@ -523,9 +520,11 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
   - 缺点: 部署速度慢, 需要将模型保存到docker内部
   - 建议仅在无法通过storage挂载的情况下使用model_path
 
-#### 客户端访问
+- 其它参数是所有EAS服务通用的, 请参考[EAS文档](https://help.aliyun.com/zh/pai/user-guide/parameters-of-model-services).
 
-同eas sdk 中的TFRequest类似，EasyRec Processor也是使用ProtoBuffer 作为传输协议. [proto文件定义](https://github.com/pai-eas/eas-java-sdk/blob/master/src/main/proto/easyrec_predict.proto). Java客户端可以通过PAI-EAS Java SDK调用服务, 在pom.xml里面加入:
+#### 客户端请求
+
+和TFRequest类似, EasyRec Processor也是使用ProtoBuffer 作为传输协议. [proto文件定义](https://github.com/pai-eas/eas-java-sdk/blob/master/src/main/proto/easyrec_predict.proto). Java客户端可以通过PAI-EAS Java SDK调用服务, 在pom.xml里面加入:
 
 ```
 <dependency>
@@ -572,7 +571,7 @@ for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().e
 }
 ```
 
-- client.setDirectEndpoint: [网络直连](https://help.aliyun.com/zh/pai/user-guide/call-a-service-over-the-vpc-direct-connection-channel)可以显著提升性能
+- client.setDirectEndpoint: [网络直连](https://help.aliyun.com/zh/pai/user-guide/call-a-service-over-the-vpc-direct-connection-channel)可以减少网络传输时间, 显著提升性能
 
   - 请从上述文档查看不同region对应的direct endpoint地址
 
@@ -592,19 +591,20 @@ for (Map.Entry<String, PredictProtos.Results> entry : response.getResultsMap().e
 
 - 验证特征一致性
 
-```
-// 获取FG之后的特征，以便和离线的特征对比一致性
-// 将DebugLevel设置成1，即可返回生成的特征
-easyrecRequest.setDebugLevel(1);
-PredictProtos.PBResponse response = client.predict(easyrecRequest);
-Map<String, String> genFeas = response.getGenerateFeaturesMap();
-for(String itemId: genFeas.keySet()) {
-    System.out.println(itemId);
-    System.out.println(genFeas.get(itemId));
-}
-```
+  ```java
+  // 获取FG之后的特征，以便和离线的特征对比一致性
+  // 将DebugLevel设置成1，即可返回生成的特征
+  easyrecRequest.setDebugLevel(1);
+  PredictProtos.PBResponse response = client.predict(easyrecRequest);
+  Map<String, String> genFeas = response.getGenerateFeaturesMap();
+  for(String itemId: genFeas.keySet()) {
+      System.out.println(itemId);
+      System.out.println(genFeas.get(itemId));
+  }
+  ```
 
 - setDebugLevel: 设置调试标志, 方便排查问题, 参数的取值范围如下:
+
   - 0: 仅返回预测结果, 不返回调试信息
   - 1: 只返回FG之后特征的值, 格式为key:value格式, 不返回预测结果
   - 2: 返回预测结果和FG之后的特征值
@@ -613,4 +613,5 @@ for(String itemId: genFeas.keySet()) {
   - 100: 保存请求到模型目录下, 同时返回预测结果
   - 101: 保存timeline
   - 102: 适用于召回模型, 返回user向量和Faiss检索结果
+
 - 注意: 生产环境调用的时候设置debug_level=0，否则会导致rt上升, qps下降.
