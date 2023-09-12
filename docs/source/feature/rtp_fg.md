@@ -96,7 +96,7 @@
   - [ComboFeature](./fg_docs/ComboFeature.md)
 
     - 需要设置embedding_dimension和hash_bucket_size.
-      方法一：在fg中生成combo特征，见[ComboFeature](./fg_docs/ComboFeature.pdf)
+      方法一：在fg中生成combo特征，见[ComboFeature](./fg_docs/ComboFeature.md)
 
     ```
     {"expression": "user:user_id", "feature_name": "user_id", "feature_type":"id_feature", "value_type":"String", "combiner":"mean", "hash_bucket_size": 100000, "embedding_dim": 16, "group":"user"},
