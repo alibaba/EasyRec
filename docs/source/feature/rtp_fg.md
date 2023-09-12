@@ -36,7 +36,7 @@
 
 - Feature配置说明：
 
-  - [id_Feature](./fg_docs/IdFeature.md)
+  - [id_feature](./fg_docs/IdFeature.md)
 
     - is_multi: id_feature是否是多值属性
 

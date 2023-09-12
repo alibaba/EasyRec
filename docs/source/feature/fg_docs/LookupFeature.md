@@ -42,7 +42,7 @@ item_value : "k2"
 
 ## 其它
 
-match feature 和 lookup feature都是匹配类型的特征，即从kv对中匹配到相应的结果。两者的区别是： match feature的被匹配字段user 必须是qinfo中传入的字段，即一次查询中对所有的doc来说这个字段的值都是一致的。而 lookup feature 的 key 和 map 没有来源的限制。
+match_feature 和 lookup_feature都是匹配类型的特征，即从kv对中匹配到相应的结果。两者的区别是： match_feature的被匹配字段user 必须是qinfo中传入的字段，即一次查询中对所有的doc来说这个字段的值都是一致的。而 lookup_feature 的 key 和 map 没有来源的限制。
 
 ## 配置详解
 
@@ -78,7 +78,7 @@ key:{"k1"}
 结果：feature={123}
 ```
 
-如果存在多个 key 时，可以通过配置 combiner 来组合多个查到的值。可能的配置有 `sum, mean, max, min`。 ps：如果要使用combiner的话需要将needDiscrete设置为false，只有dense类才能做conbiner，生成的value会是数值类的
+如果存在多个 key 时，可以通过配置 combiner 来组合多个查到的值。可能的配置有 `sum, mean, max, min`。 ps：如果要使用combiner的话需要将needDiscrete设置为false，只有dense类才能做combiner，生成的value会是数值类的
 
 一个配置样例 update on 2021.04.15
 
