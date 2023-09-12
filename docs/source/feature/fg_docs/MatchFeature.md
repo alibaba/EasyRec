@@ -23,7 +23,7 @@ match_feature本质是是一个两层map的匹配，user字段使用string的方
 
 ## 配置方式
 
-json格式配置文件：
+配置文件使用json格式
 
 ```json
 {
@@ -37,34 +37,22 @@ json格式配置文件：
 }
 ```
 
-needDiscrete:true 时，模型使用 match_feature 输出的特征名，忽略特征值。默认为 true。
-needDiscrete:false 时，模型取 match_feature 输出的特征值，而忽略特征名。
-
-matchType：
-hit:输出命中的feature
-
-xml配置文件：
-
-```xml
-<features name="matched_features">
-    <feature name="brand_hit" dependencies="user:user_brand_tags_hit1,item:brand_id" category="item:auction_root_category" type="hit"/>
-    <feature name="brand_matched_hit" dependencies="user:user_brand_tags_cos1,item:brand_id" category="ALL" type="hit"/>
-</features>
-```
-
-dependencie:需要做Match 的两个特征
-
-category: 类目的feature 字段。category="ALL"不需要分类目匹配
+- needDiscrete
+  - true: 模型使用 match_feature 输出的特征名，忽略特征值。默认为 true;
+  - false: 模型取 match_feature 输出的特征值，而忽略特征名.
+- matchType：
+  - hit: 输出命中的feature
+  - multihit: 允许category和item字段的值为MATCH_WILDCARD选项, 即"ALL", 可以匹配出多个值
 
 ## Normalizer
 
 match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_feature](./RawFeature.md)。
 
-## 配置详解
+## 配置示例
 
 ### hit
 
-对于下面的配置
+配置
 
 ```json
 {
@@ -85,16 +73,14 @@ match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_fea
 | brand_id              | 30068                                                                                                   |
 | auction_root_category | 50006842                                                                                                |
 
-如果 needDiscrete=true，结果为：\<brand_hit_50006842_30068_19，1.0>
-如果 needDiscrete=false，结果为：\<brand_hit，19.0>
-如果只需要使用一层匹配，则需要将上面配置里的 category 的值改为 ALL。这种情况，用户也可以考虑使用 lookup_feature。 假设各字段的值如下
+- needDiscrete=true，结果为: brand_hit_50006842_30068_19
+- needDiscrete=false，结果为: 19.0
+
+如果只使用一层匹配，则需要将上面配置里的 category 的值改为 ALL。这种情况，用户也可以考虑使用lookup_feature。 假设各字段的值如下
 
 | user_brand_tags_hit | ALL^16788816:40,10122:40,29889:20,30068:20 |
 | ------------------- | ------------------------------------------ |
 | brand_id            | 30068                                      |
 
-如果 needDiscrete=true，结果：\<brand_hit_ALL_30068_20, 1.0> 如果 needDiscrete=false，结果：\<brand_hit, 20.0>
-
-### multihit
-
-允许用户 category 和 item 两个值为 ALL（注意，不是配置的值，是传入的值），进行 wildcard 匹配，可以匹配出多个值。输出结果类似于 hit。
+- needDiscrete=true, 结果: brand_hit_ALL_30068_20
+- needDiscrete=false, 结果: 20.0
