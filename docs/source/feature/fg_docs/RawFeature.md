@@ -1,4 +1,4 @@
-# 6.2 Raw Feature
+# Raw Feature
 
 ## 功能介绍
 

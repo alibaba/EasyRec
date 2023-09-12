@@ -1,4 +1,4 @@
-# 6.5 Lookup Feature
+# Lookup Feature
 
 ## 功能简介
 

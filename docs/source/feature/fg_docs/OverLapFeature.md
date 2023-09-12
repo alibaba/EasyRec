@@ -1,4 +1,4 @@
-# 6.7 OverLap Feature
+# OverLap Feature
 
 ## 功能简介
 
