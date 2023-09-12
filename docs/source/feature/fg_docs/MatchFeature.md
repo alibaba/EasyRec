@@ -1,11 +1,11 @@
 # 6.4 Match Feature
 
- 
 
-## Match feature使用说明 
+
+## Match feature使用说明
 
 match feature一般用来做特征之间的匹配关系，要用到user，item和category三个字段的值。
-match feature支持两种类型，hit和multi hit。 
+match feature支持两种类型，hit和multi hit。
 match feature本质是是一个两层map的匹配，user字段使用string的方式描述了一个两层map，|为第一层map的item之间的分隔符，^为第一层map的key与value之间的分隔符。,为第二层map的item之间的分隔符，:第二层map的key与value之间的分隔符。例如对于50011740^50011740:0.2,36806676:0.3,122572685:0.5|50006842^16788:0.1这样的一个string，转化为二层map就是
 
 ```json
@@ -23,9 +23,9 @@ match feature本质是是一个两层map的匹配，user字段使用string的方
 
 对于hit match 匹配的方式，就是用category的值在第一层map中查找，然后使用item的值在第二层map中查找，最终得到一个结果。 如果不需要使用两层匹配，只需要一层匹配，则可以在map的第一层key中填入ALL， 然后在fg配置的category一项中也填成"ALL"即可。具体见实例一。
 
- 
 
-## 配置方式 
+
+## 配置方式
 
 json格式配置文件：
 
@@ -41,38 +41,35 @@ json格式配置文件：
 }
 ```
 
-needDiscrete:true 时，模型使用 match feature 输出的特征名，忽略特征值。默认为 true。 
+needDiscrete:true 时，模型使用 match feature 输出的特征名，忽略特征值。默认为 true。
 needDiscrete:false 时，模型取 match feature 输出的特征值，而忽略特征名。
 
-matchType： 
+matchType：
 hit:输出命中的feature
 
 xml配置文件：
 
-```xml
+```
 <features name="matched_features">
     <feature name="brand_hit" dependencies="user:user_brand_tags_hit1,item:brand_id" category="item:auction_root_category" type="hit"/>
     <feature name="brand_matched_hit" dependencies="user:user_brand_tags_cos1,item:brand_id" category="ALL" type="hit"/>
 </features>
 ```
 
-dependencie:需要做Match 的两个特征 
+dependencie:需要做Match 的两个特征
 
 category: 类目的feature 字段。category="ALL"不需要分类目匹配
 
- 
 
-## Normalizer 
 
-match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_feature](https://yuque.alibaba-inc.com/rtp/wtm2oh/chapter6-raw_feature#normalizer)。
+## Normalizer
+
+match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_feature](./RawFeature.md)。
 
 ## 配置详解
 
- 
 
 ### hit
-
- 
 
 对于下面的配置
 
@@ -105,9 +102,8 @@ match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_fea
 
 如果 needDiscrete=true，结果：<brand_hit_ALL_30068_20, 1.0> 如果 needDiscrete=false，结果：<brand_hit, 20.0>
 
- 
 
-### multihit 
+
+### multihit
 
 允许用户 category 和 item 两个值为 ALL（注意，不是配置的值，是传入的值），进行 wildcard 匹配，可以匹配出多个值。输出结果类似于 hit。
-

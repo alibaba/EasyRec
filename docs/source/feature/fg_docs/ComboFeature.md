@@ -12,17 +12,15 @@ combo feature是多个字段（或表达式）的组合（即笛卡尔积），i
 }
 ```
 
- 
+## 例子
 
-## 例子 
+^\]表示多值分隔符，注意这是一个符号，其ASCII编码是"\\x1D"，而不是两个符号
 
-^]表示多值分隔符，注意这是一个符号，其ASCII编码是"\x1D"，而不是两个符号
-
-| user:age_class的取值 | item:item_id的取值 | 输出的feature                                                |
-| -------------------- | ------------------ | ------------------------------------------------------------ |
-| 123                  | 45678              | comb_u_age_item_123_45678                                    |
-| abc, bcd             | 45678              | comb_u_age_item_abc_45678, comb_u_age_item_bcd_45678         |
-| abc, bcd             | 12345^]45678       | comb_u_age_item_abc_12345, comb_u_age_item_abc_45678, comb_u_age_item_bcd_12345, comb_u_age_item_bcd_45678 |
+| user:age_class的取值 | item:item_id的取值 | 输出的feature                                                                                                 |
+| ----------------- | --------------- | ---------------------------------------------------------------------------------------------------------- |
+| 123               | 45678           | comb_u_age_item_123_45678                                                                                  |
+| abc, bcd          | 45678           | comb_u_age_item_abc_45678, comb_u_age_item_bcd_45678                                                       |
+| abc, bcd          | 12345^\]45678   | comb_u_age_item_abc_12345, comb_u_age_item_abc_45678, comb_u_age_item_bcd_12345, comb_u_age_item_bcd_45678 |
 
 输出的feature个数等于
 

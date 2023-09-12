@@ -1,5 +1,3 @@
-
-
 # 6.8 sequence 类 feature
 
 ## 基本场景
