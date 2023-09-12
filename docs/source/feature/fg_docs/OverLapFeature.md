@@ -22,7 +22,7 @@
 ```json
   {
 			"feature_type" : "overlap_feature",
-			"feature_name" : "is_contain"，
+			"feature_name" : "is_contain",
 			"query" : "user:attr1",
 			"title" : "item:attr2",
 			"method" : "is_contain",
