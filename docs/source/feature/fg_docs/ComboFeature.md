@@ -1,6 +1,6 @@
-# Combo Feature
+# combo_feature
 
-combo feature是多个字段（或表达式）的组合（即笛卡尔积），id feature可以看成是一种特殊的combo feature，即参与交叉字段只有一个的combo feature。一般来讲，参与交叉的各个字段来自不同的表（比如user特征和item特征进行交叉）。
+combo_feature是多个字段（或表达式）的组合（即笛卡尔积），id feature可以看成是一种特殊的combo feature，即参与交叉字段只有一个的combo feature。一般来讲，参与交叉的各个字段来自不同的表（比如user特征和item特征进行交叉）。
 
 配置：
 

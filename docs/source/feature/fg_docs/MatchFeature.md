@@ -1,10 +1,10 @@
-# Match Feature
+# match_feature
 
-## Match feature使用说明
+## match_feature使用说明
 
-match feature一般用来做特征之间的匹配关系，要用到user，item和category三个字段的值。
-match feature支持两种类型，hit和multi hit。
-match feature本质是是一个两层map的匹配，user字段使用string的方式描述了一个两层map，|为第一层map的item之间的分隔符，^为第一层map的key与value之间的分隔符。,为第二层map的item之间的分隔符，:第二层map的key与value之间的分隔符。例如对于50011740^50011740:0.2,36806676:0.3,122572685:0.5|50006842^16788:0.1这样的一个string，转化为二层map就是
+match_feature一般用来做特征之间的匹配关系，要用到user，item和category三个字段的值。
+match_feature支持两种类型，hit和multi hit。
+match_feature本质是是一个两层map的匹配，user字段使用string的方式描述了一个两层map，|为第一层map的item之间的分隔符，^为第一层map的key与value之间的分隔符。,为第二层map的item之间的分隔符，:第二层map的key与value之间的分隔符。例如对于50011740^50011740:0.2,36806676:0.3,122572685:0.5|50006842^16788:0.1这样的一个string，转化为二层map就是
 
 ```json
 {
@@ -37,8 +37,8 @@ json格式配置文件：
 }
 ```
 
-needDiscrete:true 时，模型使用 match feature 输出的特征名，忽略特征值。默认为 true。
-needDiscrete:false 时，模型取 match feature 输出的特征值，而忽略特征名。
+needDiscrete:true 时，模型使用 match_feature 输出的特征名，忽略特征值。默认为 true。
+needDiscrete:false 时，模型取 match_feature 输出的特征值，而忽略特征名。
 
 matchType：
 hit:输出命中的feature

@@ -1,12 +1,12 @@
-# Lookup Feature
+# lookup_feature
 
 ## 功能简介
 
 如果离线生成不符合预期 请先使用最新的离线fg包
 
-lookup feature 和 match feature类似，是从一组kv中匹配到自己需要的结果。
+lookup_feature 和 match_feature类似，是从一组kv中匹配到自己需要的结果。
 
-lookup feature 依赖 map 和 key 两个字段，map是一个多值string(MultiString)类型的字段，其中每一个string的样子如"k1:v2"。；key可以是一个任意类型的字段。生成特征时，先是取出key的值，将其转换成string类型，然后在map字段所持有的kv对中进行匹配，获取最终的特征。
+lookup_feature 依赖 map 和 key 两个字段，map是一个多值string(MultiString)类型的字段，其中每一个string的样子如"k1:v2"。；key可以是一个任意类型的字段。生成特征时，先是取出key的值，将其转换成string类型，然后在map字段所持有的kv对中进行匹配，获取最终的特征。
 
 map 和 key 源可以是 item，user，context 的任意组合。在线输入的时候item的多值用多值分隔符char(29)分隔，user和context的多值在tpp访问时用list表示。该特征仅支持json形式的配置方式。
 

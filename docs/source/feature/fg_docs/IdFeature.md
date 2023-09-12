@@ -1,8 +1,8 @@
-# Id Feature
+# id_feature
 
 功能介绍
 
-id feature是一个sparse feature，是一种最简单的离散特征，只是简单的将某个字段的值与用户配置的feature名字拼接。
+id_feature是一个sparse feature，是一种最简单的离散特征，只是简单的将某个字段的值与用户配置的feature名字拼接。
 
 配置方法
 

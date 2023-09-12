@@ -1,4 +1,4 @@
-# sequence 类 feature
+# sequence类feature
 
 ## 基本场景
 
@@ -61,7 +61,7 @@ qinfo 例⼦：
 
 ### qinfo 传递 sequence 字段
 
-第⼆种情况，sequence feature 也⽀持所有的序列内容都从 qinfo 中传递。例如这⾥的user:seq_context 数组，他的值分别对应 click_0 和 click_1 。这种情况下⽤户可以忽略sequence_table 和 sequence_pk 。
+第⼆种情况，sequence_feature 也⽀持所有的序列内容都从 qinfo 中传递。例如这⾥的user:seq_context 数组，他的值分别对应 click_0 和 click_1 。这种情况下⽤户可以忽略sequence_table 和 sequence_pk 。
 qinfo 例⼦：
 
 ```json
@@ -174,9 +174,9 @@ context seq特征与user seq类似，区别是每个context是batch size维度�
 
 ## 离线 FG
 
-​		⽬前使⽤ sequence feature 要求使⽤ 新新版 feature_generator_java ， tensorflow 训练流程要求使⽤ rtp_fg.parse_genreated_fg。
-​		离线阶段没有sequence表去查，⽽是通过`sequence_column` 读取本来应该去表⾥查的字段。因此，`sequence_column ，sequence_delim ，attribute_delim` 这三个字段只有在离线 fg 阶段有⽤。`sequence_column` 是数据源odps表⾥所有 sequence 特征输⼊的字段名，离线fg会根据这个字段⾥的值⽣成sequence feature，该字段内容是 kv 格式的。`sequence_delim` 是sequence 中⾏为之间的分隔符，`attribute_delim` 是实际字段名字和字段值的分隔符。
-​		sequence_length 是 sequence 的⻓度，⽤户需要保证字段内容⼀定是补⻬到这个⻓度的。以上⾯的配置为例，⽤户需要有⼀个名字叫 click_field 的字段。假设某条record⾥它的内容是：
+​⽬前使⽤ sequence_feature 要求使⽤ 新新版 feature_generator_java ， tensorflow 训练流程要求使⽤ rtp_fg.parse_genreated_fg。
+​离线阶段没有sequence表去查，⽽是通过`sequence_column` 读取本来应该去表⾥查的字段。因此，`sequence_column ，sequence_delim ，attribute_delim` 这三个字段只有在离线 fg 阶段有⽤。`sequence_column` 是数据源odps表⾥所有 sequence 特征输⼊的字段名，离线fg会根据这个字段⾥的值⽣成sequence feature，该字段内容是 kv 格式的。`sequence_delim` 是sequence 中⾏为之间的分隔符，`attribute_delim` 是实际字段名字和字段值的分隔符。
+​sequence_length 是 sequence 的⻓度，⽤户需要保证字段内容⼀定是补⻬到这个⻓度的。以上⾯的配置为例，⽤户需要有⼀个名字叫 click_field 的字段。假设某条record⾥它的内容是：
 
 ```
 1 item__nid:11#item__price:2.0\u001D3.0;item__nid:22#item__price:4.0\u001D5.0

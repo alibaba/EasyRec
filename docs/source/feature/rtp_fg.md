@@ -36,7 +36,7 @@
 
 - Feature配置说明：
 
-  - [IdFeature](./fg_docs/IdFeature.md)
+  - [id_Feature](./fg_docs/IdFeature.md)
 
     - is_multi: id_feature是否是多值属性
 
@@ -62,7 +62,7 @@
 
     - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
-  - [RawFeature](./fg_docs/RawFeature.md)
+  - [raw_feature](./fg_docs/RawFeature.md)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
@@ -94,10 +94,10 @@
       - 该选项对生成数据有影响.
       - 该选项对生成EasyRec config也有影响, 对应到[feature_config.raw_input_dim](../proto.html#protos.FeatureConfig)
 
-  - [ComboFeature](./fg_docs/ComboFeature.md)
+  - [combo_feature](./fg_docs/ComboFeature.md)
 
     - 需要设置embedding_dimension和hash_bucket_size.
-      方法一：在fg中生成combo特征，见[ComboFeature](./fg_docs/ComboFeature.md)
+      方法一：在fg中生成combo特征，见[combo_feature](./fg_docs/ComboFeature.md)
 
     ```
     {"expression" : ["user:user_id", "user:occupation"], "feature_name" : "combo__occupation_age_level", "feature_type" : "combo_feature", "hash_bucket_size": 10, "embedding_dim": 16}
@@ -124,11 +124,11 @@
     - feature_names: 除当前特征外，参与combo的特征，至少一项.
     - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
-  - [LookupFeature](./fg_docs/LookupFeature.md)
+  - [lookup_feature](./fg_docs/LookupFeature.md)
 
     - 单层查找, 根据id(如item_id, item_category_id等)查找对应的value.
 
-  - [MatchFeature](./fg_docs/MatchFeature.md)
+  - [match_feature](./fg_docs/MatchFeature.md)
 
     - 双层查找, 根据category和item_id查找value.
 
@@ -140,7 +140,7 @@
 
     - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
-  - [SequenceFeature](./fg_docs/SequenceFeature.md)
+  - [sequence_feature](./fg_docs/SequenceFeature.md)
 
     - 序列特征用于对用户行为建模, 通常应用于DIN和Transformer模型当中
 
@@ -158,7 +158,7 @@
 
     - Note: item_seq(如item的图片列表)目前还不支持
 
-  - [OverLapFeature](./fg_docs/OverLapFeature.md)
+  - [overlap_feature](./fg_docs/OverLapFeature.md)
 
   - 针对EasyRec的扩展字段:
 

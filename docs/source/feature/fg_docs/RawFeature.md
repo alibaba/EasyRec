@@ -1,8 +1,8 @@
-# Raw Feature
+# raw_feature
 
 ## 功能介绍
 
-raw feature是一种dense的feature，是直接引用原始feature的字段值作为feature的value。raw feature仅支持数值int、float、double等数值类型，对非数值类型的feature需使用id feature。
+raw_feature是一种dense的feature，是直接引用原始feature的字段值作为feature的value。raw feature仅支持数值int、float、double等数值类型，对非数值类型的feature需使用id feature。
 
 ## 配置方法
 
