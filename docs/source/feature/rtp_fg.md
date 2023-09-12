@@ -278,7 +278,7 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
     - 支持分区表，分区表可以指定partition，也可以不指定partition，不指定partition时使用所有partition
     - **分区格式示例:** my_table/day=20201010,sex=male
     - 可以用多个-i指定**多个表的多个分区**
-    - 支持添加project，示例：pai_online_project.taobao_train_input
+    - 支持添加project，示例：project.table/ds=xxx
   - -o, 输出表，如果是分区表，一定要指定分区，只能指定一个输出表
   - -f, fg.json
   - -m, mapper memory的大小，默认可以不设置
