@@ -223,16 +223,11 @@
 | ----- | ------- | ------- | --------------- | --------------------------------------------------------------- | -------------------------------------------------- |
 | 0     | 122017  | 389957  |                 | tag_category_list:4589,new_user_class_level:,...,user_id:122017 | adgroup_id:539227,pid:430548_1007,...,cate_id:4281 |
 
-```sql
--- taobao_train_input.txt oss://easyrec/data/rtp/
--- wget http://easyrec.oss-cn-beijing.aliyuncs.com/data/rtp/taobao_train_input.txt
--- wget http://easyrec.oss-cn-beijing.aliyuncs.com/data/rtp/taobao_test_input.txt
-drop table if exists taobao_train_input;
-create table if not exists taobao_train_input(`label` BIGINT,user_id STRING,item_id STRING,context_feature STRING,user_feature STRING,item_feature STRING);
-tunnel upload taobao_train_input.txt taobao_train_input -fd=';';
-drop table if exists taobao_test_input;
-create table if not exists taobao_test_input(`label` BIGINT,user_id STRING,item_id STRING,context_feature STRING,user_feature STRING,item_feature STRING);
-tunnel upload taobao_test_input.txt taobao_test_input -fd=';';
+提供了在任何项目下都可以访问两张样例表 
+
+```
+pai_online_project.taobao_train_input 
+pai_online_project.taobao_test_input
 ```
 
 - 稠密格式的数据，每个特征是单独的一列，如：
@@ -242,7 +237,7 @@ tunnel upload taobao_test_input.txt taobao_test_input -fd=';';
 | 1     | 122017  | 389957  | 4589              |                      | 0         |
 
 ```sql
-  drop table if exists taobao_train_input;
+  drop table if exists taobao_train_input_dense;
   create table taobao_train_input_dense(label bigint, user_id string, item_id string, tag_category_list bigint, ...);
 ```
 
@@ -267,9 +262,11 @@ set odps.sql.counters.dynamic.limit=true;
 
 drop table if exists taobao_fg_train_out;
 create table taobao_fg_train_out(label bigint, user_id string, item_id string,  features string);
+#--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"} dataworks内运行要添加
 jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_train_input -o taobao_fg_train_out -f fg.json;
 drop table if exists taobao_fg_test_out;
 create table taobao_fg_test_out(label bigint, user_id string, item_id string,  features string);
+#--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"} dataworks内运行要添加
 jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f fg.json;
 
 --下载查看数据(可选)
@@ -281,6 +278,7 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
     - 支持分区表，分区表可以指定partition，也可以不指定partition，不指定partition时使用所有partition
     - **分区格式示例:** my_table/day=20201010,sex=male
     - 可以用多个-i指定**多个表的多个分区**
+    - 支持添加project，示例：pai_online_project.taobao_train_input
   - -o, 输出表，如果是分区表，一定要指定分区，只能指定一个输出表
   - -f, fg.json
   - -m, mapper memory的大小，默认可以不设置

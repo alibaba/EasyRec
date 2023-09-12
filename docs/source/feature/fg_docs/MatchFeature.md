@@ -1,6 +1,6 @@
 # match_feature
 
-## match_feature使用说明
+## 功能介绍
 
 match_feature一般用来做特征之间的匹配关系，要用到user，item和category三个字段的值。
 match_feature支持两种类型，hit和multi hit。

@@ -1,6 +1,6 @@
 # overlap_feature
 
-## 功能简介
+## 功能介绍
 
 用来输出一些字符串字词匹配信息的feature
 

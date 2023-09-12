@@ -1,8 +1,11 @@
 # sequence类feature
 
-## 基本场景
+## 功能介绍
 
 ⽤户的历史⾏为也是⼀个很重要的 feature。历史⾏为通常是⼀个序列，例如点击序列、购买序列等，组成这个序列的实体可能是商品本身。
+
+## 配置方法
+
 例如我们需要对⽤户的点击序列进⾏ fg，序列⻓度为 30，每个序列提取 nid 和 price, seq_context 特征。正常 item 维度有⼀个 feat0 特征。配置如下：
 
 ```json
@@ -44,11 +47,11 @@
 }
 ```
 
-## 在线 FG
+### 在线 FG
 
-我们⽀持两种⽅式获取⾏为序列，⼀种如例⼦所示，我们以 sequence_pk 配置的字段为主键，RTP 会帮忙从 item 表中查到序列的对应字段值；另⼀种⽤户需要在 qinfo 中准备好所有的字段。
+我们⽀持两种⽅式获取⾏为序列，⼀种如例⼦所示，我们以 `sequence_pk` 配置的字段为主键，RTP 会帮忙从 item 表中查到序列的对应字段值；另⼀种⽤户需要在 `qinfo` 中准备好所有的字段。
 
-### RTP 取 sequence 字段
+#### RTP 取 sequence 字段
 
 第⼀种情况，`sequence_pk` 的⻓度应该⼩于等于 `sequence_length` 。如果 `sequence_pk` 指定的值不⾜ `sequence_length` 个会补⻬到 `sequence_length` ⻓度，fg 的结果会出默认值（dense 类是 0，sparse 类为空）。
 qinfo 例⼦：
@@ -59,9 +62,9 @@ qinfo 例⼦：
  }
 ```
 
-### qinfo 传递 sequence 字段
+#### qinfo 传递 sequence 字段
 
-第⼆种情况，sequence_feature 也⽀持所有的序列内容都从 qinfo 中传递。例如这⾥的user:seq_context 数组，他的值分别对应 click_0 和 click_1 。这种情况下⽤户可以忽略sequence_table 和 sequence_pk 。
+第⼆种情况，sequence_feature 也⽀持所有的序列内容都从 qinfo 中传递。例如这⾥的`user:seq_context` 数组，他的值分别对应 `click_0` 和 `click_1` 。这种情况下⽤户可以忽略`sequence_table` 和 `sequence_pk` 。
 qinfo 例⼦：
 
 ```json
@@ -72,7 +75,7 @@ qinfo 例⼦：
  }
 ```
 
-### context seq使⽤
+#### context seq使⽤
 
 ```
 {
@@ -110,7 +113,7 @@ context seq特征与user seq类似，区别是每个context是batch size维度�
 第⼀类特征：需要查context_table，如price特征，会根据context_seq_id查询context_table中的price，然后做fg，
 第⼆类特征：不需要context_table，如seq_context特征，会直接取seq_context做fg，
 
-### item seq使⽤
+#### item seq使⽤
 
 增加"is_item_seq": true配置，如下，
 
@@ -172,7 +175,7 @@ context seq特征与user seq类似，区别是每个context是batch size维度�
 }
 ```
 
-## 离线 FG
+### 离线 FG
 
 ​⽬前使⽤ sequence_feature 要求使⽤ 新新版 feature_generator_java ， tensorflow 训练流程要求使⽤ rtp_fg.parse_genreated_fg。
 ​离线阶段没有sequence表去查，⽽是通过`sequence_column` 读取本来应该去表⾥查的字段。因此，`sequence_column ，sequence_delim ，attribute_delim` 这三个字段只有在离线 fg 阶段有⽤。`sequence_column` 是数据源odps表⾥所有 sequence 特征输⼊的字段名，离线fg会根据这个字段⾥的值⽣成sequence feature，该字段内容是 kv 格式的。`sequence_delim` 是sequence 中⾏为之间的分隔符，`attribute_delim` 是实际字段名字和字段值的分隔符。

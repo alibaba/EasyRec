@@ -1,6 +1,6 @@
 # lookup_feature
 
-## 功能简介
+## 功能介绍
 
 如果离线生成不符合预期 请先使用最新的离线fg包
 
@@ -10,7 +10,7 @@ lookup_feature 依赖 map 和 key 两个字段，map是一个多值string(MultiS
 
 map 和 key 源可以是 item，user，context 的任意组合。在线输入的时候item的多值用多值分隔符char(29)分隔，user和context的多值在tpp访问时用list表示。该特征仅支持json形式的配置方式。
 
-## 实例
+## 配置方法
 
 ```json
 {
