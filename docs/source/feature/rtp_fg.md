@@ -262,12 +262,14 @@ set odps.sql.counters.dynamic.limit=true;
 
 drop table if exists taobao_fg_train_out;
 create table taobao_fg_train_out(label bigint, user_id string, item_id string,  features string);
-#--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"} dataworks内运行要添加
-jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_train_input -o taobao_fg_train_out -f fg.json;
+-- dataworks内运行，注意需要带有resource_reference这一行
+--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"}
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i pai_online_project.taobao_train_input -o taobao_fg_train_out -f fg.json;
 drop table if exists taobao_fg_test_out;
 create table taobao_fg_test_out(label bigint, user_id string, item_id string,  features string);
-#--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"} dataworks内运行要添加
-jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f fg.json;
+-- dataworks内运行，注意需要带有resource_reference这一行
+--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"}
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i pai_online_project.taobao_test_input -o taobao_fg_test_out -f fg.json;
 
 --下载查看数据(可选)
 tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
