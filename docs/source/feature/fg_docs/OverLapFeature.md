@@ -4,7 +4,7 @@
 
 用来输出一些字符串字词匹配信息的feature
 
-离线推荐使用1.3.56-SNAPSHOT这个版本,或者1.3.28（不支持参数need_prefix） ps: 写fg的时候注意维度，title的维度要大于或等于query的问题（简单来说就是如果title是user特征，那query也只能是user特征，user特征的batch size为1，商品特征的batch size为商品数）
+离线推荐使用1.3.56-SNAPSHOT这个版本。 ps: 写fg的时候注意维度，title的维度要大于或等于query的问题（简单来说就是如果title是user特征，那query也只能是user特征，user特征的batch size为1，商品特征的batch size为商品数）
 
 | 方式                  | 描述                                              | 备注                 |
 | ------------------- | ----------------------------------------------- | ------------------ |
