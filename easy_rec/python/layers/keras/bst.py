@@ -10,9 +10,10 @@ from easy_rec.python.utils.shape_utils import get_shape_list
 
 class BST(Layer):
 
-  def __init__(self, params, name='bst', l2_reg=None, **kwargs):
+  def __init__(self, params, name='bst', reuse=None, **kwargs):
     super(BST, self).__init__(name=name, **kwargs)
-    self.l2_reg = l2_reg
+    self.reuse = reuse
+    self.l2_reg = params.l2_regularizer
     self.config = params.get_pb_config()
 
   def encode(self, seq_input, max_position):
@@ -20,7 +21,7 @@ class BST(Layer):
         seq_input,
         position_embedding_name=self.name + '/position_embeddings',
         max_position_embeddings=max_position,
-        reuse_position_embedding=tf.AUTO_REUSE)
+        reuse_position_embedding=self.reuse)
 
     n = tf.count_nonzero(seq_input, axis=-1)
     seq_mask = tf.cast(n > 0, tf.int32)
@@ -41,7 +42,7 @@ class BST(Layer):
         attention_probs_dropout_prob=self.config.attention_probs_dropout_prob,
         initializer_range=self.config.initializer_range,
         name=self.name + '/transformer',
-        reuse=tf.AUTO_REUSE)
+        reuse=self.reuse)
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
@@ -76,7 +77,8 @@ class BST(Layer):
           seq_input,
           self.config.hidden_size,
           activation=tf.nn.relu,
-          kernel_regularizer=self.l2_reg)
+          kernel_regularizer=self.l2_reg,
+          reuse=self.reuse)
 
     if len(target_features) > 0:
       target_feature = tf.concat(target_features, axis=-1)
@@ -88,7 +90,8 @@ class BST(Layer):
             target_feature,
             self.config.hidden_size,
             activation=tf.nn.relu,
-            kernel_regularizer=self.l2_reg)
+            kernel_regularizer=self.l2_reg,
+            reuse=self.reuse)
       # target_feature: [batch_size, 1, embed_size]
       target_feature = tf.expand_dims(target_feature, 1)
       # seq_input: [batch_size, seq_len+1, embed_size]

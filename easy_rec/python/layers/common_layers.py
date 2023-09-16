@@ -82,7 +82,7 @@ def layer_norm(input_tensor, name=None, reuse=None):
 class EnhancedInputLayer(object):
   """Enhance the raw input layer."""
 
-  def __init__(self, config, input_layer, feature_dict):
+  def __init__(self, config, input_layer, feature_dict, reuse=None):
     if config.do_batch_norm and config.do_layer_norm:
       raise ValueError(
           'can not do batch norm and layer norm for input layer at the same time'
@@ -90,6 +90,7 @@ class EnhancedInputLayer(object):
     self._config = config
     self._input_layer = input_layer
     self._feature_dict = feature_dict
+    self._reuse = reuse
 
   def __call__(self, group, is_training, **kwargs):
     with tf.name_scope('input_' + group):
@@ -112,18 +113,21 @@ class EnhancedInputLayer(object):
       bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
       mask = bern.sample(num_features)
     elif do_bn:
-      features = tf.layers.batch_normalization(features, training=is_training)
+      features = tf.layers.batch_normalization(
+          features, training=is_training, reuse=self._reuse)
     elif do_ln:
-      features = layer_norm(features)
+      features = layer_norm(
+          features, name=group + '_features', reuse=self._reuse)
 
     do_dropout = 0.0 < self._config.dropout_rate < 1.0
     if do_feature_dropout or do_ln or do_bn or do_dropout:
       for i in range(num_features):
         fea = feature_list[i]
         if self._config.do_batch_norm:
-          fea = tf.layers.batch_normalization(fea, training=is_training)
+          fea = tf.layers.batch_normalization(
+              fea, training=is_training, reuse=self._reuse)
         elif self._config.do_layer_norm:
-          fea = layer_norm(fea)
+          fea = layer_norm(fea, name=group + 'f_%d' % i, reuse=self._reuse)
         if do_dropout:
           fea = tf.layers.dropout(
               fea, self._config.dropout_rate, training=is_training)

@@ -5,15 +5,17 @@ import logging
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 
-from easy_rec.python.layers import dnn
+from easy_rec.python.layers.keras import MLP
+from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.utils.shape_utils import get_shape_list
 
 
 class DIN(Layer):
 
-  def __init__(self, params, name='din', l2_reg=None, **kwargs):
+  def __init__(self, params, name='din', reuse=None, **kwargs):
     super(DIN, self).__init__(name=name, **kwargs)
-    self.l2_reg = l2_reg
+    self.reuse = reuse
+    self.l2_reg = params.l2_regularizer
     self.config = params.get_pb_config()
 
   def call(self, inputs, training=None, **kwargs):
@@ -40,14 +42,14 @@ class DIN(Layer):
     queries = tf.tile(tf.expand_dims(query, 1), [1, max_seq_len, 1])
     din_all = tf.concat([queries, keys, queries - keys, queries * keys],
                         axis=-1)
-    din_layer = dnn.DNN(
-        self.config.attention_dnn,
-        self.l2_reg,
-        self.name + '/din_attention',
-        training,
-        last_layer_no_activation=True,
-        last_layer_no_batch_norm=True)
-    output = din_layer(din_all)  # [B, L, 1]
+
+    self.config.attention_dnn.use_final_bn = False
+    self.config.attention_dnn.use_final_bias = True
+    self.config.attention_dnn.final_activation = 'linear'
+    params = Parameter.make_from_pb(self.config.attention_dnn)
+    params.l2_regularizer = self.l2_reg
+    din_layer = MLP(params, name=self.name + '/din_attention', reuse=self.reuse)
+    output = din_layer(din_all, training)  # [B, L, 1]
     scores = tf.transpose(output, [0, 2, 1])  # [B, 1, L]
 
     seq_len = seq_features[0][1]

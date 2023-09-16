@@ -7,24 +7,29 @@ import tensorflow as tf
 from easy_rec.python.layers.keras.blocks import MLP
 
 
-def gate_fn(inputs, units, name, l2_reg):
-  dense = tf.keras.layers.Dense(
-      units, kernel_regularizer=l2_reg, name='%s/dense' % name)
-  weights = dense(inputs)
+def gate_fn(inputs, units, name, l2_reg, reuse):
+  weights = tf.layers.dense(
+      inputs,
+      units,
+      kernel_regularizer=l2_reg,
+      name='%s/dense' % name,
+      reuse=reuse)
   return tf.nn.softmax(weights, axis=1)
 
 
 class MMoE(tf.keras.layers.Layer):
   """Multi-gate Mixture-of-Experts model."""
 
-  def __init__(self, params, name='MMoE', **kwargs):
+  def __init__(self, params, name='MMoE', reuse=None, **kwargs):
     super(MMoE, self).__init__(name, **kwargs)
     params.check_required(['num_expert', 'num_task', 'expert_mlp'])
+    self._reuse = reuse
     self._num_expert = params.num_expert
     self._num_task = params.num_task
     expert_params = params.expert_mlp
     self._experts = [
-        MLP(expert_params, 'expert_%d' % i) for i in range(self._num_expert)
+        MLP(expert_params, 'expert_%d' % i, reuse=reuse)
+        for i in range(self._num_expert)
     ]
     self._l2_reg = params.l2_regularizer
 
@@ -42,7 +47,8 @@ class MMoE(tf.keras.layers.Layer):
           inputs,
           self._num_expert,
           name='gate_%d' % task_id,
-          l2_reg=self._l2_reg)
+          l2_reg=self._l2_reg,
+          reuse=self._reuse)
       gate = tf.expand_dims(gate, -1)
       task_input = tf.multiply(experts_fea, gate)
       task_input = tf.reduce_sum(task_input, axis=1)

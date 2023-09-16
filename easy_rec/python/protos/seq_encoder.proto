@@ -29,7 +29,7 @@ message BSTEncoder {
 
 message DINEncoder {
     // din attention layer
-    required DNN attention_dnn = 1;
+    required MLP attention_dnn = 1;
     // whether to keep target item feature
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid

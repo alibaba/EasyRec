@@ -29,6 +29,8 @@ class Package(object):
     self._dag = DAG()
     self._name_to_blocks = {}
     self.loss_dict = {}
+    self._name_to_layer = {}
+    reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
     input_feature_groups = set()
     for block in config.blocks:
       if len(block.inputs) == 0:
@@ -52,6 +54,14 @@ class Package(object):
           logging.warning('input `%s` already exists in other block' %
                           input_name)
         input_feature_groups.add(input_name)
+      else:
+        self.define_layers(layer, block, block.name, reuse)
+
+      # sequential layers
+      for i, layer_cnf in enumerate(block.layers):
+        layer = layer_cnf.WhichOneof('layer')
+        name_i = '%s_l%d' % (block.name, i)
+        self.define_layers(layer, layer_cnf, name_i, reuse)
 
     num_groups = len(input_feature_groups)
     num_blocks = len(self._name_to_blocks) - num_groups
@@ -103,6 +113,23 @@ class Package(object):
 
     Package.__packages[self._config.name] = self
 
+  def define_layers(self, layer, layer_cnf, name, reuse):
+    if layer == 'keras_layer':
+      layer_obj = self.load_keras_layer(layer_cnf.keras_layer, name, reuse)
+      self._name_to_layer[name] = layer_obj
+    elif layer == 'recurrent':
+      for i in range(layer_cnf.recurrent.num_steps):
+        name_i = '%s_%d' % (name, i)
+        layer_obj = self.load_keras_layer(layer_cnf.recurrent.keras_layer,
+                                          name_i, reuse)
+        self._name_to_layer[name_i] = layer_obj
+    elif layer == 'repeat':
+      for i in range(layer_cnf.repeat.num_repeat):
+        name_i = '%s_%d' % (name, i)
+        layer_obj = self.load_keras_layer(layer_cnf.repeat.keras_layer, name_i,
+                                          reuse)
+        self._name_to_layer[name_i] = layer_obj
+
   def block_input(self, config, block_outputs, training=None):
     inputs = []
     for input_node in config.inputs:
@@ -152,8 +179,9 @@ class Package(object):
       if config.layers:  # sequential layers
         logging.info('call sequential %d layers' % len(config.layers))
         output = self.block_input(config, block_outputs, is_training)
-        for layer in config.layers:
-          output = self.call_layer(output, layer, block, is_training)
+        for i, layer in enumerate(config.layers):
+          name_i = '%s_l%d' % (block, i)
+          output = self.call_layer(output, layer, name_i, is_training)
         block_outputs[block] = output
         continue
       # just one of layer
@@ -185,7 +213,7 @@ class Package(object):
     output = merge_inputs(outputs, msg='backbone')
     return output
 
-  def call_keras_layer(self, layer_conf, inputs, name, training):
+  def load_keras_layer(self, layer_conf, name, reuse=None):
     layer_cls, customize = load_keras_layer(layer_conf.class_name)
     if layer_cls is None:
       raise ValueError('Invalid keras layer class name: ' +
@@ -198,34 +226,39 @@ class Package(object):
       else:
         pb_params = getattr(layer_conf, param_type)
         params = Parameter(pb_params, False, l2_reg=self._l2_reg)
-      layer = layer_cls(params, name=name)
-      kwargs = {'loss_dict': self.loss_dict}
-      return layer(inputs, training=training, **kwargs)
-    else:  # internal keras layer
-      if param_type is None:
-        layer = layer_cls(name=name)
-      else:
-        assert param_type == 'st_params', 'internal keras layer only support st_params'
-        try:
-          kwargs = convert_to_dict(layer_conf.st_params)
-          logging.info('call %s layer with params %r' %
-                       (layer_conf.class_name, kwargs))
-          layer = layer_cls(name=name, **kwargs)
-        except TypeError as e:
-          logging.warning(e)
-          args = map(format_value, layer_conf.st_params.values())
-          logging.info('try to call %s layer with params %r' %
-                       (layer_conf.class_name, args))
-          layer = layer_cls(*args, name=name)
+      layer = layer_cls(params, name=name, reuse=reuse)
+      return layer
+    elif param_type is None:  # internal keras layer
+      layer = layer_cls(name=name)
+      return layer
+    else:
+      assert param_type == 'st_params', 'internal keras layer only support st_params'
       try:
-        return layer(inputs, training=training)
-      except TypeError:
-        return layer(inputs)
+        kwargs = convert_to_dict(layer_conf.st_params)
+        logging.info('call %s layer with params %r' %
+                     (layer_conf.class_name, kwargs))
+        layer = layer_cls(name=name, **kwargs)
+      except TypeError as e:
+        logging.warning(e)
+        args = map(format_value, layer_conf.st_params.values())
+        logging.info('try to call %s layer with params %r' %
+                     (layer_conf.class_name, args))
+        layer = layer_cls(*args, name=name)
+      return layer
+
+  def call_keras_layer(self, inputs, name, training):
+    """Call predefined Keras Layer, which can be reused."""
+    layer = self._name_to_layer[name]
+    kwargs = {'loss_dict': self.loss_dict}
+    try:
+      return layer(inputs, training=training, **kwargs)
+    except TypeError:
+      return layer(inputs)
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')
     if layer_name == 'keras_layer':
-      return self.call_keras_layer(config.keras_layer, inputs, name, training)
+      return self.call_keras_layer(inputs, name, training)
     if layer_name == 'lambda':
       conf = getattr(config, 'lambda')
       fn = eval(conf.expression)
@@ -236,8 +269,7 @@ class Package(object):
       outputs = []
       for i in range(n_loop):
         name_i = '%s_%d' % (name, i)
-        output = self.call_keras_layer(conf.keras_layer, inputs, name_i,
-                                       training)
+        output = self.call_keras_layer(inputs, name_i, training)
         outputs.append(output)
       if len(outputs) == 1:
         return outputs[0]
@@ -254,8 +286,7 @@ class Package(object):
       output = inputs
       for i in range(conf.num_steps):
         name_i = '%s_%d' % (name, i)
-        layer = conf.keras_layer
-        output_i = self.call_keras_layer(layer, output, name_i, training)
+        output_i = self.call_keras_layer(output, name_i, training)
         if fixed_input_index >= 0:
           j = 0
           for idx in range(len(output)):

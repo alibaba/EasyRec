@@ -22,12 +22,13 @@ class MLP(tf.keras.layers.Layer):
     **kwargs: Extra args passed to the Keras Layer base class.
   """
 
-  def __init__(self, params, name='mlp', **kwargs):
+  def __init__(self, params, name='mlp', reuse=None, **kwargs):
     super(MLP, self).__init__(name=name, **kwargs)
     params.check_required('hidden_units')
     use_bn = params.get_or_default('use_bn', True)
     use_final_bn = params.get_or_default('use_final_bn', True)
-    use_bias = params.get_or_default('use_bias', True)
+    use_bias = params.get_or_default('use_bias', False)
+    use_final_bias = params.get_or_default('use_final_bias', False)
     dropout_rate = list(params.get_or_default('dropout_ratio', []))
     activation = params.get_or_default('activation', 'relu')
     initializer = params.get_or_default('initializer', 'he_uniform')
@@ -40,6 +41,7 @@ class MLP(tf.keras.layers.Layer):
         (name, units, dropout_rate, activation, use_bn, use_final_bn,
          final_activation, use_bias, initializer, use_bn_after_act))
     assert len(units) > 0, 'MLP(%s) takes at least one hidden units' % name
+    self.reuse = reuse
 
     num_dropout = len(dropout_rate)
     self._sub_layers = []
@@ -54,7 +56,7 @@ class MLP(tf.keras.layers.Layer):
     drop_rate = dropout_rate[n] if num_dropout > n else 0.0
     name = 'dnn_%d' % n
     self.add_rich_layer(units[-1], use_final_bn, drop_rate, final_activation,
-                        initializer, use_bias, use_bn_after_act, name,
+                        initializer, use_final_bias, use_bn_after_act, name,
                         params.l2_regularizer)
 
   def add_rich_layer(self,
@@ -70,7 +72,10 @@ class MLP(tf.keras.layers.Layer):
 
     def batch_norm(x, training):
       return tf.layers.batch_normalization(
-          x, training=training, name='%s/%s/bn' % (self.name, name))
+          x,
+          training=training,
+          name='%s/%s/bn' % (self.name, name),
+          reuse=self.reuse)
 
     act_fn = get_activation(activation)
     if use_bn and not use_bn_after_activation:
@@ -122,13 +127,14 @@ class MLP(tf.keras.layers.Layer):
 
 class Highway(tf.keras.layers.Layer):
 
-  def __init__(self, params, name='highway', **kwargs):
+  def __init__(self, params, name='highway', reuse=None, **kwargs):
     super(Highway, self).__init__(name, **kwargs)
     params.check_required('emb_size')
     self.emb_size = params.emb_size
     self.num_layers = params.get_or_default('num_layers', 1)
     self.activation = params.get_or_default('activation', 'gelu')
     self.dropout_rate = params.get_or_default('dropout_rate', 0.0)
+    self.reuse = reuse
 
   def call(self, inputs, training=None, **kwargs):
     from easy_rec.python.layers.common_layers import highway
@@ -137,13 +143,14 @@ class Highway(tf.keras.layers.Layer):
         self.emb_size,
         activation=self.activation,
         num_layers=self.num_layers,
-        dropout=self.dropout_rate if training else 0.0)
+        dropout=self.dropout_rate if training else 0.0,
+        reuse=self.reuse)
 
 
 class Gate(tf.keras.layers.Layer):
   """Weighted sum gate."""
 
-  def __init__(self, params, name='gate', **kwargs):
+  def __init__(self, params, name='gate', reuse=None, **kwargs):
     super(Gate, self).__init__(name, **kwargs)
     self.weight_index = params.get_or_default('weight_index', 0)
 

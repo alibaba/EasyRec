@@ -30,9 +30,10 @@ class SENet(tf.keras.layers.Layer):
       Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
-  def __init__(self, params, name='SENet', **kwargs):
+  def __init__(self, params, name='SENet', reuse=None, **kwargs):
     super(SENet, self).__init__(name, **kwargs)
     self.config = params.get_pb_config()
+    self.reuse = reuse
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
@@ -61,17 +62,18 @@ class SENet(tf.keras.layers.Layer):
     r = self.config.reduction_ratio
     reduction_size = max(1, field_size * g * 2 // r)
 
-    initializer = tf.glorot_normal_initializer()
     a1 = tf.layers.dense(
         z,
         reduction_size,
-        kernel_initializer=initializer,
+        kernel_initializer=tf.initializers.variance_scaling(),
         activation=tf.nn.relu,
+        reuse=self.reuse,
         name='%s/W1' % self.name)
     weights = tf.layers.dense(
         a1,
         sum(feature_size_list),
-        kernel_initializer=initializer,
+        kernel_initializer=tf.glorot_normal_initializer(),
+        reuse=self.reuse,
         name='%s/W2' % self.name)
 
     # Re-weight
@@ -84,7 +86,8 @@ class SENet(tf.keras.layers.Layer):
 
     # Layer Normalization
     if self.config.use_output_layer_norm:
-      output = layer_norm(output)
+      output = layer_norm(
+          output, name=self.name + '/ln_output', reuse=self.reuse)
     return output
 
 
@@ -118,8 +121,9 @@ class BiLinear(tf.keras.layers.Layer):
       Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
-  def __init__(self, params, name='bilinear', **kwargs):
+  def __init__(self, params, name='bilinear', reuse=None, **kwargs):
     super(BiLinear, self).__init__(name, **kwargs)
+    self.reuse = reuse
     params.check_required(['num_output_units'])
     bilinear_plus = params.get_or_default('use_plus', True)
     self.bilinear_type = params.get_or_default('type', 'interaction').lower()
@@ -199,7 +203,10 @@ class BiLinear(tf.keras.layers.Layer):
       ]
 
     output = tf.layers.dense(
-        tf.concat(p, axis=-1), self.output_size, kernel_initializer=initializer)
+        tf.concat(p, axis=-1),
+        self.output_size,
+        kernel_initializer=initializer,
+        reuse=self.reuse)
     return output
 
 
@@ -211,13 +218,14 @@ class FiBiNet(tf.keras.layers.Layer):
       Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction
   """
 
-  def __init__(self, params, name='fibinet', **kwargs):
+  def __init__(self, params, name='fibinet', reuse=None, **kwargs):
     super(FiBiNet, self).__init__(name, **kwargs)
+    self.reuse = reuse
     self._config = params.get_pb_config()
     if self._config.HasField('mlp'):
       p = Parameter.make_from_pb(self._config.mlp)
       p.l2_regularizer = params.l2_regularizer
-      self.final_mlp = MLP(p, name=name)
+      self.final_mlp = MLP(p, name=name, reuse=reuse)
     else:
       self.final_mlp = None
 
@@ -225,13 +233,14 @@ class FiBiNet(tf.keras.layers.Layer):
     feature_list = []
 
     params = Parameter.make_from_pb(self._config.senet)
-    senet = SENet(params, name='%s/senet' % self.name)
+    senet = SENet(params, name='%s/senet' % self.name, reuse=self.reuse)
     senet_output = senet(inputs)
     feature_list.append(senet_output)
 
     if self._config.HasField('bilinear'):
       params = Parameter.make_from_pb(self._config.bilinear)
-      bilinear = BiLinear(params, name='%s/bilinear' % self.name)
+      bilinear = BiLinear(
+          params, name='%s/bilinear' % self.name, reuse=self.reuse)
       bilinear_output = bilinear(inputs)
       feature_list.append(bilinear_output)
 

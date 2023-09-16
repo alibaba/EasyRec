@@ -9,9 +9,10 @@
 | hidden_units            | list |            | 各隐层单元数                      |
 | dropout_ratio           | list |            | 各隐层dropout rate             |
 | activation              | str  | relu       | 每层的激活函数                     |
-| use_bias                | bool | true       | 是否使用偏置项                     |
 | use_bn                  | bool | true       | 是否使用batch normalization     |
 | use_final_bn            | bool | true       | 最后一层是否使用batch normalization |
+| use_bias                | bool | false      | 是否使用偏置项                     |
+| use_final_bias          | bool | false      | 最后一层是否使用偏置项                 |
 | final_activation        | str  | relu       | 最后一层的激活函数                   |
 | initializer             | str  | he_uniform | 权重初始化方法，参考keras Dense layer |
 | use_bn_after_activation | bool | false      | 是否在激活函数之后做batch norm        |

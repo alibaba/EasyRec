@@ -17,7 +17,7 @@ class FM(tf.keras.layers.Layer):
     - 2D tensor with shape: ``(batch_size, 1)``.
   """
 
-  def __init__(self, params, name='fm', **kwargs):
+  def __init__(self, params, name='fm', reuse=None, **kwargs):
     super(FM, self).__init__(name, **kwargs)
     self.use_variant = params.get_or_default('use_variant', False)
 
@@ -66,7 +66,7 @@ class DotInteraction(tf.keras.layers.Layer):
     name: String name of the layer.
   """
 
-  def __init__(self, params, name=None, **kwargs):
+  def __init__(self, params, name=None, reuse=None, **kwargs):
     self._self_interaction = params.get_or_default('self_interaction', False)
     self._skip_gather = params.get_or_default('skip_gather', False)
     super(DotInteraction, self).__init__(name=name, **kwargs)
@@ -187,7 +187,7 @@ class Cross(tf.keras.layers.Layer):
   Output shape: A single (batch_size, `input_dim`) dimensional output.
   """
 
-  def __init__(self, params, **kwargs):
+  def __init__(self, params, reuse=None, **kwargs):
     super(Cross, self).__init__(**kwargs)
     self._projection_dim = params.get_or_default('projection_dim', None)
     self._diag_scale = params.get_or_default('diag_scale', 0.0)

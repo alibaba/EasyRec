@@ -947,7 +947,7 @@ MovieLens-1M数据集效果：
 定义一个继承[`tf.keras.layers.Layer`](https://keras.io/api/layers/base_layer/)的组件类，至少实现两个方法：`__init__`、`call`。
 
 ```python
-def __init__(self, params, name='xxx', **kwargs):
+def __init__(self, params, name='xxx', reuse=None, **kwargs):
   pass
 def call(self, inputs, training=None, **kwargs):
   pass
@@ -971,6 +971,13 @@ def call(self, inputs, training=None, **kwargs):
 【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
 再把参数注册到定义在`easy_rec/python/protos/keras_layer.proto`的`KerasLayer.params`消息体中。
 
+`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
+尽量在`__init__`方法中声明需要依赖的keras layer对象；仅在必要时才使用`tf.layers.*`函数，且需要传递reuse参数。
+
+```{tips}
+提示：实现Layer对象时尽量使用原生的 tf.keras.layers.* 对象，且全部在 __init__ 方法中预先声明好。
+```
+
 `call`方法用来实现主要的模块逻辑，其`inputs`参数可以是一个tenor，或者是一个tensor列表。可选的`training`参数用来标识当前是否是训练模型。
 
 最后也是最重要的一点，新开发的Layer需要在`easy_rec.python.layers.keras.__init__.py`文件中导出才能被框架识别为组件库中的一员。例如要导出`blocks.py`文件中的`MLP`类，则需要添加：`from .blocks import MLP`。
@@ -990,8 +997,9 @@ class FM(tf.keras.layers.Layer):
     - 2D tensor with shape: ``(batch_size, 1)``.
   """
 
-  def __init__(self, params, name='fm', **kwargs):
+  def __init__(self, params, name='fm', reuse=None, **kwargs):
     super(FM, self).__init__(name, **kwargs)
+    self.reuse = reuse
     self.use_variant = params.get_or_default('use_variant', False)
 
   def call(self, inputs, **kwargs):
