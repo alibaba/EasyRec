@@ -44,7 +44,11 @@ class BST(Layer):
         name=self.name + '/transformer',
         reuse=self.reuse)
     # attention_fea shape: [batch_size, seq_length, hidden_size]
-    out_fea = attention_fea[:, 0, :]  # target feature
+    if self.config.output_all_token_embeddings:
+      _, seq_len, emb_dim = get_shape_list(attention_fea, 3)
+      out_fea = tf.reshape(attention_fea, [-1, seq_len * emb_dim])
+    else:
+      out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
     return out_fea
 

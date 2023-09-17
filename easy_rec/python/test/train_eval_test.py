@@ -342,9 +342,19 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/din_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_din_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/din_backbone_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_bst(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/bst_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_bst_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/bst_backbone_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dcn(self):

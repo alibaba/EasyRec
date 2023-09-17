@@ -187,13 +187,12 @@ class Package(object):
       # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
-        block_outputs[block] = self.block_input(config, block_outputs,
-                                                is_training)
+        output = self.block_input(config, block_outputs, is_training)
+        block_outputs[block] = output
       elif layer == 'input_layer':
-        conf = config.input_layer
-        input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
         feature_group = config.inputs[0].feature_group_name
-        output = input_fn(feature_group, is_training)
+        input_fn = EnhancedInputLayer(self._input_layer, self._features, feature_group)
+        output = input_fn(config.input_layer, is_training)
         block_outputs[block] = output
       else:
         inputs = self.block_input(config, block_outputs, is_training)

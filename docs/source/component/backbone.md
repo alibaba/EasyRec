@@ -883,7 +883,7 @@ DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_d
 
 这个案例同样没有为backbone配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
 
-## 其他案例（FiBiNet & MaskNet）
+## 更多案例
 
 两个新的模型：
 
@@ -896,6 +896,11 @@ MovieLens-1M数据集效果：
 | ------- | ----- | ------ |
 | MaskNet | 1     | 0.8872 |
 | FibiNet | 1     | 0.8893 |
+
+序列模型：
+
+- DIN模型配置文件：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
+- BST模型配置文件：[BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
 
 # 组件库介绍
 
