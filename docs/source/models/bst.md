@@ -18,29 +18,29 @@ EasyRec提供两种使用`BST`模型的方法：
 output:
                                 	             probability of a click
 model:
-			                            	       /|\  
-				                          ______|______  
-		                             		 |             |  
-                            			      	 |             |  
-	                            	      		 |     MLP     |  
-                            			      	 |             |  
-	                            		      	 |_____________|   
+			                            	       /|\
+				                          ______|______
+		                             		 |             |
+                            			      	 |             |
+	                            	      		 |     MLP     |
+                            			      	 |             |
+	                            		      	 |_____________|
 			                                        |
-                              _____________________________>  ConCat  <______________________  
-                             |		        |                  	 |	            |  
-                          ___|__________________| _______________________|__                |  
-		   	|	                                            |	            |  
-		   	|	          Transformer Layer	            |	            |  
-		   	|___________________________________________________|	            |  
-		        	|	          |	             |	                    |  
-		        	|                 |	             |	                    |  
-                        |_Emb_|____|__|   |_Emb_|____|__| …… |_Emb_|____|__|        |_Emb_|____|__|  
-input:   
-		          target item	      item 1 	         item N	             other features  
-		          target item	      item 1 	         item N	               other features  
-                                           \______________________________/  
-                                                          |  
-                                                 User Behavior Sequence 
+                              _____________________________>  ConCat  <______________________
+                             |		        |                  	 |	            |
+                          ___|__________________| _______________________|__                |
+		   	|	                                            |	            |
+		   	|	          Transformer Layer	            |	            |
+		   	|___________________________________________________|	            |
+		        	|	          |	             |	                    |
+		        	|                 |	             |	                    |
+                        |_Emb_|____|__|   |_Emb_|____|__| …… |_Emb_|____|__|        |_Emb_|____|__|
+input:
+		          target item	      item 1 	         item N	             other features
+		          target item	      item 1 	         item N	               other features
+                                           \______________________________/
+                                                          |
+                                                 User Behavior Sequence
 ```
 
 ### 模型配置
@@ -233,7 +233,7 @@ model_config: {
 ### 示例config
 
 1. 内置模型: [BST_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/bst.config)
-2. 组件化模型: [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
+1. 组件化模型: [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
 
 ### 参考论文
 

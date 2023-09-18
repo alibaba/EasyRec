@@ -47,13 +47,16 @@ class Package(object):
           raise KeyError(
               '`feature_group_name` should be set for input layer: ' +
               block.name)
-        input_name = one_input.feature_group_name
-        if not input_layer.has_group(input_name):
-          raise KeyError('invalid feature group name: ' + input_name)
-        if input_name in input_feature_groups:
-          logging.warning('input `%s` already exists in other block' %
-                          input_name)
-        input_feature_groups.add(input_name)
+        group = one_input.feature_group_name
+        if not input_layer.has_group(group):
+          raise KeyError('invalid feature group name: ' + group)
+        if group in input_feature_groups:
+          logging.warning('input `%s` already exists in other block' % group)
+        else:
+          input_feature_groups.add(group)
+          input_fn = EnhancedInputLayer(self._input_layer, self._features,
+                                        group, reuse)
+          self._name_to_layer[block.name] = input_fn
       else:
         self.define_layers(layer, block, block.name, reuse)
 
@@ -72,35 +75,38 @@ class Package(object):
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
         continue
-      if block.name in input_feature_groups:
-        raise KeyError('block name can not be one of feature groups:' +
-                       block.name)
+      name = block.name
+      if name in input_feature_groups:
+        raise KeyError('block name can not be one of feature groups:' + name)
       for input_node in block.inputs:
         input_type = input_node.WhichOneof('name')
         if input_type == 'package_name':
           num_pkg_input += 1
           continue
-        input_name = getattr(input_node, input_type)
-        if input_name in self._name_to_blocks:
-          assert input_name != block.name, 'input name can not equal to block name:' + input_name
-          self._dag.add_edge(input_name, block.name)
-        elif input_name not in input_feature_groups:
-          if input_layer.has_group(input_name):
-            logging.info('adding an input_layer block: ' + input_name)
+        iname = getattr(input_node, input_type)
+        if iname in self._name_to_blocks:
+          assert iname != name, 'input name can not equal to block name:' + iname
+          self._dag.add_edge(iname, name)
+        elif iname not in input_feature_groups:
+          if input_layer.has_group(iname):
+            logging.info('adding an input_layer block: ' + iname)
             new_block = backbone_pb2.Block()
-            new_block.name = input_name
+            new_block.name = iname
             input_cfg = backbone_pb2.Input()
-            input_cfg.feature_group_name = input_name
+            input_cfg.feature_group_name = iname
             new_block.inputs.append(input_cfg)
             new_block.input_layer.CopyFrom(backbone_pb2.InputLayer())
-            self._name_to_blocks[input_name] = new_block
-            self._dag.add_node(input_name)
-            self._dag.add_edge(input_name, block.name)
-            input_feature_groups.add(input_name)
+            self._name_to_blocks[iname] = new_block
+            self._dag.add_node(iname)
+            self._dag.add_edge(iname, block.name)
+            input_feature_groups.add(iname)
+            input_fn = EnhancedInputLayer(self._input_layer, self._features,
+                                          iname)
+            self._name_to_layer[block.name] = input_fn
           else:
             raise KeyError(
                 'invalid input name `%s`, must be the name of either a feature group or an another block'
-                % input_name)
+                % iname)
     num_groups = len(input_feature_groups)
     assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
 
@@ -120,14 +126,14 @@ class Package(object):
     elif layer == 'recurrent':
       for i in range(layer_cnf.recurrent.num_steps):
         name_i = '%s_%d' % (name, i)
-        layer_obj = self.load_keras_layer(layer_cnf.recurrent.keras_layer,
-                                          name_i, reuse)
+        keras_layer = layer_cnf.recurrent.keras_layer
+        layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
     elif layer == 'repeat':
       for i in range(layer_cnf.repeat.num_repeat):
         name_i = '%s_%d' % (name, i)
-        layer_obj = self.load_keras_layer(layer_cnf.repeat.keras_layer, name_i,
-                                          reuse)
+        keras_layer = layer_cnf.repeat.keras_layer
+        layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
 
   def block_input(self, config, block_outputs, training=None):
@@ -190,8 +196,7 @@ class Package(object):
         output = self.block_input(config, block_outputs, is_training)
         block_outputs[block] = output
       elif layer == 'input_layer':
-        feature_group = config.inputs[0].feature_group_name
-        input_fn = EnhancedInputLayer(self._input_layer, self._features, feature_group)
+        input_fn = self._name_to_layer[block]
         output = input_fn(config.input_layer, is_training)
         block_outputs[block] = output
       else:

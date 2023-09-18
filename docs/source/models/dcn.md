@@ -8,8 +8,8 @@ Deep＆Cross Network（DCN）是在DNN模型的基础上，引入了一种新型
 
 DCN-V2相对于前一个版本的模型，主要的改进点在于：
 
-1) Wide侧-Cross Network中用矩阵替代向量；
-2) 提出2种模型结构，传统的Wide&Deep并行 + Wide&Deep串行。
+1. Wide侧-Cross Network中用矩阵替代向量；
+1. 提出2种模型结构，传统的Wide&Deep并行 + Wide&Deep串行。
 
 ![dcn_v2](../../images/models/dcn_v2.jpg)
 ![dcn_v2_cross](../../images/models/dcn_v2_cross.jpg)

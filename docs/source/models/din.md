@@ -206,7 +206,7 @@ model_config: {
 ### 示例config
 
 1. 内置模型：[DIN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/din.config)
-2. 组件化模型：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
+1. 组件化模型：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
 
 ### 参考论文
 

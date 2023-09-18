@@ -176,7 +176,7 @@ model_config {
 ### 示例Config
 
 1. 内置模型: [MMoE_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mmoe.config)
-2. 组件化模型: [MMoE_Backbone_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/mmoe_backbone_on_taobao.config)
+1. 组件化模型: [MMoE_Backbone_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/mmoe_backbone_on_taobao.config)
 
 ### 参考论文
 
