@@ -694,7 +694,11 @@ model_config: {
         st_params {
           fields {
             key: 'loss_type'
-            value: { string_value: 'l2_loss' }
+            value: { string_value: 'info_nce' }
+          }
+          fields {
+            key: 'loss_weight'
+            value: { number_value: 0.1 }
           }
         }
       }
@@ -702,10 +706,16 @@ model_config: {
     blocks {
       name: 'top_mlp'
       inputs {
+        block_name: 'contrastive_learning'
+        ignore_input: true
+      }
+      inputs {
         block_name: 'user_tower'
       }
       inputs {
         package_name: 'item_tower'
+        reset_input {
+        }
       }
       keras_layer {
         class_name: 'MLP'
@@ -723,16 +733,24 @@ model_config: {
 }
 ```
 
-`AuxiliaryLoss`是用来计算对比学习损失的layer，详见[组件详细参数](component.md#id7)。
+`AuxiliaryLoss`是用来计算对比学习损失的layer，详见'[组件详细参数](component.md#id7)'。
+
+额外的input配置:
+
+- ignore_input: true 表示忽略当前这路的输入；添加该路输入只是为了控制拓扑结构的执行顺序
+- reset_input: 重置本次`package`调用时input_layer的配置项；可以配置与`package`定义时不同的参数
 
 注意这个案例没有为名为`item_tower`的package配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
+
+在当前案例中，`item_tower`被调用了3次，前2次调用时输入层dropout配置生效，用于计算对比学习损失函数；最后1次调用时重置了输入层配置，不执行dropout。
+主模型的`item_tower`与对比学习辅助任务中的`item_tower`共享参数；辅助任务中的`item_tower`通过对输入特征embedding做dropout来生成augmented sample；主模型的`item_tower`不执行数据增强操作。
 
 MovieLens-1M数据集效果：
 
 | Model      | Epoch | AUC    |
 | ---------- | ----- | ------ |
 | MultiTower | 1     | 0.8814 |
-| ContrastiveLearning | 1 | 0.8575 |
+| ContrastiveLearning | 1 | 0.8713 |
 
 ## 案例8：多目标模型 MMoE
 

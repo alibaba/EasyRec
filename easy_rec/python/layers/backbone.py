@@ -31,6 +31,7 @@ class Package(object):
     self._name_to_blocks = {}
     self.loss_dict = {}
     self._name_to_layer = {}
+    self.reset_input_config(None)
     reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
     input_feature_groups = set()
     for block in config.blocks:
@@ -139,6 +140,9 @@ class Package(object):
         layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
 
+  def reset_input_config(self, config):
+    self.input_config = config
+
   def block_input(self, config, block_outputs, training=None):
     inputs = []
     for input_node in config.inputs:
@@ -148,6 +152,8 @@ class Package(object):
         if input_name not in Package.__packages:
           raise KeyError('package name `%s` does not exists' % input_name)
         package = Package.__packages[input_name]
+        if input_node.HasField('reset_input'):
+          package.reset_input_config(input_node.reset_input)
         input_feature = package(training)
         if len(package.loss_dict) > 0:
           self.loss_dict.update(package.loss_dict)
@@ -156,6 +162,8 @@ class Package(object):
       else:
         raise KeyError('input name `%s` does not exists' % input_name)
 
+      if input_node.ignore_input:
+        continue
       if input_node.HasField('input_slice'):
         fn = eval('lambda x: x' + input_node.input_slice.strip())
         input_feature = fn(input_feature)
@@ -202,8 +210,11 @@ class Package(object):
         block_outputs[block] = output
       elif layer == 'input_layer':
         input_fn = self._name_to_layer[block]
-        output = input_fn(config.input_layer, is_training)
-        block_outputs[block] = output
+        input_config = config.input_layer
+        if self.input_config is not None:
+          input_config = self.input_config
+          input_fn.reset(input_config, is_training)
+        block_outputs[block] = input_fn(input_config, is_training)
       else:
         inputs = self.block_input(config, block_outputs, is_training)
         output = self.call_layer(inputs, config, block, is_training)
@@ -260,14 +271,14 @@ class Package(object):
     layer = self._name_to_layer[name]
     cls = layer.__class__.__name__
     kwargs = {'loss_dict': self.loss_dict}
-    try:
-      output = layer(inputs, training=training, **kwargs)
-      if cls == 'BatchNormalization':
-        add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
-      return output
-    except TypeError:
-      logging.error('call layer %s with invalid arguments' % layer.name)
-      return layer(inputs, **kwargs)
+    # try:
+    output = layer(inputs, training=training, **kwargs)
+    if cls == 'BatchNormalization':
+      add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
+    return output
+    # except TypeError:
+    #   logging.error('call layer %s with invalid arguments' % layer.name)
+    #   return layer(inputs, **kwargs)
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')

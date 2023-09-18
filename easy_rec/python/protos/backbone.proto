@@ -28,6 +28,8 @@ message Input {
     }
     optional string input_fn = 11;
     optional string input_slice = 12;
+    optional bool ignore_input = 13 [default = false];
+    optional InputLayer reset_input = 14;
 }
 
 message RecurrentLayer {
@@ -49,7 +51,6 @@ message Layer {
         KerasLayer keras_layer = 2;
         RecurrentLayer recurrent = 3;
         RepeatLayer repeat = 4;
-        InputLayer input_layer = 5;
     }
 }
 

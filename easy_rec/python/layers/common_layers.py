@@ -107,16 +107,18 @@ class EnhancedInputLayer(object):
 
   def build(self, config, training):
     self.built = True
+    combine = not config.output_seq_and_normal_feature
+    self.inputs = self._input_layer(
+        self._feature_dict, self._group_name, is_combine=combine)
+    self.reset(config, training)
+
+  def reset(self, config, training):
     if 0.0 < config.dropout_rate < 1.0:
       self.dropout = tf.keras.layers.Dropout(rate=config.dropout_rate)
 
     if training and 0.0 < config.feature_dropout_rate < 1.0:
       keep_prob = 1.0 - config.feature_dropout_rate
       self.bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
-
-    combine = not config.output_seq_and_normal_feature
-    self.inputs = self._input_layer(
-        self._feature_dict, self._group_name, is_combine=combine)
 
   def call(self, config, training):
     features, feature_list = self.inputs

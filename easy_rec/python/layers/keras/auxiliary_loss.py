@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+from copy import deepcopy
 
 import tensorflow as tf
 
@@ -13,11 +14,11 @@ class AuxiliaryLoss(tf.keras.layers.Layer):
   def __init__(self, params, name='auxiliary_loss', reuse=None, **kwargs):
     super(AuxiliaryLoss, self).__init__(name=name, **kwargs)
     params.check_required('loss_type')
-    self.params = params
     self.loss_type = params.get_or_default('loss_type', None)
     self.loss_weight = params.get_or_default('loss_weight', 1.0)
     logging.info('init layer `%s` with loss type: %s and weight: %f' %
                  (self.name, self.loss_type, self.loss_weight))
+    self.temperature = params.get_or_default('temperature', 0.1)
 
   def call(self, inputs, training=None, **kwargs):
     if self.loss_type is None:
@@ -34,8 +35,7 @@ class AuxiliaryLoss(tf.keras.layers.Layer):
       loss_dict['%s_l2_loss' % self.name] = loss_value
     elif self.loss_type == 'info_nce':
       query, positive = inputs
-      t = self.params.get_or_default('temperature', 0.1)
-      loss = contrastive_loss.info_nce_loss(query, positive, temperature=t)
+      loss = contrastive_loss.info_nce_loss(query, positive, temperature=self.temperature)
       loss_value = loss if self.loss_weight == 1.0 else loss * self.loss_weight
       loss_dict['%s_info_nce_loss' % self.name] = loss_value
 
