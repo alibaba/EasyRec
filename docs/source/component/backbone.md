@@ -616,17 +616,17 @@ MovieLens-1M数据集效果：
 | ----- | ----- | ------ |
 | MLP   | 1     | 0.8616 |
 
-## 案例7: 使用组件包(Multi-Tower)
+## 案例7：对比学习（使用组件包）
 
-配置文件：[multi_tower_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/multi_tower_on_movielens.config)
+配置文件：[contrastive_learning_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/contrastive_learning_on_movielens.config)
 
-该案例为了演示`block package`的使用，`block package`可以打包一组`block`，构成一个可被复用的子网络，即被打包的子网络可以以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的`block`是不能被多次调用的（但是可以多次复用结果）。
+该案例为了演示`block package`的使用，`block package`可以打包一组`block`，构成一个可被复用的子网络，即被打包的子网络以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的`block`是不能被多次调用的（但是可以多次复用结果）。
 
 `block package`主要为自监督学习、对比学习等场景设计。
 
 ```protobuf
 model_config: {
-  model_name: "multi tower"
+  model_name: "ContrastiveLearning"
   model_class: "RankModel"
   feature_groups: {
     group_name: 'user'
@@ -644,27 +644,33 @@ model_config: {
     wide_deep: DEEP
   }
   backbone {
-    packages {
+    blocks {
       name: 'user_tower'
-      blocks {
-        name: 'mlp'
-        inputs {
-          feature_group_name: 'user'
-        }
-        keras_layer {
-          class_name: 'MLP'
-          mlp {
-            hidden_units: [256, 128]
-          }
+      inputs {
+        feature_group_name: 'user'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [256, 128]
         }
       }
     }
     packages {
       name: 'item_tower'
       blocks {
-        name: 'mlp'
+        name: 'item'
         inputs {
           feature_group_name: 'item'
+        }
+        input_layer {
+          dropout_rate: 0.2
+        }
+      }
+      blocks {
+        name: 'item_encoder'
+        inputs {
+          block_name: 'item'
         }
         keras_layer {
           class_name: 'MLP'
@@ -675,22 +681,40 @@ model_config: {
       }
     }
     blocks {
-      name: 'top_mlp'
+      name: 'contrastive_learning'
       inputs {
-        package_name: 'user_tower'
+        package_name: 'item_tower'
       }
       inputs {
         package_name: 'item_tower'
       }
-      layers {
-        keras_layer {
-          class_name: 'MLP'
-          mlp {
-            hidden_units: [128, 64]
+      merge_inputs_into_list: true
+      keras_layer {
+        class_name: 'AuxiliaryLoss'
+        st_params {
+          fields {
+            key: 'loss_type'
+            value: { string_value: 'l2_loss' }
           }
         }
       }
     }
+    blocks {
+      name: 'top_mlp'
+      inputs {
+        block_name: 'user_tower'
+      }
+      inputs {
+        package_name: 'item_tower'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [128, 64]
+        }
+      }
+    }
+    concat_blocks: 'top_mlp'
   }
   model_params {
     l2_regularization: 1e-4
@@ -699,13 +723,16 @@ model_config: {
 }
 ```
 
-注意该案例没有为package和backbone配置`concat_blocks`，框架会自动设置为DAG的所有叶子节点。
+`AuxiliaryLoss`是用来计算对比学习损失的layer，详见[组件详细参数](component.md#id7)。
+
+注意这个案例没有为名为`item_tower`的package配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
 
 MovieLens-1M数据集效果：
 
 | Model      | Epoch | AUC    |
 | ---------- | ----- | ------ |
 | MultiTower | 1     | 0.8814 |
+| ContrastiveLearning | 1 | 0.8575 |
 
 ## 案例8：多目标模型 MMoE
 
@@ -944,6 +971,12 @@ MovieLens-1M数据集效果：
 | 类名   | 功能                          | 说明        |
 | ---- | --------------------------- | --------- |
 | MMoE | Multiple Mixture of Experts | MMoE模型的组件 |
+
+## 6. 辅助损失函数组件
+
+| 类名   | 功能                          | 说明        |
+| ---- | --------------------------- | --------- |
+| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 |
 
 # 如何自定义组件
 

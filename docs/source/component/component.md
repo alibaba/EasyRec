@@ -107,3 +107,13 @@
 | num_task   | uint32 |     | 任务数          |
 | num_expert | uint32 | 0   | expert数量     |
 | expert_mlp | MLP    | 可选  | expert的mlp参数 |
+
+## 6. 计算辅助损失函数的组件
+
+- AuxiliaryLoss
+
+| 参数         | 类型     | 默认值 | 说明           |
+| ---------- | ------ | --- | ------------ |
+| loss_type | string |     | 损失函数类型，包括：l2_loss, info_nce |
+| loss_weight | float | 1.0 | 损失函数权重    |
+| 其他 | | | 根据loss_type决定 |

@@ -146,61 +146,52 @@ model_config: {
     weight: 1.0
   }
   backbone {
-    packages {
+    blocks {
       name: "user_tower"
-      blocks {
-        name: "mlp"
-        inputs {
-          feature_group_name: "user"
-        }
-        keras_layer {
-          class_name: "MLP"
-          mlp {
-            hidden_units: [256, 128]
-          }
+      inputs {
+        feature_group_name: "user"
+      }
+      keras_layer {
+        class_name: "MLP"
+        mlp {
+          hidden_units: [256, 128]
         }
       }
     }
-    packages {
+    blocks {
       name: "item_tower"
-      blocks {
-        name: "mlp"
-        inputs {
-          feature_group_name: "item"
-        }
-        keras_layer {
-          class_name: "MLP"
-          mlp {
-            hidden_units: [256, 128]
-          }
+      inputs {
+        feature_group_name: "item"
+      }
+      keras_layer {
+        class_name: "MLP"
+        mlp {
+          hidden_units: [256, 128]
         }
       }
     }
-    packages {
+    blocks {
       name: "combo_tower"
-      blocks {
-        name: "mlp"
-        inputs {
-          feature_group_name: "combo"
-        }
-        keras_layer {
-          class_name: "MLP"
-          mlp {
-            hidden_units: [256, 128]
-          }
+      inputs {
+        feature_group_name: "combo"
+      }
+      keras_layer {
+        class_name: "MLP"
+        mlp {
+          hidden_units: [256, 128]
         }
       }
     }
     blocks {
       name: "top_mlp"
       inputs {
-        package_name: "user_tower"
+        block_name: "user_tower"
       }
       inputs {
-        package_name: "item_tower"
+        block_name: "item_tower"
       }
       inputs {
-        package_name: "combo_tower"
+        block_name: "combo_tower"
       }
       keras_layer {
         class_name: "MLP"
@@ -218,26 +209,17 @@ model_config: {
 ```
 
 - model_name: 任意自定义字符串，仅有注释作用
-
 - model_class: 'RankModel', 不需要修改, 通过组件化方式搭建的单目标排序模型都叫这个名字
-
 - feature_groups: 特征组
-
   - 可包含多个feature_group: 如 user、item、combo
   - wide_deep: multi_tower模型使用的都是Deep features, 所以都设置成DEEP
-
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
-
-  - packages: 可以打包一组block，构成一个可被复用的子网络，即被打包的子网络可以以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的block是不能被多次调用的（但是可以多次复用结果）.
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
-
 - model_params:
-
   - l2_regularization: 对DNN参数的regularization, 减少overfit
-
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
 ### 示例config
