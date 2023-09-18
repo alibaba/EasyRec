@@ -12,6 +12,7 @@ from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.load_class import load_keras_layer
+from easy_rec.python.utils.tf_utils import add_elements_to_collection
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -82,6 +83,9 @@ class Package(object):
         input_type = input_node.WhichOneof('name')
         if input_type == 'package_name':
           num_pkg_input += 1
+          input_name = getattr(input_node, input_type)
+          self._dag.add_node_if_not_exists(input_name)
+          self._dag.add_edge(input_name, name)
           continue
         iname = getattr(input_node, input_type)
         if iname in self._name_to_blocks:
@@ -98,11 +102,10 @@ class Package(object):
             new_block.input_layer.CopyFrom(backbone_pb2.InputLayer())
             self._name_to_blocks[iname] = new_block
             self._dag.add_node(iname)
-            self._dag.add_edge(iname, block.name)
+            self._dag.add_edge(iname, name)
             input_feature_groups.add(iname)
-            input_fn = EnhancedInputLayer(self._input_layer, self._features,
-                                          iname)
-            self._name_to_layer[block.name] = input_fn
+            fn = EnhancedInputLayer(self._input_layer, self._features, iname)
+            self._name_to_layer[iname] = fn
           else:
             raise KeyError(
                 'invalid input name `%s`, must be the name of either a feature group or an another block'
@@ -172,15 +175,17 @@ class Package(object):
     return output
 
   def __call__(self, is_training, **kwargs):
-    with tf.variable_scope(self._config.name, reuse=tf.AUTO_REUSE):
-      return self.call(is_training)
+    with tf.name_scope(self._config.name):
+      return self.call(is_training, **kwargs)
 
-  def call(self, is_training):
+  def call(self, is_training, **kwargs):
     block_outputs = {}
     blocks = self._dag.topological_sort()
     logging.info(self._config.name + ' topological order: ' + ','.join(blocks))
-    print(self._config.name + ' topological order: ' + ','.join(blocks))
     for block in blocks:
+      if block not in self._name_to_blocks:
+        assert block in Package.__packages, 'invalid block: ' + block
+        continue
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
         logging.info('call sequential %d layers' % len(config.layers))
@@ -253,11 +258,16 @@ class Package(object):
   def call_keras_layer(self, inputs, name, training):
     """Call predefined Keras Layer, which can be reused."""
     layer = self._name_to_layer[name]
+    cls = layer.__class__.__name__
     kwargs = {'loss_dict': self.loss_dict}
     try:
-      return layer(inputs, training=training, **kwargs)
+      output = layer(inputs, training=training, **kwargs)
+      if cls == 'BatchNormalization':
+        add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
+      return output
     except TypeError:
-      return layer(inputs)
+      logging.error('call layer %s with invalid arguments' % layer.name)
+      return layer(inputs, **kwargs)
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')

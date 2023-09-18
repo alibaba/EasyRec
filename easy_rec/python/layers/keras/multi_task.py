@@ -6,6 +6,9 @@ import tensorflow as tf
 
 from easy_rec.python.layers.keras.blocks import MLP
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 def gate_fn(inputs, units, name, l2_reg, reuse):
   weights = tf.layers.dense(

@@ -84,82 +84,73 @@ class EnhancedInputLayer(object):
 
   def __init__(self, input_layer, feature_dict, group_name, reuse=None):
     self._group_name = group_name
+    self.name = 'input_' + self._group_name
     self._input_layer = input_layer
     self._feature_dict = feature_dict
     self._reuse = reuse
-    self._combined_train_input = None  # cache for combined train input feature
-    self._not_combined_train_input = None  # cache for not combined train input feature
-    self._combined_input = None  # cache for combined eval input feature
-    self._not_combined_input = None  # cache for not combined eval input feature
+    self.built = False
 
   def __call__(self, config, is_training, **kwargs):
+    if not self.built:
+      self.build(config, is_training)
+
+    if config.output_seq_and_normal_feature:
+      seq_features, _, target_features = self.inputs
+      return seq_features, target_features
+
     if config.do_batch_norm and config.do_layer_norm:
       raise ValueError(
           'can not do batch norm and layer norm for input layer at the same time'
       )
-    with tf.name_scope('input_' + self._group_name):
+    with tf.name_scope(self.name):
       return self.call(config, is_training)
 
-  def get_input(self, is_training, is_combine):
-    if is_training and is_combine:
-      if self._combined_train_input is None:
-        features = self._input_layer(self._feature_dict, self._group_name)
-        self._combined_train_input = features
-      return self._combined_train_input
-    if is_training and not is_combine:
-      if self._not_combined_train_input is None:
-        features = self._input_layer(
-            self._feature_dict, self._group_name, is_combine=False)
-        self._not_combined_train_input = features
-      return self._not_combined_train_input
+  def build(self, config, training):
+    self.built = True
+    if 0.0 < config.dropout_rate < 1.0:
+      self.dropout = tf.keras.layers.Dropout(rate=config.dropout_rate)
 
-    # not is training
-    if is_combine:
-      if self._combined_input is None:
-        features = self._input_layer(self._feature_dict, self._group_name)
-        self._combined_input = features
-      return self._combined_input
-    if self._not_combined_input is None:
-      features = self._input_layer(
-          self._feature_dict, self._group_name, is_combine=False)
-      self._not_combined_input = features
-    return self._not_combined_input
+    if training and 0.0 < config.feature_dropout_rate < 1.0:
+      keep_prob = 1.0 - config.feature_dropout_rate
+      self.bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
 
-  def call(self, config, is_training):
-    if config.output_seq_and_normal_feature:
-      seq_features, _, target_features = self.get_input(is_training, False)
-      return seq_features, target_features
+    combine = not config.output_seq_and_normal_feature
+    self.inputs = self._input_layer(
+        self._feature_dict, self._group_name, is_combine=combine)
 
-    features, feature_list = self.get_input(is_training, True)
+  def call(self, config, training):
+    features, feature_list = self.inputs
     num_features = len(feature_list)
 
     do_ln = config.do_layer_norm
     do_bn = config.do_batch_norm
-    do_feature_dropout = is_training and 0.0 < config.feature_dropout_rate < 1.0
+    do_feature_dropout = training and 0.0 < config.feature_dropout_rate < 1.0
     if do_feature_dropout:
       keep_prob = 1.0 - config.feature_dropout_rate
-      bern = tf.distributions.Bernoulli(probs=keep_prob, dtype=tf.float32)
-      mask = bern.sample(num_features)
+      mask = self.bern.sample(num_features)
     elif do_bn:
       features = tf.layers.batch_normalization(
-          features, training=is_training, reuse=self._reuse)
+          features, training=training, reuse=self._reuse)
     elif do_ln:
       features = layer_norm(
           features, name=self._group_name + '_features', reuse=self._reuse)
 
+    output_feature_list = config.output_2d_tensor_and_feature_list
+    output_feature_list = output_feature_list or config.only_output_feature_list
+    output_feature_list = output_feature_list or config.only_output_3d_tensor
     rate = config.dropout_rate
     do_dropout = 0.0 < rate < 1.0
     if do_feature_dropout or do_ln or do_bn or do_dropout:
       for i in range(num_features):
         fea = feature_list[i]
-        if config.do_batch_norm:
+        if do_bn:
           fea = tf.layers.batch_normalization(
-              fea, training=is_training, reuse=self._reuse)
-        elif config.do_layer_norm:
+              fea, training=training, reuse=self._reuse)
+        elif do_ln:
           ln_name = self._group_name + 'f_%d' % i
           fea = layer_norm(fea, name=ln_name, reuse=self._reuse)
-        if do_dropout:
-          fea = tf.layers.dropout(fea, rate, training=is_training)
+        if do_dropout and output_feature_list:
+          fea = self.dropout.apply(fea, training=training)
         if do_feature_dropout:
           fea = tf.div(fea, keep_prob) * mask[i]
         feature_list[i] = fea
@@ -167,7 +158,7 @@ class EnhancedInputLayer(object):
         features = tf.concat(feature_list, axis=-1)
 
     if do_dropout and not do_feature_dropout:
-      features = tf.layers.dropout(features, rate, training=is_training)
+      features = self.dropout.apply(features, training=training)
 
     if config.only_output_feature_list:
       return feature_list

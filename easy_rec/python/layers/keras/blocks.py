@@ -6,6 +6,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.utils.activation import get_activation
+from easy_rec.python.utils.tf_utils import add_elements_to_collection
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -46,7 +47,7 @@ class MLP(tf.keras.layers.Layer):
     num_dropout = len(dropout_rate)
     self._sub_layers = []
     for i, num_units in enumerate(units[:-1]):
-      name = 'dnn_%d' % i
+      name = 'layer_%d' % i
       drop_rate = dropout_rate[i] if i < num_dropout else 0.0
       self.add_rich_layer(num_units, use_bn, drop_rate, activation, initializer,
                           use_bias, use_bn_after_act, name,
@@ -54,7 +55,7 @@ class MLP(tf.keras.layers.Layer):
 
     n = len(units) - 1
     drop_rate = dropout_rate[n] if num_dropout > n else 0.0
-    name = 'dnn_%d' % n
+    name = 'layer_%d' % n
     self.add_rich_layer(units[-1], use_final_bn, drop_rate, final_activation,
                         initializer, use_final_bias, use_bn_after_act, name,
                         params.l2_regularizer)
@@ -65,18 +66,10 @@ class MLP(tf.keras.layers.Layer):
                      dropout_rate,
                      activation,
                      initializer,
-                     use_bias=True,
-                     use_bn_after_activation=False,
-                     name='mlp',
+                     use_bias,
+                     use_bn_after_activation,
+                     name,
                      l2_reg=None):
-
-    def batch_norm(x, training):
-      return tf.layers.batch_normalization(
-          x,
-          training=training,
-          name='%s/%s/bn' % (self.name, name),
-          reuse=self.reuse)
-
     act_fn = get_activation(activation)
     if use_bn and not use_bn_after_activation:
       dense = tf.keras.layers.Dense(
@@ -86,10 +79,9 @@ class MLP(tf.keras.layers.Layer):
           kernel_regularizer=l2_reg,
           name=name)
       self._sub_layers.append(dense)
-
-      # bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name)
-      # keras BN layer have a stale issue on some versions of tf
-      self._sub_layers.append(batch_norm)
+      bn = tf.keras.layers.BatchNormalization(
+          name='%s/bn' % name, trainable=True)
+      self._sub_layers.append(bn)
       act = tf.keras.layers.Activation(act_fn, name='%s/act' % name)
       self._sub_layers.append(act)
     else:
@@ -102,7 +94,8 @@ class MLP(tf.keras.layers.Layer):
           name=name)
       self._sub_layers.append(dense)
       if use_bn and use_bn_after_activation:
-        self._sub_layers.append(batch_norm)
+        bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name)
+        self._sub_layers.append(bn)
 
     if 0.0 < dropout_rate < 1.0:
       dropout = tf.keras.layers.Dropout(dropout_rate, name='%s/dropout' % name)
@@ -112,16 +105,14 @@ class MLP(tf.keras.layers.Layer):
 
   def call(self, x, training=None, **kwargs):
     """Performs the forward computation of the block."""
-    from inspect import isfunction
     for layer in self._sub_layers:
-      if isfunction(layer):
+      cls = layer.__class__.__name__
+      if cls in ('Dropout', 'BatchNormalization'):
         x = layer(x, training=training)
+        if cls == 'BatchNormalization':
+          add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
-        cls = layer.__class__.__name__
-        if cls in ('Dropout', 'BatchNormalization'):
-          x = layer(x, training=training)
-        else:
-          x = layer(x)
+        x = layer(x)
     return x
 
 
