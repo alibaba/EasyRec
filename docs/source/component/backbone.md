@@ -967,38 +967,38 @@ MovieLens-1M数据集效果：
 
 ## 1.基础组件
 
-| 类名                | 功能     | 说明                                      |
-| ----------------- | ------ | --------------------------------------- |
-| MLP               | 多层感知机  | 支持配置激活函数、初始化方法、Dropout、是否使用BN等          |
-| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调，来自Highway Network |
-| Gate              | 门控     | 多个输入的加权求和                               |
-| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                           |
-| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                           |
+| 类名                | 功能     | 说明                                      | 示例                                                                                                                                       |
+| ----------------- | ------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| MLP               | 多层感知机  | 支持配置激活函数、初始化方法、Dropout、是否使用BN等          | [案例1](#wide-deep)                                                                                                                        |
+| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调，来自Highway Network |                                                                                                                                          |
+| Gate              | 门控     | 多个输入的加权求和                               |                                                                                                                                          |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                           | [案例5](#dlrm-embedding)                                                                                                                   |
+| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                           | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
 
 ## 2.特征交叉组件
 
-| 类名             | 功能               | 说明           |
-| -------------- | ---------------- | ------------ |
-| FM             | 二阶交叉             | DeepFM模型的组件  |
-| DotInteraction | 二阶内积交叉           | DLRM模型的组件    |
-| Cross          | bit-wise交叉       | DCN v2模型的组件  |
-| BiLinear       | 双线性              | FiBiNet模型的组件 |
-| FiBiNet        | SENet & BiLinear | FiBiNet模型    |
+| 类名             | 功能               | 说明           | 示例                                                                                                                         |
+| -------------- | ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](#deepfm)                                                                                                             |
+| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](#dlrm)                                                                                                               |
+| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](#dcn)                                                                                                                |
+| BiLinear       | 双线性              | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| FiBiNet        | SENet & BiLinear | FiBiNet模型    | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
 
 ## 3.特征重要度学习组件
 
-| 类名        | 功能                | 说明           |
-| --------- | ----------------- | ------------ |
-| SENet     | 建模特征重要度           | FiBiNet模型的组件 |
-| MaskBlock | 建模特征重要度           | MaskNet模型的组件 |
-| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    |
+| 类名        | 功能                | 说明           | 示例                                                                                                                         |
+| --------- | ----------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| SENet     | 建模特征重要度           | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [masknet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/masknet_on_movielens.config) |
+| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [masknet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/masknet_on_movielens.config) |
 
 ## 4. 序列特征编码组件
 
-| 类名  | 功能               | 说明       |
-| --- | ---------------- | -------- |
-| DIN | target attention | DIN模型的组件 |
-| BST | transformer      | BST模型的组件 |
+| 类名  | 功能               | 说明       | 示例                                                                                                                       |
+| --- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| DIN | target attention | DIN模型的组件 | [DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config) |
+| BST | transformer      | BST模型的组件 | [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config) |
 
 ## 5. 多目标学习组件
 
