@@ -247,10 +247,10 @@ class Package(object):
         pb_params = getattr(layer_conf, param_type)
         params = Parameter(pb_params, False, l2_reg=self._l2_reg)
       layer = layer_cls(params, name=name, reuse=reuse)
-      return layer
+      return layer, customize
     elif param_type is None:  # internal keras layer
       layer = layer_cls(name=name)
-      return layer
+      return layer, customize
     else:
       assert param_type == 'st_params', 'internal keras layer only support st_params'
       try:
@@ -264,21 +264,20 @@ class Package(object):
         logging.info('try to call %s layer with params %r' %
                      (layer_conf.class_name, args))
         layer = layer_cls(*args, name=name)
-      return layer
+      return layer, customize
 
   def call_keras_layer(self, inputs, name, training):
     """Call predefined Keras Layer, which can be reused."""
-    layer = self._name_to_layer[name]
+    layer, customize = self._name_to_layer[name]
     cls = layer.__class__.__name__
     kwargs = {'loss_dict': self.loss_dict}
-    # try:
-    output = layer(inputs, training=training, **kwargs)
-    if cls == 'BatchNormalization':
-      add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
+    if customize:
+      output = layer(inputs, training=training, **kwargs)
+    else:
+      output = layer(inputs, training=training)
+      if cls == 'BatchNormalization':
+        add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
     return output
-    # except TypeError:
-    #   logging.error('call layer %s with invalid arguments' % layer.name)
-    #   return layer(inputs, **kwargs)
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')

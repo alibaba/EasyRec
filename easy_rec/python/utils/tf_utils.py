@@ -35,12 +35,9 @@ def get_col_type(tf_type):
   return type_map[tf_type]
 
 
-def add_elements_to_collection(elements, collection_list):
-  elements = tf.nest.flatten(elements)
-  collection_list = tf.nest.flatten(collection_list)
-  for name in collection_list:
-    collection = tf.get_collection_ref(name)
-    collection_set = set(collection)
-    for element in elements:
-      if element not in collection_set:
-        collection.append(element)
+def add_elements_to_collection(elements, name):
+  collection = tf.get_collection_ref(name)
+  collection_set = set(collection)
+  for element in elements:
+    if element not in collection_set:
+      collection.append(element)
