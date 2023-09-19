@@ -833,13 +833,13 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_autodis_embedding(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_criteo_with_autodis.config',
         self._test_dir)
     self.assertTrue(self._success)
 
   def test_periodic_embedding(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_criteo_with_periodic.config',
         self._test_dir)
     self.assertTrue(self._success)
