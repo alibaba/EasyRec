@@ -19,11 +19,13 @@
 
 - HighWay
 
-| 参数           | 类型     | 默认值  | 说明           |
-| ------------ | ------ | ---- | ------------ |
-| emb_size     | uint32 |      | embedding维度  |
-| activation   | str    | gelu | 激活函数         |
-| dropout_rate | float  |      | dropout rate |
+| 参数             | 类型     | 默认值  | 说明           |
+| -------------- | ------ | ---- | ------------ |
+| emb_size       | uint32 | None | embedding维度  |
+| activation     | str    | gelu | 激活函数         |
+| dropout_rate   | float  | 0    | dropout rate |
+| init_gate_bias | float  | -3.0 | 门控网络的bias初始值 |
+| num_layers     | int    | 1    | 网络层数         |
 
 - PeriodicEmbedding
 
@@ -116,4 +118,5 @@
 | ----------- | ------ | --- | --------------------------- |
 | loss_type   | string |     | 损失函数类型，包括：l2_loss, info_nce |
 | loss_weight | float  | 1.0 | 损失函数权重                      |
+| temperature | float  | 0.1 | info_nce loss 的参数           |
 | 其他          |        |     | 根据loss_type决定               |

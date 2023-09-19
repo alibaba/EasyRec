@@ -963,17 +963,23 @@ MovieLens-1M数据集效果：
 - DIN模型配置文件：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
 - BST模型配置文件：[BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
 
+其他模型：
+
+- Highway Network: [highway network](../models/highway.md)
+
 # 组件库介绍
 
 ## 1.基础组件
 
-| 类名                | 功能     | 说明                                      | 示例                                                                                                                                       |
-| ----------------- | ------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| MLP               | 多层感知机  | 支持配置激活函数、初始化方法、Dropout、是否使用BN等          | [案例1](#wide-deep)                                                                                                                        |
-| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调，来自Highway Network |                                                                                                                                          |
-| Gate              | 门控     | 多个输入的加权求和                               |                                                                                                                                          |
-| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                           | [案例5](#dlrm-embedding)                                                                                                                   |
-| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                           | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+| 类名                | 功能     | 说明                              | 示例                                                                                                                                       |
+| ----------------- | ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| MLP               | 多层感知机  | 可定制激活函数、initializer、Dropout、BN等 | [案例1](#wide-deep)                                                                                                                        |
+| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调           | [highway network](../models/highway.html)                                                                                                |
+| Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](#dlrm-embedding)                                                                                                                   |
+| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+
+**备注**：Gate组件的第一个输入是权重向量，后面的输入拼凑成一个列表，权重向量的长度应等于列表的长度
 
 ## 2.特征交叉组件
 
@@ -987,11 +993,11 @@ MovieLens-1M数据集效果：
 
 ## 3.特征重要度学习组件
 
-| 类名        | 功能                | 说明           | 示例                                                                                                                         |
-| --------- | ----------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| SENet     | 建模特征重要度           | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
-| MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [masknet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/masknet_on_movielens.config) |
-| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [masknet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/masknet_on_movielens.config) |
+| 类名        | 功能                | 说明           | 示例                                                    |
+| --------- | ----------------- | ------------ | ----------------------------------------------------- |
+| SENet     | 建模特征重要度           | FiBiNet模型的组件 | [MMoE](../models/mmoe.html#id4)                       |
+| MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [Cross Decoupling Network](../models/cdn.html#id2)    |
+| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [DBMTL](../models/dbmtl.html#dbmtl-based-on-backbone) |
 
 ## 4. 序列特征编码组件
 

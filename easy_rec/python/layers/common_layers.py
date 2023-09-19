@@ -17,6 +17,7 @@ def highway(x,
             num_layers=1,
             scope='highway',
             dropout=0.0,
+            init_gate_bias=-1.0,
             reuse=None):
   if isinstance(activation, six.string_types):
     activation = get_activation(activation)
@@ -26,9 +27,15 @@ def highway(x,
     else:
       x = tf.layers.dense(x, size, name='input_projection', reuse=reuse)
 
+    initializer = tf.constant_initializer(init_gate_bias)
     for i in range(num_layers):
       T = tf.layers.dense(
-          x, size, activation=tf.sigmoid, name='gate_%d' % i, reuse=reuse)
+          x,
+          size,
+          activation=tf.sigmoid,
+          bias_initializer=initializer,
+          name='gate_%d' % i,
+          reuse=reuse)
       H = tf.layers.dense(
           x, size, activation=activation, name='activation_%d' % i, reuse=reuse)
       if dropout > 0.0:

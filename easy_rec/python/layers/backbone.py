@@ -246,7 +246,24 @@ class Package(object):
       else:
         pb_params = getattr(layer_conf, param_type)
         params = Parameter(pb_params, False, l2_reg=self._l2_reg)
-      layer = layer_cls(params, name=name, reuse=reuse)
+
+      has_reuse = True
+      try:
+        from funcsigs import signature
+        sig = signature(layer_cls.__init__)
+        has_reuse = 'reuse' in sig.parameters.keys()
+      except ImportError:
+        try:
+          from sklearn.externals.funcsigs import signature
+          sig = signature(layer_cls.__init__)
+          has_reuse = 'reuse' in sig.parameters.keys()
+        except ImportError:
+          logging.warning('import funcsigs failed')
+
+      if has_reuse:
+        layer = layer_cls(params, name=name, reuse=reuse)
+      else:
+        layer = layer_cls(params, name=name)
       return layer, customize
     elif param_type is None:  # internal keras layer
       layer = layer_cls(name=name)
@@ -274,9 +291,12 @@ class Package(object):
     if customize:
       output = layer(inputs, training=training, **kwargs)
     else:
-      output = layer(inputs, training=training)
-      if cls == 'BatchNormalization':
-        add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
+      try:
+        output = layer(inputs, training=training)
+        if cls == 'BatchNormalization':
+          add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
+      except TypeError:
+        output = layer(inputs)
     return output
 
   def call_layer(self, inputs, config, name, training):

@@ -234,7 +234,7 @@ class Parameter(object):
       keys = [keys]
     for key in keys:
       if key not in self.params:
-        raise KeyError('%s must be set in params')
+        raise KeyError('%s must be set in params' % key)
 
   def has_field(self, key):
     if self.is_struct:

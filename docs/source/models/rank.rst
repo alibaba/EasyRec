@@ -16,6 +16,7 @@
    rocket_launching
    masknet
    fibinet
+   cdn
    regression
    multi_cls
 
@@ -25,5 +26,6 @@
 .. toctree::
    :maxdepth: 2
 
+   highway
    cmbf
    uniter

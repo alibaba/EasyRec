@@ -120,11 +120,11 @@ class Highway(tf.keras.layers.Layer):
 
   def __init__(self, params, name='highway', reuse=None, **kwargs):
     super(Highway, self).__init__(name, **kwargs)
-    params.check_required('emb_size')
-    self.emb_size = params.emb_size
+    self.emb_size = params.get_or_default('emb_size', None)
     self.num_layers = params.get_or_default('num_layers', 1)
     self.activation = params.get_or_default('activation', 'gelu')
     self.dropout_rate = params.get_or_default('dropout_rate', 0.0)
+    self.init_gate_bias = params.get_or_default('init_gate_bias', -3.0)
     self.reuse = reuse
 
   def call(self, inputs, training=None, **kwargs):
@@ -135,6 +135,8 @@ class Highway(tf.keras.layers.Layer):
         activation=self.activation,
         num_layers=self.num_layers,
         dropout=self.dropout_rate if training else 0.0,
+        init_gate_bias=self.init_gate_bias,
+        scope=self.name,
         reuse=self.reuse)
 
 
