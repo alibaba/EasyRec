@@ -49,7 +49,12 @@ class BST(Layer):
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     if self.config.output_all_token_embeddings:
       out_fea = tf.layers.flatten(attention_fea)
-      out_fea = tf.layers.dense(out_fea, max_position)
+      out_fea = tf.layers.dense(
+          out_fea,
+          max_position,
+          activation=hidden_act,
+          name=self.name + '/project',
+          reuse=self.reuse)
     else:
       out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
