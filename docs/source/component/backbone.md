@@ -31,6 +31,7 @@
 组件化EasyRec模型使用一个可配置的主干网络作为核心部件。主干网络是由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图。DAG的输出节点由`concat_blocks`配置项定义，各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层，或者直接链接到最终的预测层。
 
 ![](../../images/component/backbone.jpg)
+![](../../images/component/detail.png)
 
 ## 案例1. Wide&Deep 模型
 
@@ -131,6 +132,8 @@ MovieLens-1M数据集效果对比：
 - DAG的输出节点名由`concat_blocks`配置项指定，配置了多个输出节点时自动执行tensor的concat操作。
 - 如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - 可以为主干网络配置一个可选的`MLP`模块。
+
+![](../../images/component/wide_deep.png)
 
 ## 案例2：DeepFM 模型
 
@@ -319,6 +322,8 @@ MovieLens-1M数据集效果对比：
 
 备注：新实现的`Cross`组件对应了参数量更多的v2版本的DCN，而内置的DCN模型对应了v1版本的DCN。
 
+![](../../images/component/dcn.png)
+
 ## 案例4：DLRM 模型
 
 配置文件：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
@@ -504,6 +509,8 @@ model_config: {
   embedding_regularization: 1e-5
 }
 ```
+
+![](../../images/component/dlrm.png)
 
 Criteo数据集效果对比：
 
@@ -709,7 +716,7 @@ model_config: {
           fields {
             key: 'temperature'
             value: { number_value: 0.2 }
-          }         
+          }
         }
       }
     }
@@ -756,10 +763,10 @@ model_config: {
 
 MovieLens-1M数据集效果：
 
-| Model      | Epoch | AUC    |
-| ---------- | ----- | ------ |
-| MultiTower | 1     | 0.8814 |
-| ContrastiveLearning | 1 | 0.8728 |
+| Model               | Epoch | AUC    |
+| ------------------- | ----- | ------ |
+| MultiTower          | 1     | 0.8814 |
+| ContrastiveLearning | 1     | 0.8728 |
 
 ## 案例8：多目标模型 MMoE
 
@@ -995,15 +1002,17 @@ MovieLens-1M数据集效果：
 
 ## 5. 多目标学习组件
 
-| 类名   | 功能                          | 说明        |
-| ---- | --------------------------- | --------- |
-| MMoE | Multiple Mixture of Experts | MMoE模型的组件 |
+| 类名   | 功能                          | 说明        | 示例 |
+| ---- | --------------------------- | --------- | --------- |
+| MMoE | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](#mmoe) |
 
 ## 6. 辅助损失函数组件
 
-| 类名   | 功能                          | 说明        |
-| ---- | --------------------------- | --------- |
-| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 |
+| 类名            | 功能         | 说明        | 示例 |
+| ------------- | ---------- | --------- | --------- |
+| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 | [案例7](#id7) |
+
+各组件的详细参数请查看"[组件详细参数](component.md)"。
 
 # 如何自定义组件
 

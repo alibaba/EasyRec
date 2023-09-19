@@ -7,6 +7,9 @@ from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 class BST(Layer):
 
@@ -45,8 +48,8 @@ class BST(Layer):
         reuse=self.reuse)
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     if self.config.output_all_token_embeddings:
-      _, seq_len, emb_dim = get_shape_list(attention_fea, 3)
-      out_fea = tf.reshape(attention_fea, [-1, seq_len * emb_dim])
+      out_fea = tf.layers.flatten(attention_fea)
+      out_fea = tf.layers.dense(out_fea, max_position)
     else:
       out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
