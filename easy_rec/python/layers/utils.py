@@ -192,6 +192,8 @@ class Parameter(object):
 
   def __getattr__(self, key):
     if self.is_struct:
+      if key not in self.params:
+        return None
       value = self.params[key]
       if type(value) == struct_pb2.Struct:
         return Parameter(value, True, self._l2_reg)
@@ -232,7 +234,7 @@ class Parameter(object):
       keys = [keys]
     for key in keys:
       if key not in self.params:
-        raise KeyError('%s must be set in params')
+        raise KeyError('%s must be set in params' % key)
 
   def has_field(self, key):
     if self.is_struct:

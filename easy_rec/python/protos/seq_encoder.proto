@@ -25,11 +25,13 @@ message BSTEncoder {
     required bool use_position_embeddings = 9 [default = true];
     // The stddev of the truncated_normal_initializer for initializing all weight matrices
     required float initializer_range = 10 [default = 0.02];
+    // Whether to output all token embedding, if set to false, then only output the first token embedding
+    required bool output_all_token_embeddings = 11 [default = true];
 }
 
 message DINEncoder {
     // din attention layer
-    required DNN attention_dnn = 1;
+    required MLP attention_dnn = 1;
     // whether to keep target item feature
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid

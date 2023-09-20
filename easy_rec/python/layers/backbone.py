@@ -12,6 +12,7 @@ from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.load_class import load_keras_layer
+from easy_rec.python.utils.tf_utils import add_elements_to_collection
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -29,6 +30,9 @@ class Package(object):
     self._dag = DAG()
     self._name_to_blocks = {}
     self.loss_dict = {}
+    self._name_to_layer = {}
+    self.reset_input_config(None)
+    reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
     input_feature_groups = set()
     for block in config.blocks:
       if len(block.inputs) == 0:
@@ -45,13 +49,24 @@ class Package(object):
           raise KeyError(
               '`feature_group_name` should be set for input layer: ' +
               block.name)
-        input_name = one_input.feature_group_name
-        if not input_layer.has_group(input_name):
-          raise KeyError('invalid feature group name: ' + input_name)
-        if input_name in input_feature_groups:
-          logging.warning('input `%s` already exists in other block' %
-                          input_name)
-        input_feature_groups.add(input_name)
+        group = one_input.feature_group_name
+        if not input_layer.has_group(group):
+          raise KeyError('invalid feature group name: ' + group)
+        if group in input_feature_groups:
+          logging.warning('input `%s` already exists in other block' % group)
+        else:
+          input_feature_groups.add(group)
+          input_fn = EnhancedInputLayer(self._input_layer, self._features,
+                                        group, reuse)
+          self._name_to_layer[block.name] = input_fn
+      else:
+        self.define_layers(layer, block, block.name, reuse)
+
+      # sequential layers
+      for i, layer_cnf in enumerate(block.layers):
+        layer = layer_cnf.WhichOneof('layer')
+        name_i = '%s_l%d' % (block.name, i)
+        self.define_layers(layer, layer_cnf, name_i, reuse)
 
     num_groups = len(input_feature_groups)
     num_blocks = len(self._name_to_blocks) - num_groups
@@ -62,35 +77,40 @@ class Package(object):
       layer = block.WhichOneof('layer')
       if layer == 'input_layer':
         continue
-      if block.name in input_feature_groups:
-        raise KeyError('block name can not be one of feature groups:' +
-                       block.name)
+      name = block.name
+      if name in input_feature_groups:
+        raise KeyError('block name can not be one of feature groups:' + name)
       for input_node in block.inputs:
         input_type = input_node.WhichOneof('name')
         if input_type == 'package_name':
           num_pkg_input += 1
+          input_name = getattr(input_node, input_type)
+          self._dag.add_node_if_not_exists(input_name)
+          self._dag.add_edge(input_name, name)
           continue
-        input_name = getattr(input_node, input_type)
-        if input_name in self._name_to_blocks:
-          assert input_name != block.name, 'input name can not equal to block name:' + input_name
-          self._dag.add_edge(input_name, block.name)
-        elif input_name not in input_feature_groups:
-          if input_layer.has_group(input_name):
-            logging.info('adding an input_layer block: ' + input_name)
+        iname = getattr(input_node, input_type)
+        if iname in self._name_to_blocks:
+          assert iname != name, 'input name can not equal to block name:' + iname
+          self._dag.add_edge(iname, name)
+        elif iname not in input_feature_groups:
+          if input_layer.has_group(iname):
+            logging.info('adding an input_layer block: ' + iname)
             new_block = backbone_pb2.Block()
-            new_block.name = input_name
+            new_block.name = iname
             input_cfg = backbone_pb2.Input()
-            input_cfg.feature_group_name = input_name
+            input_cfg.feature_group_name = iname
             new_block.inputs.append(input_cfg)
             new_block.input_layer.CopyFrom(backbone_pb2.InputLayer())
-            self._name_to_blocks[input_name] = new_block
-            self._dag.add_node(input_name)
-            self._dag.add_edge(input_name, block.name)
-            input_feature_groups.add(input_name)
+            self._name_to_blocks[iname] = new_block
+            self._dag.add_node(iname)
+            self._dag.add_edge(iname, name)
+            input_feature_groups.add(iname)
+            fn = EnhancedInputLayer(self._input_layer, self._features, iname)
+            self._name_to_layer[iname] = fn
           else:
             raise KeyError(
                 'invalid input name `%s`, must be the name of either a feature group or an another block'
-                % input_name)
+                % iname)
     num_groups = len(input_feature_groups)
     assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
 
@@ -103,6 +123,26 @@ class Package(object):
 
     Package.__packages[self._config.name] = self
 
+  def define_layers(self, layer, layer_cnf, name, reuse):
+    if layer == 'keras_layer':
+      layer_obj = self.load_keras_layer(layer_cnf.keras_layer, name, reuse)
+      self._name_to_layer[name] = layer_obj
+    elif layer == 'recurrent':
+      for i in range(layer_cnf.recurrent.num_steps):
+        name_i = '%s_%d' % (name, i)
+        keras_layer = layer_cnf.recurrent.keras_layer
+        layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
+        self._name_to_layer[name_i] = layer_obj
+    elif layer == 'repeat':
+      for i in range(layer_cnf.repeat.num_repeat):
+        name_i = '%s_%d' % (name, i)
+        keras_layer = layer_cnf.repeat.keras_layer
+        layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
+        self._name_to_layer[name_i] = layer_obj
+
+  def reset_input_config(self, config):
+    self.input_config = config
+
   def block_input(self, config, block_outputs, training=None):
     inputs = []
     for input_node in config.inputs:
@@ -112,6 +152,8 @@ class Package(object):
         if input_name not in Package.__packages:
           raise KeyError('package name `%s` does not exists' % input_name)
         package = Package.__packages[input_name]
+        if input_node.HasField('reset_input'):
+          package.reset_input_config(input_node.reset_input)
         input_feature = package(training)
         if len(package.loss_dict) > 0:
           self.loss_dict.update(package.loss_dict)
@@ -120,6 +162,8 @@ class Package(object):
       else:
         raise KeyError('input name `%s` does not exists' % input_name)
 
+      if input_node.ignore_input:
+        continue
       if input_node.HasField('input_slice'):
         fn = eval('lambda x: x' + input_node.input_slice.strip())
         input_feature = fn(input_feature)
@@ -139,34 +183,38 @@ class Package(object):
     return output
 
   def __call__(self, is_training, **kwargs):
-    with tf.variable_scope(self._config.name, reuse=tf.AUTO_REUSE):
-      return self.call(is_training)
+    with tf.name_scope(self._config.name):
+      return self.call(is_training, **kwargs)
 
-  def call(self, is_training):
+  def call(self, is_training, **kwargs):
     block_outputs = {}
     blocks = self._dag.topological_sort()
     logging.info(self._config.name + ' topological order: ' + ','.join(blocks))
-    print(self._config.name + ' topological order: ' + ','.join(blocks))
     for block in blocks:
+      if block not in self._name_to_blocks:
+        assert block in Package.__packages, 'invalid block: ' + block
+        continue
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
         logging.info('call sequential %d layers' % len(config.layers))
         output = self.block_input(config, block_outputs, is_training)
-        for layer in config.layers:
-          output = self.call_layer(output, layer, block, is_training)
+        for i, layer in enumerate(config.layers):
+          name_i = '%s_l%d' % (block, i)
+          output = self.call_layer(output, layer, name_i, is_training)
         block_outputs[block] = output
         continue
       # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
-        block_outputs[block] = self.block_input(config, block_outputs,
-                                                is_training)
-      elif layer == 'input_layer':
-        conf = config.input_layer
-        input_fn = EnhancedInputLayer(conf, self._input_layer, self._features)
-        feature_group = config.inputs[0].feature_group_name
-        output = input_fn(feature_group, is_training)
+        output = self.block_input(config, block_outputs, is_training)
         block_outputs[block] = output
+      elif layer == 'input_layer':
+        input_fn = self._name_to_layer[block]
+        input_config = config.input_layer
+        if self.input_config is not None:
+          input_config = self.input_config
+          input_fn.reset(input_config, is_training)
+        block_outputs[block] = input_fn(input_config, is_training)
       else:
         inputs = self.block_input(config, block_outputs, is_training)
         output = self.call_layer(inputs, config, block, is_training)
@@ -185,7 +233,7 @@ class Package(object):
     output = merge_inputs(outputs, msg='backbone')
     return output
 
-  def call_keras_layer(self, layer_conf, inputs, name, training):
+  def load_keras_layer(self, layer_conf, name, reuse=None):
     layer_cls, customize = load_keras_layer(layer_conf.class_name)
     if layer_cls is None:
       raise ValueError('Invalid keras layer class name: ' +
@@ -198,34 +246,63 @@ class Package(object):
       else:
         pb_params = getattr(layer_conf, param_type)
         params = Parameter(pb_params, False, l2_reg=self._l2_reg)
-      layer = layer_cls(params, name=name)
-      kwargs = {'loss_dict': self.loss_dict}
-      return layer(inputs, training=training, **kwargs)
-    else:  # internal keras layer
-      if param_type is None:
-        layer = layer_cls(name=name)
-      else:
-        assert param_type == 'st_params', 'internal keras layer only support st_params'
-        try:
-          kwargs = convert_to_dict(layer_conf.st_params)
-          logging.info('call %s layer with params %r' %
-                       (layer_conf.class_name, kwargs))
-          layer = layer_cls(name=name, **kwargs)
-        except TypeError as e:
-          logging.warning(e)
-          args = map(format_value, layer_conf.st_params.values())
-          logging.info('try to call %s layer with params %r' %
-                       (layer_conf.class_name, args))
-          layer = layer_cls(*args, name=name)
+
+      has_reuse = True
       try:
-        return layer(inputs, training=training)
+        from funcsigs import signature
+        sig = signature(layer_cls.__init__)
+        has_reuse = 'reuse' in sig.parameters.keys()
+      except ImportError:
+        try:
+          from sklearn.externals.funcsigs import signature
+          sig = signature(layer_cls.__init__)
+          has_reuse = 'reuse' in sig.parameters.keys()
+        except ImportError:
+          logging.warning('import funcsigs failed')
+
+      if has_reuse:
+        layer = layer_cls(params, name=name, reuse=reuse)
+      else:
+        layer = layer_cls(params, name=name)
+      return layer, customize
+    elif param_type is None:  # internal keras layer
+      layer = layer_cls(name=name)
+      return layer, customize
+    else:
+      assert param_type == 'st_params', 'internal keras layer only support st_params'
+      try:
+        kwargs = convert_to_dict(layer_conf.st_params)
+        logging.info('call %s layer with params %r' %
+                     (layer_conf.class_name, kwargs))
+        layer = layer_cls(name=name, **kwargs)
+      except TypeError as e:
+        logging.warning(e)
+        args = map(format_value, layer_conf.st_params.values())
+        logging.info('try to call %s layer with params %r' %
+                     (layer_conf.class_name, args))
+        layer = layer_cls(*args, name=name)
+      return layer, customize
+
+  def call_keras_layer(self, inputs, name, training):
+    """Call predefined Keras Layer, which can be reused."""
+    layer, customize = self._name_to_layer[name]
+    cls = layer.__class__.__name__
+    kwargs = {'loss_dict': self.loss_dict}
+    if customize:
+      output = layer(inputs, training=training, **kwargs)
+    else:
+      try:
+        output = layer(inputs, training=training)
+        if cls == 'BatchNormalization':
+          add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       except TypeError:
-        return layer(inputs)
+        output = layer(inputs)
+    return output
 
   def call_layer(self, inputs, config, name, training):
     layer_name = config.WhichOneof('layer')
     if layer_name == 'keras_layer':
-      return self.call_keras_layer(config.keras_layer, inputs, name, training)
+      return self.call_keras_layer(inputs, name, training)
     if layer_name == 'lambda':
       conf = getattr(config, 'lambda')
       fn = eval(conf.expression)
@@ -236,8 +313,7 @@ class Package(object):
       outputs = []
       for i in range(n_loop):
         name_i = '%s_%d' % (name, i)
-        output = self.call_keras_layer(conf.keras_layer, inputs, name_i,
-                                       training)
+        output = self.call_keras_layer(inputs, name_i, training)
         outputs.append(output)
       if len(outputs) == 1:
         return outputs[0]
@@ -254,8 +330,7 @@ class Package(object):
       output = inputs
       for i in range(conf.num_steps):
         name_i = '%s_%d' % (name, i)
-        layer = conf.keras_layer
-        output_i = self.call_keras_layer(layer, output, name_i, training)
+        output_i = self.call_keras_layer(output, name_i, training)
         if fixed_input_index >= 0:
           j = 0
           for idx in range(len(output)):

@@ -9,20 +9,23 @@
 | hidden_units            | list |            | 各隐层单元数                      |
 | dropout_ratio           | list |            | 各隐层dropout rate             |
 | activation              | str  | relu       | 每层的激活函数                     |
-| use_bias                | bool | true       | 是否使用偏置项                     |
 | use_bn                  | bool | true       | 是否使用batch normalization     |
 | use_final_bn            | bool | true       | 最后一层是否使用batch normalization |
+| use_bias                | bool | false      | 是否使用偏置项                     |
+| use_final_bias          | bool | false      | 最后一层是否使用偏置项                 |
 | final_activation        | str  | relu       | 最后一层的激活函数                   |
 | initializer             | str  | he_uniform | 权重初始化方法，参考keras Dense layer |
 | use_bn_after_activation | bool | false      | 是否在激活函数之后做batch norm        |
 
 - HighWay
 
-| 参数           | 类型     | 默认值  | 说明           |
-| ------------ | ------ | ---- | ------------ |
-| emb_size     | uint32 |      | embedding维度  |
-| activation   | str    | gelu | 激活函数         |
-| dropout_rate | float  |      | dropout rate |
+| 参数             | 类型     | 默认值  | 说明           |
+| -------------- | ------ | ---- | ------------ |
+| emb_size       | uint32 | None | embedding维度  |
+| activation     | str    | gelu | 激活函数         |
+| dropout_rate   | float  | 0    | dropout rate |
+| init_gate_bias | float  | -3.0 | 门控网络的bias初始值 |
+| num_layers     | int    | 1    | 网络层数         |
 
 - PeriodicEmbedding
 
@@ -106,3 +109,14 @@
 | num_task   | uint32 |     | 任务数          |
 | num_expert | uint32 | 0   | expert数量     |
 | expert_mlp | MLP    | 可选  | expert的mlp参数 |
+
+## 6. 计算辅助损失函数的组件
+
+- AuxiliaryLoss
+
+| 参数          | 类型     | 默认值 | 说明                          |
+| ----------- | ------ | --- | --------------------------- |
+| loss_type   | string |     | 损失函数类型，包括：l2_loss, info_nce |
+| loss_weight | float  | 1.0 | 损失函数权重                      |
+| temperature | float  | 0.1 | info_nce loss 的参数           |
+| 其他          |        |     | 根据loss_type决定               |

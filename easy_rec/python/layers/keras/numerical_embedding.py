@@ -39,7 +39,13 @@ class NLinear(object):
           assert m(x).shape == (batch_size, n_features, d_embedding_out)
   """
 
-  def __init__(self, n_tokens, d_in, d_out, bias=True, scope='nd_linear'):
+  def __init__(self,
+               n_tokens,
+               d_in,
+               d_out,
+               bias=True,
+               scope='nd_linear',
+               reuse=None):
     """Init with input shapes.
 
     Args:
@@ -48,8 +54,9 @@ class NLinear(object):
         d_out: the output dimension
         bias: indicates if the underlying linear layers have biases
         scope: variable scope name
+        reuse: whether to reuse variables
     """
-    with tf.variable_scope(scope):
+    with tf.variable_scope(scope, reuse=reuse):
       self.weight = tf.get_variable(
           'weights', [1, n_tokens, d_in, d_out], dtype=tf.float32)
       if bias:
@@ -99,8 +106,9 @@ class PeriodicEmbedding(tf.keras.layers.Layer):
     output_tensor_list: whether to output the list of embedding
   """
 
-  def __init__(self, params, name='periodic_embedding', **kwargs):
+  def __init__(self, params, name='periodic_embedding', reuse=None, **kwargs):
     super(PeriodicEmbedding, self).__init__(name, **kwargs)
+    self.reuse = reuse
     params.check_required(['embedding_dim', 'sigma'])
     self.embedding_dim = int(params.embedding_dim)
     if self.embedding_dim % 2:
@@ -118,7 +126,7 @@ class PeriodicEmbedding(tf.keras.layers.Layer):
 
     num_features = int(inputs.shape[-1])
     emb_dim = self.embedding_dim // 2
-    with tf.variable_scope(self.name):
+    with tf.variable_scope(self.name, reuse=self.reuse):
       c = tf.get_variable(
           'coefficients',
           shape=[1, num_features, emb_dim],
@@ -130,7 +138,12 @@ class PeriodicEmbedding(tf.keras.layers.Layer):
 
       dim = self.embedding_dim
       if self.add_linear_layer:
-        linear = NLinear(num_features, dim, dim)
+        linear = NLinear(
+            num_features,
+            dim,
+            dim,
+            scope='%s_nd_linear' % self.name,
+            reuse=self.reuse)
         emb = linear(emb)
         act = get_activation(self.linear_activation)
         if callable(act):
@@ -150,8 +163,9 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
   Refer: https://arxiv.org/pdf/2012.08986v2.pdf
   """
 
-  def __init__(self, params, name='auto_dis_embedding', **kwargs):
+  def __init__(self, params, name='auto_dis_embedding', reuse=None, **kwargs):
     super(AutoDisEmbedding, self).__init__(name, **kwargs)
+    self.reuse = reuse
     params.check_required(['embedding_dim', 'num_bins', 'temperature'])
     self.emb_dim = int(params.embedding_dim)
     self.num_bins = int(params.num_bins)
@@ -165,7 +179,7 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
       raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
 
     num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.name):
+    with tf.variable_scope(self.name, reuse=self.reuse):
       meta_emb = tf.get_variable(
           'meta_embedding', shape=[num_features, self.num_bins, self.emb_dim])
       w = tf.get_variable('project_w', shape=[1, num_features, self.num_bins])

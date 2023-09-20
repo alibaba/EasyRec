@@ -43,11 +43,14 @@ class MaskBlock(tf.keras.layers.Layer):
           'Need one of reduction factor or aggregation size for MaskBlock.')
 
     if self.config.input_layer_norm:
-      input_name = net.name.replace(':', '_')
-      net = layer_norm(net, reuse=tf.AUTO_REUSE, name='ln_' + input_name)
+      idx = self.name.rfind('_')
+      if idx > 0 and self.name[idx + 1:].isdigit():
+        input_name = self.name[:idx]
+      else:
+        input_name = self.name
+      net = layer_norm(net, reuse=tf.AUTO_REUSE, name=input_name + '/input_ln')
 
-    # initializer = tf.initializers.variance_scaling()
-    initializer = tf.glorot_uniform_initializer()
+    initializer = tf.initializers.variance_scaling()
 
     if self._projection_dim is None:
       mask = tf.layers.dense(
@@ -62,7 +65,7 @@ class MaskBlock(tf.keras.layers.Layer):
       u = tf.layers.dense(
           mask_input,
           self._projection_dim,
-          kernel_initializer=initializer,
+          kernel_initializer=tf.glorot_normal_initializer(),
           kernel_regularizer=self.l2_reg,
           use_bias=False,
           name='%s/prj_u' % self.name,
@@ -97,14 +100,15 @@ class MaskNet(tf.keras.layers.Layer):
   Refer: https://arxiv.org/pdf/2102.07619.pdf
   """
 
-  def __init__(self, params, name='mask_net', **kwargs):
+  def __init__(self, params, name='mask_net', reuse=None, **kwargs):
     super(MaskNet, self).__init__(name, **kwargs)
+    self.reuse = reuse
     self.params = params
     self.config = params.get_pb_config()
     if self.config.HasField('mlp'):
       p = Parameter.make_from_pb(self.config.mlp)
       p.l2_regularizer = params.l2_regularizer
-      self.mlp = MLP(p, name='%s/mlp' % name)
+      self.mlp = MLP(p, name='%s/mlp' % name, reuse=reuse)
     else:
       self.mlp = None
 
@@ -114,7 +118,8 @@ class MaskNet(tf.keras.layers.Layer):
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
         params.l2_regularizer = self.params.l2_regularizer
-        mask_layer = MaskBlock(params, name='%s/block_%d' % (self.name, i))
+        mask_layer = MaskBlock(
+            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
         mask_outputs.append(mask_layer((inputs, inputs)))
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
 
@@ -128,7 +133,8 @@ class MaskNet(tf.keras.layers.Layer):
       for i, block_conf in enumerate(self.config.mask_blocks):
         params = Parameter.make_from_pb(block_conf)
         params.l2_regularizer = self.params.l2_regularizer
-        mask_layer = MaskBlock(params, name='%s/block_%d' % (self.name, i))
+        mask_layer = MaskBlock(
+            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
         net = mask_layer((net, inputs))
 
       if self.mlp is not None:

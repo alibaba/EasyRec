@@ -56,7 +56,7 @@ class DAG(object):
     if is_valid:
       graph[ind_node].add(dep_node)
     else:
-      raise Exception()
+      raise Exception('invalid DAG')
 
   def delete_edge(self, ind_node, dep_node, graph=None):
     """Delete an edge from the graph."""

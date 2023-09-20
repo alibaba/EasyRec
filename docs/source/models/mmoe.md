@@ -7,6 +7,8 @@
 
 ### 配置说明
 
+#### 1. 内置模型
+
 ```protobuf
 model_config {
   model_class: "MMoE"
@@ -74,7 +76,7 @@ MMoE模型每个塔的输出名为："logits\_" / "probs\_" / "y\_" + tower_name
 其中，logits/probs/y对应: sigmoid之前的值/概率/回归模型的预测值
 MMoE模型每个塔的指标为：指标名+ "\_" + tower_name
 
-### 组件化主干网络为底座
+#### 2. 组件化模型
 
 ```protobuf
 model_config {
@@ -162,23 +164,19 @@ model_config {
 该案例添加了一个额外的`SENET`层，为了展示以组件化方式搭建模型的灵活性。
 
 - model_name: 任意自定义字符串，仅有注释作用
-
 - model_class: 'MultiTaskModel', 不需要修改, 通过组件化方式搭建的多目标排序模型都叫这个名字
-
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
-
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - senet: SENet模型的参数，详见[参考文档](../component/component.md#id3)
-
 - 其余与MMoE内置参数相同
 
 ### 示例Config
 
-- [MMoE_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mmoe.config)
-- [MMoE_Backbone_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/mmoe_backbone_on_taobao.config)
+1. 内置模型: [MMoE_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/mmoe.config)
+1. 组件化模型: [MMoE_Backbone_demo.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/mmoe_backbone_on_taobao.config)
 
 ### 参考论文
 

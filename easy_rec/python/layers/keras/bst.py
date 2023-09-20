@@ -7,12 +7,16 @@ from easy_rec.python.layers import multihead_cross_attention
 from easy_rec.python.utils.activation import get_activation
 from easy_rec.python.utils.shape_utils import get_shape_list
 
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
+
 
 class BST(Layer):
 
-  def __init__(self, params, name='bst', l2_reg=None, **kwargs):
+  def __init__(self, params, name='bst', reuse=None, **kwargs):
     super(BST, self).__init__(name=name, **kwargs)
-    self.l2_reg = l2_reg
+    self.reuse = reuse
+    self.l2_reg = params.l2_regularizer
     self.config = params.get_pb_config()
 
   def encode(self, seq_input, max_position):
@@ -20,7 +24,7 @@ class BST(Layer):
         seq_input,
         position_embedding_name=self.name + '/position_embeddings',
         max_position_embeddings=max_position,
-        reuse_position_embedding=tf.AUTO_REUSE)
+        reuse_position_embedding=self.reuse)
 
     n = tf.count_nonzero(seq_input, axis=-1)
     seq_mask = tf.cast(n > 0, tf.int32)
@@ -41,9 +45,13 @@ class BST(Layer):
         attention_probs_dropout_prob=self.config.attention_probs_dropout_prob,
         initializer_range=self.config.initializer_range,
         name=self.name + '/transformer',
-        reuse=tf.AUTO_REUSE)
+        reuse=self.reuse)
     # attention_fea shape: [batch_size, seq_length, hidden_size]
-    out_fea = attention_fea[:, 0, :]  # target feature
+    if self.config.output_all_token_embeddings:
+      out_fea = tf.reshape(attention_fea,
+                           [-1, max_position * self.config.hidden_size])
+    else:
+      out_fea = attention_fea[:, 0, :]  # target feature
     print('bst output shape:', out_fea.shape)
     return out_fea
 
@@ -58,17 +66,23 @@ class BST(Layer):
 
     max_position = self.config.max_position_embeddings
     # max_seq_len: the max sequence length in current mini-batch, all sequences are padded to this length
-    batch_size, max_seq_len, _ = get_shape_list(seq_features[0][0], 3)
+    batch_size, cur_batch_max_seq_len, _ = get_shape_list(seq_features[0][0], 3)
     valid_len = tf.assert_less_equal(
-        max_seq_len,
+        cur_batch_max_seq_len,
         max_position,
         message='sequence length is greater than `max_position_embeddings`:' +
-        str(max_position) + ' in feature group:' + self.name)
+        str(max_position) + ' in feature group:' + self.name +
+        ', you should set `max_seq_len` in sequence feature configs')
     with tf.control_dependencies([valid_len]):
       # seq_input: [batch_size, seq_len, embed_size]
       seq_input = tf.concat(seq_embeds, axis=-1)
-    if len(target_features) > 0:
-      max_position += 1
+
+    if self.config.output_all_token_embeddings:
+      seq_input = tf.cond(
+          tf.constant(max_position) > cur_batch_max_seq_len, lambda: tf.pad(
+              seq_input, [[0, 0], [0, max_position - cur_batch_max_seq_len],
+                          [0, 0]], 'CONSTANT'),
+          lambda: tf.slice(seq_input, [0, 0, 0], [-1, max_position, -1]))
 
     seq_embed_size = seq_input.shape.as_list()[-1]
     if seq_embed_size != self.config.hidden_size:
@@ -76,7 +90,9 @@ class BST(Layer):
           seq_input,
           self.config.hidden_size,
           activation=tf.nn.relu,
-          kernel_regularizer=self.l2_reg)
+          kernel_regularizer=self.l2_reg,
+          name=self.name + '/seq_project',
+          reuse=self.reuse)
 
     if len(target_features) > 0:
       target_feature = tf.concat(target_features, axis=-1)
@@ -88,10 +104,13 @@ class BST(Layer):
             target_feature,
             self.config.hidden_size,
             activation=tf.nn.relu,
-            kernel_regularizer=self.l2_reg)
+            kernel_regularizer=self.l2_reg,
+            name=self.name + '/target_project',
+            reuse=self.reuse)
       # target_feature: [batch_size, 1, embed_size]
       target_feature = tf.expand_dims(target_feature, 1)
       # seq_input: [batch_size, seq_len+1, embed_size]
       seq_input = tf.concat([target_feature, seq_input], axis=1)
+      max_position += 1
 
     return self.encode(seq_input, max_position)

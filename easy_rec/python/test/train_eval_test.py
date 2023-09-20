@@ -342,9 +342,19 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/din_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_din_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/din_backbone_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_bst(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/bst_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_bst_backbone(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/bst_backbone_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dcn(self):
@@ -380,6 +390,16 @@ class TrainEvalTest(tf.test.TestCase):
   def test_uniter(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/uniter_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_highway(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/highway_on_movielens.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_cdn(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/cdn_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_uniter_only_text_feature(self):
@@ -813,13 +833,13 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_autodis_embedding(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_criteo_with_autodis.config',
         self._test_dir)
     self.assertTrue(self._success)
 
   def test_periodic_embedding(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_criteo_with_periodic.config',
         self._test_dir)
     self.assertTrue(self._success)

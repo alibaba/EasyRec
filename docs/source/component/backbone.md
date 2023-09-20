@@ -1,16 +1,22 @@
 # 为何需要组件化
 
-## 1. 依靠动态可插拔的公共组件，方便为现有模型添加新特性。
+## 1. 灵活搭建模型，多思即所得
 
-过去一个新开发的公共可选模块，比如`Dense Feature Embedding Layer`、 `SENet`添加到现有模型中，需要修改所有模型的代码才能用上新的特性，过程繁琐易出错。随着模型数量和公共模块数量的增加，为所有模型集成所有公共可选模块将产生组合爆炸的不可控局面。组件化实现了底层公共模块与上层模型的解耦。
+依靠动态可插拔的公共组件，以“搭积木”的方式快速构建想要的模型结构。框架提供了"胶水"语法，实现组件间的无缝衔接。
 
-## 2. 通过重组已有组件，实现“搭积木”式新模型开发。
+## 2. 实现组件复用，一次开发到处可用
 
-很多模型之所以被称之为一个新的模型，是因为引入了一个或多个特殊的子模块（组件），然而这些子模块并不仅仅只能用在该模型中，通过组合各个不同的子模块可以轻易组装一个新的模型。组件化EasyRec支持通过配置化的方式搭建新的模型。
+很多模型之所以被称之为一个新的模型，是因为引入了一个或多个特殊的子模块（组件），然而这些子模块并不仅仅只能用在该模型中，通过组合各个不同的子模块可以轻易组装一个新的模型。
 
-## 3. 添加新的特性将变得更加容易。
+过去一个新开发的公共可选模块，比如`Dense Feature Embedding Layer`、 `SENet`添加到现有模型中，需要修改所有模型的代码才能用上新的特性，过程繁琐易出错。随着模型数量和公共模块数量的增加，为所有模型集成所有公共可选模块将产生组合爆炸的不可控局面。
 
-现在我们只需要为新的特征开发一个Keras Layer类，并在指定package中添加import语句，框架就能自动识别并添加到组件库中，不需要额外操作。开发一个新的模型，只需要实现特殊的新模块，其余部分可以通过组件库中的已有组件拼装。新人不再需要熟悉EasyRec的方方面面就可以为框架添加功能，开发效率大大提高。
+组件化实现了底层公共模块与上层模型的解耦。
+
+## 3. 提高实验迭代效率，好的想法值得快速验证
+
+为已有模型添加新特性将变得十分方便。开发一个新的模型，只需要实现特殊的新模块，其余部分可以通过组件库中的已有组件拼装。
+
+现在我们只需要为新的特征开发一个Keras Layer类，并在指定package中添加import语句，框架就能自动识别并添加到组件库中，不需要额外操作。新人不再需要熟悉EasyRec的方方面面就可以为框架添加功能，开发效率大大提高。
 
 # 组件化的目标
 
@@ -25,6 +31,7 @@
 组件化EasyRec模型使用一个可配置的主干网络作为核心部件。主干网络是由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图。DAG的输出节点由`concat_blocks`配置项定义，各输出`组件块`的输出tensor拼接之后输入给一个可选的顶部MLP层，或者直接链接到最终的预测层。
 
 ![](../../images/component/backbone.jpg)
+![](../../images/component/detail.png)
 
 ## 案例1. Wide&Deep 模型
 
@@ -125,6 +132,8 @@ MovieLens-1M数据集效果对比：
 - DAG的输出节点名由`concat_blocks`配置项指定，配置了多个输出节点时自动执行tensor的concat操作。
 - 如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - 可以为主干网络配置一个可选的`MLP`模块。
+
+![](../../images/component/wide_deep.png)
 
 ## 案例2：DeepFM 模型
 
@@ -313,6 +322,8 @@ MovieLens-1M数据集效果对比：
 
 备注：新实现的`Cross`组件对应了参数量更多的v2版本的DCN，而内置的DCN模型对应了v1版本的DCN。
 
+![](../../images/component/dcn.png)
+
 ## 案例4：DLRM 模型
 
 配置文件：[dlrm_backbone_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_backbone_on_criteo.config)
@@ -499,6 +510,8 @@ model_config: {
 }
 ```
 
+![](../../images/component/dlrm.png)
+
 Criteo数据集效果对比：
 
 | Model           | Epoch | AUC     |
@@ -616,17 +629,17 @@ MovieLens-1M数据集效果：
 | ----- | ----- | ------ |
 | MLP   | 1     | 0.8616 |
 
-## 案例7: 使用组件包(Multi-Tower)
+## 案例7：对比学习（使用组件包）
 
-配置文件：[multi_tower_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/multi_tower_on_movielens.config)
+配置文件：[contrastive_learning_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/contrastive_learning_on_movielens.config)
 
-该案例为了演示`block package`的使用，`block package`可以打包一组`block`，构成一个可被复用的子网络，即被打包的子网络可以以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的`block`是不能被多次调用的（但是可以多次复用结果）。
+该案例为了演示`block package`的使用，`block package`可以打包一组`block`，构成一个可被复用的子网络，即被打包的子网络以共享参数的方式在同一个模型中调用多次。与之相反，没有打包的`block`是不能被多次调用的（但是可以多次复用结果）。
 
 `block package`主要为自监督学习、对比学习等场景设计。
 
 ```protobuf
 model_config: {
-  model_name: "multi tower"
+  model_name: "ContrastiveLearning"
   model_class: "RankModel"
   feature_groups: {
     group_name: 'user'
@@ -644,27 +657,33 @@ model_config: {
     wide_deep: DEEP
   }
   backbone {
-    packages {
+    blocks {
       name: 'user_tower'
-      blocks {
-        name: 'mlp'
-        inputs {
-          feature_group_name: 'user'
-        }
-        keras_layer {
-          class_name: 'MLP'
-          mlp {
-            hidden_units: [256, 128]
-          }
+      inputs {
+        feature_group_name: 'user'
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [256, 128]
         }
       }
     }
     packages {
       name: 'item_tower'
       blocks {
-        name: 'mlp'
+        name: 'item'
         inputs {
           feature_group_name: 'item'
+        }
+        input_layer {
+          dropout_rate: 0.2
+        }
+      }
+      blocks {
+        name: 'item_encoder'
+        inputs {
+          block_name: 'item'
         }
         keras_layer {
           class_name: 'MLP'
@@ -675,22 +694,53 @@ model_config: {
       }
     }
     blocks {
-      name: 'top_mlp'
+      name: 'contrastive_learning'
       inputs {
-        package_name: 'user_tower'
+        package_name: 'item_tower'
       }
       inputs {
         package_name: 'item_tower'
       }
-      layers {
-        keras_layer {
-          class_name: 'MLP'
-          mlp {
-            hidden_units: [128, 64]
+      merge_inputs_into_list: true
+      keras_layer {
+        class_name: 'AuxiliaryLoss'
+        st_params {
+          fields {
+            key: 'loss_type'
+            value: { string_value: 'info_nce' }
+          }
+          fields {
+            key: 'loss_weight'
+            value: { number_value: 0.1 }
+          }
+          fields {
+            key: 'temperature'
+            value: { number_value: 0.2 }
           }
         }
       }
     }
+    blocks {
+      name: 'top_mlp'
+      inputs {
+        block_name: 'contrastive_learning'
+        ignore_input: true
+      }
+      inputs {
+        block_name: 'user_tower'
+      }
+      inputs {
+        package_name: 'item_tower'
+        reset_input {}
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: [128, 64]
+        }
+      }
+    }
+    concat_blocks: 'top_mlp'
   }
   model_params {
     l2_regularization: 1e-4
@@ -699,13 +749,24 @@ model_config: {
 }
 ```
 
-注意该案例没有为package和backbone配置`concat_blocks`，框架会自动设置为DAG的所有叶子节点。
+`AuxiliaryLoss`是用来计算对比学习损失的layer，详见'[组件详细参数](component.md#id7)'。
+
+额外的input配置:
+
+- ignore_input: true 表示忽略当前这路的输入；添加该路输入只是为了控制拓扑结构的执行顺序
+- reset_input: 重置本次`package`调用时input_layer的配置项；可以配置与`package`定义时不同的参数
+
+注意这个案例没有为名为`item_tower`的package配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
+
+在当前案例中，`item_tower`被调用了3次，前2次调用时输入层dropout配置生效，用于计算对比学习损失函数；最后1次调用时重置了输入层配置，不执行dropout。
+主模型的`item_tower`与对比学习辅助任务中的`item_tower`共享参数；辅助任务中的`item_tower`通过对输入特征embedding做dropout来生成augmented sample；主模型的`item_tower`不执行数据增强操作。
 
 MovieLens-1M数据集效果：
 
-| Model      | Epoch | AUC    |
-| ---------- | ----- | ------ |
-| MultiTower | 1     | 0.8814 |
+| Model               | Epoch | AUC    |
+| ------------------- | ----- | ------ |
+| MultiTower          | 1     | 0.8814 |
+| ContrastiveLearning | 1     | 0.8728 |
 
 ## 案例8：多目标模型 MMoE
 
@@ -883,7 +944,7 @@ DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_d
 
 这个案例同样没有为backbone配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
 
-## 其他案例（FiBiNet & MaskNet）
+## 更多案例
 
 两个新的模型：
 
@@ -897,48 +958,67 @@ MovieLens-1M数据集效果：
 | MaskNet | 1     | 0.8872 |
 | FibiNet | 1     | 0.8893 |
 
+序列模型：
+
+- DIN模型配置文件：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
+- BST模型配置文件：[BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
+
+其他模型：
+
+- Highway Network: [highway network](../models/highway.md)
+
 # 组件库介绍
 
 ## 1.基础组件
 
-| 类名                | 功能     | 说明                                      |
-| ----------------- | ------ | --------------------------------------- |
-| MLP               | 多层感知机  | 支持配置激活函数、初始化方法、Dropout、是否使用BN等          |
-| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调，来自Highway Network |
-| Gate              | 门控     | 多个输入的加权求和                               |
-| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                           |
-| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                           |
+| 类名                | 功能     | 说明                              | 示例                                                                                                                                       |
+| ----------------- | ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| MLP               | 多层感知机  | 可定制激活函数、initializer、Dropout、BN等 | [案例1](#wide-deep)                                                                                                                        |
+| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调           | [highway network](../models/highway.html)                                                                                                |
+| Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](#dlrm-embedding)                                                                                                                   |
+| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+
+**备注**：Gate组件的第一个输入是权重向量，后面的输入拼凑成一个列表，权重向量的长度应等于列表的长度
 
 ## 2.特征交叉组件
 
-| 类名             | 功能               | 说明           |
-| -------------- | ---------------- | ------------ |
-| FM             | 二阶交叉             | DeepFM模型的组件  |
-| DotInteraction | 二阶内积交叉           | DLRM模型的组件    |
-| Cross          | bit-wise交叉       | DCN v2模型的组件  |
-| BiLinear       | 双线性              | FiBiNet模型的组件 |
-| FiBiNet        | SENet & BiLinear | FiBiNet模型    |
+| 类名             | 功能               | 说明           | 示例                                                                                                                         |
+| -------------- | ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](#deepfm)                                                                                                             |
+| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](#dlrm)                                                                                                               |
+| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](#dcn)                                                                                                                |
+| BiLinear       | 双线性              | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| FiBiNet        | SENet & BiLinear | FiBiNet模型    | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
 
 ## 3.特征重要度学习组件
 
-| 类名        | 功能                | 说明           |
-| --------- | ----------------- | ------------ |
-| SENet     | 建模特征重要度           | FiBiNet模型的组件 |
-| MaskBlock | 建模特征重要度           | MaskNet模型的组件 |
-| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    |
+| 类名        | 功能                | 说明           | 示例                                                    |
+| --------- | ----------------- | ------------ | ----------------------------------------------------- |
+| SENet     | 建模特征重要度           | FiBiNet模型的组件 | [MMoE](../models/mmoe.html#id4)                       |
+| MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [Cross Decoupling Network](../models/cdn.html#id2)    |
+| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [DBMTL](../models/dbmtl.html#dbmtl-based-on-backbone) |
 
 ## 4. 序列特征编码组件
 
-| 类名  | 功能               | 说明       |
-| --- | ---------------- | -------- |
-| DIN | target attention | DIN模型的组件 |
-| BST | transformer      | BST模型的组件 |
+| 类名  | 功能               | 说明       | 示例                                                                                                                       |
+| --- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| DIN | target attention | DIN模型的组件 | [DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config) |
+| BST | transformer      | BST模型的组件 | [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config) |
 
 ## 5. 多目标学习组件
 
-| 类名   | 功能                          | 说明        |
-| ---- | --------------------------- | --------- |
-| MMoE | Multiple Mixture of Experts | MMoE模型的组件 |
+| 类名   | 功能                          | 说明        | 示例           |
+| ---- | --------------------------- | --------- | ------------ |
+| MMoE | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](#mmoe) |
+
+## 6. 辅助损失函数组件
+
+| 类名            | 功能         | 说明        | 示例          |
+| ------------- | ---------- | --------- | ----------- |
+| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 | [案例7](#id7) |
+
+各组件的详细参数请查看"[组件详细参数](component.md)"。
 
 # 如何自定义组件
 
@@ -947,7 +1027,7 @@ MovieLens-1M数据集效果：
 定义一个继承[`tf.keras.layers.Layer`](https://keras.io/api/layers/base_layer/)的组件类，至少实现两个方法：`__init__`、`call`。
 
 ```python
-def __init__(self, params, name='xxx', **kwargs):
+def __init__(self, params, name='xxx', reuse=None, **kwargs):
   pass
 def call(self, inputs, training=None, **kwargs):
   pass
@@ -971,6 +1051,13 @@ def call(self, inputs, training=None, **kwargs):
 【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
 再把参数注册到定义在`easy_rec/python/protos/keras_layer.proto`的`KerasLayer.params`消息体中。
 
+`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
+尽量在`__init__`方法中声明需要依赖的keras layer对象；仅在必要时才使用`tf.layers.*`函数，且需要传递reuse参数。
+
+```{tips}
+提示：实现Layer对象时尽量使用原生的 tf.keras.layers.* 对象，且全部在 __init__ 方法中预先声明好。
+```
+
 `call`方法用来实现主要的模块逻辑，其`inputs`参数可以是一个tenor，或者是一个tensor列表。可选的`training`参数用来标识当前是否是训练模型。
 
 最后也是最重要的一点，新开发的Layer需要在`easy_rec.python.layers.keras.__init__.py`文件中导出才能被框架识别为组件库中的一员。例如要导出`blocks.py`文件中的`MLP`类，则需要添加：`from .blocks import MLP`。
@@ -990,8 +1077,9 @@ class FM(tf.keras.layers.Layer):
     - 2D tensor with shape: ``(batch_size, 1)``.
   """
 
-  def __init__(self, params, name='fm', **kwargs):
+  def __init__(self, params, name='fm', reuse=None, **kwargs):
     super(FM, self).__init__(name, **kwargs)
+    self.reuse = reuse
     self.use_variant = params.get_or_default('use_variant', False)
 
   def call(self, inputs, **kwargs):
