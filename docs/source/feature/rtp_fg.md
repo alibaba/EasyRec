@@ -36,7 +36,7 @@
 
 - Feature配置说明：
 
-  - [id_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/IdFeature.pdf)
+  - [id_feature](./fg_docs/IdFeature.md)
 
     - is_multi: id_feature是否是多值属性
 
@@ -46,7 +46,7 @@
 
       - 多值分隔符使用chr(29)\[ctrl+v ctrl+\], 即"\\u001D".
 
-      - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
+      - [多值类型说明](./fg_docs/mutiValues.md)
 
     - vocab_file: 词典文件路径，根据词典将对应的输入映射成ID.
 
@@ -62,7 +62,7 @@
 
     - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
 
-  - [raw_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/RawFeature.pdf)
+  - [raw_feature](./fg_docs/RawFeature.md)
 
     - bucketize_boundaries: 会生成离散化的结果, 在生成EasyRec config的时候:
 
@@ -94,10 +94,10 @@
       - 该选项对生成数据有影响.
       - 该选项对生成EasyRec config也有影响, 对应到[feature_config.raw_input_dim](../proto.html#protos.FeatureConfig)
 
-  - [combo_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+  - [combo_feature](./fg_docs/ComboFeature.md)
 
     - 需要设置embedding_dimension和hash_bucket_size.
-      方法一：在fg中生成combo特征，见[ComboFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/ComboFeature.pdf)
+      方法一：在fg中生成combo特征，见[combo_feature](./fg_docs/ComboFeature.md)
 
     ```
     {"expression" : ["user:user_id", "user:occupation"], "feature_name" : "combo__occupation_age_level", "feature_type" : "combo_feature", "hash_bucket_size": 10, "embedding_dim": 16}
@@ -124,11 +124,11 @@
     - feature_names: 除当前特征外，参与combo的特征，至少一项.
     - combiner, hash_bucket_size, embedding_dim 配置与上述一致.
 
-  - [lookup_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/LookupFeature.pdf)
+  - [lookup_feature](./fg_docs/LookupFeature.md)
 
     - 单层查找, 根据id(如item_id, item_category_id等)查找对应的value.
 
-  - [match_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/MatchFeature.pdf)
+  - [match_feature](./fg_docs/MatchFeature.md)
 
     - 双层查找, 根据category和item_id查找value.
 
@@ -140,7 +140,7 @@
 
     - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
-  - [sequence_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/SequenceFeature.pdf)
+  - [sequence_feature](./fg_docs/SequenceFeature.md)
 
     - 序列特征用于对用户行为建模, 通常应用于DIN和Transformer模型当中
 
@@ -158,7 +158,7 @@
 
     - Note: item_seq(如item的图片列表)目前还不支持
 
-  - [overlap_feature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
+  - [overlap_feature](./fg_docs/OverLapFeature.md)
 
   - 针对EasyRec的扩展字段:
 
@@ -223,16 +223,11 @@
 | ----- | ------- | ------- | --------------- | --------------------------------------------------------------- | -------------------------------------------------- |
 | 0     | 122017  | 389957  |                 | tag_category_list:4589,new_user_class_level:,...,user_id:122017 | adgroup_id:539227,pid:430548_1007,...,cate_id:4281 |
 
-```sql
--- taobao_train_input.txt oss://easyrec/data/rtp/
--- wget http://easyrec.oss-cn-beijing.aliyuncs.com/data/rtp/taobao_train_input.txt
--- wget http://easyrec.oss-cn-beijing.aliyuncs.com/data/rtp/taobao_test_input.txt
-drop table if exists taobao_train_input;
-create table if not exists taobao_train_input(`label` BIGINT,user_id STRING,item_id STRING,context_feature STRING,user_feature STRING,item_feature STRING);
-tunnel upload taobao_train_input.txt taobao_train_input -fd=';';
-drop table if exists taobao_test_input;
-create table if not exists taobao_test_input(`label` BIGINT,user_id STRING,item_id STRING,context_feature STRING,user_feature STRING,item_feature STRING);
-tunnel upload taobao_test_input.txt taobao_test_input -fd=';';
+提供了在任何项目下都可以访问两张样例表 
+
+```
+pai_online_project.taobao_train_input 
+pai_online_project.taobao_test_input
 ```
 
 - 稠密格式的数据，每个特征是单独的一列，如：
@@ -242,7 +237,7 @@ tunnel upload taobao_test_input.txt taobao_test_input -fd=';';
 | 1     | 122017  | 389957  | 4589              |                      | 0         |
 
 ```sql
-  drop table if exists taobao_train_input;
+  drop table if exists taobao_train_input_dense;
   create table taobao_train_input_dense(label bigint, user_id string, item_id string, tag_category_list bigint, ...);
 ```
 
@@ -267,10 +262,14 @@ set odps.sql.counters.dynamic.limit=true;
 
 drop table if exists taobao_fg_train_out;
 create table taobao_fg_train_out(label bigint, user_id string, item_id string,  features string);
-jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_train_input -o taobao_fg_train_out -f fg.json;
+-- dataworks内运行，注意需要带有resource_reference这一行
+--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"}
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i pai_online_project.taobao_train_input -o taobao_fg_train_out -f fg.json;
 drop table if exists taobao_fg_test_out;
 create table taobao_fg_test_out(label bigint, user_id string, item_id string,  features string);
-jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i taobao_test_input -o taobao_fg_test_out -f fg.json;
+-- dataworks内运行，注意需要带有resource_reference这一行
+--@resource_reference{"fg_on_odps-1.3.59-jar-with-dependencies.jar"}
+jar -resources fg_on_odps-1.3.59-jar-with-dependencies.jar,fg.json -classpath fg_on_odps-1.3.59-jar-with-dependencies.jar com.taobao.fg_on_odps.EasyRecFGMapper -i pai_online_project.taobao_test_input -o taobao_fg_test_out -f fg.json;
 
 --下载查看数据(可选)
 tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
@@ -281,6 +280,7 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
     - 支持分区表，分区表可以指定partition，也可以不指定partition，不指定partition时使用所有partition
     - **分区格式示例:** my_table/day=20201010,sex=male
     - 可以用多个-i指定**多个表的多个分区**
+    - 支持添加project，示例：project.table/ds=xxx
   - -o, 输出表，如果是分区表，一定要指定分区，只能指定一个输出表
   - -f, fg.json
   - -m, mapper memory的大小，默认可以不设置
