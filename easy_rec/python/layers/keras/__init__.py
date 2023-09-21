@@ -3,6 +3,7 @@ from .blocks import MLP
 from .blocks import Gate
 from .blocks import Highway
 from .bst import BST
+from .data_augment import SeqAugment
 from .din import DIN
 from .fibinet import BiLinear
 from .fibinet import FiBiNet
@@ -15,4 +16,3 @@ from .mask_net import MaskNet
 from .multi_task import MMoE
 from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
-from .data_augment import SeqAugment

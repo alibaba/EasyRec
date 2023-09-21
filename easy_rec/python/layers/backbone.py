@@ -118,7 +118,8 @@ class Package(object):
           assert iname != name, 'input name can not equal to block name:' + iname
           self._dag.add_edge(iname, name)
         elif iname not in input_feature_groups:
-          if input_type == 'feature_group_name' and input_layer.has_group(iname):
+          is_fea_group = input_type == 'feature_group_name'
+          if is_fea_group and input_layer.has_group(iname):
             logging.info('adding an input_layer block: ' + iname)
             new_block = backbone_pb2.Block()
             new_block.name = iname
@@ -202,7 +203,8 @@ class Package(object):
             pkg_input = block_outputs[pkg_input_name]
           else:
             if pkg_input_name not in Package.__packages:
-              raise KeyError('package name `%s` does not exists' % pkg_input_name)
+              raise KeyError('package name `%s` does not exists' %
+                             pkg_input_name)
             inner_package = Package.__packages[pkg_input_name]
             pkg_input = inner_package(training)
           if input_node.HasField('package_input_fn'):

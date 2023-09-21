@@ -125,7 +125,8 @@ class EnhancedInputLayer(object):
           target_features = tf.concat(target_features, axis=-1)
         else:
           target_features = None
-        assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
+        assert len(
+            seq_features) > 0, '[%s] sequence feature is empty' % self.name
         seq_features = tf.concat(seq_features, axis=-1)
       self.inputs = seq_features, seq_len, target_features
     self.reset(config, training)

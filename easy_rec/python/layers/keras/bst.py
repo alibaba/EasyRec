@@ -66,7 +66,8 @@ class BST(Layer):
     target = inputs[2] if len(inputs) > 2 else None
     max_position = self.config.max_position_embeddings
     # max_seq_len: the max sequence length in current mini-batch, all sequences are padded to this length
-    batch_size, cur_batch_max_seq_len, seq_embed_size = get_shape_list(seq_input, 3)
+    batch_size, cur_batch_max_seq_len, seq_embed_size = get_shape_list(
+        seq_input, 3)
     valid_len = tf.assert_less_equal(
         cur_batch_max_seq_len,
         max_position,
@@ -90,7 +91,8 @@ class BST(Layer):
           name=self.name + '/seq_project',
           reuse=self.reuse)
 
-    if target is not None and self.config.target_item_position in ('head', 'tail'):
+    if target is not None and self.config.target_item_position in ('head',
+                                                                   'tail'):
       target_size = target.shape.as_list()[-1]
       assert seq_embed_size == target_size, 'the embedding size of sequence and target item is not equal' \
                                             ' in feature group:' + self.name

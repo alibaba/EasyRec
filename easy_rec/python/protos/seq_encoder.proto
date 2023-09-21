@@ -47,6 +47,4 @@ message SequenceAugment {
     required float crop_rate = 2  [default = 0.2];
     // Percentage length of reorder original sequence
     required float reorder_rate = 3  [default = 0.6];
-    // The embedding size of each sequence elements
-    required uint32 embedding_size = 4;
 }
