@@ -102,8 +102,7 @@ class EnhancedInputLayer(object):
       self.build(config, is_training)
 
     if config.output_seq_and_normal_feature:
-      seq_features, _, target_features = self.inputs
-      return seq_features, target_features
+      return self.inputs
 
     if config.do_batch_norm and config.do_layer_norm:
       raise ValueError(
@@ -117,6 +116,18 @@ class EnhancedInputLayer(object):
     combine = not config.output_seq_and_normal_feature
     self.inputs = self._input_layer(
         self._feature_dict, self._group_name, is_combine=combine)
+    if config.output_seq_and_normal_feature:
+      seq_feature_and_len, _, target_features = self.inputs
+      seq_len = seq_feature_and_len[0][1]
+      seq_features = [seq_fea for seq_fea, _ in seq_feature_and_len]
+      if config.concat_seq_feature:
+        if target_features:
+          target_features = tf.concat(target_features, axis=-1)
+        else:
+          target_features = None
+        assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
+        seq_features = tf.concat(seq_features, axis=-1)
+      self.inputs = seq_features, seq_len, target_features
     self.reset(config, training)
 
   def reset(self, config, training):

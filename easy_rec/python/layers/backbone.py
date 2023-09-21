@@ -22,6 +22,20 @@ class Package(object):
   """A sub DAG of tf ops for reuse."""
   __packages = {}
 
+  @staticmethod
+  def has_backbone_block(name):
+    if 'backbone' not in Package.__packages:
+      return False
+    backbone = Package.__packages['backbone']
+    return backbone.has_block(name)
+
+  @staticmethod
+  def backbone_block_outputs(name):
+    if 'backbone' not in Package.__packages:
+      return None
+    backbone = Package.__packages['backbone']
+    return backbone.block_outputs(name)
+
   def __init__(self, config, features, input_layer, l2_reg=None):
     self._config = config
     self._features = features
@@ -32,8 +46,11 @@ class Package(object):
     self.loss_dict = {}
     self._name_to_layer = {}
     self.reset_input_config(None)
+    self._block_outputs = {}
+    self._package_input = None
     reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
     input_feature_groups = set()
+
     for block in config.blocks:
       if len(block.inputs) == 0:
         raise ValueError('block takes at least one input: %s' % block.name)
@@ -82,18 +99,26 @@ class Package(object):
         raise KeyError('block name can not be one of feature groups:' + name)
       for input_node in block.inputs:
         input_type = input_node.WhichOneof('name')
+        input_name = getattr(input_node, input_type)
+        if input_type == 'use_package_input':
+          assert input_name, 'use_package_input can not set false'
+          num_pkg_input += 1
+          continue
         if input_type == 'package_name':
           num_pkg_input += 1
-          input_name = getattr(input_node, input_type)
           self._dag.add_node_if_not_exists(input_name)
           self._dag.add_edge(input_name, name)
+          if input_node.HasField('package_input'):
+            pkg_input_name = input_node.package_input
+            self._dag.add_node_if_not_exists(pkg_input_name)
+            self._dag.add_edge(pkg_input_name, input_name)
           continue
-        iname = getattr(input_node, input_type)
+        iname = input_name
         if iname in self._name_to_blocks:
           assert iname != name, 'input name can not equal to block name:' + iname
           self._dag.add_edge(iname, name)
         elif iname not in input_feature_groups:
-          if input_layer.has_group(iname):
+          if input_type == 'feature_group_name' and input_layer.has_group(iname):
             logging.info('adding an input_layer block: ' + iname)
             new_block = backbone_pb2.Block()
             new_block.name = iname
@@ -107,6 +132,8 @@ class Package(object):
             input_feature_groups.add(iname)
             fn = EnhancedInputLayer(self._input_layer, self._features, iname)
             self._name_to_layer[iname] = fn
+          elif Package.has_backbone_block(iname):
+            num_pkg_input += 1
           else:
             raise KeyError(
                 'invalid input name `%s`, must be the name of either a feature group or an another block'
@@ -143,23 +170,54 @@ class Package(object):
   def reset_input_config(self, config):
     self.input_config = config
 
+  def set_package_input(self, pkg_input):
+    self._package_input = pkg_input
+
+  def has_block(self, name):
+    return name in self._name_to_blocks
+
+  def block_outputs(self, name):
+    return self._block_outputs.get(name, None)
+
+  # def add_edge(self, src, dest):
+  #   self._dag.add_edge(src, dest)
+
   def block_input(self, config, block_outputs, training=None):
     inputs = []
     for input_node in config.inputs:
       input_type = input_node.WhichOneof('name')
       input_name = getattr(input_node, input_type)
-      if input_type == 'package_name':
+      if input_type == 'use_package_input':
+        input_feature = self._package_input
+        input_name = 'package_input'
+      elif input_type == 'package_name':
         if input_name not in Package.__packages:
           raise KeyError('package name `%s` does not exists' % input_name)
         package = Package.__packages[input_name]
         if input_node.HasField('reset_input'):
           package.reset_input_config(input_node.reset_input)
+        if input_node.HasField('package_input'):
+          pkg_input_name = input_node.package_input
+          if pkg_input_name in block_outputs:
+            pkg_input = block_outputs[pkg_input_name]
+          else:
+            if pkg_input_name not in Package.__packages:
+              raise KeyError('package name `%s` does not exists' % pkg_input_name)
+            inner_package = Package.__packages[pkg_input_name]
+            pkg_input = inner_package(training)
+          if input_node.HasField('package_input_fn'):
+            fn = eval(input_node.package_input_fn)
+            pkg_input = fn(pkg_input)
+          package.set_package_input(pkg_input)
         input_feature = package(training)
         if len(package.loss_dict) > 0:
           self.loss_dict.update(package.loss_dict)
       elif input_name in block_outputs:
         input_feature = block_outputs[input_name]
       else:
+        input_feature = Package.backbone_block_outputs(input_name)
+
+      if input_feature is None:
         raise KeyError('input name `%s` does not exists' % input_name)
 
       if input_node.ignore_input:
@@ -188,6 +246,7 @@ class Package(object):
 
   def call(self, is_training, **kwargs):
     block_outputs = {}
+    self._block_outputs = block_outputs  # reset
     blocks = self._dag.topological_sort()
     logging.info(self._config.name + ' topological order: ' + ','.join(blocks))
     for block in blocks:
@@ -224,10 +283,11 @@ class Package(object):
     for output in self._config.concat_blocks:
       if output in block_outputs:
         temp = block_outputs[output]
-        if type(temp) in (tuple, list):
-          outputs.extend(temp)
-        else:
-          outputs.append(temp)
+        # if type(temp) in (tuple, list):
+        #   outputs.extend(temp)
+        # else:
+        #   outputs.append(temp)
+        outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
     output = merge_inputs(outputs, msg='backbone')
@@ -360,14 +420,13 @@ class Backbone(object):
     self._config = config
     self._l2_reg = l2_reg
     self.loss_dict = {}
-    for pkg in config.packages:
-      Package(pkg, features, input_layer, l2_reg)
-
     main_pkg = backbone_pb2.BlockPackage()
     main_pkg.name = 'backbone'
     main_pkg.blocks.MergeFrom(config.blocks)
     main_pkg.concat_blocks.extend(config.concat_blocks)
     self._main_pkg = Package(main_pkg, features, input_layer, l2_reg)
+    for pkg in config.packages:
+      Package(pkg, features, input_layer, l2_reg)
 
   def __call__(self, is_training, **kwargs):
     output = self._main_pkg(is_training, **kwargs)

@@ -14,6 +14,7 @@ message InputLayer {
     optional bool output_2d_tensor_and_feature_list = 7;
     optional bool output_seq_and_normal_feature = 8;
     optional uint32 wide_output_dim = 9;
+    optional bool concat_seq_feature = 10 [default = true];
 }
 
 message Lambda {
@@ -25,11 +26,14 @@ message Input {
         string feature_group_name = 1;
         string block_name = 2;
         string package_name = 3;
+        bool use_package_input = 4;
     }
     optional string input_fn = 11;
     optional string input_slice = 12;
     optional bool ignore_input = 13 [default = false];
     optional InputLayer reset_input = 14;
+    optional string package_input = 15;
+    optional string package_input_fn = 16;
 }
 
 message RecurrentLayer {
@@ -63,7 +67,7 @@ message Block {
     optional string extra_input_fn = 5;
 
     // sequential layers
-    repeated Layer layers = 6;
+    repeated Layer layers = 100;
 
     // only take effect when there are no layers
     oneof layer {

@@ -38,5 +38,10 @@ class AuxiliaryLoss(tf.keras.layers.Layer):
           query, positive, temperature=self.temperature)
       loss_value = loss if self.loss_weight == 1.0 else loss * self.loss_weight
       loss_dict['%s_info_nce_loss' % self.name] = loss_value
+    elif self.loss_type == 'nce_loss':
+      x1, x2 = inputs
+      loss = contrastive_loss.nce_loss(x1, x2, temperature=self.temperature)
+      loss_value = loss if self.loss_weight == 1.0 else loss * self.loss_weight
+      loss_dict['%s_nce_loss' % self.name] = loss_value
 
     return loss_value

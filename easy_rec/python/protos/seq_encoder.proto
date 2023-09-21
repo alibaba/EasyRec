@@ -27,6 +27,8 @@ message BSTEncoder {
     required float initializer_range = 10 [default = 0.02];
     // Whether to output all token embedding, if set to false, then only output the first token embedding
     required bool output_all_token_embeddings = 11 [default = true];
+    // The position of target item (i.e. head, tail, ignore)
+    required string target_item_position = 12 [default = 'head'];
 }
 
 message DINEncoder {
@@ -36,4 +38,15 @@ message DINEncoder {
     required bool need_target_feature = 2 [default = true];
     // option: softmax, sigmoid
     required string attention_normalizer = 3 [default = 'softmax'];
+}
+
+message SequenceAugment {
+    // Percentage length of mask original sequence
+    required float mask_rate = 1  [default = 0.6];
+    // Percentage left of crop original sequence
+    required float crop_rate = 2  [default = 0.2];
+    // Percentage length of reorder original sequence
+    required float reorder_rate = 3  [default = 0.6];
+    // The embedding size of each sequence elements
+    required uint32 embedding_size = 4;
 }

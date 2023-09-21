@@ -15,3 +15,4 @@ from .mask_net import MaskNet
 from .multi_task import MMoE
 from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
+from .data_augment import SeqAugment
