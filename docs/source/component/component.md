@@ -98,6 +98,14 @@
 
 ## 4. 序列特征编码组件
 
+- SeqAugment
+
+| 参数           | 类型   | 默认值  | 说明            |
+| ------------ | ---- | ---- | ------------- |
+| mask_rate  | float | 0.6 | 被mask掉的token比率 |
+| crop_rate | float | 0.2 | 裁剪保留的token比率     |
+| reorder_rate | float | 0.6 | shuffle的子序列长度占比         |
+
 请参考Protobuf Message的定义，文件路径：`easy_rec/python/protos/seq_encoder.proto`
 
 ## 5. 多任务学习组件
@@ -116,7 +124,7 @@
 
 | 参数          | 类型     | 默认值 | 说明                          |
 | ----------- | ------ | --- | --------------------------- |
-| loss_type   | string |     | 损失函数类型，包括：l2_loss, info_nce |
+| loss_type   | string |     | 损失函数类型，包括：l2_loss, nce_loss, info_nce |
 | loss_weight | float  | 1.0 | 损失函数权重                      |
 | temperature | float  | 0.1 | info_nce loss 的参数           |
 | 其他          |        |     | 根据loss_type决定               |
