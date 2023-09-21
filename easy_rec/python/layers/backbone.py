@@ -134,6 +134,9 @@ class Package(object):
             fn = EnhancedInputLayer(self._input_layer, self._features, iname)
             self._name_to_layer[iname] = fn
           elif Package.has_backbone_block(iname):
+            backbone = Package.__packages['backbone']
+            backbone._dag.add_node_if_not_exists(self._config.name)
+            backbone._dag.add_edge(iname, self._config.name)
             num_pkg_input += 1
           else:
             raise KeyError(
@@ -179,9 +182,6 @@ class Package(object):
 
   def block_outputs(self, name):
     return self._block_outputs.get(name, None)
-
-  # def add_edge(self, src, dest):
-  #   self._dag.add_edge(src, dest)
 
   def block_input(self, config, block_outputs, training=None):
     inputs = []

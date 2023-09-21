@@ -37,7 +37,7 @@ def item_crop(aug_data, length, crop_rate):
   zeros = tf.zeros_like(aug_data)
   x = aug_data[crop_begin:crop_begin + num_left]
   y = zeros[:max_length - num_left]
-  cropped = tf.concat([x, y], axis=0),
+  cropped = tf.concat([x, y], axis=0)
   cropped_item_seq = tf.where(
       crop_begin + num_left < max_length, cropped,
       tf.concat([aug_data[crop_begin:], zeros[:crop_begin]], axis=0))

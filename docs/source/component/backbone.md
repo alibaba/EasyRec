@@ -768,6 +768,8 @@ MovieLens-1M数据集效果：
 | MultiTower          | 1     | 0.8814 |
 | ContrastiveLearning | 1     | 0.8728 |
 
+一个更复杂一点的对比学习模型案例：[CL4SRec](../models/cl4srec.md)
+
 ## 案例8：多目标模型 MMoE
 
 多目标模型的model_class一般配置为"MultiTaskModel"，并且需要在`model_params`里配置多个目标对应的Tower。`model_name`为任意自定义字符串，仅有注释作用。
@@ -962,6 +964,7 @@ MovieLens-1M数据集效果：
 
 - DIN模型配置文件：[DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config)
 - BST模型配置文件：[BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config)
+- CL4SRec模型：[CL4SRec](../models/cl4srec.md)
 
 其他模型：
 
@@ -1006,7 +1009,7 @@ MovieLens-1M数据集效果：
 | ---------- | ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | DIN        | target attention | DIN模型的组件            | [DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config) |
 | BST        | transformer      | BST模型的组件            | [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config) |
-| SeqAugment | 序列数据增强           | crop, mask, reorder | [CL4SRec](../models/cl4srec.html)                                                                                        |
+| SeqAugment | 序列数据增强           | crop, mask, reorder | [CL4SRec](../models/cl4srec.html#id2)                                                                                        |
 
 ## 5. 多目标学习组件
 

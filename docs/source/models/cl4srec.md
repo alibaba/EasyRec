@@ -153,6 +153,8 @@ model_config: {
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
+  - package: package可以打包一组block，构成一个可被复用的子网络，即被打包的子网络以共享参数的方式在同一个模型中调用多次
+  - use_package_input: 当`package`的输入是动态的时，设置该输入占位符，表示当前`block`的输入由调用`package`时指定
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - SeqAugment: 序列数据增强的组件，参数详见[参考文档](../component/component.md#id5)
   - AuxiliaryLoss: 计算辅助任务损失函数的组件，参数详见[参考文档](../component/component.md#id7)
