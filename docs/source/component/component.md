@@ -106,7 +106,30 @@
 | crop_rate | float | 0.2 | 裁剪保留的token比率     |
 | reorder_rate | float | 0.6 | shuffle的子序列长度占比         |
 
-请参考Protobuf Message的定义，文件路径：`easy_rec/python/protos/seq_encoder.proto`
+- DIN
+
+| 参数           | 类型   | 默认值  | 说明            |
+| ------------ | ---- | ---- | ------------- |
+| attention_dnn  | MLP |  | attention unit mlp |
+| need_target_feature | bool | true | 是否返回target item embedding |
+| attention_normalizer | string | softmax | softmax or sigmoid        |
+
+- BST
+
+| 参数           | 类型   | 默认值  | 说明            |
+| ------------ | ---- | ---- | ------------- |
+| hidden_size  | int |  | transformer 编码层单元数 |
+| num_hidden_layers | int | | transformer层数 |
+| num_attention_heads | int | | transformer head数 |
+| intermediate_size | int | | transformer中间层单元数 |
+| hidden_act | string | gelu | 隐藏激活函数 |
+| hidden_dropout_prob | float | 0.1 | 隐藏dropout rate |
+| attention_probs_dropout_prob | float | 0.1 | attention层dropout rate|
+| max_position_embeddings | int | 512 | 序列最大长度 |
+| use_position_embeddings | bool | true | 是否使用位置编码 |
+| initializer_range | float | 0.2 | 权重参数初始值的区间范围 |
+| output_all_token_embeddings | bool | true | 是否输出所有token embedding |
+| target_item_position | string | head | target item的插入位置，可选：head, tail, ignore |
 
 ## 5. 多任务学习组件
 

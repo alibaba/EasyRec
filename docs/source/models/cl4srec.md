@@ -98,12 +98,10 @@ model_config: {
       inputs {
         package_name: 'seq_encoder'
         package_input: 'seq_augment'
-        package_input_fn: 'lambda x: list(x) + [None]'
       }
       inputs {
         package_name: 'seq_encoder'
         package_input: 'seq_augment'
-        package_input_fn: 'lambda x: list(x) + [None]'
       }
       merge_inputs_into_list: true
       keras_layer {
@@ -139,7 +137,7 @@ model_config: {
     }
     concat_blocks: 'main'
     top_mlp {
-      hidden_units: [256, 128, 64]
+      hidden_units: [256, 128]
     }
   }
   model_params {
@@ -156,8 +154,8 @@ model_config: {
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
-  - SeqAugment: 序列数据增强的组件，参数详见[参考文档](../component/component.md#id4)
-  - AuxiliaryLoss: 计算辅助任务损失函数的组件
+  - SeqAugment: 序列数据增强的组件，参数详见[参考文档](../component/component.md#id5)
+  - AuxiliaryLoss: 计算辅助任务损失函数的组件，参数详见[参考文档](../component/component.md#id7)
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - model_params:
   - l2_regularization: (可选) 对DNN参数的regularization, 减少overfit
@@ -165,8 +163,8 @@ model_config: {
 
 ### 示例Config
 
-[cdn_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/cdn_on_taobao.config)
+[cl4srec_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/cl4srec_on_taobao.config)
 
 ### 参考论文
 
-[Cross Decoupling Network](https://arxiv.org/pdf/2210.14309.pdf)
+[CL4SRec](https://arxiv.org/pdf/2010.14395)
