@@ -23,5 +23,6 @@ message KerasLayer {
         DINEncoder din = 12;
         BSTEncoder bst = 13;
         MMoELayer mmoe = 14;
+        SequenceAugment seq_aug = 15;
     }
 }

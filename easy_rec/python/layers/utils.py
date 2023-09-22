@@ -219,7 +219,7 @@ class Parameter(object):
         return value
       return def_val
     else:  # pb message
-      value = getattr(self.params, key)
+      value = getattr(self.params, key, def_val)
       if hasattr(value, '__len__'):
         if len(value) > 0:
           return value

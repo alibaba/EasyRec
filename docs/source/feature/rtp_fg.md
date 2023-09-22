@@ -223,10 +223,10 @@
 | ----- | ------- | ------- | --------------- | --------------------------------------------------------------- | -------------------------------------------------- |
 | 0     | 122017  | 389957  |                 | tag_category_list:4589,new_user_class_level:,...,user_id:122017 | adgroup_id:539227,pid:430548_1007,...,cate_id:4281 |
 
-提供了在任何项目下都可以访问两张样例表 
+提供了在任何项目下都可以访问两张样例表
 
 ```
-pai_online_project.taobao_train_input 
+pai_online_project.taobao_train_input
 pai_online_project.taobao_test_input
 ```
 
