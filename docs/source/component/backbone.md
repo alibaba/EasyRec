@@ -1009,7 +1009,7 @@ MovieLens-1M数据集效果：
 | ---------- | ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | DIN        | target attention | DIN模型的组件            | [DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config) |
 | BST        | transformer      | BST模型的组件            | [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config) |
-| SeqAugment | 序列数据增强           | crop, mask, reorder | [CL4SRec](../models/cl4srec.html#id2)                                                                                        |
+| SeqAugment | 序列数据增强           | crop, mask, reorder | [CL4SRec](../models/cl4srec.html#id2)                                                                                    |
 
 ## 5. 多目标学习组件
 

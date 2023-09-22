@@ -75,8 +75,7 @@ def augment_fn(x, aug_param, mask):
   def reorder_fn():
     return item_reorder(seq, length, aug_param.reorder_rate)
 
-  methods = tf.range(3, dtype=tf.int32)
-  method = tf.random.shuffle(methods)[0]
+  method = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
 
   aug_seq, aug_len = tf.cond(
       tf.equal(method, 0), crop_fn,
