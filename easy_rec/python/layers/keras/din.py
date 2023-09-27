@@ -19,14 +19,8 @@ class DIN(Layer):
     self.config = params.get_pb_config()
 
   def call(self, inputs, training=None, **kwargs):
-    seq_features, target_features = inputs
-    assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
-    assert len(target_features) > 0, '[%s] target feature is empty' % self.name
-
-    query = tf.concat(target_features, axis=-1)
-    seq_input = [seq_fea for seq_fea, _ in seq_features]
-    keys = tf.concat(seq_input, axis=-1)
-
+    keys, seq_len, query = inputs
+    assert query is not None, '[%s] target feature is empty' % self.name
     query_emb_size = int(query.shape[-1])
     seq_emb_size = keys.shape.as_list()[-1]
     if query_emb_size != seq_emb_size:
@@ -52,7 +46,6 @@ class DIN(Layer):
     output = din_layer(din_all, training)  # [B, L, 1]
     scores = tf.transpose(output, [0, 2, 1])  # [B, 1, L]
 
-    seq_len = seq_features[0][1]
     seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)
     seq_mask = tf.expand_dims(seq_mask, 1)
     paddings = tf.ones_like(scores) * (-2**32 + 1)

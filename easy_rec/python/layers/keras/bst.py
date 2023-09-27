@@ -56,26 +56,24 @@ class BST(Layer):
     return out_fea
 
   def call(self, inputs, training=None, **kwargs):
-    seq_features, target_features = inputs
-    assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
     if not training:
       self.config.hidden_dropout_prob = 0.0
       self.config.attention_probs_dropout_prob = 0.0
-
-    seq_embeds = [seq_fea for seq_fea, _ in seq_features]
-
+    assert isinstance(inputs, (list, tuple))
+    assert len(inputs) >= 2
+    # seq_input: [batch_size, seq_len, embed_size]
+    seq_input, seq_len = inputs[:2]
+    target = inputs[2] if len(inputs) > 2 else None
     max_position = self.config.max_position_embeddings
     # max_seq_len: the max sequence length in current mini-batch, all sequences are padded to this length
-    batch_size, cur_batch_max_seq_len, _ = get_shape_list(seq_features[0][0], 3)
+    batch_size, cur_batch_max_seq_len, seq_embed_size = get_shape_list(
+        seq_input, 3)
     valid_len = tf.assert_less_equal(
         cur_batch_max_seq_len,
         max_position,
         message='sequence length is greater than `max_position_embeddings`:' +
         str(max_position) + ' in feature group:' + self.name +
         ', you should set `max_seq_len` in sequence feature configs')
-    with tf.control_dependencies([valid_len]):
-      # seq_input: [batch_size, seq_len, embed_size]
-      seq_input = tf.concat(seq_embeds, axis=-1)
 
     if self.config.output_all_token_embeddings:
       seq_input = tf.cond(
@@ -84,7 +82,6 @@ class BST(Layer):
                           [0, 0]], 'CONSTANT'),
           lambda: tf.slice(seq_input, [0, 0, 0], [-1, max_position, -1]))
 
-    seq_embed_size = seq_input.shape.as_list()[-1]
     if seq_embed_size != self.config.hidden_size:
       seq_input = tf.layers.dense(
           seq_input,
@@ -94,23 +91,27 @@ class BST(Layer):
           name=self.name + '/seq_project',
           reuse=self.reuse)
 
-    if len(target_features) > 0:
-      target_feature = tf.concat(target_features, axis=-1)
-      target_size = target_feature.shape.as_list()[-1]
+    if target is not None and self.config.target_item_position in ('head',
+                                                                   'tail'):
+      target_size = target.shape.as_list()[-1]
       assert seq_embed_size == target_size, 'the embedding size of sequence and target item is not equal' \
                                             ' in feature group:' + self.name
       if target_size != self.config.hidden_size:
-        target_feature = tf.layers.dense(
-            target_feature,
+        target = tf.layers.dense(
+            target,
             self.config.hidden_size,
             activation=tf.nn.relu,
             kernel_regularizer=self.l2_reg,
             name=self.name + '/target_project',
             reuse=self.reuse)
       # target_feature: [batch_size, 1, embed_size]
-      target_feature = tf.expand_dims(target_feature, 1)
+      target = tf.expand_dims(target, 1)
       # seq_input: [batch_size, seq_len+1, embed_size]
-      seq_input = tf.concat([target_feature, seq_input], axis=1)
+      if self.config.target_item_position == 'head':
+        seq_input = tf.concat([target, seq_input], axis=1)
+      else:
+        seq_input = tf.concat([seq_input, target], axis=1)
       max_position += 1
 
-    return self.encode(seq_input, max_position)
+    with tf.control_dependencies([valid_len]):
+      return self.encode(seq_input, max_position)

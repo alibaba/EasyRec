@@ -357,6 +357,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/bst_backbone_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_cl4srec(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/cl4srec_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dcn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dcn_on_taobao.config', self._test_dir)
