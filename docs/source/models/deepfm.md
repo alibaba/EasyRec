@@ -47,24 +47,21 @@ model_config:{
 ```
 
 - model_class: 'DeepFM', 不需要修改
-
 - feature_groups:
-
   需要两个feature_group: wide group和deep group, **group name不能变**
-
 - deepfm:  deepfm相关的参数
-
 - dnn: deep part的参数配置
-
   - hidden_units: dnn每一层的channel数目，即神经元的数目
-
 - wide_output_dim: wide部分输出的大小
-
 - final_dnn: 整合wide part, fm part, deep part的参数输入, 可以选择是否使用
-
   - hidden_units: dnn每一层的channel数目，即神经元的数目
-
 - embedding_regularization: 对embedding部分加regularization，防止overfit
+
+**FM Varint**
+
+标准的FM，只会输出一个所有二阶交叉求和的logit（scalar）；如果配置了final_dnn，则默认使用了FM模块的一个变种，FM模块输出一个多维的中间结果。
+
+![deepfm_variant](../../images/models/deepfm_variant.jpg)
 
 #### 2. 组件化模型
 
@@ -122,6 +119,9 @@ model_config: {
       }
       keras_layer {
         class_name: 'FM'
+        fm {
+          use_variant: false
+        }
       }
     }
     blocks {
@@ -177,6 +177,8 @@ model_config: {
   - input_layer: 对输入的`feature group`配置的特征做一些额外的加工，比如执行可选的`batch normalization`、`layer normalization`、`feature dropout`等操作，并且可以指定输出的tensor的格式（2d、3d、list等）；[参考文档](../component/backbone.md#id15)
     - wide_output_dim: wide部分输出的tensor的维度
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
+    - FM: fm组件，use_variant参数表示是否使用FM的变种结构(如上图)，默认为false
+    - Add: 内置的`tf.keras.layer.Add`，对输入做element-wise的加和操作
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - model_params:
   - l2_regularization: 对DNN参数的regularization, 减少overfit

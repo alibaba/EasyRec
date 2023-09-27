@@ -7,8 +7,9 @@ if tf.__version__ >= '2.0':
 
 
 def l2_loss(x1, x2):
-  loss = tf.pow(tf.norm(x1 - x2, axis=1), 2)
-  return tf.reduce_mean(loss)
+  """Compute euclidean distance of two embeddings."""
+  distance = tf.reduce_sum(tf.square(x1 - x2), axis=-1)
+  return tf.reduce_mean(distance)
 
 
 def info_nce_loss(query, positive, temperature=0.1):
