@@ -66,9 +66,40 @@ model_config:{
 
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
-- input_type: 如果在提交到pai-tf集群上面运行，读取max compute 表作为输入数据，data_config：input_type要设置为OdpsInputV2。
+- input_type: 如果在提交到pai-tf集群上面运行，读取MaxCompute 表作为输入数据，data_config：input_type要设置为OdpsInputV2。
 
-#### 2. 组件化模型
+#### 2.多优化器
+
+- WideAndDeep模型可以配置2个或者3个优化器(optimizer)
+- 配置2个优化器(optimizer), wide参数使用第一个优化器, 其它参数使用第二个优化器
+- 配置3个优化器(optimizer), wide参数使用第一个优化器, deep embedding使用第二个优化器, 其它参数使用第三个优化器
+- 配置实例(2 optimizers, samples/model_config/wide_and_deep_two_opti.config):
+  ```protobuf
+    optimizer_config: {
+      ftrl_optimizer: {
+        l1_reg: 10
+        learning_rate: {
+          constant_learning_rate {
+            learning_rate: 0.0005
+          }
+        }
+      }
+    }
+
+    optimizer_config {
+      adam_optimizer {
+        learning_rate {
+          constant_learning_rate {
+            learning_rate: 0.0001
+          }
+        }
+      }
+    }
+  ```
+- 代码参考: easy_rec/python/model/wide_and_deep.py
+  - WideAndDeep.get_grouped_vars重载了EasyRecModel.get_grouped_vars
+
+#### 3. 组件化模型
 
 ```protobuf
 model_config: {

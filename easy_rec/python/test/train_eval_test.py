@@ -1005,6 +1005,12 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/wide_and_deep_two_opti.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_embedding_separate_optimizer(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/deepfm_combo_on_avazu_embed_adagrad.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_expr_feature(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_on_taobao_for_expr.config',
