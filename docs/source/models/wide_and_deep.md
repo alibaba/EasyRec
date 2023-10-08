@@ -68,7 +68,7 @@ model_config:{
 
 - input_type: 如果在提交到pai-tf集群上面运行，读取MaxCompute 表作为输入数据，data_config：input_type要设置为OdpsInputV2。
 
-#### 2.多优化器
+#### 2.多优化器(MultiOptimizer)
 
 - WideAndDeep模型可以配置2个或者3个优化器(optimizer)
 - 配置2个优化器(optimizer), wide参数使用第一个优化器, 其它参数使用第二个优化器
