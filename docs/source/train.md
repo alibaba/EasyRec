@@ -20,6 +20,10 @@
   }
   ```
 
+  - 多优化器支持:
+    - 可以配置两个optimizer, 分别对应embedding权重和dense权重
+    - 实现参考EasyRecModel里面的get_grouped_vars
+
 - sync_replicas: true  # 是否同步训练，默认是false
 
   - 使用SyncReplicasOptimizer进行分布式训练(同步模式)

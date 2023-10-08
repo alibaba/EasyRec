@@ -8,7 +8,7 @@ from abc import abstractmethod
 import six
 import tensorflow as tf
 from tensorflow.python.framework import tensor_shape
-from tensorflow.python.ops.variables import PartitionedVariable
+from tensorflow.python.ops import variables
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
@@ -114,7 +114,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if hasattr(model_config, 'dense_regularization') and \
        model_config.HasField('dense_regularization'):
       # backward compatibility
-      tf.logging.warn(
+      logging.warn(
           'dense_regularization is deprecated, please use l2_regularization')
       l2_regularization = model_config.dense_regularization
     elif hasattr(model_config, 'l2_regularization'):
@@ -229,7 +229,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           for x in shape_arr[1:]:
             var_shape[0] += x[0]
           var_shape = tensor_shape.TensorShape(var_shape)
-          variable = PartitionedVariable(
+          variable = variables.PartitionedVariable(
               variable_name,
               var_shape,
               variable[0].dtype,
@@ -239,7 +239,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           var_shape = variable.shape.as_list()
         if ckpt_var_shape == var_shape:
           vars_in_ckpt[variable_name] = list(variable) if isinstance(
-              variable, PartitionedVariable) else variable
+              variable, variables.PartitionedVariable) else variable
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
@@ -394,10 +394,25 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return restore_filter.CombineFilter(all_filters,
                                         restore_filter.Logical.AND), None
 
-  def get_grouped_vars(self):
-    """Get grouped variables, each group will be optimized by a separate optimizer.
+  def get_grouped_vars(self, opt_num):
+    """Group the vars into different optimization groups.
+
+    Each group will be optimized by a separate optimizer.
+
+    Args:
+      opt_num: number of optimizers from easyrec config.
 
     Return:
-       grouped_vars: list of list of variables
+      list of list of variables.
     """
-    raise NotImplementedError()
+    assert opt_num == 2, 'could only support 2 optimizers, one for embedding, one for the other layers'
+
+    embedding_vars = []
+    deep_vars = []
+    for tmp_var in variables.trainable_variables():
+      if tmp_var.name.startswith(
+          'input_layer') or '/embedding_weights' in tmp_var.name:
+        embedding_vars.append(tmp_var)
+      else:
+        deep_vars.append(tmp_var)
+    return [embedding_vars, deep_vars]

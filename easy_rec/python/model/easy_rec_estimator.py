@@ -199,7 +199,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
           opt, learning_rate = optimizer_builder.build(tmp_config)
           tf.summary.scalar('learning_rate', learning_rate[0])
         all_opts.append(opt)
-      grouped_vars = model.get_grouped_vars()
+      grouped_vars = model.get_grouped_vars(len(all_opts))
       assert len(grouped_vars) == len(optimizer_config), \
           'the number of var group(%d) != the number of optimizers(%d)' \
           % (len(grouped_vars), len(optimizer_config))
