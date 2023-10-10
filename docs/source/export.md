@@ -13,7 +13,6 @@ export_config {
   - final 训练结束后导出
   - latest 导出最新的模型
   - none 不导出
-- dump_embedding_shape: 打印出embedding的shape，方便在EAS上部署分片大模型
 - best_exporter_metric: 当exporter_type为best的时候，确定最优导出模型的metric，注意该metric要在eval_config的metrics_set设置了才行
 - metric_bigger: 确定最优导出模型的metric是越大越好，还是越小越好，默认是越大越好
 - exports_to_keep: 当exporter_type为best或lastest时，保留n个最好或最新的模型，默认为1
@@ -33,7 +32,31 @@ export_config {
     }
   }
   ```
-- placeholder_named_by_input: True时利用data_config.input_fields.input_name来命令每个placeholder，False时每个placeholder名字为"input_X"，"X"为data_config.input_fields的顺序。默认为False
+- placeholder_named_by_input: true时利用data_config.input_fields.input_name来命令每个placeholder，false时每个placeholder名字为"input_X"，"X"为data_config.input_fields的编号(0-input_num)。默认为False
+- asset_files: 需要导出的asset文件, 可设置多个
+- enable_early_stop: 根据early_stop_func的返回值判断是否要提前结束训练
+  - 示例:
+    - samples/model_config/custom_early_stop_on_taobao.config
+    - samples/model_config/multi_tower_early_stop_on_taobao.config
+  - 应用场景:
+    - 数据量比较小时，需要训练多个epoch时, 打开early_stop可以防止过拟合;
+    - 使用[超参搜索](./automl/pai_nni_hpo.md)时, 打开可以提前终止收敛比较差的参数, 显著提升搜索效率 
+- early_stop_func: 判断是否要提前结束训练的函数
+  - 返回值:
+    - True, 结束训练
+    - False, 继续训练
+  - 默认值:
+    - metric_bigger为true时, easy_rec.python.compat.early_stopping.stop_if_no_increase_hook
+    - metric_bigger为false时, easy_rec.python.compat.early_stopping.stop_if_no_decrease_hook
+  - 自定义early_stop_func:
+    - 示例: easy_rec.python.test.custom_early_stop_func.custom_early_stop_func
+    - 参数: 框架传入两个参数
+      - eval_results: 模型评估结果
+      - func_param: 自定义参数(即export_config.early_stop_params)
+- max_check_steps: 训练max_check_steps之后评估指标没有改善，即停止训练; 仅适用于内置early_stop_func, 不适用于自定义early_stop_func
+  - stop_if_no_increase_hook: 对应max_steps_without_increase, 当间隔max_check_steps训练步数评估指标没有提升，即停止训练
+  - stop_if_no_decrease_hook: 对应max_steps_without_decrease, 当间隔max_check_steps训练步数评估指标没有下降, 即停止训练
+- early_stop_params: 传递给early_stop_func的自定义参数
 
 ### 导出命令
 
