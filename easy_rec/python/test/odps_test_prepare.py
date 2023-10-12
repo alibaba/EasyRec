@@ -89,6 +89,7 @@ def change_files(odps_oss_config, file_path):
   with open(file_path, 'w') as fw:
     for line in lines:
       if 'pai' in line.lower() and 'easy_rec_ext' in line.lower():
+        line = 'pai -name ' + odps_oss_config.algo_name + '\n'
         if odps_oss_config.algo_project:
           line += '-project=%s\n' % odps_oss_config.algo_project
         if odps_oss_config.algo_res_project:

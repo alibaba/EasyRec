@@ -425,17 +425,24 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else None
     assert len(config.input_names) >= 2
-    input_names = []
-    for input_id in range(len(config.input_names)):
-      if input_id == 0:
-        input_names.append(feature_name)
-      else:
-        input_names.append(feature_name + '_' + str(input_id))
-    fc = feature_column.crossed_column(
-        input_names,
-        self._get_hash_bucket_size(config),
-        hash_key=None,
-        feature_name=feature_name)
+
+    if len(config.combo_join_sep) == 0:
+      input_names = []
+      for input_id in range(len(config.input_names)):
+        if input_id == 0:
+          input_names.append(feature_name)
+        else:
+          input_names.append(feature_name + '_' + str(input_id))
+      fc = feature_column.crossed_column(
+          input_names,
+          self._get_hash_bucket_size(config),
+          hash_key=None,
+          feature_name=feature_name)
+    else:
+      fc = feature_column.categorical_column_with_hash_bucket(
+          feature_name,
+          hash_bucket_size=self._get_hash_bucket_size(config),
+          feature_name=feature_name)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)

@@ -12,3 +12,21 @@ message DNN {
     // use batch normalization
     optional bool use_bn = 4 [default = true];
 }
+
+message MLP {
+    // hidden units for each layer
+    repeated uint32 hidden_units = 1;
+    // ratio of dropout
+    repeated float dropout_ratio = 2;
+    // activation function
+    optional string activation = 3 [default = 'relu'];
+    // use batch normalization
+    optional bool use_bn = 4 [default = true];
+    optional bool use_final_bn = 5 [default = true];
+    optional string final_activation = 6 [default = 'relu'];
+    optional bool use_bias = 7 [default = false];
+    // kernel_initializer
+    optional string initializer = 8 [default = 'he_uniform'];
+    optional bool use_bn_after_activation = 9;
+    optional bool use_final_bias = 10 [default = false];
+}

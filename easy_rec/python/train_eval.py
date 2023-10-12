@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import _train_and_evaluate_impl
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import ds_util
 from easy_rec.python.utils import estimator_utils
@@ -67,6 +68,16 @@ if __name__ == '__main__':
       default=None,
       help='eval data input path')
   parser.add_argument(
+      '--fit_on_eval',
+      action='store_true',
+      default=False,
+      help='Fit evaluation data after fitting and evaluating train data')
+  parser.add_argument(
+      '--fit_on_eval_steps',
+      type=int,
+      default=None,
+      help='Fit evaluation data steps')
+  parser.add_argument(
       '--fine_tune_checkpoint',
       type=str,
       default=None,
@@ -95,7 +106,11 @@ if __name__ == '__main__':
       help='is use check mode')
   parser.add_argument(
       '--selected_cols', type=str, default=None, help='select input columns')
+  parser.add_argument('--gpu', type=str, default=None, help='gpu id')
   args, extra_args = parser.parse_known_args()
+
+  if args.gpu is not None:
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
   edit_config_json = {}
   if args.edit_config_json:
@@ -147,6 +162,9 @@ if __name__ == '__main__':
       if pipeline_config.train_config.fine_tune_checkpoint:
         ds_util.cache_ckpt(pipeline_config)
 
+    if pipeline_config.train_config.train_distribute == DistributionStrategy.HorovodStrategy:
+      estimator_utils.init_hvd()
+
     if args.hpo_param_path:
       with gfile.GFile(args.hpo_param_path, 'r') as fin:
         hpo_config = json.load(fin)
@@ -161,7 +179,11 @@ if __name__ == '__main__':
           has_evaluator=False)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
-      _train_and_evaluate_impl(pipeline_config, args.continue_train,
-                               args.check_mode)
+      _train_and_evaluate_impl(
+          pipeline_config,
+          args.continue_train,
+          args.check_mode,
+          fit_on_eval=args.fit_on_eval,
+          fit_on_eval_steps=args.fit_on_eval_steps)
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')

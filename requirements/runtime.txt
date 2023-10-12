@@ -1,6 +1,6 @@
+eas_prediction
 future
 matplotlib
-nni
 oss2
 pandas
 psutil

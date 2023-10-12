@@ -1,6 +1,7 @@
 syntax = "proto2";
 package protos;
 
+import "easy_rec/python/protos/backbone.proto";
 import "easy_rec/python/protos/fm.proto";
 import "easy_rec/python/protos/deepfm.proto";
 import "easy_rec/python/protos/wide_and_deep.proto";
@@ -24,9 +25,18 @@ import "easy_rec/python/protos/loss.proto";
 import "easy_rec/python/protos/rocket_launching.proto";
 import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
+import "easy_rec/python/protos/tower.proto";
+import "easy_rec/python/protos/pdn.proto";
+
 // for input performance test
 message DummyModel {
+}
 
+// configure backbone network common parameters
+message ModelParams {
+  optional float l2_regularization = 1;
+
+  repeated BayesTaskTower task_towers = 3;
 }
 
 // for knowledge distillation
@@ -44,17 +54,19 @@ message KD {
   optional float loss_weight = 4 [default=1.0];
   // only for loss_type == CROSS_ENTROPY_LOSS
   optional float temperature = 5 [default=1.0];
-
 }
 
 message EasyRecModel {
     required string model_class = 1;
+    // just a name for backbone config
+    optional string model_name = 99;
 
     // actually input layers, each layer produce a group of feature
     repeated FeatureGroupConfig feature_groups = 2;
 
     // model parameters
     oneof model {
+        ModelParams model_params = 100;
         DummyModel dummy = 101;
         WideAndDeep wide_and_deep = 102;
         DeepFM deepfm = 103;
@@ -71,6 +83,7 @@ message EasyRecModel {
         MIND mind = 202;
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
+        PDN pdn = 205;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
@@ -102,4 +115,12 @@ message EasyRecModel {
 
     repeated Loss losses = 15;
 
+    enum LossWeightStrategy {
+        Fixed = 0;
+        Uncertainty = 1;
+        Random = 2;
+    }
+    required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
+
+    optional BackboneTower backbone = 17;
 }

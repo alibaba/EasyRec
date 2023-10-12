@@ -33,3 +33,11 @@ def get_col_type(tf_type):
   }
   assert tf_type in type_map, 'invalid type: %s' % tf_type
   return type_map[tf_type]
+
+
+def add_elements_to_collection(elements, name):
+  collection = tf.get_collection_ref(name)
+  collection_set = set(collection)
+  for element in elements:
+    if element not in collection_set:
+      collection.append(element)

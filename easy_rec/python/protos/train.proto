@@ -19,6 +19,8 @@ enum DistributionStrategy {
     // multi worker multi gpu mode
     // see tf.distribute.experimental.MultiWorkerMirroredStrategy
     MultiWorkerMirroredStrategy = 5;
+    // use horovod strategy
+    HorovodStrategy = 6;
 }
 
 message IncrementSaveConfig {

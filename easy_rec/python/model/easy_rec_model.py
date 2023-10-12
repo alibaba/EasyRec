@@ -8,10 +8,11 @@ from abc import abstractmethod
 import six
 import tensorflow as tf
 from tensorflow.python.framework import tensor_shape
-from tensorflow.python.ops.variables import PartitionedVariable
+from tensorflow.python.ops import variables
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
+from easy_rec.python.layers.backbone import Backbone
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
@@ -36,6 +37,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
+    self._is_predicting = labels is None
     self._feature_dict = features
 
     # embedding variable parameters
@@ -47,6 +49,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
     # only used by model with wide feature groups, e.g. WideAndDeep
     self._wide_output_dim = -1
+    if self.has_backbone:
+      wide_dim = Backbone.wide_embed_dim(model_config.backbone)
+      if wide_dim:
+        self._wide_output_dim = wide_dim
+        logging.info('set `wide_output_dim` to %d' % wide_dim)
 
     self._feature_configs = feature_configs
     self.build_input_layer(model_config, feature_configs)
@@ -59,6 +66,33 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._sample_weight = 1.0
     if constant.SAMPLE_WEIGHT in features:
       self._sample_weight = features[constant.SAMPLE_WEIGHT]
+
+    self._backbone_output = None
+    self._backbone_net = self.build_backbone_network()
+
+  def build_backbone_network(self):
+    if self.has_backbone:
+      return Backbone(
+          self._base_model_config.backbone,
+          self._feature_dict,
+          input_layer=self._input_layer,
+          l2_reg=self._l2_reg)
+    return None
+
+  @property
+  def has_backbone(self):
+    return self._base_model_config.HasField('backbone')
+
+  @property
+  def backbone(self):
+    if self._backbone_output:
+      return self._backbone_output
+    if self._backbone_net:
+      self._backbone_output = self._backbone_net(self._is_training)
+      loss_dict = self._backbone_net.loss_dict
+      self._loss_dict.update(loss_dict)
+      return self._backbone_output
+    return None
 
   @property
   def embedding_regularization(self):
@@ -80,7 +114,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if hasattr(model_config, 'dense_regularization') and \
        model_config.HasField('dense_regularization'):
       # backward compatibility
-      tf.logging.warn(
+      logging.warn(
           'dense_regularization is deprecated, please use l2_regularization')
       l2_regularization = model_config.dense_regularization
     elif hasattr(model_config, 'l2_regularization'):
@@ -97,7 +131,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         kernel_regularizer=self._l2_reg,
         variational_dropout_config=model_config.variational_dropout
         if model_config.HasField('variational_dropout') else None,
-        is_training=self._is_training)
+        is_training=self._is_training,
+        is_predicting=self._is_predicting)
 
   @abstractmethod
   def build_predict_graph(self):
@@ -194,7 +229,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           for x in shape_arr[1:]:
             var_shape[0] += x[0]
           var_shape = tensor_shape.TensorShape(var_shape)
-          variable = PartitionedVariable(
+          variable = variables.PartitionedVariable(
               variable_name,
               var_shape,
               variable[0].dtype,
@@ -204,7 +239,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           var_shape = variable.shape.as_list()
         if ckpt_var_shape == var_shape:
           vars_in_ckpt[variable_name] = list(variable) if isinstance(
-              variable, PartitionedVariable) else variable
+              variable, variables.PartitionedVariable) else variable
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
@@ -288,8 +323,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     for one_var in all_vars:
       var_name = re.sub(VAR_SUFIX_PATTERN, '', one_var.name)
       if re.search(PARTITION_PATTERN,
-                   var_name) and (not var_name.endswith('/AdamAsync_2') and
-                                  not var_name.endswith('/AdamAsync_3')):
+                   var_name) and one_var._save_slice_info is not None:
         var_name = re.sub(PARTITION_PATTERN, '', var_name)
         is_part = True
       else:
@@ -360,10 +394,25 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     return restore_filter.CombineFilter(all_filters,
                                         restore_filter.Logical.AND), None
 
-  def get_grouped_vars(self):
-    """Get grouped variables, each group will be optimized by a separate optimizer.
+  def get_grouped_vars(self, opt_num):
+    """Group the vars into different optimization groups.
+
+    Each group will be optimized by a separate optimizer.
+
+    Args:
+      opt_num: number of optimizers from easyrec config.
 
     Return:
-       grouped_vars: list of list of variables
+      list of list of variables.
     """
-    raise NotImplementedError()
+    assert opt_num == 2, 'could only support 2 optimizers, one for embedding, one for the other layers'
+
+    embedding_vars = []
+    deep_vars = []
+    for tmp_var in variables.trainable_variables():
+      if tmp_var.name.startswith(
+          'input_layer') or '/embedding_weights' in tmp_var.name:
+        embedding_vars.append(tmp_var)
+      else:
+        deep_vars.append(tmp_var)
+    return [embedding_vars, deep_vars]

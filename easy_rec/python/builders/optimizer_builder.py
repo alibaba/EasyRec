@@ -103,7 +103,9 @@ def build(optimizer_config):
     config = optimizer_config.adagrad_optimizer
     learning_rate = _create_learning_rate(config.learning_rate)
     summary_vars.append(learning_rate)
-    optimizer = tf.train.AdagradOptimizer(learning_rate)
+    optimizer = tf.train.AdagradOptimizer(
+        learning_rate,
+        initial_accumulator_value=config.initial_accumulator_value)
 
   if optimizer_type == 'adam_async_optimizer':
     config = optimizer_config.adam_async_optimizer

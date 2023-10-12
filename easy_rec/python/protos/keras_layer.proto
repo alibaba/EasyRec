@@ -1,0 +1,28 @@
+syntax = "proto2";
+package protos;
+
+import "google/protobuf/struct.proto";
+import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/fm.proto";
+import "easy_rec/python/protos/seq_encoder.proto";
+
+message KerasLayer {
+    required string class_name = 1;
+    oneof params {
+        google.protobuf.Struct st_params = 2;
+        PeriodicEmbedding periodic_embedding = 3;
+        AutoDisEmbedding auto_dis_embedding = 4;
+        FM fm = 5;
+        MaskBlock mask_block = 6;
+        MaskNet masknet = 7;
+        SENet senet = 8;
+        Bilinear bilinear = 9;
+        FiBiNet fibinet = 10;
+        MLP mlp = 11;
+        DINEncoder din = 12;
+        BSTEncoder bst = 13;
+        MMoELayer mmoe = 14;
+        SequenceAugment seq_aug = 15;
+    }
+}

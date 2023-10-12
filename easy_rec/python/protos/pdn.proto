@@ -1,0 +1,48 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+// requires 3 sequence groups:
+//    u2i: user behavior info on intereacted item sequence
+//    i_seq: trigger item side info sequence
+//    i2i: trigger item and target item co-occurance info
+
+message PDN {
+  // encode user info
+  required DNN user_dnn = 1;
+  // encode target item info
+  required DNN item_dnn = 2;
+
+  // encode u2i seq info
+  required DNN u2i_dnn = 3;
+
+  // produce trigger score
+  required DNN trigger_dnn = 4;
+
+  // encode trigger item seqs to target item co-occurance info
+  required DNN i2i_dnn = 5;
+
+  // produce sim score
+  required DNN sim_dnn = 6;
+
+  // direct net user_dnn
+  optional DNN direct_user_dnn = 7;
+
+  // direct net item_dnn
+  optional DNN direct_item_dnn = 8;
+
+  // for direct net, similar to DSSM
+  optional Similarity simi_func = 9 [default=COSINE];
+
+  // for direct net
+  optional bool scale_simi = 10 [default = true];
+
+  // bias net dnn
+  optional DNN bias_dnn = 11;
+
+  optional string item_id = 12;
+
+  optional float l2_regularization = 13 [default=1e-6];
+}

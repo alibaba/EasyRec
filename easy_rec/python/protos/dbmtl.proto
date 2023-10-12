@@ -3,7 +3,8 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/tower.proto";
-import "easy_rec/python/protos/layer.proto";
+import "easy_rec/python/protos/cmbf.proto";
+import "easy_rec/python/protos/uniter.proto";
 
 message DBMTL {
     // shared bottom cmbf layer

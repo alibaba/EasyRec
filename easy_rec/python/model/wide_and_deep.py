@@ -79,23 +79,43 @@ class WideAndDeep(RankModel):
 
     return self._prediction_dict
 
-  def get_grouped_vars(self):
+  def get_grouped_vars(self, opt_num):
     """Group the vars into different optimization groups.
 
     Each group will be optimized by a separate optimizer.
 
+    Args:
+      opt_num: number of optimizers from easyrec config.
+
     Return:
       list of list of variables.
     """
-    assert len(self._model_config.final_dnn.hidden_units) == 0, \
-        'if use different optimizers for wide group and deep group, '\
-        + ' final_dnn should not be set.'
-    wide_vars = []
-    deep_vars = []
-    for tmp_var in tf.trainable_variables():
-      if tmp_var.name.startswith('input_layer') and \
-          (not tmp_var.name.startswith('input_layer_1')):
-        wide_vars.append(tmp_var)
-      else:
-        deep_vars.append(tmp_var)
-    return [wide_vars, deep_vars]
+    assert opt_num <= 3, 'could only support 2 or 3 optimizers, ' + \
+        'if opt_num = 2, one for the wide , and one for the others, ' + \
+        'if opt_num = 3, one for the wide, second for the deep embeddings, ' + \
+        'and third for the other layers.'
+
+    if opt_num == 2:
+      wide_vars = []
+      deep_vars = []
+      for tmp_var in tf.trainable_variables():
+        if tmp_var.name.startswith('input_layer') and \
+            (not tmp_var.name.startswith('input_layer_1')):
+          wide_vars.append(tmp_var)
+        else:
+          deep_vars.append(tmp_var)
+      return [wide_vars, deep_vars]
+    elif opt_num == 3:
+      wide_vars = []
+      embedding_vars = []
+      deep_vars = []
+      for tmp_var in tf.trainable_variables():
+        if tmp_var.name.startswith('input_layer') and \
+            (not tmp_var.name.startswith('input_layer_1')):
+          wide_vars.append(tmp_var)
+        elif tmp_var.name.startswith(
+            'input_layer') or '/embedding_weights' in tmp_var.name:
+          embedding_vars.append(tmp_var)
+        else:
+          deep_vars.append(tmp_var)
+      return [wide_vars, embedding_vars, deep_vars]

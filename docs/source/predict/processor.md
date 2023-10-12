@@ -97,3 +97,18 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
 - 优化后
 
 ![image.png](../../images/processor/easy_rec_processor_3.png)
+
+### Release
+
+<table class="docutils" border=1>
+  <tr><th>版本</th><th>说明</th></tr>
+  <tr><td>easyrec</td><td>AVX Kernel优化; 支持向量召回引擎(Faiss向量引擎); 支持GPU推理</td></tr>
+  <tr><td>easyrec-1.2</td><td>优化weighted category embedding</td></tr>
+  <tr><td>easyrec-1.3</td><td>支持PAI-FeatureStore; 支持从max compute加载数据</td></tr>
+  <tr><td>easyrec-1.4</td><td>优化keras model性能; input自动扩展; placement优化</td></tr>
+  <tr><td>easyrec-1.5</td><td>graph pattern match bugfix</td></tr>
+</table>
+
+### 部署
+
+[参考文档](./%E5%9C%A8%E7%BA%BF%E9%A2%84%E6%B5%8B.md)

@@ -5,6 +5,7 @@ data/test/inference/fg_export_multi/variables/variables.index filter=lfs diff=lf
 data/test/inference/tb_multitower_export/assets/pipeline.config filter=lfs diff=lfs merge=lfs -text
 data/test/latest_ckpt_test/model.ckpt-500.meta filter=lfs diff=lfs merge=lfs -text
 data/test/tb_data/taobao_test_data filter=lfs diff=lfs merge=lfs -text
+data/test/tb_data/taobao_pdn_fake_test_data filter=lfs diff=lfs merge=lfs -text
 data/test/tb_data/taobao_multi_seq_test_data filter=lfs diff=lfs merge=lfs -text
 data/test/test.csv filter=lfs diff=lfs merge=lfs -text
 data/test/inference/tb_multitower_placeholder_rename_export/assets/pipeline.config filter=lfs diff=lfs merge=lfs -text
@@ -16,6 +17,7 @@ data/test/criteo_sample.tfrecord filter=lfs diff=lfs merge=lfs -text
 data/test/rtp/taobao_valid.csv filter=lfs diff=lfs merge=lfs -text
 data/test/rtp/taobao_train_feature.txt filter=lfs diff=lfs merge=lfs -text
 data/test/tb_data/taobao_train_data filter=lfs diff=lfs merge=lfs -text
+data/test/tb_data/taobao_pdn_fake_train_data filter=lfs diff=lfs merge=lfs -text
 data/test/tb_data/taobao_multi_seq_train_data filter=lfs diff=lfs merge=lfs -text
 data/test/inference/fg_export_single/variables/variables.index filter=lfs diff=lfs merge=lfs -text
 data/test/inference/lookup_data_test80.csv filter=lfs diff=lfs merge=lfs -text

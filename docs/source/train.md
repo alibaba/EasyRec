@@ -2,7 +2,7 @@
 
 ## train_config
 
-- log_step_count_steps: 200    # 每200轮打印一行log
+- log_step_count_steps: 200    # 每200步打印一行log
 
 - optimizer_config     # 优化器相关的参数
 
@@ -19,6 +19,41 @@
     }
   }
   ```
+
+  - 多优化器支持:
+    - 可以配置两个optimizer, 分别对应embedding权重和dense权重;
+    - 实现参考EasyRecModel.get_grouped_vars和multi_optimizer.MultiOptimizer;
+    - 示例(samples/model_config/deepfm_combo_on_avazu_embed_adagrad.config):
+      ```protobuf
+      train_config {
+        ...
+         optimizer_config {  # for embedding_weights
+           adagrad_optimizer {
+             learning_rate {
+               constant_learning_rate {
+                 learning_rate: 0.05
+               }
+             }
+             initial_accumulator_value: 1.0
+           }
+         }
+
+         optimizer_config: {  # for dense weights
+           adam_optimizer: {
+             learning_rate: {
+               exponential_decay_learning_rate {
+                 initial_learning_rate: 0.0001
+                 decay_steps: 10000
+                 decay_factor: 0.5
+                 min_learning_rate: 0.0000001
+               }
+             }
+           }
+         }
+      ```
+    - Note: [WideAndDeep](./models/wide_and_deep.md)模型的optimizer设置:
+      - 设置两个optimizer时, 第一个optimizer仅用于wide参数;
+      - 如果要给deep embedding单独设置optimizer, 需要设置3个optimizer.
 
 - sync_replicas: true  # 是否同步训练，默认是false
 
@@ -62,11 +97,11 @@
     print(key)
   ```
 
-- save_checkpoints_steps: 每隔多少轮保存一次checkpoint, 默认是1000
+- save_checkpoints_steps: 每隔多少步保存一次checkpoint, 默认是1000。当训练数据量很大的时候，这个值要设置大一些
 
 - save_checkpoints_secs: 每隔多少s保存一次checkpoint, 不可以和save_checkpoints_steps同时指定
 
-- keep_checkpoint_max: 最多保存多少个checkpoint, 默认是10
+- keep_checkpoint_max: 最多保存多少个checkpoint, 默认是10。当模型较大的时候可以设置为5，可节约存储
 
 - log_step_count_steps: 每隔多少轮，打印一次训练信息，默认是10
 
@@ -155,7 +190,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - PAIRWISE_FOCAL_LOSS 的参数配置
 
   - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，  $\\frac{\\alpha}{1-\\alpha}=\\frac{#Neg}{#Pos}$
+  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
   - session_name: pair分组的字段名，比如user_id
   - hinge_margin: 当pair的logit之差大于该参数值时，当前样本的loss为0，默认值为1.0
   - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
@@ -179,7 +214,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - BINARY_FOCAL_LOSS 的参数配置
 
   - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，  $\\frac{\\alpha}{1-\\alpha}=\\frac{#Neg}{#Pos}$
+  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
   - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
   - label_smoothing: 标签平滑系数
 
@@ -188,12 +223,12 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - alpha: ranking loss 与 calibration loss 的相对权重系数；不设置该值时，触发权重自适应学习
   - session_name: list分组的字段名，比如user_id
   - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
-  - 使用示例： [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
+  - 使用示例: [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
 
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
 
-多目标排序模型同时使用多个损失函数的完整示例：
+多目标排序模型同时使用多个损失函数的完整示例:
 [dbmtl_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
 
 ##### 损失函数权重自适应学习
