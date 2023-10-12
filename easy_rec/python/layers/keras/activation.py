@@ -4,6 +4,8 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import Activation
 from tensorflow.python.keras.layers import Layer
 
+import easy_rec.python.utils.activation
+
 try:
   from tensorflow.python.ops.init_ops import Zeros
 except ImportError:
@@ -82,7 +84,8 @@ def activation_layer(activation):
   if activation in ('dice', 'Dice'):
     act_layer = Dice()
   elif isinstance(activation, (str, unicode)):
-    act_layer = Activation(activation)
+    act_fn = easy_rec.python.utils.activation.get_activation(activation)
+    act_layer = Activation(act_fn)
   elif issubclass(activation, Layer):
     act_layer = activation()
   else:
