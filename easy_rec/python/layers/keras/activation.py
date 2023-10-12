@@ -68,6 +68,10 @@ class Dice(Layer):
   def compute_output_shape(self, input_shape):
     return input_shape
 
+  @property
+  def updates(self):
+    return self.bn.updates
+
   def get_config(self,):
     config = {'axis': self.axis, 'epsilon': self.epsilon}
     base_config = super(Dice, self).get_config()

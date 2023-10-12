@@ -106,9 +106,9 @@ class MLP(tf.keras.layers.Layer):
     """Performs the forward computation of the block."""
     for layer in self._sub_layers:
       cls = layer.__class__.__name__
-      if cls in ('Dropout', 'BatchNormalization'):
+      if cls in ('Dropout', 'BatchNormalization', 'Dice'):
         x = layer(x, training=training)
-        if cls == 'BatchNormalization':
+        if cls in ('BatchNormalization', 'Dice'):
           add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
         x = layer(x)
