@@ -5,7 +5,7 @@ import logging
 
 import tensorflow as tf
 
-from easy_rec.python.utils.activation import get_activation
+from easy_rec.python.layers.keras.activation import activation_layer
 from easy_rec.python.utils.tf_utils import add_elements_to_collection
 
 if tf.__version__ >= '2.0':
@@ -70,7 +70,7 @@ class MLP(tf.keras.layers.Layer):
                      use_bn_after_activation,
                      name,
                      l2_reg=None):
-    act_fn = get_activation(activation)
+    act_layer = activation_layer(activation)
     if use_bn and not use_bn_after_activation:
       dense = tf.keras.layers.Dense(
           units=num_units,
@@ -82,17 +82,16 @@ class MLP(tf.keras.layers.Layer):
       bn = tf.keras.layers.BatchNormalization(
           name='%s/bn' % name, trainable=True)
       self._sub_layers.append(bn)
-      act = tf.keras.layers.Activation(act_fn, name='%s/act' % name)
-      self._sub_layers.append(act)
+      self._sub_layers.append(act_layer)
     else:
       dense = tf.keras.layers.Dense(
           num_units,
-          activation=act_fn,
           use_bias=use_bias,
           kernel_initializer=initializer,
           kernel_regularizer=l2_reg,
           name=name)
       self._sub_layers.append(dense)
+      self._sub_layers.append(act_layer)
       if use_bn and use_bn_after_activation:
         bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name)
         self._sub_layers.append(bn)

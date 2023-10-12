@@ -130,6 +130,7 @@
 | initializer_range            | float  | 0.2  | 权重参数初始值的区间范围                           |
 | output_all_token_embeddings  | bool   | true | 是否输出所有token embedding                  |
 | target_item_position         | string | head | target item的插入位置，可选：head, tail, ignore |
+| reserve_target_position      | bool   | true | 是否为target item保留一个位置                  |
 
 ## 5. 多任务学习组件
 
@@ -149,5 +150,5 @@
 | ----------- | ------ | --- | ------------------------------------- |
 | loss_type   | string |     | 损失函数类型，包括：l2_loss, nce_loss, info_nce |
 | loss_weight | float  | 1.0 | 损失函数权重                                |
-| temperature | float  | 0.1 | info_nce loss 的参数                     |
+| temperature | float  | 0.1 | info_nce & nec loss 的参数                     |
 | 其他          |        |     | 根据loss_type决定                         |
