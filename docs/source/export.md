@@ -40,7 +40,7 @@ export_config {
     - samples/model_config/multi_tower_early_stop_on_taobao.config
   - 应用场景:
     - 数据量比较小时，需要训练多个epoch时, 打开early_stop可以防止过拟合;
-    - 使用[超参搜索](./automl/pai_nni_hpo.md)时, 打开可以提前终止收敛比较差的参数, 显著提升搜索效率 
+    - 使用[超参搜索](./automl/pai_nni_hpo.md)时, 打开可以提前终止收敛比较差的参数, 显著提升搜索效率
 - early_stop_func: 判断是否要提前结束训练的函数
   - 返回值:
     - True, 结束训练

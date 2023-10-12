@@ -29,6 +29,8 @@ message BSTEncoder {
     required bool output_all_token_embeddings = 11 [default = true];
     // The position of target item (i.e. head, tail, ignore)
     required string target_item_position = 12 [default = 'head'];
+    // Whether to preserve a position for target
+    required bool reserve_target_position = 13 [default = true];
 }
 
 message DINEncoder {
