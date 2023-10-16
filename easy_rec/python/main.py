@@ -101,7 +101,7 @@ def _get_input_fn(data_config,
 def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
-  gpu_options = GPUOptions(allow_growth=False)
+  gpu_options = GPUOptions(allow_growth=True)  # False)
 
   if hvd is not None:
     # gpus = estimator_utils.get_available_gpus()

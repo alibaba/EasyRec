@@ -258,9 +258,13 @@ def _internal_input_layer(features,
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         if 'Embedding' not in str(type(column)):
-          output_tensors.append(
-              column._get_dense_tensor(
-                  builder, weight_collections, trainable=trainable))
+          output = column._get_dense_tensor(
+              builder, weight_collections, trainable=trainable)
+          output_tensors.append(output)
+          if cols_to_output_tensors is not None:
+            cols_to_output_tensors[column] = output
+          if feature_name_to_output_tensors is not None:
+            feature_name_to_output_tensors[column.raw_name] = output
           continue
         num_buckets = column.categorical_column.num_buckets + hvd.size() - 1
         per_worker_buckets = num_buckets // hvd.size()
@@ -270,6 +274,18 @@ def _internal_input_layer(features,
           if shared_name in shared_weights:
             embedding_weights = shared_weights[shared_name]
           else:
+            with ops.device('/gpu:0'):
+              embedding_weights = variable_scope.get_variable(
+                  name='embedding_weights',
+                  shape=embedding_shape,
+                  dtype=dtypes.float32,
+                  initializer=column.initializer,
+                  trainable=column.trainable and trainable,
+                  partitioner=column.partitioner,
+                  collections=weight_collections)
+            shared_weights[shared_name] = embedding_weights
+        else:
+          with ops.device('/gpu:0'):
             embedding_weights = variable_scope.get_variable(
                 name='embedding_weights',
                 shape=embedding_shape,
@@ -278,16 +294,6 @@ def _internal_input_layer(features,
                 trainable=column.trainable and trainable,
                 partitioner=column.partitioner,
                 collections=weight_collections)
-            shared_weights[shared_name] = embedding_weights
-        else:
-          embedding_weights = variable_scope.get_variable(
-              name='embedding_weights',
-              shape=embedding_shape,
-              dtype=dtypes.float32,
-              initializer=column.initializer,
-              trainable=column.trainable and trainable,
-              partitioner=column.partitioner,
-              collections=weight_collections)
         # required by sok
         embedding_weights.target_gpu = -1
         sparse_tensors = column.categorical_column._get_sparse_tensors(
@@ -322,8 +328,8 @@ def _internal_input_layer(features,
         if cols_to_output_tensors is not None:
           cols_to_output_tensors[col] = output
         if feature_name_to_output_tensors is not None:
-          feature_name_to_output_tensors[column.raw_name] = output
-    else:
+          feature_name_to_output_tensors[col.raw_name] = output
+    elif len(lookup_output_ids_with_wgt) > 0:
       outputs = sok.lookup_sparse(
           lookup_embeddings_with_wgt,
           lookup_indices_with_wgt,
@@ -335,7 +341,7 @@ def _internal_input_layer(features,
         if cols_to_output_tensors is not None:
           cols_to_output_tensors[col] = output
         if feature_name_to_output_tensors is not None:
-          feature_name_to_output_tensors[column.raw_name] = output
+          feature_name_to_output_tensors[col.raw_name] = output
 
     if feature_name_to_output_tensors is not None:
       for column, output_tensor in zip(
