@@ -182,6 +182,21 @@ class InputLayer(object):
         self._embedding_regularizer, weights_list=embedding_reg_lst)
     return seq_features
 
+  def get_raw_features(self, features, group_name):
+    """Get features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all raw features in list
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+    feature_group = self._feature_groups[group_name]
+    return [features[x] for x in feature_group.feature_names]
+
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.
 
