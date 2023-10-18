@@ -152,6 +152,7 @@ from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
+from tensorflow.python.ops.ragged import ragged_math_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import resource_variable_ops
@@ -2138,6 +2139,9 @@ class _LazyBuilder(object):
       ValueError: if the raw feature has rank 0.
     """
     raw_feature = self._features[key]
+    if 'RaggedTensor' in str(type(raw_feature)):
+      return raw_feature
+
     feature_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
         raw_feature)
 
@@ -2635,6 +2639,15 @@ class _SharedEmbeddingColumn(
           to_restore = to_restore._get_variable_list()  # pylint: disable=protected-access
         checkpoint_utils.init_from_checkpoint(
             self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
+
+      if 'RaggedTensor' in str(type(sparse_ids)):
+        assert sparse_weights is None
+        ragged_embedding = embedding_ops.embedding_lookup_ragged(embedding_weights=embedding_weights,
+             ragged_ids=sparse_ids, max_norm=self.max_norm, name='%s_weights' % self.name)
+        if self.combiner == 'sum':
+          return ragged_math_ops.reduce_sum(ragged_embedding, axis=1)
+        else:
+          return ragged_math_ops.reduce_mean(ragged_embedding, axis=1)
 
       # Return embedding lookup result.
       return embedding_ops.safe_embedding_lookup_sparse(

@@ -467,7 +467,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._summary_writer.add_meta_graph(meta_graph_def)
 
     # save for step 0
-    self._save(session, global_step)
+    # self._save(session, global_step)
 
     self._timer.update_last_triggered_step(global_step)
 

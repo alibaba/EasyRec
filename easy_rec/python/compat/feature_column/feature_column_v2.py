@@ -2543,6 +2543,9 @@ def _to_sparse_input_and_drop_ignore_values(input_tensor, ignore_value=None):
   Raises:
     ValueError: when `input_tensor`'s rank is `None`.
   """
+  if 'RaggedTensor' in str(type(input_tensor)):
+    return input_tensor
+
   input_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
       input_tensor)
   if isinstance(input_tensor, sparse_tensor_lib.SparseTensor):
@@ -4237,6 +4240,9 @@ class IdentityCategoricalColumn(
     if not input_tensor.dtype.is_integer:
       raise ValueError('Invalid input, not integer. key: {} dtype: {}'.format(
           self.key, input_tensor.dtype))
+   
+    if 'RaggedTensor' in str(type(input_tensor)):
+      return input_tensor
 
     values = math_ops.cast(input_tensor.values, dtypes.int64, name='values')
     num_buckets = math_ops.cast(
