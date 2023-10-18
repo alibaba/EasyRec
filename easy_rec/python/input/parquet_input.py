@@ -1,12 +1,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
-import tensorflow as tf
-import pandas as pd
-import queue
 import multiprocessing
+import queue
+
 import numpy as np
+import pandas as pd
+import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.input import Input
@@ -34,8 +34,10 @@ class ParquetInput(Input):
     self._input_files = []
     for sub_path in input_path.strip().split(','):
       self._input_files.extend(gfile.Glob(sub_path))
-    logging.info('parquet input_path=%s file_num=%d' % (input_path, len(self._input_files)))
-    self._data_que = multiprocessing.Queue(maxsize=512)
+    logging.info('parquet input_path=%s file_num=%d' %
+                 (input_path, len(self._input_files)))
+    self._data_que = multiprocessing.Queue(
+        maxsize=self._data_config.prefetch_size)
     self._file_que = multiprocessing.Queue(maxsize=len(self._input_files))
     for input_file in self._input_files:
       self._file_que.put(input_file)
@@ -47,7 +49,8 @@ class ParquetInput(Input):
     logging.info('file_num=%d num_proc=%d' % (file_num, num_proc))
     self._proc_arr = []
     for proc_id in range(num_proc):
-      proc = multiprocessing.Process(target=self._parse_one_file, args=(proc_id,))
+      proc = multiprocessing.Process(
+          target=self._parse_one_file, args=(proc_id,))
       self._proc_arr.append(proc)
 
   def _parse_one_file(self, proc_id):
@@ -56,27 +59,31 @@ class ParquetInput(Input):
     num_files = 0
     while True:
       try:
-        input_file = self._file_que.get()
+        input_file = self._file_que.get(block=False)
       except queue.Empty:
-        break 
+        break
       num_files += 1
-      input_data = pd.read_parquet(input_file, columns=all_fields) 
+      input_data = pd.read_parquet(input_file, columns=all_fields)
       data_len = len(input_data[all_fields[0]])
       batch_num = int(data_len / self._batch_size)
       res_num = data_len % self._batch_size
-      logging.info('proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' % (proc_id,
-          input_file, data_len, batch_num, res_num))
-      sid = 0 
+      logging.info(
+          'proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' %
+          (proc_id, input_file, data_len, batch_num, res_num))
+      sid = 0
       for batch_id in range(batch_num):
         eid = sid + self._batch_size
         data_dict = {}
         for k in self._label_fields:
-          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]], dtype=np.float32)
+          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
+                                  dtype=np.float32)
         for k in self._effective_fields:
           val = input_data[k][sid:eid]
           all_lens = np.array([len(x) for x in val], dtype=np.int32)
           all_vals = np.concatenate(list(val))
-          assert np.sum(all_lens) == len(all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (len(all_vals), np.sum(all_lens))
+          assert np.sum(all_lens) == len(
+              all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
+                  len(all_vals), np.sum(all_lens))
           data_dict[k] = (all_lens, all_vals)
         self._data_que.put(data_dict)
         sid += self._batch_size
@@ -84,7 +91,8 @@ class ParquetInput(Input):
         logging.info('proc[%d] add final sample' % proc_id)
         data_dict = {}
         for k in self._label_fields:
-          data_dict[k] = np.array([x[0] for x in input_data[k][sid:]], dtype=np.float32)
+          data_dict[k] = np.array([x[0] for x in input_data[k][sid:]],
+                                  dtype=np.float32)
         for k in self._effective_fields:
           val = input_data[k][sid:]
           all_lens = np.array([len(x) for x in val], dtype=np.int32)
@@ -93,7 +101,7 @@ class ParquetInput(Input):
         self._data_que.put(data_dict)
     self._data_que.put(None)
     logging.info('data proc %d done, file_num=%d' % (proc_id, num_files))
-    
+
   def _sample_generator(self):
     for proc in self._proc_arr:
       proc.start()
@@ -109,21 +117,22 @@ class ParquetInput(Input):
       except queue.Empty:
         fetch_timeout_cnt += 1
         if done_proc_cnt >= len(self._proc_arr):
-          logging.info("all sample finished, fetch_timeout_cnt=%d" % fetch_timeout_cnt)
+          logging.info('all sample finished, fetch_timeout_cnt=%d' %
+                       fetch_timeout_cnt)
           break
     for proc in self._proc_arr:
-      proc.join() 
+      proc.join()
 
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
     for fea_name in self._effective_fields:
-      tmp = input_dict[fea_name][1] % 1000 # 000000
-      fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp,
-          input_dict[fea_name][0])
+      tmp = input_dict[fea_name][1] % 1000  # 000000
+      fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(
+          tmp, input_dict[fea_name][0])
     lbl_dict = {}
     for lbl_name in self._label_fields:
       lbl_dict[lbl_name] = input_dict[lbl_name]
-    return {'feature': fea_dict, 'label':lbl_dict}
+    return {'feature': fea_dict, 'label': lbl_dict}
 
   def _build(self, mode, params):
     out_types = {}

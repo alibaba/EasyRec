@@ -1,15 +1,16 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import json
+import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
+from easy_rec.python.model.keep_model.model_ps_mmoe import CustomizedModel
 from easy_rec.python.model.multi_task_model import MultiTaskModel
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.ppnet_pb2 import PPNet as PPNetConfig
-from easy_rec.python.model.keep_model.model_ps_mmoe import CustomizedModel
-import json
-import logging
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -23,8 +24,8 @@ class PPNetV3M(RankModel):
                features,
                labels=None,
                is_training=False):
-    super(PPNetV3M, self).__init__(model_config, feature_configs, features, labels,
-                               is_training)
+    super(PPNetV3M, self).__init__(model_config, feature_configs, features,
+                                   labels, is_training)
     assert self._model_config.WhichOneof('model') == 'ppnet', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.ppnet
@@ -43,7 +44,7 @@ class PPNetV3M(RankModel):
     output_list = self._keras_model(self._features)
     for lbl_id in range(len(self._model_conf['label'])):
       lbl_info = self._model_conf['label'][lbl_id]
-      lbl_name = lbl_info.get('input_name') 
+      lbl_name = lbl_info.get('input_name')
       output = output_list[lbl_id]
       self._prediction_dict[lbl_name] = output
     # return self._prediction_dict
@@ -53,7 +54,7 @@ class PPNetV3M(RankModel):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')
       output = self._prediction_dict.get(lbl_name)
-      loss_obj = tf.keras.losses.BinaryCrossentropy()(self._labels[lbl_name], output)
+      loss_obj = tf.keras.losses.BinaryCrossentropy()(self._labels[lbl_name],
+                                                      output)
       self._loss_dict[lbl_name] = loss_obj
     return self._loss_dict
-      

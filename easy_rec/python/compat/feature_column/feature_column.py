@@ -152,7 +152,6 @@ from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.ops.ragged import ragged_math_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import resource_variable_ops
@@ -161,6 +160,7 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
+from tensorflow.python.ops.ragged import ragged_math_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
@@ -2253,8 +2253,8 @@ def _normalize_feature_columns(feature_columns):
   if isinstance(feature_columns, _FeatureColumn):
     feature_columns = [feature_columns]
 
-  if isinstance(feature_columns, collections.Iterator):
-    feature_columns = list(feature_columns)
+  # if isinstance(feature_columns, collections.Iterator):
+  #   feature_columns = list(feature_columns)
 
   if isinstance(feature_columns, dict):
     raise ValueError('Expected feature_columns to be iterable, found dict.')
@@ -2642,8 +2642,11 @@ class _SharedEmbeddingColumn(
 
       if 'RaggedTensor' in str(type(sparse_ids)):
         assert sparse_weights is None
-        ragged_embedding = embedding_ops.embedding_lookup_ragged(embedding_weights=embedding_weights,
-             ragged_ids=sparse_ids, max_norm=self.max_norm, name='%s_weights' % self.name)
+        ragged_embedding = embedding_ops.embedding_lookup_ragged(
+            embedding_weights=embedding_weights,
+            ragged_ids=sparse_ids,
+            max_norm=self.max_norm,
+            name='%s_weights' % self.name)
         if self.combiner == 'sum':
           return ragged_math_ops.reduce_sum(ragged_embedding, axis=1)
         else:

@@ -104,7 +104,7 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=False)
 
-  if hvd is not None:
+  if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
     gpus = estimator_utils.get_available_gpus()
     if len(gpus) > 0:
       local_rnk = hvd.local_rank()

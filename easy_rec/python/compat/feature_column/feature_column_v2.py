@@ -4240,7 +4240,7 @@ class IdentityCategoricalColumn(
     if not input_tensor.dtype.is_integer:
       raise ValueError('Invalid input, not integer. key: {} dtype: {}'.format(
           self.key, input_tensor.dtype))
-   
+
     if 'RaggedTensor' in str(type(input_tensor)):
       return input_tensor
 
