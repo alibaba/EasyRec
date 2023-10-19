@@ -39,6 +39,11 @@ except Exception:
   hvd = None
 
 try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+try:
   from kafka import KafkaProducer, KafkaAdminClient
   from kafka.admin import NewTopic
 except ImportError as ex:
@@ -614,6 +619,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
+    return False
 
     for l in self._listeners:  # noqa: E741
       l.before_save(session, step)
@@ -998,6 +1004,10 @@ def has_hvd():
   return hvd is not None and 'HOROVOD_RANK' in os.environ
 
 
+def has_sok():
+  return sok is not None and 'ENABLE_SOK' in os.environ
+
+
 def init_hvd():
   if hvd is None:
     logging.error(
@@ -1007,6 +1017,16 @@ def init_hvd():
 
   hvd.init()
   os.environ['HOROVOD_RANK'] = str(hvd.rank())
+
+
+def init_sok():
+  try:
+    sok.init()
+    os.environ['ENABLE_SOK'] = '1'
+    return True
+  except Exception:
+    logging.error('sok is not installed')
+    return False
 
 
 def get_available_gpus():

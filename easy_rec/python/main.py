@@ -102,16 +102,28 @@ def _get_input_fn(data_config,
 def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
-  gpu_options = GPUOptions(allow_growth=False)
+  gpu_options = GPUOptions(allow_growth=True)  # False)
+
+  # if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+  #   gpus = estimator_utils.get_available_gpus()
+  #   if len(gpus) > 0:
+  #     local_rnk = hvd.local_rank()
+  #     num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+  #     sid = local_rnk * num_gpus_per_worker
+  #     eid = sid + num_gpus_per_worker
+  #     gpu_options.visible_device_list = ','.join(gpus[sid:eid])
 
   if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
-    gpus = estimator_utils.get_available_gpus()
-    if len(gpus) > 0:
-      local_rnk = hvd.local_rank()
-      num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
-      sid = local_rnk * num_gpus_per_worker
-      eid = sid + num_gpus_per_worker
-      gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+    # gpus = estimator_utils.get_available_gpus()
+    # if len(gpus) > 0:
+    local_rnk = hvd.local_rank()
+    # num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+    # sid = local_rnk * num_gpus_per_worker
+    # eid = sid + num_gpus_per_worker
+    logging.info('local_rnk=%d' % local_rnk)
+    gpu_options.visible_device_list = str(local_rnk)  # ','.join(gpus[sid:eid])
 
   session_config = ConfigProto(
       gpu_options=gpu_options,

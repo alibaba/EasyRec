@@ -164,6 +164,9 @@ if __name__ == '__main__':
 
     if pipeline_config.train_config.train_distribute == DistributionStrategy.HorovodStrategy:
       estimator_utils.init_hvd()
+    elif pipeline_config.train_config.train_distribute == DistributionStrategy.SokStrategy:
+      estimator_utils.init_hvd()
+      estimator_utils.init_sok()
 
     if args.hpo_param_path:
       with gfile.GFile(args.hpo_param_path, 'r') as fin:

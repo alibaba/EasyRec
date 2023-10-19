@@ -125,10 +125,17 @@ class ParquetInput(Input):
 
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
-    for fea_name in self._effective_fields:
-      tmp = input_dict[fea_name][1] % 1000  # 000000
-      fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(
-          tmp, input_dict[fea_name][0])
+    # for fea_name in self._effective_fields:
+    #   tmp = input_dict[fea_name][1] % 1000  # 000000
+    #   fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(
+    #       tmp, input_dict[fea_name][0])
+    for fc in self._feature_configs:
+      if fc.feature_type == fc.IdFeature or fc.feature_type == fc.TagFeature:
+        input_0 = fc.input_names[0]
+        fea_name = fc.feature_name if fc.HasField('feature_name') else input_0
+        tmp = input_dict[input_0][1] % fc.num_buckets
+        fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
+
     lbl_dict = {}
     for lbl_name in self._label_fields:
       lbl_dict[lbl_name] = input_dict[lbl_name]
