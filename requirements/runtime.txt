@@ -5,6 +5,7 @@ oss2
 pandas
 psutil
 pyodps
+pyarrow
 PyYAML
 scikit-learn
 xlrd >= 0.9.0

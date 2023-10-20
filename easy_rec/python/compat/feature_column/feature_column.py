@@ -150,6 +150,18 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import embedding_ops
+
+try: 
+  from tensorflow.python.ops.ragged import ragged_embedding_ops
+  def embedding_lookup_ragged(embedding_weights, ragged_ids, max_norm=None, name=None):
+    return ragged_embedding_ops.embedding_lookup(params=embedding_weights,
+        ids=ragged_ids, max_norm=max_norm, name=name)
+except:
+  if hasattr(embedding_ops, 'embedding_lookup_ragged'):
+    embedding_lookup_ragged = embedding_ops.embedding_lookup_ragged
+  else:
+    embedding_lookup_ragged = None
+
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
@@ -161,7 +173,12 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
-from tensorflow.python.ops.ragged import ragged_math_ops
+
+try:
+  from tensorflow.python.ops.ragged import ragged_math_ops
+except:
+  pass
+
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
@@ -2786,7 +2803,7 @@ class _SharedEmbeddingColumn(
 
       if 'RaggedTensor' in str(type(sparse_ids)):
         assert sparse_weights is None
-        ragged_embedding = embedding_ops.embedding_lookup_ragged(
+        ragged_embedding = embedding_lookup_ragged(
             embedding_weights=embedding_weights,
             ragged_ids=sparse_ids,
             max_norm=self.max_norm,

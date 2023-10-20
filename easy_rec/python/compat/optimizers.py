@@ -41,6 +41,11 @@ from easy_rec.python.ops.incr_record import set_sparse_indices
 from easy_rec.python.utils import estimator_utils
 
 try:
+  from tensorflow.python.framework import indexed_slices
+except Exception as ex:
+  indexed_slices = ops
+
+try:
   import horovod.tensorflow as hvd
 except Exception:
   hvd = None
@@ -315,7 +320,7 @@ def optimize_loss(loss,
 
     # Add histograms for variables, gradients and gradient norms.
     for gradient, variable in gradients:
-      if isinstance(gradient, ops.IndexedSlices):
+      if isinstance(gradient, indexed_slices.IndexedSlices):
         grad_values = gradient.values
       else:
         grad_values = gradient
@@ -360,7 +365,7 @@ def optimize_loss(loss,
       incr_save_ops = []
       if incr_save:
         for grad, var in gradients:
-          if isinstance(grad, ops.IndexedSlices):
+          if isinstance(grad, indexed_slices.IndexedSlices):
             indices = grad.indices
             with ops.colocate_with(var), ops.control_dependencies(
                 [grad_updates]):
@@ -477,9 +482,9 @@ def adaptive_clipping_fn(std_factor=2.,
     for grad in grads:
       if grad is None:
         clipped_grads.append(None)
-      elif isinstance(grad, ops.IndexedSlices):
+      elif isinstance(grad, indexed_slices.IndexedSlices):
         clipped_grads.append(
-            ops.IndexedSlices(grad.values * factor, grad.indices,
+            indexed_slices.IndexedSlices(grad.values * factor, grad.indices,
                               grad.dense_shape))
       else:
         clipped_grads.append(grad * factor)
@@ -497,7 +502,7 @@ def _add_scaled_noise_to_gradients(grads_and_vars, gradient_noise_scale):
     if gradient is None:
       noisy_gradients.append(None)
       continue
-    if isinstance(gradient, ops.IndexedSlices):
+    if isinstance(gradient, indexed_slices.IndexedSlices):
       gradient_shape = gradient.dense_shape
     else:
       gradient_shape = gradient.get_shape()
@@ -514,9 +519,9 @@ def _multiply_gradients(grads_and_vars, gradient_multipliers):
         (var in gradient_multipliers or var.name in gradient_multipliers)):
       key = var if var in gradient_multipliers else var.name
       multiplier = gradient_multipliers[key]
-      if isinstance(grad, ops.IndexedSlices):
+      if isinstance(grad, indexed_slices.IndexedSlices):
         grad_values = grad.values * multiplier
-        grad = ops.IndexedSlices(grad_values, grad.indices, grad.dense_shape)
+        grad = indexed_slices.IndexedSlices(grad_values, grad.indices, grad.dense_shape)
       else:
         grad *= math_ops.cast(multiplier, grad.dtype)
     multiplied_grads_and_vars.append((grad, var))
