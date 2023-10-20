@@ -390,13 +390,18 @@ def add_boundaries_to_config(pipeline_config, tables):
       logging.info('edited %s' % feature_name)
 
 
-def get_compatible_feature_configs(pipeline_config):
+def get_compatible_feature_configs(pipeline_config,drop_feature_names=None):
   if pipeline_config.feature_configs:
     feature_configs = pipeline_config.feature_configs
   else:
     feature_configs = pipeline_config.feature_config.features
+  if drop_feature_names:
+    tmp_feature_configs = feature_configs[:]
+    for fea_cfg in tmp_feature_configs:
+      fea_name = fea_cfg.input_names[0]
+      if fea_name in drop_feature_names:
+        feature_configs.remove(fea_cfg)
   return feature_configs
-
 
 def parse_time(time_data):
   """Parse time string to timestamp.

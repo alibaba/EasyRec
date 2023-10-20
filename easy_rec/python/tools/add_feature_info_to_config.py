@@ -59,9 +59,9 @@ def main(argv):
       except common_io.exception.OutOfRangeException:
         reader.close()
         break
-
-  for feature_config in config_util.get_compatible_feature_configs(
-      pipeline_config):
+  
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config, drop_feature_names)
+  for feature_config in feature_configs:
     feature_name = feature_config.input_names[0]
     if feature_name in feature_info_map:
       logging.info('edited %s' % feature_name)
