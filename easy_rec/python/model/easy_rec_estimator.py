@@ -44,6 +44,13 @@ try:
 except Exception:
   hvd = None
 
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -205,6 +212,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
           'the number of var group(%d) != the number of optimizers(%d)' \
           % (len(grouped_vars), len(optimizer_config))
       optimizer = MultiOptimizer(all_opts, grouped_vars)
+
+    if self.train_config.train_distribute == DistributionStrategy.SokStrategy:
+      optimizer = sok.OptimizerWrapper(optimizer)
 
     hooks = []
     if estimator_utils.has_hvd():

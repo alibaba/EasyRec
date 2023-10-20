@@ -24,10 +24,11 @@ class ParquetInput(Input):
                task_index=0,
                task_num=1,
                check_mode=False,
-               pipeline_config=None):
+               pipeline_config=None,
+               **kwargs):
     super(ParquetInput,
           self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+                         task_num, check_mode, pipeline_config, **kwargs)
     if input_path is None:
       return
 
@@ -50,13 +51,14 @@ class ParquetInput(Input):
     self._proc_arr = []
     for proc_id in range(num_proc):
       proc = multiprocessing.Process(
-          target=self._parse_one_file, args=(proc_id,))
+          target=self._load_data_proc, args=(proc_id,))
       self._proc_arr.append(proc)
 
-  def _parse_one_file(self, proc_id):
+  def _load_data_proc(self, proc_id):
     all_fields = list(self._label_fields) + list(self._effective_fields)
     logging.info('data proc %d start' % proc_id)
     num_files = 0
+    part_data_dict = {}
     while True:
       try:
         input_file = self._file_que.get(block=False)
@@ -88,17 +90,53 @@ class ParquetInput(Input):
         self._data_que.put(data_dict)
         sid += self._batch_size
       if res_num > 0:
-        logging.info('proc[%d] add final sample' % proc_id)
+        accum_res_num = 0
         data_dict = {}
+        part_data_dict_n = {}
         for k in self._label_fields:
-          data_dict[k] = np.array([x[0] for x in input_data[k][sid:]],
+          tmp_lbls = np.array([x[0] for x in input_data[k][sid:]],
                                   dtype=np.float32)
+          if part_data_dict is not None and k in part_data_dict:
+            tmp_lbls = np.concatenate([part_data_dict[k], tmp_lbls], axis=0)
+            if len(tmp_lbls) > self._batch_size:
+              data_dict[k] = tmp_lbls[:self._batch_size] 
+              part_data_dict_n[k] = tmp_lbls[self._batch_size:]
+            elif len(tmp_lbls) == self._batch_size:
+              data_dict[k] = tmp_lbls
+            else:
+              part_data_dict_n[k] = tmp_lbls
+          else:
+            part_data_dict_n[k] = tmp_lbls
         for k in self._effective_fields:
           val = input_data[k][sid:]
           all_lens = np.array([len(x) for x in val], dtype=np.int32)
           all_vals = np.concatenate(list(val))
-          data_dict[k] = (all_lens, all_vals)
-        self._data_que.put(data_dict)
+          if part_data_dict is not None and k in part_data_dict:
+            tmp_lens = np.concatenate([part_data_dict[k][0], all_lens], axis=0)
+            tmp_vals = np.concatenate([part_data_dict[k][1], all_vals], axis=0)
+            if len(tmp_lens) > self._batch_size:
+              tmp_res_lens = tmp_lens[self._batch_size:]
+              tmp_lens = tmp_lens[:self._batch_size]
+              tmp_num_elems = np.sum(tmp_lens)
+              tmp_res_vals = tmp_vals[tmp_num_elems:]
+              tmp_vals = tmp_vals[:tmp_num_elems]
+              part_data_dict_n[k] = (tmp_res_lens, tmp_res_vals)
+              data_dict[k] = (tmp_lens, tmp_vals)
+            elif len(tmp_lens) == self._batch_size:
+              data_dict[k] = (tmp_lens, tmp_vals)
+            else:
+              part_data_dict_n[k] = (tmp_lens, tmp_vals)
+          else:
+            part_data_dict_n[k] = (all_lens, all_vals)
+        if len(data_dict) > 0:
+          self._data_que.put(data_dict)
+        part_data_dict = part_data_dict_n
+    if len(part_data_dict) > 0:
+      if not self._data_config.drop_remainder:
+        self._data_que.put(part_data_dict)
+      else:
+        logging.warning('drop remain %d samples as drop_remainder is set' % \
+             len(part_data_dict[self._label_fields[0]]))
     self._data_que.put(None)
     logging.info('data proc %d done, file_num=%d' % (proc_id, num_files))
 
@@ -133,7 +171,10 @@ class ParquetInput(Input):
       if fc.feature_type == fc.IdFeature or fc.feature_type == fc.TagFeature:
         input_0 = fc.input_names[0]
         fea_name = fc.feature_name if fc.HasField('feature_name') else input_0
-        tmp = input_dict[input_0][1] % fc.num_buckets
+        if not self._has_ev:
+          tmp = input_dict[input_0][1] % fc.num_buckets
+        else:
+          tmp = input_dict[input_0][1]
         fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
 
     lbl_dict = {}

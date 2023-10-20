@@ -39,7 +39,7 @@ class BroadcastGlobalVariablesHook(session_run_hook.SessionRunHook):
   def begin(self):
     bcast_vars = []
     for x in tf.global_variables():
-      if '/embedding' not in x.name:
+      if '/embedding' not in x.name and 'DynamicVariable' not in str(type(x)):
         bcast_vars.append(x)
         logging.info('will broadcast variable: %s' % x.name)
     if not self.bcast_op or self.bcast_op.graph != tf.get_default_graph():

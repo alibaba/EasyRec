@@ -275,6 +275,27 @@ def _internal_input_layer(features,
             embedding_weights = shared_weights[shared_name]
           else:
             with ops.device('/gpu:0'):
+              if column.ev_params is not None:
+                embedding_weights = sok.DynamicVariable(name='embedding_weights',
+                    dimension=column.dimension, initializer='random', #column.initializer,
+                    trainable=column.trainable and trainable, dtype=dtypes.float32)
+              else:
+                embedding_weights = variable_scope.get_variable(
+                    name='embedding_weights',
+                    shape=embedding_shape,
+                    dtype=dtypes.float32,
+                    initializer=column.initializer,
+                    trainable=column.trainable and trainable,
+                    partitioner=None,
+                    collections=weight_collections)
+            shared_weights[shared_name] = embedding_weights
+        else:
+          with ops.device('/gpu:0'):
+            if column.ev_params is not None:
+              embedding_weights = sok.DynamicVariable(name='embedding_weights',
+                  dimension=column.dimension, initializer='random',  #column.initializer,
+                  trainable=column.trainable and trainable, dtype=dtypes.float32)
+            else:
               embedding_weights = variable_scope.get_variable(
                   name='embedding_weights',
                   shape=embedding_shape,
@@ -283,19 +304,10 @@ def _internal_input_layer(features,
                   trainable=column.trainable and trainable,
                   partitioner=None,
                   collections=weight_collections)
-            shared_weights[shared_name] = embedding_weights
-        else:
-          with ops.device('/gpu:0'):
-            embedding_weights = variable_scope.get_variable(
-                name='embedding_weights',
-                shape=embedding_shape,
-                dtype=dtypes.float32,
-                initializer=column.initializer,
-                trainable=column.trainable and trainable,
-                partitioner=None,
-                collections=weight_collections)
         # required by sok
-        embedding_weights.target_gpu = -1
+        if 'DynamicVariable' not in str(type(embedding_weights)):
+          embedding_weights.target_gpu = -1
+        # SparseTensor RaggedTensor
         sparse_tensors = column.categorical_column._get_sparse_tensors(
             builder, weight_collections=weight_collections, trainable=trainable)
         output_id = len(output_tensors)
@@ -332,6 +344,7 @@ def _internal_input_layer(features,
     elif len(lookup_output_ids_with_wgt) > 0:
       outputs = sok.lookup_sparse(
           lookup_embeddings_with_wgt,
+          # RaggedTensor .values .row_lengths
           lookup_indices_with_wgt,
           lookup_wgts,
           combiners=lookup_combiners_with_wgt)

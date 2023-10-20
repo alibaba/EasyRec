@@ -298,5 +298,5 @@ message DatasetConfig {
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
 
-
+    optional bool drop_remainder = 1002 [default = false];
 }

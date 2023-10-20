@@ -43,7 +43,8 @@ class Input(six.with_metaclass(_meta_type, object)):
                task_index=0,
                task_num=1,
                check_mode=False,
-               pipeline_config=None):
+               pipeline_config=None,
+               **kwargs):
     self._pipeline_config = pipeline_config
     self._data_config = data_config
     self._check_mode = check_mode
@@ -51,6 +52,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
+    self._has_ev = 'ev_params' in kwargs
 
     if self._data_config.auto_expand_input_fields:
       input_fields = [x for x in self._data_config.input_fields]

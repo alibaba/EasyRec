@@ -244,17 +244,23 @@ def optimize_loss(loss,
         raise ValueError('Unrecognized optimizer: function should return '
                          'subclass of Optimizer. Got %s.' % str(opt))
     else:
-      raise ValueError('Unrecognized optimizer: should be string, '
-                       'subclass of Optimizer, instance of '
-                       'subclass of Optimizer or function with one argument. '
-                       'Got %s.' % str(optimizer))
+      opt = optimizer
+      # raise ValueError('Unrecognized optimizer: should be string, '
+      #                  'subclass of Optimizer, instance of '
+      #                  'subclass of Optimizer or function with one argument. '
+      #                  'Got %s.' % str(optimizer))
 
     # All trainable variables, if specific variables are not specified.
     if variables is None:
       variables = vars_.trainable_variables()
 
     # Compute gradients.
-    gradients = opt.compute_gradients(
+    if 'compute_gradients' not in dir(opt):
+      import tensorflow as tf
+      gradients = tf.gradients(loss, variables)
+      gradients = list(zip(gradients, variables))
+    else:
+      gradients = opt.compute_gradients(
         loss,
         variables,
         colocate_gradients_with_ops=colocate_gradients_with_ops)
@@ -331,7 +337,22 @@ def optimize_loss(loss,
 
     # Create gradient updates.
     def _apply_grad():
-      grad_updates = opt.apply_gradients(
+      if 'compute_gradients' not in dir(opt):
+        sparse_vars = [ x for x in gradients if 'DynamicVariable' in str(type(x[1])) ]
+        dense_vars = [ x for x in gradients if 'DynamicVariable' not in str(type(x[1])) ]
+        sparse_grad_updates = opt.apply_gradients(sparse_vars)
+        dense_grad_updates = opt._optimizer.apply_gradients(
+          dense_vars,
+          global_step=global_step if increment_global_step else None,
+          name='train') 
+        if sparse_grad_updates is not None and dense_grad_updates is not None:
+          grad_updates = tf.group([sparse_grad_updates, dense_grad_updates])
+        elif sparse_grad_updates is not None:
+          grad_updates = sparse_grad_updates
+        elif dense_grad_updates is not None:
+          grad_updates = dense_grad_updates
+      else:
+        grad_updates = opt.apply_gradients(
           gradients,
           global_step=global_step if increment_global_step else None,
           name='train')
