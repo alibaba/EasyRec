@@ -9,12 +9,11 @@ from tensorflow.python.framework import ops
 
 import easy_rec
 
-LIB_PATH = tf.sysconfig.get_link_flags()[0][2:]
-LD_LIBRARY_PATH = os.getenv('LD_LIBRARY_PATH')
-if LIB_PATH not in LD_LIBRARY_PATH:
-  os.environ['LD_LIBRARY_PATH'] = ':'.join([LIB_PATH, LD_LIBRARY_PATH])
-  logging.info('set LD_LIBRARY_PATH=%s' % os.getenv('LD_LIBRARY_PATH'))
-
+# LIB_PATH = tf.sysconfig.get_link_flags()[0][2:]
+# LD_LIBRARY_PATH = os.getenv('LD_LIBRARY_PATH')
+# if LIB_PATH not in LD_LIBRARY_PATH:
+#   os.environ['LD_LIBRARY_PATH'] = ':'.join([LIB_PATH, LD_LIBRARY_PATH])
+#   logging.info('set LD_LIBRARY_PATH=%s' % os.getenv('LD_LIBRARY_PATH'))
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -46,7 +45,12 @@ class EditDistance(tf.keras.layers.Layer):
   def call(self, inputs, training=None, **kwargs):
     input1, input2 = inputs[:2]
     with ops.device('/CPU:0'):
-      dist = self.edit_distance(input1, input2, normalize=False, dtype=tf.int32, encoding=self.txt_encoding)
+      dist = self.edit_distance(
+          input1,
+          input2,
+          normalize=False,
+          dtype=tf.int32,
+          encoding=self.txt_encoding)
     ids = tf.clip_by_value(dist, 0, self.emb_size - 1)
     embed = tf.nn.embedding_lookup(self.embedding_table, ids)
     return embed
