@@ -403,7 +403,7 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   @unittest.skipIf(
-      LooseVersion(tf.__version__) < LooseVersion('2.0.0'),
+      LooseVersion(tf.__version__) >= LooseVersion('2.0.0'),
       'EditDistanceOp only work before tf version == 2.0')
   def test_custom_op(self):
     self._success = test_utils.test_single_train_eval(
