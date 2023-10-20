@@ -133,8 +133,8 @@ model_config: {
     group_name: 'sequence'
     feature_names: "cate_id"
     feature_names: "brand"
-    feature_names: "tag_brand_list"
     feature_names: "tag_category_list"
+    feature_names: "tag_brand_list"
     wide_deep: DEEP
   }
   backbone {
@@ -192,6 +192,7 @@ model_config: {
 - feature_groups: 特征组
   - 包含两个feature_group: dense 和sparse group
   - wide_deep: DIN模型使用的都是Deep features, 所以都设置成DEEP
+  - 序列组件对应的feature_group的配置方式请查看 [参考文档](../component/sequence.md)
 - backbone: 通过组件化的方式搭建的主干网络，[参考文档](../component/backbone.md)
   - blocks: 由多个`组件块`组成的一个有向无环图（DAG），框架负责按照DAG的拓扑排序执行个`组件块`关联的代码逻辑，构建TF Graph的一个子图
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
