@@ -407,7 +407,8 @@ class TrainEvalTest(tf.test.TestCase):
       'EditDistanceOp only work before tf version == 2.0')
   def test_custom_op(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/mlp_on_movielens_with_custom_op.config', self._test_dir)
+        'samples/model_config/mlp_on_movielens_with_custom_op.config',
+        self._test_dir)
     self.assertTrue(self._success)
 
   def test_cdn(self):

@@ -10,6 +10,7 @@
 所有 `SequenceFeature` 类型的子特征都被识别为`history behavior sequence`的一部分; 所有非`SequenceFeature` 类型的子特征都被识别为`target item`的一部分。
 
 **两部分的子特征的顺序需要保持一致**。在下面的例子中，
+
 - `concat([cate_id,brand], axis=-1)` 是`target item`最终的embedding（2D）;
 - `concat([tag_category_list, tag_brand_list], axis=-1)` 是`history behavior sequence`最终的embedding（3D）
 
