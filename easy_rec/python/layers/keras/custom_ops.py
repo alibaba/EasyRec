@@ -10,7 +10,7 @@ from tensorflow.python.framework import ops
 curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 ops_idr = os.path.dirname(parent_dir)
-ops_dir = os.path.join(ops_idr, 'python', 'ops')
+ops_dir = os.path.join(ops_idr, 'ops')
 if 'PAI' in tf.__version__:
   ops_dir = os.path.join(ops_dir, '1.12_pai')
 elif tf.__version__.startswith('1.12'):

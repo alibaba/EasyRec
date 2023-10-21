@@ -95,6 +95,12 @@ model_config: {
       }
       keras_layer {
         class_name: 'EditDistance'
+        st_params {
+          fields {
+            key: 'text_encoding'
+            value: { string_value: 'latin' }
+          }
+        }
       }
     }
     blocks {
