@@ -39,15 +39,24 @@ class ParquetInput(Input):
                  (input_path, len(self._input_files)))
     self._data_que = multiprocessing.Queue(
         maxsize=self._data_config.prefetch_size)
-    self._file_que = multiprocessing.Queue(maxsize=len(self._input_files))
-    for input_file in self._input_files:
-      self._file_que.put(input_file)
+
 
     file_num = len(self._input_files)
+    logging.info('[task_index=%d] total_file_num=%d task_num=%d' % (task_index, file_num, task_num))
+    avg_file_num = int(file_num / task_num)
+    res_file_num = file_num % task_num
+    file_sid = task_index * avg_file_num + min(res_file_num, task_index)
+    file_eid = (task_index + 1) * avg_file_num + min(res_file_num, task_index+1)
+    self._my_files = self._input_files[file_sid:file_eid] 
+
+    logging.info('[task_index=%d] task_file_num=%d' % (task_index, len(self._my_files)))
+    self._file_que = multiprocessing.Queue()
+
     num_proc = 8
     if file_num < num_proc:
       num_proc = file_num
-    logging.info('file_num=%d num_proc=%d' % (file_num, num_proc))
+
+    self._proc_start = False
     self._proc_arr = []
     for proc_id in range(num_proc):
       proc = multiprocessing.Process(
@@ -141,8 +150,11 @@ class ParquetInput(Input):
     logging.info('data proc %d done, file_num=%d' % (proc_id, num_files))
 
   def _sample_generator(self):
-    for proc in self._proc_arr:
-      proc.start()
+    if not self._proc_start:
+      self._proc_start = True 
+      for proc in self._proc_arr:
+        proc.start()
+
     done_proc_cnt = 0
     fetch_timeout_cnt = 0
     while True:
@@ -183,6 +195,14 @@ class ParquetInput(Input):
     return {'feature': fea_dict, 'label': lbl_dict}
 
   def _build(self, mode, params):
+    if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
+      logging.info('will repeat train data for %d epochs' % self._data_config.num_epochs)
+      my_files = self._my_files * self._data_config.num_epochs
+    else:
+      my_files = self._my_files
+    for input_file in my_files:
+      self._file_que.put(input_file)
+
     out_types = {}
     out_shapes = {}
     for k in self._label_fields:
@@ -202,7 +222,7 @@ class ParquetInput(Input):
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     # dataset = dataset.map(
     #     map_func=self._preprocess, num_parallel_calls=num_parallel_calls)
-    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
+    # dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:

@@ -852,6 +852,8 @@ def parse_tf_config():
 
 
 def get_task_index_and_num():
+  if hvd is not None and 'HOROVOD_RANK' in os.environ:
+    return hvd.rank(), hvd.size()
   cluster, task_type, task_index = parse_tf_config()
   if 'worker' not in cluster:
     return 0, 1

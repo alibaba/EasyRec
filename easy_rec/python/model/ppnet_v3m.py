@@ -54,7 +54,7 @@ class PPNetV3M(RankModel):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')
       output = self._prediction_dict.get(lbl_name)
-      loss_obj = tf.keras.losses.BinaryCrossentropy()(self._labels[lbl_name],
-                                                      output)
+      loss_obj = tf.keras.losses.BinaryCrossentropy(reduction='sum')(
+          self._labels[lbl_name], output)
       self._loss_dict[lbl_name] = loss_obj
     return self._loss_dict

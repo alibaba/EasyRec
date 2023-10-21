@@ -151,16 +151,6 @@ from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import embedding_ops
 
-try: 
-  from tensorflow.python.ops.ragged import ragged_embedding_ops
-  def embedding_lookup_ragged(embedding_weights, ragged_ids, max_norm=None, name=None):
-    return ragged_embedding_ops.embedding_lookup(params=embedding_weights,
-        ids=ragged_ids, max_norm=max_norm, name=name)
-except:
-  if hasattr(embedding_ops, 'embedding_lookup_ragged'):
-    embedding_lookup_ragged = embedding_ops.embedding_lookup_ragged
-  else:
-    embedding_lookup_ragged = None
 
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
@@ -196,6 +186,56 @@ try:
 except Exception:
   hvd = None
 
+def embedding_lookup_ragged(embedding_weights, ragged_ids, ragged_weights,
+                            combiner, max_norm=None, name=None):
+  segment_ids = ragged_ids.value_rowids()
+  ids = ragged_ids.flat_values
+  ids, idx = array_ops.unique(ids)
+  embeddings = embedding_ops.embedding_lookup(embedding_weights, ids,
+      partition_strategy='mod', max_norm=max_norm)
+  if ragged_weights is not None:
+    weights = ragged_weights.flat_values
+    embeddings = array_ops.gather(embeddings, idx)
+    original_dtype = embeddings.dtype
+    if embeddings.dtype in (dtypes.float16, dtypes.bfloat16):
+      # Cast low-precision embeddings to float32 during the computation to
+      # avoid numerical issues.
+      embeddings = math_ops.cast(embeddings, dtypes.float32)
+    if weights.dtype != embeddings.dtype:
+      weights = math_ops.cast(weights, embeddings.dtype)
+    weights = array_ops.expand_dims(weights, len(embeddings.get_shape()))
+    embeddings = embeddings * weights
+    if combiner == 'sum':
+      return math_ops.segment_sum(embeddings, segment_ids, name=name)
+    elif combiner == 'mean':
+      embeddings = math_ops.segment_sum(embeddings, segment_ids)
+      weight_sum = math_ops.segment_sum(weights, segment_ids)
+      embeddings = math_ops.div_no_nan(embeddings, weight_sum, name=name)
+    elif combiner == "sqrtn":
+      embeddings = math_ops.segment_sum(embeddings, segment_ids)
+      weights_squared = math_ops.pow(weights, 2)
+      weight_sum = math_ops.segment_sum(weights_squared, segment_ids)
+      weight_sum_sqrt = math_ops.sqrt(weight_sum)
+      embeddings = math_ops.div_no_nan(embeddings, weight_sum_sqrt, name=name)
+    else:
+      assert False, "Unrecognized combiner"
+    if embeddings.dtype != original_dtype:
+      embeddings = math_ops.cast(embeddings, original_dtype)  
+    return embeddings
+  else:
+    assert idx is not None
+    if combiner == "sum":
+      embeddings = math_ops.sparse_segment_sum(
+          embeddings, idx, segment_ids, name=name)
+    elif combiner == "mean":
+      embeddings = math_ops.sparse_segment_mean(
+          embeddings, idx, segment_ids, name=name)
+    elif combiner == "sqrtn":
+      embeddings = math_ops.sparse_segment_sqrt_n(
+          embeddings, idx, segment_ids, name=name)
+    else:
+      assert False, "Unrecognized combiner"
+    return embeddings
 
 def _internal_input_layer(features,
                           feature_columns,
@@ -2803,15 +2843,13 @@ class _SharedEmbeddingColumn(
 
       if 'RaggedTensor' in str(type(sparse_ids)):
         assert sparse_weights is None
-        ragged_embedding = embedding_lookup_ragged(
+        return embedding_lookup_ragged(
             embedding_weights=embedding_weights,
             ragged_ids=sparse_ids,
+            ragged_weights=sparse_weights,
+            combiner=self.combiner,
             max_norm=self.max_norm,
             name='%s_weights' % self.name)
-        if self.combiner == 'sum':
-          return ragged_math_ops.reduce_sum(ragged_embedding, axis=1)
-        else:
-          return ragged_math_ops.reduce_mean(ragged_embedding, axis=1)
 
       # Return embedding lookup result.
       return embedding_ops.safe_embedding_lookup_sparse(
