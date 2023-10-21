@@ -163,9 +163,11 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
+from tensorflow.python.ops import data_flow_ops
 
 try:
   from tensorflow.python.ops.ragged import ragged_math_ops
+  from tensorflow.python.ops.ragged import ragged_concat_ops
 except:
   pass
 
@@ -389,8 +391,35 @@ def _internal_input_layer(features,
 
     # do sok lookup
     if len(lookup_output_ids) > 0:
-      outputs = sok.lookup_sparse(
-          lookup_embeddings, lookup_indices, combiners=lookup_combiners)
+      # first concat all the ids and unique
+      all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
+      all_uniq_ids, uniq_idx = array_ops.unique(all_ids.flat_values) 
+    
+      # dynamic partition 
+      np = hvd.size()
+      # from sparse_operation_kit.experiment import raw_ops
+      p_assignments = all_uniq_ids % np
+      gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids, p_assignments, np)
+      # all2all
+      split_sizes = array_ops.concat([ array_ops.shape(x) for x in gather_ids ], axis=0)
+      send_ids = array_ops.concat(gather_ids, axis=0)
+      recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
+
+      logging.info('recv_lens = %s' % str(recv_lens))
+
+      # read embedding from dynamic variable
+      send_embed = lookup_embeddings[0].sparse_read(recv_ids)
+
+      embed_dim = lookup_embeddings[0]._dimension
+      # all2all
+      recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
+
+      # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
+      segment_ids = all_ids.value_rowids()
+      embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+      output_tensor = array_ops.reshape(embeddings, [len(lookup_output_ids), -1, lookup_embeddings[0]._dimension])
+
+      outputs = array_ops.split(output_tensor, num_or_size_splits=len(lookup_output_ids), axis=0)
       for output, output_id, col in zip(outputs, lookup_output_ids,
                                         lookup_cols):
         output_tensors[output_id] = output
@@ -398,27 +427,40 @@ def _internal_input_layer(features,
           cols_to_output_tensors[col] = output
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[col.raw_name] = output
-    elif len(lookup_output_ids_with_wgt) > 0:
-      outputs = sok.lookup_sparse(
-          lookup_embeddings_with_wgt,
-          # RaggedTensor .values .row_lengths
-          lookup_indices_with_wgt,
-          lookup_wgts,
-          combiners=lookup_combiners_with_wgt)
-      for output, output_id, col in zip(outputs, lookup_output_ids_with_wgt,
-                                        lookup_cols_with_wgt):
-        output_tensors[output_id] = output
-        if cols_to_output_tensors is not None:
-          cols_to_output_tensors[col] = output
-        if feature_name_to_output_tensors is not None:
-          feature_name_to_output_tensors[col.raw_name] = output
+      return array_ops.reshape(array_ops.transpose(output_tensor, perm=[1, 0, 2]),
+         [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])
 
-    if feature_name_to_output_tensors is not None:
-      for column, output_tensor in zip(
-          sorted(feature_columns, key=lambda x: x.name), output_tensors):
-        feature_name_to_output_tensors[column.raw_name] = output_tensor
-    _verify_static_batch_size_equality(output_tensors, ordered_columns)
-    return array_ops.concat(output_tensors, 1)
+      
+    #   outputs = sok.lookup_sparse(
+    #       lookup_embeddings, lookup_indices, combiners=lookup_combiners)
+    #   for output, output_id, col in zip(outputs, lookup_output_ids,
+    #                                     lookup_cols):
+    #     output_tensors[output_id] = output
+    #     if cols_to_output_tensors is not None:
+    #       cols_to_output_tensors[col] = output
+    #     if feature_name_to_output_tensors is not None:
+    #       feature_name_to_output_tensors[col.raw_name] = output
+    # elif len(lookup_output_ids_with_wgt) > 0:
+    #   outputs = sok.lookup_sparse(
+    #       lookup_embeddings_with_wgt,
+    #       # RaggedTensor .values .row_lengths
+    #       lookup_indices_with_wgt,
+    #       lookup_wgts,
+    #       combiners=lookup_combiners_with_wgt)
+    #   for output, output_id, col in zip(outputs, lookup_output_ids_with_wgt,
+    #                                     lookup_cols_with_wgt):
+    #     output_tensors[output_id] = output
+    #     if cols_to_output_tensors is not None:
+    #       cols_to_output_tensors[col] = output
+    #     if feature_name_to_output_tensors is not None:
+    #       feature_name_to_output_tensors[col.raw_name] = output
+
+    # if feature_name_to_output_tensors is not None:
+    #   for column, output_tensor in zip(
+    #       sorted(feature_columns, key=lambda x: x.name), output_tensors):
+    #     feature_name_to_output_tensors[column.raw_name] = output_tensor
+    # _verify_static_batch_size_equality(output_tensors, ordered_columns)
+    # return array_ops.concat(output_tensors, 1)
 
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to
