@@ -60,7 +60,13 @@ def main(argv):
         reader.close()
         break
   
-  feature_configs = config_util.get_compatible_feature_configs(pipeline_config, drop_feature_names)
+  feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
+  if drop_feature_names:
+    tmp_feature_configs = feature_configs[:]
+    for fea_cfg in tmp_feature_configs:
+      fea_name = fea_cfg.input_names[0]
+      if fea_name in drop_feature_names:
+        feature_configs.remove(fea_cfg)
   for feature_config in feature_configs:
     feature_name = feature_config.input_names[0]
     if feature_name in feature_info_map:
