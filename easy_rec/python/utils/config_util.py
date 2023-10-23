@@ -397,6 +397,7 @@ def get_compatible_feature_configs(pipeline_config):
     feature_configs = pipeline_config.feature_config.features
   return feature_configs
 
+
 def parse_time(time_data):
   """Parse time string to timestamp.
 
