@@ -4,6 +4,7 @@ import json
 import logging
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers import mmoe
@@ -41,7 +42,17 @@ class PPNetV3M(RankModel):
 
   def build_predict_graph(self):
     # self._add_to_prediction_dict(tower_outputs)
-    output_list = self._keras_model(self._features)
+    output_list = self._keras_model(self._features, self._is_training)
+    trainable_variables = ops.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES)
+    for var in self._keras_model.trainable_variables:
+      if var not in trainable_variables:
+        ops.add_to_collection(ops.GraphKeys.TRAINABLE_VARIABLES, var)
+
+    # update_ops = ops.get_collection(ops.GraphKeys.UPDATE_OPS)
+    # for var in self._keras_model.updates:
+    #   if var not in update_ops:
+    #     ops.add_to_collection(ops.GraphKeys.UPDATE_OPS, var)
+
     for lbl_id in range(len(self._model_conf['label'])):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')

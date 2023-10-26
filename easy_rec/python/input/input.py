@@ -988,6 +988,9 @@ class Input(six.with_metaclass(_meta_type, object)):
   def restore(self, checkpoint_path):
     pass
 
+  def stop(self):
+    pass
+
   def _safe_shard(self, dataset):
     if self._data_config.chief_redundant:
       return dataset.shard(

@@ -18,6 +18,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import basic_session_run_hooks
 from tensorflow.python.training import saver
+from easy_rec.python.compat.saver import SaverV2
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -410,8 +411,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
         local_init_ops.append(
             tf.initializers.variables(incompatiable_shape_restore))
 
+      sok_vars = []
+      other_vars = []
+      for tmp_var in var_list:
+        if 'Dynamic' in str(type(tmp_var)):
+          sok_vars.append(tmp_var)
+        else:
+          other_vars.append(tmp_var)
+      # var_list = other_vars
+
+
       scaffold = tf.train.Scaffold(
-          saver=tf.train.Saver(
+          # saver=tf.train.Saver(
+          saver=SaverV2(
               var_list=var_list,
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
@@ -427,7 +439,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           scaffold=scaffold,
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
-          increment_save_config=self.incr_save_config)
+          increment_save_config=self.incr_save_config,
+          sok_dynamic_vars=sok_vars)
       hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(

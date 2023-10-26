@@ -45,8 +45,16 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if model_config.HasField('ev_params'):
       self._global_ev_params = model_config.ev_params
 
-    self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
-    self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    if self.embedding_regularization > 0:
+      self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
+    else:
+      self._emb_reg = None
+
+    if self.l2_regularization > 0:
+      self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    else:
+      self._l2_reg = None
+
     # only used by model with wide feature groups, e.g. WideAndDeep
     self._wide_output_dim = -1
     if self.has_backbone:

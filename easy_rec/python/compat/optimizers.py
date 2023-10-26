@@ -270,7 +270,7 @@ def optimize_loss(loss,
         variables,
         colocate_gradients_with_ops=colocate_gradients_with_ops)
 
-    if estimator_utils.has_hvd():
+    if estimator_utils.has_hvd() and hvd.size() > 1:
       if not estimator_utils.has_sok():
         reduced_grads = []
         for g, v in gradients:
@@ -287,6 +287,7 @@ def optimize_loss(loss,
                 compression=hvd.compression.NoneCompressor), v))
           else:
             reduced_grads.append((g, v))
+        gradients = reduced_grads
 
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:
