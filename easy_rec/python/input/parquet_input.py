@@ -181,6 +181,9 @@ class ParquetInput(Input):
       my_files = self._my_files
     for input_file in my_files:
       self._file_que.put(input_file)
+    # add end signal
+    for proc in self._proc_arr:
+      self._file_que.put(None)
     logging.info('add input_files to file_que, qsize=%d' % self._file_que.qsize())
 
     out_types = {}

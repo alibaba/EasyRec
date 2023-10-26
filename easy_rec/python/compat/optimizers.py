@@ -29,6 +29,7 @@ from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
@@ -288,7 +289,19 @@ def optimize_loss(loss,
           else:
             reduced_grads.append((g, v))
         gradients = reduced_grads
-
+    #else:
+    #  tmp_grads = []
+    #  for g, v in gradients:
+    #    if '/embedding' in v.name:
+    #      import logging
+    #      logging.info('do nothing to sok gradients: %s' % str(v))
+    #      with ops.control_dependencies([logging_ops.Print(g.indices, [array_ops.shape(g.indices), array_ops.shape(g.values), math_ops.reduce_min(g.indices), math_ops.reduce_max(g.indices), math_ops.reduce_min(g.values), math_ops.reduce_max(g.values)], message='grad_%s' % v.name)]):
+    #        g = indexed_slices.IndexedSlices(array_ops.identity(g.values), array_ops.identity(g.indices))
+    #    else:
+    #      g = logging_ops.Print(g, [array_ops.shape(g), math_ops.reduce_min(g), math_ops.reduce_max(g), math_ops.reduce_mean(g)], message='grad_%s' % v.name)
+    #    tmp_grads.append((g, v))
+    #  gradients=tmp_grads
+          
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:
       gradients = _add_scaled_noise_to_gradients(gradients,

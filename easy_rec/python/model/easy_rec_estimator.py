@@ -480,11 +480,21 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
     tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
 
+    var_list = (
+        ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
+        ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
+    scaffold = tf.train.Scaffold(
+        # saver=tf.train.Saver(
+        saver=SaverV2(
+            var_list=var_list,
+            sharded=True,
+            save_relative_paths=True))
     end = time.time()
     tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.EVAL,
         loss=loss,
+        scaffold=scaffold,
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
 

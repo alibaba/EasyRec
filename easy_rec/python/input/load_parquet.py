@@ -48,17 +48,13 @@ def _add_to_que(data_dict, data_que, proc_stop_que):
       return False
 
 def _get_one_file(file_que, proc_stop_que):
-  if _should_stop(proc_stop_que):
-    return None
   while True:
     try:
-      input_file = file_que.get(block=False)
+      input_file = file_que.get(timeout=1)
       return input_file
     except queue.Empty:
-      if file_que.empty() and file_que.qsize() == 0:
-        logging.info('file_que is empty: %d' % file_que.qsize())
-        return None
-  return input_file   
+      pass
+  return None   
 
 def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
    batch_size, label_fields, effective_fields, drop_remainder):
@@ -71,10 +67,11 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
 
   is_good = True
   while is_good:
+    if _should_stop(proc_stop_que):
+      is_good = False
+      break
     input_file = _get_one_file(file_que, proc_stop_que)
     if input_file is None:
-      logging.info('input_file is none')
-      is_good = False
       break
     num_files += 1
     input_data = pd.read_parquet(input_file, columns=all_fields)
@@ -180,23 +177,11 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
   logging.info('data_proc_id=%d, is_good = %s' % (proc_id, is_good))
   data_que.close(wait_send_finish=is_good)
 
-  if proc_id == 0:
-    logging.info('data_que.qsize=%d' % data_que.qsize())
-    while data_que.qsize() > 0:
-      try:
-        logging.info('data_que try to get one')
-        data_que.get(timeout=5)
-        logging.info('data_que get one')
-      except queue.Empty:
-        logging.warning('data_que.get timeout')
-        pass
-    logging.info('after clean: data_que.qsize=%d' % data_que.qsize())
-
-  if proc_id == 0:
-    while file_que.qsize() > 0:
-      try:
-        file_que.get(timeout=5)
-      except queue.Empty:
-        pass
-    file_que.close()
+  while not is_good:
+    try:
+      if file_que.get(timeout=1) is None:
+        break
+    except queue.Empty:
+      pass
+  file_que.close()
   logging.info('data proc %d done, file_num=%d' % (proc_id, num_files))

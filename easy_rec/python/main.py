@@ -495,6 +495,7 @@ def evaluate(pipeline_config,
     #        worker_device='/job:master/task:0', cluster=cluster)):
     eval_result = estimator.evaluate(
         eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+  eval_spec.input_fn.input_creator.stop()
   logging.info('Evaluate finish')
 
   print('eval_result = ', eval_result)

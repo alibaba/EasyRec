@@ -11,7 +11,9 @@ from tensorflow.python.lib.io import file_io
 from easy_rec.python.main import distribute_evaluate
 from easy_rec.python.main import evaluate
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import ds_util
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_distribute_eval_worker_num_on_ds  # NOQA
 if tf.__version__ >= '2.0':
@@ -64,6 +66,12 @@ def main(argv):
       pipeline_config_path)
   if FLAGS.model_dir:
     pipeline_config.model_dir = FLAGS.model_dir
+
+  if pipeline_config.train_config.train_distribute == DistributionStrategy.HorovodStrategy:
+    estimator_utils.init_hvd()
+  elif pipeline_config.train_config.train_distribute == DistributionStrategy.SokStrategy:
+    estimator_utils.init_hvd()
+    estimator_utils.init_sok()
 
   if FLAGS.distribute_eval:
     os.environ['distribute_eval'] = 'True'
