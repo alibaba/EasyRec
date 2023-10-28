@@ -20,6 +20,15 @@ except:
   dynamic_variable_ops = None
   sok = None
 
+try: 
+  from tensorflow.python.framework.load_library import load_op_library
+  import easy_rec
+  load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
+  load_embed_lib = load_op_library(load_embed_lib_path)
+except Exception as ex:
+  logging.warning('load libload_embed.so failed: %s' % str(ex))
+
+
 class SaverV2(saver.Saver):
   def __init__(self,
                var_list=None,
@@ -79,6 +88,8 @@ class SaverV2(saver.Saver):
           tmp_keys = np.frombuffer(fin.read(), dtype=np.int64)
           tmp_ids = tmp_keys % hvd.size()
           tmp_ids = np.where(tmp_ids == hvd.rank())[0]
+          if len(tmp_ids) == 0:
+            break
           all_keys.append(tmp_keys.take(tmp_ids, axis=0))
           logging.info('tmp_keys.shape=%s %s %s' % (str(tmp_keys.shape),
                str(tmp_ids.shape), str(all_keys[-1].shape)))
@@ -92,11 +103,22 @@ class SaverV2(saver.Saver):
 
       all_keys = np.concatenate(all_keys, axis=0)
       all_vals = np.concatenate(all_vals, axis=0)
+
+      shuffle_ids = np.array(range(len(all_keys)))
+      np.random.shuffle(shuffle_ids)
+      all_keys = all_keys.take(shuffle_ids, axis=0)
+      all_vals = all_vals.take(shuffle_ids, axis=0)
+      print(len(all_keys), all_vals.shape, np.min(all_keys), np.max(all_keys), np.min(all_vals),
+            np.max(all_vals))
       return all_keys, all_vals
     file_name = ops.get_default_graph().get_tensor_by_name(
             self.saver_def.filename_tensor_name)
-    keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
-         (dtypes.int64, dtypes.float32))
+    # keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
+    #      (dtypes.int64, dtypes.float32))
+    keys, vals = load_embed_lib.load_kv_embed(task_index=hvd.rank(),
+        task_num=hvd.size(), embed_dim=sok_var._dimension,
+        var_name='embed-' + sok_var.name.replace('/', '__'),
+        ckpt_path=file_name)
     with ops.control_dependencies([sok_var._initializer_op]):
       return dynamic_variable_ops.dummy_var_assign(sok_var.handle, keys, vals)
       # return dynamic_variable_ops.dummy_var_scatter_update(sok_var.handle, keys, vals)

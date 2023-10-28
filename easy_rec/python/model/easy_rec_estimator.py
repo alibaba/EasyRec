@@ -422,7 +422,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
 
       scaffold = tf.train.Scaffold(
-          # saver=tf.train.Saver(
           saver=SaverV2(
               var_list=var_list,
               sharded=True,
@@ -484,7 +483,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
     scaffold = tf.train.Scaffold(
-        # saver=tf.train.Saver(
         saver=SaverV2(
             var_list=var_list,
             sharded=True,
@@ -628,9 +626,19 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.GraphKeys.ASSET_FILEPATHS,
           tf.constant(fg_path, dtype=tf.string, name='fg.json'))
 
+    var_list = (
+        ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
+        ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
+    scaffold = tf.train.Scaffold(
+        saver=SaverV2(
+            var_list=var_list,
+            sharded=True,
+            save_relative_paths=True))
+
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,
         loss=None,
+        scaffold=scaffold,
         predictions=outputs,
         export_outputs=export_outputs)
 

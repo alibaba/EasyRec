@@ -115,6 +115,7 @@ class ParquetInput(Input):
           break
       except Exception as ex:
         logging.warning('task[%d] get from data_que exception: %s' % (self._task_index, str(ex)))
+        break
     for proc in self._proc_arr:
       proc.join()
 
@@ -128,14 +129,19 @@ class ParquetInput(Input):
         self._proc_stop_que.put(1)
       self._proc_stop_que.close()
 
+      def _any_alive():
+        for proc in self._proc_arr:
+          if proc.is_alive():
+            return True
+        return False
+
       # to ensure the sender part of the stupid python Queue could exit properly
-      for _ in range(5):
-        while not self._data_que.empty():
-          try: 
-            self._data_que.get()
-          except:
-            pass
-        time.sleep(1)
+      while _any_alive():
+        try: 
+          self._data_que.get(timeout=1)
+        except:
+          pass
+      time.sleep(1)
       self._data_que.close()
       logging.info("data que closed")
       # import time
@@ -216,3 +222,42 @@ class ParquetInput(Input):
       dataset = dataset.map(lambda x: (self._get_features(x)))
     # dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     return dataset
+
+  def create_input(self, export_config=None):
+
+    def _input_fn(mode=None, params=None, config=None):
+      """Build input_fn for estimator.
+
+      Args:
+        mode: tf.estimator.ModeKeys.(TRAIN, EVAL, PREDICT)
+        params: `dict` of hyper parameters, from Estimator
+        config: tf.estimator.RunConfig instance
+
+      Return:
+        if mode is not None, return:
+            features: inputs to the model.
+            labels: groundtruth
+        else, return:
+            tf.estimator.export.ServingInputReceiver instance
+      """
+      if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
+                  tf.estimator.ModeKeys.PREDICT):
+        # build dataset from self._config.input_path
+        self._mode = mode
+        dataset = self._build(mode, params)
+        return dataset
+      elif mode is None:  # serving_input_receiver_fn for export SavedModel
+        sparse_ids = tf.placeholder(tf.int64, [None], name='sparse_ids')
+        sparse_lens = tf.placeholder(tf.int32, [None], name='sparse_lens')
+        inputs = {'sparse_ids': sparse_ids, 'sparse_lens': sparse_lens}
+        if self._has_ev:
+          features = {'feature':tf.RaggedTensor.from_row_lengths(sparse_ids,
+            sparse_lens)}
+        else:
+          features = {'feature':tf.RaggedTensor.from_row_lengths(
+            sparse_ids % self._feature_configs[0].num_buckets,
+            sparse_lens)}
+        return tf.estimator.export.ServingInputReceiver(features, inputs)
+
+    _input_fn.input_creator = self
+    return _input_fn

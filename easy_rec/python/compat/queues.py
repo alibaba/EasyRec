@@ -147,12 +147,6 @@ class Queue(object):
                   self._reader.close()
             except Exception:
               pass
-            try:
-                if self._wlock is not None:
-                  self._wlock.release()
-            except:
-                pass
-            # logging.info('Queue[name=' + self._name + '] set self._run to false')
             self._run = False
             # clear queue
             # with self._rlock:

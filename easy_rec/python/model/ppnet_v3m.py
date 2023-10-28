@@ -69,3 +69,6 @@ class PPNetV3M(RankModel):
           self._labels[lbl_name], output)
       self._loss_dict[lbl_name] = loss_obj
     return self._loss_dict
+
+  def get_outputs(self):
+    return [x['input_name'] for x in self._model_conf['label']]
