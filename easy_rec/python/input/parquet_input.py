@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.python.platform import gfile
+from tensorflow.python.ops import math_ops, array_ops, logging_ops
 
 from easy_rec.python.input.input import Input
 
@@ -57,17 +58,22 @@ class ParquetInput(Input):
     logging.info('[task_index=%d] task_file_num=%d' % (task_index, len(self._my_files)))
     self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
 
-    num_proc = 8
-    if file_num < num_proc:
-      num_proc = file_num
+    self._num_proc = 8
+    if file_num < self._num_proc:
+      self._num_proc = file_num
 
     self._proc_start = False
     self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
     self._proc_stop = False
     self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
-    self._proc_arr = load_parquet.start_data_proc(task_index, num_proc, self._file_que,
-         self._data_que, self._proc_start_que, self._proc_stop_que, self._batch_size,
-         self._label_fields, self._effective_fields, self._data_config.drop_remainder)
+
+    self._reserve_fields = None
+    self._reserve_types = None
+    if 'reserve_fields' in kwargs and 'reserve_types' in kwargs:
+      self._reserve_fields = kwargs['reserve_fields']
+      self._reserve_types = kwargs['reserve_types']
+    
+    self._proc_arr = None 
 
   def _sample_generator(self):
     if not self._proc_start:
@@ -168,16 +174,38 @@ class ParquetInput(Input):
     #       tmp = input_dict[input_0][1]
     #     fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
     if self._has_ev:
-      fea_dict['feature'] = tf.RaggedTensor.from_row_lengths(input_dict['feature'][1],
-          input_dict['feature'][0])
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
+      # tmp_vals = logging_ops.Print(tmp_vals, [
+      #     array_ops.shape(tmp_vals), math_ops.reduce_min(tmp_vals),
+      #     math_ops.reduce_max(tmp_vals),
+      #     array_ops.shape(tmp_lens),
+      #     math_ops.reduce_min(tmp_lens),
+      #     math_ops.reduce_max(tmp_lens)], message='debug_sparse_fea')
+      fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
+          values=tmp_vals, row_lengths=tmp_lens)
+          # values=input_dict['sparse_fea'][1],
+          # row_lengths=input_dict['sparse_fea'][0])
     else:
-      fea_dict['feature'] = tf.RaggedTensor.from_row_lengths(input_dict['feature'][1] % self._feature_configs[0].num_buckets,
-          input_dict['feature'][0])
+      fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
+          values=input_dict['sparse_fea'][1] % self._feature_configs[0].num_buckets,
+          row_lengths=input_dict['sparse_fea'][0])
+
+    output_dict = {'feature': fea_dict}
 
     lbl_dict = {}
     for lbl_name in self._label_fields:
-      lbl_dict[lbl_name] = input_dict[lbl_name]
-    return {'feature': fea_dict, 'label': lbl_dict}
+      if lbl_name in input_dict:
+        lbl_dict[lbl_name] = input_dict[lbl_name]
+
+    if len(lbl_dict) > 0:
+      output_dict['label'] = lbl_dict
+
+    if self._reserve_fields is not None:
+      reserve_dict = {}
+      for tmp_name in self._reserve_fields:
+        reserve_dict[tmp_name] = input_dict[tmp_name]
+      output_dict['reserve'] = reserve_dict
+    return output_dict
 
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
@@ -185,8 +213,20 @@ class ParquetInput(Input):
       my_files = self._my_files * self._data_config.num_epochs
     else:
       my_files = self._my_files
+
+    if mode != tf.estimator.ModeKeys.PREDICT:
+      self._proc_arr = load_parquet.start_data_proc(self._task_index, self._num_proc,
+         self._file_que, self._data_que, self._proc_start_que, self._proc_stop_que,
+         self._batch_size, self._label_fields, self._effective_fields,
+         self._reserve_fields, self._data_config.drop_remainder)
+    else:
+      self._proc_arr = load_parquet.start_data_proc(self._task_index, self._num_proc,
+         self._file_que, self._data_que, self._proc_start_que, self._proc_stop_que,
+         self._batch_size, None, self._effective_fields, self._reserve_fields, False)
+
     for input_file in my_files:
       self._file_que.put(input_file)
+
     # add end signal
     for proc in self._proc_arr:
       self._file_que.put(None)
@@ -194,14 +234,23 @@ class ParquetInput(Input):
 
     out_types = {}
     out_shapes = {}
-    for k in self._label_fields:
-      out_types[k] = tf.int32
-      out_shapes[k] = tf.TensorShape([None])
+
+    if mode != tf.estimator.ModeKeys.PREDICT:
+      for k in self._label_fields:
+        out_types[k] = tf.float32
+        out_shapes[k] = tf.TensorShape([None])
+
+    if self._reserve_fields is not None:
+      for k, t in zip(self._reserve_fields, self._reserve_types):
+        out_types[k] = t
+        out_shapes[k] = tf.TensorShape([None])
+
     # for k in self._effective_fields:
     #   out_types[k] = (tf.int64, tf.int32)
     #   out_shapes[k] = (tf.TensorShape([None]), tf.TensorShape([None]))
-    out_types['feature'] = (tf.int64, tf.int32)
-    out_shapes['feature'] = (tf.TensorShape([None]), tf.TensorShape([None]))
+    out_types['sparse_fea'] = (tf.int32, tf.int64)
+    # out_types['sparse_fea'] = (tf.int64, tf.int32)
+    out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
 
     dataset = tf.data.Dataset.from_generator(
         self._sample_generator,
@@ -219,8 +268,18 @@ class ParquetInput(Input):
       dataset = dataset.map(lambda x:
                             (self._get_features(x), self._get_labels(x)))
     else:
-      dataset = dataset.map(lambda x: (self._get_features(x)))
-    # dataset = dataset.prefetch(buffer_size=self._prefetch_size)
+      if self._reserve_fields is not None:
+        # for predictor with saved model
+        def _get_with_reserve(fea_dict):
+          out_dict = {'feature': {
+              'ragged_ids': fea_dict['feature']['sparse_fea'].flat_values,
+              'ragged_lens': fea_dict['feature']['sparse_fea'].row_lengths() } }
+          out_dict['reserve'] = fea_dict['reserve']
+          return out_dict
+        dataset = dataset.map(_get_with_reserve)
+      else:
+        dataset = dataset.map(lambda x : self._get_features(x))
+      dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     return dataset
 
   def create_input(self, export_config=None):
@@ -247,16 +306,16 @@ class ParquetInput(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        sparse_ids = tf.placeholder(tf.int64, [None], name='sparse_ids')
-        sparse_lens = tf.placeholder(tf.int32, [None], name='sparse_lens')
-        inputs = {'sparse_ids': sparse_ids, 'sparse_lens': sparse_lens}
+        ragged_ids = tf.placeholder(tf.int64, [None], name='ragged_ids')
+        ragged_lens = tf.placeholder(tf.int32, [None], name='ragged_lens')
+        inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         if self._has_ev:
-          features = {'feature':tf.RaggedTensor.from_row_lengths(sparse_ids,
-            sparse_lens)}
+          features = {'sparse_fea':tf.RaggedTensor.from_row_lengths(
+            ragged_ids, ragged_lens)}
         else:
-          features = {'feature':tf.RaggedTensor.from_row_lengths(
-            sparse_ids % self._feature_configs[0].num_buckets,
-            sparse_lens)}
+          features = {'sparse_fea':tf.RaggedTensor.from_row_lengths(
+            ragged_ids % self._feature_configs[0].num_buckets,
+            ragged_lens)}
         return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     _input_fn.input_creator = self

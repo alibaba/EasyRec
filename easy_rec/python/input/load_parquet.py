@@ -6,14 +6,15 @@ import numpy as np
 import pandas as pd
 
 def start_data_proc(task_index, num_proc, file_que, data_que, proc_start_que, proc_stop_que,
-    batch_size, label_fields, effective_fields, drop_remainder):
+    batch_size, label_fields, effective_fields, reserve_fields, drop_remainder):
   mp_ctxt = multiprocessing.get_context('spawn')
   proc_arr = []
   for proc_id in range(num_proc):
     proc = mp_ctxt.Process(
         target=load_data_proc, args=(proc_id, file_que, data_que, proc_start_que,
             proc_stop_que, batch_size, label_fields, effective_fields,
-            drop_remainder), name='task_%d_data_proc_%d' % (task_index, proc_id))
+            reserve_fields, drop_remainder),
+            name='task_%d_data_proc_%d' % (task_index, proc_id))
     proc.start()
     proc_arr.append(proc)
   return proc_arr
@@ -56,11 +57,26 @@ def _get_one_file(file_que, proc_stop_que):
       pass
   return None   
 
+def _pack_sparse_feas(data_dict, effective_fields):
+  fea_val_arr = [] 
+  fea_len_arr = []
+  for fea_name in effective_fields:
+    fea_len_arr.append(data_dict[fea_name][0])
+    fea_val_arr.append(data_dict[fea_name][1])
+    del data_dict[fea_name]
+  fea_lens = np.concatenate(fea_len_arr, axis=0)
+  fea_vals = np.concatenate(fea_val_arr, axis=0)
+  data_dict['sparse_fea'] = (fea_lens, fea_vals)
+
 def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
-   batch_size, label_fields, effective_fields, drop_remainder):
+   batch_size, label_fields, effective_fields, reserve_fields, drop_remainder):
   logging.info('data proc %d start, proc_start_que=%s' % (proc_id, proc_start_que.qsize()))
   proc_start_que.get()
-  all_fields = list(label_fields) + list(effective_fields)
+  all_fields = list(effective_fields)
+  if label_fields is not None:
+    all_fields = all_fields + label_fields
+  if reserve_fields is not None:
+    all_fields = all_fields + reserve_fields
   logging.info('data proc %d start, file_que.qsize=%d' % (proc_id, file_que.qsize()))
   num_files = 0
   part_data_dict = {}
@@ -85,9 +101,19 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
     for batch_id in range(batch_num):
       eid = sid + batch_size
       data_dict = {}
-      for k in label_fields:
-        data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
-                                dtype=np.float32)
+
+      if label_fields is not None and len(label_fields) > 0:
+        for k in label_fields:
+          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
+                                  dtype=np.float32)
+      if reserve_fields is not None and len(reserve_fields) > 0:
+        for k in reserve_fields:
+          np_dtype = type(input_data[k][0])
+          if np_dtype == object:
+            np_dtype = np.str
+          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
+              dtype=np_dtype)
+
       for k in effective_fields:
         val = input_data[k][sid:eid]
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
@@ -97,15 +123,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
                 len(all_vals), np.sum(all_lens))
         data_dict[k] = (all_lens, all_vals)
 
-      fea_val_arr = [] 
-      fea_len_arr = []
-      for fea_name in effective_fields:
-        fea_val_arr.append(data_dict[fea_name][1])
-        fea_len_arr.append(data_dict[fea_name][0])
-        del data_dict[fea_name]
-      fea_lens = np.concatenate(fea_len_arr, axis=0)
-      fea_vals = np.concatenate(fea_val_arr, axis=0)
-      data_dict['feature'] = (fea_lens, fea_vals)
+      _pack_sparse_feas(data_dict, effective_fields)
       if not _add_to_que(data_dict, data_que, proc_stop_que):
         logging.info('add to que failed')
         is_good = False
@@ -115,20 +133,41 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       accum_res_num = 0
       data_dict = {}
       part_data_dict_n = {}
-      for k in label_fields:
-        tmp_lbls = np.array([x[0] for x in input_data[k][sid:]],
-                                dtype=np.float32)
-        if part_data_dict is not None and k in part_data_dict:
-          tmp_lbls = np.concatenate([part_data_dict[k], tmp_lbls], axis=0)
-          if len(tmp_lbls) > batch_size:
-            data_dict[k] = tmp_lbls[:batch_size] 
-            part_data_dict_n[k] = tmp_lbls[batch_size:]
-          elif len(tmp_lbls) == batch_size:
-            data_dict[k] = tmp_lbls
+
+      if label_fields is not None and len(label_fields) > 0:
+        for k in label_fields:
+          tmp_lbls = np.array([x[0] for x in input_data[k][sid:]],
+                                  dtype=np.float32)
+          if part_data_dict is not None and k in part_data_dict:
+            tmp_lbls = np.concatenate([part_data_dict[k], tmp_lbls], axis=0)
+            if len(tmp_lbls) > batch_size:
+              data_dict[k] = tmp_lbls[:batch_size] 
+              part_data_dict_n[k] = tmp_lbls[batch_size:]
+            elif len(tmp_lbls) == batch_size:
+              data_dict[k] = tmp_lbls
+            else:
+              part_data_dict_n[k] = tmp_lbls
           else:
             part_data_dict_n[k] = tmp_lbls
-        else:
-          part_data_dict_n[k] = tmp_lbls
+
+      if reserve_fields is not None and len(reserve_fields) > 0:
+        for k in reserve_fields:
+          np_dtype = type(input_data[k][0])
+          if np_dtype == object:
+            np_dtype = np.str
+          tmp_r = np.array([x[0] for x in input_data[k][sid:]], dtype=np_dtype)
+          if part_data_dict is not None and k in part_data_dict:
+            tmp_r = np.concatenate([part_data_dict[k], tmp_r], axis=0)
+            if len(tmp_r) > batch_size:
+              data_dict[k] = tmp_r[:batch_size] 
+              part_data_dict_n[k] = tmp_r[batch_size:]
+            elif len(tmp_r) == batch_size:
+              data_dict[k] = tmp_r
+            else:
+              part_data_dict_n[k] = tmp_r
+          else:
+            part_data_dict_n[k] = tmp_r
+
       for k in effective_fields:
         val = input_data[k][sid:]
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
@@ -151,15 +190,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
         else:
           part_data_dict_n[k] = (all_lens, all_vals)
       if len(data_dict) > 0:
-        fea_val_arr = [] 
-        fea_len_arr = []
-        for fea_name in effective_fields:
-          fea_val_arr.append(data_dict[fea_name][1])
-          fea_len_arr.append(data_dict[fea_name][0])
-          del data_dict[fea_name]
-        fea_lens = np.concatenate(fea_len_arr, axis=0)
-        fea_vals = np.concatenate(fea_val_arr, axis=0)
-        data_dict['feature'] = (fea_lens, fea_vals)
+        _pack_sparse_feas(data_dict, effective_fields)
         if not _add_to_que(data_dict, data_que, proc_stop_que):
           logging.info('add to que failed')
           is_good = False
@@ -168,10 +199,11 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       part_data_dict = part_data_dict_n
   if len(part_data_dict) > 0 and is_good:
     if not drop_remainder:
+      _pack_sparse_feas(part_data_dict, effective_fields) 
       _add_to_que(part_data_dict, data_que, proc_stop_que)
     else:
-      logging.warning('drop remain %d samples as drop_remainder is set' % \
-           len(part_data_dict[label_fields[0]]))
+      logging.warning('drop remain %d samples as drop_remainder is set' %
+           len(part_data_dict[effective_fields[0]]))
   if is_good:
     is_good = _add_to_que(None, data_que, proc_stop_que)
   logging.info('data_proc_id=%d, is_good = %s' % (proc_id, is_good))

@@ -359,7 +359,8 @@ def optimize_loss(loss,
       if 'compute_gradients' not in dir(opt):
         sparse_vars = [ x for x in gradients if 'DynamicVariable' in str(type(x[1])) ]
         dense_vars = [ x for x in gradients if 'DynamicVariable' not in str(type(x[1])) ]
-        sparse_grad_updates = opt.apply_gradients(sparse_vars)
+        with ops.control_dependencies([array_ops.identity(loss)]):
+          sparse_grad_updates = opt.apply_gradients(sparse_vars)
         dense_grad_updates = opt._optimizer.apply_gradients(
           dense_vars,
           global_step=global_step if increment_global_step else None,

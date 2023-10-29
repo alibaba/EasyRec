@@ -155,6 +155,7 @@ from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import resource_variable_ops
@@ -399,7 +400,10 @@ def _internal_input_layer(features,
     if len(lookup_output_ids) > 0:
       # first concat all the ids and unique
       # all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
-      all_ids = features['feature'] # ragged_concat_ops.concat(lookup_indices, axis=0)
+      if isinstance(features, dict) and 'sparse_fea' in features.keys():
+        all_ids = features['sparse_fea']
+      else:
+        all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
       np = hvd.size()
       # embed_dim = lookup_embeddings[0]._dimension
 
@@ -421,9 +425,14 @@ def _internal_input_layer(features,
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
-        embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        # embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
         all_uniq_ids, uniq_idx = array_ops.unique(all_ids.flat_values) 
+        # all_uniq_ids = logging_ops.Print(all_uniq_ids, [math_ops.reduce_min(all_uniq_ids),
+        #      math_ops.reduce_max(all_uniq_ids), array_ops.shape(all_uniq_ids),
+        #      array_ops.shape(all_ids.flat_values), array_ops.shape(segment_ids), 
+        #      math_ops.reduce_min(segment_ids), math_ops.reduce_max(segment_ids)],
+        #      message='debug_all_uniq_ids')
         if isinstance(lookup_embeddings[0], sok.DynamicVariable):
           recv_embeddings = lookup_embeddings[0].sparse_read(all_uniq_ids)
         else: 
