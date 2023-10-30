@@ -47,6 +47,7 @@ except Exception:
 
 try:
   from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import sok_optimizer
 except Exception:
   sok = None
 
@@ -215,7 +216,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     if self.train_config.train_distribute == DistributionStrategy.SokStrategy:
-      optimizer = sok.OptimizerWrapper(optimizer)
+      optimizer = sok_optimizer.OptimizerWrapper(optimizer)
 
     hooks = []
     if estimator_utils.has_hvd():

@@ -261,15 +261,15 @@ def optimize_loss(loss,
       variables = vars_.trainable_variables()
 
     # Compute gradients.
-    if 'compute_gradients' not in dir(opt):
-      import tensorflow as tf
-      gradients = tf.gradients(loss, variables)
-      gradients = list(zip(gradients, variables))
-    else:
-      gradients = opt.compute_gradients(
-        loss,
-        variables,
-        colocate_gradients_with_ops=colocate_gradients_with_ops)
+    # if 'compute_gradients' not in dir(opt):
+    #   import tensorflow as tf
+    #   gradients = tf.gradients(loss, variables)
+    #   gradients = list(zip(gradients, variables))
+    # else:
+    gradients = opt.compute_gradients(
+      loss,
+      variables,
+      colocate_gradients_with_ops=colocate_gradients_with_ops)
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
       if not estimator_utils.has_sok():
@@ -356,26 +356,27 @@ def optimize_loss(loss,
 
     # Create gradient updates.
     def _apply_grad():
-      if 'compute_gradients' not in dir(opt):
-        sparse_vars = [ x for x in gradients if 'DynamicVariable' in str(type(x[1])) ]
-        dense_vars = [ x for x in gradients if 'DynamicVariable' not in str(type(x[1])) ]
-        with ops.control_dependencies([array_ops.identity(loss)]):
-          sparse_grad_updates = opt.apply_gradients(sparse_vars)
-        dense_grad_updates = opt._optimizer.apply_gradients(
-          dense_vars,
-          global_step=global_step if increment_global_step else None,
-          name='train') 
-        if sparse_grad_updates is not None and dense_grad_updates is not None:
-          grad_updates = tf.group([sparse_grad_updates, dense_grad_updates])
-        elif sparse_grad_updates is not None:
-          grad_updates = sparse_grad_updates
-        elif dense_grad_updates is not None:
-          grad_updates = dense_grad_updates
-      else:
-        grad_updates = opt.apply_gradients(
-          gradients,
-          global_step=global_step if increment_global_step else None,
-          name='train')
+      # if 'compute_gradients' not in dir(opt):
+      #   sparse_vars = [ x for x in gradients if 'DynamicVariable' in str(type(x[1])) ]
+      #   dense_vars = [ x for x in gradients if 'DynamicVariable' not in str(type(x[1])) ]
+      #   opt._op
+      #   with ops.control_dependencies([array_ops.identity(loss)]):
+      #     sparse_grad_updates = opt.apply_gradients(sparse_vars)
+      #   dense_grad_updates = opt._optimizer.apply_gradients(
+      #     dense_vars,
+      #     global_step=global_step if increment_global_step else None,
+      #     name='train') 
+      #   if sparse_grad_updates is not None and dense_grad_updates is not None:
+      #     grad_updates = tf.group([sparse_grad_updates, dense_grad_updates])
+      #   elif sparse_grad_updates is not None:
+      #     grad_updates = sparse_grad_updates
+      #   elif dense_grad_updates is not None:
+      #     grad_updates = dense_grad_updates
+      # else:
+      grad_updates = opt.apply_gradients(
+        gradients,
+        global_step=global_step if increment_global_step else None,
+        name='train')
 
       incr_save_ops = []
       if incr_save:
