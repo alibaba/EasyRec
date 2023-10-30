@@ -95,12 +95,7 @@ class OptimizerWrapperV1(object):
         self._initial_vals = {}
         for i, name in enumerate(names):
             self._initial_vals[name] = slots[i]
-        # non-slots
-        self._optimizer._prepare()
-        self._non_slot_dict = {}
-        for name, v in self._optimizer._non_slot_dict.items():
-            # self._non_slot_dict[name] = tf.Variable(v, trainable=False, name='SokOptimizerWrapper/' + name[0])
-            self._non_slot_dict[name] = tf.compat.v1.get_variable(shape=[], trainable=False, name='SokOptimizerWrapper/' + name[0])
+        # self._optimizer._prepare()
 
     def compute_gradients(self, loss, var_list=None,
                         aggregation_method=None,
@@ -252,18 +247,11 @@ class OptimizerWrapperV1(object):
         if len(grad_list) == 0:
             return
 
-        # 2. Switch non_slot_dict
-        non_slot_dict = self._optimizer._non_slot_dict
-        self._optimizer._non_slot_dict = self._non_slot_dict
-
         # 3. Call tf-optimizer
         with ops.control_dependencies(to_static_ops):
             train_op = self._optimizer.apply_gradients(
                 zip(grad_list, var_list), global_step=global_step, name=name
             )
-
-        # 4. Switch non_slot_dict
-        self._optimizer._non_slot_dict = non_slot_dict
 
         # 5. Write buffer back to dynamic variables
         to_dynamic_ops = []
