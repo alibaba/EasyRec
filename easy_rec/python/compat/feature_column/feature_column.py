@@ -413,7 +413,7 @@ def _internal_input_layer(features,
     
         # dynamic partition 
         # from sparse_operation_kit.experiment import raw_ops
-        p_assignments = all_uniq_ids % np
+        p_assignments = math_ops.cast(all_uniq_ids % np, dtypes.int32)
         gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids, p_assignments, np)
         # all2all
         split_sizes = array_ops.concat([ array_ops.shape(x) for x in gather_ids ], axis=0)
@@ -425,7 +425,7 @@ def _internal_input_layer(features,
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
-        # embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
         all_uniq_ids, uniq_idx = array_ops.unique(all_ids.flat_values) 
         # all_uniq_ids = logging_ops.Print(all_uniq_ids, [math_ops.reduce_min(all_uniq_ids),
