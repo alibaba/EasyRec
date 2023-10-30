@@ -248,7 +248,8 @@ def _internal_input_layer(features,
                           scope=None,
                           cols_to_output_tensors=None,
                           from_template=False,
-                          feature_name_to_output_tensors=None):
+                          feature_name_to_output_tensors=None,
+                          is_training=True):
   """See input_layer, `scope` is a name or variable scope to use."""
   feature_columns = _normalize_feature_columns(feature_columns)
   for column in feature_columns:
@@ -338,8 +339,10 @@ def _internal_input_layer(features,
               if column.ev_params is not None:
                 embedding_weights = sok.DynamicVariable(name='embedding_weights',
                     dimension=column.dimension, initializer='random', #column.initializer,
-                    # var_type='hybrid',
-                    trainable=column.trainable and trainable, dtype=dtypes.float32)
+                    var_type='hybrid',
+                    trainable=column.trainable and trainable, dtype=dtypes.float32,
+                    init_capacity=1024 * 1024 * 8,
+                    max_capacity=1024 * 1024 * 16)
               else:
                 embedding_weights = variable_scope.get_variable(
                     name='embedding_weights',
@@ -421,7 +424,7 @@ def _internal_input_layer(features,
         recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
         # read embedding from dynamic variable
-        send_embed = lookup_embeddings[0].sparse_read(recv_ids)
+        send_embed = lookup_embeddings[0].sparse_read(recv_ids, lookup_only=(not is_training))
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
@@ -434,7 +437,7 @@ def _internal_input_layer(features,
         #      math_ops.reduce_min(segment_ids), math_ops.reduce_max(segment_ids)],
         #      message='debug_all_uniq_ids')
         if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-          recv_embeddings = lookup_embeddings[0].sparse_read(all_uniq_ids)
+          recv_embeddings = lookup_embeddings[0].sparse_read(all_uniq_ids, lookup_only=(not is_training))
         else: 
           recv_embeddings = array_ops.gather(lookup_embeddings[0], all_uniq_ids)
         embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
@@ -508,7 +511,8 @@ def input_layer(features,
                 trainable=True,
                 cols_to_vars=None,
                 cols_to_output_tensors=None,
-                feature_name_to_output_tensors=None):
+                feature_name_to_output_tensors=None,
+                is_training=True):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -572,7 +576,8 @@ def input_layer(features,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
       cols_to_output_tensors=cols_to_output_tensors,
-      feature_name_to_output_tensors=feature_name_to_output_tensors)
+      feature_name_to_output_tensors=feature_name_to_output_tensors,
+      is_training=is_training)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it

@@ -133,7 +133,8 @@ class InputLayer(object):
 
     cols_to_output_tensors = OrderedDict()
     output_features = feature_column.input_layer(
-        features, group_columns, cols_to_output_tensors=cols_to_output_tensors)
+        features, group_columns, cols_to_output_tensors=cols_to_output_tensors,
+        is_training=self._is_training)
     group_features = [cols_to_output_tensors[x] for x in group_columns]
 
     embedding_reg_lst = []
@@ -247,7 +248,8 @@ class InputLayer(object):
         features,
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
-        feature_name_to_output_tensors=feature_name_to_output_tensors)
+        feature_name_to_output_tensors=feature_name_to_output_tensors,
+        is_training=self._is_training)
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)

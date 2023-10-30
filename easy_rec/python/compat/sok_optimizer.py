@@ -249,6 +249,8 @@ class OptimizerWrapperV1(object):
 
         # 3. Call tf-optimizer
         with ops.control_dependencies(to_static_ops):
+            import pdb
+            pdb.set_trace()
             train_op = self._optimizer.apply_gradients(
                 zip(grad_list, var_list), global_step=global_step, name=name
             )
