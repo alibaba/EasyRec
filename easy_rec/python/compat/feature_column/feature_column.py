@@ -339,7 +339,7 @@ def _internal_input_layer(features,
               if column.ev_params is not None:
                 embedding_weights = sok.DynamicVariable(name='embedding_weights',
                     dimension=column.dimension, initializer='random', #column.initializer,
-                    var_type='hybrid',
+                    # var_type='hybrid',
                     trainable=column.trainable and trainable, dtype=dtypes.float32,
                     init_capacity=1024 * 1024 * 8,
                     max_capacity=1024 * 1024 * 16)
