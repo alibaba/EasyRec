@@ -118,7 +118,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       if label_fields is not None and len(label_fields) > 0:
         for k in label_fields:
           data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
-                                  dtype=np.float32)
+                                  dtype=np.int32)
       if reserve_fields is not None and len(reserve_fields) > 0:
         for k in reserve_fields:
           np_dtype = type(input_data[k][0])

@@ -263,7 +263,7 @@ class ParquetInput(Input):
 
     if mode != tf.estimator.ModeKeys.PREDICT:
       for k in self._label_fields:
-        out_types[k] = tf.float32
+        out_types[k] = tf.int32
         out_shapes[k] = tf.TensorShape([None])
 
     if self._reserve_fields is not None:
