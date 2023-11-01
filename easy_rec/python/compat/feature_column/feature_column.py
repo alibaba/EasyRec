@@ -150,6 +150,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import embedding_ops
+from tensorflow.python.ops.ragged import ragged_util
 
 
 from tensorflow.python.ops import init_ops
@@ -165,6 +166,7 @@ from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
 from tensorflow.python.ops import data_flow_ops
+from tensorflow.python.ops.ragged import ragged_tensor
 
 try:
   from tensorflow.python.ops.ragged import ragged_math_ops
@@ -404,15 +406,25 @@ def _internal_input_layer(features,
       # first concat all the ids and unique
       # all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
       if isinstance(features, dict) and 'sparse_fea' in features.keys():
-        all_ids = features['sparse_fea']
+        # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
+        all_ids, segment_lens = features['sparse_fea']
+        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+        cumsum_lens = math_ops.cumsum(segment_lens)
+        segment_ids = array_ops.searchsorted(cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+      elif isinstance(features, dict) and 'ragged_ids' in features.keys() and 'ragged_lens' in features.keys():
+        all_ids, segment_lens = features['ragged_ids'], features['ragged_lens']
+        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+        cumsum_lens = math_ops.cumsum(segment_lens)
+        segment_ids = array_ops.searchsorted(cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
       else:
         all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
+        segment_ids = all_ids.value_rowids()
+        flat_vals = all_ids.flat_vals()
       np = hvd.size()
       # embed_dim = lookup_embeddings[0]._dimension
 
-      segment_ids = all_ids.value_rowids()
       if np > 1:
-        all_uniq_ids, uniq_idx = array_ops.unique(all_ids.flat_values) 
+        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals) 
     
         # dynamic partition 
         # from sparse_operation_kit.experiment import raw_ops
@@ -430,7 +442,7 @@ def _internal_input_layer(features,
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
         embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
-        all_uniq_ids, uniq_idx = array_ops.unique(all_ids.flat_values) 
+        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals) 
         # all_uniq_ids = logging_ops.Print(all_uniq_ids, [math_ops.reduce_min(all_uniq_ids),
         #      math_ops.reduce_max(all_uniq_ids), array_ops.shape(all_uniq_ids),
         #      array_ops.shape(all_ids.flat_values), array_ops.shape(segment_ids), 

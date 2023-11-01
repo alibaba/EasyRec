@@ -215,7 +215,7 @@ class OptimizerWrapperV1(object):
                 grad_list.append(ops.IndexedSlices(g.values, indices, g.dense_shape))
                 # TODO: Check multi-thread safety of DET
                 with tf.control_dependencies([g.values]):
-                  to_static_ops.append(v.to_static(unique))
+                  to_static_ops.append(v.to_static(unique, False))
                 var_list.append(v)
                 key = self._var_key(v)
                 for slot_name in self._initial_vals:

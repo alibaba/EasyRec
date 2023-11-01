@@ -474,7 +474,8 @@ class Predictor(PredictorInterface):
                                   slice_num, slice_id)
       dataset = dataset.map(
           self._parse_line, num_parallel_calls=num_parallel_calls)
-      iterator = dataset.make_one_shot_iterator()
+      # iterator = dataset.make_one_shot_iterator()
+      iterator = tf.data.make_one_shot_iterator(dataset)
       all_dict = iterator.get_next()
       input_names = self._predictor_impl.input_names
       table_writer = self._get_writer(output_path, slice_id)

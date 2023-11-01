@@ -304,6 +304,8 @@ class ProgressHook(SessionRunHook):
       self._progress_file.close()
 
 
+import ctypes
+_cudart = ctypes.CDLL('libcudart.so')
 class CheckpointSaverHook(CheckpointSaverHook):
   """Saves checkpoints every N steps or seconds."""
 
@@ -347,6 +349,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
         checkpoint_basename=checkpoint_basename,
         scaffold=scaffold,
         listeners=listeners)
+    self._cuda_profile_start = 0
+    self._cuda_profile_stop = 0
     self._steps_per_run = 1
     self._write_graph = write_graph
     self._data_offset_var = data_offset_var
@@ -614,6 +618,25 @@ class CheckpointSaverHook(CheckpointSaverHook):
         % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
+    #stale_global_step = run_values.results
+    #if stale_global_step > 10 and not self._cuda_profile_start:
+    #  self._cuda_profile_start = 1
+    #  ret = _cudart.cudaProfilerStart()
+    #  if ret != 0:
+    #    logging.error('cudaProfilerStart failed')
+    #  else:
+    #    logging.info('cudaProfilerStart good')
+    #  return
+    #if stale_global_step > 20 and not self._cuda_profile_stop:
+    #  self._cuda_profile_stop = 1
+    #  ret = _cudart.cudaProfilerStop()
+    #  if ret != 0:
+    #    logging.error('cudaProfilerStop failed')
+    #  else:
+    #    logging.info('cudaProfilerStop finish')
+    #  return
+    #return
+
     if not is_chief():
       if has_sok():
         stale_global_step = run_values.results
@@ -643,6 +666,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._send_sparse(global_step, run_context.session)
 
   def _save_sok(self, session, step):
+    return
     if self._dyn_export is None:
       return
 

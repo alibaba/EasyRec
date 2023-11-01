@@ -15,6 +15,7 @@ def start_data_proc(task_index, num_proc, file_que, data_que, proc_start_que, pr
             proc_stop_que, batch_size, label_fields, effective_fields,
             reserve_fields, drop_remainder),
             name='task_%d_data_proc_%d' % (task_index, proc_id))
+    proc.daemon = True
     proc.start()
     proc_arr.append(proc)
   return proc_arr

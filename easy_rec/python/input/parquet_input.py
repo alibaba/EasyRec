@@ -9,15 +9,17 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.python.platform import gfile
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import math_ops, array_ops, logging_ops
+from tensorflow.python.ops.ragged import ragged_util
 
 from easy_rec.python.input.input import Input
 
 from easy_rec.python.input import load_parquet
 from easy_rec.python.compat import queues 
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+# if tf.__version__ >= '2.0':
+#   tf = tf.compat.v1
 
 class ParquetInput(Input):
 
@@ -126,6 +128,8 @@ class ParquetInput(Input):
       proc.join()
 
   def stop(self):
+    if self._proc_arr is None or len(self._proc_arr) == 0:
+      return
     logging.info("task[%d] will stop dataset procs, proc_num=%d" % (self._task_index,
         len(self._proc_arr)))
     self._file_que.close()
@@ -181,14 +185,21 @@ class ParquetInput(Input):
       #     array_ops.shape(tmp_lens),
       #     math_ops.reduce_min(tmp_lens),
       #     math_ops.reduce_max(tmp_lens)], message='debug_sparse_fea')
-      fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
-          values=tmp_vals, row_lengths=tmp_lens)
-          # values=input_dict['sparse_fea'][1],
-          # row_lengths=input_dict['sparse_fea'][0])
+      print('tmp_vals=%s tmp_lens=%s' % (tmp_vals, tmp_lens))
+      # all_uniq_ids, uniq_idx = array_ops.unique(tmp_vals) 
+      # uniq_idx = math_ops.cast(uniq_idx, tf.int32)
+
+      fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
+        # tf.RaggedTensor.from_row_lengths(
+        # values=tmp_vals, row_lengths=tmp_lens)
+        # values=input_dict['sparse_fea'][1],
+        # row_lengths=input_dict['sparse_fea'][0])
     else:
-      fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
-          values=input_dict['sparse_fea'][1] % self._feature_configs[0].num_buckets,
-          row_lengths=input_dict['sparse_fea'][0])
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
+      fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets, tmp_lens)
+      # fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
+      #     values=input_dict['sparse_fea'][1] % self._feature_configs[0].num_buckets,
+      #     row_lengths=input_dict['sparse_fea'][0])
 
     output_dict = {'feature': fea_dict}
 
@@ -205,6 +216,7 @@ class ParquetInput(Input):
       for tmp_name in self._reserve_fields:
         reserve_dict[tmp_name] = input_dict[tmp_name]
       output_dict['reserve'] = reserve_dict
+
     return output_dict
 
   def _build(self, mode, params):
@@ -267,13 +279,16 @@ class ParquetInput(Input):
     if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:
                             (self._get_features(x), self._get_labels(x)))
+      # dataset = dataset.apply(tf.data.experimental.prefetch_to_device('/gpu:0'))
+      # dataset = dataset.prefetch(32)
     else:
       if self._reserve_fields is not None:
         # for predictor with saved model
         def _get_with_reserve(fea_dict):
+          print('fea_dict=%s' % fea_dict)
           out_dict = {'feature': {
-              'ragged_ids': fea_dict['feature']['sparse_fea'].flat_values,
-              'ragged_lens': fea_dict['feature']['sparse_fea'].row_lengths() } }
+              'ragged_ids': fea_dict['feature']['sparse_fea'][0],
+              'ragged_lens': fea_dict['feature']['sparse_fea'][1] } }
           out_dict['reserve'] = fea_dict['reserve']
           return out_dict
         dataset = dataset.map(_get_with_reserve)
@@ -306,16 +321,15 @@ class ParquetInput(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        ragged_ids = tf.placeholder(tf.int64, [None], name='ragged_ids')
-        ragged_lens = tf.placeholder(tf.int32, [None], name='ragged_lens')
+        ragged_ids =  tf.compat.v1.placeholder(tf.int64, [None], name='ragged_ids')
+        ragged_lens = tf.compat.v1.placeholder(tf.int32, [None], name='ragged_lens')
         inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         if self._has_ev:
-          features = {'sparse_fea':tf.RaggedTensor.from_row_lengths(
-            ragged_ids, ragged_lens)}
+          features = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         else:
-          features = {'sparse_fea':tf.RaggedTensor.from_row_lengths(
+          features = { 'ragged_ids':
             ragged_ids % self._feature_configs[0].num_buckets,
-            ragged_lens)}
+            'ragged_lens': ragged_lens}
         return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     _input_fn.input_creator = self
