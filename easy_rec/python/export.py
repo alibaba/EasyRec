@@ -7,9 +7,9 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import export
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import estimator_utils
-from easy_rec.python.protos.train_pb2 import DistributionStrategy
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

@@ -9,7 +9,6 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.inference.csv_predictor import CSVPredictor
-from easy_rec.python.inference.hive_parquet_predictor import HiveParquetPredictor
 from easy_rec.python.inference.hive_predictor import HivePredictor
 from easy_rec.python.inference.parquet_predictor import ParquetPredictor
 from easy_rec.python.main import predict
@@ -17,6 +16,8 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
+
+from easy_rec.python.inference.hive_parquet_predictor import HiveParquetPredictor  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -92,13 +93,14 @@ def main(argv):
             all_cols=all_cols,
             all_col_types=all_col_types)
     elif pipeline_config.WhichOneof('train_path') == 'parquet_train_input':
-      predictor = ParquetPredictor(FLAGS.saved_model_dir,
-            pipeline_config.data_config,
-            ds_vector_recall=FLAGS.ds_vector_recall,
-            fg_json_path=FLAGS.fg_json_path,
-            selected_cols=FLAGS.selected_cols,
-            output_sep=FLAGS.output_sep,
-            pipeline_config=pipeline_config)
+      predictor = ParquetPredictor(
+          FLAGS.saved_model_dir,
+          pipeline_config.data_config,
+          ds_vector_recall=FLAGS.ds_vector_recall,
+          fg_json_path=FLAGS.fg_json_path,
+          selected_cols=FLAGS.selected_cols,
+          output_sep=FLAGS.output_sep,
+          pipeline_config=pipeline_config)
     else:
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,

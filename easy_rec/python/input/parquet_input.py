@@ -8,18 +8,20 @@ import time
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.python.platform import gfile
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import math_ops, array_ops, logging_ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.ops.ragged import ragged_util
+from tensorflow.python.platform import gfile
 
-from easy_rec.python.input.input import Input
-
+from easy_rec.python.compat import queues
 from easy_rec.python.input import load_parquet
-from easy_rec.python.compat import queues 
+from easy_rec.python.input.input import Input
 
 # if tf.__version__ >= '2.0':
 #   tf = tf.compat.v1
+
 
 class ParquetInput(Input):
 
@@ -44,20 +46,22 @@ class ParquetInput(Input):
     logging.info('parquet input_path=%s file_num=%d' %
                  (input_path, len(self._input_files)))
     mp_ctxt = multiprocessing.get_context('spawn')
-    self._data_que = queues.Queue(name='data_que', ctx=mp_ctxt,
-        maxsize=self._data_config.prefetch_size)
+    self._data_que = queues.Queue(
+        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
     # self._data_que._name = 'data_que'
 
     file_num = len(self._input_files)
-    logging.info('[task_index=%d] total_file_num=%d task_num=%d' % (task_index,
-        file_num, task_num))
+    logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
+                 (task_index, file_num, task_num))
     avg_file_num = int(file_num / task_num)
     res_file_num = file_num % task_num
     file_sid = task_index * avg_file_num + min(res_file_num, task_index)
-    file_eid = (task_index + 1) * avg_file_num + min(res_file_num, task_index+1)
-    self._my_files = self._input_files[file_sid:file_eid] 
+    file_eid = (task_index + 1) * avg_file_num + min(res_file_num,
+                                                     task_index + 1)
+    self._my_files = self._input_files[file_sid:file_eid]
 
-    logging.info('[task_index=%d] task_file_num=%d' % (task_index, len(self._my_files)))
+    logging.info('[task_index=%d] task_file_num=%d' %
+                 (task_index, len(self._my_files)))
     self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
 
     self._num_proc = 8
@@ -74,34 +78,34 @@ class ParquetInput(Input):
     if 'reserve_fields' in kwargs and 'reserve_types' in kwargs:
       self._reserve_fields = kwargs['reserve_fields']
       self._reserve_types = kwargs['reserve_types']
-    
-    self._proc_arr = None 
+
+    self._proc_arr = None
 
   def _sample_generator(self):
     if not self._proc_start:
-      self._proc_start = True 
+      self._proc_start = True
       for proc in (self._proc_arr):
         self._proc_start_que.put(True)
-        logging.info('task[%s] data_proc=%s is_alive=%s' % (self._task_index,
-            proc, proc.is_alive()))
+        logging.info('task[%s] data_proc=%s is_alive=%s' %
+                     (self._task_index, proc, proc.is_alive()))
 
     done_proc_cnt = 0
     fetch_timeout_cnt = 0
 
-    # for mock purpose
-    ## all_samples = []
-    ## while len(all_samples) < 64:
-    ##   try:
-    ##     sample = self._data_que.get(block=False)
-    ##     all_samples.append(sample)
-    ##   except queue.Empty:
-    ##     continue
-    ## sid = 0
-    ## while True:
-    ##   yield all_samples[sid]
-    ##   sid += 1
-    ##   if sid >= len(all_samples):
-    ##     sid = 0
+    # # for mock purpose
+    # all_samples = []
+    # while len(all_samples) < 64:
+    #   try:
+    #     sample = self._data_que.get(block=False)
+    #     all_samples.append(sample)
+    #   except queue.Empty:
+    #     continue
+    # sid = 0
+    # while True:
+    #   yield all_samples[sid]
+    #   sid += 1
+    #   if sid >= len(all_samples):
+    #     sid = 0
 
     fetch_good_cnt = 0
     while True:
@@ -113,8 +117,10 @@ class ParquetInput(Input):
           fetch_good_cnt += 1
           yield sample
         if fetch_good_cnt % 200 == 0:
-          logging.info('task[%d] fetch_good_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' % (
-              self._task_index, fetch_good_cnt, fetch_timeout_cnt, self._data_que.qsize()))
+          logging.info(
+              'task[%d] fetch_good_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' %
+              (self._task_index, fetch_good_cnt, fetch_timeout_cnt,
+               self._data_que.qsize()))
       except queue.Empty:
         fetch_timeout_cnt += 1
         if done_proc_cnt >= len(self._proc_arr):
@@ -122,7 +128,8 @@ class ParquetInput(Input):
                        fetch_timeout_cnt)
           break
       except Exception as ex:
-        logging.warning('task[%d] get from data_que exception: %s' % (self._task_index, str(ex)))
+        logging.warning('task[%d] get from data_que exception: %s' %
+                        (self._task_index, str(ex)))
         break
     for proc in self._proc_arr:
       proc.join()
@@ -130,11 +137,11 @@ class ParquetInput(Input):
   def stop(self):
     if self._proc_arr is None or len(self._proc_arr) == 0:
       return
-    logging.info("task[%d] will stop dataset procs, proc_num=%d" % (self._task_index,
-        len(self._proc_arr)))
+    logging.info('task[%d] will stop dataset procs, proc_num=%d' %
+                 (self._task_index, len(self._proc_arr)))
     self._file_que.close()
     if self._proc_start:
-      logging.info("try close data que")
+      logging.info('try close data que')
       for _ in range(len(self._proc_arr)):
         self._proc_stop_que.put(1)
       self._proc_stop_que.close()
@@ -147,21 +154,21 @@ class ParquetInput(Input):
 
       # to ensure the sender part of the stupid python Queue could exit properly
       while _any_alive():
-        try: 
+        try:
           self._data_que.get(timeout=1)
         except:
           pass
       time.sleep(1)
       self._data_que.close()
-      logging.info("data que closed")
+      logging.info('data que closed')
       # import time
       # time.sleep(10)
       for proc in self._proc_arr:
         # proc.terminate()
         proc.join()
-      logging.info("join proc done")
+      logging.info('join proc done')
       self._proc_start = False
-    
+
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
     # for fea_name in self._effective_fields:
@@ -178,7 +185,8 @@ class ParquetInput(Input):
     #       tmp = input_dict[input_0][1]
     #     fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
     if self._has_ev:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+          'sparse_fea'][0]
       # tmp_vals = logging_ops.Print(tmp_vals, [
       #     array_ops.shape(tmp_vals), math_ops.reduce_min(tmp_vals),
       #     math_ops.reduce_max(tmp_vals),
@@ -186,17 +194,19 @@ class ParquetInput(Input):
       #     math_ops.reduce_min(tmp_lens),
       #     math_ops.reduce_max(tmp_lens)], message='debug_sparse_fea')
       print('tmp_vals=%s tmp_lens=%s' % (tmp_vals, tmp_lens))
-      # all_uniq_ids, uniq_idx = array_ops.unique(tmp_vals) 
+      # all_uniq_ids, uniq_idx = array_ops.unique(tmp_vals)
       # uniq_idx = math_ops.cast(uniq_idx, tf.int32)
 
       fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
-        # tf.RaggedTensor.from_row_lengths(
-        # values=tmp_vals, row_lengths=tmp_lens)
-        # values=input_dict['sparse_fea'][1],
-        # row_lengths=input_dict['sparse_fea'][0])
+      # tf.RaggedTensor.from_row_lengths(
+      # values=tmp_vals, row_lengths=tmp_lens)
+      # values=input_dict['sparse_fea'][1],
+      # row_lengths=input_dict['sparse_fea'][0])
     else:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
-      fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets, tmp_lens)
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+          'sparse_fea'][0]
+      fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets,
+                                tmp_lens)
       # fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
       #     values=input_dict['sparse_fea'][1] % self._feature_configs[0].num_buckets,
       #     row_lengths=input_dict['sparse_fea'][0])
@@ -221,20 +231,23 @@ class ParquetInput(Input):
 
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
-      logging.info('will repeat train data for %d epochs' % self._data_config.num_epochs)
+      logging.info('will repeat train data for %d epochs' %
+                   self._data_config.num_epochs)
       my_files = self._my_files * self._data_config.num_epochs
     else:
       my_files = self._my_files
 
     if mode != tf.estimator.ModeKeys.PREDICT:
-      self._proc_arr = load_parquet.start_data_proc(self._task_index, self._num_proc,
-         self._file_que, self._data_que, self._proc_start_que, self._proc_stop_que,
-         self._batch_size, self._label_fields, self._effective_fields,
-         self._reserve_fields, self._data_config.drop_remainder)
+      self._proc_arr = load_parquet.start_data_proc(
+          self._task_index, self._num_proc, self._file_que, self._data_que,
+          self._proc_start_que, self._proc_stop_que, self._batch_size,
+          self._label_fields, self._effective_fields, self._reserve_fields,
+          self._data_config.drop_remainder)
     else:
-      self._proc_arr = load_parquet.start_data_proc(self._task_index, self._num_proc,
-         self._file_que, self._data_que, self._proc_start_que, self._proc_stop_que,
-         self._batch_size, None, self._effective_fields, self._reserve_fields, False)
+      self._proc_arr = load_parquet.start_data_proc(
+          self._task_index, self._num_proc, self._file_que, self._data_que,
+          self._proc_start_que, self._proc_stop_que, self._batch_size, None,
+          self._effective_fields, self._reserve_fields, False)
 
     for input_file in my_files:
       self._file_que.put(input_file)
@@ -242,7 +255,8 @@ class ParquetInput(Input):
     # add end signal
     for proc in self._proc_arr:
       self._file_que.put(None)
-    logging.info('add input_files to file_que, qsize=%d' % self._file_que.qsize())
+    logging.info('add input_files to file_que, qsize=%d' %
+                 self._file_que.qsize())
 
     out_types = {}
     out_shapes = {}
@@ -286,14 +300,18 @@ class ParquetInput(Input):
         # for predictor with saved model
         def _get_with_reserve(fea_dict):
           print('fea_dict=%s' % fea_dict)
-          out_dict = {'feature': {
-              'ragged_ids': fea_dict['feature']['sparse_fea'][0],
-              'ragged_lens': fea_dict['feature']['sparse_fea'][1] } }
+          out_dict = {
+              'feature': {
+                  'ragged_ids': fea_dict['feature']['sparse_fea'][0],
+                  'ragged_lens': fea_dict['feature']['sparse_fea'][1]
+              }
+          }
           out_dict['reserve'] = fea_dict['reserve']
           return out_dict
+
         dataset = dataset.map(_get_with_reserve)
       else:
-        dataset = dataset.map(lambda x : self._get_features(x))
+        dataset = dataset.map(lambda x: self._get_features(x))
       dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     return dataset
 
@@ -321,15 +339,18 @@ class ParquetInput(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        ragged_ids =  tf.compat.v1.placeholder(tf.int64, [None], name='ragged_ids')
-        ragged_lens = tf.compat.v1.placeholder(tf.int32, [None], name='ragged_lens')
+        ragged_ids = tf.compat.v1.placeholder(
+            tf.int64, [None], name='ragged_ids')
+        ragged_lens = tf.compat.v1.placeholder(
+            tf.int32, [None], name='ragged_lens')
         inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         if self._has_ev:
           features = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         else:
-          features = { 'ragged_ids':
-            ragged_ids % self._feature_configs[0].num_buckets,
-            'ragged_lens': ragged_lens}
+          features = {
+              'ragged_ids': ragged_ids % self._feature_configs[0].num_buckets,
+              'ragged_lens': ragged_lens
+          }
         return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     _input_fn.input_creator = self

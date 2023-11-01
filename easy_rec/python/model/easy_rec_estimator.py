@@ -18,7 +18,6 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training import basic_session_run_hooks
 from tensorflow.python.training import saver
-from easy_rec.python.compat.saver import SaverV2
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers
@@ -30,6 +29,7 @@ from easy_rec.python.compat.early_stopping import oss_stop_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.compat.ops import GraphKeys
+from easy_rec.python.compat.saver import SaverV2
 from easy_rec.python.input.input import Input
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
@@ -50,8 +50,6 @@ try:
   from easy_rec.python.compat import sok_optimizer
 except Exception:
   sok = None
-
-
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -421,7 +419,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
           other_vars.append(tmp_var)
       # var_list = other_vars
 
-
       scaffold = tf.train.Scaffold(
           saver=SaverV2(
               var_list=var_list,
@@ -485,9 +482,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
     scaffold = tf.train.Scaffold(
         saver=SaverV2(
-            var_list=var_list,
-            sharded=True,
-            save_relative_paths=True))
+            var_list=var_list, sharded=True, save_relative_paths=True))
     end = time.time()
     tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
     return tf.estimator.EstimatorSpec(
@@ -632,9 +627,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
     scaffold = tf.train.Scaffold(
         saver=SaverV2(
-            var_list=var_list,
-            sharded=True,
-            save_relative_paths=True))
+            var_list=var_list, sharded=True, save_relative_paths=True))
 
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,

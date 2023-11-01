@@ -613,7 +613,6 @@ class Predictor(PredictorInterface):
     return batch_input
 
 
-
 class ODPSPredictor(Predictor):
 
   def __init__(self,
@@ -673,6 +672,3 @@ class ODPSPredictor(Predictor):
     reserve_vals = [all_vals[k] for k in reserved_cols] + \
                    [outputs[x] for x in output_cols]
     return reserve_vals
-
-
-

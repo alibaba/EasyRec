@@ -46,9 +46,9 @@ class DummyInput(Input):
     #     vals = line_str.strip().split(',')
     with tf.device('/cpu:0'):
       features = {}
-      for field, field_type, def_val in zip(
-          self._input_fields, self._input_field_types,
-          self._input_field_defaults):
+      for field, field_type, def_val in zip(self._input_fields,
+                                            self._input_field_types,
+                                            self._input_field_defaults):
         tf_type = get_tf_type(field_type)
         def_val = self.get_type_defaults(field_type, default_val=def_val)
         print('default:', field, field_type, def_val, type(def_val))

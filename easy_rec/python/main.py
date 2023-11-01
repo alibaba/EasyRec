@@ -114,8 +114,8 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   #     gpu_options.visible_device_list = ','.join(gpus[sid:eid])
 
   if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
-    gpus = tf.config.experimental.list_physical_devices("GPU")
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
     # gpus = estimator_utils.get_available_gpus()
     # if len(gpus) > 0:
     local_rnk = hvd.local_rank()
@@ -366,7 +366,7 @@ def _train_and_evaluate_impl(pipeline_config,
     from easy_rec.python.compat import estimator_train
     # create eval spec
     eval_spec = _create_eval_export_spec(
-      pipeline_config, eval_data, check_mode=check_mode)
+        pipeline_config, eval_data, check_mode=check_mode)
     estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
   if fit_on_eval and (not estimator_utils.is_evaluator()):
@@ -822,7 +822,8 @@ def export(export_dir,
   if gfile.Exists(sok_embed_path):
     if isinstance(final_export_dir, bytes):
       final_export_dir = final_export_dir.decode('utf-8')
-    export_sok_embed_dir = os.path.join(final_export_dir, 'variables/variables-sok/')
+    export_sok_embed_dir = os.path.join(final_export_dir,
+                                        'variables/variables-sok/')
     gfile.MkDir(export_sok_embed_dir)
     for tmp_file in gfile.Glob(sok_embed_path + '*'):
       if (tmp_file.endswith('.keys') or tmp_file.endswith('.vals')) \
@@ -869,7 +870,6 @@ def export_checkpoint(pipeline_config=None,
 
   if pipeline_config.model_config.HasField('ev_params'):
     input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
-
 
   # create estimator
   params = {'log_device_placement': verbose}

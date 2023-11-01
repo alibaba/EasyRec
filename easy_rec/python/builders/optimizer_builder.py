@@ -94,9 +94,7 @@ def build(optimizer_config):
     summary_vars.append(learning_rate)
     from easy_rec.python.compat.adam_s import AdamOptimizerS
     optimizer = AdamOptimizerS(
-        learning_rate =learning_rate,
-        beta1=config.beta1,
-        beta2=config.beta2)
+        learning_rate=learning_rate, beta1=config.beta1, beta2=config.beta2)
 
   if optimizer_type == 'momentumw_optimizer':
     config = optimizer_config.momentumw_optimizer

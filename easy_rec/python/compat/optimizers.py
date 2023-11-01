@@ -28,8 +28,8 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
@@ -267,9 +267,9 @@ def optimize_loss(loss,
     #   gradients = list(zip(gradients, variables))
     # else:
     gradients = opt.compute_gradients(
-      loss,
-      variables,
-      colocate_gradients_with_ops=colocate_gradients_with_ops)
+        loss,
+        variables,
+        colocate_gradients_with_ops=colocate_gradients_with_ops)
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
       if not estimator_utils.has_sok():
@@ -301,7 +301,7 @@ def optimize_loss(loss,
     #      g = logging_ops.Print(g, [array_ops.shape(g), math_ops.reduce_min(g), math_ops.reduce_max(g), math_ops.reduce_mean(g)], message='grad_%s' % v.name)
     #    tmp_grads.append((g, v))
     #  gradients=tmp_grads
-          
+
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:
       gradients = _add_scaled_noise_to_gradients(gradients,
@@ -365,7 +365,7 @@ def optimize_loss(loss,
       #   dense_grad_updates = opt._optimizer.apply_gradients(
       #     dense_vars,
       #     global_step=global_step if increment_global_step else None,
-      #     name='train') 
+      #     name='train')
       #   if sparse_grad_updates is not None and dense_grad_updates is not None:
       #     grad_updates = tf.group([sparse_grad_updates, dense_grad_updates])
       #   elif sparse_grad_updates is not None:
@@ -374,9 +374,9 @@ def optimize_loss(loss,
       #     grad_updates = dense_grad_updates
       # else:
       grad_updates = opt.apply_gradients(
-        gradients,
-        global_step=global_step if increment_global_step else None,
-        name='train')
+          gradients,
+          global_step=global_step if increment_global_step else None,
+          name='train')
 
       incr_save_ops = []
       if incr_save:
@@ -501,7 +501,7 @@ def adaptive_clipping_fn(std_factor=2.,
       elif isinstance(grad, indexed_slices.IndexedSlices):
         clipped_grads.append(
             indexed_slices.IndexedSlices(grad.values * factor, grad.indices,
-                              grad.dense_shape))
+                                         grad.dense_shape))
       else:
         clipped_grads.append(grad * factor)
 
@@ -537,7 +537,8 @@ def _multiply_gradients(grads_and_vars, gradient_multipliers):
       multiplier = gradient_multipliers[key]
       if isinstance(grad, indexed_slices.IndexedSlices):
         grad_values = grad.values * multiplier
-        grad = indexed_slices.IndexedSlices(grad_values, grad.indices, grad.dense_shape)
+        grad = indexed_slices.IndexedSlices(grad_values, grad.indices,
+                                            grad.dense_shape)
       else:
         grad *= math_ops.cast(multiplier, grad.dtype)
     multiplied_grads_and_vars.append((grad, var))

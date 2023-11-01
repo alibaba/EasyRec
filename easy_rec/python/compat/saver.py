@@ -1,16 +1,17 @@
 # -*- encoding:utf-8 -*-
 
 import logging
-import sys
 import os
-import numpy as np
+import sys
 
-from tensorflow.python.training import saver
+import numpy as np
 from tensorflow.core.protobuf import saver_pb2
-from tensorflow.python.framework import dtypes, ops
-from tensorflow.python.ops import script_ops
+from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import script_ops
 from tensorflow.python.platform import gfile
+from tensorflow.python.training import saver
 
 try:
   import horovod.tensorflow as hvd
@@ -20,7 +21,7 @@ except:
   dynamic_variable_ops = None
   sok = None
 
-try: 
+try:
   from tensorflow.python.framework.load_library import load_op_library
   import easy_rec
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
@@ -30,6 +31,7 @@ except Exception as ex:
 
 
 class SaverV2(saver.Saver):
+
   def __init__(self,
                var_list=None,
                reshape=False,
@@ -56,31 +58,38 @@ class SaverV2(saver.Saver):
           self._sok_vars.append(var)
         else:
           tf_vars.append(var)
-    super(SaverV2, self).__init__(tf_vars, reshape=reshape, sharded=sharded,
+    super(SaverV2, self).__init__(
+        tf_vars,
+        reshape=reshape,
+        sharded=sharded,
         max_to_keep=max_to_keep,
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
-        name=name, restore_sequentially=restore_sequentially,
-        saver_def=saver_def, builder=builder,
+        name=name,
+        restore_sequentially=restore_sequentially,
+        saver_def=saver_def,
+        builder=builder,
         defer_build=defer_build,
         allow_empty=allow_empty,
         write_version=write_version,
         pad_step_number=pad_step_number,
         save_relative_paths=save_relative_paths,
-        filename=filename) 
+        filename=filename)
     self._is_build = False
 
   def _save_sok_embedding(self, sok_var):
     pass
 
   def _load_sok_embedding(self, sok_var):
+
     def _load_key_vals(filename, var_name):
       var_name = var_name.decode('utf-8').replace('/', '__')
       filename = filename.decode('utf-8')
       key_file_pattern = filename + '-sok/embed-' + var_name + '-part-*.keys'
-      logging.info('key_file_pattern=%s filename=%s var_name=%s var=%s' % (key_file_pattern,
-          filename, var_name, str(sok_var)))
+      logging.info('key_file_pattern=%s filename=%s var_name=%s var=%s' %
+                   (key_file_pattern, filename, var_name, str(sok_var)))
       key_files = gfile.Glob(key_file_pattern)
-      logging.info('key_file_pattern=%s file_num=%d' % (key_file_pattern, len(key_files)))
+      logging.info('key_file_pattern=%s file_num=%d' %
+                   (key_file_pattern, len(key_files)))
       all_keys = []
       all_vals = []
       for key_file in key_files:
@@ -91,15 +100,16 @@ class SaverV2(saver.Saver):
           if len(tmp_ids) == 0:
             break
           all_keys.append(tmp_keys.take(tmp_ids, axis=0))
-          logging.info('tmp_keys.shape=%s %s %s' % (str(tmp_keys.shape),
-               str(tmp_ids.shape), str(all_keys[-1].shape)))
+          logging.info('tmp_keys.shape=%s %s %s' % (str(
+              tmp_keys.shape), str(tmp_ids.shape), str(all_keys[-1].shape)))
 
         val_file = key_file[:-4] + 'vals'
         with gfile.GFile(val_file, 'rb') as fin:
-          tmp_vals = np.frombuffer(fin.read(), dtype=np.float32).reshape([-1, sok_var._dimension])
+          tmp_vals = np.frombuffer(
+              fin.read(), dtype=np.float32).reshape([-1, sok_var._dimension])
           all_vals.append(tmp_vals.take(tmp_ids, axis=0))
-          logging.info('tmp_vals.shape=%s %s %s' % (str(tmp_vals.shape),
-               str(tmp_ids.shape), str(all_vals[-1].shape)))
+          logging.info('tmp_vals.shape=%s %s %s' % (str(
+              tmp_vals.shape), str(tmp_ids.shape), str(all_vals[-1].shape)))
 
       all_keys = np.concatenate(all_keys, axis=0)
       all_vals = np.concatenate(all_vals, axis=0)
@@ -108,36 +118,40 @@ class SaverV2(saver.Saver):
       np.random.shuffle(shuffle_ids)
       all_keys = all_keys.take(shuffle_ids, axis=0)
       all_vals = all_vals.take(shuffle_ids, axis=0)
-      print(len(all_keys), all_vals.shape, np.min(all_keys), np.max(all_keys), np.min(all_vals),
-            np.max(all_vals))
+      print(
+          len(all_keys), all_vals.shape, np.min(all_keys), np.max(all_keys),
+          np.min(all_vals), np.max(all_vals))
       return all_keys, all_vals
+
     file_name = ops.get_default_graph().get_tensor_by_name(
-            self.saver_def.filename_tensor_name)
+        self.saver_def.filename_tensor_name)
     # keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
     #      (dtypes.int64, dtypes.float32))
-    keys, vals = load_embed_lib.load_kv_embed(task_index=hvd.rank(),
-        task_num=hvd.size(), embed_dim=sok_var._dimension,
+    keys, vals = load_embed_lib.load_kv_embed(
+        task_index=hvd.rank(),
+        task_num=hvd.size(),
+        embed_dim=sok_var._dimension,
         var_name='embed-' + sok_var.name.replace('/', '__'),
         ckpt_path=file_name)
     with ops.control_dependencies([sok_var._initializer_op]):
       return dynamic_variable_ops.dummy_var_assign(sok_var.handle, keys, vals)
       # return dynamic_variable_ops.dummy_var_scatter_update(sok_var.handle, keys, vals)
-      
 
   def build(self):
     if self._is_built:
-      return 
-    super(SaverV2, self).build()  
+      return
+    super(SaverV2, self).build()
     if self.saver_def.restore_op_name and len(self._sok_vars) > 0:
-      # load data from the model 
+      # load data from the model
       restore_ops = []
       for sok_var in self._sok_vars:
         restore_ops.append(self._load_sok_embedding(sok_var))
-      old_restore_op = ops.get_default_graph().get_operation_by_name(self.saver_def.restore_op_name)
+      old_restore_op = ops.get_default_graph().get_operation_by_name(
+          self.saver_def.restore_op_name)
       restore_ops.append(old_restore_op)
       restore_op_n = control_flow_ops.group(restore_ops)
       self.saver_def.restore_op_name = restore_op_n.name
     # if self.saver_def.save_tensor_name:
     #   save_sok_ops = []
     #   for sok_var in self._sok_vars:
-    #     save_sok_ops. 
+    #     save_sok_ops.

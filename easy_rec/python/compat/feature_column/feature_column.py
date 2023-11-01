@@ -149,14 +149,12 @@ from tensorflow.python.layers import base
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import embedding_ops
-from tensorflow.python.ops.ragged import ragged_util
-
-
 from tensorflow.python.ops import init_ops
+from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import resource_variable_ops
@@ -165,21 +163,20 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
-from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops.ragged import ragged_tensor
-
-try:
-  from tensorflow.python.ops.ragged import ragged_math_ops
-  from tensorflow.python.ops.ragged import ragged_concat_ops
-except:
-  pass
-
+from tensorflow.python.ops.ragged import ragged_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+
+try:
+  from tensorflow.python.ops.ragged import ragged_math_ops
+  from tensorflow.python.ops.ragged import ragged_concat_ops
+except:
+  pass
 
 try:
   from sparse_operation_kit import experiment as sok
@@ -191,13 +188,18 @@ try:
 except Exception:
   hvd = None
 
-def embedding_lookup_ragged(embedding_weights, ragged_ids, ragged_weights,
-                            combiner, max_norm=None, name=None):
+
+def embedding_lookup_ragged(embedding_weights,
+                            ragged_ids,
+                            ragged_weights,
+                            combiner,
+                            max_norm=None,
+                            name=None):
   segment_ids = ragged_ids.value_rowids()
   ids = ragged_ids.flat_values
   ids, idx = array_ops.unique(ids)
-  embeddings = embedding_ops.embedding_lookup(embedding_weights, ids,
-      partition_strategy='mod', max_norm=max_norm)
+  embeddings = embedding_ops.embedding_lookup(
+      embedding_weights, ids, partition_strategy='mod', max_norm=max_norm)
   if ragged_weights is not None:
     weights = ragged_weights.flat_values
     embeddings = array_ops.gather(embeddings, idx)
@@ -216,31 +218,32 @@ def embedding_lookup_ragged(embedding_weights, ragged_ids, ragged_weights,
       embeddings = math_ops.segment_sum(embeddings, segment_ids)
       weight_sum = math_ops.segment_sum(weights, segment_ids)
       embeddings = math_ops.div_no_nan(embeddings, weight_sum, name=name)
-    elif combiner == "sqrtn":
+    elif combiner == 'sqrtn':
       embeddings = math_ops.segment_sum(embeddings, segment_ids)
       weights_squared = math_ops.pow(weights, 2)
       weight_sum = math_ops.segment_sum(weights_squared, segment_ids)
       weight_sum_sqrt = math_ops.sqrt(weight_sum)
       embeddings = math_ops.div_no_nan(embeddings, weight_sum_sqrt, name=name)
     else:
-      assert False, "Unrecognized combiner"
+      assert False, 'Unrecognized combiner'
     if embeddings.dtype != original_dtype:
-      embeddings = math_ops.cast(embeddings, original_dtype)  
+      embeddings = math_ops.cast(embeddings, original_dtype)
     return embeddings
   else:
     assert idx is not None
-    if combiner == "sum":
+    if combiner == 'sum':
       embeddings = math_ops.sparse_segment_sum(
           embeddings, idx, segment_ids, name=name)
-    elif combiner == "mean":
+    elif combiner == 'mean':
       embeddings = math_ops.sparse_segment_mean(
           embeddings, idx, segment_ids, name=name)
-    elif combiner == "sqrtn":
+    elif combiner == 'sqrtn':
       embeddings = math_ops.sparse_segment_sqrt_n(
           embeddings, idx, segment_ids, name=name)
     else:
-      assert False, "Unrecognized combiner"
+      assert False, 'Unrecognized combiner'
     return embeddings
+
 
 def _internal_input_layer(features,
                           feature_columns,
@@ -339,10 +342,13 @@ def _internal_input_layer(features,
           else:
             with ops.device('/gpu:0'):
               if column.ev_params is not None:
-                embedding_weights = sok.DynamicVariable(name='embedding_weights',
-                    dimension=column.dimension, initializer='random', #column.initializer,
+                embedding_weights = sok.DynamicVariable(
+                    name='embedding_weights',
+                    dimension=column.dimension,
+                    initializer='random',  #column.initializer,
                     # var_type='hybrid',
-                    trainable=column.trainable and trainable, dtype=dtypes.float32,
+                    trainable=column.trainable and trainable,
+                    dtype=dtypes.float32,
                     init_capacity=1024 * 1024 * 8,
                     max_capacity=1024 * 1024 * 16)
               else:
@@ -358,9 +364,12 @@ def _internal_input_layer(features,
         else:
           with ops.device('/gpu:0'):
             if column.ev_params is not None:
-              embedding_weights = sok.DynamicVariable(name='embedding_weights',
-                  dimension=column.dimension, initializer='random',  #column.initializer,
-                  trainable=column.trainable and trainable, dtype=dtypes.float32)
+              embedding_weights = sok.DynamicVariable(
+                  name='embedding_weights',
+                  dimension=column.dimension,
+                  initializer='random',  #column.initializer,
+                  trainable=column.trainable and trainable,
+                  dtype=dtypes.float32)
             else:
               embedding_weights = variable_scope.get_variable(
                   name='embedding_weights',
@@ -410,12 +419,15 @@ def _internal_input_layer(features,
         all_ids, segment_lens = features['sparse_fea']
         all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
         cumsum_lens = math_ops.cumsum(segment_lens)
-        segment_ids = array_ops.searchsorted(cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
-      elif isinstance(features, dict) and 'ragged_ids' in features.keys() and 'ragged_lens' in features.keys():
+        segment_ids = array_ops.searchsorted(
+            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+      elif isinstance(features, dict) and 'ragged_ids' in features.keys(
+      ) and 'ragged_lens' in features.keys():
         all_ids, segment_lens = features['ragged_ids'], features['ragged_lens']
         all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
         cumsum_lens = math_ops.cumsum(segment_lens)
-        segment_ids = array_ops.searchsorted(cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+        segment_ids = array_ops.searchsorted(
+            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
       else:
         all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
         segment_ids = all_ids.value_rowids()
@@ -424,43 +436,53 @@ def _internal_input_layer(features,
       # embed_dim = lookup_embeddings[0]._dimension
 
       if np > 1:
-        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals) 
-    
-        # dynamic partition 
+        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals)
+
+        # dynamic partition
         # from sparse_operation_kit.experiment import raw_ops
         p_assignments = math_ops.cast(all_uniq_ids % np, dtypes.int32)
-        gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids, p_assignments, np)
+        gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
+                                                     p_assignments, np)
         # all2all
-        split_sizes = array_ops.concat([ array_ops.shape(x) for x in gather_ids ], axis=0)
+        split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
+                                       axis=0)
         send_ids = array_ops.concat(gather_ids, axis=0)
         recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
         # read embedding from dynamic variable
-        send_embed = lookup_embeddings[0].sparse_read(recv_ids, lookup_only=(not is_training))
+        send_embed = lookup_embeddings[0].sparse_read(
+            recv_ids, lookup_only=(not is_training))
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
-        embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        embeddings = math_ops.sparse_segment_sum(
+            recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
-        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals) 
+        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals)
         # all_uniq_ids = logging_ops.Print(all_uniq_ids, [math_ops.reduce_min(all_uniq_ids),
         #      math_ops.reduce_max(all_uniq_ids), array_ops.shape(all_uniq_ids),
-        #      array_ops.shape(all_ids.flat_values), array_ops.shape(segment_ids), 
+        #      array_ops.shape(all_ids.flat_values), array_ops.shape(segment_ids),
         #      math_ops.reduce_min(segment_ids), math_ops.reduce_max(segment_ids)],
         #      message='debug_all_uniq_ids')
         if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-          recv_embeddings = lookup_embeddings[0].sparse_read(all_uniq_ids, lookup_only=(not is_training))
-        else: 
+          recv_embeddings = lookup_embeddings[0].sparse_read(
+              all_uniq_ids, lookup_only=(not is_training))
+        else:
           recv_embeddings = array_ops.gather(lookup_embeddings[0], all_uniq_ids)
-        embeddings = math_ops.sparse_segment_sum(recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        embeddings = math_ops.sparse_segment_sum(
+            recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
       if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-        output_tensor = array_ops.reshape(embeddings, [len(lookup_output_ids), -1, lookup_embeddings[0]._dimension])
+        output_tensor = array_ops.reshape(
+            embeddings,
+            [len(lookup_output_ids), -1, lookup_embeddings[0]._dimension])
       else:
         embed_dim = lookup_embeddings[0].get_shape()[-1]
-        output_tensor = array_ops.reshape(embeddings, [len(lookup_output_ids), -1, embed_dim])
+        output_tensor = array_ops.reshape(
+            embeddings, [len(lookup_output_ids), -1, embed_dim])
 
-      outputs = array_ops.split(output_tensor, num_or_size_splits=len(lookup_output_ids), axis=0)
+      outputs = array_ops.split(
+          output_tensor, num_or_size_splits=len(lookup_output_ids), axis=0)
       for output, output_id, col in zip(outputs, lookup_output_ids,
                                         lookup_cols):
         output_tensors[output_id] = output
@@ -468,10 +490,10 @@ def _internal_input_layer(features,
           cols_to_output_tensors[col] = output
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[col.raw_name] = output
-      return array_ops.reshape(array_ops.transpose(output_tensor, perm=[1, 0, 2]),
-         [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])
+      return array_ops.reshape(
+          array_ops.transpose(output_tensor, perm=[1, 0, 2]),
+          [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])
 
-      
     #   outputs = sok.lookup_sparse(
     #       lookup_embeddings, lookup_indices, combiners=lookup_combiners)
     #   for output, output_id, col in zip(outputs, lookup_output_ids,

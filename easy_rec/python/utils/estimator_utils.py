@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import ctypes
 import json
 import logging
 import os
@@ -304,8 +305,9 @@ class ProgressHook(SessionRunHook):
       self._progress_file.close()
 
 
-import ctypes
 _cudart = ctypes.CDLL('libcudart.so')
+
+
 class CheckpointSaverHook(CheckpointSaverHook):
   """Saves checkpoints every N steps or seconds."""
 
@@ -363,8 +365,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._dyn_export = {}
       for dyn_var in self._sok_dynamic_vars:
         indices, values = dynamic_variable_ops.dummy_var_export(
-              dyn_var.handle, key_type=dyn_var.key_type, dtype=dyn_var.handle_dtype
-        )
+            dyn_var.handle,
+            key_type=dyn_var.key_type,
+            dtype=dyn_var.handle_dtype)
         self._dyn_export[dyn_var.name] = (indices, values)
 
     if increment_save_config is not None:
@@ -618,32 +621,32 @@ class CheckpointSaverHook(CheckpointSaverHook):
         % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
-    #stale_global_step = run_values.results
-    #if stale_global_step > 10 and not self._cuda_profile_start:
-    #  self._cuda_profile_start = 1
-    #  ret = _cudart.cudaProfilerStart()
-    #  if ret != 0:
-    #    logging.error('cudaProfilerStart failed')
-    #  else:
-    #    logging.info('cudaProfilerStart good')
-    #  return
-    #if stale_global_step > 20 and not self._cuda_profile_stop:
-    #  self._cuda_profile_stop = 1
-    #  ret = _cudart.cudaProfilerStop()
-    #  if ret != 0:
-    #    logging.error('cudaProfilerStop failed')
-    #  else:
-    #    logging.info('cudaProfilerStop finish')
-    #  return
-    #return
+    # stale_global_step = run_values.results
+    # if stale_global_step > 10 and not self._cuda_profile_start:
+    #   self._cuda_profile_start = 1
+    #   ret = _cudart.cudaProfilerStart()
+    #   if ret != 0:
+    #     logging.error('cudaProfilerStart failed')
+    #   else:
+    #     logging.info('cudaProfilerStart good')
+    #   return
+    # if stale_global_step > 20 and not self._cuda_profile_stop:
+    #   self._cuda_profile_stop = 1
+    #   ret = _cudart.cudaProfilerStop()
+    #   if ret != 0:
+    #     logging.error('cudaProfilerStop failed')
+    #   else:
+    #     logging.info('cudaProfilerStop finish')
+    #   return
+    # return
 
     if not is_chief():
       if has_sok():
         stale_global_step = run_values.results
         global_step = stale_global_step + self._steps_per_run
         if self._timer.should_trigger_for_step(global_step):
-          logging.info('worker[%d] global_step=%d, save sok dynamic vars' % (
-              self._task_idx, global_step))
+          logging.info('worker[%d] global_step=%d, save sok dynamic vars' %
+                       (self._task_idx, global_step))
           self._save_sok(run_context.session, global_step)
           self._timer.update_last_triggered_step(global_step)
       return
@@ -666,27 +669,27 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._send_sparse(global_step, run_context.session)
 
   def _save_sok(self, session, step):
-    return
     if self._dyn_export is None:
       return
 
     # get self._dyn_export and save
-    dyn_save_dir = os.path.join(self._checkpoint_dir, 'model.ckpt-%d-sok' % step)
+    dyn_save_dir = os.path.join(self._checkpoint_dir,
+                                'model.ckpt-%d-sok' % step)
     gfile.MakeDirs(dyn_save_dir)
     dyn_idx_vals = session.run(self._dyn_export)
     for var_name in dyn_idx_vals:
       idx, vals = dyn_idx_vals[var_name]
       var_name = var_name.replace('/', '__')
-      dyn_save_path_keys = os.path.join(dyn_save_dir, 'embed-%s-part-%d.keys' % (
-          var_name, self._task_idx))
+      dyn_save_path_keys = os.path.join(
+          dyn_save_dir, 'embed-%s-part-%d.keys' % (var_name, self._task_idx))
       with gfile.GFile(dyn_save_path_keys, 'wb') as fout:
         fout.write(idx.tobytes())
-      dyn_save_path_vals = os.path.join(dyn_save_dir, 'embed-%s-part-%d.vals' % (
-          var_name, self._task_idx))
+      dyn_save_path_vals = os.path.join(
+          dyn_save_dir, 'embed-%s-part-%d.vals' % (var_name, self._task_idx))
       with gfile.GFile(dyn_save_path_vals, 'wb') as fout:
         fout.write(vals.tobytes())
-      logging.info('save %s[len=%d] to %s and %s' % (var_name, len(idx),
-          dyn_save_path_keys, dyn_save_path_vals))
+      logging.info('save %s[len=%d] to %s and %s' %
+                   (var_name, len(idx), dyn_save_path_keys, dyn_save_path_vals))
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
@@ -701,7 +704,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       for x in save_data_offset:
         if x:
           data_offset_json.update(json.loads(x))
-      save_offset_path = os.path.join(self._checkpoint_dir, 'model.ckpt-%d.offset' % step)
+      save_offset_path = os.path.join(self._checkpoint_dir,
+                                      'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout)
 
@@ -713,7 +717,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
     # save sok
     self._save_sok(session, step)
-      
+
     self._summary_writer.add_session_log(
         tf.SessionLog(
             status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),

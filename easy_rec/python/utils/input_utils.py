@@ -1,8 +1,8 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import numpy as np
-import tensorflow as tf
 import pandas as pd
+import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
@@ -76,7 +76,7 @@ def string_to_number(field, ftype, default_value, name=''):
 
 
 def get_tf_type_from_parquet_file(cols, parquet_file):
-  input_data = pd.read_parquet(parquet_file, columns=cols) 
+  input_data = pd.read_parquet(parquet_file, columns=cols)
   tf_types = []
   for col in cols:
     obj = input_data[col][0]
@@ -88,13 +88,14 @@ def get_tf_type_from_parquet_file(cols, parquet_file):
       data_type = type(obj)
     if data_type in (int, np.int32):
       tf_types.append(tf.int32)
+    elif data_type in (np.int64,):
+      tf_types.append(tf.int64)
     elif data_type in (np.str, str):
       tf_types.append(tf.string)
     elif data_type in (np.float, np.float32, float):
       tf_types.append(tf.float32)
-    elif data_type in (np.double, ):
+    elif data_type in (np.double,):
       tf_types.append(tf.float64)
     else:
       tf_types.append(tf.string)
   return tf_types
-

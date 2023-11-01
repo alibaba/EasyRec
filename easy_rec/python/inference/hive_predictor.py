@@ -20,6 +20,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils import tf_utils
@@ -31,10 +32,10 @@ from easy_rec.python.utils.hive_utils import HiveUtils
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.tf_utils import get_tf_type
-from easy_rec.python.inference.predictor import Predictor
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
 
 class HivePredictor(Predictor):
 

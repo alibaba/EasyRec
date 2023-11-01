@@ -133,7 +133,9 @@ class InputLayer(object):
 
     cols_to_output_tensors = OrderedDict()
     output_features = feature_column.input_layer(
-        features, group_columns, cols_to_output_tensors=cols_to_output_tensors,
+        features,
+        group_columns,
+        cols_to_output_tensors=cols_to_output_tensors,
         is_training=self._is_training)
     group_features = [cols_to_output_tensors[x] for x in group_columns]
 
@@ -144,7 +146,7 @@ class InputLayer(object):
 
     if self._embedding_regularizer is not None:
       regularizers.apply_regularization(
-        self._embedding_regularizer, weights_list=embedding_reg_lst)
+          self._embedding_regularizer, weights_list=embedding_reg_lst)
     return output_features, group_features
 
   def get_sequence_feature(self, features, group_name):

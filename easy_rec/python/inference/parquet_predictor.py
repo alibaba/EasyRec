@@ -20,8 +20,11 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.inference.predictor import Predictor
+from easy_rec.python.input.parquet_input import ParquetInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import input_utils
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils import tf_utils
 from easy_rec.python.utils.check_utils import check_split
@@ -29,16 +32,13 @@ from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
 from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 from easy_rec.python.utils.config_util import search_fg_json
 from easy_rec.python.utils.hive_utils import HiveUtils
-from easy_rec.python.utils import input_utils
 from easy_rec.python.utils.load_class import get_register_class_meta
 from easy_rec.python.utils.tf_utils import get_tf_type
-from easy_rec.python.inference.predictor import Predictor
-from easy_rec.python.input.parquet_input import ParquetInput
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
-try: 
+try:
   from tensorflow.python.framework.load_library import load_op_library
   import easy_rec
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
@@ -58,11 +58,12 @@ class ParquetPredictor(Predictor):
                selected_cols=None,
                output_sep=chr(1),
                pipeline_config=None):
-    super(ParquetPredictor, self).__init__(model_path, profiling_file, fg_json_path)
+    super(ParquetPredictor, self).__init__(model_path, profiling_file,
+                                           fg_json_path)
     self._output_sep = output_sep
     self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
-    self.pipeline_config=pipeline_config
+    self.pipeline_config = pipeline_config
 
     if 'rtp' in input_type:
       self._is_rtp = True
@@ -102,15 +103,16 @@ class ParquetPredictor(Predictor):
   def _parse_line(self, line):
     out_dict = {}
     for key in line['feature']:
-       out_dict[key] = line['feature'][key]
+      out_dict[key] = line['feature'][key]
     if 'reserve' in line:
       for key in line['reserve']:
-         out_dict[key] = line['reserve'][key]
+        out_dict[key] = line['reserve'][key]
     return out_dict
 
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
-    feature_configs = config_util.get_compatible_feature_configs(self.pipeline_config)
+    feature_configs = config_util.get_compatible_feature_configs(
+        self.pipeline_config)
     kwargs = {}
     if self.pipeline_config.model_config.HasField('ev_params'):
       kwargs['ev_params'] = self.pipeline_config.model_config.ev_params
@@ -119,10 +121,14 @@ class ParquetPredictor(Predictor):
       parquet_file = gfile.Glob(input_path.split(',')[0])[0]
       kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
           self._reserved_cols, parquet_file)
-    parquet_input = ParquetInput(self.pipeline_config.data_config, feature_configs,
-        input_path, task_index=slice_id, task_num=slice_num, 
+    parquet_input = ParquetInput(
+        self.pipeline_config.data_config,
+        feature_configs,
+        input_path,
+        task_index=slice_id,
+        task_num=slice_num,
         pipeline_config=self.pipeline_config,
-        **kwargs) 
+        **kwargs)
     return parquet_input._build(tf.estimator.ModeKeys.PREDICT, {})
 
   def _get_writer(self, output_path, slice_id):
