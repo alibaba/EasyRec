@@ -10,6 +10,9 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import script_ops
+from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import saver
 
@@ -135,7 +138,6 @@ class SaverV2(saver.Saver):
         ckpt_path=file_name)
     with ops.control_dependencies([sok_var._initializer_op]):
       return dynamic_variable_ops.dummy_var_assign(sok_var.handle, keys, vals)
-      # return dynamic_variable_ops.dummy_var_scatter_update(sok_var.handle, keys, vals)
 
   def build(self):
     if self._is_built:

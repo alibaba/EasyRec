@@ -67,6 +67,10 @@ class PPNetV3M(RankModel):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')
       output = self._prediction_dict.get(lbl_name)
+      # output = tf.Print(output, [tf.reduce_min(output), tf.reduce_max(output),
+      #      tf.reduce_mean(output), tf.reduce_min(self._labels[lbl_name]),
+      #      tf.reduce_max(self._labels[lbl_name]),
+      #      tf.reduce_mean(self._labels[lbl_name])], message='output')
       metric_dict['auc_' + lbl_name]  = metrics_tf.auc(self._labels[lbl_name],
           output, num_thresholds=1000) 
     return metric_dict
@@ -82,6 +86,8 @@ class PPNetV3M(RankModel):
       tf.summary.scalar('predict/%s' % lbl_name, tf.reduce_mean(output))
       loss_obj = tf.keras.losses.BinaryCrossentropy(reduction='sum_over_batch_size')(
           self._labels[lbl_name], output)
+      # loss_obj = tf.Print(loss_obj, [tf.reduce_min(loss_obj), tf.reduce_max(loss_obj),
+      #        tf.reduce_mean(loss_obj), tf.shape(loss_obj)], message='loss_obj')
       self._loss_dict[lbl_name] = loss_obj
     return self._loss_dict
 

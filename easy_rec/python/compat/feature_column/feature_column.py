@@ -429,20 +429,22 @@ def _internal_input_layer(features,
         segment_ids = array_ops.searchsorted(
             cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
       else:
-        all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
-        segment_ids = all_ids.value_rowids()
-        flat_vals = all_ids.flat_vals()
-      np = hvd.size()
+        all_ids = array_ops.concat([x[0] for x in lookup_indices], axis=0)
+        segment_lens = array_ops.concat([x[1] for x in lookup_lens], axis=0)
+        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+        cumsum_lens = math_ops.cumsum(segment_lens)
+        segment_ids = array_ops.searchsorted(
+            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+
+      num_parts = hvd.size()
       # embed_dim = lookup_embeddings[0]._dimension
 
-      if np > 1:
-        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals)
-
+      if num_parts > 1:
         # dynamic partition
         # from sparse_operation_kit.experiment import raw_ops
-        p_assignments = math_ops.cast(all_uniq_ids % np, dtypes.int32)
+        p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
         gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
-                                                     p_assignments, np)
+                                                     p_assignments, num_parts)
         # all2all
         split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
                                        axis=0)
@@ -458,12 +460,6 @@ def _internal_input_layer(features,
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
-        # all_uniq_ids, uniq_idx = array_ops.unique(flat_vals)
-        # all_uniq_ids = logging_ops.Print(all_uniq_ids, [math_ops.reduce_min(all_uniq_ids),
-        #      math_ops.reduce_max(all_uniq_ids), array_ops.shape(all_uniq_ids),
-        #      array_ops.shape(all_ids.flat_values), array_ops.shape(segment_ids),
-        #      math_ops.reduce_min(segment_ids), math_ops.reduce_max(segment_ids)],
-        #      message='debug_all_uniq_ids')
         if isinstance(lookup_embeddings[0], sok.DynamicVariable):
           recv_embeddings = lookup_embeddings[0].sparse_read(
               all_uniq_ids, lookup_only=(not is_training))
@@ -490,6 +486,7 @@ def _internal_input_layer(features,
           cols_to_output_tensors[col] = output
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[col.raw_name] = output
+
       return array_ops.reshape(
           array_ops.transpose(output_tensor, perm=[1, 0, 2]),
           [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])

@@ -185,15 +185,13 @@ class ParquetInput(Input):
     #       tmp = input_dict[input_0][1]
     #     fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
     if self._has_ev:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-          'sparse_fea'][0]
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
       # tmp_vals = logging_ops.Print(tmp_vals, [
       #     array_ops.shape(tmp_vals), math_ops.reduce_min(tmp_vals),
       #     math_ops.reduce_max(tmp_vals),
       #     array_ops.shape(tmp_lens),
       #     math_ops.reduce_min(tmp_lens),
       #     math_ops.reduce_max(tmp_lens)], message='debug_sparse_fea')
-      print('tmp_vals=%s tmp_lens=%s' % (tmp_vals, tmp_lens))
       # all_uniq_ids, uniq_idx = array_ops.unique(tmp_vals)
       # uniq_idx = math_ops.cast(uniq_idx, tf.int32)
 
@@ -203,8 +201,7 @@ class ParquetInput(Input):
       # values=input_dict['sparse_fea'][1],
       # row_lengths=input_dict['sparse_fea'][0])
     else:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-          'sparse_fea'][0]
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
       fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets,
                                 tmp_lens)
       # fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(

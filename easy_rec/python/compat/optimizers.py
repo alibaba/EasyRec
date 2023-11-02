@@ -275,8 +275,9 @@ def optimize_loss(loss,
       if not estimator_utils.has_sok():
         reduced_grads = []
         for g, v in gradients:
+          # the gradients for embeddings from different workers are also summed together
           reduced_grads.append((hvd.allreduce(
-              g, op=hvd.Average,
+              g, op=hvd.Sum,
               compression=hvd.compression.NoneCompressor), v))
         gradients = reduced_grads
       else:

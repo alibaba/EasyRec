@@ -52,7 +52,10 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
-    self._has_ev = 'ev_params' in kwargs
+    if pipeline_config.model_config.HasField('ev_params'):
+      self._has_ev = True
+    else:
+      self._has_ev = False
 
     if self._data_config.auto_expand_input_fields:
       input_fields = [x for x in self._data_config.input_fields]

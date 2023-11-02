@@ -65,7 +65,6 @@ def _get_one_file(file_que, proc_stop_que):
       pass
   return None
 
-
 def _pack_sparse_feas(data_dict, effective_fields):
   fea_val_arr = []
   fea_len_arr = []
