@@ -452,8 +452,11 @@ def _internal_input_layer(features,
         recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
         # read embedding from dynamic variable
-        send_embed = lookup_embeddings[0].sparse_read(
-            recv_ids, lookup_only=(not is_training))
+        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+          send_embed = lookup_embeddings[0].sparse_read(
+              recv_ids, lookup_only=(not is_training))
+        else:
+          send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
