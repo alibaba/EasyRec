@@ -485,6 +485,11 @@ def set_train_input_path(pipeline_config, train_input_path):
       pipeline_config.kafka_train_input = ','.join(train_input_path)
     else:
       pipeline_config.kafka_train_input = train_input_path
+  elif pipeline_config.WhichOneof('train_path') == 'parquet_train_input':
+    if isinstance(train_input_path, list):
+      pipeline_config.parquet_train_input = ','.join(train_input_path)
+    else:
+      pipeline_config.parquet_train_input = train_input_path
   else:
     if isinstance(train_input_path, list):
       pipeline_config.train_input_path = ','.join(train_input_path)
