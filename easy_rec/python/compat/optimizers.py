@@ -24,11 +24,11 @@ import tensorflow as tf
 # from tensorflow.contrib import framework as contrib_framework
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+# from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope as vs
@@ -43,7 +43,7 @@ from easy_rec.python.utils import estimator_utils
 
 try:
   from tensorflow.python.framework import indexed_slices
-except Exception as ex:
+except Exception:
   indexed_slices = ops
 
 try:
@@ -273,35 +273,25 @@ def optimize_loss(loss,
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
       if not estimator_utils.has_sok():
+        # embedding parameters not partitioned
         reduced_grads = []
         for g, v in gradients:
-          # the gradients for embeddings from different workers are also summed together
           reduced_grads.append((hvd.allreduce(
-              g, op=hvd.Sum,
-              compression=hvd.compression.NoneCompressor), v))
+              g, op=hvd.Sum, compression=hvd.compression.NoneCompressor), v))
         gradients = reduced_grads
       else:
+        # embedding parameters partitioned:
+        #   the gradients for embeddings from different workers are
+        #   already summed together in the backward pass through
+        #   hvd.alltoall
         reduced_grads = []
         for g, v in gradients:
           if '/embedding' not in v.name:
             reduced_grads.append((hvd.allreduce(
-                g, op=hvd.Average,
-                compression=hvd.compression.NoneCompressor), v))
+                g, op=hvd.Sum, compression=hvd.compression.NoneCompressor), v))
           else:
             reduced_grads.append((g, v))
         gradients = reduced_grads
-    #else:
-    #  tmp_grads = []
-    #  for g, v in gradients:
-    #    if '/embedding' in v.name:
-    #      import logging
-    #      logging.info('do nothing to sok gradients: %s' % str(v))
-    #      with ops.control_dependencies([logging_ops.Print(g.indices, [array_ops.shape(g.indices), array_ops.shape(g.values), math_ops.reduce_min(g.indices), math_ops.reduce_max(g.indices), math_ops.reduce_min(g.values), math_ops.reduce_max(g.values)], message='grad_%s' % v.name)]):
-    #        g = indexed_slices.IndexedSlices(array_ops.identity(g.values), array_ops.identity(g.indices))
-    #    else:
-    #      g = logging_ops.Print(g, [array_ops.shape(g), math_ops.reduce_min(g), math_ops.reduce_max(g), math_ops.reduce_mean(g)], message='grad_%s' % v.name)
-    #    tmp_grads.append((g, v))
-    #  gradients=tmp_grads
 
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:

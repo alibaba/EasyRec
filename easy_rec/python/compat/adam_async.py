@@ -22,25 +22,23 @@ import os
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.framework.load_library import load_op_library
-# from tensorflow.python.ops import kv_variable_ops
 # from tensorflow.python.ops import gen_hash_training_ops
-from tensorflow.python.ops import array_ops
+# from tensorflow.python.ops import array_ops
+# from tensorflow.python.ops import resource_variable_ops
+# from tensorflow.python.ops import state_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import resource_variable_ops
-from tensorflow.python.ops import state_ops
-from tensorflow.python.ops import variable_scope
+# from tensorflow.python.ops import variable_scope
 from tensorflow.python.training import optimizer
-from tensorflow.python.training import slot_creator
-from tensorflow.python.training import training_ops
-from tensorflow.python.training import training_util
-from tensorflow.python.util.tf_export import tf_export
+
+# from tensorflow.python.training import slot_creator
+# from tensorflow.python.training import training_ops
+# from tensorflow.python.training import training_util
 
 curr_dir, _ = os.path.split(__file__)
 adam_async_ops = load_op_library(os.path.join(curr_dir, 'libadam_async_op.so'))
 
 
-@tf_export('train.AdamAsyncOptimizer')
 class AdamAsyncOptimizer(optimizer.Optimizer):
   """Optimizer that implements the Adam algorithm.
 

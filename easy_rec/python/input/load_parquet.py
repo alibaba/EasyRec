@@ -1,7 +1,6 @@
 import logging
 import multiprocessing
 import queue
-import sys
 
 import numpy as np
 import pandas as pd
@@ -64,6 +63,7 @@ def _get_one_file(file_que, proc_stop_que):
     except queue.Empty:
       pass
   return None
+
 
 def _pack_sparse_feas(data_dict, effective_fields):
   fea_val_arr = []
@@ -142,7 +142,6 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
         break
       sid += batch_size
     if res_num > 0 and is_good:
-      accum_res_num = 0
       data_dict = {}
       part_data_dict_n = {}
 

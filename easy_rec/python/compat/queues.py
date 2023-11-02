@@ -14,7 +14,7 @@ import os
 import sys
 import threading
 import time
-import types
+# import types
 import weakref
 from multiprocessing import connection
 from multiprocessing import context

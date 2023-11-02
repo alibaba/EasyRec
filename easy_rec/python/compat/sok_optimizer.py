@@ -17,11 +17,12 @@
 import tensorflow as tf
 from sparse_operation_kit.experiment.dynamic_variable import DynamicVariable
 from tensorflow.python.eager import context
-from tensorflow.python.framework import dtypes
+# from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+# from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import resource_variable_ops
+from tensorflow.python.ops import state_ops
 
 
 def OptimizerWrapper(optimizer):
@@ -62,12 +63,11 @@ def OptimizerWrapper(optimizer):
       embedding = tf.nn.embedding_lookup(v, indices)
       print("embedding:", embedding)
   """
-
   # a specific code path for dl framework tf2.11.0
   try:
     if isinstance(optimizer, tf.keras.optimizers.legacy.Optimizer):
       return OptimizerWrapperV2(optimizer)
-  except:
+  except Exception:
     pass
 
   if isinstance(optimizer, tf.keras.optimizers.Optimizer):
@@ -140,7 +140,7 @@ class OptimizerWrapperV1(object):
           )
         else:
           tmp_config = var.config_dict
-          tmp_initializer = var.initializer_str
+          # tmp_initializer = var.initializer_str
           slot = DynamicVariable(
               dimension=var.dimension,
               initializer=self._initial_vals[slot_name],
@@ -231,7 +231,7 @@ class OptimizerWrapperV1(object):
               )
             else:
               tmp_config = v.config_dict
-              tmp_initializer = v.initializer_str
+              # tmp_initializer = v.initializer_str
               slot = DynamicVariable(
                   dimension=v.dimension,
                   initializer=self._initial_vals[slot_name],
@@ -319,7 +319,7 @@ class OptimizerWrapperV2(object):
           )
         else:
           tmp_config = var.config_dict
-          tmp_initializer = var.initializer_str
+          # tmp_initializer = var.initializer_str
           slot = DynamicVariable(
               dimension=var.dimension,
               initializer=self._initial_vals[slot_name],
@@ -372,7 +372,7 @@ class OptimizerWrapperV2(object):
               )
             else:
               tmp_config = v.config_dict
-              tmp_initializer = v.initializer_str
+              # tmp_initializer = v.initializer_str
               slot = DynamicVariable(
                   dimension=v.dimension,
                   initializer=self._initial_vals[slot_name],

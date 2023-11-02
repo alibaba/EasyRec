@@ -4,39 +4,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import abc
-import json
 import logging
-import math
 import os
-import time
 
-import numpy as np
-import pandas as pd
-import six
 import tensorflow as tf
-from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
-from tensorflow.python.saved_model import constants
-from tensorflow.python.saved_model import signature_constants
 
+from easy_rec.python.inference.predictor import SINGLE_PLACEHOLDER_FEATURE_KEY
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.input.parquet_input import ParquetInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import input_utils
-from easy_rec.python.utils import numpy_utils
-from easy_rec.python.utils import tf_utils
-from easy_rec.python.utils.check_utils import check_split
-from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
-from easy_rec.python.utils.config_util import get_input_name_from_fg_json
-from easy_rec.python.utils.config_util import search_fg_json
-from easy_rec.python.utils.hive_utils import HiveUtils
-from easy_rec.python.utils.load_class import get_register_class_meta
-from easy_rec.python.utils.tf_utils import get_tf_type
-
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
 
 try:
   from tensorflow.python.framework.load_library import load_op_library

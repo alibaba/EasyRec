@@ -5,22 +5,18 @@ import multiprocessing
 import queue
 import time
 
-import numpy as np
-import pandas as pd
+# import numpy as np
+# import pandas as pd
 import tensorflow as tf
-from tensorflow.python.framework import ops
+# from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops.ragged import ragged_util
+# from tensorflow.python.ops import logging_ops
+# from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.compat import queues
 from easy_rec.python.input import load_parquet
 from easy_rec.python.input.input import Input
-
-# if tf.__version__ >= '2.0':
-#   tf = tf.compat.v1
 
 
 class ParquetInput(Input):
@@ -48,7 +44,6 @@ class ParquetInput(Input):
     mp_ctxt = multiprocessing.get_context('spawn')
     self._data_que = queues.Queue(
         name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
-    # self._data_que._name = 'data_que'
 
     file_num = len(self._input_files)
     logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
@@ -152,11 +147,11 @@ class ParquetInput(Input):
             return True
         return False
 
-      # to ensure the sender part of the stupid python Queue could exit properly
+      # to ensure the sender part of the python Queue could exit
       while _any_alive():
         try:
           self._data_que.get(timeout=1)
-        except:
+        except Exception:
           pass
       time.sleep(1)
       self._data_que.close()
@@ -171,42 +166,17 @@ class ParquetInput(Input):
 
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
-    # for fea_name in self._effective_fields:
-    #   tmp = input_dict[fea_name][1] % 1000  # 000000
-    #   fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(
-    #       tmp, input_dict[fea_name][0])
-    # for fc in self._feature_configs:
-    #   if fc.feature_type == fc.IdFeature or fc.feature_type == fc.TagFeature:
-    #     input_0 = fc.input_names[0]
-    #     fea_name = fc.feature_name if fc.HasField('feature_name') else input_0
-    #     if not self._has_ev:
-    #       tmp = input_dict[input_0][1] % fc.num_buckets
-    #     else:
-    #       tmp = input_dict[input_0][1]
-    #     fea_dict[fea_name] = tf.RaggedTensor.from_row_lengths(tmp, input_dict[input_0][0])
+
     if self._has_ev:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
-      # tmp_vals = logging_ops.Print(tmp_vals, [
-      #     array_ops.shape(tmp_vals), math_ops.reduce_min(tmp_vals),
-      #     math_ops.reduce_max(tmp_vals),
-      #     array_ops.shape(tmp_lens),
-      #     math_ops.reduce_min(tmp_lens),
-      #     math_ops.reduce_max(tmp_lens)], message='debug_sparse_fea')
-      # all_uniq_ids, uniq_idx = array_ops.unique(tmp_vals)
-      # uniq_idx = math_ops.cast(uniq_idx, tf.int32)
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+          'sparse_fea'][0]
 
       fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
-      # tf.RaggedTensor.from_row_lengths(
-      # values=tmp_vals, row_lengths=tmp_lens)
-      # values=input_dict['sparse_fea'][1],
-      # row_lengths=input_dict['sparse_fea'][0])
     else:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict['sparse_fea'][0]
+      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+          'sparse_fea'][0]
       fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets,
                                 tmp_lens)
-      # fea_dict['sparse_fea'] = tf.RaggedTensor.from_row_lengths(
-      #     values=input_dict['sparse_fea'][1] % self._feature_configs[0].num_buckets,
-      #     row_lengths=input_dict['sparse_fea'][0])
 
     output_dict = {'feature': fea_dict}
 
@@ -336,9 +306,8 @@ class ParquetInput(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        ragged_ids = tf.compat.v1.placeholder(
-            tf.int64, [None], name='ragged_ids')
-        ragged_lens = tf.compat.v1.placeholder(
+        ragged_ids = array_ops.placeholder(tf.int64, [None], name='ragged_ids')
+        ragged_lens = array_ops.placeholder(
             tf.int32, [None], name='ragged_lens')
         inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
         if self._has_ev:

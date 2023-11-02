@@ -146,13 +146,13 @@ from tensorflow.python.framework import sparse_tensor as sparse_tensor_lib
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.keras.engine import training
 from tensorflow.python.layers import base
+# from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
@@ -163,20 +163,14 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
-from tensorflow.python.ops.ragged import ragged_tensor
-from tensorflow.python.ops.ragged import ragged_util
+# from tensorflow.python.ops.ragged import ragged_tensor
+# from tensorflow.python.ops.ragged import ragged_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
-
-try:
-  from tensorflow.python.ops.ragged import ragged_math_ops
-  from tensorflow.python.ops.ragged import ragged_concat_ops
-except:
-  pass
 
 try:
   from sparse_operation_kit import experiment as sok
@@ -311,15 +305,10 @@ def _internal_input_layer(features,
     lookup_combiners = []
     lookup_cols = []
     lookup_output_ids = []
-
-    lookup_embeddings_with_wgt = []
-    lookup_indices_with_wgt = []
     lookup_wgts = []
-    lookup_cols_with_wgt = []
-    lookup_combiners_with_wgt = []
-    lookup_output_ids_with_wgt = []
+
     shared_weights = {}
-    for column in sorted(feature_columns, key=lambda x: x.name):
+    for column in feature_columns:
       ordered_columns.append(column)
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
@@ -345,7 +334,7 @@ def _internal_input_layer(features,
                 embedding_weights = sok.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
-                    initializer='random',  #column.initializer,
+                    initializer='random',  # column.initializer,
                     # var_type='hybrid',
                     trainable=column.trainable and trainable,
                     dtype=dtypes.float32,
@@ -367,7 +356,7 @@ def _internal_input_layer(features,
               embedding_weights = sok.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
-                  initializer='random',  #column.initializer,
+                  initializer='random',  # column.initializer,
                   trainable=column.trainable and trainable,
                   dtype=dtypes.float32)
             else:
@@ -384,27 +373,23 @@ def _internal_input_layer(features,
         output_tensors.append(None)
         lookup_output_ids.append(output_id)
         lookup_cols.append(column)
+        lookup_combiners.append(column.combiner)
         # required by sok
         if 'DynamicVariable' not in str(type(embedding_weights)):
           embedding_weights.target_gpu = -1
-        # # SparseTensor RaggedTensor
-        # sparse_tensors = column.categorical_column._get_sparse_tensors(
-        #     builder, weight_collections=weight_collections, trainable=trainable)
-        # output_id = len(output_tensors)
-        # output_tensors.append(None)
-        # if sparse_tensors.weight_tensor is not None:
-        #   lookup_embeddings_with_wgt.append(embedding_weights)
-        #   lookup_indices_with_wgt.append(sparse_tensors.id_tensor)
-        #   lookup_wgts.append(sparse_tensors.weight_tensor)
-        #   lookup_output_ids_with_wgt.append(output_id)
-        #   lookup_combiners_with_wgt.append(column.combiner)
-        #   lookup_cols_with_wgt.append(column)
-        # else:
-        #   lookup_embeddings.append(embedding_weights)
-        #   lookup_indices.append(sparse_tensors.id_tensor)
-        #   lookup_output_ids.append(output_id)
-        #   lookup_combiners.append(column.combiner)
-        #   lookup_cols.append(column)
+        # SparseTensor RaggedTensor
+        # features are not gathered into one, may have
+        # performance issues
+        if 'sparse_fea' not in features.keys(
+        ) and 'ragged_ids' not in features.keys():
+          with ops.device('/cpu:0'):
+            sparse_tensors = column.categorical_column._get_sparse_tensors(
+                builder,
+                weight_collections=weight_collections,
+                trainable=trainable)
+            lookup_indices.append(sparse_tensors.id_tensor)
+          if sparse_tensors.weight_tensor is not None:
+            lookup_wgts.append(sparse_tensors.weight_tensor)
         if cols_to_vars is not None:
           cols_to_vars[column] = ops.get_collection(
               ops.GraphKeys.GLOBAL_VARIABLES,
@@ -413,7 +398,6 @@ def _internal_input_layer(features,
     # do sok lookup
     if len(lookup_output_ids) > 0:
       # first concat all the ids and unique
-      # all_ids = ragged_concat_ops.concat(lookup_indices, axis=0)
       if isinstance(features, dict) and 'sparse_fea' in features.keys():
         # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
         all_ids, segment_lens = features['sparse_fea']
@@ -429,16 +413,13 @@ def _internal_input_layer(features,
         segment_ids = array_ops.searchsorted(
             cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
       else:
-        all_ids = array_ops.concat([x[0] for x in lookup_indices], axis=0)
-        segment_lens = array_ops.concat([x[1] for x in lookup_lens], axis=0)
+        with ops.device('/cpu:0'):
+          all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
+          segment_ids = array_ops.concat(
+              [x.indices[:, 0] for x in lookup_indices], axis=0)
         all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
-        cumsum_lens = math_ops.cumsum(segment_lens)
-        segment_ids = array_ops.searchsorted(
-            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
 
       num_parts = hvd.size()
-      # embed_dim = lookup_embeddings[0]._dimension
-
       if num_parts > 1:
         # dynamic partition
         # from sparse_operation_kit.experiment import raw_ops

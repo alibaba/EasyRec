@@ -2,17 +2,16 @@
 
 import logging
 import os
-import sys
 
 import numpy as np
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+# from tensorflow.python.ops import logging_ops
+# from tensorflow.python.ops import math_ops
+# from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import script_ops
-from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import saver
 
@@ -20,7 +19,7 @@ try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
   from sparse_operation_kit import experiment as sok
-except:
+except Exception:
   dynamic_variable_ops = None
   sok = None
 
@@ -31,6 +30,7 @@ try:
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
   logging.warning('load libload_embed.so failed: %s' % str(ex))
+  load_embed_lib = None
 
 
 class SaverV2(saver.Saver):
@@ -121,21 +121,21 @@ class SaverV2(saver.Saver):
       np.random.shuffle(shuffle_ids)
       all_keys = all_keys.take(shuffle_ids, axis=0)
       all_vals = all_vals.take(shuffle_ids, axis=0)
-      print(
-          len(all_keys), all_vals.shape, np.min(all_keys), np.max(all_keys),
-          np.min(all_vals), np.max(all_vals))
       return all_keys, all_vals
 
     file_name = ops.get_default_graph().get_tensor_by_name(
         self.saver_def.filename_tensor_name)
-    # keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
-    #      (dtypes.int64, dtypes.float32))
-    keys, vals = load_embed_lib.load_kv_embed(
-        task_index=hvd.rank(),
-        task_num=hvd.size(),
-        embed_dim=sok_var._dimension,
-        var_name='embed-' + sok_var.name.replace('/', '__'),
-        ckpt_path=file_name)
+    if load_embed_lib is not None:
+      keys, vals = load_embed_lib.load_kv_embed(
+          task_index=hvd.rank(),
+          task_num=hvd.size(),
+          embed_dim=sok_var._dimension,
+          var_name='embed-' + sok_var.name.replace('/', '__'),
+          ckpt_path=file_name)
+    else:
+      logging.warning('libload_embed.so not loaded, will use python script_ops')
+      keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
+                                      (dtypes.int64, dtypes.float32))
     with ops.control_dependencies([sok_var._initializer_op]):
       return dynamic_variable_ops.dummy_var_assign(sok_var.handle, keys, vals)
 
@@ -153,6 +153,7 @@ class SaverV2(saver.Saver):
       restore_ops.append(old_restore_op)
       restore_op_n = control_flow_ops.group(restore_ops)
       self.saver_def.restore_op_name = restore_op_n.name
+    # TODO
     # if self.saver_def.save_tensor_name:
     #   save_sok_ops = []
     #   for sok_var in self._sok_vars:

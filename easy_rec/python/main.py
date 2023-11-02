@@ -342,8 +342,6 @@ def _train_and_evaluate_impl(pipeline_config,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
-  if pipeline_config.model_config.HasField('ev_params'):
-    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
 
   # create train input
   train_input_fn = _get_input_fn(
@@ -790,8 +788,6 @@ def export(export_dir,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
-  if pipeline_config.model_config.HasField('ev_params'):
-    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
   ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
@@ -867,9 +863,6 @@ def export_checkpoint(pipeline_config=None,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
-
-  if pipeline_config.model_config.HasField('ev_params'):
-    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
 
   # create estimator
   params = {'log_device_placement': verbose}
