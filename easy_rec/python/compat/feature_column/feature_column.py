@@ -335,11 +335,12 @@ def _internal_input_layer(features,
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random',  # column.initializer,
-                    # var_type='hybrid',
+                    var_type=None
+                    if not column.ev_params.use_cache else 'hybrid',
                     trainable=column.trainable and trainable,
                     dtype=dtypes.float32,
-                    init_capacity=1024 * 1024 * 8,
-                    max_capacity=1024 * 1024 * 16)
+                    init_capacity=column.ev_params.init_capacity,
+                    max_capacity=column.ev_params.max_capacity)
               else:
                 embedding_weights = variable_scope.get_variable(
                     name='embedding_weights',
@@ -357,8 +358,11 @@ def _internal_input_layer(features,
                   name='embedding_weights',
                   dimension=column.dimension,
                   initializer='random',  # column.initializer,
+                  var_type=None if not column.ev_params.use_cache else 'hybrid',
                   trainable=column.trainable and trainable,
-                  dtype=dtypes.float32)
+                  dtype=dtypes.float32,
+                  init_capacity=column.ev_params.init_capacity,
+                  max_capacity=column.ev_params.max_capacity)
             else:
               embedding_weights = variable_scope.get_variable(
                   name='embedding_weights',

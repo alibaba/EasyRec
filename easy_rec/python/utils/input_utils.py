@@ -76,6 +76,7 @@ def string_to_number(field, ftype, default_value, name=''):
 
 
 def get_tf_type_from_parquet_file(cols, parquet_file):
+  # gfile not supported, read_parquet requires random access
   input_data = pd.read_parquet(parquet_file, columns=cols)
   tf_types = []
   for col in cols:

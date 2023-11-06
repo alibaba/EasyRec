@@ -7,10 +7,11 @@ from __future__ import print_function
 import logging
 import os
 
+import numpy as np
+import pandas as pd
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
-from easy_rec.python.inference.predictor import SINGLE_PLACEHOLDER_FEATURE_KEY
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.input.parquet_input import ParquetInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -58,48 +59,48 @@ class ParquetPredictor(Predictor):
     else:
       self._selected_cols = None
 
-  def _get_reserved_cols(self, reserved_cols):
-    if reserved_cols == 'ALL_COLUMNS':
-      if self._is_rtp:
-        if self._with_header:
-          reserved_cols = self._all_fields
-        else:
-          idx = 0
-          reserved_cols = []
-          for x in range(len(self._record_defaults) - 1):
-            if not self._selected_cols or x in self._selected_cols[:-1]:
-              reserved_cols.append(self._input_fields[idx])
-              idx += 1
-            else:
-              reserved_cols.append('no_used_%d' % x)
-          reserved_cols.append(SINGLE_PLACEHOLDER_FEATURE_KEY)
-      else:
-        reserved_cols = self._all_fields
-    else:
-      reserved_cols = [x.strip() for x in reserved_cols.split(',') if x != '']
-    return reserved_cols
-
   def _parse_line(self, line):
     out_dict = {}
     for key in line['feature']:
       out_dict[key] = line['feature'][key]
     if 'reserve' in line:
-      for key in line['reserve']:
-        out_dict[key] = line['reserve'][key]
+      out_dict['reserve'] = line['reserve']
+    #   for key in line['reserve']:
+    #     out_dict[key] = line['reserve'][key]
     return out_dict
+
+  def _get_reserved_cols(self, reserved_cols):
+    if reserved_cols == 'ALL_COLUMNS':
+      return reserved_cols
+    else:
+      return [x.strip() for x in reserved_cols.split(',')]
 
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
     feature_configs = config_util.get_compatible_feature_configs(
         self.pipeline_config)
+
     kwargs = {}
-    if self.pipeline_config.model_config.HasField('ev_params'):
-      kwargs['ev_params'] = self.pipeline_config.model_config.ev_params
     if self._reserved_cols is not None and len(self._reserved_cols) > 0:
-      kwargs['reserve_fields'] = self._reserved_cols
-      parquet_file = gfile.Glob(input_path.split(',')[0])[0]
-      kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
-          self._reserved_cols, parquet_file)
+      if self._reserved_cols == 'ALL_COLUMNS':
+        parquet_file = gfile.Glob(input_path.split(',')[0])[0]
+        # gfile not supported, read_parquet requires random access
+        all_data = pd.read_parquet(parquet_file)
+        all_cols = list(all_data.columns)
+        kwargs['reserve_fields'] = all_cols
+        self._all_fields = all_cols
+        self._reserved_cols = all_cols
+        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
+            all_cols, parquet_file)
+      else:
+        kwargs['reserve_fields'] = self._reserved_cols
+        parquet_file = gfile.Glob(input_path.split(',')[0])[0]
+        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
+            self._reserved_cols, parquet_file)
+    logging.info('reserve_fields=%s reserve_types=%s' %
+                 (','.join(self._reserved_cols), ','.join(
+                     [str(x) for x in kwargs['reserve_types']])))
+
     parquet_input = ParquetInput(
         self.pipeline_config.data_config,
         feature_configs,
@@ -125,8 +126,15 @@ class ParquetPredictor(Predictor):
     table_writer.write(outputs + '\n')
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
-    reserve_vals = [outputs[x] for x in output_cols] + \
-                   [all_vals[k] for k in reserved_cols]
+    reserve_vals = []
+    for x in outputs:
+      tmp_val = outputs[x]
+      reserve_vals.append(tmp_val)
+    for k in reserved_cols:
+      tmp_val = all_vals['reserve'][k]
+      if tmp_val.dtype == np.object:
+        tmp_val = tmp_val[0].decode('utf-8')
+      reserve_vals.append(tmp_val)
     return reserve_vals
 
   @property

@@ -189,10 +189,7 @@ class ParquetInput(Input):
       output_dict['label'] = lbl_dict
 
     if self._reserve_fields is not None:
-      reserve_dict = {}
-      for tmp_name in self._reserve_fields:
-        reserve_dict[tmp_name] = input_dict[tmp_name]
-      output_dict['reserve'] = reserve_dict
+      output_dict['reserve'] = input_dict['reserve']
 
     return output_dict
 
@@ -234,9 +231,11 @@ class ParquetInput(Input):
         out_shapes[k] = tf.TensorShape([None])
 
     if self._reserve_fields is not None:
+      out_types['reserve'] = {}
+      out_shapes['reserve'] = {}
       for k, t in zip(self._reserve_fields, self._reserve_types):
-        out_types[k] = t
-        out_shapes[k] = tf.TensorShape([None])
+        out_types['reserve'][k] = t
+        out_shapes['reserve'][k] = tf.TensorShape([None])
 
     # for k in self._effective_fields:
     #   out_types[k] = (tf.int64, tf.int32)

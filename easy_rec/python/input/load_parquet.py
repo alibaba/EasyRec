@@ -87,7 +87,9 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
   if label_fields is not None:
     all_fields = all_fields + label_fields
   if reserve_fields is not None:
-    all_fields = all_fields + reserve_fields
+    for tmp in reserve_fields:
+      if tmp not in all_fields:
+        all_fields.append(tmp)
   logging.info('data proc %d start, file_que.qsize=%d' %
                (proc_id, file_que.qsize()))
   num_files = 0
@@ -119,12 +121,13 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
           data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
                                   dtype=np.int32)
       if reserve_fields is not None and len(reserve_fields) > 0:
+        data_dict['reserve'] = {}
         for k in reserve_fields:
           np_dtype = type(input_data[k][0])
           if np_dtype == object:
             np_dtype = np.str
-          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
-                                  dtype=np_dtype)
+          data_dict['reserve'][k] = np.array(
+              [x[0] for x in input_data[k][sid:eid]], dtype=np_dtype)
 
       for k in effective_fields:
         val = input_data[k][sid:eid]
@@ -162,22 +165,26 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
             part_data_dict_n[k] = tmp_lbls
 
       if reserve_fields is not None and len(reserve_fields) > 0:
+        data_dict['reserve'] = {}
+        part_data_dict_n['reserve'] = {}
         for k in reserve_fields:
           np_dtype = type(input_data[k][0])
           if np_dtype == object:
             np_dtype = np.str
           tmp_r = np.array([x[0] for x in input_data[k][sid:]], dtype=np_dtype)
-          if part_data_dict is not None and k in part_data_dict:
-            tmp_r = np.concatenate([part_data_dict[k], tmp_r], axis=0)
+          if part_data_dict is not None and 'reserve' in part_data_dict and \
+             k in part_data_dict['reserve']:
+            tmp_r = np.concatenate([part_data_dict['reserve'][k], tmp_r],
+                                   axis=0)
             if len(tmp_r) > batch_size:
-              data_dict[k] = tmp_r[:batch_size]
-              part_data_dict_n[k] = tmp_r[batch_size:]
+              data_dict['reserve'][k] = tmp_r[:batch_size]
+              part_data_dict_n['reserve'][k] = tmp_r[batch_size:]
             elif len(tmp_r) == batch_size:
-              data_dict[k] = tmp_r
+              data_dict['reserve'][k] = tmp_r
             else:
-              part_data_dict_n[k] = tmp_r
+              part_data_dict_n['reserve'][k] = tmp_r
           else:
-            part_data_dict_n[k] = tmp_r
+            part_data_dict_n['reserve'][k] = tmp_r
 
       for k in effective_fields:
         val = input_data[k][sid:]
@@ -200,7 +207,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
             part_data_dict_n[k] = (tmp_lens, tmp_vals)
         else:
           part_data_dict_n[k] = (all_lens, all_vals)
-      if len(data_dict) > 0:
+      if 'sparse_fea' in data_dict:
         _pack_sparse_feas(data_dict, effective_fields)
         if not _add_to_que(data_dict, data_que, proc_stop_que):
           logging.info('add to que failed')

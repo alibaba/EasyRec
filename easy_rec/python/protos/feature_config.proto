@@ -31,6 +31,11 @@ message SequenceCombiner {
 message EVParams {
     optional uint64 filter_freq = 1 [default=0];
     optional uint64 steps_to_live = 2 [default=0];
+    // use embedding cache
+    optional bool use_cache = 3 [default=false];
+    // for hybrid key value embedding
+    optional uint64 init_capacity = 4 [default=8388608];
+    optional uint64 max_capacity = 5 [default=16777216];
 }
 
 message FeatureConfig {

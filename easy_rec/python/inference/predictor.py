@@ -515,13 +515,16 @@ class Predictor(PredictorInterface):
           for x in self._output_cols:
             if outputs[x].dtype == np.object:
               outputs[x] = [val.decode('utf-8') for val in outputs[x]]
+            elif len(outputs[x].shape) == 2 and outputs[x].shape[1] == 1:
+              # automatic flatten only one element array
+              outputs[x] = [val[0] for val in outputs[x]]
             elif len(outputs[x].shape) > 1:
               outputs[x] = [
                   json.dumps(val, cls=numpy_utils.NumpyEncoder)
                   for val in outputs[x]
               ]
           for k in self._reserved_cols:
-            if all_vals[k].dtype == np.object:
+            if k in all_vals and all_vals[k].dtype == np.object:
               all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
 
           ts2 = time.time()
