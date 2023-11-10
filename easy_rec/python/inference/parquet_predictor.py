@@ -100,6 +100,7 @@ class ParquetPredictor(Predictor):
     logging.info('reserve_fields=%s reserve_types=%s' %
                  (','.join(self._reserved_cols), ','.join(
                      [str(x) for x in kwargs['reserve_types']])))
+    self.pipeline_config.data_config.batch_size = batch_size
 
     parquet_input = ParquetInput(
         self.pipeline_config.data_config,
