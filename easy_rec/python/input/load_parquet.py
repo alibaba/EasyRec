@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 
 
-def start_data_proc(task_index, num_proc, file_que, data_que, proc_start_que,
-                    proc_stop_que, batch_size, label_fields, effective_fields,
-                    reserve_fields, drop_remainder):
+def start_data_proc(task_index, task_num, num_proc, file_que, data_que,
+                    proc_start_que, proc_stop_que, batch_size, label_fields,
+                    effective_fields, reserve_fields, drop_remainder):
   mp_ctxt = multiprocessing.get_context('spawn')
   proc_arr = []
   for proc_id in range(num_proc):
@@ -16,7 +16,7 @@ def start_data_proc(task_index, num_proc, file_que, data_que, proc_start_que,
         target=load_data_proc,
         args=(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
               batch_size, label_fields, effective_fields, reserve_fields,
-              drop_remainder),
+              drop_remainder, task_index, task_num),
         name='task_%d_data_proc_%d' % (task_index, proc_id))
     proc.daemon = True
     proc.start()
@@ -79,7 +79,7 @@ def _pack_sparse_feas(data_dict, effective_fields):
 
 def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
                    batch_size, label_fields, effective_fields, reserve_fields,
-                   drop_remainder):
+                   drop_remainder, task_index, task_num):
   logging.info('data proc %d start, proc_start_que=%s' %
                (proc_id, proc_start_que.qsize()))
   proc_start_que.get()
@@ -111,10 +111,15 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
     # logging.info(
     #     'proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' %
     #     (proc_id, input_file, data_len, batch_num, res_num))
+    # sub_batch_size = int(batch_size / task_num)
     sid = 0
     for batch_id in range(batch_num):
       eid = sid + batch_size
       data_dict = {}
+
+      # sid_stub = sid
+      # sid = sid + sub_batch_size * task_index
+      # eid = sid + sub_batch_size
 
       if label_fields is not None and len(label_fields) > 0:
         for k in label_fields:
@@ -139,11 +144,16 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
         data_dict[k] = (all_lens, all_vals)
 
       _pack_sparse_feas(data_dict, effective_fields)
+      # logging.info('task_index=%d sid=%d eid=%d total_len=%d' % (task_index, sid, eid,
+      #      len(data_dict['sparse_fea'][1])))
       if not _add_to_que(data_dict, data_que, proc_stop_que):
         logging.info('add to que failed')
         is_good = False
         break
       sid += batch_size
+    #   sid = batch_size + sid_stub
+    # return
+
     if res_num > 0 and is_good:
       data_dict = {}
       part_data_dict_n = {}

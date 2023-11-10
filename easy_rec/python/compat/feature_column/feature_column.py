@@ -334,7 +334,7 @@ def _internal_input_layer(features,
                 embedding_weights = sok.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
-                    initializer='random',  # column.initializer,
+                    initializer='0.0001',  # 'random',  # column.initializer,
                     var_type=None
                     if not column.ev_params.use_cache else 'hybrid',
                     trainable=column.trainable and trainable,
@@ -430,10 +430,17 @@ def _internal_input_layer(features,
         p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
         gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
                                                      p_assignments, num_parts)
+        original_ids = math_ops.range(array_ops.size(all_uniq_ids))
+        original_part_ids = data_flow_ops.dynamic_partition(
+            original_ids, p_assignments, num_parts)
         # all2all
         split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
                                        axis=0)
         send_ids = array_ops.concat(gather_ids, axis=0)
+        # send_ids = logging_ops.Print(send_ids, [array_ops.shape(send_ids),
+        #     array_ops.shape(p_assignments) ] +
+        #     [ array_ops.shape(x) for x in gather_ids]
+        #     , message='send_ids_dbg_%d' % num_parts)
         recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
         # read embedding from dynamic variable
@@ -441,10 +448,18 @@ def _internal_input_layer(features,
           send_embed = lookup_embeddings[0].sparse_read(
               recv_ids, lookup_only=(not is_training))
         else:
+          # find in subarray position
+          # 0 2 4 6 8 10 ...
+          # 1 3 5 7 9 11 ...
+          recv_ids = recv_ids / num_parts
           send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
 
         # all2all
         recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
+        recv_embeddings = array_ops.split(
+            recv_embeddings, num_or_size_splits=split_sizes)
+        recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
+            original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:

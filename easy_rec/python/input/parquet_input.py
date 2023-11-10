@@ -3,6 +3,7 @@
 import logging
 import multiprocessing
 import queue
+# import threading
 import time
 
 # import numpy as np
@@ -48,12 +49,12 @@ class ParquetInput(Input):
     file_num = len(self._input_files)
     logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
                  (task_index, file_num, task_num))
-    avg_file_num = int(file_num / task_num)
-    res_file_num = file_num % task_num
-    file_sid = task_index * avg_file_num + min(res_file_num, task_index)
-    file_eid = (task_index + 1) * avg_file_num + min(res_file_num,
-                                                     task_index + 1)
-    self._my_files = self._input_files[file_sid:file_eid]
+
+    self._my_files = []
+    for file_id in range(file_num):
+      if (file_id % task_num) == task_index:
+        self._my_files.append(self._input_files[file_id])
+    # self._my_files = self._input_files
 
     logging.info('[task_index=%d] task_file_num=%d' %
                  (task_index, len(self._my_files)))
@@ -126,8 +127,8 @@ class ParquetInput(Input):
         logging.warning('task[%d] get from data_que exception: %s' %
                         (self._task_index, str(ex)))
         break
-    for proc in self._proc_arr:
-      proc.join()
+    # for proc in self._proc_arr:
+    #   proc.join()
 
   def stop(self):
     if self._proc_arr is None or len(self._proc_arr) == 0:
@@ -203,15 +204,16 @@ class ParquetInput(Input):
 
     if mode != tf.estimator.ModeKeys.PREDICT:
       self._proc_arr = load_parquet.start_data_proc(
-          self._task_index, self._num_proc, self._file_que, self._data_que,
-          self._proc_start_que, self._proc_stop_que, self._batch_size,
-          self._label_fields, self._effective_fields, self._reserve_fields,
-          self._data_config.drop_remainder)
+          self._task_index, self._task_num, self._num_proc, self._file_que,
+          self._data_que, self._proc_start_que, self._proc_stop_que,
+          self._batch_size, self._label_fields, self._effective_fields,
+          self._reserve_fields, self._data_config.drop_remainder)
     else:
       self._proc_arr = load_parquet.start_data_proc(
-          self._task_index, self._num_proc, self._file_que, self._data_que,
-          self._proc_start_que, self._proc_stop_que, self._batch_size, None,
-          self._effective_fields, self._reserve_fields, False)
+          self._task_index, self._task_num, self._num_proc, self._file_que,
+          self._data_que, self._proc_start_que, self._proc_stop_que,
+          self._batch_size, None, self._effective_fields, self._reserve_fields,
+          False)
 
     for input_file in my_files:
       self._file_que.put(input_file)
