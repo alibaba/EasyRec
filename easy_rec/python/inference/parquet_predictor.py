@@ -133,7 +133,7 @@ class ParquetPredictor(Predictor):
     for k in reserved_cols:
       tmp_val = all_vals['reserve'][k]
       if tmp_val.dtype == np.object:
-        tmp_val = tmp_val[0].decode('utf-8')
+        tmp_val = [x.decode('utf-8') for x in tmp_val]
       reserve_vals.append(tmp_val)
     return reserve_vals
 
