@@ -3,6 +3,7 @@ from .blocks import MLP
 from .blocks import Gate
 from .blocks import Highway
 from .bst import BST
+from .custom_ops import EditDistance
 from .data_augment import SeqAugment
 from .din import DIN
 from .fibinet import BiLinear
