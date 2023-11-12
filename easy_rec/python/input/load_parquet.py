@@ -1,16 +1,16 @@
+import collections
 import logging
-import time
 import multiprocessing
-import threading
-from multiprocessing import context
 import queue
+import threading
+import time
+from multiprocessing import context
 
 import numpy as np
 import pandas as pd
-import collections
 
 
-def start_data_proc(task_index, task_num, num_proc, file_que, writers, 
+def start_data_proc(task_index, task_num, num_proc, file_que, writers,
                     proc_start_sem, proc_stop_que, batch_size, label_fields,
                     effective_fields, reserve_fields, drop_remainder):
   mp_ctxt = multiprocessing.get_context('spawn')
@@ -18,9 +18,9 @@ def start_data_proc(task_index, task_num, num_proc, file_que, writers,
   for proc_id in range(num_proc):
     proc = mp_ctxt.Process(
         target=load_data_proc,
-        args=(proc_id, file_que, writers[proc_id], proc_start_sem, proc_stop_que,
-              batch_size, label_fields, effective_fields, reserve_fields,
-              drop_remainder, task_index, task_num),
+        args=(proc_id, file_que, writers[proc_id], proc_start_sem,
+              proc_stop_que, batch_size, label_fields, effective_fields,
+              reserve_fields, drop_remainder, task_index, task_num),
         name='task_%d_data_proc_%d' % (task_index, proc_id))
     proc.daemon = True
     proc.start()
@@ -41,6 +41,7 @@ def _should_stop(proc_stop_que):
   except AssertionError:
     return True
 
+
 def _add_to_que(data_dict, buffer):
   try:
     binary_data = context.reduction.ForkingPickler.dumps(data_dict)
@@ -53,6 +54,7 @@ def _add_to_que(data_dict, buffer):
     logging.warning('add_to_que failed: %s' % str(ex))
     return False
 
+
 def _get_one_file(file_que, proc_stop_que):
   while True:
     try:
@@ -61,6 +63,7 @@ def _get_one_file(file_que, proc_stop_que):
     except queue.Empty:
       pass
   return None
+
 
 def _pack_sparse_feas(data_dict, effective_fields):
   fea_val_arr = []
@@ -72,6 +75,7 @@ def _pack_sparse_feas(data_dict, effective_fields):
   fea_lens = np.concatenate(fea_len_arr, axis=0)
   fea_vals = np.concatenate(fea_val_arr, axis=0)
   data_dict['sparse_fea'] = (fea_lens, fea_vals)
+
 
 def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
                    batch_size, label_fields, effective_fields, reserve_fields,
@@ -102,18 +106,21 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
         writer.send_bytes(data)
         ts2 = time.time()
         total_send_ts += (ts2 - ts0)
-        total_send_cnt += 1 
+        total_send_cnt += 1
         if total_send_cnt % 100 == 0:
-          logging.info('send_time_stat: total_send_ts=%.3f total_send_cnt=%d' % (
-              total_send_ts, total_send_cnt))
+          logging.info(
+              ('data_proc[%d] send_time_stat: total_send_ts=%.3f ' +
+               'total_send_cnt=%d total_ts=%d') %
+              (proc_id, total_send_ts, total_send_cnt, time.time() - start_ts))
       except Exception as ex:
         logging.warning('send bytes exception: %s' % str(ex))
-    logging.info('final send_time_stat: total_send_ts=%.3f total_send_cnt=%d total_ts=%.3f' % (
-        total_send_ts, total_send_cnt, time.time() - start_ts))
-        
+    logging.info(
+        ('data_proc[%d] final send_time_stat: total_send_ts=%.3f ' +
+         'total_send_cnt=%d total_ts=%.3f') %
+        (proc_id, total_send_ts, total_send_cnt, time.time() - start_ts))
+
   send_thread = threading.Thread(target=_send_func)
   send_thread.start()
-
 
   all_fields = list(effective_fields)
   if label_fields is not None:
@@ -146,12 +153,13 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
     ts1 = time.time()
     check_stop_ts += (ts1 - ts0)
     num_files += 1
-    input_data = pd.read_parquet(input_file, columns=all_fields, engine='pyarrow')
+    input_data = pd.read_parquet(
+        input_file, columns=all_fields, engine='pyarrow')
     data_len = len(input_data[all_fields[0]])
     batch_num = int(data_len / batch_size)
     res_num = data_len % batch_size
 
-    ts2 = time.time() 
+    ts2 = time.time()
     read_file_ts += (ts2 - ts1)
     # logging.info(
     #     'proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' %
@@ -183,7 +191,7 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
         # ts210 = time.time()
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
         # ts211 = time.time()
-        all_vals = np.concatenate([x for x in val])
+        all_vals = np.concatenate(val.to_numpy(), axis=0)
         # ts212 = time.time()
         # parse_fea_ts1 += (ts211 - ts210)
         # parse_fea_ts2 += (ts212 - ts211)
@@ -256,7 +264,7 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
       for k in effective_fields:
         val = input_data[k][sid:]
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
-        all_vals = np.concatenate(list(val))
+        all_vals = np.concatenate(val.to_numpy())
         if part_data_dict is not None and k in part_data_dict:
           tmp_lens = np.concatenate([part_data_dict[k][0], all_lens], axis=0)
           tmp_vals = np.concatenate([part_data_dict[k][1], all_vals], axis=0)
@@ -303,7 +311,20 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
   data_end = True
   send_thread.join()
 
-  logging.info('data_proc_id=%d, is_good = %s, check_stop_ts=%.3f, read_file_ts=%.3f, parse_ts=%.3f, parse_lbl_ts=%.3f, parse_fea_ts=%.3f, parse_fea_ts1=%.3f, parse_fea_ts2=%.3f, pack_ts=%.3f' % (proc_id, is_good, check_stop_ts, read_file_ts, parse_ts, parse_lbl_ts, parse_fea_ts, parse_fea_ts1, parse_fea_ts2, pack_ts))
+  logging.info((
+      'data_proc_id[%d], is_good=%s, check_stop_ts=%.3f, ' +
+      'read_file_ts=%.3f, parse_ts=%.3f, parse_lbl_ts=%.3f, parse_fea_ts=%.3f, '
+      + 'parse_fea_ts1=%.3f, parse_fea_ts2=%.3f, pack_ts=%.3f') % (
+          proc_id,
+          is_good,
+          check_stop_ts,
+          read_file_ts,
+          parse_ts,  # yapf:skip
+          parse_lbl_ts,
+          parse_fea_ts,
+          parse_fea_ts1,
+          parse_fea_ts2,  # yapf:skip
+          pack_ts))
   writer.close()
 
   while not is_good:

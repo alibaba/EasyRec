@@ -174,8 +174,10 @@ from easy_rec.python.compat.feature_column import utils as fc_utils
 
 try:
   from sparse_operation_kit import experiment as sok
+  from sparse_operation_kit.experiment import raw_ops
 except Exception:
   sok = None
+  raw_ops = None
 
 try:
   import horovod.tensorflow as hvd
@@ -460,6 +462,30 @@ def _internal_input_layer(features,
             recv_embeddings, num_or_size_splits=split_sizes)
         recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
             original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
+
+        # # Filter key
+        # selected_indices, order, splits = raw_ops.dist_select(all_uniq_ids, num_splits=num_parts)
+        # # All-to-all of indices
+        # recv_ids, rsplits = hvd.alltoall(selected_indices, splits)
+
+        # # Local lookup
+        # # read embedding from dynamic variable
+        # if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+        #   send_embed = lookup_embeddings[0].sparse_read(
+        #       recv_ids, lookup_only=(not is_training))
+        # else:
+        #   # find in subarray position
+        #   # 0 2 4 6 8 10 ...
+        #   # 1 3 5 7 9 11 ...
+        #   recv_ids = recv_ids / num_parts
+        #   send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
+
+        # # All-to-all of embedding vectors
+        # recv_embeddings, _ = hvd.alltoall(send_embed, rsplits)
+
+        # # Reorder of embedding vectors
+        # recv_embeddings = raw_ops.reorder(recv_embeddings, order)
+
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:

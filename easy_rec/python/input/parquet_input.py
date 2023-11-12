@@ -1,13 +1,13 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import collections
 import logging
 import multiprocessing
-from multiprocessing import connection
-from multiprocessing import context
-import queue
+# import queue
 import threading
 import time
-import collections
+from multiprocessing import connection
+from multiprocessing import context
 
 # import numpy as np
 # import pandas as pd
@@ -61,7 +61,7 @@ class ParquetInput(Input):
                  (task_index, len(self._my_files)))
     self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
 
-    self._num_proc = 16
+    self._num_proc = 8
     if file_num < self._num_proc:
       self._num_proc = file_num
 
@@ -100,7 +100,6 @@ class ParquetInput(Input):
         recv_th.start()
 
     done_proc_cnt = 0
-    fetch_timeout_cnt = 0
 
     # # for mock purpose
     # all_samples = []
@@ -119,7 +118,6 @@ class ParquetInput(Input):
 
     fetch_good_cnt = 0
     fetch_fail_cnt = 0
-    import time
     start_ts = time.time()
     while done_proc_cnt < len(self._proc_arr):
       try:
@@ -132,24 +130,17 @@ class ParquetInput(Input):
           yield sample
           if fetch_good_cnt % 100 == 0 and fetch_good_cnt > 0:
             logging.info(
-                'task[%d] fetch_good_cnt=%d fetch_fail_cnt=%d all_ts=%.3f' %
-                (self._task_index, fetch_good_cnt, fetch_fail_cnt, 
-                 time.time() - start_ts))
+                'task[%d] fetch_good_cnt=%d fetch_fail_cnt=%d all_fetch_ts=%.3f que_len=%d'
+                % (self._task_index, fetch_good_cnt, fetch_fail_cnt,
+                   time.time() - start_ts, len(self._data_que)))
         else:
           fetch_fail_cnt += 1
-      except queue.Empty:
-        fetch_timeout_cnt += 1
-        if done_proc_cnt >= len(self._proc_arr):
-          logging.info('all sample finished, fetch_timeout_cnt=%d' %
-                       fetch_timeout_cnt)
-          break
       except Exception as ex:
-        logging.warning('task[%d] get from data_que exception: %s' %
-                        (self._task_index, str(ex)))
+        logging.warning(
+            'task[%d] fetch_data exception: %s fetch_fail_cnt=%d que_len=%d' %
+            (self._task_index, str(ex), fetch_fail_cnt, len(self._data_que)))
         break
     self._recv_stop = True
-    # for proc in self._proc_arr:
-    #   proc.join()
 
   def stop(self):
     if self._proc_arr is None or len(self._proc_arr) == 0:
@@ -181,14 +172,11 @@ class ParquetInput(Input):
         except Exception:
           pass
       time.sleep(1)
-  
+
       for reader in self._readers:
         reader.close()
 
-      # import time
-      # time.sleep(10)
       for proc in self._proc_arr:
-        # proc.terminate()
         proc.join()
       logging.info('join proc done')
       self._proc_start = False
@@ -244,11 +232,13 @@ class ParquetInput(Input):
           False)
 
     # create receive threads
-    def _recv_func(reader):
+    def _recv_func(reader, recv_id):
       start_ts = time.time()
       recv_ts = 0
       decode_ts = 0
+      wait_ts = 0
       append_ts = 0
+      recv_cnt = 0
       while not self._recv_stop:
         try:
           if reader.poll(0.25):
@@ -259,23 +249,36 @@ class ParquetInput(Input):
             ts2 = time.time()
             while len(self._data_que) >= self._data_que_max_len:
               time.sleep(0.1)
+            ts3 = time.time()
             # self._data_que_lock.acquire()
             self._data_que.append(sample)
-            ts3 = time.time()
+            ts4 = time.time()
             recv_ts += (ts1 - ts0)
             decode_ts += (ts2 - ts1)
-            append_ts += (ts3 - ts2)
+            wait_ts += (ts3 - ts2)
+            append_ts += (ts4 - ts3)
+            recv_cnt += 1
+            if recv_cnt % 100 == 0:
+              logging.info((
+                  'recv_time_stat[%d]: recv_ts=%.3f decode_ts=%.3f ' +
+                  'wait_ts=%.3f append_ts=%.3f total=%.3f recv_cnt=%d len(data_que)=%d'
+              ) % (recv_id, recv_ts, decode_ts, wait_ts, append_ts,
+                   time.time() - start_ts, recv_cnt, len(self._data_que)))
             if sample is None:
               break
           else:
             continue
         except Exception as ex:
-          logging.warning('recv data exception: %s' % str(ex))
-      logging.info('recv thread finish: recv_ts=%.3f decode_ts=%.3f append_ts=%.3f total=%.3f' % (recv_ts, decode_ts, append_ts, time.time() - start_ts))
-    
+          logging.warning('recv_data exception: %s' % str(ex))
+      logging.info(
+          ('recv_finish, recv_time_stat[%d]: recv_ts=%.3f decode_ts=%.3f ' +
+           'wait_ts=%.3f append_ts=%.3f total=%.3f recv_cnt=%d len(data_que)=%d'
+           ) % (recv_id, recv_ts, decode_ts, wait_ts, append_ts,
+                time.time() - start_ts, recv_cnt, len(self._data_que)))
+
     self._recv_threads = []
-    for reader in self._readers:
-      recv_th = threading.Thread(target=_recv_func, args=(reader,))
+    for recv_id, reader in enumerate(self._readers):
+      recv_th = threading.Thread(target=_recv_func, args=(reader, recv_id))
       self._recv_threads.append(recv_th)
 
     for input_file in my_files:
