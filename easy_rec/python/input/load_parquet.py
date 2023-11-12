@@ -1,20 +1,24 @@
 import logging
+import time
 import multiprocessing
+import threading
+from multiprocessing import context
 import queue
 
 import numpy as np
 import pandas as pd
+import collections
 
 
-def start_data_proc(task_index, task_num, num_proc, file_que, data_que,
-                    proc_start_que, proc_stop_que, batch_size, label_fields,
+def start_data_proc(task_index, task_num, num_proc, file_que, writers, 
+                    proc_start_sem, proc_stop_que, batch_size, label_fields,
                     effective_fields, reserve_fields, drop_remainder):
   mp_ctxt = multiprocessing.get_context('spawn')
   proc_arr = []
   for proc_id in range(num_proc):
     proc = mp_ctxt.Process(
         target=load_data_proc,
-        args=(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
+        args=(proc_id, file_que, writers[proc_id], proc_start_sem, proc_stop_que,
               batch_size, label_fields, effective_fields, reserve_fields,
               drop_remainder, task_index, task_num),
         name='task_%d_data_proc_%d' % (task_index, proc_id))
@@ -37,23 +41,17 @@ def _should_stop(proc_stop_que):
   except AssertionError:
     return True
 
-
-def _add_to_que(data_dict, data_que, proc_stop_que):
-  while True:
-    try:
-      data_que.put(data_dict, timeout=5)
-      return True
-    except queue.Full:
-      logging.warning('data_que is full')
-      if _should_stop(proc_stop_que):
-        return False
-    except ValueError:
-      logging.warning('data_que is closed')
-      return False
-    except AssertionError:
-      logging.warning('data_que is closed')
-      return False
-
+def _add_to_que(data_dict, buffer):
+  try:
+    binary_data = context.reduction.ForkingPickler.dumps(data_dict)
+    while len(buffer) >= buffer.maxlen:
+      # logging.warning('send_que buffer is full')
+      time.sleep(0.1)
+    buffer.append(binary_data)
+    return True
+  except Exception as ex:
+    logging.warning('add_to_que failed: %s' % str(ex))
+    return False
 
 def _get_one_file(file_que, proc_stop_que):
   while True:
@@ -63,7 +61,6 @@ def _get_one_file(file_que, proc_stop_que):
     except queue.Empty:
       pass
   return None
-
 
 def _pack_sparse_feas(data_dict, effective_fields):
   fea_val_arr = []
@@ -76,13 +73,48 @@ def _pack_sparse_feas(data_dict, effective_fields):
   fea_vals = np.concatenate(fea_val_arr, axis=0)
   data_dict['sparse_fea'] = (fea_lens, fea_vals)
 
-
-def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
+def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
                    batch_size, label_fields, effective_fields, reserve_fields,
                    drop_remainder, task_index, task_num):
-  logging.info('data proc %d start, proc_start_que=%s' %
-               (proc_id, proc_start_que.qsize()))
-  proc_start_que.get()
+  logging.info('data_proc[%d] wait start' % proc_id)
+  proc_start_sem.acquire()
+  logging.info('data_proc[%d] start' % proc_id)
+
+  buffer = collections.deque(maxlen=32)
+
+  is_good = True
+  data_end = False
+
+  def _send_func():
+    total_send_ts = 0
+    total_send_cnt = 0
+    start_ts = time.time()
+    while is_good:
+      if len(buffer) == 0:
+        if data_end:
+          logging.info('data_proc[%d] send all data' % proc_id)
+          break
+        time.sleep(0.1)
+        continue
+      data = buffer.popleft()
+      try:
+        ts0 = time.time()
+        writer.send_bytes(data)
+        ts2 = time.time()
+        total_send_ts += (ts2 - ts0)
+        total_send_cnt += 1 
+        if total_send_cnt % 100 == 0:
+          logging.info('send_time_stat: total_send_ts=%.3f total_send_cnt=%d' % (
+              total_send_ts, total_send_cnt))
+      except Exception as ex:
+        logging.warning('send bytes exception: %s' % str(ex))
+    logging.info('final send_time_stat: total_send_ts=%.3f total_send_cnt=%d total_ts=%.3f' % (
+        total_send_ts, total_send_cnt, time.time() - start_ts))
+        
+  send_thread = threading.Thread(target=_send_func)
+  send_thread.start()
+
+
   all_fields = list(effective_fields)
   if label_fields is not None:
     all_fields = all_fields + label_fields
@@ -95,19 +127,32 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
   num_files = 0
   part_data_dict = {}
 
-  is_good = True
+  check_stop_ts = 0
+  read_file_ts = 0
+  parse_ts = 0
+  parse_lbl_ts = 0
+  parse_fea_ts = 0
+  parse_fea_ts1 = 0
+  parse_fea_ts2 = 0
+  pack_ts = 0
   while is_good:
+    ts0 = time.time()
     if _should_stop(proc_stop_que):
       is_good = False
       break
     input_file = _get_one_file(file_que, proc_stop_que)
     if input_file is None:
       break
+    ts1 = time.time()
+    check_stop_ts += (ts1 - ts0)
     num_files += 1
-    input_data = pd.read_parquet(input_file, columns=all_fields)
+    input_data = pd.read_parquet(input_file, columns=all_fields, engine='pyarrow')
     data_len = len(input_data[all_fields[0]])
     batch_num = int(data_len / batch_size)
     res_num = data_len % batch_size
+
+    ts2 = time.time() 
+    read_file_ts += (ts2 - ts1)
     # logging.info(
     #     'proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' %
     #     (proc_id, input_file, data_len, batch_num, res_num))
@@ -117,10 +162,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       eid = sid + batch_size
       data_dict = {}
 
-      # sid_stub = sid
-      # sid = sid + sub_batch_size * task_index
-      # eid = sid + sub_batch_size
-
+      ts20 = time.time()
       if label_fields is not None and len(label_fields) > 0:
         for k in label_fields:
           data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
@@ -133,31 +175,44 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
             np_dtype = np.str
           data_dict['reserve'][k] = np.array(
               [x[0] for x in input_data[k][sid:eid]], dtype=np_dtype)
+      ts21 = time.time()
+      parse_lbl_ts += (ts21 - ts20)
 
       for k in effective_fields:
         val = input_data[k][sid:eid]
+        # ts210 = time.time()
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
-        all_vals = np.concatenate(list(val))
-        assert np.sum(all_lens) == len(
-            all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
-                len(all_vals), np.sum(all_lens))
+        # ts211 = time.time()
+        all_vals = np.concatenate([x for x in val])
+        # ts212 = time.time()
+        # parse_fea_ts1 += (ts211 - ts210)
+        # parse_fea_ts2 += (ts212 - ts211)
+        # assert np.sum(all_lens) == len(
+        #     all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
+        #         len(all_vals), np.sum(all_lens))
         data_dict[k] = (all_lens, all_vals)
 
+      ts22 = time.time()
+      parse_fea_ts += (ts22 - ts21)
+
       _pack_sparse_feas(data_dict, effective_fields)
+
+      ts23 = time.time()
+      pack_ts += (ts23 - ts22)
+
       # logging.info('task_index=%d sid=%d eid=%d total_len=%d' % (task_index, sid, eid,
       #      len(data_dict['sparse_fea'][1])))
-      if not _add_to_que(data_dict, data_que, proc_stop_que):
+      if not _add_to_que(data_dict, buffer):
         logging.info('add to que failed')
         is_good = False
         break
       sid += batch_size
-    #   sid = batch_size + sid_stub
-    # return
 
     if res_num > 0 and is_good:
       data_dict = {}
       part_data_dict_n = {}
 
+      ts20 = time.time()
       if label_fields is not None and len(label_fields) > 0:
         for k in label_fields:
           tmp_lbls = np.array([x[0] for x in input_data[k][sid:]],
@@ -195,6 +250,8 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
               part_data_dict_n['reserve'][k] = tmp_r
           else:
             part_data_dict_n['reserve'][k] = tmp_r
+      ts21 = time.time()
+      parse_lbl_ts += (ts21 - ts20)
 
       for k in effective_fields:
         val = input_data[k][sid:]
@@ -217,25 +274,37 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
             part_data_dict_n[k] = (tmp_lens, tmp_vals)
         else:
           part_data_dict_n[k] = (all_lens, all_vals)
+
+      ts22 = time.time()
+      parse_fea_ts += (ts22 - ts21)
+
       if 'sparse_fea' in data_dict:
         _pack_sparse_feas(data_dict, effective_fields)
-        if not _add_to_que(data_dict, data_que, proc_stop_que):
+        if not _add_to_que(data_dict, buffer):
           logging.info('add to que failed')
           is_good = False
           break
+      ts23 = time.time()
+      pack_ts += (ts23 - ts22)
 
       part_data_dict = part_data_dict_n
+    ts3 = time.time()
+    parse_ts += (ts3 - ts2)
   if len(part_data_dict) > 0 and is_good:
     if not drop_remainder:
       _pack_sparse_feas(part_data_dict, effective_fields)
-      _add_to_que(part_data_dict, data_que, proc_stop_que)
+      _add_to_que(part_data_dict, buffer)
     else:
       logging.warning('drop remain %d samples as drop_remainder is set' %
                       len(part_data_dict[effective_fields[0]]))
   if is_good:
-    is_good = _add_to_que(None, data_que, proc_stop_que)
-  logging.info('data_proc_id=%d, is_good = %s' % (proc_id, is_good))
-  data_que.close(wait_send_finish=is_good)
+    is_good = _add_to_que(None, buffer)
+
+  data_end = True
+  send_thread.join()
+
+  logging.info('data_proc_id=%d, is_good = %s, check_stop_ts=%.3f, read_file_ts=%.3f, parse_ts=%.3f, parse_lbl_ts=%.3f, parse_fea_ts=%.3f, parse_fea_ts1=%.3f, parse_fea_ts2=%.3f, pack_ts=%.3f' % (proc_id, is_good, check_stop_ts, read_file_ts, parse_ts, parse_lbl_ts, parse_fea_ts, parse_fea_ts1, parse_fea_ts2, pack_ts))
+  writer.close()
 
   while not is_good:
     try:

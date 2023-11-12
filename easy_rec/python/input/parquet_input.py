@@ -2,9 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import multiprocessing
+from multiprocessing import connection
+from multiprocessing import context
 import queue
-# import threading
+import threading
 import time
+import collections
 
 # import numpy as np
 # import pandas as pd
@@ -43,8 +46,6 @@ class ParquetInput(Input):
     logging.info('parquet input_path=%s file_num=%d' %
                  (input_path, len(self._input_files)))
     mp_ctxt = multiprocessing.get_context('spawn')
-    self._data_que = queues.Queue(
-        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
 
     file_num = len(self._input_files)
     logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
@@ -60,12 +61,19 @@ class ParquetInput(Input):
                  (task_index, len(self._my_files)))
     self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
 
-    self._num_proc = 8
+    self._num_proc = 16
     if file_num < self._num_proc:
       self._num_proc = file_num
 
+    self._readers = []
+    self._writers = []
+    for proc_id in range(self._num_proc):
+      reader, writer = connection.Pipe(duplex=False)
+      self._readers.append(reader)
+      self._writers.append(writer)
+
     self._proc_start = False
-    self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
+    self._proc_start_sem = mp_ctxt.Semaphore(0)
     self._proc_stop = False
     self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
 
@@ -75,15 +83,21 @@ class ParquetInput(Input):
       self._reserve_fields = kwargs['reserve_fields']
       self._reserve_types = kwargs['reserve_types']
 
+    self._data_que = collections.deque()
+    self._data_que_max_len = 32
     self._proc_arr = None
+    self._recv_threads = None
+    self._recv_stop = False
 
   def _sample_generator(self):
     if not self._proc_start:
       self._proc_start = True
-      for proc in (self._proc_arr):
-        self._proc_start_que.put(True)
+      for proc in self._proc_arr:
+        self._proc_start_sem.release()
         logging.info('task[%s] data_proc=%s is_alive=%s' %
                      (self._task_index, proc, proc.is_alive()))
+      for recv_th in self._recv_threads:
+        recv_th.start()
 
     done_proc_cnt = 0
     fetch_timeout_cnt = 0
@@ -104,19 +118,25 @@ class ParquetInput(Input):
     #     sid = 0
 
     fetch_good_cnt = 0
-    while True:
+    fetch_fail_cnt = 0
+    import time
+    start_ts = time.time()
+    while done_proc_cnt < len(self._proc_arr):
       try:
-        sample = self._data_que.get(timeout=1)
-        if sample is None:
-          done_proc_cnt += 1
-        else:
+        if len(self._data_que) > 0:
+          sample = self._data_que.popleft()
+          if sample is None:
+            done_proc_cnt += 1
+            continue
           fetch_good_cnt += 1
           yield sample
-        if fetch_good_cnt % 200 == 0:
-          logging.info(
-              'task[%d] fetch_good_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' %
-              (self._task_index, fetch_good_cnt, fetch_timeout_cnt,
-               self._data_que.qsize()))
+          if fetch_good_cnt % 100 == 0 and fetch_good_cnt > 0:
+            logging.info(
+                'task[%d] fetch_good_cnt=%d fetch_fail_cnt=%d all_ts=%.3f' %
+                (self._task_index, fetch_good_cnt, fetch_fail_cnt, 
+                 time.time() - start_ts))
+        else:
+          fetch_fail_cnt += 1
       except queue.Empty:
         fetch_timeout_cnt += 1
         if done_proc_cnt >= len(self._proc_arr):
@@ -127,6 +147,7 @@ class ParquetInput(Input):
         logging.warning('task[%d] get from data_que exception: %s' %
                         (self._task_index, str(ex)))
         break
+    self._recv_stop = True
     # for proc in self._proc_arr:
     #   proc.join()
 
@@ -142,6 +163,10 @@ class ParquetInput(Input):
         self._proc_stop_que.put(1)
       self._proc_stop_que.close()
 
+      self._recv_stop = True
+      for recv_th in self._recv_threads:
+        recv_th.join()
+
       def _any_alive():
         for proc in self._proc_arr:
           if proc.is_alive():
@@ -151,12 +176,15 @@ class ParquetInput(Input):
       # to ensure the sender part of the python Queue could exit
       while _any_alive():
         try:
-          self._data_que.get(timeout=1)
+          if self._reader.poll(1):
+            self._reader.recv_bytes()
         except Exception:
           pass
       time.sleep(1)
-      self._data_que.close()
-      logging.info('data que closed')
+  
+      for reader in self._readers:
+        reader.close()
+
       # import time
       # time.sleep(10)
       for proc in self._proc_arr:
@@ -205,15 +233,50 @@ class ParquetInput(Input):
     if mode != tf.estimator.ModeKeys.PREDICT:
       self._proc_arr = load_parquet.start_data_proc(
           self._task_index, self._task_num, self._num_proc, self._file_que,
-          self._data_que, self._proc_start_que, self._proc_stop_que,
+          self._writers, self._proc_start_sem, self._proc_stop_que,
           self._batch_size, self._label_fields, self._effective_fields,
           self._reserve_fields, self._data_config.drop_remainder)
     else:
       self._proc_arr = load_parquet.start_data_proc(
           self._task_index, self._task_num, self._num_proc, self._file_que,
-          self._data_que, self._proc_start_que, self._proc_stop_que,
+          self._writers, self._proc_start_sem, self._proc_stop_que,
           self._batch_size, None, self._effective_fields, self._reserve_fields,
           False)
+
+    # create receive threads
+    def _recv_func(reader):
+      start_ts = time.time()
+      recv_ts = 0
+      decode_ts = 0
+      append_ts = 0
+      while not self._recv_stop:
+        try:
+          if reader.poll(0.25):
+            ts0 = time.time()
+            obj = reader.recv_bytes()
+            ts1 = time.time()
+            sample = context.reduction.ForkingPickler.loads(obj)
+            ts2 = time.time()
+            while len(self._data_que) >= self._data_que_max_len:
+              time.sleep(0.1)
+            # self._data_que_lock.acquire()
+            self._data_que.append(sample)
+            ts3 = time.time()
+            recv_ts += (ts1 - ts0)
+            decode_ts += (ts2 - ts1)
+            append_ts += (ts3 - ts2)
+            if sample is None:
+              break
+          else:
+            continue
+        except Exception as ex:
+          logging.warning('recv data exception: %s' % str(ex))
+      logging.info('recv thread finish: recv_ts=%.3f decode_ts=%.3f append_ts=%.3f total=%.3f' % (recv_ts, decode_ts, append_ts, time.time() - start_ts))
+    
+    self._recv_threads = []
+    for reader in self._readers:
+      recv_th = threading.Thread(target=_recv_func, args=(reader,))
+      self._recv_threads.append(recv_th)
 
     for input_file in my_files:
       self._file_que.put(input_file)
