@@ -427,48 +427,24 @@ def _internal_input_layer(features,
 
       num_parts = hvd.size()
       if num_parts > 1:
-        # dynamic partition
-        # from sparse_operation_kit.experiment import raw_ops
-        p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
-        gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
-                                                     p_assignments, num_parts)
-        original_ids = math_ops.range(array_ops.size(all_uniq_ids))
-        original_part_ids = data_flow_ops.dynamic_partition(
-            original_ids, p_assignments, num_parts)
-        # all2all
-        split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
-                                       axis=0)
-        send_ids = array_ops.concat(gather_ids, axis=0)
-        # send_ids = logging_ops.Print(send_ids, [array_ops.shape(send_ids),
-        #     array_ops.shape(p_assignments) ] +
-        #     [ array_ops.shape(x) for x in gather_ids]
-        #     , message='send_ids_dbg_%d' % num_parts)
-        recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
+        # # dynamic partition
+        # # from sparse_operation_kit.experiment import raw_ops
+        # p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
+        # gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
+        #                                              p_assignments, num_parts)
+        # original_ids = math_ops.range(array_ops.size(all_uniq_ids))
+        # original_part_ids = data_flow_ops.dynamic_partition(
+        #     original_ids, p_assignments, num_parts)
+        # # all2all
+        # split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
+        #                                axis=0)
+        # send_ids = array_ops.concat(gather_ids, axis=0)
+        # # send_ids = logging_ops.Print(send_ids, [array_ops.shape(send_ids),
+        # #     array_ops.shape(p_assignments) ] +
+        # #     [ array_ops.shape(x) for x in gather_ids]
+        # #     , message='send_ids_dbg_%d' % num_parts)
+        # recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
-        # read embedding from dynamic variable
-        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-          send_embed = lookup_embeddings[0].sparse_read(
-              recv_ids, lookup_only=(not is_training))
-        else:
-          # find in subarray position
-          # 0 2 4 6 8 10 ...
-          # 1 3 5 7 9 11 ...
-          recv_ids = recv_ids / num_parts
-          send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
-
-        # all2all
-        recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
-        recv_embeddings = array_ops.split(
-            recv_embeddings, num_or_size_splits=split_sizes)
-        recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
-            original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
-
-        # # Filter key
-        # selected_indices, order, splits = raw_ops.dist_select(all_uniq_ids, num_splits=num_parts)
-        # # All-to-all of indices
-        # recv_ids, rsplits = hvd.alltoall(selected_indices, splits)
-
-        # # Local lookup
         # # read embedding from dynamic variable
         # if isinstance(lookup_embeddings[0], sok.DynamicVariable):
         #   send_embed = lookup_embeddings[0].sparse_read(
@@ -480,11 +456,35 @@ def _internal_input_layer(features,
         #   recv_ids = recv_ids / num_parts
         #   send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
 
-        # # All-to-all of embedding vectors
-        # recv_embeddings, _ = hvd.alltoall(send_embed, rsplits)
+        # # all2all
+        # recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
+        # recv_embeddings = array_ops.split(
+        #     recv_embeddings, num_or_size_splits=split_sizes)
+        # recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
+        #     original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
 
-        # # Reorder of embedding vectors
-        # recv_embeddings = raw_ops.reorder(recv_embeddings, order)
+        # Filter key
+        selected_indices, order, splits = raw_ops.dist_select(all_uniq_ids, num_splits=num_parts)
+        # All-to-all of indices
+        recv_ids, rsplits = hvd.alltoall(selected_indices, splits)
+
+        # Local lookup
+        # read embedding from dynamic variable
+        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+          send_embed = lookup_embeddings[0].sparse_read(
+              recv_ids, lookup_only=(not is_training))
+        else:
+          # find in subarray position
+          # 0 2 4 6 8 10 ...
+          # 1 3 5 7 9 11 ...
+          recv_ids = recv_ids / num_parts
+          send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
+
+        # All-to-all of embedding vectors
+        recv_embeddings, _ = hvd.alltoall(send_embed, rsplits)
+
+        # Reorder of embedding vectors
+        recv_embeddings = raw_ops.reorder(recv_embeddings, order)
 
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
