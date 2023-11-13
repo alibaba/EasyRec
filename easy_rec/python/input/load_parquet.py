@@ -137,7 +137,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       for k in effective_fields:
         val = input_data[k][sid:eid]
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
-        all_vals = np.concatenate(list(val))
+        all_vals = np.concatenate(val.to_numpy())
         assert np.sum(all_lens) == len(
             all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
                 len(all_vals), np.sum(all_lens))
@@ -199,7 +199,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
       for k in effective_fields:
         val = input_data[k][sid:]
         all_lens = np.array([len(x) for x in val], dtype=np.int32)
-        all_vals = np.concatenate(list(val))
+        all_vals = np.concatenate(val.to_numpy())
         if part_data_dict is not None and k in part_data_dict:
           tmp_lens = np.concatenate([part_data_dict[k][0], all_lens], axis=0)
           tmp_vals = np.concatenate([part_data_dict[k][1], all_vals], axis=0)
