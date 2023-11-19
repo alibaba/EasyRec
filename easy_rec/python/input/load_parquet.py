@@ -96,6 +96,8 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
   part_data_dict = {}
 
   is_good = True
+  total_batch_cnt = 0
+  total_sample_cnt = 0
   while is_good:
     if _should_stop(proc_stop_que):
       is_good = False
@@ -106,6 +108,7 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
     num_files += 1
     input_data = pd.read_parquet(input_file, columns=all_fields)
     data_len = len(input_data[all_fields[0]])
+    total_sample_cnt += data_len
     batch_num = int(data_len / batch_size)
     res_num = data_len % batch_size
     # logging.info(
@@ -150,9 +153,8 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
         logging.info('add to que failed')
         is_good = False
         break
+      total_batch_cnt += 1
       sid += batch_size
-    #   sid = batch_size + sid_stub
-    # return
 
     if res_num > 0 and is_good:
       data_dict = {}
@@ -217,24 +219,30 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
             part_data_dict_n[k] = (tmp_lens, tmp_vals)
         else:
           part_data_dict_n[k] = (all_lens, all_vals)
-      if 'sparse_fea' in data_dict:
+      if effective_fields[0] in data_dict:
         _pack_sparse_feas(data_dict, effective_fields)
         if not _add_to_que(data_dict, data_que, proc_stop_que):
           logging.info('add to que failed')
           is_good = False
           break
-
+        total_batch_cnt += 1
       part_data_dict = part_data_dict_n
   if len(part_data_dict) > 0 and is_good:
+    batch_len = len(part_data_dict[effective_fields[0]][0])
     if not drop_remainder:
       _pack_sparse_feas(part_data_dict, effective_fields)
+      logging.info('remainder batch: %s sample_num=%d' %
+                   (','.join(part_data_dict.keys()), batch_len))
       _add_to_que(part_data_dict, data_que, proc_stop_que)
+      total_batch_cnt += 1
     else:
       logging.warning('drop remain %d samples as drop_remainder is set' %
-                      len(part_data_dict[effective_fields[0]]))
+                      batch_len)
   if is_good:
     is_good = _add_to_que(None, data_que, proc_stop_que)
-  logging.info('data_proc_id=%d, is_good = %s' % (proc_id, is_good))
+  logging.info(
+      'data_proc_id[%d]: is_good = %s, total_batch_cnt=%d, total_sample_cnt=%d'
+      % (proc_id, is_good, total_batch_cnt, total_sample_cnt))
   data_que.close(wait_send_finish=is_good)
 
   while not is_good:

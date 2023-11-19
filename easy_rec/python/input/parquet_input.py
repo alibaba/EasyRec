@@ -114,7 +114,7 @@ class ParquetInput(Input):
           yield sample
         if fetch_good_cnt % 200 == 0:
           logging.info(
-              'task[%d] fetch_good_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' %
+              'task[%d] fetch_batch_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' %
               (self._task_index, fetch_good_cnt, fetch_timeout_cnt,
                self._data_que.qsize()))
       except queue.Empty:
@@ -127,8 +127,8 @@ class ParquetInput(Input):
         logging.warning('task[%d] get from data_que exception: %s' %
                         (self._task_index, str(ex)))
         break
-    # for proc in self._proc_arr:
-    #   proc.join()
+    logging.info('task[%d] sample_generator: total_batches=%d' %
+                 (self._task_index, fetch_good_cnt))
 
   def stop(self):
     if self._proc_arr is None or len(self._proc_arr) == 0:
@@ -202,18 +202,21 @@ class ParquetInput(Input):
     else:
       my_files = self._my_files
 
-    if mode != tf.estimator.ModeKeys.PREDICT:
+    if mode == tf.estimator.ModeKeys.TRAIN:
       self._proc_arr = load_parquet.start_data_proc(
           self._task_index, self._task_num, self._num_proc, self._file_que,
           self._data_que, self._proc_start_que, self._proc_stop_que,
           self._batch_size, self._label_fields, self._effective_fields,
           self._reserve_fields, self._data_config.drop_remainder)
     else:
+      lbl_fields = self._label_fields
+      if mode == tf.estimator.ModeKeys.PREDICT:
+        lbl_fields = None
       self._proc_arr = load_parquet.start_data_proc(
           self._task_index, self._task_num, self._num_proc, self._file_que,
           self._data_que, self._proc_start_que, self._proc_stop_que,
-          self._batch_size, None, self._effective_fields, self._reserve_fields,
-          False)
+          self._batch_size, lbl_fields, self._effective_fields,
+          self._reserve_fields, False)
 
     for input_file in my_files:
       self._file_que.put(input_file)
