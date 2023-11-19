@@ -140,6 +140,8 @@ class ParquetInput(Input):
             'task[%d] fetch_data exception: %s fetch_fail_cnt=%d que_len=%d' %
             (self._task_index, str(ex), fetch_fail_cnt, len(self._data_que)))
         break
+    logging.info('task[%d] sample_generator: total_batch_cnt=%d' %
+                 (self._task_index, fetch_good_cnt))
     self._recv_stop = True
 
   def stop(self):

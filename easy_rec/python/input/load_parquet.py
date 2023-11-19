@@ -142,6 +142,10 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
   parse_fea_ts1 = 0
   parse_fea_ts2 = 0
   pack_ts = 0
+
+  total_sample_num = 0
+  total_batch_num = 0
+
   while is_good:
     ts0 = time.time()
     if _should_stop(proc_stop_que):
@@ -156,6 +160,8 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
     input_data = pd.read_parquet(
         input_file, columns=all_fields, engine='pyarrow')
     data_len = len(input_data[all_fields[0]])
+    total_sample_num += data_len
+
     batch_num = int(data_len / batch_size)
     res_num = data_len % batch_size
 
@@ -214,6 +220,8 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
         logging.info('add to que failed')
         is_good = False
         break
+      else:
+        total_batch_num += 1
       sid += batch_size
 
     if res_num > 0 and is_good:
@@ -286,12 +294,14 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
       ts22 = time.time()
       parse_fea_ts += (ts22 - ts21)
 
-      if 'sparse_fea' in data_dict:
+      if effective_fields[0] in data_dict:
         _pack_sparse_feas(data_dict, effective_fields)
         if not _add_to_que(data_dict, buffer):
           logging.info('add to que failed')
           is_good = False
           break
+        else:
+          total_batch_num += 1
       ts23 = time.time()
       pack_ts += (ts23 - ts22)
 
@@ -302,6 +312,7 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
     if not drop_remainder:
       _pack_sparse_feas(part_data_dict, effective_fields)
       _add_to_que(part_data_dict, buffer)
+      total_batch_num += 1
     else:
       logging.warning('drop remain %d samples as drop_remainder is set' %
                       len(part_data_dict[effective_fields[0]]))
@@ -312,7 +323,7 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
   send_thread.join()
 
   logging.info((
-      'data_proc_id[%d], is_good=%s, check_stop_ts=%.3f, ' +
+      'data_proc[%d], is_good=%s, check_stop_ts=%.3f, ' +
       'read_file_ts=%.3f, parse_ts=%.3f, parse_lbl_ts=%.3f, parse_fea_ts=%.3f, '
       + 'parse_fea_ts1=%.3f, parse_fea_ts2=%.3f, pack_ts=%.3f') % (
           proc_id,
@@ -334,4 +345,6 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
     except queue.Empty:
       pass
   file_que.close()
-  logging.info('data proc %d done, file_num=%d' % (proc_id, num_files))
+  logging.info(
+      'data_proc[%d] done: file_num=%d total_sample_num=%d total_batch_num=%d' %
+      (proc_id, num_files, total_sample_num, total_batch_num))
