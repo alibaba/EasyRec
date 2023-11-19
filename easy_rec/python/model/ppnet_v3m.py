@@ -76,6 +76,8 @@ class PPNetV3M(RankModel):
     for lbl_id in range(len(self._model_conf['label'])):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')
+      lbl_weight = lbl_info.get('weight')
+      logging.info('target_name=%s target_weight=%.3f' % (lbl_name, lbl_weight))
       output = self._prediction_dict.get(lbl_name)
       tf.summary.scalar('label/%s' % lbl_name,
                         tf.reduce_mean(tf.to_float(self._labels[lbl_name])))
@@ -84,7 +86,7 @@ class PPNetV3M(RankModel):
           reduction='sum_over_batch_size')(self._labels[lbl_name], output)
       # loss_obj = tf.Print(loss_obj, [tf.reduce_min(loss_obj), tf.reduce_max(loss_obj),
       #        tf.reduce_mean(loss_obj), tf.shape(loss_obj)], message='loss_obj')
-      self._loss_dict[lbl_name] = loss_obj
+      self._loss_dict[lbl_name] = loss_obj * lbl_weight
     return self._loss_dict
 
   def get_outputs(self):
