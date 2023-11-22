@@ -17,6 +17,7 @@ from tensorflow.core.protobuf import saved_model_pb2
 
 import easy_rec
 from easy_rec.python.builders import strategy_builder
+from easy_rec.python.compat import estimator_train
 from easy_rec.python.compat import exporter
 from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
@@ -353,19 +354,18 @@ def _train_and_evaluate_impl(pipeline_config,
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
-  if estimator_utils.has_sok():
-    estimator.train(
-        input_fn=train_input_fn,
-        max_steps=train_spec.max_steps,
-        hooks=list(train_spec.hooks),
-        saving_listeners=train_spec.saving_listeners)
-    train_input_fn.input_creator.stop()
-  else:
-    from easy_rec.python.compat import estimator_train
-    # create eval spec
-    eval_spec = _create_eval_export_spec(
-        pipeline_config, eval_data, check_mode=check_mode)
-    estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
+  # if estimator_utils.has_sok():
+  estimator.train(
+      input_fn=train_input_fn,
+      max_steps=train_spec.max_steps,
+      hooks=list(train_spec.hooks),
+      saving_listeners=train_spec.saving_listeners)
+  train_input_fn.input_creator.stop()
+  # else:
+  #   # create eval spec
+  #   eval_spec = _create_eval_export_spec(
+  #       pipeline_config, eval_data, check_mode=check_mode)
+  #   estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
   if fit_on_eval and (not estimator_utils.is_evaluator()):
     tf.reset_default_graph()

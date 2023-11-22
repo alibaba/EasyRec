@@ -359,7 +359,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
     self._task_idx, self._task_num = get_task_index_and_num()
 
-    if sok_dynamic_vars is not None:
+    if sok_dynamic_vars is not None and len(sok_dynamic_vars) > 0:
       self._sok_dynamic_vars = sok_dynamic_vars
       from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
       self._dyn_export = {}
@@ -369,6 +369,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
             key_type=dyn_var.key_type,
             dtype=dyn_var.handle_dtype)
         self._dyn_export[dyn_var.name] = (indices, values)
+    else:
+      self._dyn_export = None
 
     if increment_save_config is not None:
       self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000

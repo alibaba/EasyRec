@@ -536,7 +536,8 @@ def _internal_input_layer(features,
       if 'ENABLE_SOK' in os.environ:
         return _get_logits_with_sok()
       else:
-        return _get_logits()
+        with ops.device('/CPU:0'):
+          return _get_logits()
 
 
 def input_layer(features,
