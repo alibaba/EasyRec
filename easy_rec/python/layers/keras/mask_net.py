@@ -82,6 +82,9 @@ class MaskBlock(tf.keras.layers.Layer):
         mask, net.shape[-1], name='%s/mask' % self.name, reuse=self.reuse)
     masked_net = net * mask
 
+    if not self.config.HasField('output_size'):
+      return masked_net
+
     output_size = self.config.output_size
     hidden = tf.layers.dense(
         masked_net,
