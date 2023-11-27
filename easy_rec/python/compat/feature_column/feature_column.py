@@ -266,9 +266,8 @@ def _internal_input_layer(features,
   def _get_logits():  # pylint: disable=missing-docstring
     builder = _LazyBuilder(features)
     output_tensors = []
-    ordered_columns = []
-    for column in sorted(feature_columns, key=lambda x: x.name):
-      ordered_columns.append(column)
+    for column in feature_columns:
+      # for column in sorted(feature_columns, key=lambda x: x.name):
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         tensor = column._get_dense_tensor(  # pylint: disable=protected-access
@@ -290,7 +289,6 @@ def _internal_input_layer(features,
           cols_to_output_tensors[column] = output_tensor
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
-    _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
 
   def _get_logits_with_sok():  # pylint: disable=missing-docstring
@@ -334,7 +332,7 @@ def _internal_input_layer(features,
                 embedding_weights = sok.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
-                    initializer='0.0001',  # 'random',  # column.initializer,
+                    initializer='random {"stddev":0.0025}',  # column.initializer,
                     var_type=None
                     if not column.ev_params.use_cache else 'hybrid',
                     trainable=column.trainable and trainable,
@@ -357,7 +355,7 @@ def _internal_input_layer(features,
               embedding_weights = sok.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
-                  initializer='random',  # column.initializer,
+                  initializer='random {"stddev":0.0025}',  # column.initializer,
                   var_type=None if not column.ev_params.use_cache else 'hybrid',
                   trainable=column.trainable and trainable,
                   dtype=dtypes.float32,

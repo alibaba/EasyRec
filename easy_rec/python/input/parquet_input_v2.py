@@ -77,6 +77,14 @@ class ParquetInputV2(Input):
 
     self._proc_arr = None
 
+  def _rebuild_que(self):
+    mp_ctxt = multiprocessing.get_context('spawn')
+    self._data_que = queues.Queue(
+        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
+    self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
+    self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
+    self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
+
   def _sample_generator(self):
     if not self._proc_start:
       self._proc_start = True
@@ -163,7 +171,11 @@ class ParquetInputV2(Input):
         # proc.terminate()
         proc.join()
       logging.info('join proc done')
+
+      self._rebuild_que()
+      self._proc_arr = None
       self._proc_start = False
+      self._proc_stop = False
 
   def _to_fea_dict(self, input_dict):
     fea_dict = {}

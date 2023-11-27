@@ -68,9 +68,9 @@ class PPNetV3M(RankModel):
       #      tf.reduce_mean(output), tf.reduce_min(self._labels[lbl_name]),
       #      tf.reduce_max(self._labels[lbl_name]),
       #      tf.reduce_mean(self._labels[lbl_name])], message='output')
-      with ops.device('/cpu:0'):
-        metric_dict['auc_' + lbl_name] = metrics_tf.auc(
-            self._labels[lbl_name], output, num_thresholds=100000)
+      # with ops.device('/cpu:0'):
+      metric_dict['auc_' + lbl_name] = metrics_tf.auc(
+          self._labels[lbl_name], output, num_thresholds=20000)
     return metric_dict
 
   def build_loss_graph(self):

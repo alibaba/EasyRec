@@ -695,6 +695,10 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
+    if step < 25000 and step % 5000 != 0:
+      logging.info('ignore saving step: %d' % step)
+      return
+
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
 
     for l in self._listeners:  # noqa: E741
