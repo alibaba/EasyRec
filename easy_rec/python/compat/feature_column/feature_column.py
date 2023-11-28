@@ -492,37 +492,6 @@ def _internal_input_layer(features,
           array_ops.transpose(output_tensor, perm=[1, 0, 2]),
           [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])
 
-    #   outputs = sok.lookup_sparse(
-    #       lookup_embeddings, lookup_indices, combiners=lookup_combiners)
-    #   for output, output_id, col in zip(outputs, lookup_output_ids,
-    #                                     lookup_cols):
-    #     output_tensors[output_id] = output
-    #     if cols_to_output_tensors is not None:
-    #       cols_to_output_tensors[col] = output
-    #     if feature_name_to_output_tensors is not None:
-    #       feature_name_to_output_tensors[col.raw_name] = output
-    # elif len(lookup_output_ids_with_wgt) > 0:
-    #   outputs = sok.lookup_sparse(
-    #       lookup_embeddings_with_wgt,
-    #       # RaggedTensor .values .row_lengths
-    #       lookup_indices_with_wgt,
-    #       lookup_wgts,
-    #       combiners=lookup_combiners_with_wgt)
-    #   for output, output_id, col in zip(outputs, lookup_output_ids_with_wgt,
-    #                                     lookup_cols_with_wgt):
-    #     output_tensors[output_id] = output
-    #     if cols_to_output_tensors is not None:
-    #       cols_to_output_tensors[col] = output
-    #     if feature_name_to_output_tensors is not None:
-    #       feature_name_to_output_tensors[col.raw_name] = output
-
-    # if feature_name_to_output_tensors is not None:
-    #   for column, output_tensor in zip(
-    #       sorted(feature_columns, key=lambda x: x.name), output_tensors):
-    #     feature_name_to_output_tensors[column.raw_name] = output_tensor
-    # _verify_static_batch_size_equality(output_tensors, ordered_columns)
-    # return array_ops.concat(output_tensors, 1)
-
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to
   # add another `variable_scope` as that would break checkpoints.
