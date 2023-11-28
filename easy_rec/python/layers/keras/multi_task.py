@@ -33,8 +33,8 @@ class MMoE(tf.keras.layers.Layer):
       expert_params = params.expert_mlp
       self._has_experts = True
       self._experts = [
-        MLP(expert_params, 'expert_%d' % i, reuse=reuse)
-        for i in range(self._num_expert)
+          MLP(expert_params, 'expert_%d' % i, reuse=reuse)
+          for i in range(self._num_expert)
       ]
     else:
       self._has_experts = False

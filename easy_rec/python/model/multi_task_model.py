@@ -137,21 +137,20 @@ class MultiTaskModel(RankModel):
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
-    metric_dict = {}
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       for metric in task_tower_cfg.metrics_set:
         loss_types = {task_tower_cfg.loss_type}
         if len(task_tower_cfg.losses) > 0:
           loss_types = {loss.loss_type for loss in task_tower_cfg.losses}
-        metric_dict.update(
+        self._metric_dict.update(
             self._build_metric_impl(
                 metric,
                 loss_type=loss_types,
                 label_name=self._label_name_dict[tower_name],
                 num_class=task_tower_cfg.num_class,
                 suffix='_%s' % tower_name))
-    return metric_dict
+    return self._metric_dict
 
   def build_loss_weight(self):
     loss_weights = OrderedDict()

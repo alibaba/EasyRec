@@ -13,7 +13,13 @@ if tf.__version__ >= '2.0':
 
 
 class GateNN(tf.keras.layers.Layer):
-  def __init__(self, params, output_units=None, name='gate_nn', reuse=None, **kwargs):
+
+  def __init__(self,
+               params,
+               output_units=None,
+               name='gate_nn',
+               reuse=None,
+               **kwargs):
     super(GateNN, self).__init__(name=name, **kwargs)
     output_dim = output_units if output_units is not None else params.output_dim
     hidden_dim = params.get_or_default('hidden_dim', output_dim)
@@ -24,15 +30,15 @@ class GateNN(tf.keras.layers.Layer):
 
     self._sub_layers = []
     dense = tf.keras.layers.Dense(
-      units=hidden_dim,
-      use_bias=not do_batch_norm,
-      kernel_initializer=initializer,
-      name=name)
+        units=hidden_dim,
+        use_bias=not do_batch_norm,
+        kernel_initializer=initializer,
+        name=name)
     self._sub_layers.append(dense)
 
     if do_batch_norm:
       bn = tf.keras.layers.BatchNormalization(
-        name='%s/bn' % name, trainable=True)
+          name='%s/bn' % name, trainable=True)
       self._sub_layers.append(bn)
 
     act_layer = activation_layer(activation)
@@ -45,11 +51,11 @@ class GateNN(tf.keras.layers.Layer):
       raise ValueError('invalid dropout_ratio: %.3f' % dropout_rate)
 
     dense = tf.keras.layers.Dense(
-      units=output_dim,
-      activation='sigmoid',
-      use_bias=not do_batch_norm,
-      kernel_initializer=initializer,
-      name=name)
+        units=output_dim,
+        activation='sigmoid',
+        use_bias=not do_batch_norm,
+        kernel_initializer=initializer,
+        name=name)
     self._sub_layers.append(dense)
     self._sub_layers.append(lambda x: x * 2)
 
@@ -80,6 +86,7 @@ class PPNet(tf.keras.layers.Layer):
   def __init__(self, params, name='ppnet', reuse=None, **kwargs):
     super(PPNet, self).__init__(name=name, **kwargs)
     params.check_required('mlp')
+    self.full_gate_input = params.get_or_default('full_gate_input', True)
     mode = params.get_or_default('mode', 'lazy')
     gate_params = params.gate_params
     params = params.mlp
@@ -113,7 +120,8 @@ class PPNet(tf.keras.layers.Layer):
       self.add_rich_layer(num_units, use_bn, drop_rate, activation, initializer,
                           use_bias, use_bn_after_act, name,
                           params.l2_regularizer)
-      self._sub_layers.append(GateNN(gate_params, num_units, 'gate_%d' % (i + 1)))
+      self._sub_layers.append(
+          GateNN(gate_params, num_units, 'gate_%d' % (i + 1)))
 
     n = len(units) - 1
     drop_rate = dropout_rate[n] if num_dropout > n else 0.0
@@ -122,7 +130,8 @@ class PPNet(tf.keras.layers.Layer):
                         initializer, use_final_bias, use_bn_after_act, name,
                         params.l2_regularizer)
     if mode == 'lazy':
-      self._sub_layers.append(GateNN(gate_params, units[-1], 'gate_%d' % (n + 1)))
+      self._sub_layers.append(
+          GateNN(gate_params, units[-1], 'gate_%d' % (n + 1)))
 
   def add_rich_layer(self,
                      num_units,
@@ -169,7 +178,9 @@ class PPNet(tf.keras.layers.Layer):
   def call(self, inputs, training=None, **kwargs):
     """Performs the forward computation of the block."""
     x, gate_input = inputs
-    gate_input = tf.concat([tf.stop_gradient(x), gate_input], axis=-1)
+    if self.full_gate_input:
+      gate_input = tf.concat([tf.stop_gradient(x), gate_input], axis=-1)
+
     for layer in self._sub_layers:
       cls = layer.__class__.__name__
       if cls == 'GateNN':
@@ -182,4 +193,3 @@ class PPNet(tf.keras.layers.Layer):
       else:
         x = layer(x)
     return x
-

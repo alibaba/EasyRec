@@ -1,4 +1,3 @@
-from .auxiliary_loss import AuxiliaryLoss
 from .blocks import MLP
 from .blocks import Gate
 from .blocks import Highway
@@ -11,6 +10,7 @@ from .fibinet import SENet
 from .interaction import FM
 from .interaction import Cross
 from .interaction import DotInteraction
+from .auxiliary_loss import AuxiliaryLoss
 from .mask_net import MaskBlock
 from .mask_net import MaskNet
 from .multi_task import MMoE

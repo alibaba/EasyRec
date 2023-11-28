@@ -2,6 +2,8 @@ syntax = "proto2";
 package protos;
 
 import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/eval.proto";
+import "easy_rec/python/protos/loss.proto";
 
 message HighWayTower {
     optional string input = 1;
@@ -85,4 +87,18 @@ message PPNet {
     required GateNN gate_params = 2;
     // run mode: eager, lazy
     required string mode = 3 [default = 'eager'];
+    optional bool full_gate_input = 4 [default = true];
+}
+
+message LossTower {
+    // label for the task, default is label_fields by order
+    required string label_name = 2;
+    // metrics for the task
+    repeated EvalMetrics metrics_set = 3;
+    // num_class for multi-class classification loss
+    optional uint32 num_class = 4 [default = 1];
+    // multiple losses
+    repeated Loss losses = 5;
+    // whether to use sample weight in this tower
+    required bool use_sample_weight = 6 [default = false];
 }
