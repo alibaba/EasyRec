@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
+import logging
 import os
 from collections import defaultdict
 
@@ -119,6 +120,8 @@ def fast_auc(labels, predictions, name, num_thresholds=1e5):
       auc += (total_pos - partial_sum_pos) * pos_neg_arr[0][i]
       partial_sum_pos += pos_neg_arr[1][i]
     auc = np.double(auc) / np.double(total_pos * total_neg)
+    logging.info('fast_auc[%s]: total_pos=%d total_neg=%d total=%d' %
+                 (name, total_pos, total_neg, total_pos + total_neg))
     return np.float32(auc)
 
   with variable_scope.variable_scope(name_or_scope=name), tf.name_scope(name):
