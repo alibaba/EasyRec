@@ -43,7 +43,6 @@ class Package(object):
     self._l2_reg = l2_reg
     self._dag = DAG()
     self._name_to_blocks = {}
-    self.loss_dict = {}
     self._name_to_layer = {}
     self.reset_input_config(None)
     self._block_outputs = {}
@@ -159,15 +158,15 @@ class Package(object):
       layer_obj = self.load_keras_layer(layer_cnf.keras_layer, name, reuse)
       self._name_to_layer[name] = layer_obj
     elif layer == 'recurrent':
+      keras_layer = layer_cnf.recurrent.keras_layer
       for i in range(layer_cnf.recurrent.num_steps):
         name_i = '%s_%d' % (name, i)
-        keras_layer = layer_cnf.recurrent.keras_layer
         layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
     elif layer == 'repeat':
+      keras_layer = layer_cnf.repeat.keras_layer
       for i in range(layer_cnf.repeat.num_repeat):
         name_i = '%s_%d' % (name, i)
-        keras_layer = layer_cnf.repeat.keras_layer
         layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
 
@@ -183,7 +182,7 @@ class Package(object):
   def block_outputs(self, name):
     return self._block_outputs.get(name, None)
 
-  def block_input(self, config, block_outputs, training=None):
+  def block_input(self, config, block_outputs, training=None, **kwargs):
     inputs = []
     for input_node in config.inputs:
       input_type = input_node.WhichOneof('name')
@@ -211,9 +210,7 @@ class Package(object):
             fn = eval(input_node.package_input_fn)
             pkg_input = fn(pkg_input)
           package.set_package_input(pkg_input)
-        input_feature = package(training)
-        if len(package.loss_dict) > 0:
-          self.loss_dict.update(package.loss_dict)
+        input_feature = package(training, **kwargs)
       elif input_name in block_outputs:
         input_feature = block_outputs[input_name]
       else:
@@ -258,16 +255,16 @@ class Package(object):
       config = self._name_to_blocks[block]
       if config.layers:  # sequential layers
         logging.info('call sequential %d layers' % len(config.layers))
-        output = self.block_input(config, block_outputs, is_training)
+        output = self.block_input(config, block_outputs, is_training, **kwargs)
         for i, layer in enumerate(config.layers):
           name_i = '%s_l%d' % (block, i)
-          output = self.call_layer(output, layer, name_i, is_training)
+          output = self.call_layer(output, layer, name_i, is_training, **kwargs)
         block_outputs[block] = output
         continue
       # just one of layer
       layer = config.WhichOneof('layer')
       if layer is None:  # identity layer
-        output = self.block_input(config, block_outputs, is_training)
+        output = self.block_input(config, block_outputs, is_training, **kwargs)
         block_outputs[block] = output
       elif layer == 'input_layer':
         input_fn = self._name_to_layer[block]
@@ -277,18 +274,14 @@ class Package(object):
           input_fn.reset(input_config, is_training)
         block_outputs[block] = input_fn(input_config, is_training)
       else:
-        inputs = self.block_input(config, block_outputs, is_training)
-        output = self.call_layer(inputs, config, block, is_training)
+        inputs = self.block_input(config, block_outputs, is_training, **kwargs)
+        output = self.call_layer(inputs, config, block, is_training, **kwargs)
         block_outputs[block] = output
 
     outputs = []
     for output in self._config.concat_blocks:
       if output in block_outputs:
         temp = block_outputs[output]
-        # if type(temp) in (tuple, list):
-        #   outputs.extend(temp)
-        # else:
-        #   outputs.append(temp)
         outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
@@ -345,11 +338,10 @@ class Package(object):
         layer = layer_cls(*args, name=name)
       return layer, customize
 
-  def call_keras_layer(self, inputs, name, training):
+  def call_keras_layer(self, inputs, name, training, **kwargs):
     """Call predefined Keras Layer, which can be reused."""
     layer, customize = self._name_to_layer[name]
     cls = layer.__class__.__name__
-    kwargs = {'loss_dict': self.loss_dict}
     if customize:
       output = layer(inputs, training=training, **kwargs)
     else:
@@ -361,10 +353,10 @@ class Package(object):
         output = layer(inputs)
     return output
 
-  def call_layer(self, inputs, config, name, training):
+  def call_layer(self, inputs, config, name, training, **kwargs):
     layer_name = config.WhichOneof('layer')
     if layer_name == 'keras_layer':
-      return self.call_keras_layer(inputs, name, training)
+      return self.call_keras_layer(inputs, name, training, **kwargs)
     if layer_name == 'lambda':
       conf = getattr(config, 'lambda')
       fn = eval(conf.expression)
@@ -375,7 +367,14 @@ class Package(object):
       outputs = []
       for i in range(n_loop):
         name_i = '%s_%d' % (name, i)
-        output = self.call_keras_layer(inputs, name_i, training)
+        ly_inputs = inputs
+        if conf.HasField('input_slice'):
+          fn = eval('lambda x, i: x' + conf.input_slice.strip())
+          ly_inputs = fn(ly_inputs, i)
+        if conf.HasField('input_fn'):
+          fn = eval(conf.input_fn)
+          ly_inputs = fn(ly_inputs, i)
+        output = self.call_keras_layer(ly_inputs, name_i, training, **kwargs)
         outputs.append(output)
       if len(outputs) == 1:
         return outputs[0]
@@ -392,7 +391,7 @@ class Package(object):
       output = inputs
       for i in range(conf.num_steps):
         name_i = '%s_%d' % (name, i)
-        output_i = self.call_keras_layer(output, name_i, training)
+        output_i = self.call_keras_layer(output, name_i, training, **kwargs)
         if fixed_input_index >= 0:
           j = 0
           for idx in range(len(output)):
@@ -421,7 +420,6 @@ class Backbone(object):
   def __init__(self, config, features, input_layer, l2_reg=None):
     self._config = config
     self._l2_reg = l2_reg
-    self.loss_dict = {}
     main_pkg = backbone_pb2.BlockPackage()
     main_pkg.name = 'backbone'
     main_pkg.blocks.MergeFrom(config.blocks)
@@ -432,8 +430,6 @@ class Backbone(object):
 
   def __call__(self, is_training, **kwargs):
     output = self._main_pkg(is_training, **kwargs)
-    if len(self._main_pkg.loss_dict) > 0:
-      self.loss_dict = self._main_pkg.loss_dict
 
     if self._config.HasField('top_mlp'):
       params = Parameter.make_from_pb(self._config.top_mlp)

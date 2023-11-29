@@ -59,7 +59,7 @@ def main(argv):
       except common_io.exception.OutOfRangeException:
         reader.close()
         break
-  
+
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   if drop_feature_names:
     tmp_feature_configs = feature_configs[:]

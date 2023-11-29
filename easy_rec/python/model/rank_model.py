@@ -390,18 +390,17 @@ class RankModel(EasyRecModel):
     return metric_dict
 
   def build_metric_graph(self, eval_config):
-    metric_dict = {}
     loss_types = {self._loss_type}
     if len(self._losses) > 0:
       loss_types = {loss.loss_type for loss in self._losses}
     for metric in eval_config.metrics_set:
-      metric_dict.update(
+      self._metric_dict.update(
           self._build_metric_impl(
               metric,
               loss_type=loss_types,
               label_name=self._label_name,
               num_class=self._num_class))
-    return metric_dict
+    return self._metric_dict
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
     binary_loss_set = {

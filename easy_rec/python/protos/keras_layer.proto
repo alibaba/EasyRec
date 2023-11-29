@@ -24,5 +24,6 @@ message KerasLayer {
         BSTEncoder bst = 13;
         MMoELayer mmoe = 14;
         SequenceAugment seq_aug = 15;
+        PPNet ppnet = 16;
     }
 }
