@@ -172,6 +172,7 @@ class ParquetInputV2(Input):
         proc.join()
       logging.info('join proc done')
 
+      # rebuild for next run, which is necessary for evaluation
       self._rebuild_que()
       self._proc_arr = None
       self._proc_start = False
@@ -285,8 +286,6 @@ class ParquetInputV2(Input):
     for k in self._effective_fields:
       out_types[k] = (tf.int32, tf.int64)
       out_shapes[k] = (tf.TensorShape([None]), tf.TensorShape([None]))
-    # out_types['sparse_fea'] = (tf.int32, tf.int64)
-    # out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
 
     dataset = tf.data.Dataset.from_generator(
         self._sample_generator,

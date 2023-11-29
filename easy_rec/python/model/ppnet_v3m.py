@@ -6,6 +6,8 @@ import logging
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
+from easy_rec.python.core import metrics
+# from easy_rec.python.core.easyrec_metrics import metrics_tf
 from easy_rec.python.model.keep_model.model_ps_mmoe import CustomizedModel
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.ppnet_pb2 import PPNet as PPNetConfig
@@ -59,18 +61,18 @@ class PPNetV3M(RankModel):
 
   def build_metric_graph(self, eval_config):
     metric_dict = {}
-    from easy_rec.python.core.easyrec_metrics import metrics_tf
     for lbl_id in range(len(self._model_conf['label'])):
       lbl_info = self._model_conf['label'][lbl_id]
       lbl_name = lbl_info.get('input_name')
       output = self._prediction_dict.get(lbl_name)
-      # output = tf.Print(output, [tf.reduce_min(output), tf.reduce_max(output),
-      #      tf.reduce_mean(output), tf.reduce_min(self._labels[lbl_name]),
-      #      tf.reduce_max(self._labels[lbl_name]),
-      #      tf.reduce_mean(self._labels[lbl_name])], message='output')
       # with ops.device('/cpu:0'):
-      metric_dict['auc_' + lbl_name] = metrics_tf.auc(
-          self._labels[lbl_name], output, num_thresholds=20000)
+      # metric_dict['auc_' + lbl_name] = metrics_tf.auc(
+      #     self._labels[lbl_name], output, num_thresholds=20000)
+      metric_dict['auc_' + lbl_name] = metrics.fast_auc(
+          self._labels[lbl_name],
+          output,
+          num_thresholds=1e5,
+          name='auc_' + lbl_name)
     return metric_dict
 
   def build_loss_graph(self):
@@ -85,8 +87,6 @@ class PPNetV3M(RankModel):
       tf.summary.scalar('predict/%s' % lbl_name, tf.reduce_mean(output))
       loss_obj = tf.keras.losses.BinaryCrossentropy(
           reduction='sum_over_batch_size')(self._labels[lbl_name], output)
-      # loss_obj = tf.Print(loss_obj, [tf.reduce_min(loss_obj), tf.reduce_max(loss_obj),
-      #        tf.reduce_mean(loss_obj), tf.shape(loss_obj)], message='loss_obj')
       self._loss_dict[lbl_name] = loss_obj * lbl_weight
     return self._loss_dict
 

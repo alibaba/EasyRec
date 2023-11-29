@@ -77,6 +77,14 @@ class ParquetInput(Input):
 
     self._proc_arr = None
 
+  def _rebuild_que(self):
+    mp_ctxt = multiprocessing.get_context('spawn')
+    self._data_que = queues.Queue(
+        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
+    self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
+    self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
+    self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
+
   def _sample_generator(self):
     if not self._proc_start:
       self._proc_start = True
@@ -163,7 +171,12 @@ class ParquetInput(Input):
         # proc.terminate()
         proc.join()
       logging.info('join proc done')
+
+      # rebuild for next run, which is necessary for evaluation
+      self._rebuild_que()
+      self._proc_arr = None
       self._proc_start = False
+      self._proc_stop = False
 
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
@@ -242,11 +255,7 @@ class ParquetInput(Input):
         out_types['reserve'][k] = t
         out_shapes['reserve'][k] = tf.TensorShape([None])
 
-    # for k in self._effective_fields:
-    #   out_types[k] = (tf.int64, tf.int32)
-    #   out_shapes[k] = (tf.TensorShape([None]), tf.TensorShape([None]))
     out_types['sparse_fea'] = (tf.int32, tf.int64)
-    # out_types['sparse_fea'] = (tf.int64, tf.int32)
     out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
 
     dataset = tf.data.Dataset.from_generator(
