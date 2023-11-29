@@ -407,6 +407,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/cdn_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_ppnet(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/ppnet_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_uniter_only_text_feature(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/uniter_on_movielens_only_text_feature.config',
