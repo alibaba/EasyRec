@@ -46,20 +46,21 @@ class MMoE(tf.keras.layers.Layer):
       logging.warning('num_expert of MMoE layer `%s` is 0' % self.name)
       return inputs
 
-    expert_fea_list = [expert(inputs) for expert in self._experts]
-    experts_fea = tf.stack(expert_fea_list, axis=1)
+    with tf.name_scope(self.name):
+      expert_fea_list = [expert(inputs) for expert in self._experts]
+      experts_fea = tf.stack(expert_fea_list, axis=1)
 
-    gate_input = inputs if self._has_experts else inputs[self._num_expert]
-    task_input_list = []
-    for task_id in range(self._num_task):
-      gate = gate_fn(
-          gate_input,
-          self._num_expert,
-          name='gate_%d' % task_id,
-          l2_reg=self._l2_reg,
-          reuse=self._reuse)
-      gate = tf.expand_dims(gate, -1)
-      task_input = tf.multiply(experts_fea, gate)
-      task_input = tf.reduce_sum(task_input, axis=1)
-      task_input_list.append(task_input)
+      gate_input = inputs if self._has_experts else inputs[self._num_expert]
+      task_input_list = []
+      for task_id in range(self._num_task):
+        gate = gate_fn(
+            gate_input,
+            self._num_expert,
+            name='gate_%d' % task_id,
+            l2_reg=self._l2_reg,
+            reuse=self._reuse)
+        gate = tf.expand_dims(gate, -1)
+        task_input = tf.multiply(experts_fea, gate)
+        task_input = tf.reduce_sum(task_input, axis=1)
+        task_input_list.append(task_input)
     return task_input_list

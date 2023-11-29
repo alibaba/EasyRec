@@ -47,6 +47,8 @@ message RepeatLayer {
     // default output the list of multiple outputs
     optional int32 output_concat_axis = 2;
     required KerasLayer keras_layer = 3;
+    optional string input_slice = 4;
+    optional string input_fn = 5;
 }
 
 message Layer {

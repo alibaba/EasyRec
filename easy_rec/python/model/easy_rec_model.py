@@ -90,9 +90,9 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       return self._backbone_output
     if self._backbone_net:
       kwargs = {
-        'loss_dict': self._loss_dict,
-        'metric_dict': self._metric_dict,
-        constant.SAMPLE_WEIGHT: self._sample_weight
+          'loss_dict': self._loss_dict,
+          'metric_dict': self._metric_dict,
+          constant.SAMPLE_WEIGHT: self._sample_weight
       }
       return self._backbone_net(self._is_training, **kwargs)
     return None

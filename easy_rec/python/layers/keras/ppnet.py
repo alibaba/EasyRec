@@ -179,7 +179,8 @@ class PPNet(tf.keras.layers.Layer):
     """Performs the forward computation of the block."""
     x, gate_input = inputs
     if self.full_gate_input:
-      gate_input = tf.concat([tf.stop_gradient(x), gate_input], axis=-1)
+      with tf.name_scope(self.name):
+        gate_input = tf.concat([tf.stop_gradient(x), gate_input], axis=-1)
 
     for layer in self._sub_layers:
       cls = layer.__class__.__name__

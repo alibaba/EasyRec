@@ -158,15 +158,15 @@ class Package(object):
       layer_obj = self.load_keras_layer(layer_cnf.keras_layer, name, reuse)
       self._name_to_layer[name] = layer_obj
     elif layer == 'recurrent':
+      keras_layer = layer_cnf.recurrent.keras_layer
       for i in range(layer_cnf.recurrent.num_steps):
         name_i = '%s_%d' % (name, i)
-        keras_layer = layer_cnf.recurrent.keras_layer
         layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
     elif layer == 'repeat':
+      keras_layer = layer_cnf.repeat.keras_layer
       for i in range(layer_cnf.repeat.num_repeat):
         name_i = '%s_%d' % (name, i)
-        keras_layer = layer_cnf.repeat.keras_layer
         layer_obj = self.load_keras_layer(keras_layer, name_i, reuse)
         self._name_to_layer[name_i] = layer_obj
 
@@ -367,7 +367,14 @@ class Package(object):
       outputs = []
       for i in range(n_loop):
         name_i = '%s_%d' % (name, i)
-        output = self.call_keras_layer(inputs, name_i, training, **kwargs)
+        ly_inputs = inputs
+        if conf.HasField('input_slice'):
+          fn = eval('lambda x, i: x' + conf.input_slice.strip())
+          ly_inputs = fn(ly_inputs, i)
+        if conf.HasField('input_fn'):
+          fn = eval(conf.input_fn)
+          ly_inputs = fn(ly_inputs, i)
+        output = self.call_keras_layer(ly_inputs, name_i, training, **kwargs)
         outputs.append(output)
       if len(outputs) == 1:
         return outputs[0]
