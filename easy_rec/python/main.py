@@ -102,16 +102,28 @@ def _get_input_fn(data_config,
 def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
-  gpu_options = GPUOptions(allow_growth=False)
+  gpu_options = GPUOptions(allow_growth=True)  # False)
 
-  if hvd is not None:
-    gpus = estimator_utils.get_available_gpus()
-    if len(gpus) > 0:
-      local_rnk = hvd.local_rank()
-      num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
-      sid = local_rnk * num_gpus_per_worker
-      eid = sid + num_gpus_per_worker
-      gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+  # if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+  #   gpus = estimator_utils.get_available_gpus()
+  #   if len(gpus) > 0:
+  #     local_rnk = hvd.local_rank()
+  #     num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+  #     sid = local_rnk * num_gpus_per_worker
+  #     eid = sid + num_gpus_per_worker
+  #     gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+
+  if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], "GPU")
+    # gpus = estimator_utils.get_available_gpus()
+    # if len(gpus) > 0:
+    local_rnk = hvd.local_rank()
+    # num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
+    # sid = local_rnk * num_gpus_per_worker
+    # eid = sid + num_gpus_per_worker
+    logging.info('local_rnk=%d' % local_rnk)
+    gpu_options.visible_device_list = str(local_rnk)  # ','.join(gpus[sid:eid])
 
   session_config = ConfigProto(
       gpu_options=gpu_options,
@@ -330,6 +342,8 @@ def _train_and_evaluate_impl(pipeline_config,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+  if pipeline_config.model_config.HasField('ev_params'):
+    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
 
   # create train input
   train_input_fn = _get_input_fn(
@@ -767,6 +781,8 @@ def export(export_dir,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+  if pipeline_config.model_config.HasField('ev_params'):
+    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
   serving_input_fn = _get_input_fn(data_config, feature_configs, None,
                                    export_config, **input_fn_kwargs)
   ckpt_path = _get_ckpt_path(pipeline_config, checkpoint_path)
@@ -828,6 +844,10 @@ def export_checkpoint(pipeline_config=None,
   input_fn_kwargs = {'pipeline_config': pipeline_config}
   if data_config.input_type == data_config.InputType.OdpsRTPInputV2:
     input_fn_kwargs['fg_json_path'] = pipeline_config.fg_json_path
+
+  if pipeline_config.model_config.HasField('ev_params'):
+    input_fn_kwargs['ev_params'] = pipeline_config.model_config.ev_params
+
 
   # create estimator
   params = {'log_device_placement': verbose}

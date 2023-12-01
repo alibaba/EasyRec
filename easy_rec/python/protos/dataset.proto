@@ -223,6 +223,7 @@ message DatasetConfig {
         HiveInput = 16;
         HiveRTPInput = 17;
         HiveParquetInput = 18;
+        ParquetInput = 19;
         CriteoInput = 1001;
     }
     required InputType input_type = 10;
@@ -297,5 +298,5 @@ message DatasetConfig {
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
 
-
+    optional bool drop_remainder = 1002 [default = false];
 }

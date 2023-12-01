@@ -75,15 +75,16 @@ class CriteoInput(Input):
       num_epoch += 1
 
   def _to_fea_dict(self, dense, category, labels):
-    field_dict = {}
-    for fid in range(1, 14):
-      fea_name = 'f%d' % fid
-      field_dict[fea_name] = dense[:, fid - 1]
+    with tf.device('/gpu:0'):
+      field_dict = {}
+      for fid in range(1, 14):
+        fea_name = 'f%d' % fid
+        field_dict[fea_name] = tf.identity(dense[:, fid - 1])
 
-    for cid in range(1, 27):
-      fea_name = 'c%d' % cid
-      field_dict[fea_name] = category[:, cid - 1]
-    field_dict['label'] = labels
+      for cid in range(1, 27):
+        fea_name = 'c%d' % cid
+        field_dict[fea_name] = tf.identity(category[:, cid - 1])
+      field_dict['label'] = tf.identity(labels)
     return field_dict
 
   def _build(self, mode, params):

@@ -135,6 +135,7 @@ from __future__ import print_function
 import abc
 import collections
 import math
+import os
 
 import numpy as np
 import six
@@ -160,12 +161,23 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
+from tensorflow.python.ops.ragged import ragged_math_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
 
 
 def _internal_input_layer(features,
@@ -221,6 +233,136 @@ def _internal_input_layer(features,
     _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
 
+  def _get_logits_with_sok():  # pylint: disable=missing-docstring
+    assert sok is not None, 'sok is not installed'
+    assert hvd is not None, 'horovod is not installed'
+    builder = _LazyBuilder(features)
+    output_tensors = []
+    ordered_columns = []
+
+    lookup_embeddings = []
+    lookup_indices = []
+    lookup_combiners = []
+    lookup_cols = []
+    lookup_output_ids = []
+
+    lookup_embeddings_with_wgt = []
+    lookup_indices_with_wgt = []
+    lookup_wgts = []
+    lookup_cols_with_wgt = []
+    lookup_combiners_with_wgt = []
+    lookup_output_ids_with_wgt = []
+    shared_weights = {}
+    for column in sorted(feature_columns, key=lambda x: x.name):
+      ordered_columns.append(column)
+      with variable_scope.variable_scope(
+          None, default_name=column._var_scope_name):  # pylint: disable=protected-access
+        if 'Embedding' not in str(type(column)):
+          output = column._get_dense_tensor(
+              builder, weight_collections, trainable=trainable)
+          output_tensors.append(output)
+          if cols_to_output_tensors is not None:
+            cols_to_output_tensors[column] = output
+          if feature_name_to_output_tensors is not None:
+            feature_name_to_output_tensors[column.raw_name] = output
+          continue
+        num_buckets = column.categorical_column.num_buckets + hvd.size() - 1
+        per_worker_buckets = num_buckets // hvd.size()
+        embedding_shape = (per_worker_buckets, column.dimension)
+        if 'SharedEmbedding' in str(type(column)):
+          shared_name = column.shared_embedding_collection_name
+          if shared_name in shared_weights:
+            embedding_weights = shared_weights[shared_name]
+          else:
+            with ops.device('/gpu:0'):
+              if column.ev_params is not None:
+                embedding_weights = sok.DynamicVariable(name='embedding_weights',
+                    dimension=column.dimension, initializer='random', #column.initializer,
+                    trainable=column.trainable and trainable, dtype=dtypes.float32)
+              else:
+                embedding_weights = variable_scope.get_variable(
+                    name='embedding_weights',
+                    shape=embedding_shape,
+                    dtype=dtypes.float32,
+                    initializer=column.initializer,
+                    trainable=column.trainable and trainable,
+                    partitioner=None,
+                    collections=weight_collections)
+            shared_weights[shared_name] = embedding_weights
+        else:
+          with ops.device('/gpu:0'):
+            if column.ev_params is not None:
+              embedding_weights = sok.DynamicVariable(name='embedding_weights',
+                  dimension=column.dimension, initializer='random',  #column.initializer,
+                  trainable=column.trainable and trainable, dtype=dtypes.float32)
+            else:
+              embedding_weights = variable_scope.get_variable(
+                  name='embedding_weights',
+                  shape=embedding_shape,
+                  dtype=dtypes.float32,
+                  initializer=column.initializer,
+                  trainable=column.trainable and trainable,
+                  partitioner=None,
+                  collections=weight_collections)
+        # required by sok
+        if 'DynamicVariable' not in str(type(embedding_weights)):
+          embedding_weights.target_gpu = -1
+        # SparseTensor RaggedTensor
+        sparse_tensors = column.categorical_column._get_sparse_tensors(
+            builder, weight_collections=weight_collections, trainable=trainable)
+        output_id = len(output_tensors)
+        output_tensors.append(None)
+        if sparse_tensors.weight_tensor is not None:
+          lookup_embeddings_with_wgt.append(embedding_weights)
+          lookup_indices_with_wgt.append(sparse_tensors.id_tensor)
+          lookup_wgts.append(sparse_tensors.weight_tensor)
+          lookup_output_ids_with_wgt.append(output_id)
+          lookup_combiners_with_wgt.append(column.combiner)
+          lookup_cols_with_wgt.append(column)
+        else:
+          lookup_embeddings.append(embedding_weights)
+          lookup_indices.append(sparse_tensors.id_tensor)
+          lookup_output_ids.append(output_id)
+          lookup_combiners.append(column.combiner)
+          lookup_cols.append(column)
+        if cols_to_vars is not None:
+          cols_to_vars[column] = ops.get_collection(
+              ops.GraphKeys.GLOBAL_VARIABLES,
+              scope=variable_scope.get_variable_scope().name)
+
+    # do sok lookup
+    if len(lookup_output_ids) > 0:
+      outputs = sok.lookup_sparse(
+          lookup_embeddings, lookup_indices, combiners=lookup_combiners)
+      for output, output_id, col in zip(outputs, lookup_output_ids,
+                                        lookup_cols):
+        output_tensors[output_id] = output
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[col.raw_name] = output
+    elif len(lookup_output_ids_with_wgt) > 0:
+      outputs = sok.lookup_sparse(
+          lookup_embeddings_with_wgt,
+          # RaggedTensor .values .row_lengths
+          lookup_indices_with_wgt,
+          lookup_wgts,
+          combiners=lookup_combiners_with_wgt)
+      for output, output_id, col in zip(outputs, lookup_output_ids_with_wgt,
+                                        lookup_cols_with_wgt):
+        output_tensors[output_id] = output
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[col.raw_name] = output
+
+    if feature_name_to_output_tensors is not None:
+      for column, output_tensor in zip(
+          sorted(feature_columns, key=lambda x: x.name), output_tensors):
+        feature_name_to_output_tensors[column.raw_name] = output_tensor
+    _verify_static_batch_size_equality(output_tensors, ordered_columns)
+    return array_ops.concat(output_tensors, 1)
+
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to
   # add another `variable_scope` as that would break checkpoints.
@@ -229,7 +371,10 @@ def _internal_input_layer(features,
   else:
     with variable_scope.variable_scope(
         scope, default_name='input_layer', values=features.values()):
-      return _get_logits()
+      if 'ENABLE_SOK' in os.environ:
+        return _get_logits_with_sok()
+      else:
+        return _get_logits()
 
 
 def input_layer(features,
@@ -2138,6 +2283,9 @@ class _LazyBuilder(object):
       ValueError: if the raw feature has rank 0.
     """
     raw_feature = self._features[key]
+    if 'RaggedTensor' in str(type(raw_feature)):
+      return raw_feature
+
     feature_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
         raw_feature)
 
@@ -2249,8 +2397,8 @@ def _normalize_feature_columns(feature_columns):
   if isinstance(feature_columns, _FeatureColumn):
     feature_columns = [feature_columns]
 
-  if isinstance(feature_columns, collections.Iterator):
-    feature_columns = list(feature_columns)
+  # if isinstance(feature_columns, collections.Iterator):
+  #   feature_columns = list(feature_columns)
 
   if isinstance(feature_columns, dict):
     raise ValueError('Expected feature_columns to be iterable, found dict.')
@@ -2635,6 +2783,18 @@ class _SharedEmbeddingColumn(
           to_restore = to_restore._get_variable_list()  # pylint: disable=protected-access
         checkpoint_utils.init_from_checkpoint(
             self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
+
+      if 'RaggedTensor' in str(type(sparse_ids)):
+        assert sparse_weights is None
+        ragged_embedding = embedding_ops.embedding_lookup_ragged(
+            embedding_weights=embedding_weights,
+            ragged_ids=sparse_ids,
+            max_norm=self.max_norm,
+            name='%s_weights' % self.name)
+        if self.combiner == 'sum':
+          return ragged_math_ops.reduce_sum(ragged_embedding, axis=1)
+        else:
+          return ragged_math_ops.reduce_mean(ragged_embedding, axis=1)
 
       # Return embedding lookup result.
       return embedding_ops.safe_embedding_lookup_sparse(

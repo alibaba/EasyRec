@@ -35,6 +35,7 @@ from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import hvd_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
 
@@ -42,6 +43,13 @@ try:
   import horovod.tensorflow as hvd
 except Exception:
   hvd = None
+
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -205,13 +213,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
           % (len(grouped_vars), len(optimizer_config))
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
+    if self.train_config.train_distribute == DistributionStrategy.SokStrategy:
+      optimizer = sok.OptimizerWrapper(optimizer)
+
     hooks = []
     if estimator_utils.has_hvd():
       assert not self.train_config.sync_replicas, \
           'sync_replicas should not be set when using horovod'
-      optimizer = hvd.DistributedOptimizer(
-          optimizer, backward_passes_per_step=1)
-      bcast_hook = hvd.BroadcastGlobalVariablesHook(0)
+      bcast_hook = hvd_utils.BroadcastGlobalVariablesHook(0)
       hooks.append(bcast_hook)
 
     # for distributed and synced training
@@ -384,9 +393,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       early_stop_var = find_early_stop_var(var_list)
       var_list = [x for x in var_list if x != early_stop_var]
 
-      initialize_var_list = [
-          x for x in var_list if 'WorkQueue' not in str(type(x))
-      ]
+      # initialize_var_list = [
+      #     x for x in var_list if 'WorkQueue' not in str(type(x))
+      # ]
 
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
@@ -407,9 +416,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
               save_relative_paths=True),
-          local_init_op=tf.group(local_init_ops),
-          ready_for_local_init_op=tf.report_uninitialized_variables(
-              var_list=initialize_var_list))
+          local_init_op=tf.group(local_init_ops))
+      # ready_for_local_init_op=tf.report_uninitialized_variables(
+      #    var_list=initialize_var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
