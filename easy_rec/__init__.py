@@ -6,6 +6,8 @@ import os
 import platform
 import sys
 
+import tensorflow as tf
+
 from easy_rec.version import __version__
 
 curr_dir, _ = os.path.split(__file__)
@@ -14,6 +16,7 @@ sys.path.insert(0, parent_dir)
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+tf.logging.set_verbosity(tf.logging.INFO)
 
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
