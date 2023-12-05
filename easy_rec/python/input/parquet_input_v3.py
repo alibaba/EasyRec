@@ -7,14 +7,12 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   from tensorflow.python.data.experimental.ops import parquet_dataset_ops
   from tensorflow.python.data.experimental.ops import parquet_pybind
   from tensorflow.python.data.experimental.ops import dataframe
   from tensorflow.python.ops import gen_ragged_conversion_ops
-  from tensorflow.python.framework import sparse_tensor
 except Exception:
   logging.error('You should install DeepRec first.')
   pass
@@ -34,37 +32,24 @@ class ParquetInputV3(Input):
     super(ParquetInputV3,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode, pipeline_config)
-    if input_path is None:
-      return
 
-    self._input_files = []
-    for sub_path in input_path.strip().split(','):
-      self._input_files.extend(gfile.Glob(sub_path))
-
-    file_num = len(self._input_files)
-    logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
-                 (task_index, file_num, task_num))
-
-    self._my_files = []
-    for file_id in range(file_num):
-      if (file_id % task_num) == task_index:
-        self._my_files.append(self._input_files[file_id])
-
-    parquet_fields = parquet_pybind.parquet_fields(self._input_files[0])
-    self._parquet_input_fields = []
-    self._tf_type_dict = {}
-    for f in parquet_fields:
-      if f.name in self._input_fields:
-        self._parquet_input_fields.append(f)
-    self._tf_type_dict = {}
     self._ignore_val_dict = {}
     for f in data_config.input_fields:
-      self._tf_type_dict[f.input_name] = get_tf_type(f.input_type)
       if f.HasField('ignore_val'):
         self._ignore_val_dict[f.input_name] = get_type_defaults(
             f.input_type, f.ignore_val)
-      else:
-        self._ignore_val_dict[f.input_name] = None
+
+    self._true_type_dict = {}
+    for fc in self._feature_configs:
+      if fc.feature_type in [fc.IdFeature, fc.TagFeature, fc.SequenceFeature]:
+        if fc.hash_bucket_size > 0:
+          self._true_type_dict[fc.input_names[0]] = tf.string
+        elif fc.num_buckets > 0:
+          self._true_type_dict[fc.input_names[0]] = tf.int64
+        if len(fc.input_names) > 1:
+          self._true_type_dict[fc.input_names[1]] = tf.float32
+      if fc.feature_type == fc.RawFeature:
+        self._true_type_dict[fc.input_names[0]] = tf.float32
 
     self._reserve_fields = None
     self._reserve_types = None
@@ -72,15 +57,46 @@ class ParquetInputV3(Input):
       self._reserve_fields = kwargs['reserve_fields']
       self._reserve_types = kwargs['reserve_types']
 
-  def _cast_and_ignore(self, value, dtype, ignore_value):
-    value = tf.cast(value, dtype)
-    if ignore_value is not None:
-      assert isinstance(value, sparse_tensor.SparseTensor
-                        ), 'only SparseTensor support ignore_value now.'
-      mask = tf.equal(value.values, ignore_value)
-      value = sparse_tensor.SparseTensor(
-          tf.boolean_mask(value.indices, mask),
-          tf.boolean_mask(value.values, mask), value.dense_shape)
+    # In ParquetDataset multi_value use input type
+    self._multi_value_types = {}
+
+    if input_path is not None:
+      self._input_files = []
+      for sub_path in input_path.strip().split(','):
+        self._input_files.extend(gfile.Glob(sub_path))
+
+      file_num = len(self._input_files)
+      logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
+                   (task_index, file_num, task_num))
+
+      self._my_files = []
+      for file_id in range(file_num):
+        if (file_id % task_num) == task_index:
+          self._my_files.append(self._input_files[file_id])
+
+      parquet_fields = parquet_pybind.parquet_fields(self._input_files[0])
+      self._parquet_input_fields = []
+      for f in parquet_fields:
+        if f.name in self._input_fields:
+          self._parquet_input_fields.append(f)
+
+  def _ignore_and_cast(self, name, value):
+    ignore_value = self._ignore_val_dict.get(name, None)
+    if ignore_value:
+      if isinstance(value, tf.SparseTensor):
+        mask = tf.equal(value.values, ignore_value)
+        value = tf.SparseTensor(
+            tf.boolean_mask(value.indices, mask),
+            tf.boolean_mask(value.values, mask), value.dense_shape)
+      elif isinstance(value, tf.Tensor):
+        indices = tf.where(tf.not_equal(value, ignore_value), name='indices')
+        value = tf.SparseTensor(
+            indices=indices,
+            values=tf.gather_nd(value, indices),
+            dense_shape=tf.shape(value, out_type=tf.int64))
+    dtype = self._true_type_dict.get(name, None)
+    if dtype:
+      value = tf.cast(value, dtype)
     return value
 
   def _parse_dataframe_value(self, value):
@@ -89,9 +105,9 @@ class ParquetInputV3(Input):
     value.values.set_shape([None])
     sparse_value = gen_ragged_conversion_ops.ragged_tensor_to_sparse(
         value.nested_row_splits, value.values)
-    return sparse_tensor.SparseTensor(sparse_value.sparse_indices,
-                                      sparse_value.sparse_values,
-                                      sparse_value.sparse_dense_shape)
+    return tf.SparseTensor(sparse_value.sparse_indices,
+                           sparse_value.sparse_values,
+                           sparse_value.sparse_dense_shape)
 
   def _parse_dataframe(self, df):
     inputs = {}
@@ -107,8 +123,7 @@ class ParquetInputV3(Input):
           v = v.values
       else:
         continue
-      inputs[k] = self._cast_and_ignore(v, self._tf_type_dict[k],
-                                        self._ignore_val_dict[k])
+      inputs[k] = v
     return inputs
 
   def _build(self, mode, params):
@@ -159,3 +174,8 @@ class ParquetInputV3(Input):
     else:
       dataset = dataset.map(lambda x: (self._get_features(x)))
     return dataset
+
+  def _preprocess(self, field_dict):
+    for k, v in field_dict.items():
+      field_dict[k] = self._ignore_and_cast(k, v)
+    return super(ParquetInputV3, self)._preprocess(field_dict)
