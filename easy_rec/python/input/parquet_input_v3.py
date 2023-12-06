@@ -13,6 +13,7 @@ try:
   from tensorflow.python.data.experimental.ops import parquet_pybind
   from tensorflow.python.data.experimental.ops import dataframe
   from tensorflow.python.ops import gen_ragged_conversion_ops
+  from tensorflow.python.ops.work_queue import WorkQueue
 except Exception:
   logging.error('You should install DeepRec first.')
   pass
@@ -59,26 +60,6 @@ class ParquetInputV3(Input):
 
     # In ParquetDataset multi_value use input type
     self._multi_value_types = {}
-
-    if input_path is not None:
-      self._input_files = []
-      for sub_path in input_path.strip().split(','):
-        self._input_files.extend(gfile.Glob(sub_path))
-
-      file_num = len(self._input_files)
-      logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
-                   (task_index, file_num, task_num))
-
-      self._my_files = []
-      for file_id in range(file_num):
-        if (file_id % task_num) == task_index:
-          self._my_files.append(self._input_files[file_id])
-
-      parquet_fields = parquet_pybind.parquet_fields(self._input_files[0])
-      self._parquet_input_fields = []
-      for f in parquet_fields:
-        if f.name in self._input_fields:
-          self._parquet_input_fields.append(f)
 
   def _ignore_and_cast(self, name, value):
     ignore_value = self._ignore_val_dict.get(name, None)
@@ -127,6 +108,38 @@ class ParquetInputV3(Input):
     return inputs
 
   def _build(self, mode, params):
+    input_files = []
+    for sub_path in self._input_path.strip().split(','):
+      input_files.extend(gfile.Glob(sub_path))
+    file_num = len(input_files)
+    logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
+                 (self._task_index, file_num, self._task_num))
+
+    task_index = self._task_index
+    task_num = self._task_num
+    if self._data_config.chief_redundant:
+      task_index = max(self._task_index - 1, 0)
+      task_num = max(self._task_num - 1, 1)
+
+    if self._data_config.pai_worker_queue and \
+        mode == tf.estimator.ModeKeys.TRAIN:
+      work_queue = WorkQueue(
+          input_files,
+          num_epochs=self.num_epochs,
+          shuffle=self._data_config.shuffle)
+      my_files = work_queue.input_dataset()
+    else:
+      my_files = []
+      for file_id in range(file_num):
+        if (file_id % task_num) == task_index:
+          my_files.append(input_files[file_id])
+
+    parquet_fields = parquet_pybind.parquet_fields(input_files[0])
+    parquet_input_fields = []
+    for f in parquet_fields:
+      if f.name in self._input_fields:
+        parquet_input_fields.append(f)
+
     all_fields = set(self._effective_fields)
     if mode != tf.estimator.ModeKeys.PREDICT:
       all_fields |= set(self._label_fields)
@@ -134,20 +147,20 @@ class ParquetInputV3(Input):
       all_fields |= set(self._reserve_fields)
 
     selected_fields = []
-    for f in self._parquet_input_fields:
+    for f in parquet_input_fields:
       if f.name in all_fields:
         selected_fields.append(f)
 
     num_parallel_reads = min(self._data_config.num_parallel_calls,
-                             len(self._my_files))
+                             len(input_files) // task_num)
     dataset = parquet_dataset_ops.ParquetDataset(
-        self._my_files,
+        my_files,
         batch_size=self._batch_size,
         fields=selected_fields,
         drop_remainder=self._data_config.drop_remainder,
         num_parallel_reads=num_parallel_reads)
-    # partition_count=self._task_num,
-    # partition_index=self._task_index)
+    # partition_count=task_num,
+    # partition_index=task_index)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.shuffle:
