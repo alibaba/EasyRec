@@ -138,11 +138,14 @@ class ParquetInputV3(Input):
       if f.name in all_fields:
         selected_fields.append(f)
 
+    num_parallel_reads = min(self._data_config.num_parallel_calls,
+                             len(self._my_files))
     dataset = parquet_dataset_ops.ParquetDataset(
         self._my_files,
         batch_size=self._batch_size,
         fields=selected_fields,
-        drop_remainder=self._data_config.drop_remainder)
+        drop_remainder=self._data_config.drop_remainder,
+        num_parallel_reads=num_parallel_reads)
     # partition_count=self._task_num,
     # partition_index=self._task_index)
 
