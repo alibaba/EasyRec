@@ -86,7 +86,8 @@ class PPNetV3M(RankModel):
                         tf.reduce_mean(tf.to_float(self._labels[lbl_name])))
       tf.summary.scalar('predict/%s' % lbl_name, tf.reduce_mean(output))
       loss_obj = tf.keras.losses.BinaryCrossentropy(
-          reduction='sum_over_batch_size')(self._labels[lbl_name], output)
+          reduction='sum_over_batch_size')(self._labels[lbl_name],
+                                           tf.squeeze(output))
       self._loss_dict[lbl_name] = loss_obj * lbl_weight
     return self._loss_dict
 

@@ -196,7 +196,7 @@ class ParquetInputV2(Input):
       tmp_lens, tmp_vals = input_dict[fea]
       if self._has_ev:
         fea_dict[fea] = tf.RaggedTensor.from_row_lengths(
-            values=tmp_vals, row_lengths=tmp_lens)
+            values=tmp_vals, row_lengths=tf.cast(tmp_lens, tf.int64))
       else:
         fea_dict[fea] = tf.RaggedTensor.from_row_lengths(
             values=(tmp_vals % self._feature_configs[0].num_buckets),

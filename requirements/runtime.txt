@@ -2,9 +2,8 @@ eas_prediction
 future
 matplotlib
 numpy <= 1.23
-numpy <= 1.23
 oss2
-pandas
+pandas <= 1.5
 psutil
 pyarrow
 pyodps
