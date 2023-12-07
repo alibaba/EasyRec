@@ -17,9 +17,12 @@ logging.basicConfig(
 
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
+  from tensorflow.python.platform import tf_logging
+  tf_logging.set_verbosity(tf_logging.INFO)
+
   if platform.system() == 'Linux':
-    ops_dir = os.path.join(curr_dir, 'python/ops')
     import tensorflow as tf
+    ops_dir = os.path.join(curr_dir, 'python/ops')
     if 'PAI' in tf.__version__:
       ops_dir = os.path.join(ops_dir, '1.12_pai')
     elif tf.__version__.startswith('1.12'):
