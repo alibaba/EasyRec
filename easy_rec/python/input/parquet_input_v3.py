@@ -68,10 +68,10 @@ class ParquetInputV3(Input):
     ignore_value = self._ignore_val_dict.get(name, None)
     if ignore_value:
       if isinstance(value, tf.SparseTensor):
-        mask = tf.equal(value.values, ignore_value)
+        indices = tf.where(tf.equal(value.values, ignore_value))
         value = tf.SparseTensor(
-            tf.boolean_mask(value.indices, mask),
-            tf.boolean_mask(value.values, mask), value.dense_shape)
+            tf.gather_nd(value.indices, indices),
+            tf.gather_nd(value.values, indices), value.dense_shape)
       elif isinstance(value, tf.Tensor):
         indices = tf.where(tf.not_equal(value, ignore_value), name='indices')
         value = tf.SparseTensor(
