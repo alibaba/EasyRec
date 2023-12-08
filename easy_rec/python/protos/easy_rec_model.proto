@@ -93,8 +93,6 @@ message EasyRecModel {
         PLE ple = 305;
 
         RocketLaunching rocket_launching = 401;
-
-        PPNet ppnet = 402;
     }
     repeated SeqAttGroupConfig seq_att_groups = 7;
     // implemented in easy_rec/python/model/easy_rec_estimator

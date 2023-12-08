@@ -61,7 +61,7 @@ Running Platform:
 ### A variety of models
 
 - [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) / [DropoutNet](docs/source/models/dropoutnet.md) / [CoMetricLearningI2I](docs/source/models/co_metric_learning_i2i.md) / [PDN](docs/source/models/pdn.md)
-- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [FiBiNet](docs/source/models/fibinet.md) / [MaskNet](docs/source/models/masknet.md) / [CDN](docs/source/models/cdn.md)
+- [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [FiBiNet](docs/source/models/fibinet.md) / [MaskNet](docs/source/models/masknet.md) / [PPNet](docs/source/models/ppnet.md) / [CDN](docs/source/models/cdn.md)
 - [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md) / [CL4SRec](docs/source/models/cl4srec.md)
 - [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
 - [HighwayNetwork](docs/source/models/highway.md) / [CMBF](docs/source/models/cmbf.md) / [UNITER](docs/source/models/uniter.md)
@@ -118,7 +118,7 @@ If EasyRec is useful for your research, please cite:
 ### Join Us
 
 - DingDing Group: 32260796. (EasyRec usage general discussion.)
-
+- DingDing Group2: 37930014162, click [this url](https://qr.dingtalk.com/action/joingroup?code=v1,k1,oHNqtNObbu+xUClHh77gCuKdGGH8AYoQ8AjKU23zTg4=&_dt_no_comment=1&origin=11) or scan QrCode to join![new_group.jpg](docs/images/qrcode/new_group.jpg)
 - Email Group: easy_rec@service.aliyun.com.
 
 ### Enterprise Service

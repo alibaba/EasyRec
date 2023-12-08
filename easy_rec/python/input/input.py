@@ -272,7 +272,8 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         placeholder_name = 'input_%d' % fid
       if input_name in export_fields_name:
-        tf_type = self._multi_value_types[input_name]
+        tf_type = self._multi_value_types[input_name] if input_name in self._multi_value_types \
+            else get_tf_type(self._input_field_types[fid])
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
         finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)

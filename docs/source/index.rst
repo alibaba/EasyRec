@@ -30,6 +30,7 @@ Welcome to easy_rec's documentation!
 
    component/backbone
    component/component
+   component/sequence
 
 .. toctree::
    :maxdepth: 3

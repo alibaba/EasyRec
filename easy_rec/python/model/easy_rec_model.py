@@ -88,6 +88,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     self._labels = labels
     self._prediction_dict = {}
     self._loss_dict = {}
+    self._metric_dict = {}
 
     # add sample weight from inputs
     self._sample_weight = 1.0
@@ -115,10 +116,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if self._backbone_output:
       return self._backbone_output
     if self._backbone_net:
-      self._backbone_output = self._backbone_net(self._is_training)
-      loss_dict = self._backbone_net.loss_dict
-      self._loss_dict.update(loss_dict)
-      return self._backbone_output
+      kwargs = {
+          'loss_dict': self._loss_dict,
+          'metric_dict': self._metric_dict,
+          constant.SAMPLE_WEIGHT: self._sample_weight
+      }
+      return self._backbone_net(self._is_training, **kwargs)
     return None
 
   @property
@@ -169,9 +172,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
   def build_loss_graph(self):
     pass
 
-  @abstractmethod
   def build_metric_graph(self, eval_config):
-    pass
+    return self._metric_dict
 
   @abstractmethod
   def get_outputs(self):

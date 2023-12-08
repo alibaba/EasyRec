@@ -17,6 +17,7 @@
    masknet
    fibinet
    cdn
+   ppnet
    cl4srec
    regression
    multi_cls

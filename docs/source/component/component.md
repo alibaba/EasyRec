@@ -96,6 +96,25 @@
 | use_parallel | bool | true | 是否使用并行模式      |
 | mlp          | MLP  | 可选   | 顶部mlp         |
 
+- PPNet
+
+| 参数              | 类型     | 默认值   | 说明                                                 |
+| --------------- | ------ | ----- | -------------------------------------------------- |
+| mlp             | MLP    |       | mlp 配置                                             |
+| gate_params     | GateNN |       | 参数个性化Gate网络的配置                                     |
+| mode            | string | eager | 配置参数个性化是作用在MLP的每个layer的输入上还是输出上，可选：\[eager, lazy\] |
+| full_gate_input | bool   | true  | 是否需要添加stop_gradient之后的mlp的输入作为gate网络的输入            |
+
+其中，GateNN的参数如下：
+
+| 参数           | 类型     | 默认值             | 说明                                        |
+| ------------ | ------ | --------------- | ----------------------------------------- |
+| output_dim   | uint32 | mlp前一层的输出units数 | Gate网络的输出维度，eager模式下必须要配置为mlp第一层的输入units数 |
+| hidden_dim   | uint32 | output_dim      | 隐层单元数                                     |
+| dropout_rate | float  | 0.0             | 隐层dropout rate                            |
+| activation   | str    | relu            | 隐层的激活函数                                   |
+| use_bn       | bool   | true            | 隐层是否使用batch normalization                 |
+
 ## 4. 序列特征编码组件
 
 - SeqAugment

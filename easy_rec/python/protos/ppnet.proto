@@ -1,7 +1,0 @@
-syntax = "proto2";
-package protos;
-
-
-message PPNet {
-  required string model_conf = 1;
-}
