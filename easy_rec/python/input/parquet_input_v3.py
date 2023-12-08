@@ -14,8 +14,9 @@ try:
   from tensorflow.python.data.experimental.ops import dataframe
   from tensorflow.python.ops import gen_ragged_conversion_ops
   from tensorflow.python.ops.work_queue import WorkQueue
+  _has_deep_rec = True
 except Exception:
-  logging.error('You should install DeepRec first.')
+  _has_deep_rec = False
   pass
 
 
@@ -30,6 +31,8 @@ class ParquetInputV3(Input):
                check_mode=False,
                pipeline_config=None,
                **kwargs):
+    if not _has_deep_rec:
+      raise RuntimeError('You should install DeepRec first.')
     super(ParquetInputV3,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode, pipeline_config)
