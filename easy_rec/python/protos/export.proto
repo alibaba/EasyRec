@@ -42,6 +42,10 @@ message ExportConfig {
 
     // multi value field list
     optional MultiValueFields multi_value_fields = 10;
+
+    // auto analyze multi value fields
+    optional bool auto_multi_value = 16 [default = false];
+
     // is placeholder named by input
     optional bool placeholder_named_by_input = 11 [default = false];
 
