@@ -224,6 +224,7 @@ message DatasetConfig {
         HiveRTPInput = 17;
         HiveParquetInput = 18;
         ParquetInput = 19;
+        ParquetInputV2 = 20;
         CriteoInput = 1001;
     }
     required InputType input_type = 10;

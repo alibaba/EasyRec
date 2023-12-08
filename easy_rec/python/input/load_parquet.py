@@ -12,7 +12,8 @@ import pandas as pd
 
 def start_data_proc(task_index, task_num, num_proc, file_que, writers,
                     proc_start_sem, proc_stop_que, batch_size, label_fields,
-                    effective_fields, reserve_fields, drop_remainder):
+                    effective_fields, reserve_fields, drop_remainder,
+                    need_pack):
   mp_ctxt = multiprocessing.get_context('spawn')
   proc_arr = []
   for proc_id in range(num_proc):
@@ -20,7 +21,7 @@ def start_data_proc(task_index, task_num, num_proc, file_que, writers,
         target=load_data_proc,
         args=(proc_id, file_que, writers[proc_id], proc_start_sem,
               proc_stop_que, batch_size, label_fields, effective_fields,
-              reserve_fields, drop_remainder, task_index, task_num),
+              reserve_fields, drop_remainder, task_index, task_num, need_pack),
         name='task_%d_data_proc_%d' % (task_index, proc_id))
     proc.daemon = True
     proc.start()
@@ -79,7 +80,7 @@ def _pack_sparse_feas(data_dict, effective_fields):
 
 def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
                    batch_size, label_fields, effective_fields, reserve_fields,
-                   drop_remainder, task_index, task_num):
+                   drop_remainder, task_index, task_num, need_pack):
   logging.info('data_proc[%d] wait start' % proc_id)
   proc_start_sem.acquire()
   logging.info('data_proc[%d] start' % proc_id)
@@ -209,7 +210,8 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
       ts22 = time.time()
       parse_fea_ts += (ts22 - ts21)
 
-      _pack_sparse_feas(data_dict, effective_fields)
+      if need_pack:
+        _pack_sparse_feas(data_dict, effective_fields)
 
       ts23 = time.time()
       pack_ts += (ts23 - ts22)
@@ -295,7 +297,8 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
       parse_fea_ts += (ts22 - ts21)
 
       if effective_fields[0] in data_dict:
-        _pack_sparse_feas(data_dict, effective_fields)
+        if need_pack:
+          _pack_sparse_feas(data_dict, effective_fields)
         if not _add_to_que(data_dict, buffer):
           logging.info('add to que failed')
           is_good = False
@@ -310,7 +313,8 @@ def load_data_proc(proc_id, file_que, writer, proc_start_sem, proc_stop_que,
     parse_ts += (ts3 - ts2)
   if len(part_data_dict) > 0 and is_good:
     if not drop_remainder:
-      _pack_sparse_feas(part_data_dict, effective_fields)
+      if need_pack:
+        _pack_sparse_feas(part_data_dict, effective_fields)
       _add_to_que(part_data_dict, buffer)
       total_batch_num += 1
     else:
