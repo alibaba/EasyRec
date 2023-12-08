@@ -46,9 +46,10 @@ class ParquetInputV3(Input):
     self._true_type_dict = {}
     for fc in self._feature_configs:
       if fc.feature_type in [fc.IdFeature, fc.TagFeature, fc.SequenceFeature]:
-        if fc.hash_bucket_size > 0:
+        if fc.hash_bucket_size > 0 or len(
+            fc.vocab_list) > 0 or fc.HasField('vocab_file'):
           self._true_type_dict[fc.input_names[0]] = tf.string
-        elif fc.num_buckets > 0:
+        else:
           self._true_type_dict[fc.input_names[0]] = tf.int64
         if len(fc.input_names) > 1:
           self._true_type_dict[fc.input_names[1]] = tf.float32

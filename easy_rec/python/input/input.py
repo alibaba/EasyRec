@@ -109,7 +109,8 @@ class Input(six.with_metaclass(_meta_type, object)):
           self._effective_fields.append(input_name)
 
       if fc.feature_type in [fc.TagFeature, fc.SequenceFeature]:
-        if fc.hash_bucket_size > 0:
+        if fc.hash_bucket_size > 0 or len(
+            fc.vocab_list) > 0 or fc.HasField('vocab_file'):
           self._multi_value_types[fc.input_names[0]] = tf.string
           self._multi_value_fields.add(fc.input_names[0])
         else:
