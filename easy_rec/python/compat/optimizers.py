@@ -92,7 +92,8 @@ def optimize_loss(loss,
                   colocate_gradients_with_ops=False,
                   not_apply_grad_after_first_step=False,
                   increment_global_step=True,
-                  incr_save=False):
+                  incr_save=False,
+                  embedding_parallel=False):
   """Given loss and parameters for optimizer, returns a training op.
 
   Various ways of passing optimizers include:
@@ -164,6 +165,8 @@ def optimize_loss(loss,
       different parts of the model), use this arg to avoid incrementing
       `global_step` more times than necessary.
     incr_save: increment dump checkpoints.
+    embedding_parallel: whether to shard embedding and place embedding parts on
+      different works.
 
   Returns:
     Training op.
@@ -268,7 +271,7 @@ def optimize_loss(loss,
         colocate_gradients_with_ops=colocate_gradients_with_ops)
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
-      if not estimator_utils.has_sok():
+      if not (estimator_utils.has_hvd() and embedding_parallel):
         # embedding parameters not partitioned
         reduced_grads = []
         for g, v in gradients:
@@ -333,23 +336,25 @@ def optimize_loss(loss,
       summary.scalar('loss', loss)
 
     # Add histograms for variables, gradients and gradient norms.
-    # for gradient, variable in gradients:
-    #   if isinstance(gradient, indexed_slices.IndexedSlices):
-    #     grad_values = gradient.values
-    #   else:
-    #     grad_values = gradient
+    if not embedding_parallel:
+      for gradient, variable in gradients:
+        if isinstance(gradient, indexed_slices.IndexedSlices):
+          grad_values = gradient.values
+        else:
+          grad_values = gradient
 
-    #   if grad_values is not None:
-    #     var_name = variable.name.replace(':', '_')
-    #     if 'gradients' in summaries:
-    #       summary.histogram('gradients/%s' % var_name, grad_values)
-    #     if 'gradient_norm' in summaries:
-    #       summary.scalar('gradient_norm/%s' % var_name,
-    #                      clip_ops.global_norm([grad_values]))
+        if grad_values is not None:
+          var_name = variable.name.replace(':', '_')
+          if 'gradients' in summaries:
+            summary.histogram('gradients/%s' % var_name, grad_values)
+          if 'gradient_norm' in summaries:
+            summary.scalar('gradient_norm/%s' % var_name,
+                           clip_ops.global_norm([grad_values]))
 
     if clip_gradients is not None and ('global_gradient_norm' in summaries or
                                        'gradient_norm' in summaries):
-      sparse_norm, dense_norm, grad_norm = _get_grad_norm(gradients)
+      sparse_norm, dense_norm, grad_norm = _get_grad_norm(
+          gradients, embedding_parallel)
       summary.scalar('global_norm/clipped_sparse_grad', sparse_norm)
       summary.scalar('global_norm/clipped_dense_grad', dense_norm)
       summary.scalar('global_norm/clipped_gradient_norm', grad_norm)
@@ -392,11 +397,14 @@ def _get_grad_norm(grads_and_vars):
   dense_norms = []
   for grad, var in grads_and_vars:
     if isinstance(grad, indexed_slices.IndexedSlices):
-      sparse_norms.append(
-          hvd.allreduce(
-              gen_nn_ops.l2_loss(grad.values),
-              op=hvd.Sum,
-              compression=hvd.compression.NoneCompressor))
+      if hvd is not None:
+        sparse_norms.append(
+            hvd.allreduce(
+                gen_nn_ops.l2_loss(grad.values),
+                op=hvd.Sum,
+                compression=hvd.compression.NoneCompressor))
+      else:
+        sparse_norms.append(gen_nn_ops.l2_loss(grad.values))
     else:
       dense_norms.append(gen_nn_ops.l2_loss(grad))
   all_norms = sparse_norms + dense_norms

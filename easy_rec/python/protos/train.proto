@@ -22,6 +22,7 @@ enum DistributionStrategy {
     // use horovod strategy
     HorovodStrategy = 6;
     SokStrategy = 7;
+    EmbeddingParallelStrategy = 8;
 }
 
 message IncrementSaveConfig {

@@ -29,7 +29,6 @@ from easy_rec.python.compat.early_stopping import oss_stop_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_decrease_hook
 from easy_rec.python.compat.early_stopping import stop_if_no_increase_hook
 from easy_rec.python.compat.ops import GraphKeys
-from easy_rec.python.compat.saver import SaverV2
 from easy_rec.python.input.input import Input
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
@@ -39,6 +38,8 @@ from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import hvd_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+
+from easy_rec.python.compat.embedding_parallel_saver import EmbeddingParallelSaver  # NOQA
 
 try:
   import horovod.tensorflow as hvd
@@ -315,6 +316,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
     else:
       all_train_vars = tf.trainable_variables()
 
+    embedding_parallel = self.train_config.train_distribute in (
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy)
+    if embedding_parallel:
+      logging.info('embedding_parallel is enabled')
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -328,7 +334,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
         not_apply_grad_after_first_step=run_config.is_chief and
         self._pipeline_config.data_config.chief_redundant,
         name='',  # Preventing scope prefix on all variables.
-        incr_save=(self.incr_save_config is not None))
+        incr_save=(self.incr_save_config is not None),
+        embedding_parallel=embedding_parallel)
 
     # online evaluation
     metric_update_op_dict = None
@@ -411,16 +418,16 @@ class EasyRecEstimator(tf.estimator.Estimator):
             tf.initializers.variables(incompatiable_shape_restore))
 
       sok_vars = []
-      other_vars = []
       for tmp_var in var_list:
-        if 'Dynamic' in str(type(tmp_var)):
+        if sok is not None and isinstance(tmp_var, sok.DynamicVariable):
           sok_vars.append(tmp_var)
-        else:
-          other_vars.append(tmp_var)
-      # var_list = other_vars
+
+      saver_cls = saver.Saver
+      if embedding_parallel:
+        saver_cls = EmbeddingParallelSaver
 
       scaffold = tf.train.Scaffold(
-          saver=SaverV2(
+          saver=saver_cls(
               var_list=var_list,
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
@@ -482,10 +489,17 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
 
+    embedding_parallel = self.train_config.train_distribute in (
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy)
+    saver_cls = saver.Saver
+    if embedding_parallel:
+      saver_cls = EmbeddingParallelSaver
+
     metric_variables = ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
     scaffold = tf.train.Scaffold(
-        saver=SaverV2(
+        saver=saver_cls(
             var_list=var_list, sharded=True, save_relative_paths=True),
         ready_for_local_init_op=model_ready_for_local_init_op)
     end = time.time()
@@ -630,8 +644,17 @@ class EasyRecEstimator(tf.estimator.Estimator):
     var_list = (
         ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
+
+    embedding_parallel = self.train_config.train_distribute in (
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy)
+
+    saver_cls = saver.Saver
+    if embedding_parallel:
+      saver_cls = EmbeddingParallelSaver
+
     scaffold = tf.train.Scaffold(
-        saver=SaverV2(
+        saver=saver_cls(
             var_list=var_list, sharded=True, save_relative_paths=True))
 
     return tf.estimator.EstimatorSpec(

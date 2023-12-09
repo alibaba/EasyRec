@@ -239,6 +239,96 @@ def embedding_lookup_ragged(embedding_weights,
     return embeddings
 
 
+# model parallel embedding lookup
+def embedding_parallel_lookup(embedding,
+                              lookup_indices,
+                              output_ids,
+                              is_training,
+                              output_tensors=None):
+  N = len(output_ids)
+  # first concat all the ids and unique
+  if isinstance(lookup_indices, dict) and 'sparse_fea' in lookup_indices.keys():
+    # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
+    all_ids, segment_lens = lookup_indices['sparse_fea']
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  elif isinstance(lookup_indices, dict) and 'ragged_ids' in lookup_indices.keys(
+  ) and 'ragged_lens' in lookup_indices.keys():
+    all_ids, segment_lens = lookup_indices['ragged_ids'], lookup_indices[
+        'ragged_lens']
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  else:
+    with ops.device('/cpu:0'):
+      all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
+      segment_ids = array_ops.concat([x.indices[:, 0] for x in lookup_indices],
+                                     axis=0)
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+
+  num_parts = hvd.size()
+  if num_parts > 1:
+    # dynamic partition
+    p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
+    gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids, p_assignments,
+                                                 num_parts)
+    original_ids = math_ops.range(array_ops.size(all_uniq_ids))
+    original_part_ids = data_flow_ops.dynamic_partition(original_ids,
+                                                        p_assignments,
+                                                        num_parts)
+    # all2all
+    split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
+                                   axis=0)
+    send_ids = array_ops.concat(gather_ids, axis=0)
+    recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
+
+    # read embedding from dynamic variable
+    if isinstance(embedding, sok.DynamicVariable):
+      send_embed = embedding.sparse_read(
+          recv_ids, lookup_only=(not is_training))
+    else:
+      # find in subarray position
+      # 0 2 4 6 8 10 ...
+      # 1 3 5 7 9 11 ...
+      recv_ids = math_ops.cast(recv_ids / num_parts, dtypes.int64)
+      send_embed = array_ops.gather(embedding, recv_ids)
+
+    # all2all
+    recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
+    recv_embeddings = array_ops.split(
+        recv_embeddings, num_or_size_splits=split_sizes)
+    recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
+        original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
+    embeddings = math_ops.sparse_segment_sum(
+        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+  else:
+    if isinstance(embedding, sok.DynamicVariable):
+      recv_embeddings = embedding.sparse_read(
+          all_uniq_ids, lookup_only=(not is_training))
+    else:
+      recv_embeddings = array_ops.gather(embedding, all_uniq_ids)
+    embeddings = math_ops.sparse_segment_sum(
+        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+  # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
+  if isinstance(embedding, sok.DynamicVariable):
+    embed_dim = embedding._dimension
+    output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
+  else:
+    embed_dim = embedding.get_shape()[-1]
+    output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
+
+  if output_tensors is not None:
+    outputs = array_ops.split(output_tensor, num_or_size_splits=N, axis=0)
+    for output, output_id in zip(outputs, output_ids):
+      output_tensors[output_id] = array_ops.squeeze(output, axis=0)
+
+  return array_ops.reshape(
+      array_ops.transpose(output_tensor, perm=[1, 0, 2]), [-1, N * embed_dim])
+
+
 def _internal_input_layer(features,
                           feature_columns,
                           weight_collections=None,
@@ -292,24 +382,25 @@ def _internal_input_layer(features,
     return array_ops.concat(output_tensors, 1)
 
   def _get_logits_with_sok():  # pylint: disable=missing-docstring
-    assert sok is not None, 'sok is not installed'
     assert hvd is not None, 'horovod is not installed'
     builder = _LazyBuilder(features)
     output_tensors = []
     ordered_columns = []
 
     lookup_embeddings = []
-    lookup_indices = []
+    lookup_indices = None
     lookup_combiners = []
     lookup_cols = []
     lookup_output_ids = []
     lookup_wgts = []
 
     shared_weights = {}
+    dense_cnt = 0
     for column in feature_columns:
       ordered_columns.append(column)
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
+        # for features which does not require embedding
         if 'Embedding' not in str(type(column)):
           output = column._get_dense_tensor(
               builder, weight_collections, trainable=trainable)
@@ -318,7 +409,10 @@ def _internal_input_layer(features,
             cols_to_output_tensors[column] = output
           if feature_name_to_output_tensors is not None:
             feature_name_to_output_tensors[column.raw_name] = output
+          dense_cnt += 1
           continue
+
+        # for features require embedding
         num_buckets = column.categorical_column.num_buckets + hvd.size() - 1
         per_worker_buckets = num_buckets // hvd.size()
         embedding_shape = (per_worker_buckets, column.dimension)
@@ -329,6 +423,7 @@ def _internal_input_layer(features,
           else:
             with ops.device('/gpu:0'):
               if column.ev_params is not None:
+                assert sok is not None, 'sok is not installed'
                 embedding_weights = sok.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
@@ -352,6 +447,7 @@ def _internal_input_layer(features,
         else:
           with ops.device('/gpu:0'):
             if column.ev_params is not None:
+              assert sok is not None, 'sok is not installed'
               embedding_weights = sok.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
@@ -382,8 +478,20 @@ def _internal_input_layer(features,
         # SparseTensor RaggedTensor
         # features are not gathered into one, may have
         # performance issues
-        if 'sparse_fea' not in features.keys(
-        ) and 'ragged_ids' not in features.keys():
+        if 'sparse_fea' in features.keys():
+          if lookup_indices is None:
+            lookup_indices = {'sparse_fea': features['sparse_fea']}
+        elif 'ragged_ids' in features.keys():
+          if lookup_indices is None:
+            lookup_indices = {
+                'ragged_ids': features['ragged_ids'],
+                'ragged_lens': features['ragged_lens']
+            }
+            if 'ragged_wgts' in features:
+              lookup_indices['ragged_wgts'] = features['ragged_wgts']
+        else:
+          if lookup_indices is None:
+            lookup_indices = []
           with ops.device('/cpu:0'):
             sparse_tensors = column.categorical_column._get_sparse_tensors(
                 builder,
@@ -397,100 +505,49 @@ def _internal_input_layer(features,
               ops.GraphKeys.GLOBAL_VARIABLES,
               scope=variable_scope.get_variable_scope().name)
 
-    # do sok lookup
+    # do embedding parallel lookup
     if len(lookup_output_ids) > 0:
-      # first concat all the ids and unique
-      if isinstance(features, dict) and 'sparse_fea' in features.keys():
-        # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
-        all_ids, segment_lens = features['sparse_fea']
-        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
-        cumsum_lens = math_ops.cumsum(segment_lens)
-        segment_ids = array_ops.searchsorted(
-            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
-      elif isinstance(features, dict) and 'ragged_ids' in features.keys(
-      ) and 'ragged_lens' in features.keys():
-        all_ids, segment_lens = features['ragged_ids'], features['ragged_lens']
-        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
-        cumsum_lens = math_ops.cumsum(segment_lens)
-        segment_ids = array_ops.searchsorted(
-            cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+      packed_input = ('sparse_fea' in features or 'ragged_ids' in features)
+      if packed_input:
+        uniq_embed_cnt = len(set(lookup_embeddings))
+        assert uniq_embed_cnt == 1, 'only one uniq embed is support for packed inputs'
+        outputs = embedding_parallel_lookup(lookup_embeddings[0],
+                                            lookup_indices, lookup_output_ids,
+                                            is_training, output_tensors)
       else:
-        with ops.device('/cpu:0'):
-          all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
-          segment_ids = array_ops.concat(
-              [x.indices[:, 0] for x in lookup_indices], axis=0)
-        all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+        # group lookup_embeddings
+        grouped_inputs = {}
+        for embedding, lookup_indice, output_id in zip(lookup_embeddings,
+                                                       lookup_indices,
+                                                       lookup_output_ids):
+          if embedding not in grouped_inputs:
+            grouped_inputs[embedding] = {
+                'lookup_indice': [lookup_indice],
+                'output_id': [output_id]
+            }
+          else:
+            grouped_inputs[embedding]['lookup_indice'].append(lookup_indice)
+            grouped_inputs[embedding]['output_id'].append(output_id)
 
-      num_parts = hvd.size()
-      if num_parts > 1:
-        # dynamic partition
-        # from sparse_operation_kit.experiment import raw_ops
-        p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
-        gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids,
-                                                     p_assignments, num_parts)
-        original_ids = math_ops.range(array_ops.size(all_uniq_ids))
-        original_part_ids = data_flow_ops.dynamic_partition(
-            original_ids, p_assignments, num_parts)
-        # all2all
-        split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
-                                       axis=0)
-        send_ids = array_ops.concat(gather_ids, axis=0)
-        # send_ids = logging_ops.Print(send_ids, [array_ops.shape(send_ids),
-        #     array_ops.shape(p_assignments) ] +
-        #     [ array_ops.shape(x) for x in gather_ids]
-        #     , message='send_ids_dbg_%d' % num_parts)
-        recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
+        for embedding in grouped_inputs:
+          lookup_indices = grouped_inputs[embedding]['lookup_indice']
+          output_ids = grouped_inputs[embedding]['output_id']
+          outputs = embedding_parallel_lookup(embedding, lookup_indices,
+                                              output_ids, is_training,
+                                              output_tensors)
 
-        # read embedding from dynamic variable
-        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-          send_embed = lookup_embeddings[0].sparse_read(
-              recv_ids, lookup_only=(not is_training))
-        else:
-          # find in subarray position
-          # 0 2 4 6 8 10 ...
-          # 1 3 5 7 9 11 ...
-          recv_ids = recv_ids / num_parts
-          send_embed = array_ops.gather(lookup_embeddings[0], recv_ids)
-
-        # all2all
-        recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
-        recv_embeddings = array_ops.split(
-            recv_embeddings, num_or_size_splits=split_sizes)
-        recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
-            original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
-        embeddings = math_ops.sparse_segment_sum(
-            recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
-      else:
-        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-          recv_embeddings = lookup_embeddings[0].sparse_read(
-              all_uniq_ids, lookup_only=(not is_training))
-        else:
-          recv_embeddings = array_ops.gather(lookup_embeddings[0], all_uniq_ids)
-        embeddings = math_ops.sparse_segment_sum(
-            recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
-      # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
-      if isinstance(lookup_embeddings[0], sok.DynamicVariable):
-        output_tensor = array_ops.reshape(
-            embeddings,
-            [len(lookup_output_ids), -1, lookup_embeddings[0]._dimension])
-      else:
-        embed_dim = lookup_embeddings[0].get_shape()[-1]
-        output_tensor = array_ops.reshape(
-            embeddings, [len(lookup_output_ids), -1, embed_dim])
-
-      outputs = array_ops.split(
-          output_tensor, num_or_size_splits=len(lookup_output_ids), axis=0)
-      for output, output_id, col in zip(outputs, lookup_output_ids,
-                                        lookup_cols):
-        output_tensors[output_id] = output
-        if cols_to_output_tensors is not None:
-          cols_to_output_tensors[col] = output
+      for output_tensor, col in zip(output_tensors, feature_columns):
         if feature_name_to_output_tensors is not None:
-          feature_name_to_output_tensors[col.raw_name] = output
+          feature_name_to_output_tensors[col.raw_name] = output_tensor
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output_tensor
 
-      return array_ops.reshape(
-          array_ops.transpose(output_tensor, perm=[1, 0, 2]),
-          [-1, len(lookup_output_ids) * output_tensor.get_shape()[-1]])
+      if packed_input and dense_cnt == 0:
+        return outputs
+      else:
+        return array_ops.concat(output_tensors, axis=1)
+    else:
+      return array_ops.concat(output_tensors, axis=1)
 
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to

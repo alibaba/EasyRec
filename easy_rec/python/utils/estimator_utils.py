@@ -477,12 +477,12 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer = None
 
   def after_create_session(self, session, coord):
-    if not is_chief():
-      if has_sok():
-        global_step = session.run(self._global_step_tensor)
-        self._save_sok(session, global_step)
-        self._timer.update_last_triggered_step(global_step)
-      return
+    # if not is_chief():
+    #   if has_sok():
+    #     global_step = session.run(self._global_step_tensor)
+    #     self._save_sok(session, global_step)
+    #     self._timer.update_last_triggered_step(global_step)
+    #   return
 
     global_step = session.run(self._global_step_tensor)
     if self._write_graph:
@@ -642,16 +642,16 @@ class CheckpointSaverHook(CheckpointSaverHook):
     #   return
     # return
 
-    if not is_chief():
-      if has_sok():
-        stale_global_step = run_values.results
-        global_step = stale_global_step + self._steps_per_run
-        if self._timer.should_trigger_for_step(global_step):
-          logging.info('worker[%d] global_step=%d, save sok dynamic vars' %
-                       (self._task_idx, global_step))
-          self._save_sok(run_context.session, global_step)
-          self._timer.update_last_triggered_step(global_step)
-      return
+    # if not is_chief():
+    #   if has_sok():
+    #     stale_global_step = run_values.results
+    #     global_step = stale_global_step + self._steps_per_run
+    #     if self._timer.should_trigger_for_step(global_step):
+    #       logging.info('worker[%d] global_step=%d, save sok dynamic vars' %
+    #                    (self._task_idx, global_step))
+    #       self._save_sok(run_context.session, global_step)
+    #       self._timer.update_last_triggered_step(global_step)
+    #   return
 
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     stale_global_step = run_values.results
@@ -718,7 +718,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
         write_meta_graph=self._write_graph)
 
     # save sok
-    self._save_sok(session, step)
+    # self._save_sok(session, step)
 
     self._summary_writer.add_session_log(
         tf.SessionLog(
@@ -736,10 +736,10 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def end(self, session):
     global_step = session.run(self._global_step_tensor)
-    if not is_chief():
-      if has_sok():
-        self._save_sok(session, global_step)
-      return
+    # if not is_chief():
+    #   if has_sok():
+    #     self._save_sok(session, global_step)
+    #   return
 
     super(CheckpointSaverHook, self).end(session)
     if self._dense_timer is not None and \

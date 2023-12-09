@@ -29,6 +29,11 @@ try:
 except Exception:
   hvd = None
 
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -1175,6 +1180,15 @@ class TrainEvalTest(tf.test.TestCase):
   def test_horovod(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_ctr.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None or sok is None,
+                   'horovod and sok is not installed')
+  def test_sok(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/multi_tower_on_taobao_sok.config',
         self._test_dir,
         use_hvd=True)
     self.assertTrue(self._success)
