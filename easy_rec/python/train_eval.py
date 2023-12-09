@@ -162,7 +162,10 @@ if __name__ == '__main__':
       if pipeline_config.train_config.fine_tune_checkpoint:
         ds_util.cache_ckpt(pipeline_config)
 
-    if pipeline_config.train_config.train_distribute == DistributionStrategy.HorovodStrategy:
+    if pipeline_config.train_config.train_distribute in [
+        DistributionStrategy.HorovodStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy
+    ]:
       estimator_utils.init_hvd()
     elif pipeline_config.train_config.train_distribute == DistributionStrategy.SokStrategy:
       estimator_utils.init_hvd()
