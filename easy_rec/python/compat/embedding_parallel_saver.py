@@ -180,9 +180,8 @@ class EmbeddingParallelSaver(saver.Saver):
       var_name = var_name.decode('utf-8').replace('/', '__')
       filename = filename.decode('utf-8')
       sok_dir = filename + '-embedding/'
-      if gfile.Exists(sok_dir):
-        gfile.DeleteRecursively(sok_dir)
-      gfile.MakeDirs(sok_dir)
+      if not gfile.Exists(sok_dir):
+        gfile.MakeDirs(sok_dir)
       task_id = hvd.rank()
       key_file = filename + '-embedding/embed-' + var_name + '-part-%d.key' % task_id
       with gfile.GFile(key_file, 'wb') as fout:
@@ -199,6 +198,8 @@ class EmbeddingParallelSaver(saver.Saver):
           if embed_id >= hvd.size():
             gfile.DeleteRecursively(key_file)
             val_file = key_file[:-4] + '.val'
+            if gfile.Exists(val_file):
+              gfile.DeleteRecursively(val_file)
 
       return np.asarray([key_file, val_file], order='C', dtype=np.object)
 
