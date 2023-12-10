@@ -14,17 +14,26 @@ import os
 import sys
 import threading
 import time
-# import types
 import weakref
 from multiprocessing import connection
-from multiprocessing import context
 from multiprocessing.util import Finalize
 from multiprocessing.util import is_exiting
 from multiprocessing.util import register_after_fork
 from queue import Empty
 from queue import Full
 
-_ForkingPickler = context.reduction.ForkingPickler
+import six
+
+try:
+  from multiprocessing import context
+except ImportError:
+  context = None
+  pass
+
+if context is not None:
+  _ForkingPickler = context.reduction.ForkingPickler
+else:
+  _ForkingPickler = None
 
 #
 # Queue type using a pipe, buffer and thread
@@ -36,6 +45,7 @@ class Queue(object):
   _sentinel = object()
 
   def __init__(self, ctx, maxsize=0, name=''):
+    assert not six.PY2, 'python2 is not supported'
     if maxsize <= 0:
       # Can raise ImportError (see issues #3770 and #23400)
       from multiprocessing.synchronize import SEM_VALUE_MAX as maxsize
@@ -89,7 +99,7 @@ class Queue(object):
 
   def put(self, obj, block=True, timeout=None):
     if self._closed:
-      raise ValueError(f'Queue {self!r} is closed')
+      raise ValueError('Queue %s is closed' % self._name)
     if not self._sem.acquire(block, timeout):
       raise Full
 
@@ -101,7 +111,7 @@ class Queue(object):
 
   def get(self, block=True, timeout=None):
     if self._closed:
-      raise ValueError(f'Queue {self!r} is closed')
+      raise ValueError('Queue %s is closed' % self._name)
     if block and timeout is None:
       with self._rlock:
         res = self._recv_bytes()
