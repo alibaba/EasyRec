@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import ctypes
 import json
 import logging
 import os
@@ -303,9 +302,6 @@ class ProgressHook(SessionRunHook):
       if self._last_progress_cnt < 1 / self._progress_interval:
         self._progress_file.write('1.00\n')
       self._progress_file.close()
-
-
-_cudart = ctypes.CDLL('libcudart.so')
 
 
 class CheckpointSaverHook(CheckpointSaverHook):
@@ -623,36 +619,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
         % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
-    # stale_global_step = run_values.results
-    # if stale_global_step > 10 and not self._cuda_profile_start:
-    #   self._cuda_profile_start = 1
-    #   ret = _cudart.cudaProfilerStart()
-    #   if ret != 0:
-    #     logging.error('cudaProfilerStart failed')
-    #   else:
-    #     logging.info('cudaProfilerStart good')
-    #   return
-    # if stale_global_step > 20 and not self._cuda_profile_stop:
-    #   self._cuda_profile_stop = 1
-    #   ret = _cudart.cudaProfilerStop()
-    #   if ret != 0:
-    #     logging.error('cudaProfilerStop failed')
-    #   else:
-    #     logging.info('cudaProfilerStop finish')
-    #   return
-    # return
-
-    # if not is_chief():
-    #   if has_sok():
-    #     stale_global_step = run_values.results
-    #     global_step = stale_global_step + self._steps_per_run
-    #     if self._timer.should_trigger_for_step(global_step):
-    #       logging.info('worker[%d] global_step=%d, save sok dynamic vars' %
-    #                    (self._task_idx, global_step))
-    #       self._save_sok(run_context.session, global_step)
-    #       self._timer.update_last_triggered_step(global_step)
-    #   return
-
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     stale_global_step = run_values.results
     global_step = -1
