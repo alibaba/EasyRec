@@ -35,7 +35,7 @@ class Queue(object):
 
   _sentinel = object()
 
-  def __init__(self, maxsize=0, name='', *, ctx):
+  def __init__(self, ctx, maxsize=0, name=''):
     if maxsize <= 0:
       # Can raise ImportError (see issues #3770 and #23400)
       from multiprocessing.synchronize import SEM_VALUE_MAX as maxsize
