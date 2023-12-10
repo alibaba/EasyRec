@@ -27,7 +27,6 @@ import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
 import "easy_rec/python/protos/tower.proto";
 import "easy_rec/python/protos/pdn.proto";
-import "easy_rec/python/protos/ppnet.proto";
 
 // for input performance test
 message DummyModel {
@@ -93,8 +92,6 @@ message EasyRecModel {
         PLE ple = 305;
 
         RocketLaunching rocket_launching = 401;
-
-        PPNetV3 ppnet = 402;
     }
     repeated SeqAttGroupConfig seq_att_groups = 7;
     // implemented in easy_rec/python/model/easy_rec_estimator
