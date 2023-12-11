@@ -25,6 +25,7 @@ from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.utils.io_util import read_data_from_json_path
+from easy_rec.python.utils import constant
 
 TEST_DIR = './tmp/easy_rec_test'
 
@@ -600,6 +601,7 @@ def _ps_worker_distribute_eval(pipeline_config_path,
   procs = {}
   tf_config['task'] = {'type': chief_or_master, 'index': 0}
   os.environ['TF_CONFIG'] = json.dumps(tf_config)
+  os.environ[constant.SORT_COL_BY_NAME] = '1'
   set_gpu_id(gpus[0])
   train_cmd = 'python -m easy_rec.python.eval --pipeline_config_path {} --checkpoint_path {}  \
     --distribute_eval True --eval_result_path distribute_eval_result.txt'.format(
@@ -778,6 +780,9 @@ def test_distribute_eval_test(cur_eval_path, test_dir):
   difference_num = 0.00001
   for k in single_ret.keys():
     if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+      logging.error(
+          'distribute_eval difference[%.8f] large than threshold[%.8f]' %
+          (abs(single_ret[k] - distribute_ret[k]), difference_num))
       return False
   return True
 
@@ -850,7 +855,7 @@ def test_distributed_eval(pipeline_config_path,
           logging.info('terminate %s' % k)
           proc.terminate()
     if task_failed is not None:
-      logging.error('eval %s failed' % pipeline_config_path)
+      logging.error('eval %s failed[%s]' % (pipeline_config_path, task_failed))
 
   eval_success = (task_failed is None) and is_equal
   return eval_success

@@ -171,6 +171,7 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.utils import constant
 
 try:
   from sparse_operation_kit import experiment as sok
@@ -356,8 +357,12 @@ def _internal_input_layer(features,
   def _get_logits():  # pylint: disable=missing-docstring
     builder = _LazyBuilder(features)
     output_tensors = []
-    for column in feature_columns:
-      # for column in sorted(feature_columns, key=lambda x: x.name):
+
+    tmp_cols = feature_columns
+    if constant.sort_col_by_name():
+      logging.info('will sort columns[len=%d] by name' % len(tmp_cols))
+      tmp_cols = sorted(tmp_cols, key=lambda x: x.name)
+    for column in tmp_cols:
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         tensor = column._get_dense_tensor(  # pylint: disable=protected-access

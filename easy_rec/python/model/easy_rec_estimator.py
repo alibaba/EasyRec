@@ -417,11 +417,6 @@ class EasyRecEstimator(tf.estimator.Estimator):
         local_init_ops.append(
             tf.initializers.variables(incompatiable_shape_restore))
 
-      sok_vars = []
-      for tmp_var in var_list:
-        if sok is not None and isinstance(tmp_var, sok.DynamicVariable):
-          sok_vars.append(tmp_var)
-
       saver_cls = saver.Saver
       if embedding_parallel:
         saver_cls = EmbeddingParallelSaver
@@ -443,8 +438,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
           scaffold=scaffold,
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
-          increment_save_config=self.incr_save_config,
-          sok_dynamic_vars=sok_vars)
+          increment_save_config=self.incr_save_config)
       hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(

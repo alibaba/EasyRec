@@ -52,7 +52,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
-    if pipeline_config.model_config.HasField('ev_params'):
+    if pipeline_config is not None and pipeline_config.model_config.HasField(
+        'ev_params'):
       self._has_ev = True
     else:
       self._has_ev = False

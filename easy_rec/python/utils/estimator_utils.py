@@ -317,8 +317,7 @@ class CheckpointSaverHook(CheckpointSaverHook):
                listeners=None,
                write_graph=True,
                data_offset_var=None,
-               increment_save_config=None,
-               sok_dynamic_vars=None):
+               increment_save_config=None):
     """Initializes a `CheckpointSaverHook`.
 
     Args:
@@ -354,19 +353,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
     self._data_offset_var = data_offset_var
 
     self._task_idx, self._task_num = get_task_index_and_num()
-
-    if sok_dynamic_vars is not None and len(sok_dynamic_vars) > 0:
-      self._sok_dynamic_vars = sok_dynamic_vars
-      from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
-      self._dyn_export = {}
-      for dyn_var in self._sok_dynamic_vars:
-        indices, values = dynamic_variable_ops.dummy_var_export(
-            dyn_var.handle,
-            key_type=dyn_var.key_type,
-            dtype=dyn_var.handle_dtype)
-        self._dyn_export[dyn_var.name] = (indices, values)
-    else:
-      self._dyn_export = None
 
     if increment_save_config is not None:
       self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
@@ -473,13 +459,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer = None
 
   def after_create_session(self, session, coord):
-    # if not is_chief():
-    #   if has_sok():
-    #     global_step = session.run(self._global_step_tensor)
-    #     self._save_sok(session, global_step)
-    #     self._timer.update_last_triggered_step(global_step)
-    #   return
-
     global_step = session.run(self._global_step_tensor)
     if self._write_graph:
       # We do write graph and saver_def at the first call of before_run.
@@ -636,29 +615,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, run_context.session)
 
-  def _save_sok(self, session, step):
-    if self._dyn_export is None:
-      return
-
-    # get self._dyn_export and save
-    dyn_save_dir = os.path.join(self._checkpoint_dir,
-                                'model.ckpt-%d-sok' % step)
-    gfile.MakeDirs(dyn_save_dir)
-    dyn_idx_vals = session.run(self._dyn_export)
-    for var_name in dyn_idx_vals:
-      idx, vals = dyn_idx_vals[var_name]
-      var_name = var_name.replace('/', '__')
-      dyn_save_path_keys = os.path.join(
-          dyn_save_dir, 'embed-%s-part-%d.keys' % (var_name, self._task_idx))
-      with gfile.GFile(dyn_save_path_keys, 'wb') as fout:
-        fout.write(idx.tobytes())
-      dyn_save_path_vals = os.path.join(
-          dyn_save_dir, 'embed-%s-part-%d.vals' % (var_name, self._task_idx))
-      with gfile.GFile(dyn_save_path_vals, 'wb') as fout:
-        fout.write(vals.tobytes())
-      logging.info('save %s[len=%d] to %s and %s' %
-                   (var_name, len(idx), dyn_save_path_keys, dyn_save_path_vals))
-
   def _save(self, session, step):
     """Saves the latest checkpoint, returns should_stop."""
     logging.info('Saving checkpoints for %d into %s.', step, self._save_path)
@@ -683,9 +639,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
         global_step=step,
         write_meta_graph=self._write_graph)
 
-    # save sok
-    # self._save_sok(session, step)
-
     self._summary_writer.add_session_log(
         tf.SessionLog(
             status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),
@@ -702,11 +655,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
   def end(self, session):
     global_step = session.run(self._global_step_tensor)
-    # if not is_chief():
-    #   if has_sok():
-    #     self._save_sok(session, global_step)
-    #   return
-
     super(CheckpointSaverHook, self).end(session)
     if self._dense_timer is not None and \
         global_step != self._dense_timer.last_triggered_step():
