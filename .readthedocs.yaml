@@ -10,7 +10,6 @@ sphinx:
   configuration: docs/source/conf.py
 
 python:
-  version: "3.7"
   install:
   - requirements: requirements/runtime.txt
   - requirements: requirements/docs.txt
