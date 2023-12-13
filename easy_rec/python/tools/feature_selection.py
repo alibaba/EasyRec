@@ -106,7 +106,11 @@ class VariationalDropoutFS:
       group_name = feature_group.group_name
 
       logit_p_name = 'logit_p' if group_name == 'all' else 'logit_p_%s' % group_name
-      logit_p = reader.get_tensor(logit_p_name)
+      try:
+        logit_p = reader.get_tensor(logit_p_name)
+      except Exception:
+        print('get `logit_p` failed, try to get `backbone/logit_p`')
+        logit_p = reader.get_tensor('backbone/' + logit_p_name)
       feature_dims_importance = tf.sigmoid(logit_p)
       with tf.Session() as sess:
         feature_dims_importance = feature_dims_importance.eval(session=sess)
