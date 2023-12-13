@@ -156,6 +156,8 @@ message DatasetConfig {
         optional string user_define_fn_path = 7;
         // output field type of user-defined function.
         optional FieldType user_define_fn_res_type = 8;
+        // ignore value
+        optional string ignore_val = 9;
     }
 
     // set auto_expand_input_fields to true to
@@ -223,6 +225,7 @@ message DatasetConfig {
         HiveInput = 16;
         HiveRTPInput = 17;
         HiveParquetInput = 18;
+        ParquetInputV3 = 21;
         CriteoInput = 1001;
     }
     required InputType input_type = 10;
@@ -297,5 +300,5 @@ message DatasetConfig {
     }
     optional uint32 eval_batch_size = 1001 [default = 4096];
 
-
+    optional bool drop_remainder = 1002 [default = false];
 }

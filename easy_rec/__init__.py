@@ -12,14 +12,14 @@ curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
-logging.basicConfig(
-    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
-
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
+  import tensorflow as tf
+  from tensorflow.python.platform import tf_logging
+  tf_logging.set_verbosity(tf_logging.INFO)
+
   if platform.system() == 'Linux':
     ops_dir = os.path.join(curr_dir, 'python/ops')
-    import tensorflow as tf
     if 'PAI' in tf.__version__:
       ops_dir = os.path.join(ops_dir, '1.12_pai')
     elif tf.__version__.startswith('1.12'):
@@ -33,6 +33,9 @@ if 'PROCESSOR_TEST' not in os.environ:
       ops_dir = None
   else:
     ops_dir = None
+
+  logging.basicConfig(
+      level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
   from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
   from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402

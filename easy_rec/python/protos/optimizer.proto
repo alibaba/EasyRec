@@ -68,7 +68,8 @@ message AdamAsyncWOptimizer {
 // Configuration message for the AdagradOptimizer
 // See: https://www.tensorflow.org/api_docs/python/tf/train/AdagradOptimizer
 message AdagradOptimizer {
-    optional LearningRate learning_rate = 1;
+  optional LearningRate learning_rate = 1;
+  optional float initial_accumulator_value = 2 [default = 0.1];
 }
 
 // Only available on pai-tf, which has better performance than AdamOptimizer

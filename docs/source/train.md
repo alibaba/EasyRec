@@ -20,6 +20,41 @@
   }
   ```
 
+  - 多优化器支持:
+    - 可以配置两个optimizer, 分别对应embedding权重和dense权重;
+    - 实现参考EasyRecModel.get_grouped_vars和multi_optimizer.MultiOptimizer;
+    - 示例(samples/model_config/deepfm_combo_on_avazu_embed_adagrad.config):
+      ```protobuf
+      train_config {
+        ...
+         optimizer_config {  # for embedding_weights
+           adagrad_optimizer {
+             learning_rate {
+               constant_learning_rate {
+                 learning_rate: 0.05
+               }
+             }
+             initial_accumulator_value: 1.0
+           }
+         }
+
+         optimizer_config: {  # for dense weights
+           adam_optimizer: {
+             learning_rate: {
+               exponential_decay_learning_rate {
+                 initial_learning_rate: 0.0001
+                 decay_steps: 10000
+                 decay_factor: 0.5
+                 min_learning_rate: 0.0000001
+               }
+             }
+           }
+         }
+      ```
+    - Note: [WideAndDeep](./models/wide_and_deep.md)模型的optimizer设置:
+      - 设置两个optimizer时, 第一个optimizer仅用于wide参数;
+      - 如果要给deep embedding单独设置optimizer, 需要设置3个optimizer.
+
 - sync_replicas: true  # 是否同步训练，默认是false
 
   - 使用SyncReplicasOptimizer进行分布式训练(同步模式)

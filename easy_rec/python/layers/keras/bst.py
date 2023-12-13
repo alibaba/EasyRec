@@ -22,7 +22,7 @@ class BST(Layer):
   def encode(self, seq_input, max_position):
     seq_fea = multihead_cross_attention.embedding_postprocessor(
         seq_input,
-        position_embedding_name=self.name + '/position_embeddings',
+        position_embedding_name=self.name,
         max_position_embeddings=max_position,
         reuse_position_embedding=self.reuse)
 
@@ -91,8 +91,8 @@ class BST(Layer):
           name=self.name + '/seq_project',
           reuse=self.reuse)
 
-    if target is not None and self.config.target_item_position in ('head',
-                                                                   'tail'):
+    keep_target = self.config.target_item_position in ('head', 'tail')
+    if target is not None and keep_target:
       target_size = target.shape.as_list()[-1]
       assert seq_embed_size == target_size, 'the embedding size of sequence and target item is not equal' \
                                             ' in feature group:' + self.name
@@ -111,6 +111,8 @@ class BST(Layer):
         seq_input = tf.concat([target, seq_input], axis=1)
       else:
         seq_input = tf.concat([seq_input, target], axis=1)
+      max_position += 1
+    elif self.config.reserve_target_position:
       max_position += 1
 
     with tf.control_dependencies([valid_len]):
