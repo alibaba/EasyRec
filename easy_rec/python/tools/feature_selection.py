@@ -108,7 +108,7 @@ class VariationalDropoutFS:
       logit_p_name = 'logit_p' if group_name == 'all' else 'logit_p_%s' % group_name
       try:
         logit_p = reader.get_tensor(logit_p_name)
-      except Exception as e:
+      except Exception:
         print('get `logit_p` failed, try to get `backbone/logit_p`')
         logit_p = reader.get_tensor('backbone/' + logit_p_name)
       feature_dims_importance = tf.sigmoid(logit_p)
