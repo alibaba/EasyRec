@@ -171,7 +171,7 @@ class EnhancedInputLayer(object):
           ln_name = self._group_name + 'f_%d' % i
           fea = layer_norm(fea, name=ln_name, reuse=self._reuse)
         if do_dropout and output_feature_list:
-          fea = self.dropout.apply(fea, training=training)
+          fea = self.dropout.call(fea, training=training)
         if do_feature_dropout:
           fea = tf.div(fea, keep_prob) * mask[i]
         feature_list[i] = fea
@@ -179,7 +179,9 @@ class EnhancedInputLayer(object):
         features = tf.concat(feature_list, axis=-1)
 
     if do_dropout and not do_feature_dropout:
-      features = self.dropout.apply(features, training=training)
+      features = self.dropout.call(features, training=training)
+    if features.shape.ndims == 3 and int(features.shape[0]) == 1:
+      features = tf.squeeze(features, axis=0)
 
     if config.only_output_feature_list:
       return feature_list
