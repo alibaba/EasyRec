@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import collections
 import logging
+import sys
 
 import tensorflow as tf
 from tensorflow.python.ops import partitioned_variables
@@ -281,11 +282,10 @@ class FeatureColumnParser(object):
           vocabulary_size=self._get_vocab_size(config.vocab_file),
           feature_name=feature_name)
     else:
+      use_ev = self._global_ev_params or config.HasField('ev_params')
+      num_buckets = sys.maxsize if use_ev else config.num_buckets
       fc = feature_column.categorical_column_with_identity(
-          feature_name,
-          config.num_buckets,
-          default_value=0,
-          feature_name=feature_name)
+          feature_name, num_buckets, default_value=0, feature_name=feature_name)
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)
@@ -325,11 +325,10 @@ class FeatureColumnParser(object):
           vocabulary_size=self._get_vocab_size(config.vocab_file),
           feature_name=feature_name)
     else:
+      use_ev = self._global_ev_params or config.HasField('ev_params')
+      num_buckets = sys.maxsize if use_ev else config.num_buckets
       tag_fc = feature_column.categorical_column_with_identity(
-          feature_name,
-          config.num_buckets,
-          default_value=0,
-          feature_name=feature_name)
+          feature_name, num_buckets, default_value=0, feature_name=feature_name)
 
     if len(config.input_names) > 1:
       tag_fc = feature_column.weighted_categorical_column(
@@ -503,9 +502,11 @@ class FeatureColumnParser(object):
             vocabulary_size=self._get_vocab_size(config.vocab_file),
             feature_name=feature_name)
       else:
+        use_ev = self._global_ev_params or config.HasField('ev_params')
+        num_buckets = sys.maxsize if use_ev else config.num_buckets
         fc = sequence_feature_column.sequence_categorical_column_with_identity(
             feature_name,
-            config.num_buckets,
+            num_buckets,
             default_value=0,
             feature_name=feature_name)
     else:  # raw feature

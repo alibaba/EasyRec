@@ -14,8 +14,9 @@ try:
   from tensorflow.python.data.experimental.ops import dataframe
   from tensorflow.python.ops import gen_ragged_conversion_ops
   from tensorflow.python.ops.work_queue import WorkQueue
+  _has_deep_rec = True
 except Exception:
-  logging.error('You should install DeepRec first.')
+  _has_deep_rec = False
   pass
 
 
@@ -30,6 +31,8 @@ class ParquetInputV3(Input):
                check_mode=False,
                pipeline_config=None,
                **kwargs):
+    if not _has_deep_rec:
+      raise RuntimeError('You should install DeepRec first.')
     super(ParquetInputV3,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode, pipeline_config)
@@ -43,9 +46,10 @@ class ParquetInputV3(Input):
     self._true_type_dict = {}
     for fc in self._feature_configs:
       if fc.feature_type in [fc.IdFeature, fc.TagFeature, fc.SequenceFeature]:
-        if fc.hash_bucket_size > 0:
+        if fc.hash_bucket_size > 0 or len(
+            fc.vocab_list) > 0 or fc.HasField('vocab_file'):
           self._true_type_dict[fc.input_names[0]] = tf.string
-        elif fc.num_buckets > 0:
+        else:
           self._true_type_dict[fc.input_names[0]] = tf.int64
         if len(fc.input_names) > 1:
           self._true_type_dict[fc.input_names[1]] = tf.float32
@@ -65,10 +69,10 @@ class ParquetInputV3(Input):
     ignore_value = self._ignore_val_dict.get(name, None)
     if ignore_value:
       if isinstance(value, tf.SparseTensor):
-        mask = tf.equal(value.values, ignore_value)
+        indices = tf.where(tf.equal(value.values, ignore_value))
         value = tf.SparseTensor(
-            tf.boolean_mask(value.indices, mask),
-            tf.boolean_mask(value.values, mask), value.dense_shape)
+            tf.gather_nd(value.indices, indices),
+            tf.gather_nd(value.values, indices), value.dense_shape)
       elif isinstance(value, tf.Tensor):
         indices = tf.where(tf.not_equal(value, ignore_value), name='indices')
         value = tf.SparseTensor(
