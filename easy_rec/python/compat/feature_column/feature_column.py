@@ -377,9 +377,9 @@ def _internal_input_layer(features,
         lookup_output_ids.append(output_id)
         lookup_cols.append(column)
         lookup_combiners.append(column.combiner)
-        # required by sok
-        if 'DynamicVariable' not in str(type(embedding_weights)):
-          embedding_weights.target_gpu = -1
+        # # required by sok
+        # if 'DynamicVariable' not in str(type(embedding_weights)):
+        #   embedding_weights.target_gpu = -1
         # SparseTensor RaggedTensor
         # features are not gathered into one, may have
         # performance issues

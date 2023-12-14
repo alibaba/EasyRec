@@ -28,6 +28,8 @@ from tensorflow.python.ops.resource_variable_ops import variable_accessed
 
 dynamic_variable_count = 0
 
+_resource_var_from_proto = ResourceVariable.from_proto
+
 
 class DynamicVariable(ResourceVariable):
   """Abbreviated as ``sok.experiment.DynamicVariable``.
@@ -90,11 +92,41 @@ class DynamicVariable(ResourceVariable):
                key_type=None,
                dtype=None,
                mode=None,
+               variable_def=None,
+               import_scope=None,
                **kwargs):
+    self._indices = None
+    if variable_def is not None:
+      super(DynamicVariable, self)._init_from_proto(
+          variable_def, import_scope=import_scope, validate_shape=False)
+      g = ops.get_default_graph()
+      handle = g.as_graph_element(
+          ops.prepend_name_scope(
+              variable_def.variable_name, import_scope=import_scope),
+          allow_operation=False)
+      self._dimension = handle.op.get_attr('shape').dim[-1].size
+      self._key_type = handle.op.get_attr('key_type')
+      self._handle_type = handle.op.get_attr('dtype')
+      self._mode = None
+      self._config = {}
+      self._name = variable_def.variable_name.split(':')[0]
+      self._trainable = variable_def.trainable
+      self._dummy_handle = handle
+      self._handle = handle
+
+      # init op
+      init_op = g.as_graph_element(variable_def.initializer_name)
+      self._initializer_op = init_op
+
+      init_tf = init_op.control_inputs[0]
+      # init_dummy = init_op.control_inputs[1]
+
+      self._tf_handle = init_tf.inputs[0]
+      return
+
     self._key_type = key_type if key_type is not None else tf.int64
     self._handle_dtype = dtype if dtype is not None else tf.float32
     self._dimension = dimension
-    self._indices = None
     self._mode = mode
     self._config = json.dumps(kwargs)
     self._config_dict = kwargs
@@ -244,16 +276,16 @@ class DynamicVariable(ResourceVariable):
   def config_dict(self):
     return self._config_dict
 
-  @property
-  def target_gpu(self):
-    if self._mode is not None and self._mode[:len('localized')] == 'localized':
-      target_gpu = int(self._mode.split(':')[1])
-      if target_gpu >= num_gpus():
-        raise RuntimeError(
-            'There are only %d GPU(s), cannot put embedding table on %dth(zero-indexed) GPU.'
-            % (num_gpus(), target_gpu))
-      return target_gpu
-    return -1
+  # @property
+  # def target_gpu(self):
+  #   if self._mode is not None and self._mode[:len('localized')] == 'localized':
+  #     target_gpu = int(self._mode.split(':')[1])
+  #     if target_gpu >= num_gpus():
+  #       raise RuntimeError(
+  #           'There are only %d GPU(s), cannot put embedding table on %dth(zero-indexed) GPU.'
+  #           % (num_gpus(), target_gpu))
+  #     return target_gpu
+  #   return -1
 
   @property
   def mode(self):
@@ -335,8 +367,12 @@ class DynamicVariable(ResourceVariable):
     # raise NotImplementedError("to_proto() is not supported.")
 
   @staticmethod
-  def from_proto(*args, **kwargs):
-    return ResourceVariable.from_proto(*args, **kwargs)
+  def from_proto(variable_def, import_scope=None):
+    if '/DummyVarHandle' in variable_def.variable_name:
+      return DynamicVariable(
+          dimension=0, variable_def=variable_def, import_scope=import_scope)
+    else:
+      return _resource_var_from_proto(variable_def, import_scope)
     # raise NotImplementedError("from_proto() is not supported.")
 
   def set_shape(self, *args, **kwargs):
@@ -440,6 +476,8 @@ class DynamicVariable(ResourceVariable):
       return self._base.__int__(*args, **kwargs)
     raise NotImplementedError('__int__() is not supported in dynamic mode.')
 
+
+ResourceVariable.from_proto = DynamicVariable.from_proto
 
 # @tf.RegisterGradient("DummyVarSparseRead")
 # def _SparseReadGrad(op, grad):
