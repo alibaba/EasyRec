@@ -19,6 +19,7 @@ try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
   from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import dynamic_variable
 except Exception:
   dynamic_variable_ops = None
   sok = None
@@ -57,7 +58,7 @@ class SaverV2(saver.Saver):
       tf_vars = var_list
     else:
       for var in var_list:
-        if isinstance(var, sok.DynamicVariable):
+        if isinstance(var, dynamic_variable.DynamicVariable):
           self._sok_vars.append(var)
         else:
           tf_vars.append(var)
@@ -147,7 +148,9 @@ class SaverV2(saver.Saver):
       # load data from the model
       restore_ops = []
       for sok_var in self._sok_vars:
-        restore_ops.append(self._load_sok_embedding(sok_var))
+        tmp_assign = self._load_sok_embedding(sok_var)
+        restore_ops.append(tmp_assign)
+        # sok_var._initializer_op = tmp_assign
       old_restore_op = ops.get_default_graph().get_operation_by_name(
           self.saver_def.restore_op_name)
       restore_ops.append(old_restore_op)

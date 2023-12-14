@@ -170,6 +170,7 @@ from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
+from easy_rec.python.compat import dynamic_variable
 from easy_rec.python.compat.feature_column import utils as fc_utils
 
 try:
@@ -329,7 +330,7 @@ def _internal_input_layer(features,
           else:
             with ops.device('/gpu:0'):
               if column.ev_params is not None:
-                embedding_weights = sok.DynamicVariable(
+                embedding_weights = dynamic_variable.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random {"stddev":0.0025}',  # column.initializer,
@@ -352,7 +353,7 @@ def _internal_input_layer(features,
         else:
           with ops.device('/gpu:0'):
             if column.ev_params is not None:
-              embedding_weights = sok.DynamicVariable(
+              embedding_weights = dynamic_variable.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
                   initializer='random {"stddev":0.0025}',  # column.initializer,
@@ -442,7 +443,7 @@ def _internal_input_layer(features,
         recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
         # read embedding from dynamic variable
-        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+        if isinstance(lookup_embeddings[0], dynamic_variable.DynamicVariable):
           send_embed = lookup_embeddings[0].sparse_read(
               recv_ids, lookup_only=(not is_training))
         else:
@@ -461,7 +462,7 @@ def _internal_input_layer(features,
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       else:
-        if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+        if isinstance(lookup_embeddings[0], dynamic_variable.DynamicVariable):
           recv_embeddings = lookup_embeddings[0].sparse_read(
               all_uniq_ids, lookup_only=(not is_training))
         else:
@@ -469,7 +470,7 @@ def _internal_input_layer(features,
         embeddings = math_ops.sparse_segment_sum(
             recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
       # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
-      if isinstance(lookup_embeddings[0], sok.DynamicVariable):
+      if isinstance(lookup_embeddings[0], dynamic_variable.DynamicVariable):
         output_tensor = array_ops.reshape(
             embeddings,
             [len(lookup_output_ids), -1, lookup_embeddings[0]._dimension])
