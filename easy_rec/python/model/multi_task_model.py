@@ -10,6 +10,7 @@ from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.loss_pb2 import LossType
+from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -188,7 +189,8 @@ class MultiTaskModel(RankModel):
       else:
         return tf.exp(-uncertainty) * value + 0.5 * uncertainty
     else:
-      raise ValueError('Unsupported loss weight strategy: ' + strategy.Name)
+      strategy_name = EasyRecModel.LossWeightStrategy.Name(strategy)
+      raise ValueError('Unsupported loss weight strategy: ' + strategy_name)
 
   def build_loss_graph(self):
     """Build loss graph for multi task model."""
