@@ -317,7 +317,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               saveable_objects.append(s)
           init_op = saveable_objects[0].restore([ckpt_path], None)
           part_var._initializer_op = init_op
-      elif isinstance(variable, sok.DynamicVariable):
+      elif sok is not None and isinstance(variable, sok.DynamicVariable):
         print('restore dynamic_variable %s' % variable_name)
         keys, vals = load_embed_lib.load_kv_embed(
             task_index=hvd.rank(),
