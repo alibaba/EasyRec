@@ -70,10 +70,8 @@ class ParquetPredictor(Predictor):
     return out_dict
 
   def _get_reserved_cols(self, reserved_cols):
-    if reserved_cols == 'ALL_COLUMNS':
-      return reserved_cols
-    else:
-      return [x.strip() for x in reserved_cols.split(',')]
+    # already parsed in _get_dataset
+    return self._reserved_cols
 
   def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
                    slice_id):
@@ -81,8 +79,8 @@ class ParquetPredictor(Predictor):
         self.pipeline_config)
 
     kwargs = {}
-    if self._reserved_cols is not None and len(self._reserved_cols) > 0:
-      if self._reserved_cols == 'ALL_COLUMNS':
+    if self._reserved_args is not None and len(self._reserved_args) > 0:
+      if self._reserved_args == 'ALL_COLUMNS':
         parquet_file = gfile.Glob(input_path.split(',')[0])[0]
         # gfile not supported, read_parquet requires random access
         all_data = pd.read_parquet(parquet_file)
@@ -93,6 +91,9 @@ class ParquetPredictor(Predictor):
         kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
             all_cols, parquet_file)
       else:
+        self._reserved_cols = [
+            x.strip() for x in self._reserved_args.split(',') if x.strip() != ''
+        ]
         kwargs['reserve_fields'] = self._reserved_cols
         parquet_file = gfile.Glob(input_path.split(',')[0])[0]
         kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(

@@ -463,14 +463,17 @@ class Predictor(PredictorInterface):
 
     with tf.Graph().as_default(), tf.Session() as sess:
       num_parallel_calls = 8
-      self._reserved_cols = self._get_reserved_cols(reserved_cols)
+      self._reserved_args = reserved_cols
       dataset = self._get_dataset(input_path, num_parallel_calls, batch_size,
                                   slice_num, slice_id)
       dataset = dataset.map(
           self._parse_line, num_parallel_calls=num_parallel_calls)
-      # iterator = dataset.make_one_shot_iterator()
-      iterator = tf.data.make_one_shot_iterator(dataset)
+      if hasattr(tf.data, 'make_one_shot_iterator'):
+        iterator = tf.data.make_one_shot_iterator(dataset)
+      else:
+        iterator = dataset.make_one_shot_iterator()
       all_dict = iterator.get_next()
+      self._reserved_cols = self._get_reserved_cols(reserved_cols)
       input_names = self._predictor_impl.input_names
       table_writer = self._get_writer(output_path, slice_id)
 
