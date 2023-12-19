@@ -79,6 +79,12 @@ class OdpsInputV3(Input):
         for row_id, one_data in enumerate(
             reader.read(self._data_config.batch_size)):
           for col_id in range(len(record_defaults)):
+            print('first_batch_num, col_id = ', col_id, ', type = ',
+                  type(one_data[col_id]), ', data = ', one_data[col_id])
+            if isinstance(one_data[col_id], bytes):
+              one_data[col_id] = one_data[col_id].decode('utf-8')
+            print('second_batch_num, col_id = ', col_id, ', type = ',
+                  type(one_data[col_id]), ', data = ', one_data[col_id])
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
         yield tuple(batch_data_np)
@@ -86,6 +92,12 @@ class OdpsInputV3(Input):
         batch_data_np = [x[:res_num] for x in batch_defaults]
         for row_id, one_data in enumerate(reader.read(res_num)):
           for col_id in range(len(record_defaults)):
+            print('first_res_num, col_id = ', col_id, ', type = ',
+                  type(one_data[col_id]), ', data = ', one_data[col_id])
+            if isinstance(one_data[col_id], bytes):
+              one_data[col_id] = one_data[col_id].decode('utf-8')
+            print('second_res_num, col_id = ', col_id, ', type = ',
+                  type(one_data[col_id]), ', data = ', one_data[col_id])
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
         yield tuple(batch_data_np)
