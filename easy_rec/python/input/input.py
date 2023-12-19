@@ -438,8 +438,13 @@ class Input(six.with_metaclass(_meta_type, object)):
       if fc.HasField('kv_separator'):
         indices = parsed_dict[feature_name].indices
         tmp_kvs = parsed_dict[feature_name].values
+        print('tmp_kvs = ', tmp_kvs)
+        tmp_kvs = tf.Print(tmp_kvs, [tmp_kvs], message='print_tag_value=')
         tmp_kvs = tf.string_split(tmp_kvs, fc.kv_separator, skip_empty=False)
-        tmp_kvs = tf.reshape(tmp_kvs.values, [-1, 2])
+        tmp_value = tmp_kvs.values
+        tmp_value = tf.Print(
+            tmp_value, [tmp_value], message='print_tag_2_value=')
+        tmp_kvs = tf.reshape(tmp_value, [-1, 2])
         tmp_ks, tmp_vs = tmp_kvs[:, 0], tmp_kvs[:, 1]
 
         check_list = [
