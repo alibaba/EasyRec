@@ -91,6 +91,10 @@ class OdpsInputV3(Input):
                   second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
+              print('here0, batch_data_np = ', batch_data_np)
+              one_data[col_id] = one_data[col_id].decode('utf-8')
+              batch_data_np[col_id][row_id] = one_data[col_id]
+              print('here1, batch_data_np = ', batch_data_np)
             print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       if res_num > 0:
@@ -109,6 +113,10 @@ class OdpsInputV3(Input):
                   second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
+              print('here00, batch_data_np = ', batch_data_np)
+              one_data[col_id] = one_data[col_id].decode('utf-8')
+              batch_data_np[col_id][row_id] = one_data[col_id]
+              print('here11, batch_data_np = ', batch_data_np)
             print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       reader.close()
