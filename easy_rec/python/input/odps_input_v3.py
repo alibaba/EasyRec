@@ -91,6 +91,7 @@ class OdpsInputV3(Input):
                   second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
+            print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       if res_num > 0:
         batch_data_np = [x[:res_num] for x in batch_defaults]
@@ -108,6 +109,7 @@ class OdpsInputV3(Input):
                   second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
+            print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       reader.close()
     logging.info('finish epoch[%d]' % self._num_epoch)
