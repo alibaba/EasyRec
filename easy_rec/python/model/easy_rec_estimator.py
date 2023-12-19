@@ -439,7 +439,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
           increment_save_config=self.incr_save_config)
-      hooks.append(saver_hook)
+      if estimator_utils.is_chief() or embedding_parallel:
+        hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(
             basic_session_run_hooks.StepCounterHook(

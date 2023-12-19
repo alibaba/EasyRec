@@ -52,6 +52,12 @@ try:
 except Exception:
   hvd = None
 
+try:
+  from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import sok_optimizer
+except Exception:
+  sok = None
+
 OPTIMIZER_CLS_NAMES = {
     'Adagrad':
         train.AdagradOptimizer,
@@ -253,12 +259,15 @@ def optimize_loss(loss,
       if not isinstance(opt, optimizer_.Optimizer):
         raise ValueError('Unrecognized optimizer: function should return '
                          'subclass of Optimizer. Got %s.' % str(opt))
-    else:
+    elif isinstance(optimizer, sok_optimizer.OptimizerWrapperV1) or \
+        isinstance(optimizer, sok_optimizer.OptimizerWrapperV2):
       opt = optimizer
-      # raise ValueError('Unrecognized optimizer: should be string, '
-      #                  'subclass of Optimizer, instance of '
-      #                  'subclass of Optimizer or function with one argument. '
-      #                  'Got %s.' % str(optimizer))
+    else:
+      raise ValueError('Unrecognized optimizer: should be string, '
+                       'subclass of Optimizer, instance of '
+                       'subclass of Optimizer or function with one argument. '
+                       'Got %s[type=%s].' %
+                       (str(optimizer), str(type(optimizer))))
 
     # All trainable variables, if specific variables are not specified.
     if variables is None:
@@ -271,7 +280,7 @@ def optimize_loss(loss,
         colocate_gradients_with_ops=colocate_gradients_with_ops)
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
-      if not (estimator_utils.has_hvd() and embedding_parallel):
+      if not embedding_parallel:
         # embedding parameters not partitioned
         reduced_grads = []
         for g, v in gradients:
@@ -316,7 +325,8 @@ def optimize_loss(loss,
     # Optionally clip gradients by global norm.
     if isinstance(clip_gradients, float):
       # gradients = _clip_gradients_by_norm(gradients, clip_gradients)
-      sparse_norm, dense_norm, grad_norm = _get_grad_norm(gradients)
+      sparse_norm, dense_norm, grad_norm = _get_grad_norm(
+          gradients, embedding_parallel)
       summary.scalar('global_norm/sparse_grad', sparse_norm)
       summary.scalar('global_norm/dense_grad', dense_norm)
       summary.scalar('global_norm/gradient_norm', grad_norm)
@@ -392,12 +402,12 @@ def optimize_loss(loss,
     return train_tensor
 
 
-def _get_grad_norm(grads_and_vars):
+def _get_grad_norm(grads_and_vars, embedding_parallel=False):
   sparse_norms = []
   dense_norms = []
   for grad, var in grads_and_vars:
     if isinstance(grad, indexed_slices.IndexedSlices):
-      if hvd is not None:
+      if embedding_parallel and hvd is not None and hvd.size() > 1:
         sparse_norms.append(
             hvd.allreduce(
                 gen_nn_ops.l2_loss(grad.values),
