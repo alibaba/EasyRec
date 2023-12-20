@@ -147,14 +147,9 @@ def create_pipeline_proto_from_configs(configs):
   Returns:
     A fully populated pipeline_pb2.EasyRecConfig.
   """
+  config_json_str = json.dumps(configs)
   pipeline_config = pipeline_pb2.EasyRecConfig()
-  pipeline_config.model.CopyFrom(configs['model'])
-  pipeline_config.train_config.CopyFrom(configs['train_config'])
-  pipeline_config.train_input_reader.CopyFrom(configs['train_input_config'])
-  pipeline_config.eval_config.CopyFrom(configs['eval_config'])
-  pipeline_config.eval_input_reader.CopyFrom(configs['eval_input_config'])
-  if 'graph_rewriter_config' in configs:
-    pipeline_config.graph_rewriter.CopyFrom(configs['graph_rewriter_config'])
+  json_format.Parse(config_json_str, pipeline_config)
   return pipeline_config
 
 

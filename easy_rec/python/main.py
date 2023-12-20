@@ -269,7 +269,6 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   Returns:
     None, the model will be saved into pipeline_config.model_dir
   """
-  assert gfile.Exists(pipeline_config_path), 'pipeline_config_path not exists'
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
 
