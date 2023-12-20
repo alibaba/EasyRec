@@ -423,10 +423,7 @@ class Input(six.with_metaclass(_meta_type, object)):
   def _parse_tag_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]
     feature_name = fc.feature_name if fc.HasField('feature_name') else input_0
-    print('field_dict = ', field_dict, ', input_0 = ', input_0, ', value = ',
-          field_dict[input_0])
     field = field_dict[input_0]
-    field = tf.Print(field, [field], message='field=')
     # Construct the output of TagFeature according to the dimension of field_dict.
     # When the input field exceeds 2 dimensions, convert TagFeature to 2D output.
     if len(field.get_shape()) < 2 or field.get_shape()[-1] == 1:
