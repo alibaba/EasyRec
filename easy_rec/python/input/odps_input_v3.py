@@ -4,7 +4,6 @@
 import logging
 import sys
 
-import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
@@ -72,52 +71,22 @@ class OdpsInputV3(Input):
       batch_num = int(total_records_num / self._data_config.batch_size)
       res_num = total_records_num - batch_num * self._data_config.batch_size
       batch_defaults = [
-          np.array([x] * self._data_config.batch_size) for x in record_defaults
+          [x] * self._data_config.batch_size for x in record_defaults
       ]
       for batch_id in range(batch_num):
         batch_data_np = [x.copy() for x in batch_defaults]
         for row_id, one_data in enumerate(
             reader.read(self._data_config.batch_size)):
           for col_id in range(len(record_defaults)):
-            print('first_batch_num, col_id = ', col_id, ', type = ',
-                  type(one_data[col_id]), ', data = #', one_data[col_id], '#')
-            if isinstance(one_data[col_id], bytes):
-              one_data[col_id] = one_data[col_id].decode('utf-8')
-            print('second_batch_num, col_id = ', col_id, ', type = ',
-                  type(one_data[col_id]), ', data = #', one_data[col_id], '#')
-            first_split = one_data[col_id].split(',')
-            second_split = first_split[0].split(':')
-            print('first_split = ', first_split, ', second_split = ',
-                  second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
-              print('here0, batch_data_np = ', batch_data_np)
-              one_data[col_id] = one_data[col_id].decode('utf-8')
-              batch_data_np[col_id][row_id] = one_data[col_id]
-              print('here1, batch_data_np = ', batch_data_np)
-            print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       if res_num > 0:
         batch_data_np = [x[:res_num] for x in batch_defaults]
         for row_id, one_data in enumerate(reader.read(res_num)):
           for col_id in range(len(record_defaults)):
-            print('first_res_num, col_id = ', col_id, ', type = ',
-                  type(one_data[col_id]), ', data = #', one_data[col_id], '#')
-            if isinstance(one_data[col_id], bytes):
-              one_data[col_id] = one_data[col_id].decode('utf-8')
-            print('second_res_num, col_id = ', col_id, ', type = ',
-                  type(one_data[col_id]), ', data = #', one_data[col_id], '#')
-            first_split = one_data[col_id].split(',')
-            second_split = first_split[0].split(':')
-            print('first_split = ', first_split, ', second_split = ',
-                  second_split)
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
-              print('here00, batch_data_np = ', batch_data_np)
-              one_data[col_id] = one_data[col_id].decode('utf-8')
-              batch_data_np[col_id][row_id] = one_data[col_id]
-              print('here11, batch_data_np = ', batch_data_np)
-            print('batch_data_np = ', batch_data_np)
         yield tuple(batch_data_np)
       reader.close()
     logging.info('finish epoch[%d]' % self._num_epoch)
