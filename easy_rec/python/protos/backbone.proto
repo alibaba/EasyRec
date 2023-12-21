@@ -15,6 +15,8 @@ message InputLayer {
     optional bool output_seq_and_normal_feature = 8;
     optional uint32 wide_output_dim = 9;
     optional bool concat_seq_feature = 10 [default = true];
+    optional bool do_bernoulli_mask = 11 [default = false];
+    optional float bernoulli_mask_rate = 12 [default = 0.5];
 }
 
 message Lambda {

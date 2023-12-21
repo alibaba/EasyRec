@@ -22,8 +22,7 @@ ODPSCMD=odpscmd
 mode=0
 odps_config=""
 
-is_tf15=0
-while getopts 'V:C:OGc:D' OPT; do
+while getopts 'V:C:OGc:' OPT; do
     case $OPT in
         V)
             VERSION="$OPTARG";;
@@ -35,15 +34,12 @@ while getopts 'V:C:OGc:D' OPT; do
             mode=1;;
         G)
             mode=2;;
-        D)
-            is_tf15=1;;
         ?)
             echo "Usage: `basename $0` -V VERSION [-C odpscmd_path] [-c odps_config_path] [-O]"
             echo " -O: only update easy_rec resource file"
             echo " -G: generate resource file and xflow, but not deploy"
             echo " -c: odps_config file path"
             echo " -C: odpscmd file path, default to: odpscmd, so in default odpscmd must be in PATH"
-            echo " -D: use tf1.15 or deeprec"
             echo " -V: algorithm version, chars must be in [0-9A-Za-z_-], default: version info in easy_rec/version.py"
             exit 1
     esac
@@ -55,27 +51,27 @@ then
   exit 1
 fi
 
-ODPSCMD=`which $ODPSCMD`
-if [ $? -ne 0 ] && [ $mode -ne 2 ]
-then
-   echo "$ODPSCMD is not in PATH"
-   exit 1
-fi
-
-if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
-then
-  if [ -z "$odps_config" ]
-  then
-      echo "odps_config is not set"
-  else
-      echo "odps_config[$odps_config] does not exist"
-  fi
-  exit 1
-fi
-if [ -e "$odps_config" ]
-then
-  odps_config=`readlink -f $odps_config`
-fi
+#ODPSCMD=`which $ODPSCMD`
+#if [ $? -ne 0 ] && [ $mode -ne 2 ]
+#then
+#   echo "$ODPSCMD is not in PATH"
+#   exit 1
+#fi
+#
+#if [ ! -e "$odps_config" ] && [ $mode -ne 2 ]
+#then
+#  if [ -z "$odps_config" ]
+#  then
+#      echo "odps_config is not set"
+#  else
+#      echo "odps_config[$odps_config] does not exist"
+#  fi
+#  exit 1
+#fi
+#if [ -e "$odps_config" ]
+#then
+#  odps_config=`readlink -f $odps_config`
+#fi
 
 cd $root_dir
 sh scripts/gen_proto.sh
@@ -126,7 +122,7 @@ then
 fi
 
 tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
-
+exit 0
 # 2 means generate only
 if [ $mode -ne 2 ]
 then
@@ -149,18 +145,9 @@ fi
 
 cd easy_rec_flow_ex
 sed -i -e "s/parameter name=\"version\" use=\"optional\" default=\"[0-9A-Za-z_-]\+\"/parameter name=\"version\" use=\"optional\" default=\"$VERSION\"/g" easy_rec_ext.xml
-
-if [ $is_tf15 -gt 0 ]
-then
-  echo "will deploy DeepRec(TF1.15) version"
-  sed -i -e "s/name=\"easy_rec_ext\"/name=\"easy_rec_ext15\"/g" easy_rec_ext.xml
-  sed -i -e "s/tensorflow1120_ext/tensorflow1150_ext/g" easy_rec_ext.xml
-fi
-
-
 tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
 
-git checkout ./easy_rec_ext.xml
+git checkout easy_rec_ext.xml
 
 if [ $mode -ne 2 ]
 then

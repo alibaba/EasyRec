@@ -48,7 +48,7 @@ class Package(object):
     self._block_outputs = {}
     self._package_input = None
     reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
-    input_feature_groups = set()
+    input_feature_groups = {}
 
     for block in config.blocks:
       if len(block.inputs) == 0:
@@ -71,9 +71,9 @@ class Package(object):
         if group in input_feature_groups:
           logging.warning('input `%s` already exists in other block' % group)
         else:
-          input_feature_groups.add(group)
           input_fn = EnhancedInputLayer(self._input_layer, self._features,
                                         group, reuse)
+          input_feature_groups[group] = input_fn
           self._name_to_layer[block.name] = input_fn
       else:
         self.define_layers(layer, block, block.name, reuse)
@@ -116,7 +116,7 @@ class Package(object):
         if iname in self._name_to_blocks:
           assert iname != name, 'input name can not equal to block name:' + iname
           self._dag.add_edge(iname, name)
-        elif iname not in input_feature_groups:
+        else:
           is_fea_group = input_type == 'feature_group_name'
           if is_fea_group and input_layer.has_group(iname):
             logging.info('adding an input_layer block: ' + iname)
@@ -129,8 +129,11 @@ class Package(object):
             self._name_to_blocks[iname] = new_block
             self._dag.add_node(iname)
             self._dag.add_edge(iname, name)
-            input_feature_groups.add(iname)
-            fn = EnhancedInputLayer(self._input_layer, self._features, iname)
+            if iname in input_feature_groups:
+              fn = input_feature_groups[iname]
+            else:
+              fn = EnhancedInputLayer(self._input_layer, self._features, iname)
+              input_feature_groups[iname] = fn
             self._name_to_layer[iname] = fn
           elif Package.has_backbone_block(iname):
             backbone = Package.__packages['backbone']
