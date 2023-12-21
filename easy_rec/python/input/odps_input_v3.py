@@ -4,7 +4,6 @@
 import logging
 import sys
 
-import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
@@ -72,7 +71,7 @@ class OdpsInputV3(Input):
       batch_num = int(total_records_num / self._data_config.batch_size)
       res_num = total_records_num - batch_num * self._data_config.batch_size
       batch_defaults = [
-          np.array([x] * self._data_config.batch_size) for x in record_defaults
+          [x] * self._data_config.batch_size for x in record_defaults
       ]
       for batch_id in range(batch_num):
         batch_data_np = [x.copy() for x in batch_defaults]

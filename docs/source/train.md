@@ -267,6 +267,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - 表示损失函数的权重设定为归一化的随机数
 
 参考论文：
+
 - 《 Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics 》
 - 《 [Reasonable Effectiveness of Random Weighting: A Litmus Test for Multi-Task Learning](https://arxiv.org/abs/2111.10603) 》
 
