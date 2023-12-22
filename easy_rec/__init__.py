@@ -15,11 +15,8 @@ sys.path.insert(0, parent_dir)
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
-# Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
-if 'PROCESSOR_TEST' not in os.environ:
-  from tensorflow.python.platform import tf_logging
-  tf_logging.set_verbosity(tf_logging.INFO)
 
+def get_ops_dir():
   if platform.system() == 'Linux':
     import tensorflow as tf
     ops_dir = os.path.join(curr_dir, 'python/ops')
@@ -32,11 +29,21 @@ if 'PROCESSOR_TEST' not in os.environ:
         ops_dir = os.path.join(ops_dir, 'DeepRec')
       else:
         ops_dir = os.path.join(ops_dir, '1.15')
-    elif tf.__version__.startswith('2.12'):
-      ops_dir = os.path.join(ops_dir, '2.12')
     else:
-      ops_dir = None
+      tmp_version = tf.__version__.split('.')
+      tmp_version = '.'.join(tmp_version[:2])
+      return os.path.join(ops_dir, tmp_version)
   else:
+    return None
+
+
+# Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
+if 'PROCESSOR_TEST' not in os.environ:
+  from tensorflow.python.platform import tf_logging
+  tf_logging.set_verbosity(tf_logging.INFO)
+  ops_dir = get_ops_dir()
+  if not os.path.exists(ops_dir):
+    logging.warning('ops_dir[%s] does not exist' % ops_dir)
     ops_dir = None
 
   from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
