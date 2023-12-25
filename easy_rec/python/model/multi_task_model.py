@@ -11,7 +11,6 @@ from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
-from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

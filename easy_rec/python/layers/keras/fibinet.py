@@ -35,16 +35,31 @@ class SENet(tf.keras.layers.Layer):
     self.config = params.get_pb_config()
     self.reuse = reuse
 
-  def call(self, inputs, **kwargs):
+  def build(self, input_shape):
     g = self.config.num_squeeze_group
-    for emb in inputs:
-      assert emb.shape.ndims == 2, 'field embeddings must be rank 2 tensors'
-      dim = int(emb.shape[-1])
+    emb_size = 0
+    for shape in input_shape:
+      assert shape.ndims == 2, 'field embeddings must be rank 2 tensors'
+      dim = int(shape[-1])
       assert dim >= g and dim % g == 0, 'field embedding dimension %d must be divisible by %d' % (
           dim, g)
+      emb_size += dim
 
-    field_size = len(inputs)
-    feature_size_list = [emb.shape.as_list()[-1] for emb in inputs]
+    r = self.config.reduction_ratio
+    field_size = len(input_shape)
+    reduction_size = max(1, field_size * g * 2 // r)
+    initializer = tf.keras.initializers.VarianceScaling()
+    self.reduce_layer = tf.keras.layers.Dense(
+        units=reduction_size,
+        activation='relu',
+        kernel_initializer=initializer,
+        name='W1')
+    init = tf.keras.initializers.glorot_normal()
+    self.excite_layer = tf.keras.layers.Dense(
+        units=emb_size, kernel_regularizer=init, name='W2')
+
+  def call(self, inputs, **kwargs):
+    g = self.config.num_squeeze_group
 
     # Squeeze
     # embedding dimension 必须能被 g 整除
@@ -59,22 +74,8 @@ class SENet(tf.keras.layers.Layer):
     z = tf.concat(squeezed, axis=1)  # [bs, field_size * num_groups * 2]
 
     # Excitation
-    r = self.config.reduction_ratio
-    reduction_size = max(1, field_size * g * 2 // r)
-
-    a1 = tf.layers.dense(
-        z,
-        reduction_size,
-        kernel_initializer=tf.initializers.variance_scaling(),
-        activation=tf.nn.relu,
-        reuse=self.reuse,
-        name='%s/W1' % self.name)
-    weights = tf.layers.dense(
-        a1,
-        sum(feature_size_list),
-        kernel_initializer=tf.glorot_normal_initializer(),
-        reuse=self.reuse,
-        name='%s/W2' % self.name)
+    a1 = self.reduce_layer(z)
+    weights = self.excite_layer(a1)
 
     # Re-weight
     inputs = tf.concat(inputs, axis=-1)
