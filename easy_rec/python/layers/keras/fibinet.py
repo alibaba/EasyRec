@@ -4,16 +4,15 @@ import itertools
 import logging
 
 import tensorflow as tf
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers.common_layers import layer_norm
 from easy_rec.python.layers.keras.blocks import MLP
 from easy_rec.python.layers.utils import Parameter
 
-# if tf.__version__ >= '2.0':
-#   tf = tf.compat.v1
 
-
-class SENet(tf.keras.layers.Layer):
+class SENet(Layer):
   """SENET Layer used in FiBiNET.
 
   Input shape
@@ -37,7 +36,8 @@ class SENet(tf.keras.layers.Layer):
     if tf.__version__ >= '2.0':
       self.layer_norm = tf.keras.layers.LayerNormalization()
     else:
-      self.layer_norm = lambda x: layer_norm(x, name='ln_output', reuse=self.reuse)
+      self.layer_norm = lambda x: layer_norm(
+          x, name='ln_output', reuse=self.reuse)
 
   def build(self, input_shape):
     g = self.config.num_squeeze_group
@@ -52,15 +52,13 @@ class SENet(tf.keras.layers.Layer):
     r = self.config.reduction_ratio
     field_size = len(input_shape)
     reduction_size = max(1, field_size * g * 2 // r)
-    initializer = tf.keras.initializers.VarianceScaling()
-    self.reduce_layer = tf.keras.layers.Dense(
+    self.reduce_layer = Dense(
         units=reduction_size,
         activation='relu',
-        kernel_initializer=initializer,
+        kernel_initializer='he_normal',
         name='W1')
-    init = tf.keras.initializers.glorot_normal()
-    self.excite_layer = tf.keras.layers.Dense(
-        units=emb_size, kernel_regularizer=init, name='W2')
+    self.excite_layer = Dense(
+        units=emb_size, kernel_regularizer='glorot_normal', name='W2')
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
@@ -102,7 +100,7 @@ def _full_interaction(v_i, v_j):
   return tf.squeeze(interaction, axis=1)
 
 
-class BiLinear(tf.keras.layers.Layer):
+class BiLinear(Layer):
   """BilinearInteraction Layer used in FiBiNET.
 
   Input shape
@@ -130,29 +128,29 @@ class BiLinear(tf.keras.layers.Layer):
     self.reuse = reuse
     params.check_required(['num_output_units'])
     bilinear_plus = params.get_or_default('use_plus', True)
-    self.bilinear_type = params.get_or_default('type', 'interaction').lower()
     self.output_size = params.num_output_units
-
+    self.bilinear_type = params.get_or_default('type', 'interaction').lower()
     if self.bilinear_type not in ['all', 'each', 'interaction']:
       raise NotImplementedError(
           "bilinear_type only support: ['all', 'each', 'interaction']")
-
     if bilinear_plus:
       self.func = _full_interaction
     else:
       self.func = tf.multiply
+    self.output_layer = Dense(self.output_size, name='output')
 
-  def call(self, inputs, **kwargs):
-    embeddings = inputs
-    logging.info('Bilinear Layer with %d inputs' % len(embeddings))
-    if len(embeddings) > 200:
-      logging.warning('There are too many inputs for bilinear layer: %d' %
-                      len(embeddings))
+  def build(self, input_shape):
+    if type(input_shape) not in (tuple, list):
+      raise TypeError('input of BiLinear layer must be a list')
+    field_num = len(input_shape)
+    logging.info('Bilinear Layer with %d inputs' % field_num)
+    if field_num > 200:
+      logging.warning('Too many inputs for bilinear layer: %d' % field_num)
     equal_dim = True
-    _dim = embeddings[0].shape[-1]
-    for emb in embeddings:
-      assert emb.shape.ndims == 2, 'field embeddings must be rank 2 tensors'
-      if emb.shape[-1] != _dim:
+    _dim = input_shape[0].shape[-1]
+    for shape in input_shape:
+      assert shape.ndims == 2, 'field embeddings must be rank 2 tensors'
+      if shape[-1] != _dim:
         equal_dim = False
     if not equal_dim and self.bilinear_type != 'interaction':
       raise ValueError(
@@ -160,8 +158,22 @@ class BiLinear(tf.keras.layers.Layer):
       )
     dim = int(_dim)
 
-    field_size = len(embeddings)
-    initializer = tf.glorot_normal_initializer()
+    if self.bilinear_type == 'all':
+      self.dot_layer = Dense(dim, name='all')
+    elif self.bilinear_type == 'each':
+      self.dot_layers = [
+          Dense(dim, name='each_%d' % i) for i in range(field_num - 1)
+      ]
+    else:  # interaction
+      self.dot_layers = [
+          Dense(
+              units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j))
+          for i, j in itertools.combinations(range(field_num), 2)
+      ]
+
+  def call(self, inputs, **kwargs):
+    embeddings = inputs
+    field_num = len(embeddings)
 
     # bi-linear+: p的维度为[bs, f*(f-1)/2]
     # bi-linear:
@@ -169,52 +181,28 @@ class BiLinear(tf.keras.layers.Layer):
     # 当equal_dim=False时，p的维度为[bs, (k_2+k_3+...+k_f)+...+(k_i+k_{i+1}+...+k_f)+...+k_f]，
     # 其中 k_i为第i个field的embedding的size
     if self.bilinear_type == 'all':
-      v_dot = [
-          tf.layers.dense(
-              v_i,
-              dim,
-              kernel_initializer=initializer,
-              name='%s/all' % self.name,
-              reuse=tf.AUTO_REUSE) for v_i in embeddings[:-1]
-      ]
+      v_dot = [self.dot_layer(v_i) for v_i in embeddings[:-1]]
       p = [
           self.func(v_dot[i], embeddings[j])
-          for i, j in itertools.combinations(range(field_size), 2)
+          for i, j in itertools.combinations(range(field_num), 2)
       ]
     elif self.bilinear_type == 'each':
-      v_dot = [
-          tf.layers.dense(
-              v_i,
-              dim,
-              kernel_initializer=initializer,
-              name='%s/each_%d' % (self.name, i),
-              reuse=tf.AUTO_REUSE) for i, v_i in enumerate(embeddings[:-1])
-      ]
+      v_dot = [self.dot_layers[i](v_i) for i, v_i in enumerate(embeddings[:-1])]
       p = [
           self.func(v_dot[i], embeddings[j])
-          for i, j in itertools.combinations(range(field_size), 2)
+          for i, j in itertools.combinations(range(field_num), 2)
       ]
     else:  # interaction
       p = [
-          self.func(
-              tf.layers.dense(
-                  embeddings[i],
-                  embeddings[j].shape.as_list()[-1],
-                  kernel_initializer=initializer,
-                  name='%s/interaction_%d_%d' % (self.name, i, j),
-                  reuse=tf.AUTO_REUSE), embeddings[j])
-          for i, j in itertools.combinations(range(field_size), 2)
+          self.func(self.dot_layers[i * field_num + j](embeddings[i]),
+                    embeddings[j])
+          for i, j in itertools.combinations(range(field_num), 2)
       ]
 
-    output = tf.layers.dense(
-        tf.concat(p, axis=-1),
-        self.output_size,
-        kernel_initializer=initializer,
-        reuse=self.reuse)
-    return output
+    return self.output_layer(tf.concat(p, axis=-1))
 
 
-class FiBiNet(tf.keras.layers.Layer):
+class FiBiNet(Layer):
   """FiBiNet++:Improving FiBiNet by Greatly Reducing Model Size for CTR Prediction.
 
   References:
@@ -226,6 +214,15 @@ class FiBiNet(tf.keras.layers.Layer):
     super(FiBiNet, self).__init__(name, **kwargs)
     self.reuse = reuse
     self._config = params.get_pb_config()
+
+    se_params = Parameter.make_from_pb(self._config.senet)
+    self.senet_layer = SENet(se_params, name='senet', reuse=self.reuse)
+
+    if self._config.HasField('bilinear'):
+      bi_params = Parameter.make_from_pb(self._config.bilinear)
+      self.bilinear_layer = BiLinear(
+          bi_params, name='bilinear', reuse=self.reuse)
+
     if self._config.HasField('mlp'):
       p = Parameter.make_from_pb(self._config.mlp)
       p.l2_regularizer = params.l2_regularizer
@@ -236,17 +233,11 @@ class FiBiNet(tf.keras.layers.Layer):
   def call(self, inputs, training=None, **kwargs):
     feature_list = []
 
-    params = Parameter.make_from_pb(self._config.senet)
-    senet = SENet(params, name='%s/senet' % self.name, reuse=self.reuse)
-    senet_output = senet(inputs)
+    senet_output = self.senet_layer(inputs)
     feature_list.append(senet_output)
 
     if self._config.HasField('bilinear'):
-      params = Parameter.make_from_pb(self._config.bilinear)
-      bilinear = BiLinear(
-          params, name='%s/bilinear' % self.name, reuse=self.reuse)
-      bilinear_output = bilinear(inputs)
-      feature_list.append(bilinear_output)
+      feature_list.append(self.bilinear_layer(inputs))
 
     if len(feature_list) > 1:
       feature = tf.concat(feature_list, axis=-1)
