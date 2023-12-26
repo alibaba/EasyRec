@@ -9,8 +9,8 @@ from easy_rec.python.layers.common_layers import layer_norm
 from easy_rec.python.layers.keras.blocks import MLP
 from easy_rec.python.layers.utils import Parameter
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+# if tf.__version__ >= '2.0':
+#   tf = tf.compat.v1
 
 
 class SENet(tf.keras.layers.Layer):
@@ -34,6 +34,10 @@ class SENet(tf.keras.layers.Layer):
     super(SENet, self).__init__(name, **kwargs)
     self.config = params.get_pb_config()
     self.reuse = reuse
+    if tf.__version__ >= '2.0':
+      self.layer_norm = tf.keras.layers.LayerNormalization()
+    else:
+      self.layer_norm = lambda x: layer_norm(x, name='ln_output', reuse=self.reuse)
 
   def build(self, input_shape):
     g = self.config.num_squeeze_group
@@ -87,8 +91,7 @@ class SENet(tf.keras.layers.Layer):
 
     # Layer Normalization
     if self.config.use_output_layer_norm:
-      output = layer_norm(
-          output, name=self.name + '/ln_output', reuse=self.reuse)
+      output = self.layer_norm(output)
     return output
 
 
