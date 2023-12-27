@@ -36,7 +36,8 @@ class SENet(Layer):
     if tf.__version__ >= '2.0':
       self.layer_norm = tf.keras.layers.LayerNormalization()
     else:
-      self.layer_norm = lambda x: layer_norm(
+      with tf.name_scope(self.name):
+        self.layer_norm = lambda x: layer_norm(
           x, name='ln_output', reuse=self.reuse)
 
   def build(self, input_shape):
@@ -52,13 +53,14 @@ class SENet(Layer):
     r = self.config.reduction_ratio
     field_size = len(input_shape)
     reduction_size = max(1, field_size * g * 2 // r)
+    name_scope = '' if tf.__version__ >= '2.0' else self.name + "/"
     self.reduce_layer = Dense(
         units=reduction_size,
         activation='relu',
         kernel_initializer='he_normal',
-        name='W1')
+        name=name_scope + 'W1')
     self.excite_layer = Dense(
-        units=emb_size, kernel_initializer='glorot_normal', name='W2')
+        units=emb_size, kernel_initializer='glorot_normal', name=name_scope + 'W2')
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
@@ -137,7 +139,7 @@ class BiLinear(Layer):
       self.func = _full_interaction
     else:
       self.func = tf.multiply
-    self.output_layer = Dense(self.output_size, name='output')
+    self.output_layer = Dense(self.output_size, name=self.name + '/output')
 
   def build(self, input_shape):
     if type(input_shape) not in (tuple, list):
@@ -158,16 +160,17 @@ class BiLinear(Layer):
       )
     dim = int(_dim)
 
+    name_scope = '' if tf.__version__ >= '2.0' else self.name + "/"
     if self.bilinear_type == 'all':
-      self.dot_layer = Dense(dim, name='all')
+      self.dot_layer = Dense(dim, name=name_scope + 'all')
     elif self.bilinear_type == 'each':
       self.dot_layers = [
-          Dense(dim, name='each_%d' % i) for i in range(field_num - 1)
+          Dense(dim, name=name_scope + 'each_%d' % i) for i in range(field_num - 1)
       ]
     else:  # interaction
       self.dot_layers = [
           Dense(
-              units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j))
+              units=int(input_shape[j][-1]), name=name_scope+'interaction_%d_%d' % (i, j))
           for i, j in itertools.combinations(range(field_num), 2)
       ]
 
@@ -216,17 +219,17 @@ class FiBiNet(Layer):
     self._config = params.get_pb_config()
 
     se_params = Parameter.make_from_pb(self._config.senet)
-    self.senet_layer = SENet(se_params, name='senet', reuse=self.reuse)
+    self.senet_layer = SENet(se_params, name=self.name+'/senet', reuse=self.reuse)
 
     if self._config.HasField('bilinear'):
       bi_params = Parameter.make_from_pb(self._config.bilinear)
       self.bilinear_layer = BiLinear(
-          bi_params, name='bilinear', reuse=self.reuse)
+          bi_params, name=self.name+'/bilinear', reuse=self.reuse)
 
     if self._config.HasField('mlp'):
       p = Parameter.make_from_pb(self._config.mlp)
       p.l2_regularizer = params.l2_regularizer
-      self.final_mlp = MLP(p, name=name, reuse=reuse)
+      self.final_mlp = MLP(p, name=self.name+'/mlp', reuse=reuse)
     else:
       self.final_mlp = None
 

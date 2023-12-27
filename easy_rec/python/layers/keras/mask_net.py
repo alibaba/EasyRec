@@ -42,25 +42,27 @@ class MaskBlock(Layer):
       raise ValueError(
           'Need one of reduction factor or aggregation size for MaskBlock.')
 
+    name_scope = '' if tf.__version__ >= '2.0' else self.name + "/"
     self.weight_layer = Dense(
         aggregation_size,
         activation='relu',
         kernel_initializer='he_uniform',
         kernel_regularizer=self.l2_reg,
-        name='weight')
-    self.mask_layer = Dense(input_dim, name='mask')
+        name=name_scope + 'weight')
+    self.mask_layer = Dense(input_dim, name=name_scope+'mask')
     if self._projection_dim is not None:
       self.project_layer = Dense(
           self._projection_dim,
           kernel_regularizer=self.l2_reg,
           use_bias=False,
-          name='project')
+          name=name_scope + 'project')
     if self.config.input_layer_norm:
       # 推荐在调用MaskBlock之前做好 layer norm，否则为了reuse layer参数会产生scope之外的name
       if tf.__version__ >= '2.0':
         self.input_layer_norm = tf.keras.layers.LayerNormalization()
         self.output_layer_norm = tf.keras.layers.LayerNormalization()
       else:
+        # to share input layer norm parameters
         idx = self.name.rfind('_')
         if idx > 0 and self.name[idx + 1:].isdigit():
           input_name = self.name[:idx]
@@ -68,11 +70,12 @@ class MaskBlock(Layer):
           input_name = self.name
         self.input_layer_norm = lambda x: layer_norm(
             x, name=input_name + '/input_ln', reuse=tf.AUTO_REUSE)
-        self.output_layer_norm = lambda x: layer_norm(
+        with tf.name_scope(self.name):
+          self.output_layer_norm = lambda x: layer_norm(
             x, name='ln_output', reuse=self.reuse)
     if self.config.HasField('output_size'):
       self.output_layer = Dense(
-          self.config.output_size, use_bias=False, name='output')
+          self.config.output_size, use_bias=False, name=name_scope + 'output')
 
   def call(self, inputs, **kwargs):
     net, mask_input = inputs
