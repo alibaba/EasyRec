@@ -67,7 +67,7 @@ class MaskBlock(Layer):
         else:
           input_name = self.name
         self.input_layer_norm = lambda x: layer_norm(
-            x, name=input_name + '/input_ln', reuse=self.reuse)
+            x, name=input_name + '/input_ln', reuse=tf.AUTO_REUSE)
         self.output_layer_norm = lambda x: layer_norm(
             x, name='ln_output', reuse=self.reuse)
     if self.config.HasField('output_size'):

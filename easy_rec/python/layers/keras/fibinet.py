@@ -147,7 +147,7 @@ class BiLinear(Layer):
     if field_num > 200:
       logging.warning('Too many inputs for bilinear layer: %d' % field_num)
     equal_dim = True
-    _dim = input_shape[0].shape[-1]
+    _dim = input_shape[0][-1]
     for shape in input_shape:
       assert shape.ndims == 2, 'field embeddings must be rank 2 tensors'
       if shape[-1] != _dim:
@@ -175,11 +175,11 @@ class BiLinear(Layer):
     embeddings = inputs
     field_num = len(embeddings)
 
-    # bi-linear+: p的维度为[bs, f*(f-1)/2]
+    # bi-linear+: dimension of `p` is [bs, f*(f-1)/2]
     # bi-linear:
-    # 当equal_dim=True时，p的维度为[bs, f*(f-1)/2*k]，k为embeddings的size
-    # 当equal_dim=False时，p的维度为[bs, (k_2+k_3+...+k_f)+...+(k_i+k_{i+1}+...+k_f)+...+k_f]，
-    # 其中 k_i为第i个field的embedding的size
+    #   - when equal_dim=True, dimension of `p` is [bs, f*(f-1)/2*k], k is embedding size
+    #   - when equal_dim=False, dimension of `p` is [bs, (k_2+k_3+...+k_f)+...+(k_i+k_{i+1}+...+k_f)+...+k_f],
+    #   - where k_i is the embedding size of the ith field
     if self.bilinear_type == 'all':
       v_dot = [self.dot_layer(v_i) for v_i in embeddings[:-1]]
       p = [

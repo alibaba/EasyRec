@@ -228,8 +228,9 @@ class Package(object):
         fn = eval('lambda x: x' + input_node.input_slice.strip())
         input_feature = fn(input_feature)
       if input_node.HasField('input_fn'):
-        fn = eval(input_node.input_fn)
-        input_feature = fn(input_feature)
+        with tf.name_scope(config.name):
+          fn = eval(input_node.input_fn)
+          input_feature = fn(input_feature)
       inputs.append(input_feature)
 
     if config.merge_inputs_into_list:
@@ -375,8 +376,9 @@ class Package(object):
           fn = eval('lambda x, i: x' + conf.input_slice.strip())
           ly_inputs = fn(ly_inputs, i)
         if conf.HasField('input_fn'):
-          fn = eval(conf.input_fn)
-          ly_inputs = fn(ly_inputs, i)
+          with tf.name_scope(config.name):
+            fn = eval(conf.input_fn)
+            ly_inputs = fn(ly_inputs, i)
         output = self.call_keras_layer(ly_inputs, name_i, training, **kwargs)
         outputs.append(output)
       if len(outputs) == 1:
