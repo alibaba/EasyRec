@@ -801,20 +801,6 @@ def export(export_dir,
       checkpoint_path=ckpt_path,
       strip_default_attrs=True)
 
-  # part_embed_path = ckpt_path + '-embedding/'
-  # if gfile.Exists(part_embed_path):
-  #   if isinstance(final_export_dir, bytes):
-  #     final_export_dir = final_export_dir.decode('utf-8')
-  #   export_embed_dir = os.path.join(final_export_dir,
-  #                                       'variables/variables-embedding/')
-  #   gfile.MkDir(export_embed_dir)
-  #   for tmp_file in gfile.Glob(part_embed_path + '*'):
-  #     if (tmp_file.endswith('.keys') or tmp_file.endswith('.vals')
-  #         or tmp_file.endswith('.bin')):
-  #       _, tmp_name = os.path.split(tmp_file)
-  #       dst_file = os.path.join(export_embed_dir, tmp_name)
-  #       gfile.Copy(tmp_file, dst_file)
-
   # add export ts as version info
   saved_model = saved_model_pb2.SavedModel()
   if type(final_export_dir) not in [type(''), type(u'')]:
