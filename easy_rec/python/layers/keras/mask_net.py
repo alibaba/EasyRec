@@ -31,8 +31,9 @@ class MaskBlock(Layer):
     self.reuse = reuse
 
   def build(self, input_shape):
-    input_dim = int(input_shape[0].shape[-1])
-    mask_input_dim = int(input_shape[1].shape[-1])
+    assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+    input_dim = int(input_shape[0][-1])
+    mask_input_dim = int(input_shape[1][-1])
     if self.config.HasField('reduction_factor'):
       aggregation_size = int(mask_input_dim * self.config.reduction_factor)
     elif self.config.HasField('aggregation_size') is not None:

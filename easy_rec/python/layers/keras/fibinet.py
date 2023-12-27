@@ -58,7 +58,7 @@ class SENet(Layer):
         kernel_initializer='he_normal',
         name='W1')
     self.excite_layer = Dense(
-        units=emb_size, kernel_regularizer='glorot_normal', name='W2')
+        units=emb_size, kernel_initializer='glorot_normal', name='W2')
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
