@@ -18,7 +18,7 @@ def validate_axis(axis, input_shape):
     Normalized form of `axis`, i.e. a list with all-positive values.
   """
   input_shape = tf.TensorShape(input_shape)
-  rank = input_shape.rank
+  rank = input_shape.ndims
   if not rank:
     raise ValueError(
         'Input has undefined rank. Received: input_shape={input_shape}'.format(
@@ -231,7 +231,7 @@ class LayerNormalization(Layer):
   def build(self, input_shape):
     self.axis = validate_axis(self.axis, input_shape)
     input_shape = tf.TensorShape(input_shape)
-    rank = input_shape.rank
+    rank = input_shape.ndims
 
     param_shape = [input_shape[dim] for dim in self.axis]
     if self.scale:
@@ -242,7 +242,6 @@ class LayerNormalization(Layer):
           regularizer=self.gamma_regularizer,
           constraint=self.gamma_constraint,
           trainable=True,
-          experimental_autocast=False,
       )
     else:
       self.gamma = None
@@ -255,7 +254,6 @@ class LayerNormalization(Layer):
           regularizer=self.beta_regularizer,
           constraint=self.beta_constraint,
           trainable=True,
-          experimental_autocast=False,
       )
     else:
       self.beta = None
@@ -287,7 +285,7 @@ class LayerNormalization(Layer):
         inputs = tf.cast(inputs, 'float32')
 
       # Calculate the moments on the last axis (layer activations).
-      mean, variance = tf.nn.moments(inputs, self.axis, keepdims=True)
+      mean, variance = tf.nn.moments(inputs, self.axis, keep_dims=True)
 
       scale, offset = _broadcast(self.gamma), _broadcast(self.beta)
 
