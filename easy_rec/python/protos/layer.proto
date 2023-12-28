@@ -51,7 +51,7 @@ message MaskBlock {
     optional float reduction_factor = 1;
     optional uint32 output_size = 2;
     optional uint32 aggregation_size = 3;
-    optional bool input_layer_norm = 4 [default = true];
+    optional bool input_layer_norm = 4 [default = false];
     optional uint32 projection_dim = 5;
 }
 
@@ -59,6 +59,7 @@ message MaskNet {
     repeated MaskBlock mask_blocks = 1;
     required bool use_parallel = 2 [default = true];
     optional MLP mlp = 3;
+    optional bool input_layer_norm = 4 [default = true];
 }
 
 message MMoELayer {
