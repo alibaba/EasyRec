@@ -211,6 +211,8 @@ class LayerNormalization(Layer):
     Check if the axis is contiguous and can be collapsed into the last axis.
     The self.axis is assumed to have no duplicates.
     """
+    if not tf.test.is_gpu_available():
+      return False
     axis = sorted(self.axis)
     can_use_fused = False
 

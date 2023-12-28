@@ -1091,6 +1091,7 @@ MovieLens-1M数据集效果：
 
 - Highway Network: [highway network](../models/highway.md)
 - Cross Decoupling Network: [CDN](../models/cdn.md)
+- DLRM+SENet: [dlrm_senet_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_senet_on_criteo.config)
 
 # 组件库介绍
 
