@@ -885,6 +885,15 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(
+      LooseVersion(tf.__version__) != LooseVersion('2.3.0'),
+      'MultiWorkerMirroredStrategy need tf version == 2.3')
+  def test_train_mmoe_with_multi_worker_mirror(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/mmoe_mirrored_strategy_on_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_fg_dtype(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/taobao_fg_test_dtype.config', self._test_dir)
