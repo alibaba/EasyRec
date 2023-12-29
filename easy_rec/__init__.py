@@ -47,7 +47,7 @@ if 'PROCESSOR_TEST' not in os.environ:
   from tensorflow.python.platform import tf_logging
   tf_logging.set_verbosity(tf_logging.INFO)
   ops_dir = get_ops_dir()
-  if not os.path.exists(ops_dir):
+  if ops_dir is not None and not os.path.exists(ops_dir):
     logging.warning('ops_dir[%s] does not exist' % ops_dir)
     ops_dir = None
 
