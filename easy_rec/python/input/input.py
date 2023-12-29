@@ -8,6 +8,7 @@ from collections import OrderedDict
 import six
 import tensorflow as tf
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import string_ops
 from tensorflow.python.platform import gfile
@@ -277,12 +278,13 @@ class Input(six.with_metaclass(_meta_type, object)):
             else get_tf_type(self._input_field_types[fid])
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+        finput = array_ops.placeholder(
+            tf_type, [None, None], name=placeholder_name)
       else:
         ftype = self._input_field_types[fid]
         tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None], name=placeholder_name)
+        finput = array_ops.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
@@ -290,7 +292,8 @@ class Input(six.with_metaclass(_meta_type, object)):
 
   def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
-    inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
+    inputs_placeholder = array_ops.placeholder(
+        tf.string, [None], name='features')
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values

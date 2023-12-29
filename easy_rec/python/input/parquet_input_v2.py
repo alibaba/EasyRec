@@ -1,26 +1,24 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import logging
-import multiprocessing
-import queue
-# import threading
-import time
+# import logging
+import os
 
 # import numpy as np
 # import pandas as pd
 import tensorflow as tf
-# from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
 # from tensorflow.python.ops import logging_ops
 # from tensorflow.python.ops import math_ops
-from tensorflow.python.platform import gfile
+from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 
-from easy_rec.python.compat import queues
-from easy_rec.python.input import load_parquet
-from easy_rec.python.input.input import Input
+from easy_rec.python.input.parquet_input import ParquetInput
+from easy_rec.python.utils import conditional
+
+# from easy_rec.python.utils.tf_utils import get_tf_type
 
 
-class ParquetInputV2(Input):
+class ParquetInputV2(ParquetInput):
 
   def __init__(self,
                data_config,
@@ -34,173 +32,26 @@ class ParquetInputV2(Input):
     super(ParquetInputV2,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode, pipeline_config, **kwargs)
-    if input_path is None:
-      return
+    self._need_pack = False
 
-    self._input_files = []
-    for sub_path in input_path.strip().split(','):
-      self._input_files.extend(gfile.Glob(sub_path))
-    logging.info('parquet input_path=%s file_num=%d' %
-                 (input_path, len(self._input_files)))
-    mp_ctxt = multiprocessing.get_context('spawn')
-    self._data_que = queues.Queue(
-        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
-
-    file_num = len(self._input_files)
-    logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
-                 (task_index, file_num, task_num))
-
-    self._my_files = []
-    for file_id in range(file_num):
-      if (file_id % task_num) == task_index:
-        self._my_files.append(self._input_files[file_id])
-    # self._my_files = self._input_files
-
-    logging.info('[task_index=%d] task_file_num=%d' %
-                 (task_index, len(self._my_files)))
-    self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
-
-    self._num_proc = 8
-    if file_num < self._num_proc:
-      self._num_proc = file_num
-
-    self._proc_start = False
-    self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
-    self._proc_stop = False
-    self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
-
-    self._reserve_fields = None
-    self._reserve_types = None
-    if 'reserve_fields' in kwargs and 'reserve_types' in kwargs:
-      self._reserve_fields = kwargs['reserve_fields']
-      self._reserve_types = kwargs['reserve_types']
-
-    self._proc_arr = None
-
-  def _rebuild_que(self):
-    mp_ctxt = multiprocessing.get_context('spawn')
-    self._data_que = queues.Queue(
-        name='data_que', ctx=mp_ctxt, maxsize=self._data_config.prefetch_size)
-    self._file_que = queues.Queue(name='file_que', ctx=mp_ctxt)
-    self._proc_start_que = queues.Queue(name='proc_start_que', ctx=mp_ctxt)
-    self._proc_stop_que = queues.Queue(name='proc_stop_que', ctx=mp_ctxt)
-
-  def _sample_generator(self):
-    if not self._proc_start:
-      self._proc_start = True
-      for proc in (self._proc_arr):
-        self._proc_start_que.put(True)
-        logging.info('task[%s] data_proc=%s is_alive=%s' %
-                     (self._task_index, proc, proc.is_alive()))
-
-    done_proc_cnt = 0
-    fetch_timeout_cnt = 0
-
-    # # for mock purpose
-    # all_samples = []
-    # while len(all_samples) < 64:
-    #   try:
-    #     sample = self._data_que.get(block=False)
-    #     all_samples.append(sample)
-    #   except queue.Empty:
-    #     continue
-    # sid = 0
-    # while True:
-    #   yield all_samples[sid]
-    #   sid += 1
-    #   if sid >= len(all_samples):
-    #     sid = 0
-
-    fetch_good_cnt = 0
-    while True:
-      try:
-        sample = self._data_que.get(timeout=1)
-        if sample is None:
-          done_proc_cnt += 1
-        else:
-          fetch_good_cnt += 1
-          yield sample
-        if fetch_good_cnt % 200 == 0:
-          logging.info(
-              'task[%d] fetch_batch_cnt=%d, fetch_timeout_cnt=%d, qsize=%d' %
-              (self._task_index, fetch_good_cnt, fetch_timeout_cnt,
-               self._data_que.qsize()))
-      except queue.Empty:
-        fetch_timeout_cnt += 1
-        if done_proc_cnt >= len(self._proc_arr):
-          logging.info('all sample finished, fetch_timeout_cnt=%d' %
-                       fetch_timeout_cnt)
-          break
-      except Exception as ex:
-        logging.warning('task[%d] get from data_que exception: %s' %
-                        (self._task_index, str(ex)))
-        break
-    logging.info('task[%d] sample_generator: total_batches=%d' %
-                 (self._task_index, fetch_good_cnt))
-
-  def stop(self):
-    if self._proc_arr is None or len(self._proc_arr) == 0:
-      return
-    logging.info('task[%d] will stop dataset procs, proc_num=%d' %
-                 (self._task_index, len(self._proc_arr)))
-    self._file_que.close()
-    if self._proc_start:
-      logging.info('try close data que')
-      for _ in range(len(self._proc_arr)):
-        self._proc_stop_que.put(1)
-      self._proc_stop_que.close()
-
-      def _any_alive():
-        for proc in self._proc_arr:
-          if proc.is_alive():
-            return True
-        return False
-
-      # to ensure the sender part of the python Queue could exit
-      while _any_alive():
-        try:
-          self._data_que.get(timeout=1)
-        except Exception:
-          pass
-      time.sleep(1)
-      self._data_que.close()
-      logging.info('data que closed')
-      # import time
-      # time.sleep(10)
-      for proc in self._proc_arr:
-        # proc.terminate()
-        proc.join()
-      logging.info('join proc done')
-
-      # rebuild for next run, which is necessary for evaluation
-      self._rebuild_que()
-      self._proc_arr = None
-      self._proc_start = False
-      self._proc_stop = False
+  def _predictor_preprocess(self, input_dict):
+    # when the ParquetInputV2 is build from ParquetPredictorV2
+    # the feature preprocess stage will be skipped.
+    fea_dict = {}
+    for k in input_dict:
+      vals = input_dict[k]
+      if isinstance(vals, tuple) and len(vals) == 2 and k != 'reserve':
+        fea_dict[k + '/lens'] = vals[0]
+        fea_dict[k + '/ids'] = vals[1]
+      else:
+        fea_dict[k] = vals
+    return fea_dict
 
   def _to_fea_dict(self, input_dict):
-    fea_dict = {}
-
-    # if self._has_ev:
-    #   tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-    #       'sparse_fea'][0]
-
-    #   fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
-    # else:
-    #   tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-    #       'sparse_fea'][0]
-    #   fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets,
-    #                             tmp_lens)
-
-    for fea in self._effective_fields:
-      tmp_lens, tmp_vals = input_dict[fea]
-      if self._has_ev:
-        fea_dict[fea] = tf.RaggedTensor.from_row_lengths(
-            values=tmp_vals, row_lengths=tmp_lens)
-      else:
-        fea_dict[fea] = tf.RaggedTensor.from_row_lengths(
-            values=(tmp_vals % self._feature_configs[0].num_buckets),
-            row_lengths=tmp_lens)
+    if self._is_predictor:
+      fea_dict = self._predictor_preprocess(input_dict)
+    else:
+      fea_dict = self._preprocess(input_dict)
 
     output_dict = {'feature': fea_dict}
 
@@ -217,112 +68,75 @@ class ParquetInputV2(Input):
 
     return output_dict
 
-  def _build(self, mode, params):
-    if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
-      logging.info('will repeat train data for %d epochs' %
-                   self._data_config.num_epochs)
-      my_files = self._my_files * self._data_config.num_epochs
-    else:
-      my_files = self._my_files
-
-    if mode == tf.estimator.ModeKeys.TRAIN:
-      self._proc_arr = load_parquet.start_data_proc(
-          self._task_index,
-          self._task_num,
-          self._num_proc,
-          self._file_que,
-          self._data_que,
-          self._proc_start_que,
-          self._proc_stop_que,
-          self._batch_size,
-          self._label_fields,
-          self._effective_fields,
-          self._reserve_fields,
-          self._data_config.drop_remainder,
-          need_pack=False)
-    else:
-      lbl_fields = self._label_fields
-      if mode == tf.estimator.ModeKeys.PREDICT:
-        lbl_fields = None
-      self._proc_arr = load_parquet.start_data_proc(
-          self._task_index,
-          self._task_num,
-          self._num_proc,
-          self._file_que,
-          self._data_que,
-          self._proc_start_que,
-          self._proc_stop_que,
-          self._batch_size,
-          lbl_fields,
-          self._effective_fields,
-          self._reserve_fields,
-          False,
-          need_pack=False)
-
-    for input_file in my_files:
-      self._file_que.put(input_file)
-
-    # add end signal
-    for proc in self._proc_arr:
-      self._file_que.put(None)
-    logging.info('add input_files to file_que, qsize=%d' %
-                 self._file_que.qsize())
-
-    out_types = {}
-    out_shapes = {}
-
-    if mode != tf.estimator.ModeKeys.PREDICT:
-      for k in self._label_fields:
-        out_types[k] = tf.int32
-        out_shapes[k] = tf.TensorShape([None])
-
-    if self._reserve_fields is not None:
-      out_types['reserve'] = {}
-      out_shapes['reserve'] = {}
-      for k, t in zip(self._reserve_fields, self._reserve_types):
-        out_types['reserve'][k] = t
-        out_shapes['reserve'][k] = tf.TensorShape([None])
-
+  def add_fea_type_and_shape(self, out_types, out_shapes):
+    # overload ParquetInput.build_type_and_shape
     for k in self._effective_fields:
       out_types[k] = (tf.int32, tf.int64)
       out_shapes[k] = (tf.TensorShape([None]), tf.TensorShape([None]))
 
-    dataset = tf.data.Dataset.from_generator(
-        self._sample_generator,
-        output_types=out_types,
-        output_shapes=out_shapes)
-    num_parallel_calls = self._data_config.num_parallel_calls
-    dataset = dataset.map(
-        self._to_fea_dict, num_parallel_calls=num_parallel_calls)
-    dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-    # dataset = dataset.map(
-    #     map_func=self._preprocess, num_parallel_calls=num_parallel_calls)
-    # dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-
-    if mode != tf.estimator.ModeKeys.PREDICT:
-      dataset = dataset.map(lambda x:
-                            (self._get_features(x), self._get_labels(x)))
-      # dataset = dataset.apply(tf.data.experimental.prefetch_to_device('/gpu:0'))
-      # dataset = dataset.prefetch(32)
-    else:
-      if self._reserve_fields is not None:
-        # for predictor with saved model
-        def _get_with_reserve(fea_dict):
-          print('fea_dict=%s' % fea_dict)
-          out_dict = {
-              'feature': {
-                  'ragged_ids': fea_dict['feature']['sparse_fea'][0],
-                  'ragged_lens': fea_dict['feature']['sparse_fea'][1]
-              }
-          }
-          out_dict['reserve'] = fea_dict['reserve']
-          return out_dict
-
-        dataset = dataset.map(_get_with_reserve)
+  def _preprocess(self, inputs=None):
+    features = {}
+    placeholders = {}
+    for fc in self._feature_configs:
+      feature_name = fc.feature_name if fc.feature_name != '' else fc.input_names[
+          0]
+      feature_type = fc.feature_type
+      if feature_type in [fc.IdFeature, fc.TagFeature]:
+        input_name0 = fc.input_names[0]
+        if inputs is not None:
+          input_lens, input_vals = inputs[input_name0]
+        else:
+          if input_name0 in placeholders:
+            input_lens, input_vals = placeholders[input_name0]
+          else:
+            input_vals = array_ops.placeholder(
+                dtypes.int64, [None], name=input_name0 + '/ids')
+            input_lens = array_ops.placeholder(
+                dtypes.int64, [None], name=input_name0 + '/lens')
+            placeholders[input_name0] = (input_lens, input_vals)
+        if not self._has_ev:
+          input_vals = input_vals % fc.num_buckets
+        features[feature_name] = tf.RaggedTensor.from_row_lengths(
+            values=input_vals, row_lengths=input_lens)
+      elif feature_type in [fc.RawFeature]:
+        input_name0 = fc.input_names[0]
+        if inputs is not None:
+          input_vals = inputs[input_name0]
+        else:
+          if input_name0 in placeholders:
+            input_vals = placeholders[input_name0]
+          else:
+            if fc.raw_input_dim > 1:
+              input_vals = array_ops.placeholders(
+                  dtypes.float32, [None, fc.raw_input_dim], name=input_name0)
+            else:
+              input_vals = array_ops.placeholders(
+                  dtypes.float32, [None], name=input_name0)
+            placeholders[input_name0] = input_vals
+        features[feature_name] = input_vals
       else:
-        dataset = dataset.map(lambda x: self._get_features(x))
-      dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-    return dataset
+        assert False, 'feature_type[%s] not supported' % str(feature_type)
+
+    if inputs is not None:
+      return features
+    else:
+      inputs = {}
+      for key in placeholders:
+        vals = placeholders[key]
+        if isinstance(vals, tuple):
+          inputs[key + '/lens'] = vals[0]
+          inputs[key + '/ids'] = vals[1]
+        else:
+          inputs[key] = vals
+      return features, inputs
+
+  def _get_for_predictor(self, fea_dict):
+    # called by ParquetInputV2._build, format:
+    # {
+    #   "feature": {"user_id/ids":..., "user_id/lens":..., ... },
+    #   "reserve": {"sample_id":..., ...}
+    # }
+    return fea_dict
 
   def create_input(self, export_config=None):
 
@@ -348,17 +162,10 @@ class ParquetInputV2(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        ragged_ids = array_ops.placeholder(tf.int64, [None], name='ragged_ids')
-        ragged_lens = array_ops.placeholder(
-            tf.int32, [None], name='ragged_lens')
-        inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
-        if self._has_ev:
-          features = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
-        else:
-          features = {
-              'ragged_ids': ragged_ids % self._feature_configs[0].num_buckets,
-              'ragged_lens': ragged_lens
-          }
+        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = bool(place_on_cpu) if place_on_cpu else False
+        with conditional(place_on_cpu, ops.device('/CPU:0')):
+          features, inputs = self._preprocess()
         return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     _input_fn.input_creator = self

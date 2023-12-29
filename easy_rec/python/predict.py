@@ -11,6 +11,7 @@ from tensorflow.python.lib.io import file_io
 from easy_rec.python.inference.csv_predictor import CSVPredictor
 from easy_rec.python.inference.hive_predictor import HivePredictor
 from easy_rec.python.inference.parquet_predictor import ParquetPredictor
+from easy_rec.python.inference.parquet_predictor_v2 import ParquetPredictorV2
 from easy_rec.python.main import predict
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
@@ -53,7 +54,17 @@ tf.app.flags.DEFINE_string('output_sep', chr(1),
 tf.app.flags.DEFINE_string('selected_cols', None, '')
 tf.app.flags.DEFINE_string('fg_json_path', '', '')
 tf.app.flags.DEFINE_string('ds_vector_recall', '', '')
+tf.app.flags.DEFINE_string('input_type', '', 'data_config.input_type')
 FLAGS = tf.app.flags.FLAGS
+
+input_class_map = {y: x for x, y in DatasetConfig.InputType.items()}
+input_class_map_r = {x: y for x, y in DatasetConfig.InputType.items()}
+
+
+def get_input_type(input_type, data_config):
+  if input_type:
+    return input_class_map[input_type]
+  return data_config.input_type
 
 
 def main(argv):
@@ -67,14 +78,14 @@ def main(argv):
           FLAGS.saved_model_dir)
     pipeline_config = config_util.get_configs_from_pipeline_file(
         pipeline_config_path, False)
-    if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
+    data_config = pipeline_config.data_config
+    input_type = get_input_type(FLAGS.input_type, data_config)
+    if input_type in [data_config.HiveParquetInput, data_config.HiveInput]:
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input).get_all_cols(
               FLAGS.input_path)
-      input_type = pipeline_config.data_config.input_type
-      input_type_name = DatasetConfig.InputType.Name(input_type)
-      if input_type_name == 'HiveParquetInput':
+      if input_type == DatasetConfig.HiveParquetInput:
         predictor = HiveParquetPredictor(
             FLAGS.saved_model_dir,
             pipeline_config.data_config,
@@ -92,8 +103,11 @@ def main(argv):
             output_sep=FLAGS.output_sep,
             all_cols=all_cols,
             all_col_types=all_col_types)
-    elif pipeline_config.WhichOneof('train_path') == 'parquet_train_input':
-      predictor = ParquetPredictor(
+    elif input_type in [data_config.ParquetInput, data_config.ParquetInputV2]:
+      predictor_cls = ParquetPredictor
+      if input_type == data_config.ParquetInputV2:
+        predictor_cls = ParquetPredictorV2
+      predictor = predictor_cls(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
           ds_vector_recall=FLAGS.ds_vector_recall,
@@ -101,7 +115,7 @@ def main(argv):
           selected_cols=FLAGS.selected_cols,
           output_sep=FLAGS.output_sep,
           pipeline_config=pipeline_config)
-    else:
+    elif input_type == data_config.CSVInput:
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
@@ -109,6 +123,8 @@ def main(argv):
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
           output_sep=FLAGS.output_sep)
+    else:
+      assert False, 'invalid input type: %s' % input_class_map_r[input_type]
 
     logging.info('input_path = %s, output_path = %s' %
                  (FLAGS.input_path, FLAGS.output_path))

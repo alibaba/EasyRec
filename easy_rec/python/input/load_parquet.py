@@ -121,36 +121,37 @@ def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
     total_sample_cnt += data_len
     batch_num = int(data_len / batch_size)
     res_num = data_len % batch_size
-    # logging.info(
-    #     'proc[%d] read file %s sample_num=%d batch_num=%d res_num=%d' %
-    #     (proc_id, input_file, data_len, batch_num, res_num))
-    # sub_batch_size = int(batch_size / task_num)
+
     sid = 0
     for batch_id in range(batch_num):
       eid = sid + batch_size
       data_dict = {}
 
-      # sid_stub = sid
-      # sid = sid + sub_batch_size * task_index
-      # eid = sid + sub_batch_size
-
       if label_fields is not None and len(label_fields) > 0:
         for k in label_fields:
-          data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
-                                  dtype=np.int32)
+          if isinstance(input_data[k][sid], np.ndarray):
+            data_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
+                                    dtype=input_data[k][sid][0].dtype)
+          else:
+            data_dict[k] = input_data[k][sid:eid].to_numpy()
       if reserve_fields is not None and len(reserve_fields) > 0:
         data_dict['reserve'] = {}
         for k in reserve_fields:
-          np_dtype = type(input_data[k][0])
-          if np_dtype == object:
-            np_dtype = np.str
-          data_dict['reserve'][k] = np.array(
-              [x[0] for x in input_data[k][sid:eid]], dtype=np_dtype)
+          if isinstance(input_data[k][0], np.ndarray):
+            np_dtype = type(input_data[k][0][0])
+            data_dict['reserve'][k] = np.array(
+                [x[0] for x in input_data[k][sid:eid]], dtype=np_dtype)
+          else:
+            data_dict['reserve'][k] = input_data[k][sid:eid].to_numpy()
 
       for k in effective_fields:
         val = input_data[k][sid:eid]
-        all_lens = np.array([len(x) for x in val], dtype=np.int32)
-        all_vals = np.concatenate(val.to_numpy())
+        if isinstance(input_data[k][sid], np.ndarray):
+          all_lens = np.array([len(x) for x in val], dtype=np.int32)
+          all_vals = np.concatenate(val.to_numpy())
+        else:
+          all_lens = np.ones([len(val)], dtype=np.int32)
+          all_vals = val.to_numpy()
         assert np.sum(all_lens) == len(
             all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
                 len(all_vals), np.sum(all_lens))

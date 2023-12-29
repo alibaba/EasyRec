@@ -34,6 +34,7 @@ class ParquetInput(Input):
     super(ParquetInput,
           self).__init__(data_config, feature_config, input_path, task_index,
                          task_num, check_mode, pipeline_config, **kwargs)
+    self._need_pack = True
     if input_path is None:
       return
 
@@ -74,6 +75,12 @@ class ParquetInput(Input):
     if 'reserve_fields' in kwargs and 'reserve_types' in kwargs:
       self._reserve_fields = kwargs['reserve_fields']
       self._reserve_types = kwargs['reserve_types']
+
+    # indicator whether is called from Predictor, do not go pass
+    if 'is_predictor' in kwargs:
+      self._is_predictor = kwargs['is_predictor']
+    else:
+      self._is_predictor = False
 
     self._proc_arr = None
 
@@ -207,6 +214,13 @@ class ParquetInput(Input):
 
     return output_dict
 
+  def add_fea_type_and_shape(self, out_types, out_shapes):
+    # all features are packed into one tuple sparse_fea
+    #   first field: field lengths
+    #   second field: field values
+    out_types['sparse_fea'] = (tf.int32, tf.int64)
+    out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
+
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
       logging.info('will repeat train data for %d epochs' %
@@ -217,19 +231,37 @@ class ParquetInput(Input):
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       self._proc_arr = load_parquet.start_data_proc(
-          self._task_index, self._task_num, self._num_proc, self._file_que,
-          self._data_que, self._proc_start_que, self._proc_stop_que,
-          self._batch_size, self._label_fields, self._effective_fields,
-          self._reserve_fields, self._data_config.drop_remainder)
+          self._task_index,
+          self._task_num,
+          self._num_proc,
+          self._file_que,
+          self._data_que,
+          self._proc_start_que,
+          self._proc_stop_que,
+          self._batch_size,
+          self._label_fields,
+          self._effective_fields,
+          self._reserve_fields,
+          self._data_config.drop_remainder,
+          need_pack=self._need_pack)
     else:
       lbl_fields = self._label_fields
       if mode == tf.estimator.ModeKeys.PREDICT:
         lbl_fields = None
       self._proc_arr = load_parquet.start_data_proc(
-          self._task_index, self._task_num, self._num_proc, self._file_que,
-          self._data_que, self._proc_start_que, self._proc_stop_que,
-          self._batch_size, lbl_fields, self._effective_fields,
-          self._reserve_fields, False)
+          self._task_index,
+          self._task_num,
+          self._num_proc,
+          self._file_que,
+          self._data_que,
+          self._proc_start_que,
+          self._proc_stop_que,
+          self._batch_size,
+          lbl_fields,
+          self._effective_fields,
+          self._reserve_fields,
+          False,
+          need_pack=self._need_pack)
 
     for input_file in my_files:
       self._file_que.put(input_file)
@@ -255,8 +287,7 @@ class ParquetInput(Input):
         out_types['reserve'][k] = t
         out_shapes['reserve'][k] = tf.TensorShape([None])
 
-    out_types['sparse_fea'] = (tf.int32, tf.int64)
-    out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
+    self.add_fea_type_and_shape(out_types, out_shapes)
 
     dataset = tf.data.Dataset.from_generator(
         self._sample_generator,
@@ -266,34 +297,35 @@ class ParquetInput(Input):
     dataset = dataset.map(
         self._to_fea_dict, num_parallel_calls=num_parallel_calls)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
+
+    # Note: Input._preprocess is currently not supported as all features
+    #      are concatenated together
     # dataset = dataset.map(
     #     map_func=self._preprocess, num_parallel_calls=num_parallel_calls)
-    # dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:
                             (self._get_features(x), self._get_labels(x)))
+      # initial test show that prefetch to gpu has no performance gain
       # dataset = dataset.apply(tf.data.experimental.prefetch_to_device('/gpu:0'))
-      # dataset = dataset.prefetch(32)
     else:
-      if self._reserve_fields is not None:
-        # for predictor with saved model
-        def _get_with_reserve(fea_dict):
-          print('fea_dict=%s' % fea_dict)
-          out_dict = {
-              'feature': {
-                  'ragged_ids': fea_dict['feature']['sparse_fea'][0],
-                  'ragged_lens': fea_dict['feature']['sparse_fea'][1]
-              }
-          }
-          out_dict['reserve'] = fea_dict['reserve']
-          return out_dict
-
-        dataset = dataset.map(_get_with_reserve)
+      if self._is_predictor:
+        dataset = dataset.map(self._get_for_predictor)
       else:
         dataset = dataset.map(lambda x: self._get_features(x))
       dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     return dataset
+
+  def _get_for_predictor(self, fea_dict):
+    out_dict = {
+        'feature': {
+            'ragged_ids': fea_dict['feature']['sparse_fea'][0],
+            'ragged_lens': fea_dict['feature']['sparse_fea'][1]
+        }
+    }
+    if self._is_predictor and self._reserve_fields is not None:
+      out_dict['reserve'] = fea_dict['reserve']
+    return out_dict
 
   def create_input(self, export_config=None):
 

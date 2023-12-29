@@ -13,7 +13,7 @@ import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.inference.predictor import Predictor
-from easy_rec.python.input.parquet_input import ParquetInput
+from easy_rec.python.input.parquet_input_v2 import ParquetInputV2
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import input_utils
@@ -27,7 +27,7 @@ except Exception as ex:
   logging.warning('load libload_embed.so failed: %s' % str(ex))
 
 
-class ParquetPredictor(Predictor):
+class ParquetPredictorV2(Predictor):
 
   def __init__(self,
                model_path,
@@ -38,8 +38,8 @@ class ParquetPredictor(Predictor):
                selected_cols=None,
                output_sep=chr(1),
                pipeline_config=None):
-    super(ParquetPredictor, self).__init__(model_path, profiling_file,
-                                           fg_json_path)
+    super(ParquetPredictorV2, self).__init__(model_path, profiling_file,
+                                             fg_json_path)
     self._output_sep = output_sep
     self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
@@ -106,7 +106,7 @@ class ParquetPredictor(Predictor):
     self.pipeline_config.data_config.batch_size = batch_size
 
     kwargs['is_predictor'] = True
-    parquet_input = ParquetInput(
+    parquet_input = ParquetInputV2(
         self.pipeline_config.data_config,
         feature_configs,
         input_path,
