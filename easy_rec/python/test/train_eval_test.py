@@ -1202,6 +1202,27 @@ class TrainEvalTest(tf.test.TestCase):
         use_hvd=True)
     self.assertTrue(self._success)
 
+  def test_train_parquet(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_train_parquet_embedding_parallel(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet_ep.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_train_parquet_embedding_parallel_v2(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet_ep_v2.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
   def test_pdn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/pdn_on_taobao.config', self._test_dir)

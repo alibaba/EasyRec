@@ -10,6 +10,9 @@ DENSE_UPDATE_VARIABLES = 'DENSE_UPDATE_VARIABLES'
 SPARSE_UPDATE_VARIABLES = 'SPARSE_UPDATE_VARIABLES'
 ENABLE_AVX_STR_SPLIT = 'ENABLE_AVX_STR_SPLIT'
 
+# Environment variables to control whether to sort
+# feature columns by name, by default sort is not
+# enabled. The flag is set for backward compatibility.
 SORT_COL_BY_NAME = 'SORT_COL_BY_NAME'
 
 
@@ -24,7 +27,3 @@ def has_avx_str_split():
 
 def disable_avx_str_split():
   del os.environ[ENABLE_AVX_STR_SPLIT]
-
-
-def sort_col_by_name():
-  return SORT_COL_BY_NAME in os.environ

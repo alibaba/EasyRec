@@ -119,6 +119,8 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
       log_device_placement=params.get('log_device_placement', False),
       inter_op_parallelism_threads=train_config.inter_op_parallelism_threads,
       intra_op_parallelism_threads=train_config.intra_op_parallelism_threads)
+  # session_config.graph_options.rewrite_options.arithmetic_optimization = \
+  #   session_config.graph_options.rewrite_options.OFF
   session_config.device_filters.append('/job:ps')
   model_cls = EasyRecModel.create_class(model_config.model_class)
 
@@ -341,7 +343,12 @@ def _train_and_evaluate_impl(pipeline_config,
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
-  if estimator_utils.has_sok():
+
+  embedding_parallel = train_config.train_distribute in (
+      DistributionStrategy.SokStrategy,
+      DistributionStrategy.EmbeddingParallelStrategy)
+
+  if embedding_parallel:
     estimator.train(
         input_fn=train_input_fn,
         max_steps=train_spec.max_steps,

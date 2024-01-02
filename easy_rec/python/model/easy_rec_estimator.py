@@ -34,6 +34,7 @@ from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import hvd_utils
 from easy_rec.python.utils import pai_util
@@ -135,6 +136,21 @@ class EasyRecEstimator(tf.estimator.Estimator):
   @property
   def export_config(self):
     return self._pipeline_config.export_config
+
+  @property
+  def embedding_parallel(self):
+    return self.train_config.train_distribute in (
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy)
+
+  @property
+  def saver_cls(self):
+    # when embedding parallel is used, will use the extended
+    # saver class (EmbeddingParallelSaver) to save sharded embedding
+    tmp_saver_cls = saver.Saver
+    if self.embedding_parallel:
+      tmp_saver_cls = EmbeddingParallelSaver
+    return tmp_saver_cls
 
   def _train_model_fn(self, features, labels, run_config):
     model = self._model_cls(
@@ -316,11 +332,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
     else:
       all_train_vars = tf.trainable_variables()
 
-    embedding_parallel = self.train_config.train_distribute in (
-        DistributionStrategy.SokStrategy,
-        DistributionStrategy.EmbeddingParallelStrategy)
-    if embedding_parallel:
+    if self.embedding_parallel:
       logging.info('embedding_parallel is enabled')
+
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -335,7 +349,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         self._pipeline_config.data_config.chief_redundant,
         name='',  # Preventing scope prefix on all variables.
         incr_save=(self.incr_save_config is not None),
-        embedding_parallel=embedding_parallel)
+        embedding_parallel=self.embedding_parallel)
 
     # online evaluation
     metric_update_op_dict = None
@@ -417,12 +431,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
         local_init_ops.append(
             tf.initializers.variables(incompatiable_shape_restore))
 
-      saver_cls = saver.Saver
-      if embedding_parallel:
-        saver_cls = EmbeddingParallelSaver
-
       scaffold = tf.train.Scaffold(
-          saver=saver_cls(
+          saver=self.saver_cls(
               var_list=var_list,
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
@@ -439,7 +449,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
           increment_save_config=self.incr_save_config)
-      if estimator_utils.is_chief() or embedding_parallel:
+      if estimator_utils.is_chief() or self.embedding_parallel:
         hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(
@@ -484,17 +494,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
 
-    embedding_parallel = self.train_config.train_distribute in (
-        DistributionStrategy.SokStrategy,
-        DistributionStrategy.EmbeddingParallelStrategy)
-    saver_cls = saver.Saver
-    if embedding_parallel:
-      saver_cls = EmbeddingParallelSaver
-
     metric_variables = ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
     scaffold = tf.train.Scaffold(
-        saver=saver_cls(
+        saver=self.saver_cls(
             var_list=var_list, sharded=True, save_relative_paths=True),
         ready_for_local_init_op=model_ready_for_local_init_op)
     end = time.time()
@@ -640,16 +643,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
         ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
         ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
 
-    embedding_parallel = self.train_config.train_distribute in (
-        DistributionStrategy.SokStrategy,
-        DistributionStrategy.EmbeddingParallelStrategy)
-
-    saver_cls = saver.Saver
-    if embedding_parallel:
-      saver_cls = EmbeddingParallelSaver
-
     scaffold = tf.train.Scaffold(
-        saver=saver_cls(
+        saver=self.saver_cls(
             var_list=var_list, sharded=True, save_relative_paths=True))
 
     return tf.estimator.EstimatorSpec(
@@ -666,6 +661,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
       EasyRecEstimator._write_rtp_fg_config_to_col(
           fg_config_path=self._pipeline_config.fg_json_path)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
+
+    if self.embedding_parallel:
+      embedding_utils.set_embedding_parallel()
+
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:

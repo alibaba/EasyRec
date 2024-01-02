@@ -171,7 +171,7 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 
 try:
   from sparse_operation_kit import experiment as sok
@@ -263,12 +263,23 @@ def embedding_parallel_lookup(embedding,
     cumsum_lens = math_ops.cumsum(segment_lens)
     segment_ids = array_ops.searchsorted(
         cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
-  else:
+  elif isinstance(lookup_indices[0], sparse_tensor_lib.SparseTensor):
     with ops.device('/cpu:0'):
       all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
       segment_ids = array_ops.concat([x.indices[:, 0] for x in lookup_indices],
                                      axis=0)
     all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+  elif 'RaggedTensor' in str(type(lookup_indices[0])):
+    with ops.device('/cpu:0'):
+      all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
+      segment_lens = array_ops.concat([x.row_lengths() for x in lookup_indices],
+                                      axis=0)
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  else:
+    assert False, 'invalid indices type: %s' % str(type(lookup_indices[0]))
 
   num_parts = hvd.size()
   if num_parts > 1:
@@ -359,7 +370,7 @@ def _internal_input_layer(features,
     output_tensors = []
 
     tmp_cols = feature_columns
-    if constant.sort_col_by_name():
+    if embedding_utils.sort_col_by_name():
       logging.info('will sort columns[len=%d] by name' % len(tmp_cols))
       tmp_cols = sorted(tmp_cols, key=lambda x: x.name)
     for column in tmp_cols:
@@ -386,7 +397,7 @@ def _internal_input_layer(features,
           feature_name_to_output_tensors[column.raw_name] = output_tensor
     return array_ops.concat(output_tensors, 1)
 
-  def _get_logits_with_sok():  # pylint: disable=missing-docstring
+  def _get_logits_embedding_parallel():  # pylint: disable=missing-docstring
     assert hvd is not None, 'horovod is not installed'
     builder = _LazyBuilder(features)
     output_tensors = []
@@ -399,6 +410,9 @@ def _internal_input_layer(features,
     lookup_output_ids = []
     lookup_wgts = []
 
+    dense_cols = []
+    dense_output_ids = []
+
     shared_weights = {}
     dense_cnt = 0
     for column in feature_columns:
@@ -407,13 +421,9 @@ def _internal_input_layer(features,
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         # for features which does not require embedding
         if 'Embedding' not in str(type(column)):
-          output = column._get_dense_tensor(
-              builder, weight_collections, trainable=trainable)
-          output_tensors.append(output)
-          if cols_to_output_tensors is not None:
-            cols_to_output_tensors[column] = output
-          if feature_name_to_output_tensors is not None:
-            feature_name_to_output_tensors[column.raw_name] = output
+          dense_cols.append(column)
+          dense_output_ids.append(len(output_tensors))
+          output_tensors.append(None)
           dense_cnt += 1
           continue
 
@@ -510,6 +520,18 @@ def _internal_input_layer(features,
               ops.GraphKeys.GLOBAL_VARIABLES,
               scope=variable_scope.get_variable_scope().name)
 
+    if dense_cnt > 0:
+      if 'dense_fea' in features:
+        fea_dim_s = 0
+        for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
+          fea_dim_e = fea_dim_s + dense_col.shape[0]
+          output_tensors[dense_output_id] = features[
+              'dense_fea'][:, fea_dim_s:fea_dim_e]
+          fea_dim_s = fea_dim_e
+      else:
+        for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
+          output_tensors[dense_output_id] = features[dense_col.raw_name]
+
     # do embedding parallel lookup
     if len(lookup_output_ids) > 0:
       packed_input = ('sparse_fea' in features or 'ragged_ids' in features)
@@ -552,6 +574,11 @@ def _internal_input_layer(features,
       else:
         return array_ops.concat(output_tensors, axis=1)
     else:
+      for output_tensor, col in zip(output_tensors, feature_columns):
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[col.raw_name] = output_tensor
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output_tensor
       return array_ops.concat(output_tensors, axis=1)
 
   # If we're constructing from the `make_template`, that by default adds a
@@ -562,8 +589,8 @@ def _internal_input_layer(features,
   else:
     with variable_scope.variable_scope(
         scope, default_name='input_layer', values=features.values()):
-      if 'ENABLE_SOK' in os.environ:
-        return _get_logits_with_sok()
+      if embedding_utils.is_embedding_parallel():
+        return _get_logits_embedding_parallel()
       else:
         with ops.device('/CPU:0'):
           return _get_logits()
@@ -2944,7 +2971,6 @@ class _SharedEmbeddingColumn(
           # at eval or inference time, it is necessary to set
           # the initializers to zeros, so that new key will
           # get zero embedding
-          import os
           if os.environ.get('tf.estimator.mode', '') != \
              os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
             initializer = init_ops.zeros_initializer()

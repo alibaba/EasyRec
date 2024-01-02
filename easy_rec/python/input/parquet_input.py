@@ -84,6 +84,23 @@ class ParquetInput(Input):
 
     self._proc_arr = None
 
+    self._sparse_fea_names = []
+    self._dense_fea_names = []
+    self._dense_fea_cfgs = []
+    self._total_dense_fea_dim = 0
+    for fc in self._feature_configs:
+      feature_type = fc.feature_type
+      if feature_type in [fc.IdFeature, fc.TagFeature]:
+        input_name0 = fc.input_names[0]
+        self._sparse_fea_names.append(input_name0)
+      elif feature_type in [fc.RawFeature]:
+        input_name0 = fc.input_names[0]
+        self._dense_fea_names.append(input_name0)
+        self._dense_fea_cfgs.append(fc)
+        self._total_dense_fea_dim += fc.raw_input_dim
+      else:
+        assert False, 'feature_type[%s] not supported' % str(feature_type)
+
   def _rebuild_que(self):
     mp_ctxt = multiprocessing.get_context('spawn')
     self._data_que = queues.Queue(
@@ -188,16 +205,27 @@ class ParquetInput(Input):
   def _to_fea_dict(self, input_dict):
     fea_dict = {}
 
-    if self._has_ev:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-          'sparse_fea'][0]
+    if len(self._sparse_fea_names) > 0:
+      if self._has_ev:
+        tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+            'sparse_fea'][0]
 
-      fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
-    else:
-      tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
-          'sparse_fea'][0]
-      fea_dict['sparse_fea'] = (tmp_vals % self._feature_configs[0].num_buckets,
-                                tmp_lens)
+        fea_dict['sparse_fea'] = (tmp_vals, tmp_lens)
+      else:
+        tmp_vals, tmp_lens = input_dict['sparse_fea'][1], input_dict[
+            'sparse_fea'][0]
+        num_buckets = -1
+        for fc in self._feature_configs:
+          if fc.num_buckets > 0:
+            if num_buckets < 0:
+              num_buckets = fc.num_buckets
+            else:
+              assert num_buckets == fc.num_buckets, 'all features must share the same buckets, but are %d and %s' % (
+                  num_buckets, str(fc))
+        fea_dict['sparse_fea'] = (tmp_vals % num_buckets, tmp_lens)
+
+    if len(self._dense_fea_names) > 0:
+      fea_dict['dense_fea'] = input_dict['dense_fea']
 
     output_dict = {'feature': fea_dict}
 
@@ -218,8 +246,14 @@ class ParquetInput(Input):
     # all features are packed into one tuple sparse_fea
     #   first field: field lengths
     #   second field: field values
-    out_types['sparse_fea'] = (tf.int32, tf.int64)
-    out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None]))
+    if len(self._sparse_fea_names) > 0:
+      out_types['sparse_fea'] = (tf.int32, tf.int64)
+      out_shapes['sparse_fea'] = (tf.TensorShape([None]), tf.TensorShape([None
+                                                                          ]))
+    if len(self._dense_fea_names) > 0:
+      out_types['dense_fea'] = tf.float32
+      out_shapes['dense_fea'] = tf.TensorShape(
+          [None, self._total_dense_fea_dim])
 
   def _build(self, mode, params):
     if mode == tf.estimator.ModeKeys.TRAIN and self._data_config.num_epochs > 1:
@@ -230,38 +264,30 @@ class ParquetInput(Input):
       my_files = self._my_files
 
     if mode == tf.estimator.ModeKeys.TRAIN:
-      self._proc_arr = load_parquet.start_data_proc(
-          self._task_index,
-          self._task_num,
-          self._num_proc,
-          self._file_que,
-          self._data_que,
-          self._proc_start_que,
-          self._proc_stop_que,
-          self._batch_size,
-          self._label_fields,
-          self._effective_fields,
-          self._reserve_fields,
-          self._data_config.drop_remainder,
-          need_pack=self._need_pack)
+      drop_remainder = self._data_config.drop_remainder
+      lbl_fields = self._label_fields
     else:
       lbl_fields = self._label_fields
       if mode == tf.estimator.ModeKeys.PREDICT:
         lbl_fields = None
-      self._proc_arr = load_parquet.start_data_proc(
-          self._task_index,
-          self._task_num,
-          self._num_proc,
-          self._file_que,
-          self._data_que,
-          self._proc_start_que,
-          self._proc_stop_que,
-          self._batch_size,
-          lbl_fields,
-          self._effective_fields,
-          self._reserve_fields,
-          False,
-          need_pack=self._need_pack)
+      drop_remainder = False
+    self._proc_arr = load_parquet.start_data_proc(
+        self._task_index,
+        self._task_num,
+        self._num_proc,
+        self._file_que,
+        self._data_que,
+        self._proc_start_que,
+        self._proc_stop_que,
+        self._batch_size,
+        lbl_fields,
+        # self._effective_fields,
+        self._sparse_fea_names,
+        self._dense_fea_names,
+        self._dense_fea_cfgs,
+        self._reserve_fields,
+        drop_remainder,
+        need_pack=self._need_pack)
 
     for input_file in my_files:
       self._file_que.put(input_file)
@@ -351,17 +377,24 @@ class ParquetInput(Input):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        ragged_ids = array_ops.placeholder(tf.int64, [None], name='ragged_ids')
-        ragged_lens = array_ops.placeholder(
-            tf.int32, [None], name='ragged_lens')
-        inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
-        if self._has_ev:
-          features = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
-        else:
-          features = {
-              'ragged_ids': ragged_ids % self._feature_configs[0].num_buckets,
-              'ragged_lens': ragged_lens
-          }
+        inputs, features = {}, {}
+        if len(self._sparse_fea_names) > 0:
+          ragged_ids = array_ops.placeholder(
+              tf.int64, [None], name='ragged_ids')
+          ragged_lens = array_ops.placeholder(
+              tf.int32, [None], name='ragged_lens')
+          inputs = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
+          if self._has_ev:
+            features = {'ragged_ids': ragged_ids, 'ragged_lens': ragged_lens}
+          else:
+            features = {
+                'ragged_ids': ragged_ids % self._feature_configs[0].num_buckets,
+                'ragged_lens': ragged_lens
+            }
+        if len(self._dense_fea_names) > 0:
+          inputs['dense_fea'] = array_ops.placeholder(
+              tf.float32, [None, self._total_dense_fea_dim], name='dense_fea')
+          features['dense_fea'] = inputs['dense_fea']
         return tf.estimator.export.ServingInputReceiver(features, inputs)
 
     _input_fn.input_creator = self

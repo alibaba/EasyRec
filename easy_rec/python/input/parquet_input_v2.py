@@ -6,11 +6,12 @@ import os
 # import numpy as np
 # import pandas as pd
 import tensorflow as tf
-# from tensorflow.python.ops import logging_ops
-# from tensorflow.python.ops import math_ops
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+# from tensorflow.python.ops import math_ops
+# from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import string_ops
 
 from easy_rec.python.input.parquet_input import ParquetInput
 from easy_rec.python.utils import conditional
@@ -70,9 +71,13 @@ class ParquetInputV2(ParquetInput):
 
   def add_fea_type_and_shape(self, out_types, out_shapes):
     # overload ParquetInput.build_type_and_shape
-    for k in self._effective_fields:
+    for k in self._sparse_fea_names:
       out_types[k] = (tf.int32, tf.int64)
       out_shapes[k] = (tf.TensorShape([None]), tf.TensorShape([None]))
+    for fc in self._dense_fea_cfgs:
+      k = fc.input_names[0]
+      out_types[k] = tf.float32
+      out_shapes[k] = tf.TensorShape([None, fc.raw_input_dim])
 
   def _preprocess(self, inputs=None):
     features = {}
@@ -95,7 +100,10 @@ class ParquetInputV2(ParquetInput):
                 dtypes.int64, [None], name=input_name0 + '/lens')
             placeholders[input_name0] = (input_lens, input_vals)
         if not self._has_ev:
-          input_vals = input_vals % fc.num_buckets
+          if fc.num_buckets > 0:
+            input_vals = input_vals % fc.num_buckets
+          else:
+            input_vals = string_ops.as_string(input_vals)
         features[feature_name] = tf.RaggedTensor.from_row_lengths(
             values=input_vals, row_lengths=input_lens)
       elif feature_type in [fc.RawFeature]:
