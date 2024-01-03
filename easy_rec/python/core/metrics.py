@@ -117,9 +117,10 @@ def fast_auc(labels, predictions, name, num_thresholds=1e5):
     total_neg = total_pos_neg[0]
     total_pos = total_pos_neg[1]
     for i in range(num_thresholds + 1):
-      auc += (total_pos - partial_sum_pos) * pos_neg_arr[0][i]
       partial_sum_pos += pos_neg_arr[1][i]
-    auc = np.double(auc) / np.double(total_pos * total_neg)
+      auc += (total_pos - partial_sum_pos) * pos_neg_arr[0][i] * 2
+      auc += pos_neg_arr[0][i] * pos_neg_arr[1][i]
+    auc = np.double(auc) / np.double(total_pos * total_neg * 2)
     logging.info('fast_auc[%s]: total_pos=%d total_neg=%d total=%d' %
                  (name, total_pos, total_neg, total_pos + total_neg))
     return np.float32(auc)

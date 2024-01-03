@@ -414,9 +414,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       early_stop_var = find_early_stop_var(var_list)
       var_list = [x for x in var_list if x != early_stop_var]
 
-      # initialize_var_list = [
-      #     x for x in var_list if 'WorkQueue' not in str(type(x))
-      # ]
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x))
+      ]
 
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
@@ -437,9 +437,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
               save_relative_paths=True),
-          local_init_op=tf.group(local_init_ops))
-      # ready_for_local_init_op=tf.report_uninitialized_variables(
-      #    var_list=initialize_var_list))
+          local_init_op=tf.group(local_init_ops),
+          ready_for_local_init_op=tf.report_uninitialized_variables(
+              var_list=initialize_var_list))
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
           checkpoint_dir=self.model_dir,
