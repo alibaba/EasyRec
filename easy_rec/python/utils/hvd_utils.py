@@ -2,7 +2,10 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.training import session_run_hook
+
+from easy_rec.python.utils import constant
 
 # from horovod.tensorflow.compression import Compression
 try:
@@ -38,10 +41,13 @@ class BroadcastGlobalVariablesHook(session_run_hook.SessionRunHook):
 
   def begin(self):
     bcast_vars = []
+    embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
     for x in tf.global_variables():
-      if '/embedding' not in x.name and 'DynamicVariable' not in str(type(x)):
+      # if '/embedding' not in x.name and 'DynamicVariable' not in str(type(x)):
+      if x.name not in embed_para_vars:
         bcast_vars.append(x)
-        logging.info('will broadcast variable: %s' % x.name)
+        logging.info('will broadcast variable: name=%s shape=%s' %
+                     (x.name, x.get_shape()))
     if not self.bcast_op or self.bcast_op.graph != tf.get_default_graph():
       with tf.device(self.device):
         self.bcast_op = broadcast_variables(bcast_vars, self.root_rank)

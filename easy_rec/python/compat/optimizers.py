@@ -40,6 +40,7 @@ from tensorflow.python.training import optimizer as optimizer_
 from tensorflow.python.training import training as train
 
 from easy_rec.python.ops.incr_record import set_sparse_indices
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 
 try:
@@ -294,15 +295,51 @@ def optimize_loss(loss,
         #   already summed together in the backward pass through
         #   hvd.alltoall, as the loss are not divided, the gradients
         #   need to be normalized, divide by worker number
+        embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
+        part_grads = []
+        part_vars = []
+        part_sparse_grads = []
+        part_sparse_vars = []
         reduced_grads = []
         for g, v in gradients:
-          if '/embedding' not in v.name:
-            reduced_grads.append((hvd.allreduce(
-                g, op=hvd.Average,
-                compression=hvd.compression.NoneCompressor), v))
+          if v.name not in embed_para_vars:
+            if isinstance(g, indexed_slices.IndexedSlices):
+              part_sparse_grads.append(g)
+              part_sparse_vars.append(v)
+            else:
+              part_grads.append(g)
+              part_vars.append(v)
           else:
             reduced_grads.append((indexed_slices.IndexedSlices(
                 indices=g.indices, values=g.values / hvd.size()), v))
+
+        group_allreduce = False
+        if len(part_grads) > 0:
+          if group_allreduce:
+            reduced_part_grads = hvd.grouped_allreduce(
+                part_grads,
+                op=hvd.Average,
+                compression=hvd.compression.NoneCompressor)
+            for g, v in zip(reduced_part_grads, part_vars):
+              reduced_grads.append((g, v))
+          else:
+            for g, v in zip(part_grads, part_vars):
+              g = hvd.allreduce(
+                  g, op=hvd.Average, compression=hvd.compression.NoneCompressor)
+              reduced_grads.append((g, v))
+        if len(part_sparse_grads) > 0:
+          if group_allreduce:
+            reduced_part_grads = hvd.grouped_allreduce(
+                part_sparse_grads,
+                op=hvd.Average,
+                compression=hvd.compression.NoneCompressor)
+            for g, v in zip(reduced_part_grads, part_sparse_vars):
+              reduced_grads.append((g, v))
+          else:
+            for g, v in zip(part_sparse_grads, part_sparse_vars):
+              g = hvd.allreduce(
+                  g, op=hvd.Average, compression=hvd.compression.NoneCompressor)
+              reduced_grads.append((g, v))
         gradients = reduced_grads
 
     # Optionally add gradient noise.
@@ -376,6 +413,16 @@ def optimize_loss(loss,
           global_step=global_step if increment_global_step else None,
           name='train')
 
+      import logging
+      embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
+      slot_names = opt.get_slot_names()
+      for var in ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES):
+        if var.name in embed_para_vars:
+          for slot_name in slot_names:
+            tmp_var = opt.get_slot(var, slot_name)
+            logging.info('add shard embedding optimizer var: %s' % tmp_var.name)
+            ops.add_to_collection(constant.EmbeddingParallel, tmp_var.name)
+
       incr_save_ops = []
       if incr_save:
         for grad, var in gradients:
@@ -403,21 +450,23 @@ def optimize_loss(loss,
 
 
 def _get_grad_norm(grads_and_vars, embedding_parallel=False):
+  part_norms = []
   sparse_norms = []
   dense_norms = []
+  emb_para_names = ops.get_collection(constant.EmbeddingParallel)
   for grad, var in grads_and_vars:
+    if embedding_parallel and hvd is not None and hvd.size() > 1:
+      if var.name in emb_para_names:
+        part_norms.append(gen_nn_ops.l2_loss(grad.values))
+        continue
     if isinstance(grad, indexed_slices.IndexedSlices):
-      if embedding_parallel and hvd is not None and hvd.size() > 1:
-        sparse_norms.append(
-            hvd.allreduce(
-                gen_nn_ops.l2_loss(grad.values),
-                op=hvd.Sum,
-                compression=hvd.compression.NoneCompressor))
-      else:
-        sparse_norms.append(gen_nn_ops.l2_loss(grad.values))
+      sparse_norms.append(gen_nn_ops.l2_loss(grad.values))
     else:
       dense_norms.append(gen_nn_ops.l2_loss(grad))
-  all_norms = sparse_norms + dense_norms
+  reduced_norms = hvd.grouped_allreduce(
+      part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor)
+  sparse_norms = sparse_norms + reduced_norms
+  all_norms = reduced_norms + dense_norms
   sparse_norm = math_ops.sqrt(
       math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0))
   dense_norm = math_ops.sqrt(

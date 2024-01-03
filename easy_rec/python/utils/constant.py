@@ -20,6 +20,9 @@ SORT_COL_BY_NAME = 'SORT_COL_BY_NAME'
 #   train_eval_test.TrainEvalTest.test_train_parquet
 NO_ARITHMETRIC_OPTI = 'NO_ARITHMETRIC_OPTI'
 
+# shard embedding var_name collection
+EmbeddingParallel = 'EmbeddingParallel'
+
 
 def enable_avx_str_split():
   os.environ[ENABLE_AVX_STR_SPLIT] = '1'

@@ -16,6 +16,8 @@ from tensorflow.python.ops import state_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import saver
 
+from easy_rec.python.utils import constant
+
 try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
@@ -62,11 +64,13 @@ class EmbeddingParallelSaver(saver.Saver):
     self._kv_vars = []
     self._embed_vars = []
     tf_vars = []
+    embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
     for var in var_list:
-      if isinstance(var, sok.DynamicVariable):
+      if sok is not None and isinstance(var, sok.DynamicVariable):
         self._kv_vars.append(var)
-      elif '/embedding_weights' in var.name:
-        logging.info('get one dense embedding: %s' % var.name)
+      elif '/embedding_weights' in var.name or var.name in embed_para_vars:
+        logging.info('save shard embedding %s part_id=%d part_shape=%s' %
+                     (var.name, hvd.rank(), var.get_shape()))
         self._embed_vars.append(var)
       else:
         tf_vars.append(var)

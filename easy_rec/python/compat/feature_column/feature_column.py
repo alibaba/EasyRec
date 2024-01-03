@@ -171,6 +171,7 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
 
 try:
@@ -483,6 +484,8 @@ def _internal_input_layer(features,
                   trainable=column.trainable and trainable,
                   partitioner=None,
                   collections=weight_collections)
+        ops.add_to_collection(constant.EmbeddingParallel,
+                              embedding_weights.name)
         lookup_embeddings.append(embedding_weights)
         output_id = len(output_tensors)
         output_tensors.append(None)
