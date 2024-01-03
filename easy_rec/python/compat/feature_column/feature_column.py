@@ -191,6 +191,8 @@ def embedding_lookup_ragged(embedding_weights,
                             max_norm=None,
                             name=None):
   segment_ids = ragged_ids.value_rowids()
+  if segment_ids.dtype != dtypes.int32:
+    segment_ids = math_ops.cast(segment_ids, dtypes.int32)
   ids = ragged_ids.flat_values
   ids, idx = array_ops.unique(ids)
   embeddings = embedding_ops.embedding_lookup(

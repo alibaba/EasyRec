@@ -115,10 +115,10 @@ class ParquetInputV2(ParquetInput):
             input_vals = placeholders[input_name0]
           else:
             if fc.raw_input_dim > 1:
-              input_vals = array_ops.placeholders(
+              input_vals = array_ops.placeholder(
                   dtypes.float32, [None, fc.raw_input_dim], name=input_name0)
             else:
-              input_vals = array_ops.placeholders(
+              input_vals = array_ops.placeholder(
                   dtypes.float32, [None], name=input_name0)
             placeholders[input_name0] = input_vals
         features[feature_name] = input_vals
