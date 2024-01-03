@@ -24,6 +24,7 @@ from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
@@ -119,8 +120,12 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
       log_device_placement=params.get('log_device_placement', False),
       inter_op_parallelism_threads=train_config.inter_op_parallelism_threads,
       intra_op_parallelism_threads=train_config.intra_op_parallelism_threads)
-  # session_config.graph_options.rewrite_options.arithmetic_optimization = \
-  #   session_config.graph_options.rewrite_options.OFF
+
+  if constant.NO_ARITHMETRIC_OPTI in os.environ:
+    logging.info('arithmetic_optimization is closed to improve performance')
+    session_config.graph_options.rewrite_options.arithmetic_optimization = \
+        session_config.graph_options.rewrite_options.OFF
+
   session_config.device_filters.append('/job:ps')
   model_cls = EasyRecModel.create_class(model_config.model_class)
 

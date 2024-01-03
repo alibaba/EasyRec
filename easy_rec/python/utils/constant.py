@@ -15,6 +15,11 @@ ENABLE_AVX_STR_SPLIT = 'ENABLE_AVX_STR_SPLIT'
 # enabled. The flag is set for backward compatibility.
 SORT_COL_BY_NAME = 'SORT_COL_BY_NAME'
 
+# arithmetic_optimization causes significant slow training
+# of a test case:
+#   train_eval_test.TrainEvalTest.test_train_parquet
+NO_ARITHMETRIC_OPTI = 'NO_ARITHMETRIC_OPTI'
+
 
 def enable_avx_str_split():
   os.environ[ENABLE_AVX_STR_SPLIT] = '1'

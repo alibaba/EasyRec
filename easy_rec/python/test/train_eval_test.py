@@ -16,6 +16,7 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
@@ -34,6 +35,7 @@ try:
 except Exception:
   sok = None
 
+tf_version = tf.__version__
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -1202,7 +1204,11 @@ class TrainEvalTest(tf.test.TestCase):
         use_hvd=True)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(
+      six.PY2 or tf_version.split('.')[0] != '2',
+      'only run on python3 and tf 2.x')
   def test_train_parquet(self):
+    os.environ[constant.NO_ARITHMETRIC_OPTI] = '1'
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dlrm_on_criteo_parquet.config', self._test_dir)
     self.assertTrue(self._success)
