@@ -485,6 +485,11 @@ def set_train_input_path(pipeline_config, train_input_path):
       pipeline_config.kafka_train_input = ','.join(train_input_path)
     else:
       pipeline_config.kafka_train_input = train_input_path
+  elif pipeline_config.WhichOneof('train_path') == 'parquet_train_input':
+    if isinstance(train_input_path, list):
+      pipeline_config.parquet_train_input = ','.join(train_input_path)
+    else:
+      pipeline_config.parquet_train_input = train_input_path
   else:
     if isinstance(train_input_path, list):
       pipeline_config.train_input_path = ','.join(train_input_path)
@@ -509,6 +514,11 @@ def set_eval_input_path(pipeline_config, eval_input_path):
       pipeline_config.hive_eval_input.table_name = eval_input_path
     logging.info('update hive_eval_input.table_name to %s' %
                  pipeline_config.hive_eval_input.table_name)
+  elif pipeline_config.WhichOneof('eval_path') == 'parquet_eval_input':
+    if isinstance(eval_input_path, list):
+      pipeline_config.parquet_eval_input = ','.join(eval_input_path)
+    else:
+      pipeline_config.parquet_eval_input = eval_input_path
   elif pipeline_config.WhichOneof('eval_path') == 'kafka_eval_input':
     if isinstance(eval_input_path, list):
       pipeline_config.kafka_eval_input = ','.join(eval_input_path)

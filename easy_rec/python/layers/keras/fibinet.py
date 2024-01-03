@@ -7,8 +7,8 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.layers import Layer
 
-from easy_rec.python.layers.keras.layer_norm import LayerNormalization
 from easy_rec.python.layers.keras.blocks import MLP
+from easy_rec.python.layers.keras.layer_norm import LayerNormalization
 from easy_rec.python.layers.utils import Parameter
 
 

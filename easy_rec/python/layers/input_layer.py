@@ -133,15 +133,20 @@ class InputLayer(object):
 
     cols_to_output_tensors = OrderedDict()
     output_features = feature_column.input_layer(
-        features, group_columns, cols_to_output_tensors=cols_to_output_tensors)
+        features,
+        group_columns,
+        cols_to_output_tensors=cols_to_output_tensors,
+        is_training=self._is_training)
     group_features = [cols_to_output_tensors[x] for x in group_columns]
 
     embedding_reg_lst = []
     for col, val in cols_to_output_tensors.items():
       if is_embedding_column(col):
         embedding_reg_lst.append(val)
-    regularizers.apply_regularization(
-        self._embedding_regularizer, weights_list=embedding_reg_lst)
+
+    if self._embedding_regularizer is not None:
+      regularizers.apply_regularization(
+          self._embedding_regularizer, weights_list=embedding_reg_lst)
     return output_features, group_features
 
   def get_sequence_feature(self, features, group_name):
@@ -178,8 +183,10 @@ class InputLayer(object):
               tmp_embedding, tmp_seq_len, fc.max_seq_length)
         seq_features.append((tmp_embedding, tmp_seq_len))
         embedding_reg_lst.append(tmp_embedding)
-    regularizers.apply_regularization(
-        self._embedding_regularizer, weights_list=embedding_reg_lst)
+
+    if self._embedding_regularizer is not None:
+      regularizers.apply_regularization(
+          self._embedding_regularizer, weights_list=embedding_reg_lst)
     return seq_features
 
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
@@ -243,7 +250,8 @@ class InputLayer(object):
         features,
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
-        feature_name_to_output_tensors=feature_name_to_output_tensors)
+        feature_name_to_output_tensors=feature_name_to_output_tensors,
+        is_training=self._is_training)
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)
@@ -305,12 +313,13 @@ class InputLayer(object):
       group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
-    for fc, val in cols_to_output_tensors.items():
-      if is_embedding_column(fc):
-        embedding_reg_lst.append(val)
-    if embedding_reg_lst:
-      regularizers.apply_regularization(
-          self._embedding_regularizer, weights_list=embedding_reg_lst)
+    if self._embedding_regularizer is not None:
+      for fc, val in cols_to_output_tensors.items():
+        if is_embedding_column(fc):
+          embedding_reg_lst.append(val)
+      if embedding_reg_lst:
+        regularizers.apply_regularization(
+            self._embedding_regularizer, weights_list=embedding_reg_lst)
     return concat_features, group_features
 
   def get_wide_deep_dict(self):

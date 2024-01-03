@@ -5,8 +5,8 @@ from tensorflow.python.keras.layers import Activation
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.layers import Layer
 
-from easy_rec.python.layers.keras.layer_norm import LayerNormalization
 from easy_rec.python.layers.keras.blocks import MLP
+from easy_rec.python.layers.keras.layer_norm import LayerNormalization
 from easy_rec.python.layers.utils import Parameter
 
 
@@ -60,7 +60,8 @@ class MaskBlock(Layer):
     if self.config.input_layer_norm:
       # 推荐在调用MaskBlock之前做好 layer norm，否则每一次调用都需要对input做ln
       if tf.__version__ >= '2.0':
-        self.input_layer_norm = tf.keras.layers.LayerNormalization(name='input_ln')
+        self.input_layer_norm = tf.keras.layers.LayerNormalization(
+            name='input_ln')
       else:
         self.input_layer_norm = LayerNormalization(name='input_ln')
 
@@ -68,7 +69,8 @@ class MaskBlock(Layer):
       self.output_layer = Dense(
           self.config.output_size, use_bias=False, name='output')
     if tf.__version__ >= '2.0':
-      self.output_layer_norm = tf.keras.layers.LayerNormalization(name='output_ln')
+      self.output_layer_norm = tf.keras.layers.LayerNormalization(
+          name='output_ln')
     else:
       self.output_layer_norm = LayerNormalization(name='output_ln')
 
@@ -120,10 +122,11 @@ class MaskNet(Layer):
       self.mask_layers.append(mask_layer)
 
     if self.config.input_layer_norm:
-        if tf.__version__ >= '2.0':
-          self.input_layer_norm = tf.keras.layers.LayerNormalization(name='input_ln')
-        else:
-          self.input_layer_norm = LayerNormalization(name='input_ln')
+      if tf.__version__ >= '2.0':
+        self.input_layer_norm = tf.keras.layers.LayerNormalization(
+            name='input_ln')
+      else:
+        self.input_layer_norm = LayerNormalization(name='input_ln')
 
   def call(self, inputs, training=None, **kwargs):
     if self.config.input_layer_norm:

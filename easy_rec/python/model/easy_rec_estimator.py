@@ -34,14 +34,24 @@ from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
 from easy_rec.python.utils import estimator_utils
+from easy_rec.python.utils import hvd_utils
 from easy_rec.python.utils import pai_util
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+
+from easy_rec.python.compat.embedding_parallel_saver import EmbeddingParallelSaver  # NOQA
 
 try:
   import horovod.tensorflow as hvd
 except Exception:
   hvd = None
+
+try:
+  from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import sok_optimizer
+except Exception:
+  sok = None
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -127,6 +137,21 @@ class EasyRecEstimator(tf.estimator.Estimator):
   def export_config(self):
     return self._pipeline_config.export_config
 
+  @property
+  def embedding_parallel(self):
+    return self.train_config.train_distribute in (
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy)
+
+  @property
+  def saver_cls(self):
+    # when embedding parallel is used, will use the extended
+    # saver class (EmbeddingParallelSaver) to save sharded embedding
+    tmp_saver_cls = saver.Saver
+    if self.embedding_parallel:
+      tmp_saver_cls = EmbeddingParallelSaver
+    return tmp_saver_cls
+
   def _train_model_fn(self, features, labels, run_config):
     model = self._model_cls(
         self.model_config,
@@ -205,13 +230,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
           % (len(grouped_vars), len(optimizer_config))
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
+    if self.train_config.train_distribute == DistributionStrategy.SokStrategy:
+      optimizer = sok_optimizer.OptimizerWrapper(optimizer)
+
     hooks = []
     if estimator_utils.has_hvd():
       assert not self.train_config.sync_replicas, \
           'sync_replicas should not be set when using horovod'
-      optimizer = hvd.DistributedOptimizer(
-          optimizer, backward_passes_per_step=1)
-      bcast_hook = hvd.BroadcastGlobalVariablesHook(0)
+      bcast_hook = hvd_utils.BroadcastGlobalVariablesHook(0)
       hooks.append(bcast_hook)
 
     # for distributed and synced training
@@ -306,6 +332,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
     else:
       all_train_vars = tf.trainable_variables()
 
+    if self.embedding_parallel:
+      logging.info('embedding_parallel is enabled')
+
     train_op = optimizers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -319,7 +348,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
         not_apply_grad_after_first_step=run_config.is_chief and
         self._pipeline_config.data_config.chief_redundant,
         name='',  # Preventing scope prefix on all variables.
-        incr_save=(self.incr_save_config is not None))
+        incr_save=(self.incr_save_config is not None),
+        embedding_parallel=self.embedding_parallel)
 
     # online evaluation
     metric_update_op_dict = None
@@ -402,7 +432,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
             tf.initializers.variables(incompatiable_shape_restore))
 
       scaffold = tf.train.Scaffold(
-          saver=tf.train.Saver(
+          saver=self.saver_cls(
               var_list=var_list,
               sharded=True,
               max_to_keep=self.train_config.keep_checkpoint_max,
@@ -419,7 +449,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
           write_graph=self.train_config.write_graph,
           data_offset_var=data_offset_var,
           increment_save_config=self.incr_save_config)
-      hooks.append(saver_hook)
+      if estimator_utils.is_chief() or self.embedding_parallel:
+        hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(
             basic_session_run_hooks.StepCounterHook(
@@ -451,6 +482,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
     loss_dict['total_loss'] = loss
+
     metric_dict = model.build_metric_graph(self.eval_config)
     for loss_key in loss_dict.keys():
       loss_tensor = loss_dict[loss_key]
@@ -458,11 +490,22 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
     tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
 
+    var_list = (
+        ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
+        ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
+
+    metric_variables = ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)
+    model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
+    scaffold = tf.train.Scaffold(
+        saver=self.saver_cls(
+            var_list=var_list, sharded=True, save_relative_paths=True),
+        ready_for_local_init_op=model_ready_for_local_init_op)
     end = time.time()
     tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.EVAL,
         loss=loss,
+        scaffold=scaffold,
         predictions=predict_dict,
         eval_metric_ops=metric_dict)
 
@@ -596,9 +639,18 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.GraphKeys.ASSET_FILEPATHS,
           tf.constant(fg_path, dtype=tf.string, name='fg.json'))
 
+    var_list = (
+        ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) +
+        ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS))
+
+    scaffold = tf.train.Scaffold(
+        saver=self.saver_cls(
+            var_list=var_list, sharded=True, save_relative_paths=True))
+
     return tf.estimator.EstimatorSpec(
         mode=tf.estimator.ModeKeys.PREDICT,
         loss=None,
+        scaffold=scaffold,
         predictions=outputs,
         export_outputs=export_outputs)
 
@@ -609,6 +661,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
       EasyRecEstimator._write_rtp_fg_config_to_col(
           fg_config_path=self._pipeline_config.fg_json_path)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
+
+    if self.embedding_parallel:
+      embedding_utils.set_embedding_parallel()
+
     if mode == tf.estimator.ModeKeys.TRAIN:
       return self._train_model_fn(features, labels, config)
     elif mode == tf.estimator.ModeKeys.EVAL:

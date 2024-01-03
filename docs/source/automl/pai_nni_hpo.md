@@ -167,7 +167,7 @@ cmd1=PAI -name=easy_rec_ext
             -Dbuckets='oss://lcl-bj/'
             -Dmodel_dir='oss://lcl-bj/eval_dist_test/model_${exp_id}_${trial_id}'
             -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-            -Deval_method='separate' 
+            -Deval_method='separate'
 
 
 

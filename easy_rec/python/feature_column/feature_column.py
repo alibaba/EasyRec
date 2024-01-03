@@ -33,7 +33,9 @@ class SharedEmbedding(object):
     self.sequence_combiner = sequence_combiner
 
 
-EVParams = collections.namedtuple('EVParams', ['filter_freq', 'steps_to_live'])
+EVParams = collections.namedtuple('EVParams', [
+    'filter_freq', 'steps_to_live', 'use_cache', 'init_capacity', 'max_capacity'
+])
 
 
 class FeatureColumnParser(object):
@@ -652,5 +654,6 @@ class FeatureColumnParser(object):
     """Build embedding_variables params."""
     ev_params = EVParams(
         ev_params.filter_freq,
-        ev_params.steps_to_live if ev_params.steps_to_live > 0 else None)
+        ev_params.steps_to_live if ev_params.steps_to_live > 0 else None,
+        ev_params.use_cache, ev_params.init_capacity, ev_params.max_capacity)
     return ev_params
