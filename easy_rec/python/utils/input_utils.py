@@ -75,6 +75,24 @@ def string_to_number(field, ftype, default_value, name=''):
   return tmp_field
 
 
+def np_to_tf_type(np_type):
+  _types_map = {
+      int: tf.int32,
+      np.int32: tf.int32,
+      np.int64: tf.int64,
+      np.str: tf.string,
+      str: tf.string,
+      np.float: tf.float32,
+      np.float32: tf.float32,
+      float: tf.float32,
+      np.double: tf.float64
+  }
+  if np_type in _types_map:
+    return _types_map[np_type]
+  else:
+    return tf.string
+
+
 def get_tf_type_from_parquet_file(cols, parquet_file):
   # gfile not supported, read_parquet requires random access
   input_data = pd.read_parquet(parquet_file, columns=cols)
@@ -87,16 +105,5 @@ def get_tf_type_from_parquet_file(cols, parquet_file):
       data_type = type(obj[0])
     else:
       data_type = type(obj)
-    if data_type in (int, np.int32):
-      tf_types.append(tf.int32)
-    elif data_type in (np.int64,):
-      tf_types.append(tf.int64)
-    elif data_type in (np.str, str):
-      tf_types.append(tf.string)
-    elif data_type in (np.float, np.float32, float):
-      tf_types.append(tf.float32)
-    elif data_type in (np.double,):
-      tf_types.append(tf.float64)
-    else:
-      tf_types.append(tf.string)
+    tf_types.append(np_to_tf_type(data_type))
   return tf_types
