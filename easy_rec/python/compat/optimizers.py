@@ -19,6 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
+
 import six
 import tensorflow as tf
 # from tensorflow.contrib import framework as contrib_framework
@@ -413,7 +415,6 @@ def optimize_loss(loss,
           global_step=global_step if increment_global_step else None,
           name='train')
 
-      import logging
       embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
       slot_names = opt.get_slot_names()
       for var in ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES):

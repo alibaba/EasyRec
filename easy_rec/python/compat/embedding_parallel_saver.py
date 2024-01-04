@@ -21,10 +21,10 @@ from easy_rec.python.utils import constant
 try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
-  from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import dynamic_variable
 except Exception:
   dynamic_variable_ops = None
-  sok = None
+  dynamic_variable = None
 
 try:
   from tensorflow.python.framework.load_library import load_op_library
@@ -66,9 +66,10 @@ class EmbeddingParallelSaver(saver.Saver):
     tf_vars = []
     embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
     for var in var_list:
-      if sok is not None and isinstance(var, sok.DynamicVariable):
+      if dynamic_variable is not None and isinstance(
+          var, dynamic_variable.DynamicVariable):
         self._kv_vars.append(var)
-      elif '/embedding_weights' in var.name or var.name in embed_para_vars:
+      elif var.name in embed_para_vars:
         logging.info('save shard embedding %s part_id=%d part_shape=%s' %
                      (var.name, hvd.rank(), var.get_shape()))
         self._embed_vars.append(var)
