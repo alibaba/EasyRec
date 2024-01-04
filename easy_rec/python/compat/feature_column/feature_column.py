@@ -327,7 +327,7 @@ def embedding_parallel_lookup(embedding,
       recv_embeddings = array_ops.gather(embedding, all_uniq_ids)
     embeddings = math_ops.sparse_segment_sum(
         recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
-  # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
+
   embed_dim = embedding.get_shape()[-1]
   output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
 
@@ -486,6 +486,7 @@ def _internal_input_layer(features,
         lookup_output_ids.append(output_id)
         lookup_cols.append(column)
         lookup_combiners.append(column.combiner)
+
         # SparseTensor RaggedTensor
         # features are not gathered into one, may have
         # performance issues
