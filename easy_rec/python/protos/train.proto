@@ -21,7 +21,9 @@ enum DistributionStrategy {
     MultiWorkerMirroredStrategy = 5;
     // use horovod strategy
     HorovodStrategy = 6;
+    // support kv embedding, support kv embedding shard
     SokStrategy = 7;
+    // support embedding shard, requires horovod
     EmbeddingParallelStrategy = 8;
 }
 

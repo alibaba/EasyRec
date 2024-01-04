@@ -61,12 +61,19 @@
   - 仅在train_distribute为NoStrategy时可以设置成true，其它情况应该设置为false
   - PS异步训练也设置为false
 
-- train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式
+- train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式, 可以分成两种模式: PS-Worker模式 和 All-Reduce模式
 
-  - NoStrategy 不使用Strategy
-  - PSStrategy 异步ParameterServer模式
-  - MirroredStrategy 单机多卡模式，仅在PAI上可以使用，本地和EMR上不能使用
-  - MultiWorkerMirroredStrategy 多机多卡模式，在TF版本>=1.15时可以使用
+  - PS-Worker模式:
+    - NoStrategy: 不使用Strategy
+    - PSStrategy: 异步ParameterServer模式
+  - All-Reduce模式:
+    - 数据并行:
+      - MirroredStrategy: 单机多卡模式，仅在PAI上可以使用，本地和EMR上不能使用
+      - MultiWorkerMirroredStrategy: 多机多卡模式，在TF版本>=1.15时可以使用
+      - HorovodStragtegy: horovod多机多卡并行, 需要安装horovod
+    - 混合并行(数据并行 + Embedding分片):
+      - EmbeddingParallelStrategy: 在horovod多机多卡并行的基础上, 增加了Embedding分片的功能
+      - SokStrategy: 在horovod多机多卡并行的基础上, 增加了KV Embedding和Embedding分片的功能
 
 - num_gpus_per_worker: 仅在MirrorredStrategy, MultiWorkerMirroredStrategy, PSStrategy的时候有用
 

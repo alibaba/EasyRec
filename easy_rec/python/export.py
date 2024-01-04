@@ -112,10 +112,12 @@ def main(argv):
       pipeline_config_path)
   if pipeline_config.train_config.train_distribute in [
       DistributionStrategy.HorovodStrategy,
-      DistributionStrategy.EmbeddingParallelStrategy
   ]:
     estimator_utils.init_hvd()
-  elif pipeline_config.train_config.train_distribute == DistributionStrategy.SokStrategy:
+  elif pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.EmbeddingParallelStrategy,
+      DistributionStrategy.SokStrategy
+  ]:
     estimator_utils.init_hvd()
     estimator_utils.init_sok()
 

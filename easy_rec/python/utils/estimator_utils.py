@@ -1024,7 +1024,7 @@ def init_sok():
     os.environ['ENABLE_SOK'] = '1'
     return True
   except Exception:
-    logging.error('sok is not installed')
+    logging.warning('sok is not installed')
     return False
 
 
