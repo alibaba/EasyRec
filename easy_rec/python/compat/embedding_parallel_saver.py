@@ -108,13 +108,13 @@ class EmbeddingParallelSaver(saver.Saver):
                    (task_id, var_name, embed_dir))
       if not gfile.Exists(embed_dir):
         gfile.MakeDirs(embed_dir)
-      embed_file = filename + '-embedding/embed-' + var_name + '_part-%d.bin' % task_id
+      embed_file = filename + '-embedding/embed-' + var_name + '-part-%d.bin' % task_id
       with gfile.GFile(embed_file, 'wb') as fout:
         fout.write(embed.tobytes())
 
       if task_id == 0:
         # clear old embedding tables
-        embed_pattern = filename + '-embedding/embed-' + var_name + '_part-*.bin'
+        embed_pattern = filename + '-embedding/embed-' + var_name + '-part-*.bin'
         embed_files = gfile.Glob(embed_pattern)
         for embed_file in embed_files:
           embed_id = _get_embed_part_id(embed_file)
@@ -139,7 +139,7 @@ class EmbeddingParallelSaver(saver.Saver):
                     filename, var_name):
       filename = filename.decode('utf-8')
       var_name = var_name.decode('utf-8').replace('/', '__')
-      embed_pattern = filename + '-embedding/embed-' + var_name + '_part-*.bin'
+      embed_pattern = filename + '-embedding/embed-' + var_name + '-part-*.bin'
       embed_files = gfile.Glob(embed_pattern)
 
       embed_files.sort(key=_get_embed_part_id)
@@ -167,11 +167,20 @@ class EmbeddingParallelSaver(saver.Saver):
       return part_embed_vals
 
     with ops.control_dependencies([embed_var._initializer_op]):
-      embed_val = script_ops.py_func(_load_embed, [
-          embed_var, embed_dim, embed_part_size,
-          hvd.rank(),
-          hvd.size(), file_name, embed_var.name
-      ], dtypes.float32)
+      if load_embed_lib is not None:
+        embed_val = load_embed_lib.load_embed(
+            task_index=hvd.rank(),
+            task_num=hvd.size(),
+            embed_dim=embed_dim,
+            embed_part_size=embed_part_size,
+            var_name='embed-' + embed_var.name.replace('/', '__'),
+            ckpt_path=file_name)
+      else:
+        embed_val = script_ops.py_func(_load_embed, [
+            embed_var, embed_dim, embed_part_size,
+            hvd.rank(),
+            hvd.size(), file_name, embed_var.name
+        ], dtypes.float32)
       embed_val.set_shape(embed_var.get_shape())
       return state_ops.assign(embed_var, embed_val)
 
