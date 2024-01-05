@@ -22,6 +22,8 @@ id_feature表示离散特征, 包含单值离散特征和多值离散特征.
 
 ## 示例:
 
+下面以item侧的特征is_main作为案例来说明在不同配置下特征的输入和输出:
+
 | 类型       | item:is_main的取值 | 输出的feature                         |
 | -------- | --------------- | ---------------------------------- |
 | int64_t  | 100             | item_is_main_100                   |
@@ -30,5 +32,5 @@ id_feature表示离散特征, 包含单值离散特征和多值离散特征.
 | 多值string | abc^\]bcd       | item_is_main_abc^Citem_is_main_bcd |
 | 多值int    | 123^\]456       | item_is_main_123^Citem_is_main_456 |
 
-- ^\]表示多值分隔符，注意这是一个符号，其ASCII编码是"\\x1D"
+- ^\]表示多值分隔符，注意这是一个符号，其ASCII编码是"\\x1D", 也可以写作"\\u001d"
 - ^C是FG encode之后输出的特征值的分隔符, 其ASCII编码是"\\x03"

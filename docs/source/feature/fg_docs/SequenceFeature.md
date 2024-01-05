@@ -6,7 +6,7 @@
 
 ## 配置方法
 
-例如我们需要对⽤户的点击序列进⾏ fg，序列⻓度为 30，每个序列提取 nid 和 price, seq_context 特征。正常 item 维度有⼀个 feat0 特征。配置如下：
+例如我们需要对⽤户的点击序列进⾏fg，序列⻓度为50，每个序列提取item_id, price和ts特征，其中ts=请求时间(request_time) - 用户行为时间(event_time)。 配置如下：
 
 ```json
 {
@@ -16,6 +16,7 @@
             "feature_name":"feat0",
             "expression":"user:feat0"
         },
+        ...
         {
             "sequence_name":"click_50_seq",
             "sequence_column":"click_50_seq",
@@ -26,10 +27,10 @@
             "sequence_pk":"user:click_50_seq",
             "features":[
                 {
-                    "feature_name":"nid",
+                    "feature_name":"item_id",
                     "feature_type":"id_feature",
                     "value_type":"String",
-                    "expression":"item:nid"
+                    "expression":"item:item_id"
                 },
                 {
                     "feature_name":"price",
