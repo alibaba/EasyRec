@@ -15,12 +15,12 @@ raw_feature表示连续值特征, 支持数值int、float、double等数值类�
 }
 ```
 
-| 字段名             | 含义                               |
-| --------------- | -------------------------------- |
-| feature_name    | 必选项, 特征名                         |
-| expression      | 必选项，expression描述该feature所依赖的字段来源 |
-| value_dimension | 可选项，默认值为1，表示输出的字段的维度             |
-| normalizer      | 可选项，归一化方法，详见后文                   |
+| 字段名             | 含义                                                           |
+| --------------- | ------------------------------------------------------------ |
+| feature_name    | 必选项, 特征名                                                     |
+| expression      | 必选项，expression描述该feature所依赖的字段来源, 来源必须是user、item、context中的一种 |
+| value_dimension | 可选项，默认值为1，表示输出的字段的维度                                         |
+| normalizer      | 可选项，归一化方法，详见后文                                               |
 
 ## 示例
 

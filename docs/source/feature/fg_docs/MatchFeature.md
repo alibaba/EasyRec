@@ -76,7 +76,7 @@ match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_fea
 - needDiscrete=true，结果为: brand_hit_50006842_30068_19
 - needDiscrete=false，结果为: 19.0
 
-如果只使用一层匹配，则需要将上面配置里的 category 的值改为 ALL。这种情况，用户也可以考虑使用lookup_feature。 假设各字段的值如下
+如果只使用一层匹配，则需要将上面配置里的 category 的值改为 ALL。 假设各字段的值如下
 
 | user_brand_tags_hit | ALL^16788816:40,10122:40,29889:20,30068:20 |
 | ------------------- | ------------------------------------------ |
@@ -84,3 +84,5 @@ match_feature 支持和 raw_feature 一样的 normalizer，具体可见 [raw_fea
 
 - needDiscrete=true, 结果: brand_hit_ALL_30068_20
 - needDiscrete=false, 结果: 20.0
+
+这种情况，用户也可以考虑使用lookup_feature, user_brand_tags_hit 里面的值的格式需要更改为: "16788816:40^\]10122:40^\]29889:20^\]30068:20", 注意: '^\]'是多值分隔符(\\u001d), 是一个不可见字符。
