@@ -175,9 +175,9 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
 
 try:
-  from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import dynamic_variable
 except Exception:
-  sok = None
+  dynamic_variable = None
 
 try:
   import horovod.tensorflow as hvd
@@ -301,7 +301,7 @@ def embedding_parallel_lookup(embedding,
     recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
 
     # read embedding from dynamic variable
-    if isinstance(embedding, sok.DynamicVariable):
+    if isinstance(embedding, dynamic_variable.DynamicVariable):
       send_embed = embedding.sparse_read(
           recv_ids, lookup_only=(not is_training))
     else:
@@ -320,20 +320,16 @@ def embedding_parallel_lookup(embedding,
     embeddings = math_ops.sparse_segment_sum(
         recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
   else:
-    if isinstance(embedding, sok.DynamicVariable):
+    if isinstance(embedding, dynamic_variable.DynamicVariable):
       recv_embeddings = embedding.sparse_read(
           all_uniq_ids, lookup_only=(not is_training))
     else:
       recv_embeddings = array_ops.gather(embedding, all_uniq_ids)
     embeddings = math_ops.sparse_segment_sum(
         recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
-  # all_embed = array_ops.gather(recv_embeddings, uniq_idx)
-  if isinstance(embedding, sok.DynamicVariable):
-    embed_dim = embedding._dimension
-    output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
-  else:
-    embed_dim = embedding.get_shape()[-1]
-    output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
+
+  embed_dim = embedding.get_shape()[-1]
+  output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
 
   if output_tensors is not None:
     outputs = array_ops.split(output_tensor, num_or_size_splits=N, axis=0)
@@ -441,8 +437,8 @@ def _internal_input_layer(features,
           else:
             with ops.device('/gpu:0'):
               if column.ev_params is not None:
-                assert sok is not None, 'sok is not installed'
-                embedding_weights = sok.DynamicVariable(
+                assert dynamic_variable is not None, 'sok is not installed'
+                embedding_weights = dynamic_variable.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random {"stddev":0.0025}',  # column.initializer,
@@ -465,8 +461,8 @@ def _internal_input_layer(features,
         else:
           with ops.device('/gpu:0'):
             if column.ev_params is not None:
-              assert sok is not None, 'sok is not installed'
-              embedding_weights = sok.DynamicVariable(
+              assert dynamic_variable is not None, 'sok is not installed'
+              embedding_weights = dynamic_variable.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
                   initializer='random {"stddev":0.0025}',  # column.initializer,
@@ -484,17 +480,13 @@ def _internal_input_layer(features,
                   trainable=column.trainable and trainable,
                   partitioner=None,
                   collections=weight_collections)
-        ops.add_to_collection(constant.EmbeddingParallel,
-                              embedding_weights.name)
         lookup_embeddings.append(embedding_weights)
         output_id = len(output_tensors)
         output_tensors.append(None)
         lookup_output_ids.append(output_id)
         lookup_cols.append(column)
         lookup_combiners.append(column.combiner)
-        # required by sok
-        if 'DynamicVariable' not in str(type(embedding_weights)):
-          embedding_weights.target_gpu = -1
+
         # SparseTensor RaggedTensor
         # features are not gathered into one, may have
         # performance issues
@@ -536,6 +528,9 @@ def _internal_input_layer(features,
       else:
         for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
           output_tensors[dense_output_id] = features[dense_col.raw_name]
+
+    for tmp_embed_var in set(lookup_embeddings):
+      ops.add_to_collection(constant.EmbeddingParallel, tmp_embed_var.name)
 
     # do embedding parallel lookup
     if len(lookup_output_ids) > 0:

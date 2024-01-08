@@ -15,21 +15,23 @@
 #
 
 import tensorflow as tf
-from sparse_operation_kit.experiment.dynamic_variable import DynamicVariable
 from tensorflow.python.eager import context
 # from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 # from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import gradients
 from tensorflow.python.ops import resource_variable_ops
 from tensorflow.python.ops import state_ops
+
+from easy_rec.python.compat.dynamic_variable import DynamicVariable
 
 
 def OptimizerWrapper(optimizer):
   """Abbreviated as ``sok.experiment.OptimizerWrapper``.
 
   This is a wrapper for tensorflow optimizer so that it can update
-  sok.DynamicVariable.
+  dynamic_variable.DynamicVariable.
 
   Parameters
   ----------
@@ -45,7 +47,7 @@ def OptimizerWrapper(optimizer):
       import horovod.tensorflow as hvd
       from sparse_operation_kit import experiment as sok
 
-      v = sok.DynamicVariable(dimension=3, initializer="13")
+      v = dynamic_variable.DynamicVariable(dimension=3, initializer="13")
 
       indices = tf.convert_to_tensor([0, 1, 2**40], dtype=tf.int64)
 
@@ -106,19 +108,20 @@ class OptimizerWrapperV1(object):
                         colocate_gradients_with_ops=False,
                         grad_loss=None):
     self._loss = loss
-    import tensorflow as tf
-    gradients = tf.gradients(loss, var_list)
-    return list(zip(gradients, var_list))
+    tmp_grads = gradients.gradients(loss, var_list)
+    return list(zip(tmp_grads, var_list))
+    # TODO: the following routine does not work with DynamicVariable
     # return self._optimizer.compute_gradients(loss=loss, var_list=var_list,
-    #       gate_gradients=gate_gradients,
+    #       # gate_gradients=gate_gradients,
     #       aggregation_method=aggregation_method,
     #       colocate_gradients_with_ops=colocate_gradients_with_ops,
     #       grad_loss=grad_loss)
 
   def _var_key(self, var):
-    if hasattr(var, 'op'):
+    if isinstance(var, DynamicVariable):
+      return (var._tf_handle.op.graph, var._tf_handle.op.name)
+    else:
       return (var.op.graph, var.op.name)
-    return var._unique_id
 
   def _create_slots(self, vars):
     for var in vars:
@@ -154,8 +157,9 @@ class OptimizerWrapperV1(object):
   def get_slot_names(self):
     return self._optimizer.get_slot_names()
 
-  def get_slot(self, var, name):
-    return self._optimizer.get_slot(var, name)
+  def get_slot(self, var, slot_name):
+    key = self._var_key(var)
+    return self._optimizer._slots[slot_name][key]
 
   @property
   def _slots(self):
@@ -222,11 +226,12 @@ class OptimizerWrapperV1(object):
         key = self._var_key(v)
         for slot_name in self._initial_vals:
           if key not in self._optimizer._slots[slot_name]:
+            tmp_slot_var_name = v._dummy_handle.op.name + '/' + self._optimizer._name
             if v.backend_type == 'hbm':
               slot = DynamicVariable(
                   dimension=v.dimension,
                   initializer=self._initial_vals[slot_name],
-                  name='DynamicSlot',
+                  name=tmp_slot_var_name,
                   trainable=False,
               )
             else:
@@ -236,7 +241,7 @@ class OptimizerWrapperV1(object):
                   dimension=v.dimension,
                   initializer=self._initial_vals[slot_name],
                   var_type=v.backend_type,
-                  name='DynamicSlot',
+                  name=tmp_slot_var_name,
                   trainable=False,
                   **tmp_config)
 

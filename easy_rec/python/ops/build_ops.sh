@@ -25,11 +25,11 @@ fi
 
 ops_bin=${ops_bin_dir}/libload_embed.so
 
-g++ -D_GLIBCXX_USE_CXX11_ABI=$TF_ABI -shared -O3 -DNDEBUG -Wl,-rpath,'$ORIGIN'  -fpermissive -mfma -fopenmp  ${ops_src_dir}/load_kv_embed.cc -o ${ops_bin}  -fPIC -I $TF_INC $TF_LFLAGS -L/lib64 -std=c++11
+g++ -D_GLIBCXX_USE_CXX11_ABI=$TF_ABI -shared -O3 -DNDEBUG -Wl,-rpath,'$ORIGIN'  -fpermissive -mfma -fopenmp  ${ops_src_dir}/load_kv_embed.cc ${ops_src_dir}/load_dense_embed.cc -o ${ops_bin}  -fPIC -I $TF_INC $TF_LFLAGS -L/lib64
 
 python -c "import tensorflow as tf; tf.load_op_library('$ops_bin')"
 err_code=$?
-if [ $err_code -ne 0]
+if [ $err_code -ne 0 ]
 then
    echo "build failed"
    exit $err_code

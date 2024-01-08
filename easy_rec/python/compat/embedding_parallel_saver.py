@@ -21,10 +21,10 @@ from easy_rec.python.utils import constant
 try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
-  from sparse_operation_kit import experiment as sok
+  from easy_rec.python.compat import dynamic_variable
 except Exception:
   dynamic_variable_ops = None
-  sok = None
+  dynamic_variable = None
 
 try:
   from tensorflow.python.framework.load_library import load_op_library
@@ -66,9 +66,10 @@ class EmbeddingParallelSaver(saver.Saver):
     tf_vars = []
     embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
     for var in var_list:
-      if sok is not None and isinstance(var, sok.DynamicVariable):
+      if dynamic_variable is not None and isinstance(
+          var, dynamic_variable.DynamicVariable):
         self._kv_vars.append(var)
-      elif '/embedding_weights' in var.name or var.name in embed_para_vars:
+      elif var.name in embed_para_vars:
         logging.info('save shard embedding %s part_id=%d part_shape=%s' %
                      (var.name, hvd.rank(), var.get_shape()))
         self._embed_vars.append(var)
@@ -107,13 +108,13 @@ class EmbeddingParallelSaver(saver.Saver):
                    (task_id, var_name, embed_dir))
       if not gfile.Exists(embed_dir):
         gfile.MakeDirs(embed_dir)
-      embed_file = filename + '-embedding/embed-' + var_name + '_part-%d.bin' % task_id
+      embed_file = filename + '-embedding/embed-' + var_name + '-part-%d.bin' % task_id
       with gfile.GFile(embed_file, 'wb') as fout:
         fout.write(embed.tobytes())
 
       if task_id == 0:
         # clear old embedding tables
-        embed_pattern = filename + '-embedding/embed-' + var_name + '_part-*.bin'
+        embed_pattern = filename + '-embedding/embed-' + var_name + '-part-*.bin'
         embed_files = gfile.Glob(embed_pattern)
         for embed_file in embed_files:
           embed_id = _get_embed_part_id(embed_file)
@@ -138,7 +139,7 @@ class EmbeddingParallelSaver(saver.Saver):
                     filename, var_name):
       filename = filename.decode('utf-8')
       var_name = var_name.decode('utf-8').replace('/', '__')
-      embed_pattern = filename + '-embedding/embed-' + var_name + '_part-*.bin'
+      embed_pattern = filename + '-embedding/embed-' + var_name + '-part-*.bin'
       embed_files = gfile.Glob(embed_pattern)
 
       embed_files.sort(key=_get_embed_part_id)
@@ -166,11 +167,20 @@ class EmbeddingParallelSaver(saver.Saver):
       return part_embed_vals
 
     with ops.control_dependencies([embed_var._initializer_op]):
-      embed_val = script_ops.py_func(_load_embed, [
-          embed_var, embed_dim, embed_part_size,
-          hvd.rank(),
-          hvd.size(), file_name, embed_var.name
-      ], dtypes.float32)
+      if load_embed_lib is not None:
+        embed_val = load_embed_lib.load_embed(
+            task_index=hvd.rank(),
+            task_num=hvd.size(),
+            embed_dim=embed_dim,
+            embed_part_size=embed_part_size,
+            var_name='embed-' + embed_var.name.replace('/', '__'),
+            ckpt_path=file_name)
+      else:
+        embed_val = script_ops.py_func(_load_embed, [
+            embed_var, embed_dim, embed_part_size,
+            hvd.rank(),
+            hvd.size(), file_name, embed_var.name
+        ], dtypes.float32)
       embed_val.set_shape(embed_var.get_shape())
       return state_ops.assign(embed_var, embed_val)
 
