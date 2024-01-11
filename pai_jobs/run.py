@@ -12,7 +12,7 @@ import yaml
 from tensorflow.python.platform import gfile
 
 import easy_rec
-from easy_rec.python.inference.predictor import ODPSPredictor
+from easy_rec.python.inference.odps_predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
