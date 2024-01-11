@@ -216,7 +216,8 @@ def set_tf_config_and_get_train_worker_num(
 
 
 def set_tf_config_and_get_train_worker_num_on_ds():
-  assert 'TF_CONFIG' in os.environ, "'TF_CONFIG' must in os.environ"
+  if 'TF_CONFIG' not in os.environ:
+    return
   tf_config = json.loads(os.environ['TF_CONFIG'])
   if 'cluster' in tf_config and 'ps' in tf_config['cluster'] and (
       'evaluator' not in tf_config['cluster']):

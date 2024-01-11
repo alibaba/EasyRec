@@ -1,5 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import os
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
@@ -46,3 +48,20 @@ def get_dense_name_to_ids():
   for tid, x in enumerate(dense_train_vars):
     norm_name_to_ids[x.op.name] = tid
   return norm_name_to_ids
+
+
+embedding_parallel = False
+
+
+def set_embedding_parallel():
+  global embedding_parallel
+  embedding_parallel = True
+
+
+def is_embedding_parallel():
+  global embedding_parallel
+  return embedding_parallel
+
+
+def sort_col_by_name():
+  return constant.SORT_COL_BY_NAME in os.environ

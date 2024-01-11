@@ -9,7 +9,7 @@ import shutil
 import numpy as np
 import tensorflow as tf
 
-from easy_rec.python.inference.predictor import CSVPredictor
+from easy_rec.python.inference.csv_predictor import CSVPredictor
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils

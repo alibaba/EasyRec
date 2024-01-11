@@ -7,6 +7,9 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.main import export
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
+from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -104,6 +107,19 @@ def main(argv):
     extra_params['oss_write_kv'] = True if FLAGS.oss_write_kv == 1 else False
   if FLAGS.oss_embedding_version:
     extra_params['oss_embedding_version'] = FLAGS.oss_embedding_version
+
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+  if pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.HorovodStrategy,
+  ]:
+    estimator_utils.init_hvd()
+  elif pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.EmbeddingParallelStrategy,
+      DistributionStrategy.SokStrategy
+  ]:
+    estimator_utils.init_hvd()
+    estimator_utils.init_sok()
 
   export(FLAGS.export_dir, pipeline_config_path, FLAGS.checkpoint_path,
          FLAGS.asset_files, FLAGS.verbose, **extra_params)

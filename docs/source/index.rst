@@ -40,6 +40,7 @@ Welcome to easy_rec's documentation!
    models/rank
    models/multi_target
    models/user_define
+   models/loss
 
 .. toctree::
    :maxdepth: 2

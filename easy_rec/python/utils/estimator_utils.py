@@ -39,6 +39,11 @@ except Exception:
   hvd = None
 
 try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+try:
   from kafka import KafkaProducer, KafkaAdminClient
   from kafka.admin import NewTopic
 except ImportError as ex:
@@ -341,8 +346,13 @@ class CheckpointSaverHook(CheckpointSaverHook):
         checkpoint_basename=checkpoint_basename,
         scaffold=scaffold,
         listeners=listeners)
+    self._cuda_profile_start = 0
+    self._cuda_profile_stop = 0
+    self._steps_per_run = 1
     self._write_graph = write_graph
     self._data_offset_var = data_offset_var
+
+    self._task_idx, self._task_num = get_task_index_and_num()
 
     if increment_save_config is not None:
       self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
@@ -449,9 +459,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
       self._sparse_timer = None
 
   def after_create_session(self, session, coord):
-    if not is_chief():
-      return
-
     global_step = session.run(self._global_step_tensor)
     if self._write_graph:
       # We do write graph and saver_def at the first call of before_run.
@@ -591,9 +598,6 @@ class CheckpointSaverHook(CheckpointSaverHook):
         % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
-    if not is_chief():
-      return
-
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     stale_global_step = run_values.results
     global_step = -1
@@ -624,8 +628,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       for x in save_data_offset:
         if x:
           data_offset_json.update(json.loads(x))
-      save_dir, _ = os.path.split(self._save_path)
-      save_offset_path = os.path.join(save_dir, 'model.ckpt-%d.offset' % step)
+      save_offset_path = os.path.join(self._checkpoint_dir,
+                                      'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout)
 
@@ -650,10 +654,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
     return should_stop
 
   def end(self, session):
-    if not is_chief():
-      return
-    super(CheckpointSaverHook, self).end(session)
     global_step = session.run(self._global_step_tensor)
+    super(CheckpointSaverHook, self).end(session)
     if self._dense_timer is not None and \
         global_step != self._dense_timer.last_triggered_step():
       self._dense_timer.update_last_triggered_step(global_step)
@@ -846,6 +848,8 @@ def parse_tf_config():
 
 
 def get_task_index_and_num():
+  if hvd is not None and 'HOROVOD_RANK' in os.environ:
+    return hvd.rank(), hvd.size()
   cluster, task_type, task_index = parse_tf_config()
   if 'worker' not in cluster:
     return 0, 1
@@ -969,12 +973,13 @@ def is_ps():
 
 
 def is_chief():
+  if has_hvd():
+    return hvd.rank() == 0
+
   if 'TF_CONFIG' in os.environ:
     tf_config = json.loads(os.environ['TF_CONFIG'])
     if 'task' in tf_config:
       return tf_config['task']['type'] in ['chief', 'master']
-  elif has_hvd():
-    return hvd.rank() == 0
   return True
 
 
@@ -998,6 +1003,10 @@ def has_hvd():
   return hvd is not None and 'HOROVOD_RANK' in os.environ
 
 
+def has_sok():
+  return sok is not None and 'ENABLE_SOK' in os.environ
+
+
 def init_hvd():
   if hvd is None:
     logging.error(
@@ -1007,6 +1016,16 @@ def init_hvd():
 
   hvd.init()
   os.environ['HOROVOD_RANK'] = str(hvd.rank())
+
+
+def init_sok():
+  try:
+    sok.init()
+    os.environ['ENABLE_SOK'] = '1'
+    return True
+  except Exception:
+    logging.warning('sok is not installed')
+    return False
 
 
 def get_available_gpus():

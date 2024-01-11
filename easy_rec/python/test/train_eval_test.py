@@ -16,6 +16,7 @@ from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
@@ -29,6 +30,12 @@ try:
 except Exception:
   hvd = None
 
+try:
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  sok = None
+
+tf_version = tf.__version__
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -1184,6 +1191,40 @@ class TrainEvalTest(tf.test.TestCase):
   def test_horovod(self):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/deepfm_combo_on_avazu_ctr.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None or sok is None,
+                   'horovod and sok is not installed')
+  def test_sok(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/multi_tower_on_taobao_sok.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(
+      six.PY2 or tf_version.split('.')[0] != '2',
+      'only run on python3 and tf 2.x')
+  def test_train_parquet(self):
+    os.environ[constant.NO_ARITHMETRIC_OPTI] = '1'
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_train_parquet_embedding_parallel(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet_ep.config',
+        self._test_dir,
+        use_hvd=True)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(hvd is None, 'horovod is not installed')
+  def test_train_parquet_embedding_parallel_v2(self):
+    self._success = test_utils.test_distributed_train_eval(
+        'samples/model_config/dlrm_on_criteo_parquet_ep_v2.config',
         self._test_dir,
         use_hvd=True)
     self.assertTrue(self._success)
