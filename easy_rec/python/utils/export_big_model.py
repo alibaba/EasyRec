@@ -263,6 +263,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)
   export_dir = io_util.fix_oss_dir(export_dir)
+  logging.info('export_dir=%s' % export_dir)
   if Exists(export_dir):
     logging.info('will delete old dir: %s' % export_dir)
     DeleteRecursively(export_dir)
@@ -304,7 +305,7 @@ def export_big_model(export_dir, pipeline_config, redis_params,
 
   # remove temporary files
   Remove(embed_name_to_id_file)
-  return
+  return export_dir
 
 
 def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
@@ -553,6 +554,7 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
   export_dir = os.path.join(export_dir,
                             meta_graph_def.meta_info_def.meta_graph_version)
   export_dir = io_util.fix_oss_dir(export_dir)
+  logging.info('export_dir=%s' % export_dir)
   if Exists(export_dir):
     logging.info('will delete old dir: %s' % export_dir)
     DeleteRecursively(export_dir)
@@ -625,4 +627,4 @@ def export_big_model_to_oss(export_dir, pipeline_config, oss_params,
 
   # remove temporary files
   Remove(embed_name_to_id_file)
-  return
+  return export_dir

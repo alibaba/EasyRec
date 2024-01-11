@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from easy_rec.python.inference import Predictor
+from easy_rec.python.inference.predictor import Predictor
 
 
 class ODPSPredictor(Predictor):

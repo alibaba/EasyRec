@@ -63,12 +63,14 @@ export_config {
 #### Local
 
 ```bash
-python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel.config --export_dir ./export
+python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel.config --export_dir ./export --export_done_file EXPORT_DONE
 ```
 
 - --pipeline_config_path: config文件路径
 - --model_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - --export_dir: 导出的目录
+- --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
+- --clear_export: 删除旧的导出文件目录
 
 #### PAI
 
@@ -92,3 +94,7 @@ pai -name easy_rec_ext -project algo_public
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
 - 如果是pai内部版,则不需要指定arn和ossHost, arn和ossHost放在-Dbuckets里面
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
+- -Dextra_params: 其它参数, 没有在pai -name easy_rec_ext中定义的参数, 可以通过extra_params传入, 如:
+  - --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
+  - --clear_export: 删除旧的导出文件目录
+  - --place_embedding_on_cpu: 将embedding相关的操作放在cpu上，有助于提升模型在gpu环境下的推理速度
