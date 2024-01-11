@@ -127,6 +127,7 @@ def main(argv):
     estimator_utils.init_sok()
 
   if FLAGS.clear_export:
+    logging.info('will clear export_dir=%s' % FLAGS.export_dir)
     if gfile.IsDirectory(FLAGS.export_dir):
       gfile.DeleteRecursively(FLAGS.export_dir)
 
