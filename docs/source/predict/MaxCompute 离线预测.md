@@ -106,7 +106,7 @@ pai -name easy_rec_ext
     ```
     - 格式: ","分割
     - 顺序: column_name和导出字段名一一对应
-- lifecyle: output_table的lifecyle
+- lifecycle: output_table的lifecycle
 
 ### 输出表schema:
 
