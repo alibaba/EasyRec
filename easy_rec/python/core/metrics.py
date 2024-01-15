@@ -1,12 +1,17 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
+import logging
 import os
 from collections import defaultdict
 
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import state_ops
+from tensorflow.python.ops import variable_scope
 
 from easy_rec.python.utils.estimator_utils import get_task_index_and_num
 from easy_rec.python.utils.io_util import read_data_from_json_path
@@ -101,6 +106,53 @@ def _separated_auc_impl(labels, predictions, keys, reduction='mean'):
   update_op = tf.py_func(update_pyfunc, [labels, predictions, keys], [])
   value_op = tf.py_func(value_pyfunc, [], tf.float32)
   return value_op, update_op
+
+
+def fast_auc(labels, predictions, name, num_thresholds=1e5):
+  num_thresholds = int(num_thresholds)
+
+  def value_pyfunc(pos_neg_arr, total_pos_neg):
+    partial_sum_pos = 0
+    auc = 0
+    total_neg = total_pos_neg[0]
+    total_pos = total_pos_neg[1]
+    for i in range(num_thresholds + 1):
+      partial_sum_pos += pos_neg_arr[1][i]
+      auc += (total_pos - partial_sum_pos) * pos_neg_arr[0][i] * 2
+      auc += pos_neg_arr[0][i] * pos_neg_arr[1][i]
+    auc = np.double(auc) / np.double(total_pos * total_neg * 2)
+    logging.info('fast_auc[%s]: total_pos=%d total_neg=%d total=%d' %
+                 (name, total_pos, total_neg, total_pos + total_neg))
+    return np.float32(auc)
+
+  with variable_scope.variable_scope(name_or_scope=name), tf.name_scope(name):
+    neg_pos_var = variable_scope.get_variable(
+        name='neg_pos_cnt',
+        shape=[2, num_thresholds + 1],
+        trainable=False,
+        collections=[tf.GraphKeys.METRIC_VARIABLES],
+        initializer=tf.zeros_initializer(),
+        dtype=tf.int64)
+    total_var = variable_scope.get_variable(
+        name='total_cnt',
+        shape=[2],
+        trainable=False,
+        collections=[tf.GraphKeys.METRIC_VARIABLES],
+        initializer=tf.zeros_initializer(),
+        dtype=tf.int64)
+    pred_bins = math_ops.cast(predictions * num_thresholds, dtype=tf.int32)
+    labels = math_ops.cast(labels, dtype=tf.int32)
+    labels = array_ops.reshape(labels, [-1, 1])
+    pred_bins = array_ops.reshape(pred_bins, [-1, 1])
+    update_op0 = state_ops.scatter_nd_add(
+        neg_pos_var, tf.concat([labels, pred_bins], axis=1),
+        array_ops.ones(tf.shape(labels)[0], dtype=tf.int64))
+    total_pos = math_ops.reduce_sum(labels)
+    total_neg = array_ops.shape(labels)[0] - total_pos
+    total_add = math_ops.cast(tf.stack([total_neg, total_pos]), dtype=tf.int64)
+    update_op1 = state_ops.assign_add(total_var, total_add)
+    return tf.py_func(value_pyfunc, [neg_pos_var, total_var],
+                      tf.float32), tf.group([update_op0, update_op1])
 
 
 def _distribute_separated_auc_impl(labels,
@@ -275,8 +327,9 @@ def metric_learning_recall_at_k(k,
         tf.expand_dims(session_ids, 0), tf.expand_dims(session_ids, 1))
     labels_equal = tf.logical_and(sessions_equal, labels_equal)
   mask = tf.logical_and(indices_not_equal, labels_equal)
-  mask_pos = tf.where(mask, sim_mat,
-                      -tf.ones_like(sim_mat))  # shape: (batch_size, batch_size)
+  mask_pos = tf.where(
+      mask, sim_mat,
+      -array_ops.ones_like(sim_mat))  # shape: (batch_size, batch_size)
   if isinstance(k, int):
     _, pos_top_k_idx = tf.nn.top_k(mask_pos, k)  # shape: (batch_size, k)
     return metrics_tf.recall_at_k(
@@ -342,7 +395,7 @@ def _get_matrix_mask_indices(matrix, num_rows=None):
   result = tf.gather(indices[:, 1], idx)
   # replace invalid elements with -1
   result = tf.where(
-      tf.expand_dims(elem_per_row, 1) > r, result, -tf.ones_like(result))
+      tf.expand_dims(elem_per_row, 1) > r, result, -array_ops.ones_like(result))
   max_index_per_row = tf.reduce_max(result, axis=1, keepdims=True)
   max_index_per_row = tf.tile(max_index_per_row, [1, max_elem_per_row])
   result = tf.where(result >= 0, result, max_index_per_row)

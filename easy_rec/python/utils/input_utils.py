@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
@@ -72,3 +73,37 @@ def string_to_number(field, ftype, default_value, name=''):
   else:
     assert False, 'invalid types: %s' % str(ftype)
   return tmp_field
+
+
+def np_to_tf_type(np_type):
+  _types_map = {
+      int: tf.int32,
+      np.int32: tf.int32,
+      np.int64: tf.int64,
+      np.str: tf.string,
+      str: tf.string,
+      np.float: tf.float32,
+      np.float32: tf.float32,
+      float: tf.float32,
+      np.double: tf.float64
+  }
+  if np_type in _types_map:
+    return _types_map[np_type]
+  else:
+    return tf.string
+
+
+def get_tf_type_from_parquet_file(cols, parquet_file):
+  # gfile not supported, read_parquet requires random access
+  input_data = pd.read_parquet(parquet_file, columns=cols)
+  tf_types = []
+  for col in cols:
+    obj = input_data[col][0]
+    if isinstance(obj, list):
+      data_type = type(obj[0])
+    elif isinstance(obj, np.ndarray):
+      data_type = type(obj[0])
+    else:
+      data_type = type(obj)
+    tf_types.append(np_to_tf_type(data_type))
+  return tf_types

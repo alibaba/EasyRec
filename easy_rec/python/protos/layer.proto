@@ -49,9 +49,9 @@ message FiBiNet {
 
 message MaskBlock {
     optional float reduction_factor = 1;
-    required uint32 output_size = 2;
+    optional uint32 output_size = 2;
     optional uint32 aggregation_size = 3;
-    optional bool input_layer_norm = 4 [default = true];
+    optional bool input_layer_norm = 4 [default = false];
     optional uint32 projection_dim = 5;
 }
 
@@ -59,6 +59,7 @@ message MaskNet {
     repeated MaskBlock mask_blocks = 1;
     required bool use_parallel = 2 [default = true];
     optional MLP mlp = 3;
+    optional bool input_layer_norm = 4 [default = true];
 }
 
 message MMoELayer {
@@ -68,4 +69,22 @@ message MMoELayer {
     optional MLP expert_mlp = 2;
     // number of mmoe experts
     optional uint32 num_expert = 3;
+}
+
+message GateNN {
+    optional uint32 output_dim = 1;
+    optional uint32 hidden_dim = 2;
+    // activation function
+    optional string activation = 3 [default = 'relu'];
+    // use batch normalization
+    optional bool use_bn = 4 [default = false];
+    optional float dropout_rate = 5;
+}
+
+message PPNet {
+    required MLP mlp = 1;
+    required GateNN gate_params = 2;
+    // run mode: eager, lazy
+    required string mode = 3 [default = 'eager'];
+    optional bool full_gate_input = 4 [default = true];
 }

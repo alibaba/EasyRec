@@ -5,8 +5,12 @@ import os
 
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import export
+from easy_rec.python.protos.train_pb2 import DistributionStrategy
+from easy_rec.python.utils import config_util
+from easy_rec.python.utils import estimator_utils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -54,6 +58,10 @@ tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
 
 tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
 tf.app.flags.mark_flag_as_required('export_dir')
+
+tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
+tf.app.flags.DEFINE_string('export_done_file', '',
+                           'a flag file to signal that export model is done')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -105,8 +113,33 @@ def main(argv):
   if FLAGS.oss_embedding_version:
     extra_params['oss_embedding_version'] = FLAGS.oss_embedding_version
 
-  export(FLAGS.export_dir, pipeline_config_path, FLAGS.checkpoint_path,
-         FLAGS.asset_files, FLAGS.verbose, **extra_params)
+  pipeline_config = config_util.get_configs_from_pipeline_file(
+      pipeline_config_path)
+  if pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.HorovodStrategy,
+  ]:
+    estimator_utils.init_hvd()
+  elif pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.EmbeddingParallelStrategy,
+      DistributionStrategy.SokStrategy
+  ]:
+    estimator_utils.init_hvd()
+    estimator_utils.init_sok()
+
+  if FLAGS.clear_export:
+    logging.info('will clear export_dir=%s' % FLAGS.export_dir)
+    if gfile.IsDirectory(FLAGS.export_dir):
+      gfile.DeleteRecursively(FLAGS.export_dir)
+
+  export_out_dir = export(FLAGS.export_dir, pipeline_config_path,
+                          FLAGS.checkpoint_path, FLAGS.asset_files,
+                          FLAGS.verbose, **extra_params)
+
+  if FLAGS.export_done_file:
+    flag_file = os.path.join(export_out_dir, FLAGS.export_done_file)
+    logging.info('create export done file: %s' % flag_file)
+    with gfile.GFile(flag_file, 'w') as fout:
+      fout.write('ExportDone')
 
 
 if __name__ == '__main__':

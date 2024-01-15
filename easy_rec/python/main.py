@@ -14,15 +14,18 @@ import time
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import saved_model_pb2
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.builders import strategy_builder
+from easy_rec.python.compat import estimator_train
 from easy_rec.python.compat import exporter
 from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import load_class
@@ -39,7 +42,6 @@ except Exception:
   hvd = None
 
 if tf.__version__ >= '2.0':
-  gfile = tf.compat.v1.gfile
   from tensorflow.core.protobuf import config_pb2
 
   ConfigProto = config_pb2.ConfigProto
@@ -47,7 +49,6 @@ if tf.__version__ >= '2.0':
 
   tf = tf.compat.v1
 else:
-  gfile = tf.gfile
   GPUOptions = tf.GPUOptions
   ConfigProto = tf.ConfigProto
 
@@ -102,16 +103,15 @@ def _get_input_fn(data_config,
 def _create_estimator(pipeline_config, distribution=None, params={}):
   model_config = pipeline_config.model_config
   train_config = pipeline_config.train_config
-  gpu_options = GPUOptions(allow_growth=False)
+  gpu_options = GPUOptions(allow_growth=True)  # False)
 
-  if hvd is not None:
-    gpus = estimator_utils.get_available_gpus()
+  if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+    local_rnk = hvd.local_rank()
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    logging.info('local_rnk=%d num_gpus=%d' % (local_rnk, len(gpus)))
     if len(gpus) > 0:
-      local_rnk = hvd.local_rank()
-      num_gpus_per_worker = pipeline_config.train_config.num_gpus_per_worker
-      sid = local_rnk * num_gpus_per_worker
-      eid = sid + num_gpus_per_worker
-      gpu_options.visible_device_list = ','.join(gpus[sid:eid])
+      tf.config.experimental.set_visible_devices(gpus[local_rnk], 'GPU')
+      gpu_options.visible_device_list = str(local_rnk)
 
   session_config = ConfigProto(
       gpu_options=gpu_options,
@@ -119,6 +119,12 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
       log_device_placement=params.get('log_device_placement', False),
       inter_op_parallelism_threads=train_config.inter_op_parallelism_threads,
       intra_op_parallelism_threads=train_config.intra_op_parallelism_threads)
+
+  if constant.NO_ARITHMETRIC_OPTI in os.environ:
+    logging.info('arithmetic_optimization is closed to improve performance')
+    session_config.graph_options.rewrite_options.arithmetic_optimization = \
+        session_config.graph_options.rewrite_options.OFF
+
   session_config.device_filters.append('/job:ps')
   model_cls = EasyRecModel.create_class(model_config.model_class)
 
@@ -341,11 +347,23 @@ def _train_and_evaluate_impl(pipeline_config,
   # Currently only a single Eval Spec is allowed.
   train_spec = tf.estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
-  # create eval spec
-  eval_spec = _create_eval_export_spec(
-      pipeline_config, eval_data, check_mode=check_mode)
-  from easy_rec.python.compat import estimator_train
-  estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
+
+  embedding_parallel = train_config.train_distribute in (
+      DistributionStrategy.SokStrategy,
+      DistributionStrategy.EmbeddingParallelStrategy)
+
+  if embedding_parallel:
+    estimator.train(
+        input_fn=train_input_fn,
+        max_steps=train_spec.max_steps,
+        hooks=list(train_spec.hooks),
+        saving_listeners=train_spec.saving_listeners)
+    train_input_fn.input_creator.stop()
+  else:
+    # create eval spec
+    eval_spec = _create_eval_export_spec(
+        pipeline_config, eval_data, check_mode=check_mode)
+    estimator_train.train_and_evaluate(estimator, train_spec, eval_spec)
   logging.info('Train and evaluate finish')
   if fit_on_eval and (not estimator_utils.is_evaluator()):
     tf.reset_default_graph()
@@ -473,6 +491,7 @@ def evaluate(pipeline_config,
     #        worker_device='/job:master/task:0', cluster=cluster)):
     eval_result = estimator.evaluate(
         eval_spec.input_fn, eval_spec.steps, checkpoint_path=ckpt_path)
+  eval_spec.input_fn.input_creator.stop()
   logging.info('Evaluate finish')
 
   print('eval_result = ', eval_result)

@@ -135,6 +135,7 @@ from __future__ import print_function
 import abc
 import collections
 import math
+import os
 
 import numpy as np
 import six
@@ -145,9 +146,11 @@ from tensorflow.python.framework import sparse_tensor as sparse_tensor_lib
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.keras.engine import training
 from tensorflow.python.layers import base
+# from tensorflow.python.ops import logging_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import lookup_ops
@@ -160,12 +163,181 @@ from tensorflow.python.ops import string_ops
 from tensorflow.python.ops import template
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables
+# from tensorflow.python.ops.ragged import ragged_tensor
+# from tensorflow.python.ops.ragged import ragged_util
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
+
+try:
+  from easy_rec.python.compat import dynamic_variable
+except Exception:
+  dynamic_variable = None
+
+try:
+  import horovod.tensorflow as hvd
+except Exception:
+  hvd = None
+
+
+def embedding_lookup_ragged(embedding_weights,
+                            ragged_ids,
+                            ragged_weights,
+                            combiner,
+                            max_norm=None,
+                            name=None):
+  segment_ids = ragged_ids.value_rowids()
+  if segment_ids.dtype != dtypes.int32:
+    segment_ids = math_ops.cast(segment_ids, dtypes.int32)
+  ids = ragged_ids.flat_values
+  ids, idx = array_ops.unique(ids)
+  embeddings = embedding_ops.embedding_lookup(
+      embedding_weights, ids, partition_strategy='mod', max_norm=max_norm)
+  if ragged_weights is not None:
+    weights = ragged_weights.flat_values
+    embeddings = array_ops.gather(embeddings, idx)
+    original_dtype = embeddings.dtype
+    if embeddings.dtype in (dtypes.float16, dtypes.bfloat16):
+      # Cast low-precision embeddings to float32 during the computation to
+      # avoid numerical issues.
+      embeddings = math_ops.cast(embeddings, dtypes.float32)
+    if weights.dtype != embeddings.dtype:
+      weights = math_ops.cast(weights, embeddings.dtype)
+    weights = array_ops.expand_dims(weights, len(embeddings.get_shape()))
+    embeddings = embeddings * weights
+    if combiner == 'sum':
+      return math_ops.segment_sum(embeddings, segment_ids, name=name)
+    elif combiner == 'mean':
+      embeddings = math_ops.segment_sum(embeddings, segment_ids)
+      weight_sum = math_ops.segment_sum(weights, segment_ids)
+      embeddings = math_ops.div_no_nan(embeddings, weight_sum, name=name)
+    elif combiner == 'sqrtn':
+      embeddings = math_ops.segment_sum(embeddings, segment_ids)
+      weights_squared = math_ops.pow(weights, 2)
+      weight_sum = math_ops.segment_sum(weights_squared, segment_ids)
+      weight_sum_sqrt = math_ops.sqrt(weight_sum)
+      embeddings = math_ops.div_no_nan(embeddings, weight_sum_sqrt, name=name)
+    else:
+      assert False, 'Unrecognized combiner'
+    if embeddings.dtype != original_dtype:
+      embeddings = math_ops.cast(embeddings, original_dtype)
+    return embeddings
+  else:
+    assert idx is not None
+    if combiner == 'sum':
+      embeddings = math_ops.sparse_segment_sum(
+          embeddings, idx, segment_ids, name=name)
+    elif combiner == 'mean':
+      embeddings = math_ops.sparse_segment_mean(
+          embeddings, idx, segment_ids, name=name)
+    elif combiner == 'sqrtn':
+      embeddings = math_ops.sparse_segment_sqrt_n(
+          embeddings, idx, segment_ids, name=name)
+    else:
+      assert False, 'Unrecognized combiner'
+    return embeddings
+
+
+# model parallel embedding lookup
+def embedding_parallel_lookup(embedding,
+                              lookup_indices,
+                              output_ids,
+                              is_training,
+                              output_tensors=None):
+  N = len(output_ids)
+  # first concat all the ids and unique
+  if isinstance(lookup_indices, dict) and 'sparse_fea' in lookup_indices.keys():
+    # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
+    all_ids, segment_lens = lookup_indices['sparse_fea']
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  elif isinstance(lookup_indices, dict) and 'ragged_ids' in lookup_indices.keys(
+  ) and 'ragged_lens' in lookup_indices.keys():
+    all_ids, segment_lens = lookup_indices['ragged_ids'], lookup_indices[
+        'ragged_lens']
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  elif isinstance(lookup_indices[0], sparse_tensor_lib.SparseTensor):
+    with ops.device('/cpu:0'):
+      all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
+      segment_ids = array_ops.concat([x.indices[:, 0] for x in lookup_indices],
+                                     axis=0)
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+  elif 'RaggedTensor' in str(type(lookup_indices[0])):
+    with ops.device('/cpu:0'):
+      all_ids = array_ops.concat([x.values for x in lookup_indices], axis=0)
+      segment_lens = array_ops.concat([x.row_lengths() for x in lookup_indices],
+                                      axis=0)
+    all_uniq_ids, uniq_idx = array_ops.unique(all_ids)
+    cumsum_lens = math_ops.cumsum(segment_lens)
+    segment_ids = array_ops.searchsorted(
+        cumsum_lens, math_ops.range(cumsum_lens[-1]), side='right')
+  else:
+    assert False, 'invalid indices type: %s' % str(type(lookup_indices[0]))
+
+  num_parts = hvd.size()
+  if num_parts > 1:
+    # dynamic partition
+    p_assignments = math_ops.cast(all_uniq_ids % num_parts, dtypes.int32)
+    gather_ids = data_flow_ops.dynamic_partition(all_uniq_ids, p_assignments,
+                                                 num_parts)
+    original_ids = math_ops.range(array_ops.size(all_uniq_ids))
+    original_part_ids = data_flow_ops.dynamic_partition(original_ids,
+                                                        p_assignments,
+                                                        num_parts)
+    # all2all
+    split_sizes = array_ops.concat([array_ops.shape(x) for x in gather_ids],
+                                   axis=0)
+    send_ids = array_ops.concat(gather_ids, axis=0)
+    recv_ids, recv_lens = hvd.alltoall(send_ids, split_sizes)
+
+    # read embedding from dynamic variable
+    if isinstance(embedding, dynamic_variable.DynamicVariable):
+      send_embed = embedding.sparse_read(
+          recv_ids, lookup_only=(not is_training))
+    else:
+      # find in subarray position
+      # 0 2 4 6 8 10 ...
+      # 1 3 5 7 9 11 ...
+      recv_ids = math_ops.cast(recv_ids / num_parts, dtypes.int64)
+      send_embed = array_ops.gather(embedding, recv_ids)
+
+    # all2all
+    recv_embeddings, _ = hvd.alltoall(send_embed, recv_lens)
+    recv_embeddings = array_ops.split(
+        recv_embeddings, num_or_size_splits=split_sizes)
+    recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
+        original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
+    embeddings = math_ops.sparse_segment_sum(
+        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+  else:
+    if isinstance(embedding, dynamic_variable.DynamicVariable):
+      recv_embeddings = embedding.sparse_read(
+          all_uniq_ids, lookup_only=(not is_training))
+    else:
+      recv_embeddings = array_ops.gather(embedding, all_uniq_ids)
+    embeddings = math_ops.sparse_segment_sum(
+        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+
+  embed_dim = embedding.get_shape()[-1]
+  output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
+
+  if output_tensors is not None:
+    outputs = array_ops.split(output_tensor, num_or_size_splits=N, axis=0)
+    for output, output_id in zip(outputs, output_ids):
+      output_tensors[output_id] = array_ops.squeeze(output, axis=0)
+
+  return array_ops.reshape(
+      array_ops.transpose(output_tensor, perm=[1, 0, 2]), [-1, N * embed_dim])
 
 
 def _internal_input_layer(features,
@@ -176,7 +348,8 @@ def _internal_input_layer(features,
                           scope=None,
                           cols_to_output_tensors=None,
                           from_template=False,
-                          feature_name_to_output_tensors=None):
+                          feature_name_to_output_tensors=None,
+                          is_training=True):
   """See input_layer, `scope` is a name or variable scope to use."""
   feature_columns = _normalize_feature_columns(feature_columns)
   for column in feature_columns:
@@ -194,9 +367,12 @@ def _internal_input_layer(features,
   def _get_logits():  # pylint: disable=missing-docstring
     builder = _LazyBuilder(features)
     output_tensors = []
-    ordered_columns = []
-    for column in sorted(feature_columns, key=lambda x: x.name):
-      ordered_columns.append(column)
+
+    tmp_cols = feature_columns
+    if embedding_utils.sort_col_by_name():
+      logging.info('will sort columns[len=%d] by name' % len(tmp_cols))
+      tmp_cols = sorted(tmp_cols, key=lambda x: x.name)
+    for column in tmp_cols:
       with variable_scope.variable_scope(
           None, default_name=column._var_scope_name):  # pylint: disable=protected-access
         tensor = column._get_dense_tensor(  # pylint: disable=protected-access
@@ -218,8 +394,192 @@ def _internal_input_layer(features,
           cols_to_output_tensors[column] = output_tensor
         if feature_name_to_output_tensors is not None:
           feature_name_to_output_tensors[column.raw_name] = output_tensor
-    _verify_static_batch_size_equality(output_tensors, ordered_columns)
     return array_ops.concat(output_tensors, 1)
+
+  def _get_logits_embedding_parallel():  # pylint: disable=missing-docstring
+    assert hvd is not None, 'horovod is not installed'
+    builder = _LazyBuilder(features)
+    output_tensors = []
+    ordered_columns = []
+
+    lookup_embeddings = []
+    lookup_indices = None
+    lookup_combiners = []
+    lookup_cols = []
+    lookup_output_ids = []
+    lookup_wgts = []
+
+    dense_cols = []
+    dense_output_ids = []
+
+    shared_weights = {}
+    dense_cnt = 0
+    for column in feature_columns:
+      ordered_columns.append(column)
+      with variable_scope.variable_scope(
+          None, default_name=column._var_scope_name):  # pylint: disable=protected-access
+        # for features which does not require embedding
+        if 'Embedding' not in str(type(column)):
+          dense_cols.append(column)
+          dense_output_ids.append(len(output_tensors))
+          output_tensors.append(None)
+          dense_cnt += 1
+          continue
+
+        # for features require embedding
+        num_buckets = column.categorical_column.num_buckets + hvd.size() - 1
+        per_worker_buckets = num_buckets // hvd.size()
+        embedding_shape = (per_worker_buckets, column.dimension)
+        if 'SharedEmbedding' in str(type(column)):
+          shared_name = column.shared_embedding_collection_name
+          if shared_name in shared_weights:
+            embedding_weights = shared_weights[shared_name]
+          else:
+            with ops.device('/gpu:0'):
+              if column.ev_params is not None:
+                assert dynamic_variable is not None, 'sok is not installed'
+                embedding_weights = dynamic_variable.DynamicVariable(
+                    name='embedding_weights',
+                    dimension=column.dimension,
+                    initializer='random {"stddev":0.0025}',  # column.initializer,
+                    var_type=None
+                    if not column.ev_params.use_cache else 'hybrid',
+                    trainable=column.trainable and trainable,
+                    dtype=dtypes.float32,
+                    init_capacity=column.ev_params.init_capacity,
+                    max_capacity=column.ev_params.max_capacity)
+              else:
+                embedding_weights = variable_scope.get_variable(
+                    name='embedding_weights',
+                    shape=embedding_shape,
+                    dtype=dtypes.float32,
+                    initializer=column.initializer,
+                    trainable=column.trainable and trainable,
+                    partitioner=None,
+                    collections=weight_collections)
+            shared_weights[shared_name] = embedding_weights
+        else:
+          with ops.device('/gpu:0'):
+            if column.ev_params is not None:
+              assert dynamic_variable is not None, 'sok is not installed'
+              embedding_weights = dynamic_variable.DynamicVariable(
+                  name='embedding_weights',
+                  dimension=column.dimension,
+                  initializer='random {"stddev":0.0025}',  # column.initializer,
+                  var_type=None if not column.ev_params.use_cache else 'hybrid',
+                  trainable=column.trainable and trainable,
+                  dtype=dtypes.float32,
+                  init_capacity=column.ev_params.init_capacity,
+                  max_capacity=column.ev_params.max_capacity)
+            else:
+              embedding_weights = variable_scope.get_variable(
+                  name='embedding_weights',
+                  shape=embedding_shape,
+                  dtype=dtypes.float32,
+                  initializer=column.initializer,
+                  trainable=column.trainable and trainable,
+                  partitioner=None,
+                  collections=weight_collections)
+        lookup_embeddings.append(embedding_weights)
+        output_id = len(output_tensors)
+        output_tensors.append(None)
+        lookup_output_ids.append(output_id)
+        lookup_cols.append(column)
+        lookup_combiners.append(column.combiner)
+
+        # SparseTensor RaggedTensor
+        # features are not gathered into one, may have
+        # performance issues
+        if 'sparse_fea' in features.keys():
+          if lookup_indices is None:
+            lookup_indices = {'sparse_fea': features['sparse_fea']}
+        elif 'ragged_ids' in features.keys():
+          if lookup_indices is None:
+            lookup_indices = {
+                'ragged_ids': features['ragged_ids'],
+                'ragged_lens': features['ragged_lens']
+            }
+            if 'ragged_wgts' in features:
+              lookup_indices['ragged_wgts'] = features['ragged_wgts']
+        else:
+          if lookup_indices is None:
+            lookup_indices = []
+          with ops.device('/cpu:0'):
+            sparse_tensors = column.categorical_column._get_sparse_tensors(
+                builder,
+                weight_collections=weight_collections,
+                trainable=trainable)
+            lookup_indices.append(sparse_tensors.id_tensor)
+          if sparse_tensors.weight_tensor is not None:
+            lookup_wgts.append(sparse_tensors.weight_tensor)
+        if cols_to_vars is not None:
+          cols_to_vars[column] = ops.get_collection(
+              ops.GraphKeys.GLOBAL_VARIABLES,
+              scope=variable_scope.get_variable_scope().name)
+
+    if dense_cnt > 0:
+      if 'dense_fea' in features:
+        fea_dim_s = 0
+        for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
+          fea_dim_e = fea_dim_s + dense_col.shape[0]
+          output_tensors[dense_output_id] = features[
+              'dense_fea'][:, fea_dim_s:fea_dim_e]
+          fea_dim_s = fea_dim_e
+      else:
+        for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
+          output_tensors[dense_output_id] = features[dense_col.raw_name]
+
+    for tmp_embed_var in set(lookup_embeddings):
+      ops.add_to_collection(constant.EmbeddingParallel, tmp_embed_var.name)
+
+    # do embedding parallel lookup
+    if len(lookup_output_ids) > 0:
+      packed_input = ('sparse_fea' in features or 'ragged_ids' in features)
+      if packed_input:
+        uniq_embed_cnt = len(set(lookup_embeddings))
+        assert uniq_embed_cnt == 1, 'only one uniq embed is support for packed inputs'
+        outputs = embedding_parallel_lookup(lookup_embeddings[0],
+                                            lookup_indices, lookup_output_ids,
+                                            is_training, output_tensors)
+      else:
+        # group lookup_embeddings
+        grouped_inputs = {}
+        for embedding, lookup_indice, output_id in zip(lookup_embeddings,
+                                                       lookup_indices,
+                                                       lookup_output_ids):
+          if embedding not in grouped_inputs:
+            grouped_inputs[embedding] = {
+                'lookup_indice': [lookup_indice],
+                'output_id': [output_id]
+            }
+          else:
+            grouped_inputs[embedding]['lookup_indice'].append(lookup_indice)
+            grouped_inputs[embedding]['output_id'].append(output_id)
+
+        for embedding in grouped_inputs:
+          lookup_indices = grouped_inputs[embedding]['lookup_indice']
+          output_ids = grouped_inputs[embedding]['output_id']
+          outputs = embedding_parallel_lookup(embedding, lookup_indices,
+                                              output_ids, is_training,
+                                              output_tensors)
+
+      for output_tensor, col in zip(output_tensors, feature_columns):
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[col.raw_name] = output_tensor
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output_tensor
+
+      if packed_input and dense_cnt == 0:
+        return outputs
+      else:
+        return array_ops.concat(output_tensors, axis=1)
+    else:
+      for output_tensor, col in zip(output_tensors, feature_columns):
+        if feature_name_to_output_tensors is not None:
+          feature_name_to_output_tensors[col.raw_name] = output_tensor
+        if cols_to_output_tensors is not None:
+          cols_to_output_tensors[col] = output_tensor
+      return array_ops.concat(output_tensors, axis=1)
 
   # If we're constructing from the `make_template`, that by default adds a
   # variable scope with the name of the layer. In that case, we dont want to
@@ -229,7 +589,11 @@ def _internal_input_layer(features,
   else:
     with variable_scope.variable_scope(
         scope, default_name='input_layer', values=features.values()):
-      return _get_logits()
+      if embedding_utils.is_embedding_parallel():
+        return _get_logits_embedding_parallel()
+      else:
+        with ops.device('/CPU:0'):
+          return _get_logits()
 
 
 def input_layer(features,
@@ -238,7 +602,8 @@ def input_layer(features,
                 trainable=True,
                 cols_to_vars=None,
                 cols_to_output_tensors=None,
-                feature_name_to_output_tensors=None):
+                feature_name_to_output_tensors=None,
+                is_training=True):
   """Returns a dense `Tensor` as input layer based on given `feature_columns`.
 
   Generally a single example in training data is described with FeatureColumns.
@@ -302,7 +667,8 @@ def input_layer(features,
       trainable=trainable,
       cols_to_vars=cols_to_vars,
       cols_to_output_tensors=cols_to_output_tensors,
-      feature_name_to_output_tensors=feature_name_to_output_tensors)
+      feature_name_to_output_tensors=feature_name_to_output_tensors,
+      is_training=is_training)
 
 
 # TODO(akshayka): InputLayer should be a subclass of Layer, and it
@@ -2138,6 +2504,9 @@ class _LazyBuilder(object):
       ValueError: if the raw feature has rank 0.
     """
     raw_feature = self._features[key]
+    if 'RaggedTensor' in str(type(raw_feature)):
+      return raw_feature
+
     feature_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
         raw_feature)
 
@@ -2249,8 +2618,8 @@ def _normalize_feature_columns(feature_columns):
   if isinstance(feature_columns, _FeatureColumn):
     feature_columns = [feature_columns]
 
-  if isinstance(feature_columns, collections.Iterator):
-    feature_columns = list(feature_columns)
+  # if isinstance(feature_columns, collections.Iterator):
+  #   feature_columns = list(feature_columns)
 
   if isinstance(feature_columns, dict):
     raise ValueError('Expected feature_columns to be iterable, found dict.')
@@ -2602,7 +2971,6 @@ class _SharedEmbeddingColumn(
           # at eval or inference time, it is necessary to set
           # the initializers to zeros, so that new key will
           # get zero embedding
-          import os
           if os.environ.get('tf.estimator.mode', '') != \
              os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
             initializer = init_ops.zeros_initializer()
@@ -2635,6 +3003,16 @@ class _SharedEmbeddingColumn(
           to_restore = to_restore._get_variable_list()  # pylint: disable=protected-access
         checkpoint_utils.init_from_checkpoint(
             self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
+
+      if 'RaggedTensor' in str(type(sparse_ids)):
+        assert sparse_weights is None
+        return embedding_lookup_ragged(
+            embedding_weights=embedding_weights,
+            ragged_ids=sparse_ids,
+            ragged_weights=sparse_weights,
+            combiner=self.combiner,
+            max_norm=self.max_norm,
+            name='%s_weights' % self.name)
 
       # Return embedding lookup result.
       return embedding_ops.safe_embedding_lookup_sparse(

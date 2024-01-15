@@ -31,7 +31,6 @@ Welcome to easy_rec's documentation!
    component/backbone
    component/component
    component/sequence
-   component/custom_op
 
 .. toctree::
    :maxdepth: 3
@@ -41,6 +40,7 @@ Welcome to easy_rec's documentation!
    models/rank
    models/multi_target
    models/user_define
+   models/loss
 
 .. toctree::
    :maxdepth: 2

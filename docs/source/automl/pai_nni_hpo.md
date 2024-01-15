@@ -155,7 +155,7 @@ params_src_dst_filepath=/root/test_nni/AutoML/HpoTools/hpo_tools/search/maxcompu
 
 [platform_config]
 name=MaxCompute
-cmd1="PAI -name=easy_rec_ext
+cmd1=PAI -name=easy_rec_ext
             -project=algo_public
             -Dversion="0.4.2"
             -Dconfig='oss://lcl-bj/eval_test/config/easyrec_model_${exp_id}_${trial_id}.config'
@@ -167,7 +167,7 @@ cmd1="PAI -name=easy_rec_ext
             -Dbuckets='oss://lcl-bj/'
             -Dmodel_dir='oss://lcl-bj/eval_dist_test/model_${exp_id}_${trial_id}'
             -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-            -Deval_method='separate' "
+            -Deval_method='separate'
 
 
 

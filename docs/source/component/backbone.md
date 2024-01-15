@@ -1,6 +1,6 @@
 # 为何需要组件化
 
-## 1. 灵活搭建模型，多思即所得
+## 1. 灵活搭建模型，所思即所得
 
 依靠动态可插拔的公共组件，以“搭积木”的方式快速构建想要的模型结构。框架提供了"胶水"语法，实现组件间的无缝衔接。
 
@@ -946,6 +946,127 @@ DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_d
 
 这个案例同样没有为backbone配置`concat_blocks`，框架会自动设置为DAG的叶子节点。
 
+## 案例10：MaskNet + PPNet + MMoE
+
+```protobuf
+model_config: {
+  model_name: 'MaskNet + PPNet + MMoE'
+  model_class: 'RankModel'
+  feature_groups: {
+    group_name: 'memorize'
+    feature_names: 'user_id'
+    feature_names: 'adgroup_id'
+    feature_names: 'pid'
+    wide_deep: DEEP
+  }
+  feature_groups: {
+    group_name: 'general'
+    feature_names: 'age_level'
+    feature_names: 'shopping_level'
+    ...
+    wide_deep: DEEP
+  }
+  backbone {
+    blocks {
+      name: "mask_net"
+      inputs {
+        feature_group_name: "general"
+      }
+      repeat {
+        num_repeat: 3
+        keras_layer {
+          class_name: "MaskBlock"
+          mask_block {
+            output_size: 512
+            aggregation_size: 1024
+          }
+        }
+      }
+    }
+    blocks {
+      name: "ppnet"
+      inputs {
+        block_name: "mask_net"
+      }
+      inputs {
+        feature_group_name: "memorize"
+      }
+      merge_inputs_into_list: true
+      repeat {
+        num_repeat: 3
+        input_fn: "lambda x, i: [x[0][i], x[1]]"
+        keras_layer {
+          class_name: "PPNet"
+          ppnet {
+            mlp {
+              hidden_units: [256, 128, 64]
+            }
+            gate_params {
+              output_dim: 512
+            }
+            mode: "eager"
+            full_gate_input: false
+          }
+        }
+      }
+    }
+    blocks {
+      name: "mmoe"
+      inputs {
+        block_name: "ppnet"
+      }
+      inputs {
+        feature_group_name: "general"
+      }
+      keras_layer {
+        class_name: "MMoE"
+        mmoe {
+          num_task: 2
+          num_expert: 3
+        }
+      }
+    }
+  }
+  model_params {
+    l2_regularization: 0.0
+    task_towers {
+      tower_name: "ctr"
+      label_name: "is_click"
+      metrics_set {
+        auc {
+          num_thresholds: 20000
+        }
+      }
+      loss_type: CLASSIFICATION
+      num_class: 1
+      dnn {
+        hidden_units: 64
+        hidden_units: 32
+      }
+      weight: 1.0
+    }
+    task_towers {
+      tower_name: "cvr"
+      label_name: "is_train"
+      metrics_set {
+        auc {
+          num_thresholds: 20000
+        }
+      }
+      loss_type: CLASSIFICATION
+      num_class: 1
+      dnn {
+        hidden_units: 64
+        hidden_units: 32
+      }
+      weight: 1.0
+    }
+  }
+}
+```
+
+该案例体现了如何应用[重复组件块](#id21)。
+
 ## 更多案例
 
 两个新的模型：
@@ -970,6 +1091,7 @@ MovieLens-1M数据集效果：
 
 - Highway Network: [highway network](../models/highway.md)
 - Cross Decoupling Network: [CDN](../models/cdn.md)
+- DLRM+SENet: [dlrm_senet_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_senet_on_criteo.config)
 
 # 组件库介绍
 
@@ -1002,6 +1124,7 @@ MovieLens-1M数据集效果：
 | SENet     | 建模特征重要度           | FiBiNet模型的组件 | [MMoE](../models/mmoe.html#id4)                       |
 | MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [Cross Decoupling Network](../models/cdn.html#id2)    |
 | MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [DBMTL](../models/dbmtl.html#dbmtl-based-on-backbone) |
+| PPNet     | 参数个性化网络           | PPNet模型      | [PPNet](../models/ppnet.html#id2)                     |
 
 ## 4. 序列特征编码组件
 
@@ -1056,8 +1179,10 @@ def call(self, inputs, training=None, **kwargs):
 【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
 再把参数注册到定义在`easy_rec/python/protos/keras_layer.proto`的`KerasLayer.params`消息体中。
 
-`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
-尽量在`__init__`方法中声明需要依赖的keras layer对象；仅在必要时才使用`tf.layers.*`函数，且需要传递reuse参数。
+`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。
+开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
+推荐在`__init__`方法中声明需要依赖的keras layer对象；
+**非常不建议使用`tf.layers.*`函数，因为可能会在使用`DistributeStrategy`时出错**，如一定要用需要传递reuse参数。
 
 ```{tips}
 提示：实现Layer对象时尽量使用原生的 tf.keras.layers.* 对象，且全部在 __init__ 方法中预先声明好。
@@ -1310,6 +1435,10 @@ repeat {
 - `num_repeat` 配置重复执行的次数
 - `output_concat_axis` 配置多次执行结果tensors的拼接维度，若不配置则输出多次执行结果的列表
 - `keras_layer` 配置需要执行的组件
+- `input_slice` 配置每个执行组件的输入切片，例如`[i]`获取输入列表的第 i 个元素作为第 i 次重复执行时的输入；不配置时获取所有输入
+- `input_fn` 配置每个执行组件的输入函数，例如`input_fn: "lambda x, i: [x[0][i], x[1]]"`
+
+`重复组件块` 的使用案例[MaskNet+PPNet+MMoE](#masknet-ppnet-mmoe)。
 
 ## 7. 序列组件块
 

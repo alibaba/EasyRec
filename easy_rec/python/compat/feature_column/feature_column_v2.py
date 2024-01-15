@@ -131,6 +131,8 @@ from __future__ import print_function
 import abc
 import collections
 import math
+import os
+import sys
 
 import numpy as np
 import six
@@ -170,10 +172,17 @@ from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
 from easy_rec.python.layers import utils as layer_utils
 
+from easy_rec.python.compat.feature_column.feature_column import embedding_lookup_ragged  # NOQA
+
 _FEATURE_COLUMN_DEPRECATION_DATE = None
 _FEATURE_COLUMN_DEPRECATION = ('The old _FeatureColumn APIs are being '
                                'deprecated. Please use the new FeatureColumn '
                                'APIs instead.')
+
+if os.getenv('SAFE_EMBEDDING', 'TRUE') == 'TRUE':
+  embedding_lookup_sparse = embedding_ops.safe_embedding_lookup_sparse
+else:
+  embedding_lookup_sparse = embedding_ops.embedding_lookup_sparse
 
 
 class StateManager(object):
@@ -2362,7 +2371,7 @@ def _create_categorical_column_weighted_sum(column, transformation_cache,
     weight_tensor = sparse_ops.sparse_reshape(
         weight_tensor, [array_ops.shape(weight_tensor)[0], -1])
 
-  return embedding_ops.safe_embedding_lookup_sparse(
+  return embedding_lookup_sparse(
       weight_var,
       id_tensor,
       sparse_weights=weight_tensor,
@@ -2543,6 +2552,9 @@ def _to_sparse_input_and_drop_ignore_values(input_tensor, ignore_value=None):
   Raises:
     ValueError: when `input_tensor`'s rank is `None`.
   """
+  if 'RaggedTensor' in str(type(input_tensor)):
+    return input_tensor
+
   input_tensor = sparse_tensor_lib.convert_to_tensor_or_sparse_tensor(
       input_tensor)
   if isinstance(input_tensor, sparse_tensor_lib.SparseTensor):
@@ -3431,8 +3443,17 @@ class EmbeddingColumn(
       checkpoint_utils.init_from_checkpoint(
           self.ckpt_to_load_from, {self.tensor_name_in_ckpt: to_restore})
 
+    if 'RaggedTensor' in str(type(sparse_ids)):
+      return embedding_lookup_ragged(
+          embedding_weights,
+          sparse_ids,
+          sparse_weights,
+          combiner=self.combiner,
+          max_norm=self.max_norm,
+          name='%s_weights' % self.name)
+
     # Return embedding lookup result.
-    return embedding_ops.safe_embedding_lookup_sparse(
+    return embedding_lookup_sparse(
         embedding_weights,
         sparse_ids,
         sparse_weights,
@@ -3467,7 +3488,6 @@ class EmbeddingColumn(
       # at eval or inference time, it is necessary to set
       # the initializers to zeros, so that new key will
       # get zero embedding
-      import os
       if os.environ.get('tf.estimator.mode', '') != \
          os.environ.get('tf.estimator.ModeKeys.TRAIN', 'train'):
         initializer = init_ops.zeros_initializer()
@@ -3512,12 +3532,13 @@ class EmbeddingColumn(
     # Update the information about the output and input nodes of embedding operation to the
     # previous written RTP-specific collection entry. RTP uses these informations to extract
     # the embedding subgraph.
-    layer_utils.append_tensor_to_collection(
-        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
-        'tensor', predictions)
-    layer_utils.append_tensor_to_collection(
-        compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
-        'input', sparse_tensors.id_tensor)
+    if isinstance(sparse_tensors.id_tensor, sparse_tensor_lib.SparseTensor):
+      layer_utils.append_tensor_to_collection(
+          compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+          'tensor', predictions)
+      layer_utils.append_tensor_to_collection(
+          compat_ops.GraphKeys.RANK_SERVICE_EMBEDDING, embedding_attrs['name'],
+          'input', sparse_tensors.id_tensor)
 
     return predictions
 
@@ -3765,7 +3786,7 @@ class SharedEmbeddingColumn(
       embedding_weights = self.shared_embedding_column_creator.embedding_weights
 
       # Return embedding lookup result.
-      return embedding_ops.safe_embedding_lookup_sparse(
+      return embedding_lookup_sparse(
           embedding_weights=embedding_weights,
           sparse_ids=sparse_ids,
           sparse_weights=sparse_weights,
@@ -3881,9 +3902,6 @@ class HashedCategoricalColumn(
 
   def _transform_input_tensor(self, input_tensor):
     """Hashes the values in the feature_column."""
-    if not isinstance(input_tensor, sparse_tensor_lib.SparseTensor):
-      raise ValueError('SparseColumn input must be a SparseTensor.')
-
     fc_utils.assert_string_or_int(
         input_tensor.dtype,
         prefix='column_name: {} input_tensor'.format(self.key))
@@ -3894,13 +3912,19 @@ class HashedCategoricalColumn(
           'key: {}, column dtype: {}, tensor dtype: {}'.format(
               self.key, self.dtype, input_tensor.dtype))
 
-    if self.dtype == dtypes.string:
+    if input_tensor.dtype == dtypes.string:
       sparse_values = input_tensor.values
     else:
       sparse_values = string_ops.as_string(input_tensor.values)
 
     sparse_id_values = string_ops.string_to_hash_bucket_fast(
         sparse_values, self.hash_bucket_size, name='lookup')
+
+    if 'RaggedTensor' in str(type(input_tensor)):
+      from tensorflow.python.ops.ragged import ragged_tensor
+      return ragged_tensor.RaggedTensor.from_row_splits(
+          values=sparse_id_values, row_splits=input_tensor.row_splits)
+
     return sparse_tensor_lib.SparseTensor(input_tensor.indices,
                                           sparse_id_values,
                                           input_tensor.dense_shape)
@@ -4238,30 +4262,34 @@ class IdentityCategoricalColumn(
       raise ValueError('Invalid input, not integer. key: {} dtype: {}'.format(
           self.key, input_tensor.dtype))
 
+    if 'RaggedTensor' in str(type(input_tensor)):
+      return input_tensor
+
     values = math_ops.cast(input_tensor.values, dtypes.int64, name='values')
-    num_buckets = math_ops.cast(
-        self.num_buckets, dtypes.int64, name='num_buckets')
-    zero = math_ops.cast(0, dtypes.int64, name='zero')
-    if self.default_value is None:
-      # Fail if values are out-of-range.
-      assert_less = check_ops.assert_less(
-          values,
-          num_buckets,
-          data=(values, num_buckets),
-          name='assert_less_than_num_buckets')
-      assert_greater = check_ops.assert_greater_equal(
-          values, zero, data=(values,), name='assert_greater_or_equal_0')
-      with ops.control_dependencies((assert_less, assert_greater)):
-        values = array_ops.identity(values)
-    else:
-      # Assign default for out-of-range values.
-      values = array_ops.where(
-          math_ops.logical_or(
-              values < zero, values >= num_buckets, name='out_of_range'),
-          array_ops.fill(
-              dims=array_ops.shape(values),
-              value=math_ops.cast(self.default_value, dtypes.int64),
-              name='default_values'), values)
+    if self.num_buckets < sys.maxsize:
+      num_buckets = math_ops.cast(
+          self.num_buckets, dtypes.int64, name='num_buckets')
+      zero = math_ops.cast(0, dtypes.int64, name='zero')
+      if self.default_value is None:
+        # Fail if values are out-of-range.
+        assert_less = check_ops.assert_less(
+            values,
+            num_buckets,
+            data=(values, num_buckets),
+            name='assert_less_than_num_buckets')
+        assert_greater = check_ops.assert_greater_equal(
+            values, zero, data=(values,), name='assert_greater_or_equal_0')
+        with ops.control_dependencies((assert_less, assert_greater)):
+          values = array_ops.identity(values)
+      else:
+        # Assign default for out-of-range values.
+        values = array_ops.where(
+            math_ops.logical_or(
+                values < zero, values >= num_buckets, name='out_of_range'),
+            array_ops.fill(
+                dims=array_ops.shape(values),
+                value=math_ops.cast(self.default_value, dtypes.int64),
+                name='default_values'), values)
 
     return sparse_tensor_lib.SparseTensor(
         indices=input_tensor.indices,

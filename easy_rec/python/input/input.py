@@ -8,6 +8,7 @@ from collections import OrderedDict
 import six
 import tensorflow as tf
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import string_ops
 from tensorflow.python.platform import gfile
@@ -43,7 +44,8 @@ class Input(six.with_metaclass(_meta_type, object)):
                task_index=0,
                task_num=1,
                check_mode=False,
-               pipeline_config=None):
+               pipeline_config=None,
+               **kwargs):
     self._pipeline_config = pipeline_config
     self._data_config = data_config
     self._check_mode = check_mode
@@ -51,6 +53,11 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
+    if pipeline_config is not None and pipeline_config.model_config.HasField(
+        'ev_params'):
+      self._has_ev = True
+    else:
+      self._has_ev = False
 
     if self._data_config.auto_expand_input_fields:
       input_fields = [x for x in self._data_config.input_fields]
@@ -98,6 +105,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     # from the types defined in input_fields
     # it is used in create_multi_placeholders
     self._multi_value_types = {}
+    self._multi_value_fields = set()
 
     self._normalizer_fn = {}
     for fc in self._feature_configs:
@@ -108,15 +116,20 @@ class Input(six.with_metaclass(_meta_type, object)):
           self._effective_fields.append(input_name)
 
       if fc.feature_type in [fc.TagFeature, fc.SequenceFeature]:
-        if fc.hash_bucket_size > 0:
+        if fc.hash_bucket_size > 0 or len(
+            fc.vocab_list) > 0 or fc.HasField('vocab_file'):
           self._multi_value_types[fc.input_names[0]] = tf.string
+          self._multi_value_fields.add(fc.input_names[0])
         else:
           self._multi_value_types[fc.input_names[0]] = tf.int64
+          self._multi_value_fields.add(fc.input_names[0])
         if len(fc.input_names) > 1:
           self._multi_value_types[fc.input_names[1]] = tf.float32
+          self._multi_value_fields.add(fc.input_names[1])
 
-      if fc.feature_type == fc.RawFeature:
+      if fc.feature_type == fc.RawFeature and fc.raw_input_dim > 1:
         self._multi_value_types[fc.input_names[0]] = tf.float32
+        self._multi_value_fields.add(fc.input_names[0])
 
       if fc.HasField('normalizer_fn'):
         feature_name = fc.feature_name if fc.HasField(
@@ -238,7 +251,9 @@ class Input(six.with_metaclass(_meta_type, object)):
     """
     self._mode = tf.estimator.ModeKeys.PREDICT
 
-    if export_config.multi_value_fields:
+    if export_config.auto_multi_value:
+      export_fields_name = self._multi_value_fields
+    elif export_config.multi_value_fields:
       export_fields_name = export_config.multi_value_fields.input_name
     else:
       export_fields_name = None
@@ -267,15 +282,17 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         placeholder_name = 'input_%d' % fid
       if input_name in export_fields_name:
-        tf_type = self._multi_value_types[input_name]
+        tf_type = self._multi_value_types[input_name] if input_name in self._multi_value_types \
+            else get_tf_type(self._input_field_types[fid])
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+        finput = array_ops.placeholder(
+            tf_type, [None, None], name=placeholder_name)
       else:
         ftype = self._input_field_types[fid]
         tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None], name=placeholder_name)
+        finput = array_ops.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
@@ -283,7 +300,8 @@ class Input(six.with_metaclass(_meta_type, object)):
 
   def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
-    inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
+    inputs_placeholder = array_ops.placeholder(
+        tf.string, [None], name='features')
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
@@ -984,6 +1002,9 @@ class Input(six.with_metaclass(_meta_type, object)):
     pass
 
   def restore(self, checkpoint_path):
+    pass
+
+  def stop(self):
     pass
 
   def _safe_shard(self, dataset):

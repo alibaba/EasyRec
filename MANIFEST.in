@@ -1,2 +1,3 @@
 include easy_rec/python/ops/1.12/*.so*
 include easy_rec/python/ops/1.15/*.so*
+include easy_rec/python/ops/2.12/*.so*

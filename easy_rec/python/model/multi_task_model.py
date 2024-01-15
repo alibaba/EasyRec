@@ -9,6 +9,7 @@ from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
+from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
@@ -137,21 +138,20 @@ class MultiTaskModel(RankModel):
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
-    metric_dict = {}
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       for metric in task_tower_cfg.metrics_set:
         loss_types = {task_tower_cfg.loss_type}
         if len(task_tower_cfg.losses) > 0:
           loss_types = {loss.loss_type for loss in task_tower_cfg.losses}
-        metric_dict.update(
+        self._metric_dict.update(
             self._build_metric_impl(
                 metric,
                 loss_type=loss_types,
                 label_name=self._label_name_dict[tower_name],
                 num_class=task_tower_cfg.num_class,
                 suffix='_%s' % tower_name))
-    return metric_dict
+    return self._metric_dict
 
   def build_loss_weight(self):
     loss_weights = OrderedDict()
@@ -189,7 +189,8 @@ class MultiTaskModel(RankModel):
       else:
         return tf.exp(-uncertainty) * value + 0.5 * uncertainty
     else:
-      raise ValueError('Unsupported loss weight strategy: ' + strategy.Name)
+      strategy_name = EasyRecModel.LossWeightStrategy.Name(strategy)
+      raise ValueError('Unsupported loss weight strategy: ' + strategy_name)
 
   def build_loss_graph(self):
     """Build loss graph for multi task model."""

@@ -61,12 +61,22 @@
   - 仅在train_distribute为NoStrategy时可以设置成true，其它情况应该设置为false
   - PS异步训练也设置为false
 
-- train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式
+- train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式, 可以分成两种模式: PS-Worker模式 和 All-Reduce模式
 
-  - NoStrategy 不使用Strategy
-  - PSStrategy 异步ParameterServer模式
-  - MirroredStrategy 单机多卡模式，仅在PAI上可以使用，本地和EMR上不能使用
-  - MultiWorkerMirroredStrategy 多机多卡模式，在TF版本>=1.15时可以使用
+  - PS-Worker模式:
+    - NoStrategy: 根据sync_replicas的取值决定采用同步或者异步训练
+      - sync_replicas=true，采用ps worker同步训练
+        - 注意: 该模式容易导致ps存在通信瓶颈, 建议用混合并行的模式进行同步训练
+      - sync_replicas=false, 采用ps worker异步训练
+  - All-Reduce模式:
+    - 数据并行:
+      - MirroredStrategy: 单机多卡模式，仅在PAI上可以使用，本地和EMR上不能使用
+      - MultiWorkerMirroredStrategy: 多机多卡模式，在TF版本>=1.15时可以使用
+      - HorovodStragtegy: horovod多机多卡并行, 需要安装horovod
+    - 混合并行: 数据并行 + Embedding分片, 需要安装horovod
+      - EmbeddingParallelStrategy: 在horovod多机多卡并行的基础上, 增加了Embedding分片的功能
+      - SokStrategy: 在horovod多机多卡并行的基础上, 增加了[SOK](https://github.com/NVIDIA-Merlin/HugeCTR/tree/main/sparse_operation_kit) Key-Value Embedding和Embedding分片的功能
+        - 注意: 该模式仅支持GPU模式, 需要安装SOK.
 
 - num_gpus_per_worker: 仅在MirrorredStrategy, MultiWorkerMirroredStrategy, PSStrategy的时候有用
 
@@ -74,11 +84,10 @@
 
   - 总共训练多少轮
   - num_steps = total_sample_num * num_epochs / batch_size / num_workers
-  - **分布式训练时一定要设置num_steps，否则评估任务会结束不了**
 
 - fine_tune_checkpoint: 需要restore的checkpoint路径，也可以是包含checkpoint的目录，如果目录里面有多个checkpoint，将使用最新的checkpoint
 
-- fine_tune_ckpt_var_map: 需要restore的参数列表文件路径，文件的每一行是{variable_name in current model ckpt}\\t{variable name in old model ckpt}
+- fine_tune_ckpt_var_map: 需要restore的参数列表文件路径，文件的每一行是{variable_name in current model}\\t{variable name in old model ckpt}
 
   - 需要设置fine_tune_ckpt_var_map的情形:
     - current ckpt和old ckpt不完全匹配, 如embedding的名字不一样:
@@ -108,159 +117,6 @@
 - save_summary_steps: 每隔多少轮，保存一次summary信息，默认是1000
 
 - 更多参数请参考[easy_rec/python/protos/train.proto](./reference.md)
-
-### 损失函数
-
-EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2）使用多个损失函数。
-
-#### 使用单个损失函数
-
-| 损失函数                                       | 说明                                                         |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| CLASSIFICATION                             | 分类Loss，二分类为sigmoid_cross_entropy；多分类为softmax_cross_entropy |
-| L2_LOSS                                    | 平方损失                                                       |
-| SIGMOID_L2_LOSS                            | 对sigmoid函数的结果计算平方损失                                        |
-| CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                             |
-| CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                    |
-| MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                    |
-| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                  |
-| BINARY_FOCAL_LOSS                          | 支持困难样本挖掘和类别平衡的focal loss                                   |
-| PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
-| PAIRWISE_FOCAL_LOSS                        | pair粒度的focal loss, 支持自定义pair分组                             |
-| PAIRWISE_LOGISTIC_LOSS                     | pair粒度的logistic loss, 支持自定义pair分组                          |
-| JRC_LOSS                                   | 二分类 + listwise ranking loss                                |
-| F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
-
-- 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
-  - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
-  - 目前只在DropoutNet模型中可用，可参考《 [冷启动推荐模型DropoutNet深度解析与改进](https://zhuanlan.zhihu.com/p/475117993) 》。
-
-##### 配置
-
-通过`loss_type`配置项指定使用哪个具体的损失函数，默认值为`CLASSIFICATION`。
-
-```protobuf
-  {
-    loss_type: L2_LOSS
-  }
-```
-
-#### 使用多个损失函数
-
-目前所有排序模型，包括多目标模型(`ESMM`模型除外)，和部分召回模型（如DropoutNet）支持同时使用多个损失函数，并且可以为每个损失函数配置不同的权重。
-
-##### 配置
-
-下面的配置可以同时使用`F1_REWEIGHTED_LOSS`和`PAIR_WISE_LOSS`，总的loss为这两个损失函数的加权求和。
-
-```
-  losses {
-    loss_type: F1_REWEIGHTED_LOSS
-    weight: 1.0
-    f1_reweighted_loss {
-      f1_beta_square: 0.5625
-    }
-  }
-  losses {
-    loss_type: PAIR_WISE_LOSS
-    weight: 1.0
-  }
-```
-
-- F1_REWEIGHTED_LOSS 的参数配置
-
-  可以调节二分类模型recall/precision相对权重的损失函数，配置如下：
-
-  ```
-  {
-    loss_type: F1_REWEIGHTED_LOSS
-    f1_reweight_loss {
-      f1_beta_square: 0.5625
-    }
-  }
-  ```
-
-  - f1_beta_square: 大于1的值会导致模型更关注recall，小于1的值会导致模型更关注precision
-  - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
-    - ![f1 score](../images/other/f1_score.svg)
-  - 更一般的，我们定义 F_beta 分数为:
-    - ![f_beta score](../images/other/f_beta_score.svg)
-  - f1_beta_square 即为 上述公式中的 beta 系数的平方。
-
-- PAIRWISE_FOCAL_LOSS 的参数配置
-
-  - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
-  - session_name: pair分组的字段名，比如user_id
-  - hinge_margin: 当pair的logit之差大于该参数值时，当前样本的loss为0，默认值为1.0
-  - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
-  - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
-
-- PAIRWISE_LOGISTIC_LOSS 的参数配置
-
-  - session_name: pair分组的字段名，比如user_id
-  - hinge_margin: 当pair的logit之差大于该参数值时，当前样本的loss为0，默认值为1.0
-  - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
-  - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
-
-- PAIRWISE_LOSS 的参数配置
-
-  - session_name: pair分组的字段名，比如user_id
-  - margin: 当pair的logit之差减去该参数值后再参与计算，即正负样本的logit之差至少要大于margin，默认值为0
-  - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
-
-备注：上述 PAIRWISE\_\*\_LOSS 都是在mini-batch内构建正负样本pair，目标是让正负样本pair的logit相差尽可能大
-
-- BINARY_FOCAL_LOSS 的参数配置
-
-  - gamma: focal loss的指数，默认值2.0
-  - alpha: 调节样本权重的类别平衡参数，建议根据正负样本比例来配置alpha，即 alpha / (1-alpha) = #Neg / #Pos
-  - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
-  - label_smoothing: 标签平滑系数
-
-- JRC_LOSS 的参数配置
-
-  - alpha: ranking loss 与 calibration loss 的相对权重系数；不设置该值时，触发权重自适应学习
-  - session_name: list分组的字段名，比如user_id
-  - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
-  - 使用示例: [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
-
-排序模型同时使用多个损失函数的完整示例：
-[cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
-
-多目标排序模型同时使用多个损失函数的完整示例:
-[dbmtl_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
-
-##### 损失函数权重自适应学习
-
-多目标学习任务中，人工指定多个损失函数的静态权重通常不能获得最好的效果。EasyRec支持损失函数权重自适应学习，示例如下：
-
-```protobuf
-      losses {
-        loss_type: CLASSIFICATION
-        learn_loss_weight: true
-      }
-      losses {
-        loss_type: BINARY_FOCAL_LOSS
-        learn_loss_weight: true
-        binary_focal_loss {
-          gamma: 2.0
-          alpha: 0.85
-        }
-      }
-      losses {
-        loss_type: PAIRWISE_FOCAL_LOSS
-        learn_loss_weight: true
-        pairwise_focal_loss {
-          session_name: "client_str"
-          hinge_margin: 1.0
-        }
-      }
-```
-
-通过`learn_loss_weight`参数配置是否需要开启权重自适应学习，默认不开启。开启之后，`weight`参数不再生效。
-
-参考论文：《Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics》
 
 ## 训练命令
 
@@ -321,32 +177,60 @@ pai -name easy_rec_ext -project algo_public
 - 如果是pai内部版,则不需要指定arn和ossHost, arn和ossHost放在-Dbuckets里面
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
 
+### On DLC
+
+- 基于Kubeflow的云原生的训练方式
+- [参考文档](./quick_start/dlc_tutorial.md)
+
 ### On EMR
 
-单机单卡模式:
+- 基于开源大数据平台的训练方式
+- [参考文档](https://help.aliyun.com/zh/emr/emr-on-ecs/user-guide/use-easyrec-to-perform-model-training-evaluation-and-prediction-on-data-from-hive-tables)
 
-```bash
-el_submit -t standalone -a easy_rec_train -f dwd_avazu_ctr_deepmodel.config -m local  -wn 1 -wc 6 -wm 20000  -wg 1 -c "python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel.config --continue_train"
-```
+## 混合并行(EmbeddingParallel)
 
-- 参数同Local模式
+混合并行模式下Embedding参数会分片, 均匀分布到各个worker上, 通过all2all的通信方式来聚合不同worker上的Embedding。MLP参数在每个worker上都有完整的一份复制, 在参数更新时，会通过allreduce的方式同步不同worker的更新。
 
-多worker模式:
+### 依赖
 
-- 需要在配置文件中设置train_config.train_distribute为MultiWorkerMirroredStrategy
+- 混合并行使用Horovod做底层的通信, 因此需要安装Horovod, 可以直接使用下面的镜像
+- mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v4
+  ```
+    sudo docker run --gpus=all --privileged -v /home/easyrec/:/home/easyrec/ -ti mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v4 bash
+  ```
 
-```bash
-el_submit -t standalone -a easy_rec_train -f dwd_avazu_ctr_deepmodel.config -m local  -wn 1 -wc 6 -wm 20000  -wg 2 -c "python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel.config --continue_train"
-```
+### 配置
 
-- 参数同Local模式
+- 修改train_config.train_distribute为EmbeddingParallelStrategy
+  ```
+   train_config {
+      ...
+      train_distribute: EmbeddingParallelStrategy
+      ...
+   }
+  ```
+- 如使用key-Value Embedding, 需要设置model_config.ev_params
+  ```
+  model_config {
+    ...
+    ev_params {
+    }
+    ...
+  }
+  ```
 
-PS模式:
+### 命令
 
-- 需要在配置文件中设置train_config.sync_replicas为true
-
-```bash
-el_submit -t tensorflow-ps -a easy_rec_train -f dwd_avazu_ctr_deepmodel.config -m local -pn 1 -pc 4 -pm 20000 -wn 3 -wc 6 -wm 20000 -c "python -m easy_rec.python.train_eval --pipeline_config_path dwd_avazu_ctr_deepmodel.config --continue_train"
-```
-
-- 参数同Local模式
+- 训练
+  ```
+     CUDA_VISIBLE_DEVICES=0,1,2,4 horovodrun -np 4  python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/dlrm_on_criteo_parquet_ep_v2.config
+  ```
+- 评估
+  ```
+     CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python -m easy_rec.python.eval --pipeline_config_path samples/model_config/dlrm_on_criteo_parquet_ep_v2.config
+  ```
+  - 注意: 评估目前仅支持单个worker评估
+- 导出
+  ```
+    CUDA_VISIBLE_DEVICES=0 horovodrun -np 1 python -m easy_rec.python.export --pipeline_config_path samples/model_config/dlrm_on_criteo_parquet_ep_v2.config --export_dir dlrm_criteo_export/
+  ```

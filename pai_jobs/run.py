@@ -12,7 +12,7 @@ import yaml
 from tensorflow.python.platform import gfile
 
 import easy_rec
-from easy_rec.python.inference.predictor import ODPSPredictor
+from easy_rec.python.inference.odps_predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
 from easy_rec.python.utils import config_util
@@ -110,6 +110,8 @@ tf.app.flags.DEFINE_bool('distribute_eval', False,
 tf.app.flags.DEFINE_string('export_dir', '',
                            'directory where model should be exported to')
 tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
+tf.app.flags.DEFINE_string('export_done_file', '',
+                           'a flag file to signal that export model is done')
 tf.app.flags.DEFINE_integer('max_wait_ckpt_ts', 0,
                             'max wait time in seconds for checkpoints')
 tf.app.flags.DEFINE_boolean('continue_train', True,
@@ -495,8 +497,14 @@ def main(argv):
 
     extra_params = redis_params
     extra_params.update(oss_params)
-    easy_rec.export(export_dir, pipeline_config, FLAGS.checkpoint_path,
-                    FLAGS.asset_files, FLAGS.verbose, **extra_params)
+    export_out_dir = easy_rec.export(export_dir, pipeline_config,
+                                     FLAGS.checkpoint_path, FLAGS.asset_files,
+                                     FLAGS.verbose, **extra_params)
+    if FLAGS.export_done_file:
+      flag_file = os.path.join(export_out_dir, FLAGS.export_done_file)
+      logging.info('create export done file: %s' % flag_file)
+      with gfile.GFile(flag_file, 'w') as fout:
+        fout.write('ExportDone')
   elif FLAGS.cmd == 'predict':
     check_param('tables')
     check_param('saved_model_dir')
