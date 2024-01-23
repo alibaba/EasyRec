@@ -15,7 +15,7 @@ logging.basicConfig(
 tf.app.flags.DEFINE_string('tables', '', 'tables passed by pai command')
 tf.app.flags.DEFINE_integer('batch_size', 1024, 'batch size')
 tf.app.flags.DEFINE_integer('embedding_dim', 32, 'embedding dimension')
-tf.app.flags.DEFINE_string('user_model_path', '', 'user model path')
+tf.app.flags.DEFINE_string('index_output_dir', '', 'index output directory')
 tf.app.flags.DEFINE_string('index_type', 'IVFFlat', 'index type')
 tf.app.flags.DEFINE_integer('ivf_nlist', 1000, 'nlist')
 tf.app.flags.DEFINE_integer('hnsw_M', 32, 'hnsw M')
@@ -30,7 +30,7 @@ def main(argv):
       FLAGS.tables, slice_id=0, slice_count=1, capacity=FLAGS.batch_size * 2)
   i = 0
   id_map_f = tf.gfile.GFile(
-      os.path.join(FLAGS.user_model_path, 'id_mapping'), 'w')
+      os.path.join(FLAGS.index_output_dir, 'id_mapping'), 'w')
   embeddings = []
   while True:
     try:
@@ -71,8 +71,8 @@ def main(argv):
   index.add(embeddings)
   faiss.write_index(index, 'faiss_index')
 
-  with tf.gfile.GFile(os.path.join(FLAGS.user_model_path, 'faiss_index'),
-                      'wb') as f_out:
+  with tf.gfile.GFile(
+      os.path.join(FLAGS.index_output_dir, 'faiss_index'), 'wb') as f_out:
     with open('faiss_index', 'rb') as f_in:
       f_out.write(f_in.read())
 
@@ -87,7 +87,7 @@ def main(argv):
       index_name = 'faiss_index_ivfflat_nlist%d' % ivf_nlist
       faiss.write_index(index, index_name)
       with tf.gfile.GFile(
-          os.path.join(FLAGS.user_model_path, index_name), 'wb') as f_out:
+          os.path.join(FLAGS.index_output_dir, index_name), 'wb') as f_out:
         with open(index_name, 'rb') as f_in:
           f_out.write(f_in.read())
 
@@ -103,7 +103,7 @@ def main(argv):
         index_name = 'faiss_index_hnsw_M%d_ef%d' % (hnsw_M, hnsw_efConstruction)
         faiss.write_index(index, index_name)
         with tf.gfile.GFile(
-            os.path.join(FLAGS.user_model_path, index_name), 'wb') as f_out:
+            os.path.join(FLAGS.index_output_dir, index_name), 'wb') as f_out:
           with open(index_name, 'rb') as f_in:
             f_out.write(f_in.read())
 
