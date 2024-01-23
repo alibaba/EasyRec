@@ -1,16 +1,16 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
+from tensorflow.python.keras.layers import Activation
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Layer
 
-from easy_rec.python.layers.common_layers import layer_norm
 from easy_rec.python.layers.keras.blocks import MLP
+from easy_rec.python.layers.keras.layer_norm import LayerNormalization
 from easy_rec.python.layers.utils import Parameter
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
 
-
-class MaskBlock(tf.keras.layers.Layer):
+class MaskBlock(Layer):
   """MaskBlock use in MaskNet.
 
   Args:
@@ -30,10 +30,12 @@ class MaskBlock(tf.keras.layers.Layer):
     self.l2_reg = params.l2_regularizer
     self._projection_dim = params.get_or_default('projection_dim', None)
     self.reuse = reuse
+    self.final_relu = Activation('relu', name='relu')
 
-  def call(self, inputs, **kwargs):
-    net, mask_input = inputs
-    mask_input_dim = int(mask_input.shape[-1])
+  def build(self, input_shape):
+    assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+    input_dim = int(input_shape[0][-1])
+    mask_input_dim = int(input_shape[1][-1])
     if self.config.HasField('reduction_factor'):
       aggregation_size = int(mask_input_dim * self.config.reduction_factor)
     elif self.config.HasField('aggregation_size') is not None:
@@ -42,62 +44,59 @@ class MaskBlock(tf.keras.layers.Layer):
       raise ValueError(
           'Need one of reduction factor or aggregation size for MaskBlock.')
 
-    if self.config.input_layer_norm:
-      idx = self.name.rfind('_')
-      if idx > 0 and self.name[idx + 1:].isdigit():
-        input_name = self.name[:idx]
-      else:
-        input_name = self.name
-      net = layer_norm(net, reuse=tf.AUTO_REUSE, name=input_name + '/input_ln')
-
-    initializer = tf.initializers.variance_scaling()
-
-    if self._projection_dim is None:
-      mask = tf.layers.dense(
-          mask_input,
-          aggregation_size,
-          activation=tf.nn.relu,
-          kernel_initializer=initializer,
-          kernel_regularizer=self.l2_reg,
-          name='%s/hidden' % self.name,
-          reuse=self.reuse)
-    else:
-      u = tf.layers.dense(
-          mask_input,
+    self.aggr_layer = Dense(
+        aggregation_size,
+        activation='relu',
+        kernel_initializer='he_uniform',
+        kernel_regularizer=self.l2_reg,
+        name='aggregation')
+    self.weight_layer = Dense(input_dim, name='weights')
+    if self._projection_dim is not None:
+      self.project_layer = Dense(
           self._projection_dim,
-          kernel_initializer=tf.glorot_normal_initializer(),
           kernel_regularizer=self.l2_reg,
           use_bias=False,
-          name='%s/prj_u' % self.name,
-          reuse=self.reuse)
-      mask = tf.layers.dense(
-          u,
-          aggregation_size,
-          activation=tf.nn.relu,
-          kernel_initializer=initializer,
-          kernel_regularizer=self.l2_reg,
-          name='%s/prj_v' % self.name,
-          reuse=self.reuse)
-    mask = tf.layers.dense(
-        mask, net.shape[-1], name='%s/mask' % self.name, reuse=self.reuse)
-    masked_net = net * mask
+          name='project')
+    if self.config.input_layer_norm:
+      # 推荐在调用MaskBlock之前做好 layer norm，否则每一次调用都需要对input做ln
+      if tf.__version__ >= '2.0':
+        self.input_layer_norm = tf.keras.layers.LayerNormalization(
+            name='input_ln')
+      else:
+        self.input_layer_norm = LayerNormalization(name='input_ln')
+
+    if self.config.HasField('output_size'):
+      self.output_layer = Dense(
+          self.config.output_size, use_bias=False, name='output')
+    if tf.__version__ >= '2.0':
+      self.output_layer_norm = tf.keras.layers.LayerNormalization(
+          name='output_ln')
+    else:
+      self.output_layer_norm = LayerNormalization(name='output_ln')
+
+  def call(self, inputs, **kwargs):
+    net, mask_input = inputs
+    if self.config.input_layer_norm:
+      net = self.input_layer_norm(net)
+
+    if self._projection_dim is None:
+      aggr = self.aggr_layer(mask_input)
+    else:
+      u = self.project_layer(mask_input)
+      aggr = self.aggr_layer(u)
+
+    weights = self.weight_layer(aggr)
+    masked_net = net * weights
 
     if not self.config.HasField('output_size'):
       return masked_net
 
-    output_size = self.config.output_size
-    hidden = tf.layers.dense(
-        masked_net,
-        output_size,
-        use_bias=False,
-        name='%s/output' % self.name,
-        reuse=self.reuse)
-    ln_hidden = layer_norm(
-        hidden, name='%s/ln_output' % self.name, reuse=self.reuse)
-    return tf.nn.relu(ln_hidden)
+    hidden = self.output_layer(masked_net)
+    ln_hidden = self.output_layer_norm(hidden)
+    return self.final_relu(ln_hidden)
 
 
-class MaskNet(tf.keras.layers.Layer):
+class MaskNet(Layer):
   """MaskNet: Introducing Feature-Wise Multiplication to CTR Ranking Models by Instance-Guided Mask.
 
   Refer: https://arxiv.org/pdf/2102.07619.pdf
@@ -111,21 +110,33 @@ class MaskNet(tf.keras.layers.Layer):
     if self.config.HasField('mlp'):
       p = Parameter.make_from_pb(self.config.mlp)
       p.l2_regularizer = params.l2_regularizer
-      self.mlp = MLP(p, name='%s/mlp' % name, reuse=reuse)
+      self.mlp = MLP(p, name='mlp', reuse=reuse)
     else:
       self.mlp = None
 
-  def call(self, inputs, training=None, **kwargs):
-    if self.config.use_parallel:
-      mask_outputs = []
-      for i, block_conf in enumerate(self.config.mask_blocks):
-        params = Parameter.make_from_pb(block_conf)
-        params.l2_regularizer = self.params.l2_regularizer
-        mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
-        mask_outputs.append(mask_layer((inputs, inputs)))
-      all_mask_outputs = tf.concat(mask_outputs, axis=1)
+    self.mask_layers = []
+    for i, block_conf in enumerate(self.config.mask_blocks):
+      params = Parameter.make_from_pb(block_conf)
+      params.l2_regularizer = self.params.l2_regularizer
+      mask_layer = MaskBlock(params, name='block_%d' % i, reuse=self.reuse)
+      self.mask_layers.append(mask_layer)
 
+    if self.config.input_layer_norm:
+      if tf.__version__ >= '2.0':
+        self.input_layer_norm = tf.keras.layers.LayerNormalization(
+            name='input_ln')
+      else:
+        self.input_layer_norm = LayerNormalization(name='input_ln')
+
+  def call(self, inputs, training=None, **kwargs):
+    if self.config.input_layer_norm:
+      inputs = self.input_layer_norm(inputs)
+
+    if self.config.use_parallel:
+      mask_outputs = [
+          mask_layer((inputs, inputs)) for mask_layer in self.mask_layers
+      ]
+      all_mask_outputs = tf.concat(mask_outputs, axis=1)
       if self.mlp is not None:
         output = self.mlp(all_mask_outputs)
       else:
@@ -133,11 +144,8 @@ class MaskNet(tf.keras.layers.Layer):
       return output
     else:
       net = inputs
-      for i, block_conf in enumerate(self.config.mask_blocks):
-        params = Parameter.make_from_pb(block_conf)
-        params.l2_regularizer = self.params.l2_regularizer
-        mask_layer = MaskBlock(
-            params, name='%s/block_%d' % (self.name, i), reuse=self.reuse)
+      for i, _ in enumerate(self.config.mask_blocks):
+        mask_layer = self.mask_layers[i]
         net = mask_layer((net, inputs))
 
       if self.mlp is not None:

@@ -1091,6 +1091,7 @@ MovieLens-1M数据集效果：
 
 - Highway Network: [highway network](../models/highway.md)
 - Cross Decoupling Network: [CDN](../models/cdn.md)
+- DLRM+SENet: [dlrm_senet_on_criteo.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_senet_on_criteo.config)
 
 # 组件库介绍
 
@@ -1178,8 +1179,10 @@ def call(self, inputs, training=None, **kwargs):
 【可选】如需要自定义protobuf message参数，先在`easy_rec/python/protos/layer.proto`添加参数message的定义，
 再把参数注册到定义在`easy_rec/python/protos/keras_layer.proto`的`KerasLayer.params`消息体中。
 
-`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
-尽量在`__init__`方法中声明需要依赖的keras layer对象；仅在必要时才使用`tf.layers.*`函数，且需要传递reuse参数。
+`__init__`方法的`reuse`参数表示该Layer对象的权重参数是否需要被复用。
+开发时需要按照可复用的逻辑来实现Layer对象，推荐严格按照keras layer的规范来实现。
+推荐在`__init__`方法中声明需要依赖的keras layer对象；
+**非常不建议使用`tf.layers.*`函数，因为可能会在使用`DistributeStrategy`时出错**，如一定要用需要传递reuse参数。
 
 ```{tips}
 提示：实现Layer对象时尽量使用原生的 tf.keras.layers.* 对象，且全部在 __init__ 方法中预先声明好。

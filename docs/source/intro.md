@@ -61,4 +61,6 @@ EasyRec implements state of the art machine learning models used in common recom
 
 - Run [`knn algorithm`](vector_retrieve.md) of vectors in distribute environment
 
-欢迎加入【EasyRec推荐算法交流群】，钉钉群号 : 32260796
+### Contact
+
+- DingDing Group: 37930014162, click [this url](https://qr.dingtalk.com/action/joingroup?code=v1,k1,oHNqtNObbu+xUClHh77gCuKdGGH8AYoQ8AjKU23zTg4=&_dt_no_comment=1&origin=11) or scan QrCode to join![new_group.jpg](../images/qrcode/new_group.jpg)

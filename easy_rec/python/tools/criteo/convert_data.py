@@ -8,6 +8,7 @@ import os
 import traceback
 
 import numpy as np
+import pandas as pd
 import six
 from tensorflow.python.platform import gfile
 
@@ -24,9 +25,24 @@ def save_np_bin(labels, dense_arr, cate_arr, prefix):
     fout.write(np.array(cate_arr, dtype=np.float32).tobytes())
 
 
-def convert(input_path, prefix, part_record_num):
-  logging.info('start to convert %s, part_record_num=%d' %
-               (input_path, part_record_num))
+def save_parquet(labels, dense_arr, cate_arr, prefix):
+  df = {'is_click': labels}
+  for i in range(1, 14):
+    df['f' + str(i)] = dense_arr[:, i - 1]
+  for i in range(1, 27):
+    df['c' + str(i)] = cate_arr[:, i - 1]
+  df = pd.DataFrame(df)
+  save_path = prefix + '.parquet'
+  logging.info('save to %s' % save_path)
+  df.to_parquet(save_path)
+
+
+def convert(input_path, prefix, part_record_num, save_format):
+  logging.info('start to convert %s, part_record_num=%d, save_format=%s' %
+               (input_path, part_record_num, save_format))
+  save_func = save_np_bin
+  if save_format == 'parquet':
+    save_func = save_parquet
   batch_size = part_record_num
   labels = np.zeros([batch_size], dtype=np.int32)
   dense_arr = np.zeros([batch_size, 13], dtype=np.float32)
@@ -53,14 +69,15 @@ def convert(input_path, prefix, part_record_num):
 
         sid += 1
         if sid == batch_size:
-          save_np_bin(labels, dense_arr, cate_arr, prefix + '_' + str(part_id))
+          save_func(labels, dense_arr, cate_arr, prefix + '_' + str(part_id))
+          logging.info('\t%s write part: %d' % (input_path, part_id))
           part_id += 1
           total_line += sid
           sid = 0
-          logging.info('\t%s write part: %d' % (input_path, part_id - 1))
     if sid > 0:
-      save_np_bin(labels[:sid], dense_arr[:sid], cate_arr[:sid],
-                  prefix + '_' + str(part_id))
+      save_func(labels[:sid], dense_arr[:sid], cate_arr[:sid],
+                prefix + '_' + str(part_id))
+      logging.info('\t%s write final part: %d' % (input_path, part_id))
       part_id += 1
       total_line += sid
   except Exception as ex:
@@ -95,6 +112,11 @@ if __name__ == '__main__':
       default=None,
       help='criteo binary data output dir ')
   parser.add_argument(
+      '--save_format',
+      type=str,
+      default='npy',
+      help='save format, choices: npy|parquet')
+  parser.add_argument(
       '--part_record_num',
       type=int,
       default=1024 * 1024 * 8,
@@ -126,7 +148,9 @@ if __name__ == '__main__':
     input_path = os.path.join(args.input_dir, 'day_%d.gz' % d)
     prefix = os.path.join(args.save_dir, str(d))
     proc = multiprocessing.Process(
-        target=convert, args=(input_path, prefix, args.part_record_num))
+        target=convert,
+        args=(input_path, prefix, args.part_record_num, args.save_format))
+    convert(input_path, prefix, args.part_record_num, args.save_format)
     proc.start()
     proc_arr.append(proc)
   for proc in proc_arr:

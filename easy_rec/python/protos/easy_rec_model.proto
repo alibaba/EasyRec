@@ -27,6 +27,7 @@ import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
 import "easy_rec/python/protos/tower.proto";
 import "easy_rec/python/protos/pdn.proto";
+// import "easy_rec/python/protos/ppnet.proto";
 
 // for input performance test
 message DummyModel {
@@ -90,6 +91,8 @@ message EasyRecModel {
         DBMTL dbmtl = 303;
         SimpleMultiTask simple_multi_task = 304;
         PLE ple = 305;
+
+        // PPNetV3 ppnet = 306;
 
         RocketLaunching rocket_launching = 401;
     }

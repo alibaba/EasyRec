@@ -8,6 +8,7 @@ from collections import OrderedDict
 import six
 import tensorflow as tf
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import string_ops
 from tensorflow.python.platform import gfile
@@ -43,7 +44,8 @@ class Input(six.with_metaclass(_meta_type, object)):
                task_index=0,
                task_num=1,
                check_mode=False,
-               pipeline_config=None):
+               pipeline_config=None,
+               **kwargs):
     self._pipeline_config = pipeline_config
     self._data_config = data_config
     self._check_mode = check_mode
@@ -51,6 +53,11 @@ class Input(six.with_metaclass(_meta_type, object)):
     # tf.estimator.ModeKeys.*, only available before
     # calling self._build
     self._mode = None
+    if pipeline_config is not None and pipeline_config.model_config.HasField(
+        'ev_params'):
+      self._has_ev = True
+    else:
+      self._has_ev = False
 
     if self._data_config.auto_expand_input_fields:
       input_fields = [x for x in self._data_config.input_fields]
@@ -279,12 +286,13 @@ class Input(six.with_metaclass(_meta_type, object)):
             else get_tf_type(self._input_field_types[fid])
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None, None], name=placeholder_name)
+        finput = array_ops.placeholder(
+            tf_type, [None, None], name=placeholder_name)
       else:
         ftype = self._input_field_types[fid]
         tf_type = get_tf_type(ftype)
         logging.info('input_name: %s, dtype: %s' % (input_name, tf_type))
-        finput = tf.placeholder(tf_type, [None], name=placeholder_name)
+        finput = array_ops.placeholder(tf_type, [None], name=placeholder_name)
       inputs[input_name] = finput
     features = {x: inputs[x] for x in inputs}
     features = self._preprocess(features)
@@ -292,7 +300,8 @@ class Input(six.with_metaclass(_meta_type, object)):
 
   def create_placeholders(self, export_config):
     self._mode = tf.estimator.ModeKeys.PREDICT
-    inputs_placeholder = tf.placeholder(tf.string, [None], name='features')
+    inputs_placeholder = array_ops.placeholder(
+        tf.string, [None], name='features')
     input_vals = tf.string_split(
         inputs_placeholder, self._data_config.separator,
         skip_empty=False).values
@@ -993,6 +1002,9 @@ class Input(six.with_metaclass(_meta_type, object)):
     pass
 
   def restore(self, checkpoint_path):
+    pass
+
+  def stop(self):
     pass
 
   def _safe_shard(self, dataset):

@@ -36,6 +36,25 @@ pre-commit install
 pre-commit run -a
 ```
 
+### 增加新的运行命令（cmd）
+
+增加新的运行命令需要修改`xflow`的配置和脚本，文件位置：
+
+- 弹内用户： `pai_jobs/easy_rec_flow`
+- 公有云用户：`pai_jobs/easy_rec_flow_ex`
+
+升级xflow对外发布之前，需要严格测试，影响面很大，会影响所有用户。
+
+更建议的方式是不增加新的运行命令，新增功能通过`cmd=custom`命令来运行，通过`entryFile`参数指定新增功能的运行脚本，
+需要额外参数时，通过`extra_params`参数传递。示例如下：
+
+```
+pai -name easy_rec_ext
+  -Dcmd='custom'
+  -DentryFile='easy_rec/python/tools/feature_selection.py'
+  -Dextra_params='--topk 1000'
+```
+
 ### 测试
 
 #### 单元测试

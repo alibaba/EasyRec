@@ -70,7 +70,7 @@ cmd1_{{bizdate}}=PAI -name=easy_rec_ext
     -Dbuckets='oss://automl-nni/'
     -Darn='xxx'
     -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}} 
+    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}}
 
 {% else %}
 cmd1_{{bizdate}}=PAI -name=easy_rec_ext
@@ -87,7 +87,7 @@ cmd1_{{bizdate}}=PAI -name=easy_rec_ext
     -Dbuckets='oss://automl-nni/'
     -Darn='xxx'
     -DossHost='oss-cn-beijing-internal.aliyuncs.com'
-    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}} 
+    -Dcluster={"ps":{"count":1,"cpu":1600,"memory":40000 },"worker":{"count":12,"cpu":1600,"memory":40000}}
 {% endif %}
 
 {% endfor %}

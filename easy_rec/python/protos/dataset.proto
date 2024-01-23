@@ -225,6 +225,21 @@ message DatasetConfig {
         HiveInput = 16;
         HiveRTPInput = 17;
         HiveParquetInput = 18;
+
+        // All features are packed into one field for fast copying to gpu,
+        // and there are no feature preprocessing step, it is assumed that
+        // features are preprocessed before training.
+        // Requirements: python3 and tf2.x due to multiprocssing spawn and
+        //    RaggedTensor apis.
+        ParquetInput = 19;
+
+        // Features are not packed, and are preprocessing separately.
+        // Requirements: python3 and tf2.x due to multiprocssing spawn and
+        //    RaggedTensor apis.
+        ParquetInputV2 = 20;
+
+        // c++ version of parquet dataset which currently are only available
+        // with deeprec.
         ParquetInputV3 = 21;
         CriteoInput = 1001;
     }

@@ -2,11 +2,13 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+import os
 import re
 from abc import abstractmethod
 
 import six
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops import variables
 
@@ -17,6 +19,23 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import restore_filter
 from easy_rec.python.utils.load_class import get_register_class_meta
+
+try:
+  import horovod.tensorflow as hvd
+  from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
+  from sparse_operation_kit import experiment as sok
+except Exception:
+  dynamic_variable_ops = None
+  sok = None
+
+try:
+  from tensorflow.python.framework.load_library import load_op_library
+  import easy_rec
+  load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
+  load_embed_lib = load_op_library(load_embed_lib_path)
+except Exception as ex:
+  logging.warning('load libload_embed.so failed: %s' % str(ex))
+  load_embed_lib = None
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -45,8 +64,16 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     if model_config.HasField('ev_params'):
       self._global_ev_params = model_config.ev_params
 
-    self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
-    self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    if self.embedding_regularization > 0:
+      self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
+    else:
+      self._emb_reg = None
+
+    if self.l2_regularization > 0:
+      self._l2_reg = regularizers.l2_regularizer(self.l2_regularization)
+    else:
+      self._l2_reg = None
+
     # only used by model with wide feature groups, e.g. WideAndDeep
     self._wide_output_dim = -1
     if self.has_backbone:
@@ -290,6 +317,17 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               saveable_objects.append(s)
           init_op = saveable_objects[0].restore([ckpt_path], None)
           part_var._initializer_op = init_op
+      elif sok is not None and isinstance(variable, sok.DynamicVariable):
+        print('restore dynamic_variable %s' % variable_name)
+        keys, vals = load_embed_lib.load_kv_embed(
+            task_index=hvd.rank(),
+            task_num=hvd.size(),
+            embed_dim=variable._dimension,
+            var_name='embed-' + variable.name.replace('/', '__'),
+            ckpt_path=ckpt_path)
+        with ops.control_dependencies([variable._initializer_op]):
+          variable._initializer_op = dynamic_variable_ops.dummy_var_assign(
+              variable.handle, keys, vals)
       else:
         fail_restore_vars.append(variable_name)
     for variable_name in fail_restore_vars:
