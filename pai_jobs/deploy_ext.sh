@@ -125,7 +125,21 @@ then
   rm -rf kafka.tar.gz
 fi
 
-tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka run.py
+if [ ! -d "faiss" ]
+then
+  if [ ! -e "faiss.tar.gz" ]
+  then
+    wget http://easyrec.oss-cn-beijing.aliyuncs.com/third_party/faiss.tar.gz
+    if [ $? -ne 0 ]
+    then
+      echo "faiss download failed."
+    fi
+  fi
+  tar -zvxf faiss.tar.gz
+  rm -rf faiss.tar.gz
+fi
+
+tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss run.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]
