@@ -132,7 +132,7 @@ pai -name easy_rec_ext
 ```sql
 pai -name easy_rec_ext
 -Dcmd='predict'
--Dsaved_model_dir='oss://{oss_bucket}/dssm/export/item /'
+-Dsaved_model_dir='oss://{oss_bucket}/dssm/export/item/'
 -Dinput_table='odps://{project}/tables/item_feature_t'
 -Doutput_table='odps://{project}/tables/dssm_item_embedding'
 -Dreserved_cols='item_id'
