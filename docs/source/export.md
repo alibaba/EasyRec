@@ -151,7 +151,7 @@ pai -name easy_rec_ext
 ```
 
 ```sql
-pai -name easy_rec_ext
+pai -name easy_rec_py3_ext
 -Dcmd='custom'
 -DentryFile='easy_rec/python/tools/faiss_index_pai.py'
 -Dtables='odps://{project}/tables/dssm_item_embedding'

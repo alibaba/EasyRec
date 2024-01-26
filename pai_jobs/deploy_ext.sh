@@ -23,7 +23,8 @@ mode=0
 odps_config=""
 
 is_tf15=0
-while getopts 'V:C:OGc:D' OPT; do
+is_py3=0
+while getopts 'V:C:OGc:D:P' OPT; do
     case $OPT in
         V)
             VERSION="$OPTARG";;
@@ -37,6 +38,8 @@ while getopts 'V:C:OGc:D' OPT; do
             mode=2;;
         D)
             is_tf15=1;;
+        P)
+            is_py3=1;;
         ?)
             echo "Usage: `basename $0` -V VERSION [-C odpscmd_path] [-c odps_config_path] [-O]"
             echo " -O: only update easy_rec resource file"
@@ -44,6 +47,7 @@ while getopts 'V:C:OGc:D' OPT; do
             echo " -c: odps_config file path"
             echo " -C: odpscmd file path, default to: odpscmd, so in default odpscmd must be in PATH"
             echo " -D: use tf1.15 or deeprec"
+            echo " -P: use tf1.12_py3"
             echo " -V: algorithm version, chars must be in [0-9A-Za-z_-], default: version info in easy_rec/version.py"
             exit 1
     esac
@@ -171,6 +175,12 @@ then
   sed -i -e "s/tensorflow1120_ext/tensorflow1150_ext/g" easy_rec_ext.xml
 fi
 
+if [ $is_py3 -gt 0 ]
+then
+  echo "will deploy TF1.12_py3 version"
+  sed -i -e "s/name=\"easy_rec_ext\"/name=\"easy_rec_py3_ext\"/g" easy_rec_ext.xml
+  sed -i -e "s/tensorflow1120_ext/tensorflow1120_py3_ext/g" easy_rec_ext.xml
+fi
 
 tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
 
