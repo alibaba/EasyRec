@@ -4,6 +4,7 @@ from .blocks import Gate
 from .blocks import Highway
 from .bst import BST
 from .custom_ops import EditDistance
+from .custom_ops import SeqAugmentOps
 from .data_augment import SeqAugment
 from .din import DIN
 from .fibinet import BiLinear

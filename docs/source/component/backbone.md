@@ -951,7 +951,7 @@ DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_d
 ```protobuf
 model_config: {
   model_name: 'MaskNet + PPNet + MMoE'
-  model_class: 'RankModel'
+  model_class: "MultiTaskModel"
   feature_groups: {
     group_name: 'memorize'
     feature_names: 'user_id'
@@ -971,6 +971,7 @@ model_config: {
       name: "mask_net"
       inputs {
         feature_group_name: "general"
+        input_fn: "lambda x: [x, x]"
       }
       repeat {
         num_repeat: 3

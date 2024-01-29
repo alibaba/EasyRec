@@ -5,7 +5,7 @@ import logging
 import os
 import tensorflow as tf
 from tensorflow.python.framework import ops
-
+from tensorflow.python.keras.layers import Layer
 
 curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
@@ -25,6 +25,45 @@ else:
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
+
+class SeqAugmentOps(Layer):
+  """Do data augmentation for input sequence embedding."""
+
+  def __init__(self, params, name='sequence_aug', reuse=None, **kwargs):
+    super(SeqAugmentOps, self).__init__(name, **kwargs)
+    self.reuse = reuse
+    self.seq_aug_params = params.get_pb_config()
+    logging.info("ops_dir is %s" % ops_dir)
+    custom_op_path = os.path.join(ops_dir, 'libcustom_ops.so')
+    try:
+      custom_ops = tf.load_op_library(custom_op_path)
+      logging.info('load edit_distance op from %s succeed' % custom_op_path)
+    except Exception as ex:
+      logging.warning('load edit_distance op from %s failed: %s' %
+                      (custom_op_path, str(ex)))
+      custom_ops = None
+    self.seq_augment = custom_ops.my_seq_augment
+
+  def build(self, input_shape):
+    assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+    embed_dim = int(input_shape[0][-1])
+    self.mask_emb = self.add_weight(
+      shape=(embed_dim,),
+      initializer="glorot_uniform",
+      trainable=True,
+      name="mask"
+    )
+
+  def call(self, inputs, training=None, **kwargs):
+    assert isinstance(inputs, (list, tuple))
+    seq_input, seq_len = inputs[:2]
+
+    x = self.seq_augment(seq_input, seq_len, self.mask_emb,
+                         self.seq_aug_params.crop_rate,
+                         self.seq_aug_params.reorder_rate,
+                         self.seq_aug_params.mask_rate)
+    return x
 
 
 class EditDistance(tf.keras.layers.Layer):
@@ -54,11 +93,11 @@ class EditDistance(tf.keras.layers.Layer):
     input1, input2 = inputs[:2]
     with ops.device('/CPU:0'):
       dist = self.edit_distance(
-          input1,
-          input2,
-          normalize=False,
-          dtype=tf.int32,
-          encoding=self.txt_encoding)
+        input1,
+        input2,
+        normalize=False,
+        dtype=tf.int32,
+        encoding=self.txt_encoding)
     ids = tf.clip_by_value(dist, 0, self.emb_size - 1)
     embed = tf.nn.embedding_lookup(self.embedding_table, ids)
     return embed

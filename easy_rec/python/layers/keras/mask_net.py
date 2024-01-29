@@ -33,7 +33,8 @@ class MaskBlock(Layer):
     self.final_relu = Activation('relu', name='relu')
 
   def build(self, input_shape):
-    assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+    assert type(input_shape) in (tuple, list) and len(input_shape) >= 2,\
+      'MaskBlock must has at least two inputs'
     input_dim = int(input_shape[0][-1])
     mask_input_dim = int(input_shape[1][-1])
     if self.config.HasField('reduction_factor'):
