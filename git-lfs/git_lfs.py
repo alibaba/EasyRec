@@ -352,12 +352,16 @@ if __name__ == '__main__':
         local_sig = ''
 
       update = False
-      if has_conflict(leaf_path, leaf_files):
-        update = get_yes_no(
-            'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
-            (leaf_path, remote_sig, local_sig))
-      else:
+      if len(sys.argv) > 2 and (sys.argv[2] == '-f' or
+                                sys.argv[2] == '--force'):
         update = True
+      else:
+        if has_conflict(leaf_path, leaf_files):
+          update = get_yes_no(
+              'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
+              (leaf_path, remote_sig, local_sig))
+        else:
+          update = True
       if not update:
         continue
       # pull from remote oss
