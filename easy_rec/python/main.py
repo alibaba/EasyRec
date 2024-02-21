@@ -105,7 +105,12 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=True)  # False)
 
-  if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+  if hvd is not None and pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.EmbeddingParallelStrategy,
+      DistributionStrategy.SokStrategy, DistributionStrategy.HorovodStrategy
+  ]:
+    logging.info('train_config.train_distribute=%s' %
+                 pipeline_config.train_config.train_distribute)
     local_rnk = hvd.local_rank()
     gpus = tf.config.experimental.list_physical_devices('GPU')
     logging.info('local_rnk=%d num_gpus=%d' % (local_rnk, len(gpus)))
