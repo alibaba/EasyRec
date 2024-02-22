@@ -105,9 +105,10 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=True)  # False)
 
-  logging.info('train_config.train_distribute=%s[value=%d]' %
-     (DistributionStrategy.Name(pipeline_config.train_config.train_distribute),
-      pipeline_config.train_config.train_distribute))
+  logging.info(
+      'train_config.train_distribute=%s[value=%d]' %
+      (DistributionStrategy.Name(pipeline_config.train_config.train_distribute),
+       pipeline_config.train_config.train_distribute))
 
   # set gpu options only under hvd scenes
   if hvd is not None and pipeline_config.train_config.train_distribute in [

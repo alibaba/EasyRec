@@ -98,10 +98,9 @@ pai -name easy_rec_ext -project algo_public
   - --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
   - --clear_export: 删除旧的导出文件目录
   - --place_embedding_on_cpu: 将embedding相关的操作放在cpu上，有助于提升模型在gpu环境下的推理速度
+- 注: 如果是双塔召回模型(如dssm, mind等)一般还需要进行模型切分和索引构建, 参考下面章节
 
-如果是双塔召回模型一般还需要进行模型切分和索引构建：
-
-模型切分
+#### 模型切分
 
 ```sql
 pai -name easy_rec_ext
@@ -127,7 +126,7 @@ pai -name easy_rec_ext
   - --user_fg_json_path: 用户塔的fg json
   - --item_fg_json_path: 物品塔的fg json
 
-物品Emebdding预测和索引构建
+#### 物品Embedding预测和索引构建
 
 ```sql
 pai -name easy_rec_ext
