@@ -12,47 +12,40 @@ curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
+logging.basicConfig(
+    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
-  import tensorflow as tf
   from tensorflow.python.platform import tf_logging
-  tf_logging.set_verbosity(tf_logging.INFO)
-else:
-  logging.basicConfig(
-      level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+  # In DeepRec, logger.propagate of tf_logging is False, should be True
+  tf_logging._logger.propagate = True
 
-
-def get_ops_dir():
-  if platform.system() == 'Linux':
-    ops_dir = os.path.join(curr_dir, 'python/ops')
-    if 'PAI' in tf.__version__:
-      ops_dir = os.path.join(ops_dir, '1.12_pai')
-    elif tf.__version__.startswith('1.12'):
-      ops_dir = os.path.join(ops_dir, '1.12')
-    elif tf.__version__.startswith('1.15'):
-      if 'IS_ON_PAI' in os.environ:
-        ops_dir = os.path.join(ops_dir, 'DeepRec')
+  def get_ops_dir():
+    import tensorflow as tf
+    if platform.system() == 'Linux':
+      ops_dir = os.path.join(curr_dir, 'python/ops')
+      if 'PAI' in tf.__version__:
+        ops_dir = os.path.join(ops_dir, '1.12_pai')
+      elif tf.__version__.startswith('1.12'):
+        ops_dir = os.path.join(ops_dir, '1.12')
+      elif tf.__version__.startswith('1.15'):
+        if 'IS_ON_PAI' in os.environ:
+          ops_dir = os.path.join(ops_dir, 'DeepRec')
+        else:
+          ops_dir = os.path.join(ops_dir, '1.15')
       else:
-        ops_dir = os.path.join(ops_dir, '1.15')
+        tmp_version = tf.__version__.split('.')
+        tmp_version = '.'.join(tmp_version[:2])
+        ops_dir = os.path.join(ops_dir, tmp_version)
+      return ops_dir
     else:
-      tmp_version = tf.__version__.split('.')
-      tmp_version = '.'.join(tmp_version[:2])
-      return os.path.join(ops_dir, tmp_version)
-  else:
-    return None
+      return None
 
-
-# Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
-if 'PROCESSOR_TEST' not in os.environ:
-  from tensorflow.python.platform import tf_logging
-  tf_logging.set_verbosity(tf_logging.INFO)
   ops_dir = get_ops_dir()
   if ops_dir is not None and not os.path.exists(ops_dir):
     logging.warning('ops_dir[%s] does not exist' % ops_dir)
     ops_dir = None
-
-  logging.basicConfig(
-      level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
   from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
   from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
