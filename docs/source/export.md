@@ -98,7 +98,11 @@ pai -name easy_rec_ext -project algo_public
   - --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
   - --clear_export: 删除旧的导出文件目录
   - --place_embedding_on_cpu: 将embedding相关的操作放在cpu上，有助于提升模型在gpu环境下的推理速度
-- 注: 如果是双塔召回模型(如dssm, mind等)一般还需要进行模型切分和索引构建, 参考下面章节
+- 模型导出之后可以使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS平台
+
+### 双塔召回模型
+
+如果是双塔召回模型(如dssm, mind等), 模型导出之后, 一般还需要进行模型切分和索引构建, 才能使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS上.
 
 #### 模型切分
 
@@ -166,8 +170,7 @@ pai -name easy_rec_py3_ext
 -Dextra_params='--index_output_dir=oss://{oss_bucket}/dssm/export/user';
 ```
 
--Dtables: 物品向量表
-
+- -Dtables: 物品向量表
 - -Dextra_params:
   - --index_output_dir: 索引输出目录, 一般设置为已切分好的用户塔模型目录，便于用EasyRec Processor部署
   - --index_type: 索引类型，可选 IVFFlat | HNSWFlat，默认为 IVFFlat
