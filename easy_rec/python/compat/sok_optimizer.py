@@ -135,22 +135,23 @@ class OptimizerWrapperV1(object):
     for slot_name in self._initial_vals:
       if key not in self._optimizer._slots[slot_name]:
         if var.backend_type == 'hbm':
-          slot = DynamicVariable(
-              dimension=var.dimension,
-              initializer=self._initial_vals[slot_name],
-              name='DynamicSlot',
-              trainable=False,
-          )
+          with ops.colocate_with(var):
+            slot = DynamicVariable(
+                dimension=var.dimension,
+                initializer=self._initial_vals[slot_name],
+                name='DynamicSlot',
+                trainable=False)
         else:
           tmp_config = var.config_dict
           # tmp_initializer = var.initializer_str
-          slot = DynamicVariable(
-              dimension=var.dimension,
-              initializer=self._initial_vals[slot_name],
-              var_type=var.backend_type,
-              name='DynamicSlot',
-              trainable=False,
-              **tmp_config)
+          with ops.colocate_with(var):
+            slot = DynamicVariable(
+                dimension=var.dimension,
+                initializer=self._initial_vals[slot_name],
+                var_type=var.backend_type,
+                name='DynamicSlot',
+                trainable=False,
+                **tmp_config)
 
         self._optimizer._slots[slot_name][key] = slot
 
@@ -227,23 +228,27 @@ class OptimizerWrapperV1(object):
         for slot_name in self._initial_vals:
           if key not in self._optimizer._slots[slot_name]:
             tmp_slot_var_name = v._dummy_handle.op.name + '/' + self._optimizer._name
+            # import pdb
+            # pdb.set_trace()
             if v.backend_type == 'hbm':
-              slot = DynamicVariable(
-                  dimension=v.dimension,
-                  initializer=self._initial_vals[slot_name],
-                  name=tmp_slot_var_name,
-                  trainable=False,
-              )
+              with ops.colocate_with(v):
+                slot = DynamicVariable(
+                    dimension=v.dimension,
+                    initializer=self._initial_vals[slot_name],
+                    name=tmp_slot_var_name,
+                    trainable=False,
+                )
             else:
               tmp_config = v.config_dict
               # tmp_initializer = v.initializer_str
-              slot = DynamicVariable(
-                  dimension=v.dimension,
-                  initializer=self._initial_vals[slot_name],
-                  var_type=v.backend_type,
-                  name=tmp_slot_var_name,
-                  trainable=False,
-                  **tmp_config)
+              with ops.colocate_with(v):
+                slot = DynamicVariable(
+                    dimension=v.dimension,
+                    initializer=self._initial_vals[slot_name],
+                    var_type=v.backend_type,
+                    name=tmp_slot_var_name,
+                    trainable=False,
+                    **tmp_config)
 
             self._optimizer._slots[slot_name][key] = slot
           else:

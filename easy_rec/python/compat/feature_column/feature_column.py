@@ -435,28 +435,49 @@ def _internal_input_layer(features,
           if shared_name in shared_weights:
             embedding_weights = shared_weights[shared_name]
           else:
-            with ops.device('/gpu:0'):
-              if column.ev_params is not None:
-                assert dynamic_variable is not None, 'sok is not installed'
+            if column.ev_params is not None:
+              assert dynamic_variable is not None, 'sok is not installed'
+              with ops.device('/cpu:0'):
                 embedding_weights = dynamic_variable.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random {"stddev":0.0025}',  # column.initializer,
-                    var_type=None
-                    if not column.ev_params.use_cache else 'hybrid',
+                    var_type='dram',
                     trainable=column.trainable and trainable,
                     dtype=dtypes.float32,
                     init_capacity=column.ev_params.init_capacity,
                     max_capacity=column.ev_params.max_capacity)
-              else:
-                embedding_weights = variable_scope.get_variable(
-                    name='embedding_weights',
-                    shape=embedding_shape,
-                    dtype=dtypes.float32,
-                    initializer=column.initializer,
-                    trainable=column.trainable and trainable,
-                    partitioner=None,
-                    collections=weight_collections)
+            else:
+              embedding_weights = variable_scope.get_variable(
+                  name='embedding_weights',
+                  shape=embedding_shape,
+                  dtype=dtypes.float32,
+                  initializer=column.initializer,
+                  trainable=column.trainable and trainable,
+                  partitioner=None,
+                  collections=weight_collections)
+            # with ops.device('/gpu:0'):
+            #   if column.ev_params is not None:
+            #     assert dynamic_variable is not None, 'sok is not installed'
+            #     embedding_weights = dynamic_variable.DynamicVariable(
+            #         name='embedding_weights',
+            #         dimension=column.dimension,
+            #         initializer='random {"stddev":0.0025}',  # column.initializer,
+            #         var_type=None
+            #         if not column.ev_params.use_cache else 'hybrid',
+            #         trainable=column.trainable and trainable,
+            #         dtype=dtypes.float32,
+            #         init_capacity=column.ev_params.init_capacity,
+            #         max_capacity=column.ev_params.max_capacity)
+            #   else:
+            #     embedding_weights = variable_scope.get_variable(
+            #         name='embedding_weights',
+            #         shape=embedding_shape,
+            #         dtype=dtypes.float32,
+            #         initializer=column.initializer,
+            #         trainable=column.trainable and trainable,
+            #         partitioner=None,
+            #         collections=weight_collections)
             shared_weights[shared_name] = embedding_weights
         else:
           with ops.device('/gpu:0'):
