@@ -1039,7 +1039,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = os.getenv(constant.EmbeddingOnCPU)
         place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
         if export_config.multi_placeholder:
           with conditional(place_on_cpu, ops.device('/CPU:0')):

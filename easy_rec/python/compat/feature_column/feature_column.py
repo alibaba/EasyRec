@@ -399,6 +399,18 @@ def _internal_input_layer(features,
   def _get_logits_embedding_parallel():  # pylint: disable=missing-docstring
     assert hvd is not None, 'horovod is not installed'
     builder = _LazyBuilder(features)
+
+    if embedding_utils.embedding_on_cpu():
+      embedding_device = '/cpu:0'
+    else:
+      embedding_device = '/gpu:0'
+
+    def _get_var_type(column):
+      if column.ev_params.use_cache:
+        return 'hybrid'
+      else:
+        return None
+
     output_tensors = []
     ordered_columns = []
 
@@ -435,59 +447,37 @@ def _internal_input_layer(features,
           if shared_name in shared_weights:
             embedding_weights = shared_weights[shared_name]
           else:
-            if column.ev_params is not None:
-              assert dynamic_variable is not None, 'sok is not installed'
-              with ops.device('/cpu:0'):
+            with ops.device(embedding_device):
+              if column.ev_params is not None:
+                assert dynamic_variable is not None, 'sok is not installed'
                 embedding_weights = dynamic_variable.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random {"stddev":0.0025}',  # column.initializer,
-                    var_type='dram',
+                    var_type=_get_var_type(column),
                     trainable=column.trainable and trainable,
                     dtype=dtypes.float32,
                     init_capacity=column.ev_params.init_capacity,
                     max_capacity=column.ev_params.max_capacity)
-            else:
-              embedding_weights = variable_scope.get_variable(
-                  name='embedding_weights',
-                  shape=embedding_shape,
-                  dtype=dtypes.float32,
-                  initializer=column.initializer,
-                  trainable=column.trainable and trainable,
-                  partitioner=None,
-                  collections=weight_collections)
-            # with ops.device('/gpu:0'):
-            #   if column.ev_params is not None:
-            #     assert dynamic_variable is not None, 'sok is not installed'
-            #     embedding_weights = dynamic_variable.DynamicVariable(
-            #         name='embedding_weights',
-            #         dimension=column.dimension,
-            #         initializer='random {"stddev":0.0025}',  # column.initializer,
-            #         var_type=None
-            #         if not column.ev_params.use_cache else 'hybrid',
-            #         trainable=column.trainable and trainable,
-            #         dtype=dtypes.float32,
-            #         init_capacity=column.ev_params.init_capacity,
-            #         max_capacity=column.ev_params.max_capacity)
-            #   else:
-            #     embedding_weights = variable_scope.get_variable(
-            #         name='embedding_weights',
-            #         shape=embedding_shape,
-            #         dtype=dtypes.float32,
-            #         initializer=column.initializer,
-            #         trainable=column.trainable and trainable,
-            #         partitioner=None,
-            #         collections=weight_collections)
+              else:
+                embedding_weights = variable_scope.get_variable(
+                    name='embedding_weights',
+                    shape=embedding_shape,
+                    dtype=dtypes.float32,
+                    initializer=column.initializer,
+                    trainable=column.trainable and trainable,
+                    partitioner=None,
+                    collections=weight_collections)
             shared_weights[shared_name] = embedding_weights
         else:
-          with ops.device('/gpu:0'):
+          with ops.device(embedding_device):
             if column.ev_params is not None:
               assert dynamic_variable is not None, 'sok is not installed'
               embedding_weights = dynamic_variable.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
                   initializer='random {"stddev":0.0025}',  # column.initializer,
-                  var_type=None if not column.ev_params.use_cache else 'hybrid',
+                  var_type=_get_var_type(column),
                   trainable=column.trainable and trainable,
                   dtype=dtypes.float32,
                   init_capacity=column.ev_params.init_capacity,

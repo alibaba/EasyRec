@@ -145,6 +145,7 @@ message FeatureConfig {
 
 message FeatureConfigV2 {
     repeated FeatureConfig features = 1 ;
+    optional bool embedding_on_cpu = 2 [default=false];
 }
 
 message FeatureGroupConfig {
