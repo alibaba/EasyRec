@@ -171,6 +171,7 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
 
@@ -634,7 +635,7 @@ def _internal_input_layer(features,
       if embedding_utils.is_embedding_parallel():
         return _get_logits_embedding_parallel()
       else:
-        with ops.device('/CPU:0'):
+        with conditional(embedding_utils.embedding_on_cpu(), '/cpu:0'):
           return _get_logits()
 
 
