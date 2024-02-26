@@ -349,6 +349,8 @@ def embedding_parallel_lookup(embedding,
     for output, output_id in zip(outputs, output_ids):
       output_tensors[output_id] = array_ops.squeeze(output, axis=0)
 
+  if batch_size is None:
+    batch_size = -1
   return array_ops.reshape(
       array_ops.transpose(output_tensor, perm=[1, 0, 2]),
       [batch_size, N * embed_dim])
