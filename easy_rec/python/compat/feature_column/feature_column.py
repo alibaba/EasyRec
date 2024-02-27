@@ -635,7 +635,8 @@ def _internal_input_layer(features,
       if embedding_utils.is_embedding_parallel():
         return _get_logits_embedding_parallel()
       else:
-        with conditional(embedding_utils.embedding_on_cpu(), '/cpu:0'):
+        with conditional(embedding_utils.embedding_on_cpu(),
+                         ops.device('/cpu:0')):
           return _get_logits()
 
 
