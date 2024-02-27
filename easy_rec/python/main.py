@@ -357,7 +357,7 @@ def _train_and_evaluate_impl(pipeline_config,
         input_fn=train_input_fn,
         max_steps=train_spec.max_steps,
         hooks=list(train_spec.hooks),
-        saving_listeners=train_spec.saving_listeners)
+        saving_listeners=None)  # train_spec.saving_listeners)
     train_input_fn.input_creator.stop()
   else:
     # create eval spec

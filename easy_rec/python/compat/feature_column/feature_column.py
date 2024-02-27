@@ -326,7 +326,7 @@ def embedding_parallel_lookup(embedding,
     embeddings = math_ops.sparse_segment_sum(
         recv_embeddings,
         uniq_idx,
-        segment_ids,
+        math_ops.cast(segment_ids, dtypes.int32),
         num_segments=num_segments,
         name='sparse_segment_sum')
   else:
@@ -338,7 +338,7 @@ def embedding_parallel_lookup(embedding,
     embeddings = math_ops.sparse_segment_sum(
         recv_embeddings,
         uniq_idx,
-        segment_ids,
+        math_ops.cast(segment_ids, dtypes.int32),
         num_segments=num_segments,
         name='sparse_segment_sum')
 
