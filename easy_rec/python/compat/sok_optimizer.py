@@ -228,8 +228,6 @@ class OptimizerWrapperV1(object):
         for slot_name in self._initial_vals:
           if key not in self._optimizer._slots[slot_name]:
             tmp_slot_var_name = v._dummy_handle.op.name + '/' + self._optimizer._name
-            # import pdb
-            # pdb.set_trace()
             if v.backend_type == 'hbm':
               with ops.colocate_with(v):
                 slot = DynamicVariable(
