@@ -23,6 +23,9 @@ NO_ARITHMETRIC_OPTI = 'NO_ARITHMETRIC_OPTI'
 # shard embedding var_name collection
 EmbeddingParallel = 'EmbeddingParallel'
 
+# environ variable to force embedding placement on cpu
+EmbeddingOnCPU = 'place_embedding_on_cpu'
+
 
 def enable_avx_str_split():
   os.environ[ENABLE_AVX_STR_SPLIT] = '1'

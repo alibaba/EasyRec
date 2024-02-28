@@ -145,6 +145,9 @@ message FeatureConfig {
 
 message FeatureConfigV2 {
     repeated FeatureConfig features = 1 ;
+    // force place embedding lookup ops on cpu to improve
+    // training and inference efficiency.
+    optional bool embedding_on_cpu = 2 [default=false];
 }
 
 message FeatureGroupConfig {
