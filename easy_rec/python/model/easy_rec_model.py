@@ -296,6 +296,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               'Variable [%s] is available in checkpoint, but '
               'incompatible shape dims with model variable.', variable_name)
       elif 'EmbeddingVariable' in str(type(variable)):
+        if '%s-keys' % variable_name not in ckpt_var2shape_map:
+          continue
         print('restore embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
         names_to_saveables = saver.BaseSaverBuilder.OpListToDict([variable])
@@ -307,6 +309,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         variable._initializer_op = init_op
       elif type(variable) == list and 'EmbeddingVariable' in str(
           type(variable[0])):
+        if '%s/part_0-keys' % variable_name not in ckpt_var2shape_map:
+          continue
         print('restore partitioned embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
         for part_var in variable:
