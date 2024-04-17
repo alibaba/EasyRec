@@ -340,12 +340,16 @@ Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
       text_cnn: {
         filter_sizes: [2, 3, 4]
         num_filters: [16, 8, 8]
+        pad_sequence_length: 128
+        activation: 'relu'
       }
     }
   }
 
 - num_filters: 卷积核个数列表
 - filter_sizes: 卷积核步长列表
+- pad_sequence_length: 序列补齐或截断的长度
+- activation: 卷积操作的激活函数，默认为relu
 
 TextCNN网络是2014年提出的用来做文本分类的卷积神经网络，由于其结构简单、效果好，在文本分类、推荐等NLP领域应用广泛。
 从直观上理解，TextCNN通过一维卷积来获取句子中`N gram`的特征表示。

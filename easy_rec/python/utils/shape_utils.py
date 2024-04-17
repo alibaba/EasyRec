@@ -408,3 +408,25 @@ def truncate_sequence(seq_emb, seq_len, limited_len):
 
   return tf.cond(max_seq_len > limited_len, lambda: truncate(seq_emb, seq_len),
                  lambda: keep(seq_emb, seq_len))
+
+
+def pad_or_truncate_sequence(seq_emb, seq_len, fixed_len):
+  padding_length = fixed_len - tf.shape(seq_emb)[1]
+
+  def padding():
+    paddings = tf.stack([[0, 0], [0, padding_length], [0, 0]])
+    padded = tf.pad(seq_emb, paddings)
+    return padded, seq_len
+
+  def truncate():
+    sliced = tf.slice(seq_emb, [0, 0, 0], [-1, fixed_len, -1])
+    length = tf.where(seq_len < fixed_len, seq_len,
+                      tf.ones_like(seq_len) *
+                      fixed_len) if seq_len is not None else None
+    return sliced, length
+
+  def keep():
+    return seq_emb, seq_len
+
+  return tf.cond(padding_length > 0, padding,
+                 lambda: tf.cond(padding_length < 0, truncate, keep))

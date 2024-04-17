@@ -6,6 +6,8 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.layers.keras.activation import activation_layer
+from easy_rec.python.layers.utils import Parameter
+from easy_rec.python.utils.shape_utils import pad_or_truncate_sequence
 from easy_rec.python.utils.tf_utils import add_elements_to_collection
 
 if tf.__version__ >= '2.0':
@@ -160,4 +162,55 @@ class Gate(tf.keras.layers.Layer):
       else:
         output += weights[:, j, None] * x
       j += 1
+    return output
+
+
+class TextCNN(tf.keras.layers.Layer):
+  """Text CNN Model.
+
+  References
+  - [Convolutional Neural Networks for Sentence Classification](https://arxiv.org/abs/1408.5882)
+  """
+
+  def __init__(self, params, name='text_cnn', reuse=None, **kwargs):
+    super(TextCNN, self).__init__(name, **kwargs)
+    self.config = params.get_pb_config()
+    self.pad_seq_length = self.config.pad_sequence_length
+    if self.pad_seq_length <= 0:
+      logging.warning(
+          'run text cnn with pad_sequence_length <= 0, the predict of model may be unstable'
+      )
+    self.conv_layers = []
+    self.pool_layer = tf.keras.layers.GlobalMaxPool1D()
+    self.concat_layer = tf.keras.layers.Concatenate(axis=-1)
+    for size, filters in zip(self.config.filter_sizes, self.config.num_filters):
+      conv = tf.keras.layers.Conv1D(
+          filters=int(filters), kernel_size=int(size), activation=self.config.activation)
+      self.conv_layers.append(conv)
+    if self.config.HasField('mlp'):
+      p = Parameter.make_from_pb(self.config.mlp)
+      p.l2_regularizer = params.l2_regularizer
+      self.mlp = MLP(p, name='mlp', reuse=reuse)
+    else:
+      self.mlp = None
+
+  def call(self, inputs, training=None, **kwargs):
+    """Input shape: 3D tensor with shape: `(batch_size, steps, input_dim)."""
+    assert isinstance(inputs, (list, tuple))
+    assert len(inputs) >= 2
+    seq_emb, seq_len = inputs[:2]
+
+    if self.pad_seq_length > 0:
+      seq_emb, seq_len = pad_or_truncate_sequence(seq_emb, seq_len,
+                                                  self.pad_seq_length)
+    pooled_outputs = []
+    for layer in self.conv_layers:
+      conv = layer(seq_emb)
+      pooled = self.pool_layer(conv)
+      pooled_outputs.append(pooled)
+    net = self.concat_layer(pooled_outputs)
+    if self.mlp is not None:
+      output = self.mlp(net)
+    else:
+      output = net
     return output
