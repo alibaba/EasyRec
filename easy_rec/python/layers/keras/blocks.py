@@ -185,7 +185,9 @@ class TextCNN(tf.keras.layers.Layer):
     self.concat_layer = tf.keras.layers.Concatenate(axis=-1)
     for size, filters in zip(self.config.filter_sizes, self.config.num_filters):
       conv = tf.keras.layers.Conv1D(
-          filters=int(filters), kernel_size=int(size), activation=self.config.activation)
+          filters=int(filters),
+          kernel_size=int(size),
+          activation=self.config.activation)
       self.conv_layers.append(conv)
     if self.config.HasField('mlp'):
       p = Parameter.make_from_pb(self.config.mlp)

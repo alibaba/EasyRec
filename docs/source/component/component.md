@@ -49,6 +49,18 @@
 | output_tensor_list | bool   | false | 是否同时输出embedding列表                                 |
 | output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效 |
 
+- TextCNN
+
+| 参数                  | 类型           | 默认值  | 说明               |
+| ------------------- | ------------ | ---- | ---------------- |
+| num_filters         | list<uint32> |      | 卷积核个数列表          |
+| filter_sizes        | list<uint32> |      | 卷积核步长列表          |
+| activation          | string       | relu | 卷积操作的激活函数        |
+| pad_sequence_length | uint32       |      | 序列补齐或截断的长度       |
+| mlp                 | MLP          |      | protobuf message |
+
+备注：pad_sequence_length 参数必须要配置，否则模型predict的分数可能不稳定
+
 ## 2.特征交叉组件
 
 - Bilinear
