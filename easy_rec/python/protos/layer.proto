@@ -88,3 +88,11 @@ message PPNet {
     required string mode = 3 [default = 'eager'];
     optional bool full_gate_input = 4 [default = true];
 }
+
+message TextCNN {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+    required uint32 pad_sequence_length = 3;
+    optional string activation = 4 [default = 'relu'];
+    optional MLP mlp = 5;
+}

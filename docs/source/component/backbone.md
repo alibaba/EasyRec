@@ -951,7 +951,7 @@ DBMTL模型需要在`model_params`里为每个子任务的Tower配置`relation_d
 ```protobuf
 model_config: {
   model_name: 'MaskNet + PPNet + MMoE'
-  model_class: 'RankModel'
+  model_class: "MultiTaskModel"
   feature_groups: {
     group_name: 'memorize'
     feature_names: 'user_id'
@@ -971,6 +971,7 @@ model_config: {
       name: "mask_net"
       inputs {
         feature_group_name: "general"
+        input_fn: "lambda x: [x, x]"
       }
       repeat {
         num_repeat: 3
@@ -1104,6 +1105,7 @@ MovieLens-1M数据集效果：
 | Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
 | PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](#dlrm-embedding)                                                                                                                   |
 | AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+| TextCNN           | 文本卷积   | 提取文本序列的特征                       | [text_cnn_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/text_cnn_on_movielens.config)             |
 
 **备注**：Gate组件的第一个输入是权重向量，后面的输入拼凑成一个列表，权重向量的长度应等于列表的长度
 
