@@ -31,8 +31,8 @@ Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
-docker pull mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
-docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
+docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
 docker exec -it <CONTAINER_ID> bash
 ```
 
@@ -42,7 +42,7 @@ docker exec -it <CONTAINER_ID> bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
 bash scripts/build_docker.sh
-sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
+sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
 sudo docker exec -it <CONTAINER_ID> bash
 ```
 
