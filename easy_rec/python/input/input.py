@@ -78,6 +78,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         x.default_val for x in data_config.input_fields
     ]
     self._label_fields = list(data_config.label_fields)
+    self._label_dynamic_weight = list(data_config.label_dynamic_weight)
     self._feature_fields = list(data_config.feature_fields)
     self._label_sep = list(data_config.label_sep)
     self._label_dim = list(data_config.label_dim)
@@ -139,6 +140,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     # add sample weight to effective fields
     if self._data_config.HasField('sample_weight'):
       self._effective_fields.append(self._data_config.sample_weight)
+    if len(self._label_dynamic_weight) > 0:
+      self._effective_fields.extend(self._label_dynamic_weight)
 
     # add uid_field of GAUC and session_fields of SessionAUC
     if self._pipeline_config is not None:
@@ -234,6 +237,7 @@ class Input(six.with_metaclass(_meta_type, object)):
     return [
         x for x in self._input_fields
         if x not in self._label_fields and x != self._data_config.sample_weight
+        and x not in self._label_dynamic_weight
     ]
 
   def should_stop(self, curr_epoch):
@@ -269,13 +273,14 @@ class Input(six.with_metaclass(_meta_type, object)):
       effective_fids = [
           fid for fid in range(len(self._input_fields))
           if self._input_fields[fid] not in self._label_fields and
+          self._input_fields[fid] not in self._label_dynamic_weight and
           self._input_fields[fid] != sample_weight_field
       ]
 
     inputs = {}
     for fid in effective_fids:
       input_name = self._input_fields[fid]
-      if input_name == sample_weight_field:
+      if input_name == sample_weight_field or input_name in self._label_dynamic_weight:
         continue
       if placeholder_named_by_input:
         placeholder_name = input_name
@@ -318,6 +323,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       effective_fids = [
           fid for fid in range(len(self._input_fields))
           if self._input_fields[fid] not in self._label_fields and
+          self._input_fields[fid] not in self._label_dynamic_weight and
           self._input_fields[fid] != sample_weight_field
       ]
       logging.info(
@@ -330,6 +336,8 @@ class Input(six.with_metaclass(_meta_type, object)):
       ftype = self._input_field_types[fid]
       tf_type = get_tf_type(ftype)
       input_name = self._input_fields[fid]
+      if input_name in self._label_dynamic_weight:
+        continue
       if tf_type in [tf.float32, tf.double, tf.int32, tf.int64]:
         features[input_name] = tf.string_to_number(
             input_vals[:, tmp_id],
@@ -925,6 +933,14 @@ class Input(six.with_metaclass(_meta_type, object)):
       if self._mode != tf.estimator.ModeKeys.PREDICT:
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
+    if len(self._label_dynamic_weight
+           ) > 0 and self._mode != tf.estimator.ModeKeys.PREDICT:
+      for label_weight in self._label_dynamic_weight:
+        if field_dict[label_weight].dtype == tf.float32:
+          parsed_dict[label_weight] = field_dict[label_weight]
+        else:
+          parsed_dict[label_weight] = tf.cast(
+              field_dict[label_weight], dtype=tf.float64)
 
     if Input.DATA_OFFSET in field_dict:
       parsed_dict[Input.DATA_OFFSET] = field_dict[Input.DATA_OFFSET]
