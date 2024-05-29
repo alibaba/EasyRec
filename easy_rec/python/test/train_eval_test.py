@@ -937,9 +937,21 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_label_dynamic_weight_esmm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/esmm_on_label_dynamic_weight_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_sequence_mmoe(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/mmoe_on_sequence_feature_taobao.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_label_dynamic_weight_sequence_mmoe(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mmoe_on_label_dynamic_weight_sequence_feature_taobao.config',
         self._test_dir)
     self.assertTrue(self._success)
 

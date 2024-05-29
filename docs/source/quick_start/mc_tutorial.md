@@ -39,7 +39,7 @@ pai -name easy_rec_ext -project algo_public
 - -Dtables: 定义其他依赖表(可选)，如负采样的表
 - -Dcluster: 定义PS的数目和worker的数目。具体见：[PAI-TF任务参数介绍](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
 - -Deval_method: 评估方法
-- separate: 用worker(task_id=1)做评估
+- separate: 用worker(task_id=1)做评估。点击训练的logview中worker#1_0的stderr,出现类似字段"Saving dict for global step 3949: auc = 0.7643898, global_step = 3949, loss = 0.38898173, loss/loss/cross_entropy_loss = 0.38898173, loss/loss/total_loss = 0.38898173"即是评估指标
 - none: 不需要评估
 - master: 在master(task_id=0)上做评估
 - -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
