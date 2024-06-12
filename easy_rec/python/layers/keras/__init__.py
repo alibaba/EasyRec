@@ -1,4 +1,5 @@
 from .auxiliary_loss import AuxiliaryLoss
+from .attention import Attention
 from .blocks import MLP
 from .blocks import Gate
 from .blocks import Highway
