@@ -4,16 +4,17 @@ import logging
 from collections import OrderedDict
 
 import tensorflow as tf
+from google.protobuf import struct_pb2
 from tensorflow.python.keras.layers import Dense
+
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.layers.keras.attention import Attention
-from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.layers.utils import Parameter
+from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
-from google.protobuf import struct_pb2
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -96,18 +97,16 @@ class MultiTaskModel(RankModel):
           if task_tower_cfg.HasField('ait_project_dim'):
             dim = task_tower_cfg.ait_project_dim
           else:
-            dim = tf.shape(tower_inputs[0])[-1]
+            dim = int(tower_inputs[0].shape[-1])
           queries = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           keys = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           values = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           st_params = struct_pb2.Struct()
-          st_params.update({
-            'scale_by_dim': True
-          })
+          st_params.update({'scale_by_dim': True})
           params = Parameter(st_params, True)
-          attention_layer = Attention(params, name="AITM_%s" % tower_name)
+          attention_layer = Attention(params, name='AITM_%s' % tower_name)
           result = attention_layer([queries, values, keys])
-          relation_fea = result[0]
+          relation_fea = result[:, 0, :]
           relation_features[tower_name] = relation_fea
       else:
         relation_fea = tower_features[tower_name]
@@ -249,7 +248,17 @@ class MultiTaskModel(RankModel):
         for loss_name in loss_dict.keys():
           loss_dict[loss_name] = loss_dict[loss_name] * task_loss_weight[0]
       else:
+        calibrate_loss = []
         for loss in losses:
+          if loss.loss_type == LossType.ORDER_CALIBRATE_LOSS:
+            y_t = self._prediction_dict['probs_%s' % tower_name]
+            for relation_tower_name in task_tower_cfg.relation_tower_names:
+              y_rt = self._prediction_dict['probs_%s' % relation_tower_name]
+              cali_loss = tf.reduce_mean(tf.nn.relu(y_t - y_rt))
+              calibrate_loss.append(cali_loss * loss.weight)
+              logging.info('calibrate loss: %s -> %s' %
+                           (relation_tower_name, tower_name))
+            continue
           loss_param = loss.WhichOneof('loss_param')
           if loss_param is not None:
             loss_param = getattr(loss, loss_param)
@@ -268,6 +277,10 @@ class MultiTaskModel(RankModel):
                   loss.loss_type, loss_name, loss_value)
             else:
               loss_dict[loss_name] = loss_value * task_loss_weight[i]
+        if calibrate_loss:
+          cali_loss = tf.add_n(calibrate_loss)
+          loss_dict['order_calibrate_loss'] = cali_loss
+          tf.summary.scalar('loss/order_calibrate_loss', cali_loss)
       self._loss_dict.update(loss_dict)
 
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,

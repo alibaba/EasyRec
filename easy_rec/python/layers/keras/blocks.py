@@ -4,11 +4,11 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.keras.initializers import Constant
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.layers import Dropout
 from tensorflow.python.keras.layers import Lambda
 from tensorflow.python.keras.layers import Layer
-from tensorflow.python.keras.initializers import Constant
 
 from easy_rec.python.layers.keras.activation import activation_layer
 from easy_rec.python.layers.utils import Parameter

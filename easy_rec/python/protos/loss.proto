@@ -17,6 +17,7 @@ enum LossType {
     PAIRWISE_FOCAL_LOSS = 11;
     PAIRWISE_LOGISTIC_LOSS = 12;
     JRC_LOSS = 13;
+    ORDER_CALIBRATE_LOSS = 14;
 }
 
 message Loss {

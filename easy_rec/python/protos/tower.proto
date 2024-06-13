@@ -74,5 +74,6 @@ message BayesTaskTower {
     required bool use_sample_weight = 16 [default = true];
     // whether to use AIT module
     optional bool use_ait_module = 17 [default = false];
+    // set this when the dimensions of last layer of towers are not equal
     optional uint32 ait_project_dim = 18;
 };
