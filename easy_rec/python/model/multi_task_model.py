@@ -301,6 +301,8 @@ class MultiTaskModel(RankModel):
                 suffix='_%s' % tower_name))
       else:
         for loss in task_tower_cfg.losses:
+          if loss.loss_type == LossType.ORDER_CALIBRATE_LOSS:
+            continue
           outputs.extend(
               self._get_outputs_impl(
                   loss.loss_type,
