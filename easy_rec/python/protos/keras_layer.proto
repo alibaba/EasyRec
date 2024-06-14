@@ -26,5 +26,6 @@ message KerasLayer {
         SequenceAugment seq_aug = 15;
         PPNet ppnet = 16;
         TextCNN text_cnn = 17;
+        HighWayTower highway = 18;
     }
 }

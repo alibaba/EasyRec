@@ -650,6 +650,11 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/kv_tag.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_aitm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/aitm_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
   def test_dbmtl(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_taobao.config', self._test_dir)

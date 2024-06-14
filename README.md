@@ -63,7 +63,7 @@ Running Platform:
 - [DSSM](docs/source/models/dssm.md) / [MIND](docs/source/models/mind.md) / [DropoutNet](docs/source/models/dropoutnet.md) / [CoMetricLearningI2I](docs/source/models/co_metric_learning_i2i.md) / [PDN](docs/source/models/pdn.md)
 - [W&D](docs/source/models/wide_and_deep.md) / [DeepFM](docs/source/models/deepfm.md) / [MultiTower](docs/source/models/multi_tower.md) / [DCN](docs/source/models/dcn.md) / [FiBiNet](docs/source/models/fibinet.md) / [MaskNet](docs/source/models/masknet.md) / [PPNet](docs/source/models/ppnet.md) / [CDN](docs/source/models/cdn.md)
 - [DIN](docs/source/models/din.md) / [BST](docs/source/models/bst.md) / [CL4SRec](docs/source/models/cl4srec.md)
-- [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [PLE](docs/source/models/ple.md)
+- [MMoE](docs/source/models/mmoe.md) / [ESMM](docs/source/models/esmm.md) / [DBMTL](docs/source/models/dbmtl.md) / [AITM](docs/source/models/aitm.md) / [PLE](docs/source/models/ple.md)
 - [HighwayNetwork](docs/source/models/highway.md) / [CMBF](docs/source/models/cmbf.md) / [UNITER](docs/source/models/uniter.md)
 - More models in development
 
