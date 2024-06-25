@@ -34,7 +34,7 @@ pai -name easy_rec_ext -project algo_public
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtrain_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train'
 -Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
--Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":0, "memory":40000}}'
 -Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/xxx&host=oss-cn-beijing-internal.aliyuncs.com;
