@@ -10,13 +10,13 @@
 
 ### 查看Trial详情页面
 
-点击Trials detail按钮，您可以在此页面中看到整个实验过程中，每个trial的结果情况。
+点击Trials detail按钮，您可以在此页面中看到整个实验过程中每个trial的结果情况。
 其中succeeded代表此次trial成功运行，earlystop表示该组参数运行结果不太好，被提前停止了。停止策略可以查看pai_nni/core/pai_assessor.PaiAssessor，当然也可以根据业务情况去修改。
 ![image.png](../../images/automl/pai_nni_detail.jpg)
 
 ### 查看作业日志详情
 
-点击每个Trial No，可以看到每个参数Trial的日志、参数详情,报错和输出可以点击以下3个按钮。
+点击每个Trial No，可以看到每个参数Trial的日志和参数详情，报错和输出可以点击以下3个按钮。
 ![image.png](../../images/automl/pai_nni_log.jpg)
 
 ### 手动停止某组实验超参
@@ -27,7 +27,7 @@
 
 ### 多目标default metric查看
 
-假设用户配置的metric_config为如下，那么UI中Default metric中显示3项；该组trial最终的metric
+假设用户配置的metric_config如下，那么UI中Default metric中显示3项；该组trial最终的metric
 
 - default=auc\*0.5+accuracy\*0.5
 - auc即为最终的auc值
@@ -48,7 +48,7 @@ accuracy=0.5
 
 ### 多组参数比较
 
-点击Trail NO，选中后，点击compare, 就可以查看对应参数的相关信
+点击Trail NO，选中后，点击compare, 就可以查看对应参数的相关信息
 ![image.png](../../images/automl/nni-compare.png)
 
 ### 多组实验查看
@@ -60,7 +60,7 @@ accuracy=0.5
 
 可以使用自定义参数，也可以使用该功能重启失败的trial。
 点击复制这个按钮，然后跳出Customized trial，点击提交/或者修改即可，此处是新增一组参数，应该记得调高MaxTrialNo
-注意该功能在2.10目前有问题；需要nni\<=2.9
+（注意该功能在2.10目前有问题；需要nni\<=2.9）
 ![image.png](../../images/automl/retry_trial.jpg)
 
 ### 失败续跑
@@ -77,9 +77,7 @@ cmd=PAI -name xxx
 
 ### 一键重试失败的Trial
 
-当用户确认失败原因为没有资源，或者算法偶现失败等原因时，想采取重试策略，可以使用该API发起多个失败的Trial一起重试。在内部其实是将NNI最大运行次数增大，并发数保持不变；并且是新增了多个Trial，每个Trial的参数和之前失败的Trial保持一致。
-
-注意该功能在2.10目前有问题；需要nni\<=2.9
+当用户确认失败原因为没有资源，或者算法偶现失败等原因时，想采取重试策略，可以使用该API发起多个失败的Trial一起重试。在内部其实是将NNI最大运行次数增大，并发数保持不变；并且是新增了多个Trial，每个Trial的参数和之前失败的Trial保持一致（注意该功能在2.10目前有问题；需要nni\<=2.9）
 
 - experiment_id: 重试的实验ID（必选）
 
