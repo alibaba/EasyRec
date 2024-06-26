@@ -1,6 +1,6 @@
 # RTP部署
 
-本文档介绍将EasyRec模型部署到RTP上的流程.
+本文档介绍将EasyRec模型部署到RTP（Real Time Prediction，实时打分服务）上的流程.
 
 - RTP目前仅支持checkpoint形式的模型部署，因此需要将EasyRec模型导出为checkpoint形式
 

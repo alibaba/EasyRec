@@ -3,7 +3,7 @@
 
 在上一节介绍了输入数据包括MaxCompute表、csv文件、hdfs文件、OSS文件等，表或文件的一列对应一个特征。
 
-在数据中可以有一个或者多个label字段，而特征比较丰富，支持的类型包括IdFeature，RawFeature，TagFeature，SequenceFeature, ComboFeature.
+在数据中可以有一个或者多个label字段，在多目标模型中，需要多个label字段。而特征比较丰富，支持的类型包括IdFeature，RawFeature，TagFeature，SequenceFeature, ComboFeature。
 
 各种特征共用字段
 ----------------------------------------------------------------
@@ -71,12 +71,12 @@ IdFeature: 离散值特征/ID类特征
 
    .. math::
 
-        embedding\_dim=8+x^{0.25}
-  - 其中，x 为不同特征取值的个数
+        embedding\_dim=8+n^{0.25}
+  - 其中，n 是特征的唯一值的个数（如gender特征的取值是男、女，则n=2）
 
 -  hash\_bucket\_size: hash bucket的大小。适用于category_id, user_id等
 
--  对于user\_id等规模比较大的，hash冲突影响比较小的特征，
+-  对于user\_id等规模比较大的，hash冲突影响比较小的特征，用户行为日志不够丰富可通过hash压缩id数量，
 
    .. math::
 
@@ -91,7 +91,8 @@ IdFeature: 离散值特征/ID类特征
 
 
 -  num\_buckets: buckets number,
-   仅仅当输入是integer类型时，可以使用num\_buckets
+   仅仅当输入是integer类型时，可以使用num\_buckets。
+   但是当使用fg特征的时候，不要用integer特征用num\_buckets的方式来变换，注意要用hash\_bucket\_size的方式。
 
 -  vocab\_list:
    指定词表，适合取值比较少可以枚举的特征，如星期，月份，星座等

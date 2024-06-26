@@ -4,14 +4,18 @@
 
 针对阿里集团内部用户，请参考[mc_tutorial_inner](mc_tutorial_inner.md)。
 
+有技术问题可加钉钉群：37930014162
+
 ### 输入数据:
 
-输入一般是odps表:
+输入一般是MaxCompute表:
 
 - train: pai_online_project.dwd_avazu_ctr_deepmodel_train
-- test: pai_online_project.dwd_avazu_ctr_deepmodel_test
+- test:  pai_online_project.dwd_avazu_ctr_deepmodel_test
 
-说明：原则上这两张表是自己odps的表，为了方便，以上提供case的两张表在任何地方都可以访问。两个表可以带分区，也可以不带分区。
+说明：原则上这两张表是自己odps的表，为了方便，以上提供case的两张表可在国内用户的MaxCompute项目空间中访问。
+
+两个表可以带分区，也可以不带分区。带分区的方式：odps://xyz_project/table1/dt=20240101
 
 ### 训练:
 
@@ -24,7 +28,7 @@ pai -name easy_rec_ext -project algo_public
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Dtrain_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_train'
 -Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
--Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dcluster='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":0, "memory":40000}}'
 -Deval_method=separate
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
@@ -32,26 +36,26 @@ pai -name easy_rec_ext -project algo_public
 -DossHost=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
-- -Dcmd: train 模型训练
+- -Dcmd: train 表示模型训练
 - -Dconfig: 训练用的配置文件
 - -Dtrain_tables: 定义训练表
-- -Deval_tables: 定义测试表
+- -Deval_tables: 定义评估表
 - -Dtables: 定义其他依赖表(可选)，如负采样的表
 - -Dcluster: 定义PS的数目和worker的数目。具体见：[PAI-TF任务参数介绍](https://help.aliyun.com/document_detail/154186.html?spm=a2c4g.11186623.4.3.e56f1adb7AJ9T5)
 - -Deval_method: 评估方法
-- separate: 用worker(task_id=1)做评估
+- separate: 用worker(task_id=1)做评估。找到MaxCompute训练任务的logview，打开logview之后在worker1机器的stderr日志中查看评估指标数据。
 - none: 不需要评估
 - master: 在master(task_id=0)上做评估
 - -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
 - 可以指定directory，将使用directory里面的最新的checkpoint.
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
-- -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn。
+- -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn;或者阿里云控制台人工智能平台PAI，左侧菜单"开通和授权"，找到全部云产品依赖->Designer->OSS->查看授权信息。
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
 - -DossHost: ossHost地址
 
 ### 注意：
 
-- dataworks和pai的project 一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual)  ，其中regionId可能不一致。
+- dataworks和PAI的project一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual)  ，其中regionId可能不一致。
 
   ![mc_gpu](../../images/quick_start/mc_gpu.png)
 
@@ -68,7 +72,7 @@ pai -name easy_rec_ext -project algo_public
 -Dcmd=evaluate
 -Dconfig=oss://easyrec/config/MultiTower/dwd_avazu_ctr_deepmodel_ext.config
 -Deval_tables='odps://pai_online_project/tables/dwd_avazu_ctr_deepmodel_test'
--Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":100, "memory":40000}}'
+-Dcluster='{"worker" : {"count":1, "cpu":1000, "gpu":0, "memory":40000}}'
 -Dmodel_dir=oss://easyrec/ckpt/MultiTower
 -Darn=acs:ram::xxx:role/xxx
 -Dbuckets=oss://easyrec/
