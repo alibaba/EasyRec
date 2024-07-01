@@ -14,7 +14,8 @@ from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import sequence_feature_layer
 from easy_rec.python.layers import variational_dropout_layer
-from easy_rec.python.layers.common_layers import text_cnn
+from easy_rec.python.layers.keras import TextCNN
+from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
@@ -300,9 +301,9 @@ class InputLayer(object):
           seq_features.append(seq_feature)
           cols_to_output_tensors[column] = seq_feature
         elif sequence_combiner.WhichOneof('combiner') == 'text_cnn':
-          num_filters = sequence_combiner.text_cnn.num_filters
-          filter_sizes = sequence_combiner.text_cnn.filter_sizes
-          cnn_feature = text_cnn(seq_feature, filter_sizes, num_filters)
+          params = Parameter.make_from_pb(sequence_combiner.text_cnn)
+          text_cnn_layer = TextCNN(params, name=column.name + '_text_cnn')
+          cnn_feature = text_cnn_layer((seq_feature, seq_len))
           seq_features.append(cnn_feature)
           cols_to_output_tensors[column] = cnn_feature
         else:

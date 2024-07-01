@@ -461,7 +461,7 @@ class Input(six.with_metaclass(_meta_type, object)):
             indices, tmp_ks, parsed_dict[feature_name].dense_shape)
         parsed_dict[feature_name + '_w'] = tf.sparse.SparseTensor(
             indices, tmp_vs, parsed_dict[feature_name].dense_shape)
-      if not fc.HasField('hash_bucket_size'):
+      if not fc.HasField('hash_bucket_size') and fc.num_buckets > 0:
         check_list = [
             tf.py_func(
                 check_string_to_number,
@@ -1039,7 +1039,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = os.getenv(constant.EmbeddingOnCPU)
         place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
         if export_config.multi_placeholder:
           with conditional(place_on_cpu, ops.device('/CPU:0')):

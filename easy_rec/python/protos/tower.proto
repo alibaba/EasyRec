@@ -58,7 +58,7 @@ message BayesTaskTower {
     optional DNN relation_dnn = 8;
     // training loss weights
     optional float weight = 9 [default = 1.0];
-    // label name for indcating the sample space for the task tower
+    // label name for indicating the sample space for the task tower
     optional string task_space_indicator_label = 10;
     // the loss weight for sample in the task space
     optional float in_task_space_weight = 11 [default = 1.0];
@@ -72,4 +72,8 @@ message BayesTaskTower {
     repeated Loss losses = 15;
     // whether to use sample weight in this tower
     required bool use_sample_weight = 16 [default = true];
+    // whether to use AIT module
+    optional bool use_ait_module = 17 [default = false];
+    // set this when the dimensions of last layer of towers are not equal
+    optional uint32 ait_project_dim = 18;
 };

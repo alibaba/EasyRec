@@ -11,6 +11,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops import variables
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import input_layer
@@ -119,6 +120,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       kwargs = {
           'loss_dict': self._loss_dict,
           'metric_dict': self._metric_dict,
+          'prediction_dict': self._prediction_dict,
+          'labels': self._labels,
           constant.SAMPLE_WEIGHT: self._sample_weight
       }
       return self._backbone_net(self._is_training, **kwargs)
@@ -296,6 +299,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               'Variable [%s] is available in checkpoint, but '
               'incompatible shape dims with model variable.', variable_name)
       elif 'EmbeddingVariable' in str(type(variable)):
+        if '%s-keys' % variable_name not in ckpt_var2shape_map:
+          continue
         print('restore embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
         names_to_saveables = saver.BaseSaverBuilder.OpListToDict([variable])
@@ -307,6 +312,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         variable._initializer_op = init_op
       elif type(variable) == list and 'EmbeddingVariable' in str(
           type(variable[0])):
+        if '%s/part_0-keys' % variable_name not in ckpt_var2shape_map:
+          continue
         print('restore partitioned embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
         for part_var in variable:
@@ -375,13 +382,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         name2var[var_name] = [one_var] if is_part else one_var
 
     if ckpt_var_map_path != '':
-      if not tf.gfile.Exists(ckpt_var_map_path):
+      if not gfile.Exists(ckpt_var_map_path):
         logging.warning('%s not exist' % ckpt_var_map_path)
         return name2var
 
       # load var map
       name_map = {}
-      with open(ckpt_var_map_path, 'r') as fin:
+      with gfile.GFile(ckpt_var_map_path, 'r') as fin:
         for one_line in fin:
           one_line = one_line.strip()
           line_tok = [x for x in one_line.split() if x != '']
@@ -389,14 +396,16 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             logging.warning('Failed to process: %s' % one_line)
             continue
           name_map[line_tok[0]] = line_tok[1]
-      var_map = {}
+      update_map = {}
+      old_keys = []
       for var_name in name2var:
         if var_name in name_map:
           in_ckpt_name = name_map[var_name]
-          var_map[in_ckpt_name] = name2var[var_name]
-        else:
-          logging.warning('Failed to find in var_map_file(%s): %s' %
-                          (ckpt_var_map_path, var_name))
+          update_map[in_ckpt_name] = name2var[var_name]
+          old_keys.append(var_name)
+      for tmp_key in old_keys:
+        del name2var[tmp_key]
+      name2var.update(update_map)
       return name2var
     else:
       var_filter, scope_update = self.get_restore_filter()

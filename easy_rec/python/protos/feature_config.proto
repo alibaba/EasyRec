@@ -3,6 +3,7 @@ package protos;
 
 import "easy_rec/python/protos/hyperparams.proto";
 import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/layer.proto";
 enum WideOrDeep {
     DEEP = 0;
     WIDE = 1;
@@ -15,16 +16,11 @@ message AttentionCombiner {
 message MultiHeadAttentionCombiner {
 }
 
-message TextCnnCombiner {
-    repeated uint32 filter_sizes = 1;
-    repeated uint32 num_filters = 2;
-}
-
 message SequenceCombiner {
     oneof combiner {
         AttentionCombiner attention = 1;
         MultiHeadAttentionCombiner multi_head_attention = 2;
-        TextCnnCombiner text_cnn = 3;
+        TextCNN text_cnn = 3;
     }
 }
 
@@ -146,6 +142,9 @@ message FeatureConfig {
 
 message FeatureConfigV2 {
     repeated FeatureConfig features = 1 ;
+    // force place embedding lookup ops on cpu to improve
+    // training and inference efficiency.
+    optional bool embedding_on_cpu = 2 [default=false];
 }
 
 message FeatureGroupConfig {

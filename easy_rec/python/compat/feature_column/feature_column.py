@@ -171,6 +171,7 @@ from tensorflow.python.training import checkpoint_utils
 from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
+from easy_rec.python.utils import conditional
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import embedding_utils
 
@@ -248,8 +249,13 @@ def embedding_parallel_lookup(embedding,
                               lookup_indices,
                               output_ids,
                               is_training,
-                              output_tensors=None):
+                              output_tensors=None,
+                              batch_size=None):
   N = len(output_ids)
+  if batch_size is None:
+    num_segments = None
+  else:
+    num_segments = N * batch_size
   # first concat all the ids and unique
   if isinstance(lookup_indices, dict) and 'sparse_fea' in lookup_indices.keys():
     # all_uniq_ids, uniq_idx, segment_lens = features['sparse_fea']
@@ -318,7 +324,11 @@ def embedding_parallel_lookup(embedding,
     recv_embeddings = data_flow_ops.parallel_dynamic_stitch(
         original_part_ids, recv_embeddings, name='parallel_dynamic_stitch')
     embeddings = math_ops.sparse_segment_sum(
-        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        recv_embeddings,
+        uniq_idx,
+        segment_ids,
+        num_segments=num_segments,
+        name='sparse_segment_sum')
   else:
     if isinstance(embedding, dynamic_variable.DynamicVariable):
       recv_embeddings = embedding.sparse_read(
@@ -326,7 +336,11 @@ def embedding_parallel_lookup(embedding,
     else:
       recv_embeddings = array_ops.gather(embedding, all_uniq_ids)
     embeddings = math_ops.sparse_segment_sum(
-        recv_embeddings, uniq_idx, segment_ids, name='sparse_segment_sum')
+        recv_embeddings,
+        uniq_idx,
+        segment_ids,
+        num_segments=num_segments,
+        name='sparse_segment_sum')
 
   embed_dim = embedding.get_shape()[-1]
   output_tensor = array_ops.reshape(embeddings, [N, -1, embed_dim])
@@ -336,8 +350,11 @@ def embedding_parallel_lookup(embedding,
     for output, output_id in zip(outputs, output_ids):
       output_tensors[output_id] = array_ops.squeeze(output, axis=0)
 
+  if batch_size is None:
+    batch_size = -1
   return array_ops.reshape(
-      array_ops.transpose(output_tensor, perm=[1, 0, 2]), [-1, N * embed_dim])
+      array_ops.transpose(output_tensor, perm=[1, 0, 2]),
+      [batch_size, N * embed_dim])
 
 
 def _internal_input_layer(features,
@@ -399,6 +416,18 @@ def _internal_input_layer(features,
   def _get_logits_embedding_parallel():  # pylint: disable=missing-docstring
     assert hvd is not None, 'horovod is not installed'
     builder = _LazyBuilder(features)
+
+    if embedding_utils.embedding_on_cpu():
+      embedding_device = '/cpu:0'
+    else:
+      embedding_device = '/gpu:0'
+
+    def _get_var_type(column):
+      if column.ev_params.use_cache:
+        return 'hybrid'
+      else:
+        return None
+
     output_tensors = []
     ordered_columns = []
 
@@ -414,6 +443,8 @@ def _internal_input_layer(features,
 
     shared_weights = {}
     dense_cnt = 0
+
+    batch_sizes = []
     for column in feature_columns:
       ordered_columns.append(column)
       with variable_scope.variable_scope(
@@ -435,15 +466,14 @@ def _internal_input_layer(features,
           if shared_name in shared_weights:
             embedding_weights = shared_weights[shared_name]
           else:
-            with ops.device('/gpu:0'):
+            with ops.device(embedding_device):
               if column.ev_params is not None:
                 assert dynamic_variable is not None, 'sok is not installed'
                 embedding_weights = dynamic_variable.DynamicVariable(
                     name='embedding_weights',
                     dimension=column.dimension,
                     initializer='random {"stddev":0.0025}',  # column.initializer,
-                    var_type=None
-                    if not column.ev_params.use_cache else 'hybrid',
+                    var_type=_get_var_type(column),
                     trainable=column.trainable and trainable,
                     dtype=dtypes.float32,
                     init_capacity=column.ev_params.init_capacity,
@@ -459,14 +489,14 @@ def _internal_input_layer(features,
                     collections=weight_collections)
             shared_weights[shared_name] = embedding_weights
         else:
-          with ops.device('/gpu:0'):
+          with ops.device(embedding_device):
             if column.ev_params is not None:
               assert dynamic_variable is not None, 'sok is not installed'
               embedding_weights = dynamic_variable.DynamicVariable(
                   name='embedding_weights',
                   dimension=column.dimension,
                   initializer='random {"stddev":0.0025}',  # column.initializer,
-                  var_type=None if not column.ev_params.use_cache else 'hybrid',
+                  var_type=_get_var_type(column),
                   trainable=column.trainable and trainable,
                   dtype=dtypes.float32,
                   init_capacity=column.ev_params.init_capacity,
@@ -525,13 +555,19 @@ def _internal_input_layer(features,
           output_tensors[dense_output_id] = features[
               'dense_fea'][:, fea_dim_s:fea_dim_e]
           fea_dim_s = fea_dim_e
+        batch_sizes.append(array_ops.shape(features['dense_fea'])[0])
       else:
         for dense_output_id, dense_col in zip(dense_output_ids, dense_cols):
           output_tensors[dense_output_id] = features[dense_col.raw_name]
+        batch_sizes.append(array_ops.shape(output_tensors[dense_output_id])[0])
 
     for tmp_embed_var in set(lookup_embeddings):
       ops.add_to_collection(constant.EmbeddingParallel, tmp_embed_var.name)
 
+    if len(batch_sizes) == 0:
+      batch_size = None
+    else:
+      batch_size = batch_sizes[0]
     # do embedding parallel lookup
     if len(lookup_output_ids) > 0:
       packed_input = ('sparse_fea' in features or 'ragged_ids' in features)
@@ -540,8 +576,15 @@ def _internal_input_layer(features,
         assert uniq_embed_cnt == 1, 'only one uniq embed is support for packed inputs'
         outputs = embedding_parallel_lookup(lookup_embeddings[0],
                                             lookup_indices, lookup_output_ids,
-                                            is_training, output_tensors)
+                                            is_training, output_tensors,
+                                            batch_size)
       else:
+        if batch_size is None:
+          all_indices = []
+          for lookup_indice in lookup_indices:
+            all_indices.append(lookup_indice.indices[-1:, 0])
+          all_indices = array_ops.concat(all_indices, axis=0)
+          batch_size = math_ops.reduce_max(all_indices) + 1
         # group lookup_embeddings
         grouped_inputs = {}
         for embedding, lookup_indice, output_id in zip(lookup_embeddings,
@@ -561,7 +604,7 @@ def _internal_input_layer(features,
           output_ids = grouped_inputs[embedding]['output_id']
           outputs = embedding_parallel_lookup(embedding, lookup_indices,
                                               output_ids, is_training,
-                                              output_tensors)
+                                              output_tensors, batch_size)
 
       for output_tensor, col in zip(output_tensors, feature_columns):
         if feature_name_to_output_tensors is not None:
@@ -592,7 +635,8 @@ def _internal_input_layer(features,
       if embedding_utils.is_embedding_parallel():
         return _get_logits_embedding_parallel()
       else:
-        with ops.device('/CPU:0'):
+        with conditional(embedding_utils.embedding_on_cpu(),
+                         ops.device('/cpu:0')):
           return _get_logits()
 
 

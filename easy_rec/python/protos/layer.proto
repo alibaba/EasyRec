@@ -6,8 +6,10 @@ import "easy_rec/python/protos/dnn.proto";
 message HighWayTower {
     optional string input = 1;
     required uint32 emb_size = 2;
-    required string activation = 3 [default = 'gelu'];
+    required string activation = 3 [default = 'relu'];
     optional float dropout_rate = 4;
+    optional float init_gate_bias = 5 [default = -3.0];
+    optional uint32 num_layers = 6 [default = 1];
 }
 
 message PeriodicEmbedding {
@@ -87,4 +89,12 @@ message PPNet {
     // run mode: eager, lazy
     required string mode = 3 [default = 'eager'];
     optional bool full_gate_input = 4 [default = true];
+}
+
+message TextCNN {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+    required uint32 pad_sequence_length = 3;
+    optional string activation = 4 [default = 'relu'];
+    optional MLP mlp = 5;
 }

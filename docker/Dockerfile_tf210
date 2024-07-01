@@ -18,7 +18,7 @@ COPY MANIFEST.in /EasyRec/
 COPY README.md /EasyRec/
 COPY scripts /EasyRec/scripts
 
-RUN curl "https://odps-repo.oss-cn-hangzhou.aliyuncs.com/odpscmd/latest/odpscmd_public.zip" -o /EasyRec/odpscmd_public.zip
+RUN curl "http://easyrec.oss-cn-beijing.aliyuncs.com/tools/odpscmd_public_0.45.0.zip" -o /EasyRec/odpscmd_public.zip
 RUN mkdir /usr/local/odps_clt/ && cd /usr/local/odps_clt/ && unzip /EasyRec/odpscmd_public.zip
 RUN ln -s /usr/local/odps_clt/bin/odpscmd /usr/local/bin/odpscmd
 

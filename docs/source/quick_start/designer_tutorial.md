@@ -94,3 +94,7 @@ PAI-Designer（Studio 2.0）是基于云原生架构Pipeline Service（PAIFlow�
 `pai -name easy_rec_ext -project algo_public  -Dcmd=predict`
 
 - 具体命令及详细[参数说明](../train.md#on-pai)
+
+### 推荐算法定制的方案
+
+- 在Designer中做推荐算法特征工程、排序模型训练、向量召回等案例的阿里云官网[文档链接](https://help.aliyun.com/zh/pai/use-cases/overview-18)

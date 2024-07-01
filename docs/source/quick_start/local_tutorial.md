@@ -4,6 +4,8 @@
 
 我们提供了`本地Anaconda安装`和`Docker镜像启动`两种方式。
 
+有技术问题可加钉钉群：37930014162
+
 #### 本地Anaconda安装
 
 Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
@@ -52,7 +54,7 @@ sudo docker exec -it <CONTAINER_ID> bash
 
 输入一般是csv格式的文件。
 
-#### 示例数据
+#### 示例数据(点击下载)
 
 - train: [dwd_avazu_ctr_deepmodel_train.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_train.csv)
 - test: [dwd_avazu_ctr_deepmodel_test.csv](http://easyrec.oss-cn-beijing.aliyuncs.com/data/dwd_avazu_ctr_deepmodel_test.csv)

@@ -105,15 +105,21 @@ class DSSM(MatchModel):
 
   def get_outputs(self):
     if self._loss_type == LossType.CLASSIFICATION:
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       self._prediction_dict['logits'] = tf.squeeze(
           self._prediction_dict['logits'], axis=-1)
       self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
     elif self._loss_type == LossType.L2_LOSS:
-      return ['y', 'user_emb', 'item_emb']
+      return ['y', 'user_emb', 'item_emb', 'user_tower_emb', 'item_tower_emb']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
 
