@@ -18,4 +18,4 @@ then
   exit 1
 fi
 
-sudo docker build --network=host . -f docker/Dockerfile -t  mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-${version}
+sudo docker build --network=host . -f docker/Dockerfile -t  mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-${version}
