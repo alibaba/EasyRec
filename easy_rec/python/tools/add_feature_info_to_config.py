@@ -127,8 +127,6 @@ def main(argv):
         hist_seqs = seq_att.hist_seq
         reserved_hist_seqs = []
         for hist_seq in hist_seqs:
-          if 'seq__' in hist_seq:
-            hist_seq = hist_seq.split('seq__')[1]
           if hist_seq not in drop_feature_names:
             reserved_hist_seqs.append(hist_seq)
           else:
