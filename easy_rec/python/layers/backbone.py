@@ -56,7 +56,7 @@ class Package(object):
       self._dag.add_node(block.name)
       self._name_to_blocks[block.name] = block
       layer = block.WhichOneof('layer')
-      if layer == 'input_layer':
+      if layer in {'input_layer', 'raw_input'}:
         if len(block.inputs) != 1:
           raise ValueError('input layer `%s` takes only one input' % block.name)
         one_input = block.inputs[0]
@@ -71,8 +71,11 @@ class Package(object):
         if group in input_feature_groups:
           logging.warning('input `%s` already exists in other block' % group)
         else:
-          input_fn = EnhancedInputLayer(self._input_layer, self._features,
-                                        group, reuse)
+          if layer == 'input_layer':
+            input_fn = EnhancedInputLayer(self._input_layer, self._features,
+                                          group, reuse)
+          else:
+            input_fn = self._input_layer.get_raw_features(self._features, group)
           input_feature_groups[group] = input_fn
           self._name_to_layer[block.name] = input_fn
       else:
@@ -91,7 +94,7 @@ class Package(object):
     num_pkg_input = 0
     for block in config.blocks:
       layer = block.WhichOneof('layer')
-      if layer == 'input_layer':
+      if layer in {'input_layer', 'raw_input'}:
         continue
       name = block.name
       if name in input_feature_groups:
@@ -270,6 +273,8 @@ class Package(object):
       if layer is None:  # identity layer
         output = self.block_input(config, block_outputs, is_training, **kwargs)
         block_outputs[block] = output
+      elif layer == 'raw_input':
+        block_outputs[block] = self._name_to_layer[block]
       elif layer == 'input_layer':
         input_fn = self._name_to_layer[block]
         input_config = config.input_layer

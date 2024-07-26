@@ -27,5 +27,7 @@ message KerasLayer {
         PPNet ppnet = 16;
         TextCNN text_cnn = 17;
         HighWayTower highway = 18;
+        OverlapFeature overlap = 19;
+        MappedDotProduct dot_product = 20;
     }
 }

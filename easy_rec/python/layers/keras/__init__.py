@@ -5,6 +5,11 @@ from .blocks import Gate
 from .blocks import Highway
 from .blocks import TextCNN
 from .bst import BST
+from .custom_ops import EditDistance
+from .custom_ops import MappedDotProduct
+from .custom_ops import OverlapFeature
+from .custom_ops import SeqAugmentOps
+from .custom_ops import TextNormalize
 from .data_augment import SeqAugment
 from .din import DIN
 from .fibinet import BiLinear

@@ -75,7 +75,9 @@ class RankModel(EasyRecModel):
       else:
         probs = tf.nn.softmax(output, axis=1)
         prediction_dict['logits' + suffix] = output
+        prediction_dict['logits' + suffix + "_1"] = output[:, 1]
         prediction_dict['probs' + suffix] = probs
+        prediction_dict['probs' + suffix + "_1"] = probs[:, 1]
         prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(
             output, axis=1)
         prediction_dict['probs' + suffix + '_y'] = math_ops.reduce_max(
@@ -416,7 +418,8 @@ class RankModel(EasyRecModel):
       else:
         return [
             'y' + suffix, 'probs' + suffix, 'logits' + suffix,
-            'probs' + suffix + '_y', 'logits' + suffix + '_y'
+            'probs' + suffix + '_y', 'logits' + suffix + '_y',
+            'probs' + suffix + '_1', 'logits' + suffix + '_1'
         ]
     elif loss_type in [LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS]:
       return ['y' + suffix]
