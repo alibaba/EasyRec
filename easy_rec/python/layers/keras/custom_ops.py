@@ -3,6 +3,7 @@
 """Convenience blocks for using custom ops."""
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.layers import Layer
@@ -23,8 +24,19 @@ elif tf.__version__.startswith('1.15'):
 else:
   ops_dir = None
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+logging.info('ops_dir is %s' % ops_dir)
+custom_op_path = os.path.join(ops_dir, 'libcustom_ops.so')
+try:
+  custom_ops = tf.load_op_library(custom_op_path)
+  logging.info('load custom op from %s succeed' % custom_op_path)
+except Exception as ex:
+  logging.warning('load custom op from %s failed: %s' %
+                  (custom_op_path, str(ex)))
+  custom_ops = None
+
+
+# if tf.__version__ >= '2.0':
+#   tf = tf.compat.v1
 
 
 class SeqAugmentOps(Layer):
@@ -34,26 +46,16 @@ class SeqAugmentOps(Layer):
     super(SeqAugmentOps, self).__init__(name, **kwargs)
     self.reuse = reuse
     self.seq_aug_params = params.get_pb_config()
-    logging.info("ops_dir is %s" % ops_dir)
-    custom_op_path = os.path.join(ops_dir, 'libcustom_ops.so')
-    try:
-      custom_ops = tf.load_op_library(custom_op_path)
-      logging.info('load edit_distance op from %s succeed' % custom_op_path)
-    except Exception as ex:
-      logging.warning('load edit_distance op from %s failed: %s' %
-                      (custom_op_path, str(ex)))
-      custom_ops = None
     self.seq_augment = custom_ops.my_seq_augment
 
   def build(self, input_shape):
-    assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+    assert len(input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
     embed_dim = int(input_shape[0][-1])
     self.mask_emb = self.add_weight(
-      shape=(embed_dim,),
-      initializer="glorot_uniform",
-      trainable=True,
-      name="mask"
-    )
+        shape=(embed_dim,),
+        initializer='glorot_uniform',
+        trainable=True,
+        name='mask')
 
   def call(self, inputs, training=None, **kwargs):
     assert isinstance(inputs, (list, tuple))
@@ -66,21 +68,152 @@ class SeqAugmentOps(Layer):
     return x
 
 
-class EditDistance(tf.keras.layers.Layer):
+class TextNormalize(Layer):
+
+  def __init__(self, params, name='text_normalize', reuse=None, **kwargs):
+    super(TextNormalize, self).__init__(name, **kwargs)
+    self.txt_normalizer = custom_ops.text_normalize_op
+    self.norm_parameter = params.get_or_default('norm_parameter', 0)
+    self.remove_space = params.get_or_default('remove_space', False)
+
+  def call(self, inputs, training=None, **kwargs):
+    inputs = inputs if type(inputs) in (tuple, list) else [inputs]
+    result = [
+        self.txt_normalizer(
+            txt, parameter=self.norm_parameter, remove_space=self.remove_space)
+        for txt in inputs
+    ]
+    if len(result) == 1:
+      return result[0]
+    return result
+
+
+class MappedDotProduct(Layer):
+
+  def __init__(self, params, name='mapped_dot_product', reuse=None, **kwargs):
+    super(MappedDotProduct, self).__init__(name, **kwargs)
+    self.mapped_dot_product = custom_ops.mapped_dot_product
+    self.bucketize = custom_ops.my_bucketize
+    self.default_value = params.get_or_default('default_value', 0)
+    self.separator = params.get_or_default('separator', '\035')
+    self.norm_fn = params.get_or_default('normalize_fn', None)
+    self.boundaries = list(params.get_or_default('boundaries', []))
+    self.emb_dim = params.get_or_default('embedding_dim', 0)
+    self.print_first_n = params.get_or_default('print_first_n', 0)
+    self.summarize = params.get_or_default('summarize', None)
+    if self.emb_dim > 0:
+      vocab_size = len(self.boundaries) + 1
+      with tf.variable_scope(self.name, reuse=reuse):
+        self.embedding_table = tf.get_variable(
+            name='dot_product_emb_table',
+            shape=[vocab_size, self.emb_dim],
+            dtype=tf.float32)
+
+  def call(self, inputs, training=None, **kwargs):
+    query, doc = inputs[:2]
+    with ops.device('/CPU:0'):
+      feature = self.mapped_dot_product(
+          query=query,
+          document=doc,
+          feature_name=self.name,
+          separator=self.separator,
+          default_value=self.default_value)
+      tf.summary.scalar(self.name, tf.reduce_mean(feature))
+      if self.print_first_n:
+        encode_q = tf.regex_replace(query, self.separator, ' ')
+        encode_t = tf.regex_replace(query, self.separator, ' ')
+        feature = tf.Print(
+            feature, [encode_q, encode_t, feature],
+            message=self.name,
+            first_n=self.print_first_n,
+            summarize=self.summarize)
+      if self.norm_fn is not None:
+        fn = eval(self.norm_fn)
+        feature = fn(feature)
+        tf.summary.scalar('normalized_%s' % self.name, tf.reduce_mean(feature))
+        if self.print_first_n:
+          feature = tf.Print(
+              feature, [feature],
+              message='normalized %s' % self.name,
+              first_n=self.print_first_n,
+              summarize=self.summarize)
+      if self.boundaries:
+        feature = self.bucketize(feature, boundaries=self.boundaries)
+        tf.summary.histogram('bucketized_%s' % self.name, feature)
+    if self.emb_dim > 0 and self.boundaries:
+      vocab_size = len(self.boundaries) + 1
+      one_hot_input_ids = tf.one_hot(feature, depth=vocab_size)
+      return tf.matmul(one_hot_input_ids, self.embedding_table)
+    return tf.expand_dims(feature, axis=-1)
+
+
+class OverlapFeature(Layer):
+
+  def __init__(self, params, name='overlap_feature', reuse=None, **kwargs):
+    super(OverlapFeature, self).__init__(name, **kwargs)
+    self.overlap_feature = custom_ops.overlap_fg_op
+    self.bucketize = custom_ops.my_bucketize
+    self.method = params.get_or_default('method', 'is_contain')
+    self.norm_fn = params.get_or_default('normalize_fn', None)
+    self.boundaries = list(params.get_or_default('boundaries', []))
+    self.separator = params.get_or_default('separator', '\035')
+    self.default_value = params.get_or_default('default_value', '-1')
+    self.emb_dim = params.get_or_default('embedding_dim', 0)
+    self.print_first_n = params.get_or_default('print_first_n', 0)
+    self.summarize = params.get_or_default('summarize', None)
+    if self.emb_dim > 0:
+      vocab_size = len(self.boundaries) + 1
+      with tf.variable_scope(self.name, reuse=reuse):
+        self.embedding_table = tf.get_variable(
+            name='overlap_emb_table',
+            shape=[vocab_size, self.emb_dim],
+            dtype=tf.float32)
+
+  def call(self, inputs, training=None, **kwargs):
+    query, title = inputs[:2]
+    fea_name = '%s_%s' % (self.name, self.method)
+    with ops.device('/CPU:0'):
+      feature = self.overlap_feature(
+          query=query,
+          title=title,
+          feature_name=fea_name,
+          separator=self.separator,
+          default_value=self.default_value,
+          method=self.method)
+      tf.summary.scalar(fea_name, tf.reduce_mean(feature))
+      if self.print_first_n:
+        encode_q = tf.regex_replace(query, self.separator, ' ')
+        encode_t = tf.regex_replace(query, self.separator, ' ')
+        feature = tf.Print(
+            feature, [encode_q, encode_t, feature],
+            message='%s %s' % (self.name, self.method),
+            first_n=self.print_first_n,
+            summarize=self.summarize)
+      if self.norm_fn is not None:
+        fn = eval(self.norm_fn)
+        feature = fn(feature)
+        tf.summary.scalar('normalized_' + fea_name, tf.reduce_mean(feature))
+        if self.print_first_n:
+          feature = tf.Print(
+              feature, [feature],
+              message='normalized_%s' % fea_name,
+              first_n=self.print_first_n,
+              summarize=self.summarize)
+      if self.boundaries:
+        feature = self.bucketize(feature, boundaries=self.boundaries)
+        tf.summary.histogram('bucketized_%s' % fea_name, feature)
+    if self.emb_dim > 0 and self.boundaries:
+      vocab_size = len(self.boundaries) + 1
+      one_hot_input_ids = tf.one_hot(feature, depth=vocab_size)
+      return tf.matmul(one_hot_input_ids, self.embedding_table)
+    return tf.expand_dims(feature, axis=-1)
+
+
+class EditDistance(Layer):
 
   def __init__(self, params, name='edit_distance', reuse=None, **kwargs):
     super(EditDistance, self).__init__(name, **kwargs)
-    logging.info("ops_dir is %s" % ops_dir)
-    custom_op_path = os.path.join(ops_dir, 'libedit_distance.so')
-    try:
-      custom_ops = tf.load_op_library(custom_op_path)
-      logging.info('load edit_distance op from %s succeed' % custom_op_path)
-    except Exception as ex:
-      logging.warning('load edit_distance op from %s failed: %s' %
-                      (custom_op_path, str(ex)))
-      custom_ops = None
     self.edit_distance = custom_ops.my_edit_distance
-
     self.txt_encoding = params.get_or_default('text_encoding', 'utf-8')
     self.emb_size = params.get_or_default('embedding_size', 512)
     emb_dim = params.get_or_default('embedding_dim', 4)
@@ -93,11 +226,11 @@ class EditDistance(tf.keras.layers.Layer):
     input1, input2 = inputs[:2]
     with ops.device('/CPU:0'):
       dist = self.edit_distance(
-        input1,
-        input2,
-        normalize=False,
-        dtype=tf.int32,
-        encoding=self.txt_encoding)
+          input1,
+          input2,
+          normalize=False,
+          dtype=tf.int32,
+          encoding=self.txt_encoding)
     ids = tf.clip_by_value(dist, 0, self.emb_size - 1)
     embed = tf.nn.embedding_lookup(self.embedding_table, ids)
     return embed

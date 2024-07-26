@@ -18,13 +18,18 @@ from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
-
+import easy_rec
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
 from easy_rec.python.utils.config_util import get_input_name_from_fg_json
 from easy_rec.python.utils.config_util import search_fg_json
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+
+try:
+  tf.load_op_library(os.path.join(easy_rec.ops_dir, 'libcustom_ops.so'))
+except Exception as ex:
+  logging.warning('exception: %s' % str(ex))
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
