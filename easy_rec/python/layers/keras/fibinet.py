@@ -30,7 +30,7 @@ class SENet(Layer):
   """
 
   def __init__(self, params, name='SENet', reuse=None, **kwargs):
-    super(SENet, self).__init__(name, **kwargs)
+    super(SENet, self).__init__(name=name, **kwargs)
     self.config = params.get_pb_config()
     self.reuse = reuse
     if tf.__version__ >= '2.0':
@@ -123,7 +123,7 @@ class BiLinear(Layer):
   """
 
   def __init__(self, params, name='bilinear', reuse=None, **kwargs):
-    super(BiLinear, self).__init__(name, **kwargs)
+    super(BiLinear, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     params.check_required(['num_output_units'])
     bilinear_plus = params.get_or_default('use_plus', True)
@@ -210,7 +210,7 @@ class FiBiNet(Layer):
   """
 
   def __init__(self, params, name='fibinet', reuse=None, **kwargs):
-    super(FiBiNet, self).__init__(name, **kwargs)
+    super(FiBiNet, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self._config = params.get_pb_config()
 

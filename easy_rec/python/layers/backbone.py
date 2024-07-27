@@ -445,7 +445,7 @@ class Backbone(object):
       params = Parameter.make_from_pb(self._config.top_mlp)
       params.l2_regularizer = self._l2_reg
       final_mlp = MLP(params, name='backbone_top_mlp')
-      output = final_mlp(output, training=is_training)
+      output = final_mlp(output, training=is_training, **kwargs)
     return output
 
   @classmethod

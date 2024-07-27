@@ -34,7 +34,6 @@ except Exception as ex:
                   (custom_op_path, str(ex)))
   custom_ops = None
 
-
 # if tf.__version__ >= '2.0':
 #   tf = tf.compat.v1
 
@@ -43,7 +42,7 @@ class SeqAugmentOps(Layer):
   """Do data augmentation for input sequence embedding."""
 
   def __init__(self, params, name='sequence_aug', reuse=None, **kwargs):
-    super(SeqAugmentOps, self).__init__(name, **kwargs)
+    super(SeqAugmentOps, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self.seq_aug_params = params.get_pb_config()
     self.seq_augment = custom_ops.my_seq_augment
@@ -71,7 +70,7 @@ class SeqAugmentOps(Layer):
 class TextNormalize(Layer):
 
   def __init__(self, params, name='text_normalize', reuse=None, **kwargs):
-    super(TextNormalize, self).__init__(name, **kwargs)
+    super(TextNormalize, self).__init__(name=name, **kwargs)
     self.txt_normalizer = custom_ops.text_normalize_op
     self.norm_parameter = params.get_or_default('norm_parameter', 0)
     self.remove_space = params.get_or_default('remove_space', False)
@@ -91,7 +90,7 @@ class TextNormalize(Layer):
 class MappedDotProduct(Layer):
 
   def __init__(self, params, name='mapped_dot_product', reuse=None, **kwargs):
-    super(MappedDotProduct, self).__init__(name, **kwargs)
+    super(MappedDotProduct, self).__init__(name=name, **kwargs)
     self.mapped_dot_product = custom_ops.mapped_dot_product
     self.bucketize = custom_ops.my_bucketize
     self.default_value = params.get_or_default('default_value', 0)
@@ -150,7 +149,7 @@ class MappedDotProduct(Layer):
 class OverlapFeature(Layer):
 
   def __init__(self, params, name='overlap_feature', reuse=None, **kwargs):
-    super(OverlapFeature, self).__init__(name, **kwargs)
+    super(OverlapFeature, self).__init__(name=name, **kwargs)
     self.overlap_feature = custom_ops.overlap_fg_op
     self.bucketize = custom_ops.my_bucketize
     self.method = params.get_or_default('method', 'is_contain')
@@ -180,7 +179,7 @@ class OverlapFeature(Layer):
           separator=self.separator,
           default_value=self.default_value,
           method=self.method)
-      tf.summary.scalar(fea_name, tf.reduce_mean(feature))
+      tf.summary.scalar(self.method, tf.reduce_mean(feature))
       if self.print_first_n:
         encode_q = tf.regex_replace(query, self.separator, ' ')
         encode_t = tf.regex_replace(query, self.separator, ' ')
@@ -201,18 +200,31 @@ class OverlapFeature(Layer):
               summarize=self.summarize)
       if self.boundaries:
         feature = self.bucketize(feature, boundaries=self.boundaries)
-        tf.summary.histogram('bucketized_%s' % fea_name, feature)
+        tf.summary.histogram('bucketized_%s' % self.method, feature)
     if self.emb_dim > 0 and self.boundaries:
       vocab_size = len(self.boundaries) + 1
-      one_hot_input_ids = tf.one_hot(feature, depth=vocab_size)
-      return tf.matmul(one_hot_input_ids, self.embedding_table)
+      # This vocab will be small so we always do one-hot here, since it is always
+      # faster for a small vocabulary.
+      if feature.shape.ndims == 1:
+        one_hot_ids = tf.one_hot(feature, depth=vocab_size)
+        feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
+      elif feature.shape.ndims == 2:
+        batch_size = tf.shape(feature)[0]
+        flat_feature_ids = tf.reshape(feature, [-1])
+        one_hot_ids = tf.one_hot(flat_feature_ids, depth=vocab_size)
+        feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
+        feature_embeddings = tf.reshape(feature_embeddings,
+                                        [batch_size, self.emb_dim])
+      else:
+        raise ValueError('invalid shape of overlap feature: ' + fea_name)
+      return feature_embeddings
     return tf.expand_dims(feature, axis=-1)
 
 
 class EditDistance(Layer):
 
   def __init__(self, params, name='edit_distance', reuse=None, **kwargs):
-    super(EditDistance, self).__init__(name, **kwargs)
+    super(EditDistance, self).__init__(name=name, **kwargs)
     self.edit_distance = custom_ops.my_edit_distance
     self.txt_encoding = params.get_or_default('text_encoding', 'utf-8')
     self.emb_size = params.get_or_default('embedding_size', 512)

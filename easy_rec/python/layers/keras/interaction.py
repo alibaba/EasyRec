@@ -18,7 +18,7 @@ class FM(tf.keras.layers.Layer):
   """
 
   def __init__(self, params, name='fm', reuse=None, **kwargs):
-    super(FM, self).__init__(name, **kwargs)
+    super(FM, self).__init__(name=name, **kwargs)
     self.use_variant = params.get_or_default('use_variant', False)
 
   def call(self, inputs, **kwargs):
@@ -67,9 +67,9 @@ class DotInteraction(tf.keras.layers.Layer):
   """
 
   def __init__(self, params, name=None, reuse=None, **kwargs):
+    super(DotInteraction, self).__init__(name=name, **kwargs)
     self._self_interaction = params.get_or_default('self_interaction', False)
     self._skip_gather = params.get_or_default('skip_gather', False)
-    super(DotInteraction, self).__init__(name=name, **kwargs)
 
   def call(self, inputs, **kwargs):
     """Performs the interaction operation on the tensors in the list.
@@ -187,8 +187,8 @@ class Cross(tf.keras.layers.Layer):
   Output shape: A single (batch_size, `input_dim`) dimensional output.
   """
 
-  def __init__(self, params, reuse=None, **kwargs):
-    super(Cross, self).__init__(**kwargs)
+  def __init__(self, params, name='cross', reuse=None, **kwargs):
+    super(Cross, self).__init__(name=name, **kwargs)
     self._projection_dim = params.get_or_default('projection_dim', None)
     self._diag_scale = params.get_or_default('diag_scale', 0.0)
     self._use_bias = params.get_or_default('use_bias', True)

@@ -18,6 +18,7 @@ from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
+
 import easy_rec
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.config_util import get_configs_from_pipeline_file

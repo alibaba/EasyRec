@@ -28,12 +28,19 @@ class RankModel(EasyRecModel):
     self._losses = self._model_config.losses
     if self._labels is not None:
       self._label_name = list(self._labels.keys())[0]
+    self._outputs = []
 
   def build_predict_graph(self):
     if not self.has_backbone:
       raise NotImplementedError(
           'method `build_predict_graph` must be implemented when backbone network do not exits'
       )
+    model = self._model_config.WhichOneof('model')
+    assert model == 'model_params', '`model_params` must be configured'
+    config = self._model_config.model_params
+    for out in config.outputs:
+      self._outputs.append(out)
+
     output = self.backbone
     if int(output.shape[-1]) != self._num_class:
       logging.info('add head logits layer for rank model')
@@ -75,9 +82,9 @@ class RankModel(EasyRecModel):
       else:
         probs = tf.nn.softmax(output, axis=1)
         prediction_dict['logits' + suffix] = output
-        prediction_dict['logits' + suffix + "_1"] = output[:, 1]
+        prediction_dict['logits' + suffix + '_1'] = output[:, 1]
         prediction_dict['probs' + suffix] = probs
-        prediction_dict['probs' + suffix + "_1"] = probs[:, 1]
+        prediction_dict['probs' + suffix + '_1'] = probs[:, 1]
         prediction_dict['logits' + suffix + '_y'] = math_ops.reduce_max(
             output, axis=1)
         prediction_dict['probs' + suffix + '_y'] = math_ops.reduce_max(
@@ -428,9 +435,14 @@ class RankModel(EasyRecModel):
 
   def get_outputs(self):
     if len(self._losses) == 0:
-      return self._get_outputs_impl(self._loss_type, self._num_class)
+      outputs = self._get_outputs_impl(self._loss_type, self._num_class)
+      if self._outputs:
+        outputs.extend(self._outputs)
+      return list(set(outputs))
 
     all_outputs = []
+    if self._outputs:
+      all_outputs.extend(self._outputs)
     for loss in self._losses:
       outputs = self._get_outputs_impl(loss.loss_type, self._num_class)
       all_outputs.extend(outputs)

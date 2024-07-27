@@ -29,4 +29,5 @@ message MLP {
     optional string initializer = 8 [default = 'he_uniform'];
     optional bool use_bn_after_activation = 9;
     optional bool use_final_bias = 10 [default = false];
+    optional bool add_to_outputs = 11 [default = false];
 }

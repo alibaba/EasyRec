@@ -42,6 +42,8 @@ class MultiTaskModel(RankModel):
     model = self._model_config.WhichOneof('model')
     assert model == 'model_params', '`model_params` must be configured'
     config = self._model_config.model_params
+    for out in config.outputs:
+      self._outputs.append(out)
 
     self._init_towers(config.task_towers)
 
@@ -291,6 +293,8 @@ class MultiTaskModel(RankModel):
 
   def get_outputs(self):
     outputs = []
+    if self._outputs:
+      outputs.extend(self._outputs)
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       if len(task_tower_cfg.losses) == 0:

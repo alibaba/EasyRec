@@ -25,7 +25,7 @@ class MaskBlock(Layer):
   """
 
   def __init__(self, params, name='mask_block', reuse=None, **kwargs):
-    super(MaskBlock, self).__init__(name, **kwargs)
+    super(MaskBlock, self).__init__(name=name, **kwargs)
     self.config = params.get_pb_config()
     self.l2_reg = params.l2_regularizer
     self._projection_dim = params.get_or_default('projection_dim', None)
@@ -104,7 +104,7 @@ class MaskNet(Layer):
   """
 
   def __init__(self, params, name='mask_net', reuse=None, **kwargs):
-    super(MaskNet, self).__init__(name, **kwargs)
+    super(MaskNet, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self.params = params
     self.config = params.get_pb_config()

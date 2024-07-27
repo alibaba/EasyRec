@@ -32,6 +32,7 @@ class MLP(Layer):
 
   def __init__(self, params, name='mlp', reuse=None, **kwargs):
     super(MLP, self).__init__(name=name, **kwargs)
+    self.layer_name = name
     params.check_required('hidden_units')
     use_bn = params.get_or_default('use_bn', True)
     use_final_bn = params.get_or_default('use_final_bn', True)
@@ -50,6 +51,7 @@ class MLP(Layer):
          final_activation, use_bias, initializer, use_bn_after_act))
     assert len(units) > 0, 'MLP(%s) takes at least one hidden units' % name
     self.reuse = reuse
+    self.add_to_outputs = params.get_or_default('add_to_outputs', False)
 
     num_dropout = len(dropout_rate)
     self._sub_layers = []
@@ -119,13 +121,17 @@ class MLP(Layer):
           add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
         x = layer(x)
+    if self.add_to_outputs and 'prediction_dict' in kwargs:
+      outputs = kwargs['prediction_dict']
+      outputs[self.layer_name] = tf.squeeze(x, axis=1)
+      logging.info('add `%s` to model outputs' % self.layer_name)
     return x
 
 
 class Highway(Layer):
 
   def __init__(self, params, name='highway', reuse=None, **kwargs):
-    super(Highway, self).__init__(name, **kwargs)
+    super(Highway, self).__init__(name=name, **kwargs)
     self.emb_size = params.get_or_default('emb_size', None)
     self.num_layers = params.get_or_default('num_layers', 1)
     self.activation = params.get_or_default('activation', 'relu')
@@ -175,7 +181,7 @@ class Gate(Layer):
   """Weighted sum gate."""
 
   def __init__(self, params, name='gate', reuse=None, **kwargs):
-    super(Gate, self).__init__(name, **kwargs)
+    super(Gate, self).__init__(name=name, **kwargs)
     self.weight_index = params.get_or_default('weight_index', 0)
 
   def call(self, inputs, **kwargs):
@@ -203,7 +209,7 @@ class TextCNN(Layer):
   """
 
   def __init__(self, params, name='text_cnn', reuse=None, **kwargs):
-    super(TextCNN, self).__init__(name, **kwargs)
+    super(TextCNN, self).__init__(name=name, **kwargs)
     self.config = params.get_pb_config()
     self.pad_seq_length = self.config.pad_sequence_length
     if self.pad_seq_length <= 0:
