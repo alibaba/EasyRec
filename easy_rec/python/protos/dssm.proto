@@ -20,4 +20,7 @@ message DSSM {
     optional bool scale_simi = 5 [default = true];
     optional string item_id = 9;
     required bool ignore_in_batch_neg_sam = 10 [default = false];
+    // normalize user_tower_embedding and item_tower_embedding
+    optional bool normalization = 11 [default = false];
+    optional float temperature = 12 [default = 1.0];
 }
