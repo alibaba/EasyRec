@@ -151,8 +151,9 @@ class OverlapFeature(Layer):
   def __init__(self, params, name='overlap_feature', reuse=None, **kwargs):
     super(OverlapFeature, self).__init__(name=name, **kwargs)
     self.overlap_feature = custom_ops.overlap_fg_op
-    self.bucketize = custom_ops.my_bucketize
-    self.method = params.get_or_default('method', 'is_contain')
+    methods = params.get_or_default('methods', [])
+    assert methods, 'overlap feature methods must be set'
+    self.methods = [str(method) for method in methods]
     self.norm_fn = params.get_or_default('normalize_fn', None)
     self.boundaries = list(params.get_or_default('boundaries', []))
     self.separator = params.get_or_default('separator', '\035')
@@ -162,6 +163,7 @@ class OverlapFeature(Layer):
     self.summarize = params.get_or_default('summarize', None)
     if self.emb_dim > 0:
       vocab_size = len(self.boundaries) + 1
+      vocab_size *= len(self.methods)
       with tf.variable_scope(self.name, reuse=reuse):
         self.embedding_table = tf.get_variable(
             name='overlap_emb_table',
@@ -170,55 +172,54 @@ class OverlapFeature(Layer):
 
   def call(self, inputs, training=None, **kwargs):
     query, title = inputs[:2]
-    fea_name = '%s_%s' % (self.name, self.method)
     with ops.device('/CPU:0'):
       feature = self.overlap_feature(
           query=query,
           title=title,
-          feature_name=fea_name,
+          feature_name=self.name,
           separator=self.separator,
           default_value=self.default_value,
-          method=self.method)
-      tf.summary.scalar(self.method, tf.reduce_mean(feature))
-      if self.print_first_n:
-        encode_q = tf.regex_replace(query, self.separator, ' ')
-        encode_t = tf.regex_replace(query, self.separator, ' ')
-        feature = tf.Print(
-            feature, [encode_q, encode_t, feature],
-            message='%s %s' % (self.name, self.method),
-            first_n=self.print_first_n,
-            summarize=self.summarize)
-      if self.norm_fn is not None:
-        fn = eval(self.norm_fn)
-        feature = fn(feature)
-        tf.summary.scalar('normalized_' + fea_name, tf.reduce_mean(feature))
-        if self.print_first_n:
-          feature = tf.Print(
-              feature, [feature],
-              message='normalized_%s' % fea_name,
-              first_n=self.print_first_n,
-              summarize=self.summarize)
+          boundaries=self.boundaries,
+          methods=self.methods,
+          dtype=tf.int32 if self.boundaries else tf.float32)
+
+    for i, method in enumerate(self.methods):
+      # warning: feature[:, i] may be not the result of method
       if self.boundaries:
-        feature = self.bucketize(feature, boundaries=self.boundaries)
-        tf.summary.histogram('bucketized_%s' % self.method, feature)
+        tf.summary.histogram('bucketized_%s' % method, feature[:, i])
+      else:
+        tf.summary.scalar(method, tf.reduce_mean(feature[:, i]))
+    if self.print_first_n:
+      encode_q = tf.regex_replace(query, self.separator, ' ')
+      encode_t = tf.regex_replace(query, self.separator, ' ')
+      feature = tf.Print(
+          feature, [encode_q, encode_t, feature],
+          message=self.name,
+          first_n=self.print_first_n,
+          summarize=self.summarize)
+    if self.norm_fn is not None:
+      fn = eval(self.norm_fn)
+      feature = fn(feature)
+
     if self.emb_dim > 0 and self.boundaries:
-      vocab_size = len(self.boundaries) + 1
       # This vocab will be small so we always do one-hot here, since it is always
       # faster for a small vocabulary.
-      if feature.shape.ndims == 1:
-        one_hot_ids = tf.one_hot(feature, depth=vocab_size)
-        feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
-      elif feature.shape.ndims == 2:
-        batch_size = tf.shape(feature)[0]
-        flat_feature_ids = tf.reshape(feature, [-1])
-        one_hot_ids = tf.one_hot(flat_feature_ids, depth=vocab_size)
-        feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
-        feature_embeddings = tf.reshape(feature_embeddings,
-                                        [batch_size, self.emb_dim])
-      else:
-        raise ValueError('invalid shape of overlap feature: ' + fea_name)
+      batch_size = tf.shape(feature)[0]
+      vocab_size = len(self.boundaries) + 1
+      num_indices = len(self.methods)
+      # Compute offsets, add to every column indices
+      offsets = tf.range(num_indices) * vocab_size  # Shape: [3]
+      offsets = tf.reshape(offsets, [1, num_indices])  # Shape: [1, 3]
+      offsets = tf.tile(offsets,
+                        [batch_size, 1])  # Shape: [batch_size, num_indices]
+      shifted_indices = feature + offsets  # Shape: [batch_size, num_indices]
+      flat_feature_ids = tf.reshape(shifted_indices, [-1])
+      one_hot_ids = tf.one_hot(flat_feature_ids, depth=vocab_size * num_indices)
+      feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
+      feature_embeddings = tf.reshape(feature_embeddings,
+                                      [batch_size, num_indices * self.emb_dim])
       return feature_embeddings
-    return tf.expand_dims(feature, axis=-1)
+    return feature
 
 
 class EditDistance(Layer):

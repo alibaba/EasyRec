@@ -33,10 +33,12 @@ class MaskBlock(Layer):
     self.final_relu = Activation('relu', name='relu')
 
   def build(self, input_shape):
-    assert type(input_shape) in (tuple, list) and len(input_shape) >= 2,\
-        'MaskBlock must has at least two inputs'
-    input_dim = int(input_shape[0][-1])
-    mask_input_dim = int(input_shape[1][-1])
+    if type(input_shape) in (tuple, list):
+      assert len(input_shape) >= 2, 'MaskBlock must has at least two inputs'
+      input_dim = int(input_shape[0][-1])
+      mask_input_dim = int(input_shape[1][-1])
+    else:
+      input_dim, mask_input_dim = input_shape[-1], input_shape[-1]
     if self.config.HasField('reduction_factor'):
       aggregation_size = int(mask_input_dim * self.config.reduction_factor)
     elif self.config.HasField('aggregation_size') is not None:
@@ -76,7 +78,11 @@ class MaskBlock(Layer):
       self.output_layer_norm = LayerNormalization(name='output_ln')
 
   def call(self, inputs, **kwargs):
-    net, mask_input = inputs
+    if type(inputs) in (tuple, list):
+      net, mask_input = inputs[:2]
+    else:
+      net, mask_input = inputs, inputs
+
     if self.config.input_layer_norm:
       net = self.input_layer_norm(net)
 

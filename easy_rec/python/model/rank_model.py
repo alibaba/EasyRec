@@ -57,7 +57,7 @@ class RankModel(EasyRecModel):
     binary_loss_type = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.BINARY_CROSS_ENTROPY_LOSS
     }
     if loss_type in binary_loss_type:
       assert num_class == 1, 'num_class must be 1 when loss type is %s' % loss_type.name
@@ -71,6 +71,7 @@ class RankModel(EasyRecModel):
       probs = tf.nn.softmax(output, axis=1)
       tf.summary.scalar('prediction/probs', tf.reduce_mean(probs[:, 1]))
       prediction_dict['logits' + suffix] = output
+      prediction_dict['pos_logits' + suffix] = output[:, 1]
       prediction_dict['probs' + suffix] = probs[:, 1]
     elif loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
@@ -174,7 +175,9 @@ class RankModel(EasyRecModel):
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS
     }
-    if loss_type == LossType.CLASSIFICATION:
+    if loss_type in {
+        LossType.CLASSIFICATION, LossType.BINARY_CROSS_ENTROPY_LOSS
+    }:
       loss_name = loss_name if loss_name else 'cross_entropy_loss' + suffix
       pred = self._prediction_dict['logits' + suffix]
     elif loss_type in binary_loss_type:
@@ -256,7 +259,7 @@ class RankModel(EasyRecModel):
 
     # build kd loss
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
-                                              self._labels)
+                                              self._labels, self._feature_dict)
     self._loss_dict.update(kd_loss_dict)
 
     return self._loss_dict
@@ -413,12 +416,14 @@ class RankModel(EasyRecModel):
 
   def _get_outputs_impl(self, loss_type, num_class=1, suffix=''):
     binary_loss_set = {
-        LossType.F1_REWEIGHTED_LOSS, LossType.JRC_LOSS, LossType.PAIR_WISE_LOSS,
+        LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS
     }
     if loss_type in binary_loss_set:
       return ['probs' + suffix, 'logits' + suffix]
+    if loss_type == LossType.JRC_LOSS:
+      return ['probs' + suffix, 'pos_logits' + suffix]
     if loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]

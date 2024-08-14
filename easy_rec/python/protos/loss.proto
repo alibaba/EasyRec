@@ -16,8 +16,11 @@ enum LossType {
     BINARY_FOCAL_LOSS = 10;
     PAIRWISE_FOCAL_LOSS = 11;
     PAIRWISE_LOGISTIC_LOSS = 12;
+    PAIRWISE_HINGE_LOSS = 17;
     JRC_LOSS = 13;
     ORDER_CALIBRATE_LOSS = 14;
+    BINARY_CROSS_ENTROPY_LOSS = 15;
+    KL_DIVERGENCE_LOSS = 16;
 }
 
 message Loss {
@@ -35,6 +38,7 @@ message Loss {
     PairwiseFocalLoss pairwise_focal_loss = 107;
     PairwiseLogisticLoss pairwise_logistic_loss = 108;
     JRCLoss jrc_loss = 109;
+    PairwiseHingeLoss pairwise_hinge_loss = 110;
   }
 };
 
@@ -87,8 +91,18 @@ message PairwiseFocalLoss {
 message PairwiseLogisticLoss {
   required float temperature = 1 [default = 1.0];
   optional string session_name = 2;
-  optional float hinge_margin = 3 [default = 1.0];
+  optional float hinge_margin = 3;
   optional float ohem_ratio = 4 [default = 1.0];
+  optional bool use_label_margin = 5 [default = false];
+}
+
+message PairwiseHingeLoss {
+  required float temperature = 1 [default = 1.0];
+  optional string session_name = 2;
+  optional float margin = 3 [default = 1.0];
+  optional float ohem_ratio = 4 [default = 1.0];
+  optional bool use_label_margin = 5 [default = true];
+  optional bool use_exponent = 6 [default = false];
 }
 
 message JRCLoss {

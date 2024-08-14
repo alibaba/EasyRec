@@ -189,10 +189,12 @@ class MultiTaskModel(RankModel):
       losses = task_tower_cfg.losses
       n = len(losses)
       if n > 0:
-        loss_weights[tower_name] = [loss.weight for loss in losses]
+        loss_weights[tower_name] = [
+            loss.weight * task_tower_cfg.weight for loss in losses
+        ]
         num_loss += n
       else:
-        loss_weights[tower_name] = [1.0]
+        loss_weights[tower_name] = [task_tower_cfg.weight]
         num_loss += 1
 
     strategy = self._base_model_config.loss_weight_strategy
@@ -225,7 +227,7 @@ class MultiTaskModel(RankModel):
     task_loss_weights = self.build_loss_weight()
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      loss_weight = task_tower_cfg.weight
+      loss_weight = 1.0
       if task_tower_cfg.use_sample_weight:
         loss_weight *= self._sample_weight
 
@@ -286,7 +288,7 @@ class MultiTaskModel(RankModel):
       self._loss_dict.update(loss_dict)
 
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
-                                              self._labels)
+                                              self._labels, self._feature_dict)
     self._loss_dict.update(kd_loss_dict)
 
     return self._loss_dict

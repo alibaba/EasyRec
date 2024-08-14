@@ -49,11 +49,22 @@ message KD {
   required string soft_label_name = 21;
   // default to be logits
   optional bool label_is_logits = 22 [default=true];
-  // currently only support CROSS_ENTROPY_LOSS and L2_LOSS
   required LossType loss_type = 3;
   optional float loss_weight = 4 [default=1.0];
-  // only for loss_type == CROSS_ENTROPY_LOSS
+  // only for loss_type == CROSS_ENTROPY_LOSS or BINARY_CROSS_ENTROPY_LOSS or KL_DIVERGENCE_LOSS
   optional float temperature = 5 [default=1.0];
+  oneof loss_param {
+    F1ReweighedLoss f1_reweighted_loss = 101;
+    SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
+    CircleLoss circle_loss = 103;
+    MultiSimilarityLoss multi_simi_loss = 104;
+    BinaryFocalLoss binary_focal_loss = 105;
+    PairwiseLoss pairwise_loss = 106;
+    PairwiseFocalLoss pairwise_focal_loss = 107;
+    PairwiseLogisticLoss pairwise_logistic_loss = 108;
+    JRCLoss jrc_loss = 109;
+    PairwiseHingeLoss pairwise_hinge_loss = 110;
+  }
 }
 
 message EasyRecModel {

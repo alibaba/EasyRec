@@ -102,7 +102,7 @@ message TextCNN {
 message OverlapFeature {
     optional string separator = 1;
     optional string default_value = 2;
-    required string method = 3 [default = 'is_contain'];
+    repeated string methods = 3;
     optional string normalize_fn = 4;
     repeated float boundaries = 5;
     optional int32 embedding_dim = 6;
