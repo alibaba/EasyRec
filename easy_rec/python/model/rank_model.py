@@ -57,6 +57,7 @@ class RankModel(EasyRecModel):
     binary_loss_type = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
+        LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS, LossType.BINARY_CROSS_ENTROPY_LOSS
     }
     if loss_type in binary_loss_type:
@@ -173,6 +174,7 @@ class RankModel(EasyRecModel):
     binary_loss_type = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
+        LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS
     }
     if loss_type in {
@@ -418,6 +420,7 @@ class RankModel(EasyRecModel):
     binary_loss_set = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
+        LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS
     }
     if loss_type in binary_loss_set:

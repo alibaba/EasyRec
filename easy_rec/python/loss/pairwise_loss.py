@@ -166,7 +166,7 @@ def pairwise_logistic_loss(labels,
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0))
   pairwise_labels = tf.math.subtract(
-    tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
 
   pairwise_mask = tf.greater(pairwise_labels, 0)
   if hinge_margin is not None:
@@ -276,7 +276,7 @@ def pairwise_hinge_loss(labels,
   if use_exponent:
     threshold = 88.0  # the max value of float32 is 3.4028235e+38
     safe_diff = tf.clip_by_value(diff, -threshold, threshold)
-    losses = tf.nn.relu(tf.exp(safe_diff)-1.0)
+    losses = tf.nn.relu(tf.exp(safe_diff) - 1.0)
   else:
     losses = tf.nn.relu(diff)
 

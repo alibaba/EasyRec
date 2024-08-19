@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.loss.jrc_loss import jrc_loss
+from easy_rec.python.loss.listwise_loss import listwise_rank_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_hinge_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_logistic_loss
@@ -127,6 +128,22 @@ def build(loss_type,
         temperature=loss_param.temperature,
         weights=loss_weight,
         name=loss_name)
+  elif loss_type == LossType.LISTWISE_RANK_LOSS:
+    session = kwargs.get('session_ids', None)
+    trans_fn, temp, label_is_logits = None, 1.0, False
+    if loss_param is not None:
+      temp = loss_param.temperature
+      label_is_logits = loss_param.label_is_logits
+      if loss_param.HasField('transform_fn'):
+        trans_fn = loss_param.transform_fn
+    return listwise_rank_loss(
+        label,
+        pred,
+        session,
+        temperature=temp,
+        label_is_logits=label_is_logits,
+        transform_fn=trans_fn,
+        weights=loss_weight)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
     label_smoothing = 0 if loss_param is None else loss_param.label_smoothing
