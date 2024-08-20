@@ -91,11 +91,12 @@ def build(loss_type,
   elif loss_type == LossType.PAIRWISE_HINGE_LOSS:
     session = kwargs.get('session_ids', None)
     temp, ohem_ratio, margin = 1.0, 1.0, 1.0
-    use_label_margin, use_exponent = True, False
+    label_is_logits, use_label_margin, use_exponent = True, True, False
     if loss_param is not None:
       temp = loss_param.temperature
       ohem_ratio = loss_param.ohem_ratio
       margin = loss_param.margin
+      label_is_logits = loss_param.label_is_logits
       use_label_margin = loss_param.use_label_margin
       use_exponent = loss_param.use_exponent
     return pairwise_hinge_loss(
@@ -106,6 +107,7 @@ def build(loss_type,
         margin=margin,
         ohem_ratio=ohem_ratio,
         weights=loss_weight,
+        label_is_logits=label_is_logits,
         use_label_margin=use_label_margin,
         use_exponent=use_exponent,
         name=loss_name)
@@ -200,6 +202,7 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
     label = label_dict[kd.soft_label_name]
     pred = prediction_dict[kd.pred_name]
     epsilon = tf.keras.backend.epsilon()
+    num_class = 1 if len(pred.get_shape()) < 2 else pred.get_shape()[-1]
 
     if kd.loss_type == LossType.BINARY_CROSS_ENTROPY_LOSS:
       if not kd.label_is_logits:  # label is prob
@@ -213,18 +216,29 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
         pred = pred / kd.temperature
       label = tf.nn.sigmoid(label)  # convert to prob
     elif kd.loss_type == LossType.KL_DIVERGENCE_LOSS:
-      # for binary classification
       if not kd.label_is_logits:  # label is prob
-        label = tf.clip_by_value(label, epsilon, 1 - epsilon)
-        label = tf.log(label / (1 - label))
+        if num_class == 1:  # for binary classification
+          label = tf.clip_by_value(label, epsilon, 1 - epsilon)
+          label = tf.log(label / (1 - label))
+        else:
+          label = tf.math.log(label + epsilon)
+          label -= tf.reduce_max(label)
       if not kd.pred_is_logits:
-        pred = tf.clip_by_value(pred, epsilon, 1 - epsilon)
-        pred = tf.log(pred / (1 - pred))
+        if num_class == 1:  # for binary classification
+          pred = tf.clip_by_value(pred, epsilon, 1 - epsilon)
+          pred = tf.log(pred / (1 - pred))
+        else:
+          pred = tf.math.log(pred + epsilon)
+          pred -= tf.reduce_max(pred)
       if kd.temperature > 0:
         label = label / kd.temperature
         pred = pred / kd.temperature
-      label = tf.nn.sigmoid(label)  # convert to prob
-      pred = tf.nn.sigmoid(pred)  # convert to prob
+      if num_class > 1:
+        label = tf.nn.softmax(label)
+        pred = tf.nn.softmax(pred)
+      else:
+        label = tf.nn.sigmoid(label)  # convert to prob
+        pred = tf.nn.sigmoid(pred)  # convert to prob
     elif kd.loss_type == LossType.CROSS_ENTROPY_LOSS:
       if not kd.label_is_logits:
         label = tf.math.log(label + epsilon)
@@ -233,24 +247,22 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
       if kd.temperature > 0:
         label = label / kd.temperature
         pred = pred / kd.temperature
-      num_class = 1 if len(pred.get_shape()) < 2 else pred.get_shape()[-1]
       if num_class > 1:
         label = tf.nn.softmax(label)
         pred = tf.nn.softmax(pred)
       elif num_class == 1:
         label = tf.nn.sigmoid(label)
         pred = tf.nn.sigmoid(pred)
-    # elif kd.loss_type == LossType.PAIRWISE_HINGE_LOSS:
-    #   if kd.label_is_logits:
-    #     label = tf.nn.sigmoid(label)
-    #   if kd.pred_is_logits:
-    #     pred = tf.nn.sigmoid(pred)
 
     if kd.loss_type == LossType.KL_DIVERGENCE_LOSS:
-      label = tf.expand_dims(label, 1)  # [B, 1]
-      labels = tf.concat([1 - label, label], axis=1)  # [B, 2]
-      pred = tf.expand_dims(pred, 1)  # [B, 1]
-      preds = tf.concat([1 - pred, pred], axis=1)  # [B, 2]
+      if num_class == 1:
+        label = tf.expand_dims(label, 1)  # [B, 1]
+        labels = tf.concat([1 - label, label], axis=1)  # [B, 2]
+        pred = tf.expand_dims(pred, 1)  # [B, 1]
+        preds = tf.concat([1 - pred, pred], axis=1)  # [B, 2]
+      else:
+        labels = label
+        preds = pred
       losses = tf.keras.losses.KLD(labels, preds)
       loss_dict[loss_name] = tf.reduce_mean(
           losses, name=loss_name) * kd.loss_weight

@@ -216,6 +216,7 @@ def pairwise_hinge_loss(labels,
                         margin=1.0,
                         weights=1.0,
                         ohem_ratio=1.0,
+                        label_is_logits=True,
                         use_label_margin=True,
                         use_exponent=False,
                         name=''):
@@ -236,6 +237,7 @@ def pairwise_hinge_loss(labels,
     margin: the margin between positive and negative logits
     weights: A scalar, a `Tensor` with shape [batch_size] for each sample
     ohem_ratio: the percent of hard examples to be mined
+    label_is_logits: Whether `labels` is expected to be a logits tensor.
     use_label_margin: whether to use the diff `label[i]-label[j]` as margin
     use_exponent: whether to use exponential difference
     name: the name of loss
@@ -243,14 +245,17 @@ def pairwise_hinge_loss(labels,
   loss_name = name if name else 'pairwise_hinge_loss'
   assert 0 < ohem_ratio <= 1.0, loss_name + ' ohem_ratio must be in (0, 1]'
   logging.info(
-      '[{}] margin: {}, ohem_ratio: {}, temperature: {}, use_exponent: {}, use_label_margin: {}'
+      '[{}] margin: {}, ohem_ratio: {}, temperature: {}, use_exponent: {}, label_is_logits: {}, use_label_margin: {}'
       .format(loss_name, margin, ohem_ratio, temperature, use_exponent,
-              use_label_margin))
+              label_is_logits, use_label_margin))
 
   if temperature != 1.0:
     logits /= temperature
-    if use_label_margin:
+    if label_is_logits:
       labels /= temperature
+  if use_exponent:
+    labels = tf.nn.sigmoid(labels)
+    logits = tf.nn.sigmoid(labels)
 
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0))

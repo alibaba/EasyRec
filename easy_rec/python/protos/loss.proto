@@ -103,8 +103,9 @@ message PairwiseHingeLoss {
   optional string session_name = 2;
   optional float margin = 3 [default = 1.0];
   optional float ohem_ratio = 4 [default = 1.0];
-  optional bool use_label_margin = 5 [default = true];
-  optional bool use_exponent = 6 [default = false];
+  optional bool label_is_logits = 5 [default = true];
+  optional bool use_label_margin = 6 [default = true];
+  optional bool use_exponent = 7 [default = false];
 }
 
 message JRCLoss {
