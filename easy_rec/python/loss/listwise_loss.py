@@ -44,7 +44,7 @@ def listwise_rank_loss(labels,
   """
   loss_name = name if name else 'listwise_rank_loss'
   logging.info('[{}] temperature: {}'.format(loss_name, temperature))
-
+  labels = tf.to_float(labels)
   if temperature != 1.0:
     logits /= temperature
     if label_is_logits:
