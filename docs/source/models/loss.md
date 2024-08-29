@@ -19,6 +19,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | PAIRWISE_LOGISTIC_LOSS                     | pair粒度的logistic loss, 支持自定义pair分组                          |
 | JRC_LOSS                                   | 二分类 + listwise ranking loss                                |
 | F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
+| ORDER_CALIBRATE_LOSS                       | 使用目标依赖关系校正预测结果的辅助损失函数，详见[AITM](aitm.md)模型                  |
 
 - 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
@@ -71,9 +72,9 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
   - f1_beta_square: 大于1的值会导致模型更关注recall，小于1的值会导致模型更关注precision
   - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。
-    - ![f1 score](../images/other/f1_score.svg)
+    - ![f1 score](../../images/other/f1_score.svg)
   - 更一般的，我们定义 F_beta 分数为:
-    - ![f_beta score](../images/other/f_beta_score.svg)
+    - ![f_beta score](../../images/other/f_beta_score.svg)
   - f1_beta_square 即为 上述公式中的 beta 系数的平方。
 
 - PAIRWISE_FOCAL_LOSS 的参数配置
@@ -159,3 +160,4 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
 - 《 Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics 》
 - 《 [Reasonable Effectiveness of Random Weighting: A Litmus Test for Multi-Task Learning](https://arxiv.org/abs/2111.10603) 》
+- [AITM: Modeling the Sequential Dependence among Audience Multi-step Conversions with Multi-task Learning in Targeted Display Advertising](https://arxiv.org/pdf/2105.08489.pdf)

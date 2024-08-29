@@ -7,5 +7,6 @@
    esmm
    mmoe
    dbmtl
+   aitm
    ple
    simple_multi_task

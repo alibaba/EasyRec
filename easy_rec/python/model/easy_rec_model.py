@@ -120,6 +120,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       kwargs = {
           'loss_dict': self._loss_dict,
           'metric_dict': self._metric_dict,
+          'prediction_dict': self._prediction_dict,
+          'labels': self._labels,
           constant.SAMPLE_WEIGHT: self._sample_weight
       }
       return self._backbone_net(self._is_training, **kwargs)

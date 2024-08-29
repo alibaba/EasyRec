@@ -2,7 +2,7 @@
 
 EasyRec作为阿里云PAI的推荐算法包，可以无缝对接MaxCompute的数据表，也可以读取OSS中的大文件，还支持E-MapReduce环境中的HDFS文件，也支持local环境中的csv文件。
 
-为了识别这些输入数据中的字段信息，需要设置相应的字段名称和字段类型、设置默认值，帮助EasyRec去读取相应的数据。设置label字段，作为训练的目标。为了适应多目标模型，label字段可以设置多个。
+为了识别这些输入数据中的字段信息，需要设置相应的字段名称和字段类型、设置默认值，帮助EasyRec去读取相应的数据。设置label字段，作为训练的目标。为了适配多目标模型，label字段可设置多个。
 
 另外还有一些参数如prefetch_size，是tensorflow中读取数据需要设置的参数。
 
@@ -10,7 +10,7 @@ EasyRec作为阿里云PAI的推荐算法包，可以无缝对接MaxCompute的数
 
 这个配置里面，只有三个字段，用户ID（uid）、物品ID（item_id）、label字段（click）。
 
-OdpsInputV2表示读取MaxCompute的表作为输入数据。
+OdpsInputV2表示读取MaxCompute的表作为输入数据。如果是本地机器上训练，注意使用CSVInput类型。
 
 ```protobuf
 data_config {
@@ -160,7 +160,7 @@ def remap_lbl(labels):
 ### prefetch_size
 
 - data prefetch，以batch为单位，默认是32
-- 设置prefetch size可以提高数据加载的速度，防止数据瓶颈
+- 设置prefetch size可以提高数据加载的速度，防止数据瓶颈。但是当batchsize较小的时候，该值可适当调小。
 
 ### shard && file_shard
 

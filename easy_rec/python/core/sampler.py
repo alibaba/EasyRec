@@ -268,6 +268,7 @@ class NegativeSampler(BaseSampler):
 
   def _get_impl(self, ids):
     ids = np.array(ids, dtype=np.int64)
+    ids = np.pad(ids, (0, self._batch_size - len(ids)), 'edge')
     nodes = self._sampler.get(ids)
     features = self._parse_nodes(nodes)
     return features
@@ -491,7 +492,9 @@ class NegativeSamplerV2(BaseSampler):
 
   def _get_impl(self, src_ids, dst_ids):
     src_ids = np.array(src_ids, dtype=np.int64)
+    src_ids = np.pad(src_ids, (0, self._batch_size - len(src_ids)), 'edge')
     dst_ids = np.array(dst_ids, dtype=np.int64)
+    dst_ids = np.pad(dst_ids, (0, self._batch_size - len(dst_ids)), 'edge')
     nodes = self._sampler.get(src_ids, dst_ids)
     features = self._parse_nodes(nodes)
     return features
@@ -571,6 +574,7 @@ class HardNegativeSampler(BaseSampler):
   def _get_impl(self, src_ids, dst_ids):
     src_ids = np.array(src_ids, dtype=np.int64)
     dst_ids = np.array(dst_ids, dtype=np.int64)
+    dst_ids = np.pad(dst_ids, (0, self._batch_size - len(dst_ids)), 'edge')
     nodes = self._neg_sampler.get(dst_ids)
     neg_features = self._parse_nodes(nodes)
     sparse_nodes = self._hard_neg_sampler.get(src_ids).layer_nodes(1)
@@ -669,8 +673,11 @@ class HardNegativeSamplerV2(BaseSampler):
 
   def _get_impl(self, src_ids, dst_ids):
     src_ids = np.array(src_ids, dtype=np.int64)
+    src_ids_padded = np.pad(src_ids, (0, self._batch_size - len(src_ids)),
+                            'edge')
     dst_ids = np.array(dst_ids, dtype=np.int64)
-    nodes = self._neg_sampler.get(src_ids, dst_ids)
+    dst_ids = np.pad(dst_ids, (0, self._batch_size - len(dst_ids)), 'edge')
+    nodes = self._neg_sampler.get(src_ids_padded, dst_ids)
     neg_features = self._parse_nodes(nodes)
     sparse_nodes = self._hard_neg_sampler.get(src_ids).layer_nodes(1)
     hard_neg_features, hard_neg_indices = self._parse_sparse_nodes(sparse_nodes)

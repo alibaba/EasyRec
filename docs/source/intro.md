@@ -63,4 +63,5 @@ EasyRec implements state of the art machine learning models used in common recom
 
 ### Contact
 
+- DingDing Group: 32260796. (EasyRec usage general discussion.)
 - DingDing Group: 37930014162, click [this url](https://qr.dingtalk.com/action/joingroup?code=v1,k1,oHNqtNObbu+xUClHh77gCuKdGGH8AYoQ8AjKU23zTg4=&_dt_no_comment=1&origin=11) or scan QrCode to join![new_group.jpg](../images/qrcode/new_group.jpg)

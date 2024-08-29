@@ -1111,13 +1111,14 @@ MovieLens-1M数据集效果：
 
 ## 2.特征交叉组件
 
-| 类名             | 功能               | 说明           | 示例                                                                                                                         |
-| -------------- | ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](#deepfm)                                                                                                             |
-| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](#dlrm)                                                                                                               |
-| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](#dcn)                                                                                                                |
-| BiLinear       | 双线性              | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
-| FiBiNet        | SENet & BiLinear | FiBiNet模型    | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| 类名             | 功能                    | 说明               | 示例                                                                                                                         |
+| -------------- | --------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| FM             | 二阶交叉                  | DeepFM模型的组件      | [案例2](#deepfm)                                                                                                             |
+| DotInteraction | 二阶内积交叉                | DLRM模型的组件        | [案例4](#dlrm)                                                                                                               |
+| Cross          | bit-wise交叉            | DCN v2模型的组件      | [案例3](#dcn)                                                                                                                |
+| BiLinear       | 双线性                   | FiBiNet模型的组件     | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| FiBiNet        | SENet & BiLinear      | FiBiNet模型        | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| Attention      | Dot-product attention | Transformer模型的组件 |                                                                                                                            |
 
 ## 3.特征重要度学习组件
 

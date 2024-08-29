@@ -79,6 +79,33 @@
 | senet    | SENet    |     | protobuf message |
 | mlp      | MLP      |     | protobuf message |
 
+- Attention
+
+Dot-product attention layer, a.k.a. Luong-style attention.
+
+The calculation follows the steps:
+
+1. Calculate attention scores using query and key with shape (batch_size, Tq, Tv).
+1. Use scores to calculate a softmax distribution with shape (batch_size, Tq, Tv).
+1. Use the softmax distribution to create a linear combination of value with shape (batch_size, Tq, dim).
+
+| 参数                      | 类型     | 默认值   | 说明                                                                                                                                                                                                                                     |
+| ----------------------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| use_scale               | bool   | False | If True, will create a scalar variable to scale the attention scores.                                                                                                                                                                  |
+| score_mode              | string | dot   | Function to use to compute attention scores, one of {"dot", "concat"}. "dot" refers to the dot product between the query and key vectors. "concat" refers to the hyperbolic tangent of the concatenation of the query and key vectors. |
+| dropout                 | float  | 0.0   | Float between 0 and 1. Fraction of the units to drop for the attention scores.                                                                                                                                                         |
+| seed                    | int    | None  | A Python integer to use as random seed incase of dropout.                                                                                                                                                                              |
+| return_attention_scores | bool   | False | if True, returns the attention scores (after masking and softmax) as an additional output argument.                                                                                                                                    |
+| use_causal_mask         | bool   | False | Set to True for decoder self-attention. Adds a mask such that position i cannot attend to positions j > i. This prevents the flow of information from the future towards the past.                                                     |
+
+- inputs: List of the following tensors:
+  - query: Query tensor of shape (batch_size, Tq, dim).
+  - value: Value tensor of shape (batch_size, Tv, dim).
+  - key: Optional key tensor of shape (batch_size, Tv, dim). If not given, will use value for both key and value, which is the most common case.
+- output:
+  - Attention outputs of shape (batch_size, Tq, dim).
+  - (Optional) Attention scores after masking and softmax with shape (batch_size, Tq, Tv).
+
 ## 3.特征重要度学习组件
 
 - SENet

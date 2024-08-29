@@ -4,6 +4,11 @@
 import logging
 
 import tensorflow as tf
+from tensorflow.python.keras.initializers import Constant
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Dropout
+from tensorflow.python.keras.layers import Lambda
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers.keras.activation import activation_layer
 from easy_rec.python.layers.utils import Parameter
@@ -14,7 +19,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-class MLP(tf.keras.layers.Layer):
+class MLP(Layer):
   """Sequential multi-layer perceptron (MLP) block.
 
   Attributes:
@@ -74,7 +79,7 @@ class MLP(tf.keras.layers.Layer):
                      l2_reg=None):
     act_layer = activation_layer(activation)
     if use_bn and not use_bn_after_activation:
-      dense = tf.keras.layers.Dense(
+      dense = Dense(
           units=num_units,
           use_bias=use_bias,
           kernel_initializer=initializer,
@@ -86,7 +91,7 @@ class MLP(tf.keras.layers.Layer):
       self._sub_layers.append(bn)
       self._sub_layers.append(act_layer)
     else:
-      dense = tf.keras.layers.Dense(
+      dense = Dense(
           num_units,
           use_bias=use_bias,
           kernel_initializer=initializer,
@@ -99,7 +104,7 @@ class MLP(tf.keras.layers.Layer):
         self._sub_layers.append(bn)
 
     if 0.0 < dropout_rate < 1.0:
-      dropout = tf.keras.layers.Dropout(dropout_rate, name='%s/dropout' % name)
+      dropout = Dropout(dropout_rate, name='%s/dropout' % name)
       self._sub_layers.append(dropout)
     elif dropout_rate >= 1.0:
       raise ValueError('invalid dropout_ratio: %.3f' % dropout_rate)
@@ -117,31 +122,56 @@ class MLP(tf.keras.layers.Layer):
     return x
 
 
-class Highway(tf.keras.layers.Layer):
+class Highway(Layer):
 
   def __init__(self, params, name='highway', reuse=None, **kwargs):
     super(Highway, self).__init__(name, **kwargs)
     self.emb_size = params.get_or_default('emb_size', None)
     self.num_layers = params.get_or_default('num_layers', 1)
-    self.activation = params.get_or_default('activation', 'gelu')
+    self.activation = params.get_or_default('activation', 'relu')
     self.dropout_rate = params.get_or_default('dropout_rate', 0.0)
     self.init_gate_bias = params.get_or_default('init_gate_bias', -3.0)
-    self.reuse = reuse
+    self.act_layer = activation_layer(self.activation)
+    self.dropout_layer = Dropout(
+        self.dropout_rate) if self.dropout_rate > 0.0 else None
+    self.project_layer = None
+    self.gate_bias_initializer = Constant(self.init_gate_bias)
+    self.gates = []  # T
+    self.transforms = []  # H
+    self.multiply_layer = tf.keras.layers.Multiply()
+    self.add_layer = tf.keras.layers.Add()
+
+  def build(self, input_shape):
+    dim = input_shape[-1]
+    if self.emb_size is not None and dim != self.emb_size:
+      self.project_layer = Dense(self.emb_size, name='input_projection')
+      dim = self.emb_size
+    self.carry_gate = Lambda(lambda x: 1.0 - x, output_shape=(dim,))
+    for i in range(self.num_layers):
+      gate = Dense(
+          units=dim,
+          bias_initializer=self.gate_bias_initializer,
+          activation='sigmoid',
+          name='gate_%d' % i)
+      self.gates.append(gate)
+      self.transforms.append(Dense(units=dim))
 
   def call(self, inputs, training=None, **kwargs):
-    from easy_rec.python.layers.common_layers import highway
-    return highway(
-        inputs,
-        self.emb_size,
-        activation=self.activation,
-        num_layers=self.num_layers,
-        dropout=self.dropout_rate if training else 0.0,
-        init_gate_bias=self.init_gate_bias,
-        scope=self.name,
-        reuse=self.reuse)
+    value = inputs
+    if self.project_layer is not None:
+      value = self.project_layer(inputs)
+    for i in range(self.num_layers):
+      gate = self.gates[i](value)
+      transformed = self.act_layer(self.transforms[i](value))
+      if self.dropout_layer is not None:
+        transformed = self.dropout_layer(transformed, training=training)
+      transformed_gated = self.multiply_layer([gate, transformed])
+      identity_gated = self.multiply_layer([self.carry_gate(gate), value])
+      value = self.add_layer([transformed_gated, identity_gated])
+    return value
 
 
-class Gate(tf.keras.layers.Layer):
+class Gate(Layer):
   """Weighted sum gate."""
 
   def __init__(self, params, name='gate', reuse=None, **kwargs):
@@ -165,7 +195,7 @@ class Gate(tf.keras.layers.Layer):
     return output
 
 
-class TextCNN(tf.keras.layers.Layer):
+class TextCNN(Layer):
   """Text CNN Model.
 
   References

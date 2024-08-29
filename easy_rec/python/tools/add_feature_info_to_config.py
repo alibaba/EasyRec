@@ -111,6 +111,28 @@ def main(argv):
         logging.info('drop feature: %s' % feature_name)
     feature_group.ClearField('feature_names')
     feature_group.feature_names.extend(reserved_features)
+    for sequence_feature in feature_group.sequence_features:
+      seq_att_maps = sequence_feature.seq_att_map
+      for seq_att in seq_att_maps:
+        keys = seq_att.key
+        reserved_keys = []
+        for key in keys:
+          if key not in drop_feature_names:
+            reserved_keys.append(key)
+          else:
+            logging.info('drop sequence feature key: %s' % key)
+        seq_att.ClearField('key')
+        seq_att.key.extend(reserved_keys)
+
+        hist_seqs = seq_att.hist_seq
+        reserved_hist_seqs = []
+        for hist_seq in hist_seqs:
+          if hist_seq not in drop_feature_names:
+            reserved_hist_seqs.append(hist_seq)
+          else:
+            logging.info('drop sequence feature hist_seq: %s' % hist_seq)
+        seq_att.ClearField('hist_seq')
+        seq_att.hist_seq.extend(reserved_hist_seqs)
 
   config_dir, config_name = os.path.split(FLAGS.output_config_path)
   config_util.save_pipeline_config(pipeline_config, config_dir, config_name)

@@ -194,9 +194,9 @@ pai -name easy_rec_ext -project algo_public
 ### 依赖
 
 - 混合并行使用Horovod做底层的通信, 因此需要安装Horovod, 可以直接使用下面的镜像
-- mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v5
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v5
   ```
-    sudo docker run --gpus=all --privileged -v /home/easyrec/:/home/easyrec/ -ti mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v5 bash
+    sudo docker run --gpus=all --privileged -v /home/easyrec/:/home/easyrec/ -ti mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:sok-tf212-gpus-v5 bash
   ```
 
 ### 配置
