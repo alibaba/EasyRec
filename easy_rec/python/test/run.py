@@ -80,7 +80,7 @@ def main(argv):
                (len(all_tests), test_dir))
 
   max_num_port_per_proc = 3
-  total_port_num = (max_num_port_per_proc + 2) * FLAGS.num_parallel
+  total_port_num = (max_num_port_per_proc + 2) * FLAGS.num_parallel * 10
   all_available_ports = test_utils.get_ports_base(total_port_num).tolist()
 
   procs = {}
