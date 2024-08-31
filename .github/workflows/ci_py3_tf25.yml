@@ -23,7 +23,7 @@ jobs:
         run: |
            whoami
            source ~/.bashrc
-           conda init && conda activate tf25_py3
+           /home/admin/miniconda3/bin/conda activate tf25_py3
            python git-lfs/git_lfs.py pull
            source scripts/ci_test.sh
       - name: SignalFail
