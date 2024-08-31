@@ -23,7 +23,7 @@ jobs:
         run: |
            whoami
            conda init
-	   source ~/.bashrc
+           source ~/.bashrc
            conda activate tf25_py3
            python git-lfs/git_lfs.py pull
            source scripts/ci_test.sh
