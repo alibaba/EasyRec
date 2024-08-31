@@ -22,8 +22,10 @@ jobs:
           PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
         run: |
            whoami
+           pwd
+           conda init bash
            source ~/.bashrc
-           /home/admin/miniconda3/bin/conda activate tf25_py3
+           conda activate tf25_py3
            python git-lfs/git_lfs.py pull
            source scripts/ci_test.sh
       - name: SignalFail
