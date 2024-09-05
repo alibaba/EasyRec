@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.loss.jrc_loss import jrc_loss
+from easy_rec.python.loss.listwise_loss import listwise_distill_loss
 from easy_rec.python.loss.listwise_loss import listwise_rank_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss
 from easy_rec.python.loss.pairwise_loss import pairwise_hinge_loss
@@ -132,10 +133,11 @@ def build(loss_type,
         name=loss_name)
   elif loss_type == LossType.LISTWISE_RANK_LOSS:
     session = kwargs.get('session_ids', None)
-    trans_fn, temp, label_is_logits = None, 1.0, False
+    trans_fn, temp, label_is_logits, scale = None, 1.0, False, False
     if loss_param is not None:
       temp = loss_param.temperature
       label_is_logits = loss_param.label_is_logits
+      scale = loss_param.scale_logits
       if loss_param.HasField('transform_fn'):
         trans_fn = loss_param.transform_fn
     return listwise_rank_loss(
@@ -145,6 +147,25 @@ def build(loss_type,
         temperature=temp,
         label_is_logits=label_is_logits,
         transform_fn=trans_fn,
+        scale_logits=scale,
+        weights=loss_weight)
+  elif loss_type == LossType.LISTWISE_DISTILL_LOSS:
+    session = kwargs.get('session_ids', None)
+    trans_fn, temp, label_clip_max_value, scale = None, 1.0, 512.0, False
+    if loss_param is not None:
+      temp = loss_param.temperature
+      label_clip_max_value = loss_param.label_clip_max_value
+      scale = loss_param.scale_logits
+      if loss_param.HasField('transform_fn'):
+        trans_fn = loss_param.transform_fn
+    return listwise_distill_loss(
+        label,
+        pred,
+        session,
+        temperature=temp,
+        label_clip_max_value=label_clip_max_value,
+        transform_fn=trans_fn,
+        scale_logits=scale,
         weights=loss_weight)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
@@ -198,6 +219,16 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
     if not loss_name:
       loss_name = 'kd_loss_' + kd.pred_name.replace('/', '_')
       loss_name += '_' + kd.soft_label_name.replace('/', '_')
+
+    loss_weight = kd.loss_weight
+    if kd.HasField('task_space_indicator_name') and kd.HasField(
+        'task_space_indicator_value'):
+      in_task_space = tf.to_float(
+          tf.equal(feature_dict[kd.task_space_indicator_name],
+                   kd.task_space_indicator_value))
+      loss_weight = loss_weight * (
+          kd.in_task_space_weight * in_task_space + kd.out_task_space_weight *
+          (1 - in_task_space))
 
     label = label_dict[kd.soft_label_name]
     pred = prediction_dict[kd.pred_name]
@@ -265,18 +296,18 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
         preds = pred
       losses = tf.keras.losses.KLD(labels, preds)
       loss_dict[loss_name] = tf.reduce_mean(
-          losses, name=loss_name) * kd.loss_weight
+          losses, name=loss_name) * loss_weight
     elif kd.loss_type == LossType.BINARY_CROSS_ENTROPY_LOSS:
       losses = tf.keras.backend.binary_crossentropy(
           label, pred, from_logits=True)
       loss_dict[loss_name] = tf.reduce_mean(
-          losses, name=loss_name) * kd.loss_weight
+          losses, name=loss_name) * loss_weight
     elif kd.loss_type == LossType.CROSS_ENTROPY_LOSS:
       loss_dict[loss_name] = tf.losses.log_loss(
-          label, pred, weights=kd.loss_weight)
+          label, pred, weights=loss_weight)
     elif kd.loss_type == LossType.L2_LOSS:
       loss_dict[loss_name] = tf.losses.mean_squared_error(
-          labels=label, predictions=pred, weights=kd.loss_weight)
+          labels=label, predictions=pred, weights=loss_weight)
     else:
       loss_param = kd.WhichOneof('loss_param')
       kwargs = {}
@@ -288,7 +319,7 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
           kd.loss_type,
           label,
           pred,
-          loss_weight=kd.loss_weight,
+          loss_weight=loss_weight,
           loss_param=loss_param,
           **kwargs)
   return loss_dict

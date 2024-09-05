@@ -27,7 +27,10 @@ class RankModel(EasyRecModel):
     self._num_class = self._model_config.num_class
     self._losses = self._model_config.losses
     if self._labels is not None:
-      self._label_name = list(self._labels.keys())[0]
+      if model_config.HasField('label_name'):
+        self._label_name = model_config.label_name
+      else:
+        self._label_name = list(self._labels.keys())[0]
     self._outputs = []
 
   def build_predict_graph(self):
@@ -58,7 +61,8 @@ class RankModel(EasyRecModel):
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.BINARY_CROSS_ENTROPY_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.BINARY_CROSS_ENTROPY_LOSS,
+        LossType.LISTWISE_DISTILL_LOSS
     }
     if loss_type in binary_loss_type:
       assert num_class == 1, 'num_class must be 1 when loss type is %s' % loss_type.name
@@ -133,7 +137,8 @@ class RankModel(EasyRecModel):
           LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
           LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
           LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
-          LossType.JRC_LOSS
+          LossType.JRC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
+          LossType.LISTWISE_RANK_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -175,7 +180,8 @@ class RankModel(EasyRecModel):
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS,
+        LossType.LISTWISE_DISTILL_LOSS
     }
     if loss_type in {
         LossType.CLASSIFICATION, LossType.BINARY_CROSS_ENTROPY_LOSS
@@ -280,7 +286,8 @@ class RankModel(EasyRecModel):
         LossType.CLASSIFICATION, LossType.F1_REWEIGHTED_LOSS,
         LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
         LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
-        LossType.JRC_LOSS
+        LossType.JRC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
+        LossType.LISTWISE_RANK_LOSS
     }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
@@ -421,7 +428,7 @@ class RankModel(EasyRecModel):
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.LISTWISE_DISTILL_LOSS
     }
     if loss_type in binary_loss_set:
       return ['probs' + suffix, 'logits' + suffix]

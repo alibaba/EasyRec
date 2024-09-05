@@ -22,6 +22,7 @@ enum LossType {
     BINARY_CROSS_ENTROPY_LOSS = 15;
     KL_DIVERGENCE_LOSS = 16;
     LISTWISE_RANK_LOSS = 18;
+    LISTWISE_DISTILL_LOSS = 19;
 }
 
 message Loss {
@@ -41,6 +42,7 @@ message Loss {
     JRCLoss jrc_loss = 109;
     PairwiseHingeLoss pairwise_hinge_loss = 110;
     ListwiseRankLoss listwise_rank_loss = 111;
+    ListwiseDistillLoss listwise_distill_loss = 112;
   }
 };
 
@@ -120,4 +122,13 @@ message ListwiseRankLoss {
   optional string session_name = 2;
   optional string transform_fn = 3;
   optional bool label_is_logits = 4 [default = false];
+  optional bool scale_logits = 5 [default = false];
+}
+
+message ListwiseDistillLoss {
+  required float temperature = 1 [default = 1.0];
+  optional string session_name = 2;
+  optional string transform_fn = 3;
+  optional float label_clip_max_value = 4 [default = 512.0];
+  optional bool scale_logits = 5 [default = false];
 }
