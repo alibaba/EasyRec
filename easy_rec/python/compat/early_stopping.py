@@ -21,9 +21,9 @@ import operator
 import os
 import threading
 import time
-from distutils.version import LooseVersion
 
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import init_ops
