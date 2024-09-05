@@ -36,85 +36,85 @@ jobs:
                echo "ci_test_passed=0" >> $GITHUB_OUTPUT
              fi
            fi
-      - name: LabelAndComment
-        env:
-          CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
-        uses: actions/github-script@v5
-        with:
-           script: |
-             const { CI_TEST_PASSED } = process.env
-             labels = await github.rest.issues.listLabelsOnIssue({
-               issue_number: context.issue.number,
-               repo:context.repo.repo,
-               owner:context.repo.owner
-             })
-             console.log('labels.url=' + labels.url)
+      # - name: LabelAndComment
+      #   env:
+      #     CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
+      #   uses: actions/github-script@v5
+      #   with:
+      #      script: |
+      #        const { CI_TEST_PASSED } = process.env
+      #        labels = await github.rest.issues.listLabelsOnIssue({
+      #          issue_number: context.issue.number,
+      #          repo:context.repo.repo,
+      #          owner:context.repo.owner
+      #        })
+      #        console.log('labels.url=' + labels.url)
 
-             labels = labels.data
+      #        labels = labels.data
 
-             var label_names = []
-             if (labels != null) {
-               labels.forEach(tmp_lbl => label_names.push(tmp_lbl.name))
-             }
-             console.log(`ci_test_passed=${CI_TEST_PASSED} labels=${label_names}`);
+      #        var label_names = []
+      #        if (labels != null) {
+      #          labels.forEach(tmp_lbl => label_names.push(tmp_lbl.name))
+      #        }
+      #        console.log(`ci_test_passed=${CI_TEST_PASSED} labels=${label_names}`);
 
-             var pass_label = null;
-             if (labels != null) {
-                pass_label = labels.find(label=>label.name=='code_style_test_passed');
-             }
+      #        var pass_label = null;
+      #        if (labels != null) {
+      #           pass_label = labels.find(label=>label.name=='code_style_test_passed');
+      #        }
 
-             var fail_label = null;
-             if (labels != null) {
-                fail_label = labels.find(label=>label.name=='code_style_test_failed');
-             }
+      #        var fail_label = null;
+      #        if (labels != null) {
+      #           fail_label = labels.find(label=>label.name=='code_style_test_failed');
+      #        }
 
-             if (pass_label) {
-               github.rest.issues.removeLabel({
-                 issue_number: context.issue.number,
-                 owner: context.repo.owner,
-                 repo: context.repo.repo,
-                 name: 'code_style_test_passed'
-               })
-             }
+      #        if (pass_label) {
+      #          github.rest.issues.removeLabel({
+      #            issue_number: context.issue.number,
+      #            owner: context.repo.owner,
+      #            repo: context.repo.repo,
+      #            name: 'code_style_test_passed'
+      #          })
+      #        }
 
-             if (fail_label) {
-               github.rest.issues.removeLabel({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: 'code_style_test_failed'
-               })
-             }
+      #        if (fail_label) {
+      #          github.rest.issues.removeLabel({
+      #             issue_number: context.issue.number,
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             name: 'code_style_test_failed'
+      #          })
+      #        }
 
-             if (CI_TEST_PASSED == 1) {
-               github.rest.issues.addLabels({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  labels: ['code_style_test_passed']
-               })
+      #        if (CI_TEST_PASSED == 1) {
+      #          github.rest.issues.addLabels({
+      #             issue_number: context.issue.number,
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             labels: ['code_style_test_passed']
+      #          })
 
-               github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: "Code Style Test Passed"
-               })
-             } else {
-               github.rest.issues.addLabels({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  labels: ['code_style_test_failed']
-               })
+      #          github.rest.issues.createComment({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             issue_number: context.issue.number,
+      #             body: "Code Style Test Passed"
+      #          })
+      #        } else {
+      #          github.rest.issues.addLabels({
+      #             issue_number: context.issue.number,
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             labels: ['code_style_test_failed']
+      #          })
 
-               github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: "Code Style Test Failed"
-               })
-             }
+      #          github.rest.issues.createComment({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             issue_number: context.issue.number,
+      #             body: "Code Style Test Failed"
+      #          })
+      #        }
       - name: SignalFail
         env:
           CI_TEST_PASSED: ${{steps.run_ci_test.outputs.ci_test_passed}}
