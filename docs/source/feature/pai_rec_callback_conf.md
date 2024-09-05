@@ -1,5 +1,9 @@
 # PAI-REC 全埋点配置
 
+## PAI-Rec引擎的callback服务文档
+
+- [文档](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/intro/callback_api.html)
+
 ## 模板
 
 ```json

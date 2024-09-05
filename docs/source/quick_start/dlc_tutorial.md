@@ -88,16 +88,16 @@ dlc submit tfjob \
     --workspace_id=67849 \
     --priority=1 \
     --workers=1 \
-    --worker_image=mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9 \
+    --worker_image=mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4 \
     --worker_spec=ecs.g6.2xlarge \
     --ps=1 \
-    --ps_image=mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9 \
+    --ps_image=mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4 \
     --ps_spec=ecs.g6.2xlarge \
     --chief=true \
-    --chief_image=mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9 \
+    --chief_image=mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4 \
     --chief_spec=ecs.g6.2xlarge \
     --evaluators=1 \
-    --evaluator_image=mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.4.9 \
+    --evaluator_image=mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4 \
     --evaluator_spec=ecs.g6.2xlarge
 ```
 

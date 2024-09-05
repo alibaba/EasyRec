@@ -2,7 +2,7 @@
 
 - RTP FG: RealTime Predict Feature Generation, 解决实时预测需要的特征工程需求. 特征工程在推荐链路里面也占用了比较长的时间.
 
-- RTP FG能够以比较高的效率生成一些复杂的交叉特征，如match feature和lookup feature, 通过使用同一套c++代码保证离线在线的一致性.
+- RTP FG能够以比较高的效率生成一些复杂的交叉特征，如match feature和lookup feature.离线训练和在线预测的时候通过使用同一套c++代码保证离线在线的一致性.
 
 - 其生成的特征可以接入EasyRec进行训练，从RTP FG的配置(fg.json)可以生成EasyRec的配置文件(pipeline.config).
 

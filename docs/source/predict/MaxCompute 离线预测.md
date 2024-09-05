@@ -11,7 +11,7 @@
 drop table if exists ctr_test_output;
 pai -name easy_rec_ext
 -Dcmd=predict
--Dcluster='{"worker" : {"count":5, "cpu":1600,  "memory":40000, "gpu":100}}'
+-Dcluster='{"worker" : {"count":5, "cpu":1000,  "memory":40000, "gpu":0}}'
 -Darn=acs:ram::xxx:role/aliyunodpspaidefaultrole
 -Dbuckets=oss://easyrec/
 -Dsaved_model_dir=oss://easyrec/easy_rec_test/experiment/export/1597299619
@@ -23,6 +23,7 @@ pai -name easy_rec_ext
 -DossHost=oss-cn-beijing-internal.aliyuncs.com;
 ```
 
+- cluster: 这里cpu:1000表示是10个cpu核；核与内存的关系设置1:4000，一般不超过40000；gpu设置为0，表示不用GPU推理。
 - saved_model_dir: 导出的模型目录
 - output_table: 输出表，不需要提前创建，会自动创建
 - excluded_cols: 预测模型不需要的columns，比如labels
@@ -55,6 +56,8 @@ pai -name easy_rec_ext
   - 多分类模型(num_class > 1)，导出字段:
     - logits: string(json), softmax之前的vector, shape\[num_class\]
     - probs: string(json), softmax之后的vector, shape\[num_class\]
+      - 如果一个分类目标是is_click, 输出概率的变量名称是probs_is_click
+      - 多目标模型中有一个回归目标是paytime，那么输出回归预测分的变量名称是：y_paytime
     - logits_y: logits\[y\], float, 类别y对应的softmax之前的概率
     - probs_y: probs\[y\], float, 类别y对应的概率
     - y: 类别id, = argmax(probs_y), int, 概率最大的类别
