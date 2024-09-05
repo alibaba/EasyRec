@@ -80,4 +80,5 @@ message BayesTaskTower {
     optional uint32 ait_project_dim = 18;
     // training loss label dynamic weights
     optional string dynamic_weight = 19;
+
 };
