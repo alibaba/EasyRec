@@ -61,8 +61,7 @@ class DSSM(MatchModel):
         kernel_regularizer=self._l2_reg,
         name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
 
-    if self._loss_type == LossType.CLASSIFICATION and self._model_config.simi_func == Similarity.COSINE or \
-        self._model_config.normalization:
+    if self._model_config.simi_func == Similarity.COSINE:
         user_tower_emb = self.norm(user_tower_emb)
         item_tower_emb = self.norm(item_tower_emb)
         temperature = self._model_config.temperature
