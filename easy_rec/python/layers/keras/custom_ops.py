@@ -21,8 +21,8 @@ elif tf.__version__.startswith('1.15'):
     ops_dir = os.path.join(ops_dir, 'DeepRec')
   else:
     ops_dir = os.path.join(ops_dir, '1.15')
-else:
-  ops_dir = None
+elif tf.__version__.startswith('2.12'):
+  ops_dir = os.path.join(ops_dir, '2.12')
 
 logging.info('ops_dir is %s' % ops_dir)
 custom_op_path = os.path.join(ops_dir, 'libcustom_ops.so')
