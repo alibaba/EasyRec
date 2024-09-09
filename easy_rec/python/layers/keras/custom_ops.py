@@ -45,7 +45,7 @@ class SeqAugmentOps(Layer):
     super(SeqAugmentOps, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self.seq_aug_params = params.get_pb_config()
-    self.seq_augment = custom_ops.seq_augment
+    self.seq_augment = custom_ops.my_seq_augment
 
   def build(self, input_shape):
     assert len(input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
