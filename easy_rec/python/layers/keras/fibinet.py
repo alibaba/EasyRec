@@ -58,6 +58,7 @@ class SENet(Layer):
         name='W1')
     self.excite_layer = Dense(
         units=emb_size, kernel_initializer='glorot_normal', name='W2')
+    super(SENet, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
@@ -169,6 +170,7 @@ class BiLinear(Layer):
               units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j))
           for i, j in itertools.combinations(range(field_num), 2)
       ]
+    super(BiLinear, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
     embeddings = inputs

@@ -244,7 +244,7 @@ class Cross(tf.keras.layers.Layer):
           dtype=self.dtype,
           activation=self._preactivation,
       )
-    self.built = True
+    super(Cross, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
     """Computes the feature cross.

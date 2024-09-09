@@ -48,13 +48,15 @@ class SeqAugmentOps(Layer):
     self.seq_augment = custom_ops.my_seq_augment
 
   def build(self, input_shape):
-    assert len(input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
+    assert type(input_shape) in (tuple, list) and len(
+        input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
     embed_dim = int(input_shape[0][-1])
     self.mask_emb = self.add_weight(
         shape=(embed_dim,),
         initializer='glorot_uniform',
         trainable=True,
         name='mask')
+    super(SeqAugmentOps, self).build(input_shape)
 
   def call(self, inputs, training=None, **kwargs):
     assert isinstance(inputs, (list, tuple))

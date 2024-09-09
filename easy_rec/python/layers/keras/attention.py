@@ -101,7 +101,7 @@ class Attention(Layer):
           dtype=self.dtype,
           trainable=True,
       )
-    self.built = True
+    super(Attention, self).build(input_shape)  # Be sure to call this somewhere!
 
   def _calculate_scores(self, query, key):
     """Calculates attention scores as a query-key dot product.

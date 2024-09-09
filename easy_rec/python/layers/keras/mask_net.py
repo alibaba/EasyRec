@@ -76,6 +76,7 @@ class MaskBlock(Layer):
           name='output_ln')
     else:
       self.output_layer_norm = LayerNormalization(name='output_ln')
+    super(MaskBlock, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
     if type(inputs) in (tuple, list):
