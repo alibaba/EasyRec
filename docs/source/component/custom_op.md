@@ -6,7 +6,7 @@
    - 参考官方示例：[TensorFlow Custom Op](https://github.com/tensorflow/custom-op/)
    - 注意：自定义Op的编译依赖tf版本需要与执行时的tf版本保持一致
    - 您可能需要为离线训练 与 在线推理服务 编译两个不同依赖环境的动态库
-     - 在PAI平台上需要依赖 tf 1.12 版本编译
+     - 在PAI平台上需要依赖 tf 1.12 版本编译（先下载pai-tf的官方镜像）
      - 在EAS的 [EasyRec Processor](https://help.aliyun.com/zh/pai/user-guide/easyrec) 中使用自定义Op需要依赖 tf 2.10.1 编译
 1. 在`EasyRec`中使用自定义Op的步骤
    1. 下载EasyRec的最新[源代码](https://github.com/alibaba/EasyRec)
@@ -44,6 +44,8 @@ pai -name easy_rec_ext
 1. 再次强调一遍，**导出的动态库依赖的tf版本需要与推理服务依赖的tf版本保持一致**
 
 ## 自定义Op的示例
+
+使用自定义OP求两段输入文本的Term匹配率
 
 ```protobuf
 feature_config: {
@@ -89,17 +91,16 @@ model_config: {
       }
     }
     blocks {
-      name: 'edit_distance'
+      name: 'match_ratio'
       inputs {
         block_name: 'text'
       }
       keras_layer {
-        class_name: 'EditDistance'
-        st_params {
-          fields {
-            key: 'text_encoding'
-            value: { string_value: 'latin' }
-          }
+        class_name: 'OverlapFeature'
+        overlap {
+          separator: " "
+          default_value: "0"
+          methods: "query_common_ratio"
         }
       }
     }
@@ -109,7 +110,7 @@ model_config: {
         feature_group_name: 'features'
       }
       inputs {
-        block_name: 'edit_distance'
+        block_name: 'match_ratio'
       }
       keras_layer {
         class_name: 'MLP'

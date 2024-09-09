@@ -45,7 +45,7 @@ class SeqAugmentOps(Layer):
     super(SeqAugmentOps, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self.seq_aug_params = params.get_pb_config()
-    self.seq_augment = custom_ops.my_seq_augment
+    self.seq_augment = custom_ops.seq_augment
 
   def build(self, input_shape):
     assert len(input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
@@ -60,11 +60,11 @@ class SeqAugmentOps(Layer):
     assert isinstance(inputs, (list, tuple))
     seq_input, seq_len = inputs[:2]
 
-    x = self.seq_augment(seq_input, seq_len, self.mask_emb,
-                         self.seq_aug_params.crop_rate,
-                         self.seq_aug_params.reorder_rate,
-                         self.seq_aug_params.mask_rate)
-    return x
+    aug_seq, aug_len = self.seq_augment(seq_input, seq_len, self.mask_emb,
+                                        self.seq_aug_params.crop_rate,
+                                        self.seq_aug_params.reorder_rate,
+                                        self.seq_aug_params.mask_rate)
+    return aug_seq, aug_len
 
 
 class TextNormalize(Layer):

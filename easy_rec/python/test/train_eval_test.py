@@ -7,11 +7,11 @@ import os
 import threading
 import time
 import unittest
+from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
-from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -409,12 +409,9 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/highway_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
-  @unittest.skipIf(
-      LooseVersion(tf.__version__) >= LooseVersion('2.0.0'),
-      'EditDistanceOp only work before tf version == 2.0')
   def test_custom_op(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/mlp_on_movielens_with_custom_op.config',
+        'samples/model_config/cl4srec_on_taobao_with_custom_op.config',
         self._test_dir)
     self.assertTrue(self._success)
 

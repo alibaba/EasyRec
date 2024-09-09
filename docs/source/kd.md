@@ -20,7 +20,7 @@
 
 - label_is_logits: 目标是logits, 还是probs, 默认是logits
 
-- loss_type: loss的类型, 可以是CROSS_ENTROPY_LOSS或者L2_LOSS
+- loss_type: loss的类型, 可以是CROSS_ENTROPY_LOSS、L2_LOSS、BINARY_CROSS_ENTROPY_LOSS、KL_DIVERGENCE_LOSS、PAIRWISE_HINGE_LOSS、LISTWISE_RANK_LOSS等
 
 - loss_weight: loss的权重, 默认是1.0
 
@@ -62,6 +62,45 @@ model_config {
   }
 }
 ```
+
+除了常规的从teacher模型的预测结果里"蒸馏"知识到student模型，在搜推场景中更加推荐采用基于pairwise或者listwise的方式从teacher模型学习
+其对不同item的排序（学习对item预估结果的偏序关系），示例如下：
+
+- pairwise 知识蒸馏
+
+```protobuf
+  kd {
+    loss_name: 'ctcvr_rank_loss'
+    soft_label_name: 'pay_logits'
+    pred_name: 'logits'
+    loss_type: PAIRWISE_HINGE_LOSS
+    loss_weight: 1.0
+    pairwise_hinge_loss {
+      session_name: "raw_query"
+      use_exponent: false
+      use_label_margin: true
+    }
+  }
+```
+
+- listwise 知识蒸馏
+
+```protobuf
+  kd {
+    loss_name: 'ctcvr_rank_loss'
+    soft_label_name: 'pay_logits'
+    pred_name: 'logits'
+    loss_type: LISTWISE_RANK_LOSS
+    loss_weight: 1.0
+    listwise_rank_loss {
+      session_name: "raw_query"
+      temperature: 3.0
+      label_is_logits: true
+    }
+  }
+```
+
+可以为损失函数配置参数，配置方法参考[损失函数](models/loss.md)参数。
 
 ### 训练命令
 
