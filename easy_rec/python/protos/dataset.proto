@@ -292,6 +292,8 @@ message DatasetConfig {
 
     // input field for sample weight
     optional string sample_weight = 22;
+    // input field for label dynimic weight
+    repeated string label_dynamic_weight = 27;
     // the compression type of tfrecord
     optional string data_compression_type = 23 [default = ''];
 

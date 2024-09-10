@@ -156,6 +156,58 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - loss_weight_strategy: Random
   - 表示损失函数的权重设定为归一化的随机数
 
+### Loss动态权重
+
+在多目标学习任务中，我们经常遇到给与不同目标设置不同的权重，甚至不同目标的loss权重会随着样本而动态变化。EasyRec支持用户为不同目标设置动态的权重。
+
+- 1.首先在dataset中配置动态权重字段的名称，同时增加这些字段的input_config，如下示例
+
+```protobuf
+data_config {
+  batch_size: 4096
+  label_fields: "clk"
+  label_fields: "buy"
+  label_dynamic_weight: "clk_weight"
+  label_dynamic_weight: "buy_weight"
+  prefetch_size: 32
+  input_type: CSVInput
+  input_fields {
+    input_name: "clk"
+    input_type: INT32
+  }
+  input_fields {
+    input_name: "buy"
+    input_type: INT32
+  }
+  input_fields {
+    input_name: "clk_weight"
+    input_type: double
+  }
+  input_fields {
+    input_name: "buy_weight"
+    input_type: double
+  }
+}
+```
+
+- 2.需要在对应的任务tower中设置对应的权重列，如下示例
+
+```protobuf
+task_towers {
+  tower_name: "ctr"
+  label_name: "clk"
+  dnn {
+    hidden_units: [256, 192, 128, 64]
+  }
+  num_class: 1
+  dynamic_weight: "clk_weight"
+  loss_type: CLASSIFICATION
+  metrics_set: {
+   auc {}
+  }
+}
+```
+
 ### 参考论文：
 
 - 《 Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics 》

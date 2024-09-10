@@ -224,6 +224,8 @@ class MultiTaskModel(RankModel):
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       loss_weight = task_tower_cfg.weight
+      if task_tower_cfg.HasField('dynamic_weight'):
+        loss_weight *= self._feature_dict[task_tower_cfg.dynamic_weight]
       if task_tower_cfg.use_sample_weight:
         loss_weight *= self._sample_weight
 
