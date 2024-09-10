@@ -48,7 +48,10 @@ class SeqAugmentOps(Layer):
     self.seq_augment = custom_ops.my_seq_augment
 
   def call(self, inputs, training=None, **kwargs):
-    assert isinstance(inputs, (list, tuple))
+    assert isinstance(
+        inputs,
+        (list, tuple)), 'the inputs of SeqAugmentOps must be type of list/tuple'
+    assert len(inputs) >= 2, 'SeqAugmentOps must have at least 2 inputs'
     seq_input, seq_len = inputs[:2]
     embedding_dim = int(seq_input.shape[-1])
     with tf.variable_scope(self.name, reuse=self.reuse):
