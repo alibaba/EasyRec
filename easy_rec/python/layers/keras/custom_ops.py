@@ -48,6 +48,7 @@ class SeqAugmentOps(Layer):
     self.seq_augment = custom_ops.my_seq_augment
 
   def build(self, input_shape):
+    print("input_shape:", input_shape)
     assert type(input_shape) in (tuple, list) and len(
         input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
     embed_dim = int(input_shape[0][-1])
@@ -59,6 +60,7 @@ class SeqAugmentOps(Layer):
     super(SeqAugmentOps, self).build(input_shape)
 
   def call(self, inputs, training=None, **kwargs):
+    print("inputs:", inputs)
     assert isinstance(inputs, (list, tuple))
     seq_input, seq_len = inputs[:2]
 
