@@ -47,24 +47,14 @@ class SeqAugmentOps(Layer):
     self.seq_aug_params = params.get_pb_config()
     self.seq_augment = custom_ops.my_seq_augment
 
-  def build(self, input_shape):
-    print("input_shape:", input_shape)
-    assert type(input_shape) in (tuple, list) and len(
-        input_shape) >= 2, 'SeqAugmentOps must has at least two inputs'
-    embed_dim = int(input_shape[0][-1])
-    self.mask_emb = self.add_weight(
-        shape=(embed_dim,),
-        initializer='glorot_uniform',
-        trainable=True,
-        name='mask')
-    super(SeqAugmentOps, self).build(input_shape)
-
   def call(self, inputs, training=None, **kwargs):
-    print("inputs:", inputs)
     assert isinstance(inputs, (list, tuple))
     seq_input, seq_len = inputs[:2]
-
-    aug_seq, aug_len = self.seq_augment(seq_input, seq_len, self.mask_emb,
+    embedding_dim = int(seq_input.shape[-1])
+    with tf.variable_scope(self.name, reuse=self.reuse):
+      mask_emb = tf.get_variable(
+          'mask', (embedding_dim,), dtype=tf.float32, trainable=True)
+    aug_seq, aug_len = self.seq_augment(seq_input, seq_len, mask_emb,
                                         self.seq_aug_params.crop_rate,
                                         self.seq_aug_params.reorder_rate,
                                         self.seq_aug_params.mask_rate)
