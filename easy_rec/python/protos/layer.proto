@@ -98,3 +98,24 @@ message TextCNN {
     optional string activation = 4 [default = 'relu'];
     optional MLP mlp = 5;
 }
+
+message OverlapFeature {
+    optional string separator = 1;
+    optional string default_value = 2;
+    repeated string methods = 3;
+    optional string normalize_fn = 4;
+    repeated float boundaries = 5;
+    optional int32 embedding_dim = 6;
+    optional int32 print_first_n = 7 [default = 0];
+    optional int32 summarize = 8;
+}
+
+message MappedDotProduct {
+    optional string separator = 1;
+    optional float default_value = 2;
+    optional string normalize_fn = 3;
+    repeated float boundaries = 4;
+    optional int32 embedding_dim = 5;
+    optional int32 print_first_n = 6 [default = 0];
+    optional int32 summarize = 7;
+}

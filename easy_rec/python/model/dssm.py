@@ -62,11 +62,11 @@ class DSSM(MatchModel):
         name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
 
     if self._model_config.simi_func == Similarity.COSINE:
-        user_tower_emb = self.norm(user_tower_emb)
-        item_tower_emb = self.norm(item_tower_emb)
-        temperature = self._model_config.temperature
-    else: 
-        temperature = 1.0
+      user_tower_emb = self.norm(user_tower_emb)
+      item_tower_emb = self.norm(item_tower_emb)
+      temperature = self._model_config.temperature
+    else:
+      temperature = 1.0
 
     user_item_sim = self.sim(user_tower_emb, item_tower_emb) / temperature
     if self._model_config.scale_simi:

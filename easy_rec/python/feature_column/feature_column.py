@@ -132,7 +132,7 @@ class FeatureColumnParser(object):
           self.parse_sequence_feature(config)
         elif config.feature_type == config.ExprFeature:
           self.parse_expr_feature(config)
-        else:
+        elif config.feature_type != config.PassThroughFeature:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
         pass

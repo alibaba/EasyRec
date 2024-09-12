@@ -107,7 +107,7 @@ class PeriodicEmbedding(tf.keras.layers.Layer):
   """
 
   def __init__(self, params, name='periodic_embedding', reuse=None, **kwargs):
-    super(PeriodicEmbedding, self).__init__(name, **kwargs)
+    super(PeriodicEmbedding, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     params.check_required(['embedding_dim', 'sigma'])
     self.embedding_dim = int(params.embedding_dim)
@@ -164,7 +164,7 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
   """
 
   def __init__(self, params, name='auto_dis_embedding', reuse=None, **kwargs):
-    super(AutoDisEmbedding, self).__init__(name, **kwargs)
+    super(AutoDisEmbedding, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     params.check_required(['embedding_dim', 'num_bins', 'temperature'])
     self.emb_dim = int(params.embedding_dim)

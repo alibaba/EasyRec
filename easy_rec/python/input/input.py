@@ -921,8 +921,16 @@ class Input(six.with_metaclass(_meta_type, object)):
         ], 'invalid label dtype: %s' % str(field_dict[input_name].dtype)
         label_dict[input_name] = field_dict[input_name]
 
-    if self._data_config.HasField('sample_weight'):
-      if self._mode != tf.estimator.ModeKeys.PREDICT:
+    if self._mode != tf.estimator.ModeKeys.PREDICT:
+      for func_config in self._data_config.extra_label_func:
+        lbl_name = func_config.label_name
+        func_name = func_config.label_func
+        logging.info('generating new label `%s` by transform: %s' %
+                     (lbl_name, func_name))
+        lbl_fn = load_by_path(func_name)
+        label_dict[lbl_name] = lbl_fn(label_dict)
+
+      if self._data_config.HasField('sample_weight'):
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
 

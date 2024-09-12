@@ -24,7 +24,7 @@ class MMoE(tf.keras.layers.Layer):
   """Multi-gate Mixture-of-Experts model."""
 
   def __init__(self, params, name='MMoE', reuse=None, **kwargs):
-    super(MMoE, self).__init__(name, **kwargs)
+    super(MMoE, self).__init__(name=name, **kwargs)
     params.check_required(['num_expert', 'num_task'])
     self._reuse = reuse
     self._num_expert = params.num_expert

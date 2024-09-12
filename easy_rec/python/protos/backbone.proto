@@ -17,6 +17,9 @@ message InputLayer {
     optional bool concat_seq_feature = 10 [default = true];
 }
 
+message RawInputLayer {
+}
+
 message Lambda {
     required string expression = 1;
 }
@@ -78,6 +81,7 @@ message Block {
         KerasLayer keras_layer = 103;
         RecurrentLayer recurrent = 104;
         RepeatLayer repeat = 105;
+        RawInputLayer raw_input = 106;
     }
 }
 

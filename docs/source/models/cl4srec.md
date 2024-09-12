@@ -157,6 +157,7 @@ model_config: {
   - use_package_input: 当`package`的输入是动态的时，设置该输入占位符，表示当前`block`的输入由调用`package`时指定
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - SeqAugment: 序列数据增强的组件，参数详见[参考文档](../component/component.md#id5)
+    - SeqAugmentOps: `class_name`指定为`SeqAugmentOps`可以使用自定义OP版本的序列数据增加组件，性能更好
   - AuxiliaryLoss: 计算辅助任务损失函数的组件，参数详见[参考文档](../component/component.md#id7)
   - concat_blocks: DAG的输出节点由`concat_blocks`配置项定义，如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
 - model_params:

@@ -259,7 +259,8 @@ class LayerNormalization(Layer):
       self.beta = None
 
     self._fused = self._fused_can_be_used(rank)
-    self.built = True
+    super(LayerNormalization,
+          self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs):
     # Compute the axes along which to reduce the mean / variance

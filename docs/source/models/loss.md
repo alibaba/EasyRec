@@ -10,6 +10,8 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | L2_LOSS                                    | 平方损失                                                       |
 | SIGMOID_L2_LOSS                            | 对sigmoid函数的结果计算平方损失                                        |
 | CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                             |
+| BINARY_CROSS_ENTROPY_LOSS                  | 仅用在知识蒸馏中的BCE损失                                             |
+| KL_DIVERGENCE_LOSS                         | 仅用在知识蒸馏中的KL散度损失                                            |
 | CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                    |
 | MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                    |
 | SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                  |
@@ -17,9 +19,12 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
 | PAIRWISE_FOCAL_LOSS                        | pair粒度的focal loss, 支持自定义pair分组                             |
 | PAIRWISE_LOGISTIC_LOSS                     | pair粒度的logistic loss, 支持自定义pair分组                          |
+| PAIRWISE_HINGE_LOSS                        | pair粒度的hinge loss, 支持自定义pair分组                             |
 | JRC_LOSS                                   | 二分类 + listwise ranking loss                                |
 | F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
 | ORDER_CALIBRATE_LOSS                       | 使用目标依赖关系校正预测结果的辅助损失函数，详见[AITM](aitm.md)模型                  |
+| LISTWISE_RANK_LOSS                         | listwise的排序损失                                              |
+| LISTWISE_DISTILL_LOSS                      | 用来蒸馏给定list排序的损失函数，与listwise rank loss 比较类似                 |
 
 - 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
@@ -99,6 +104,16 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - margin: 当pair的logit之差减去该参数值后再参与计算，即正负样本的logit之差至少要大于margin，默认值为0
   - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
 
+- PAIRWISE_HINGE_LOSS 的参数配置
+
+  - session_name: pair分组的字段名，比如user_id
+  - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
+  - margin: 当pair的logit之差大于该参数值时，当前样本的loss为0，默认值为1.0
+  - ohem_ratio: 困难样本的百分比，只有部分困难样本参与loss计算，默认值为1.0
+  - label_is_logits: bool, 标记label是否为teacher模型的输出logits，默认为true
+  - use_label_margin: bool, 是否使用输入pair的label的diff作为margin，设置为true时`margin`参数不生效，默认为true
+  - use_exponent: bool, 是否对模型的输出做pairwise的指数变化，默认为false
+
 备注：上述 PAIRWISE\_\*\_LOSS 都是在mini-batch内构建正负样本pair，目标是让正负样本pair的logit相差尽可能大
 
 - BINARY_FOCAL_LOSS 的参数配置
@@ -114,6 +129,13 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - session_name: list分组的字段名，比如user_id
   - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
   - 使用示例: [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
+
+- LISTWISE_RANK_LOSS 的参数配置
+
+  - temperature: 温度系数，logit除以该参数值后再参与计算，默认值为1.0
+  - session_name: list分组的字段名，比如user_id
+  - label_is_logits: bool, 标记label是否为teacher模型的输出logits，默认为false
+  - scale_logits: bool, 是否需要对模型的logits进行线性缩放，默认为false
 
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
@@ -159,5 +181,6 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 ### 参考论文：
 
 - 《 Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics 》
-- 《 [Reasonable Effectiveness of Random Weighting: A Litmus Test for Multi-Task Learning](https://arxiv.org/abs/2111.10603) 》
+- [Reasonable Effectiveness of Random Weighting: A Litmus Test for Multi-Task Learning](https://arxiv.org/abs/2111.10603)
 - [AITM: Modeling the Sequential Dependence among Audience Multi-step Conversions with Multi-task Learning in Targeted Display Advertising](https://arxiv.org/pdf/2105.08489.pdf)
+- [Pairwise Ranking Distillation for Deep Face Recognition](https://ceur-ws.org/Vol-2744/paper30.pdf)

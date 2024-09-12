@@ -48,8 +48,8 @@ def info_nce_loss(query, positive, temperature=0.1):
 
 
 def get_mask_matrix(batch_size):
-  mat = tf.ones((batch_size, batch_size), bool)
-  diag = tf.fill([batch_size], False)
+  mat = tf.ones((batch_size, batch_size), dtype=tf.bool)
+  diag = tf.zeros([batch_size], dtype=tf.bool)
   mask = tf.linalg.set_diag(mat, diag)
   mask = tf.tile(mask, [2, 2])
   return mask

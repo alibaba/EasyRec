@@ -192,7 +192,7 @@ class MatchModel(EasyRecModel):
 
     # build kd loss
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
-                                              self._labels)
+                                              self._labels, self._feature_dict)
     self._loss_dict.update(kd_loss_dict)
     return self._loss_dict
 
