@@ -12,6 +12,7 @@ from .custom_ops import SeqAugmentOps
 from .custom_ops import TextNormalize
 from .data_augment import SeqAugment
 from .din import DIN
+from .embedding import EmbeddingLayer
 from .fibinet import BiLinear
 from .fibinet import FiBiNet
 from .fibinet import SENet

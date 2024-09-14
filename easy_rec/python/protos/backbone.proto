@@ -20,6 +20,11 @@ message InputLayer {
 message RawInputLayer {
 }
 
+message EmbeddingLayer {
+    required uint32 embedding_dim = 1;
+    optional bool concat = 13 [default = true];
+}
+
 message Lambda {
     required string expression = 1;
 }
@@ -82,6 +87,7 @@ message Block {
         RecurrentLayer recurrent = 104;
         RepeatLayer repeat = 105;
         RawInputLayer raw_input = 106;
+        EmbeddingLayer embedding_layer = 107;
     }
 }
 

@@ -205,6 +205,28 @@ class InputLayer(object):
     feature_group = self._feature_groups[group_name]
     return [features[x] for x in feature_group.feature_names]
 
+  def get_bucketized_features(self, features, group_name):
+    """Get features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all raw features in list, added feature offset
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+    feature_group = self._feature_groups[group_name]
+    offset = 0
+    values = []
+    for feature in feature_group.feature_names:
+      # suppose feature already have be bucketized
+      value = tf.to_int32(features[feature])
+      values.append(value + offset)
+      offset += self._fc_parser.get_feature_vocab_size(feature)
+    return values, offset
+
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.
 

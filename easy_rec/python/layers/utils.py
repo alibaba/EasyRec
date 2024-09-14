@@ -173,6 +173,7 @@ class Parameter(object):
     self.params = params
     self.is_struct = is_struct
     self._l2_reg = l2_reg
+    self._extra = {}
 
   @staticmethod
   def make_from_pb(config):
@@ -190,6 +191,9 @@ class Parameter(object):
   def l2_regularizer(self, value):
     self._l2_reg = value
 
+  def set(self, key, value):
+    self._extra[key] = value
+
   def __getattr__(self, key):
     if self.is_struct:
       if key not in self.params:
@@ -199,7 +203,8 @@ class Parameter(object):
         return Parameter(value, True, self._l2_reg)
       else:
         return value
-
+    if key in self._extra:
+      return self._extra[key]
     value = getattr(self.params, key)
     if is_proto_message(self.params, key):
       return Parameter(value, False, self._l2_reg)
@@ -218,6 +223,8 @@ class Parameter(object):
           return type(def_val)(value)
         return value
       return def_val
+    elif key in self._extra:
+      return self._extra[key]
     else:  # pb message
       value = getattr(self.params, key, def_val)
       if hasattr(value, '__len__'):
@@ -239,5 +246,7 @@ class Parameter(object):
   def has_field(self, key):
     if self.is_struct:
       return key in self.params
+    elif key in self._extra:
+      return True
     else:
       return self.params.HasField(key)

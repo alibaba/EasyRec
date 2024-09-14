@@ -1,10 +1,39 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import math
+import os
+import logging
 
 import tensorflow as tf
 
 from easy_rec.python.utils.activation import get_activation
+from tensorflow.python.keras.layers import Layer
+
+curr_dir, _ = os.path.split(__file__)
+parent_dir = os.path.dirname(curr_dir)
+ops_idr = os.path.dirname(parent_dir)
+ops_dir = os.path.join(ops_idr, 'ops')
+if 'PAI' in tf.__version__:
+  ops_dir = os.path.join(ops_dir, '1.12_pai')
+elif tf.__version__.startswith('1.12'):
+  ops_dir = os.path.join(ops_dir, '1.12')
+elif tf.__version__.startswith('1.15'):
+  if 'IS_ON_PAI' in os.environ:
+    ops_dir = os.path.join(ops_dir, 'DeepRec')
+  else:
+    ops_dir = os.path.join(ops_dir, '1.15')
+elif tf.__version__.startswith('2.12'):
+  ops_dir = os.path.join(ops_dir, '2.12')
+
+logging.info('ops_dir is %s' % ops_dir)
+custom_op_path = os.path.join(ops_dir, 'libcustom_ops.so')
+try:
+  custom_ops = tf.load_op_library(custom_op_path)
+  logging.info('load custom op from %s succeed' % custom_op_path)
+except Exception as ex:
+  logging.warning('load custom op from %s failed: %s' %
+                  (custom_op_path, str(ex)))
+  custom_ops = None
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -84,7 +113,7 @@ class NLinear(object):
     return x
 
 
-class PeriodicEmbedding(tf.keras.layers.Layer):
+class PeriodicEmbedding(Layer):
   """Periodic embeddings for numerical features described in [1].
 
   References:
@@ -157,7 +186,7 @@ class PeriodicEmbedding(tf.keras.layers.Layer):
       return output
 
 
-class AutoDisEmbedding(tf.keras.layers.Layer):
+class AutoDisEmbedding(Layer):
   """An Embedding Learning Framework for Numerical Features in CTR Prediction.
 
   Refer: https://arxiv.org/pdf/2012.08986v2.pdf
@@ -210,3 +239,54 @@ class AutoDisEmbedding(tf.keras.layers.Layer):
       if self.output_3d_tensor:
         return output, emb
       return output
+
+
+class NaryDisEmbedding(Layer):
+  """Numerical Feature Representation with Hybrid 𝑁 -ary Encoding, CIKM 2022..
+
+  Refer: https://dl.acm.org/doi/pdf/10.1145/3511808.3557090
+  """
+
+  def __init__(self, params, name='nary_dis_embedding', reuse=None, **kwargs):
+    super(NaryDisEmbedding, self).__init__(name=name, **kwargs)
+    self.reuse = reuse
+    self.nary_carry = custom_ops.nary_carry
+    params.check_required(['embedding_dim', 'carries'])
+    self.emb_dim = int(params.embedding_dim)
+    self.carries = params.get_or_default('carries', [2, 9])
+    self.lengths = list(map(self.max_length, self.carries))
+    self.vocab_size = sum(self.lengths)
+    self.multiplier = params.get_or_default('multiplier', 1.0)
+    self.intra_ary_pooling = params.get_or_default('intra_ary_pooling', 'sum')
+    self.inter_ary_pooling = params.get_or_default('inter_ary_pooling', 'concat')
+    logging.info('{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'.format(
+      self.name, ','.join(map(str, self.carries)), ','.join(map(str, self.lengths)),
+      self.vocab_size, self.intra_ary_pooling, self.inter_ary_pooling, self.multiplier))
+
+  @staticmethod
+  def max_length(carry):
+    bits = math.log(4294967295, carry)
+    return (math.floor(bits) + 1) * carry
+
+  def call(self, inputs, **kwargs):
+    if inputs.shape.ndims != 2:
+      raise ValueError('inputs of NaryDisEmbedding must have 2 dimensions.')
+    num_features = int(inputs.shape[-1])
+    with tf.variable_scope(self.name, reuse=self.reuse):
+      embedding_table = tf.get_variable(
+        "embedding_table",
+        shape=[num_features * self.vocab_size, self.emb_dim])
+    if self.multiplier != 1.0:
+      inputs *= self.multiplier
+    inputs = tf.to_int32(inputs)
+    offset, emb_indices, emb_splits = 0, [], []
+    for carry, length in zip(self.carries, self.lengths):
+      values, splits = self.nary_carry(inputs, carry=carry, offset=offset)
+      offset += length
+      emb_indices.append(values)
+      emb_splits.append(splits)
+    indices = tf.concat(emb_indices, axis=0)
+    splits = tf.concat(emb_splits, axis=0)
+    embedding = tf.nn.embedding_lookup(embedding_table, indices)
+
+

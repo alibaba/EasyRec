@@ -239,6 +239,16 @@ class MultiTaskModel(RankModel):
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))
 
+      if task_tower_cfg.HasField('task_space_indicator_name') and \
+          task_tower_cfg.HasField('task_space_indicator_value'):
+        in_task_space = tf.to_float(
+            tf.equal(
+                self._feature_dict[task_tower_cfg.task_space_indicator_name],
+                task_tower_cfg.task_space_indicator_value))
+        loss_weight = loss_weight * (
+            task_tower_cfg.in_task_space_weight * in_task_space +
+            task_tower_cfg.out_task_space_weight * (1 - in_task_space))
+
       task_loss_weight = task_loss_weights[tower_name]
       loss_dict = {}
       losses = task_tower_cfg.losses

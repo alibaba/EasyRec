@@ -36,6 +36,10 @@ message TaskTower {
     repeated Loss losses = 13;
     // whether to use sample weight in this tower
     required bool use_sample_weight = 14 [default = true];
+    // field name for indicating the sample space for this task
+    optional string task_space_indicator_name = 15;
+    // field value for indicating the sample space for this task
+    optional string task_space_indicator_value = 16;
 };
 
 
@@ -76,4 +80,8 @@ message BayesTaskTower {
     optional bool use_ait_module = 17 [default = false];
     // set this when the dimensions of last layer of towers are not equal
     optional uint32 ait_project_dim = 18;
+    // field name for indicating the sample space for this task
+    optional string task_space_indicator_name = 19;
+    // field value for indicating the sample space for this task
+    optional string task_space_indicator_value = 20;
 };

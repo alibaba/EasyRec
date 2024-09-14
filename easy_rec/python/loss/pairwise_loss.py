@@ -169,12 +169,12 @@ def pairwise_logistic_loss(labels,
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0))
   if use_label_margin:
     pairwise_logits -= tf.math.subtract(
-      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+        tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
   elif hinge_margin is not None:
     pairwise_logits -= hinge_margin
 
   pairwise_mask = tf.greater(
-    tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
   if session_ids is not None:
     logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(

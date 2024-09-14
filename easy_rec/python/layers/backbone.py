@@ -8,6 +8,7 @@ from google.protobuf import struct_pb2
 
 from easy_rec.python.layers.common_layers import EnhancedInputLayer
 from easy_rec.python.layers.keras import MLP
+from easy_rec.python.layers.keras import EmbeddingLayer
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
 from easy_rec.python.utils.dag import DAG
@@ -47,8 +48,9 @@ class Package(object):
     self.reset_input_config(None)
     self._block_outputs = {}
     self._package_input = None
+    self._feature_group_inputs = {}
     reuse = None if config.name == 'backbone' else tf.AUTO_REUSE
-    input_feature_groups = {}
+    input_feature_groups = self._feature_group_inputs
 
     for block in config.blocks:
       if len(block.inputs) == 0:
@@ -56,7 +58,7 @@ class Package(object):
       self._dag.add_node(block.name)
       self._name_to_blocks[block.name] = block
       layer = block.WhichOneof('layer')
-      if layer in {'input_layer', 'raw_input'}:
+      if layer in {'input_layer', 'raw_input', 'embedding_layer'}:
         if len(block.inputs) != 1:
           raise ValueError('input layer `%s` takes only one input' % block.name)
         one_input = block.inputs[0]
@@ -74,9 +76,17 @@ class Package(object):
           if layer == 'input_layer':
             input_fn = EnhancedInputLayer(self._input_layer, self._features,
                                           group, reuse)
-          else:
+            input_feature_groups[group] = input_fn
+          elif layer == 'raw_input':
             input_fn = self._input_layer.get_raw_features(self._features, group)
-          input_feature_groups[group] = input_fn
+            input_feature_groups[group] = input_fn
+          else:  # embedding_layer
+            inputs, vocab = self._input_layer.get_bucketized_features(
+                self._features, group)
+            params = Parameter.make_from_pb(block.layer)
+            params.set("vocab_size", vocab)
+            input_fn = EmbeddingLayer(params, block.name)
+            input_feature_groups[group] = inputs
           self._name_to_layer[block.name] = input_fn
       else:
         self.define_layers(layer, block, block.name, reuse)
@@ -94,7 +104,7 @@ class Package(object):
     num_pkg_input = 0
     for block in config.blocks:
       layer = block.WhichOneof('layer')
-      if layer in {'input_layer', 'raw_input'}:
+      if layer in {'input_layer', 'raw_input', 'embedding_layer'}:
         continue
       name = block.name
       if name in input_feature_groups:
@@ -282,6 +292,11 @@ class Package(object):
           input_config = self.input_config
           input_fn.reset(input_config, is_training)
         block_outputs[block] = input_fn(input_config, is_training)
+      elif layer == 'embedding_layer':
+        input_fn = self._name_to_layer[block]
+        feature_group = config.inputs[0].feature_group_name
+        input_features = self._feature_group_inputs[feature_group]
+        block_outputs[block] = input_fn(input_features, is_training)
       else:
         inputs = self.block_input(config, block_outputs, is_training, **kwargs)
         output = self.call_layer(inputs, config, block, is_training, **kwargs)
