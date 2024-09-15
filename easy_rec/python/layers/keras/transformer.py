@@ -1,0 +1,152 @@
+# -*- encoding:utf-8 -*-
+# Copyright (c) Alibaba, Inc. and its affiliates.
+import numpy as np
+import tensorflow as tf
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Dropout
+from tensorflow.python.keras.layers import Embedding
+from tensorflow.python.keras.layers import Layer
+
+from easy_rec.python.layers.utils import Parameter
+from easy_rec.python.layers.keras import MultiHeadAttention
+from easy_rec.python.layers.keras.layer_norm import LayerNormalization
+
+
+class TransformerBlock(Layer):
+  """A transformer block combines multi-head attention and feed-forward networks with layer normalization and dropout.
+
+  Purpose: Combines attention and feed-forward layers with residual connections and normalization.
+  Components: Multi-head attention, feed-forward network, dropout, and layer normalization.
+  Output: Enhanced representation after applying attention and feed-forward layers.
+  """
+
+  def __init__(self,
+               params,
+               name='transformer_attention',
+               reuse=None,
+               **kwargs):
+    super(TransformerBlock, self).__init__(name=name, **kwargs)
+    num_heads = params.num_attention_heads
+    d_model = params.hidden_size
+    dropout_rate = params.get_or_default('hidden_dropout_prob', 0.1)
+    ffn_units = params.get_or_default('intermediate_size', d_model)
+    ffn_act = params.get_or_default('hidden_act', 'relu')
+    self.ffn_dense1 = Dense(ffn_units, activation=ffn_act)
+    self.ffn_dense2 = Dense(d_model)
+    self.mha = MultiHeadAttention(d_model, num_heads)
+    if tf.__version__ >= '2.0':
+      self.layer_norm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+      self.layer_norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+    else:
+      self.layer_norm1 = LayerNormalization(epsilon=1e-6)
+      self.layer_norm2 = LayerNormalization(epsilon=1e-6)
+    self.dropout1 = Dropout(dropout_rate)
+    self.dropout2 = Dropout(dropout_rate)
+
+  def call(self, inputs, training=None):
+    x, mask = inputs
+    attn_output = self.mha(x, x, x, mask)
+    attn_output = self.dropout1(attn_output, training=training)
+    out1 = self.layer_norm1(x + attn_output)
+    ffn_mid = self.ffn_dense1(out1)
+    ffn_output = self.ffn_dense2(ffn_mid)
+    ffn_output = self.dropout2(ffn_output, training=training)
+    out2 = self.layer_norm2(out1 + ffn_output)
+    return out2
+
+
+# Positional Encoding, https://www.tensorflow.org/text/tutorials/transformer
+def positional_encoding(length, depth):
+  depth = depth/2
+  positions = np.arange(length)[:, np.newaxis]     # (seq, 1)
+  depths = np.arange(depth)[np.newaxis, :]/depth   # (1, depth)
+  angle_rates = 1 / (10000**depths)         # (1, depth)
+  angle_rads = positions * angle_rates      # (pos, depth)
+  pos_encoding = np.concatenate(
+      [np.sin(angle_rads), np.cos(angle_rads)],
+      axis=-1)
+  return tf.cast(pos_encoding, dtype=tf.float32)
+
+
+class PositionalEmbedding(Layer):
+  def __init__(self, vocab_size, d_model, max_position, name='pos_embedding'):
+    super(PositionalEmbedding, self).__init__(name=name)
+    self.d_model = d_model
+    self.embedding = Embedding(vocab_size, d_model, mask_zero=True)
+    self.pos_encoding = positional_encoding(length=max_position, depth=d_model)
+
+  def compute_mask(self, *args, **kwargs):
+    return self.embedding.compute_mask(*args, **kwargs)
+
+  def call(self, x, training=None):
+    length = tf.shape(x)[1]
+    x = self.embedding(x)
+    # This factor sets the relative scale of the embedding and positonal_encoding.
+    x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+    x = x + self.pos_encoding[tf.newaxis, :length, :]
+    return x
+
+
+class TransformerEncoder(Layer):
+  """The encoder consists of a stack of encoder layers.
+
+  It converts the input sequence into a set of embeddings enriched with positional information.
+  Purpose: Encodes the input sequence into a set of embeddings.
+  Components: Embedding layer, positional encoding, and a stack of transformer blocks.
+  Output: Encoded representation of the input sequence.
+  """
+
+  def __init__(self, params, name='transformer_encoder', reuse=None, **kwargs):
+    super(TransformerEncoder, self).__init__(name=name, **kwargs)
+    d_model = params.hidden_size
+    dropout_rate = params.get_or_default('hidden_dropout_prob', 0.1)
+    vocab_size = params.vocab_size
+    max_position = params.get_or_default('max_position_embeddings', 512)
+    num_layers = params.get_or_default('num_hidden_layers', 1)
+    self.output_all = params.get_or_default('output_all_token_embeddings', True)
+    self.pos_encoding = PositionalEmbedding(vocab_size, d_model, max_position)
+    self.dropout = Dropout(dropout_rate)
+    self.enc_layers = [TransformerBlock(params) for _ in range(num_layers)]
+
+  def call(self, inputs, training=None):
+    x, mask = inputs
+    # `x` is token-IDs shape: (batch, seq_len)
+    x = self.pos_encoding(x)   # Shape `(batch_size, seq_len, d_model)`.
+    x = self.dropout(x, training=training)
+    for block in self.enc_layers:
+      x = block([x, mask], training)
+    # x Shape `(batch_size, seq_len, d_model)`.
+    return x if self.output_all else x[:, 0, :]
+
+
+class TextEncoder(Layer):
+  def __init__(self, params, name='text_encoder', reuse=None, **kwargs):
+    super(TextEncoder, self).__init__(name=name, **kwargs)
+    self.separator = params.get_or_default('separator', ' ')
+    self.cls_token = '[CLS]' + self.separator
+    self.sep_token = self.separator + '[SEP]' + self.separator
+    hash_bucket_size = params.get_or_default('hash_bucket_size', None)
+    emb_dim = params.transformer.hidden_size
+    self.emb_table = Embedding(hash_bucket_size, emb_dim)
+    trans_params = Parameter.make_from_pb(params.attention)
+    self.encoder = TransformerEncoder(trans_params)
+
+  def call(self, inputs, training=None):
+    if type(inputs) not in (tuple, list):
+      inputs = [inputs]
+    inputs = [tf.squeeze(text) for text in inputs]
+    batch_size = tf.shape(inputs[0])
+    cls = tf.fill(batch_size, self.cls_token)
+    sep = tf.fill(batch_size, self.sep_token)
+    sentences = [cls]
+    for sentence in inputs:
+      sentences.append(sentence)
+      sentences.append(sep)
+    text = tf.strings.join(sentences)
+    tokens = tf.strings.split(text, self.separator)
+    tokens = tf.sparse.to_dense(tokens, default_value='')
+    mask = tf.cast(tf.not_equal(tokens, ''), tf.bool)
+    token_ids = tf.string_to_hash_bucket_fast(tokens, self.hash_bucket_size)
+    embedding = self.emb_table(token_ids)
+    encoding = self.encoder([embedding, mask], training)
+    return encoding

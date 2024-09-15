@@ -30,6 +30,14 @@ message AutoDisEmbedding {
     optional bool output_tensor_list = 6;
 }
 
+message NaryDisEmbedding {
+    required uint32 embedding_dim = 1;
+    repeated uint32 carries = 2;
+    optional float multiplier = 3 [default = 1.0];
+    optional string intra_ary_pooling = 4 [default = 'sum'];
+    optional string inter_ary_pooling = 5 [default = 'concat'];
+}
+
 message SENet {
     required uint32 reduction_ratio = 1 [default = 4];
     optional uint32 num_squeeze_group = 2 [default = 2];

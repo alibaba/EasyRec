@@ -1,13 +1,14 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import math
 import os
-import logging
 
 import tensorflow as tf
-
-from easy_rec.python.utils.activation import get_activation
 from tensorflow.python.keras.layers import Layer
+
+from easy_rec.python.compat.array_ops import repeat
+from easy_rec.python.utils.activation import get_activation
 
 curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
@@ -258,10 +259,14 @@ class NaryDisEmbedding(Layer):
     self.vocab_size = sum(self.lengths)
     self.multiplier = params.get_or_default('multiplier', 1.0)
     self.intra_ary_pooling = params.get_or_default('intra_ary_pooling', 'sum')
-    self.inter_ary_pooling = params.get_or_default('inter_ary_pooling', 'concat')
-    logging.info('{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'.format(
-      self.name, ','.join(map(str, self.carries)), ','.join(map(str, self.lengths)),
-      self.vocab_size, self.intra_ary_pooling, self.inter_ary_pooling, self.multiplier))
+    self.inter_ary_pooling = params.get_or_default('inter_ary_pooling',
+                                                   'concat')
+    logging.info(
+        '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'
+        .format(self.name, ','.join(map(str, self.carries)),
+                ','.join(map(str, self.lengths)), self.vocab_size,
+                self.intra_ary_pooling, self.inter_ary_pooling,
+                self.multiplier))
 
   @staticmethod
   def max_length(carry):
@@ -271,11 +276,12 @@ class NaryDisEmbedding(Layer):
   def call(self, inputs, **kwargs):
     if inputs.shape.ndims != 2:
       raise ValueError('inputs of NaryDisEmbedding must have 2 dimensions.')
+    batch_size = tf.shape(inputs)[0]
     num_features = int(inputs.shape[-1])
     with tf.variable_scope(self.name, reuse=self.reuse):
       embedding_table = tf.get_variable(
-        "embedding_table",
-        shape=[num_features * self.vocab_size, self.emb_dim])
+          'embedding_table',
+          shape=[num_features * self.vocab_size, self.emb_dim])
     if self.multiplier != 1.0:
       inputs *= self.multiplier
     inputs = tf.to_int32(inputs)
@@ -287,6 +293,27 @@ class NaryDisEmbedding(Layer):
       emb_splits.append(splits)
     indices = tf.concat(emb_indices, axis=0)
     splits = tf.concat(emb_splits, axis=0)
+    # embedding shape: [B*N*C, D]
     embedding = tf.nn.embedding_lookup(embedding_table, indices)
 
+    total_length = batch_size * len(self.carries)
+    if self.intra_ary_pooling == 'sum':
+      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      embedding = tf.math.segment_sum(embedding, segment_ids)
+    elif self.intra_ary_pooling == 'mean':
+      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      embedding = tf.math.segment_mean(embedding, segment_ids)
+    else:
+      raise ValueError('Unsupported intra ary pooling method %s' %
+                       self.intra_ary_pooling)
 
+    if self.inter_ary_pooling == 'concat':
+      embeddings = tf.split(embedding, len(self.carries))
+      embedding = tf.concat(embeddings, axis=-1)  # [B*N, C*D]
+    else:
+      raise ValueError('Unsupported inter ary pooling method %s' %
+                       self.inter_ary_pooling)
+    embedding = tf.reshape(
+        embedding,
+        [-1, num_features, len(self.carries) * self.emb_dim])
+    return embedding  # [B, N, C*D]

@@ -84,7 +84,7 @@ class Package(object):
             inputs, vocab = self._input_layer.get_bucketized_features(
                 self._features, group)
             params = Parameter.make_from_pb(block.layer)
-            params.set("vocab_size", vocab)
+            params.set('vocab_size', vocab)
             input_fn = EmbeddingLayer(params, block.name)
             input_feature_groups[group] = inputs
           self._name_to_layer[block.name] = input_fn
