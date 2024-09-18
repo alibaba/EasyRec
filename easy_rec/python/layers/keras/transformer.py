@@ -100,13 +100,18 @@ class TransformerEncoder(Layer):
     super(TransformerEncoder, self).__init__(name=name, **kwargs)
     d_model = params.hidden_size
     dropout_rate = params.get_or_default('hidden_dropout_prob', 0.1)
-    vocab_size = params.vocab_size
     max_position = params.get_or_default('max_position_embeddings', 512)
     num_layers = params.get_or_default('num_hidden_layers', 1)
+    vocab_size = params.vocab_size
     self.output_all = params.get_or_default('output_all_token_embeddings', True)
     self.pos_encoding = PositionalEmbedding(vocab_size, d_model, max_position)
     self.dropout = Dropout(dropout_rate)
     self.enc_layers = [TransformerBlock(params) for _ in range(num_layers)]
+    self._vocab_size = vocab_size
+
+  @property
+  def vocab_size(self):
+    return self._vocab_size
 
   def call(self, inputs, training=None):
     x, mask = inputs
@@ -125,9 +130,6 @@ class TextEncoder(Layer):
     self.separator = params.get_or_default('separator', ' ')
     self.cls_token = '[CLS]' + self.separator
     self.sep_token = self.separator + '[SEP]' + self.separator
-    hash_bucket_size = params.get_or_default('hash_bucket_size', None)
-    emb_dim = params.transformer.hidden_size
-    self.emb_table = Embedding(hash_bucket_size, emb_dim)
     trans_params = Parameter.make_from_pb(params.attention)
     self.encoder = TransformerEncoder(trans_params)
 
@@ -147,6 +149,5 @@ class TextEncoder(Layer):
     tokens = tf.sparse.to_dense(tokens, default_value='')
     mask = tf.cast(tf.not_equal(tokens, ''), tf.bool)
     token_ids = tf.string_to_hash_bucket_fast(tokens, self.hash_bucket_size)
-    embedding = self.emb_table(token_ids)
-    encoding = self.encoder([embedding, mask], training)
+    encoding = self.encoder([token_ids, mask], training)
     return encoding

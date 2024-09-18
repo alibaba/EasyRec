@@ -33,7 +33,7 @@ message Transformer {
     // The maximum sequence length that this model might ever be used with
     required uint32 max_position_embeddings = 8 [default = 512];
     // Whether to add position embeddings for the position of each token in the text sequence
-    required bool use_position_embeddings = 9 [default = true];
+    required bool use_position_embeddings = 9 [default = false];
     // Whether to output all token embedding, if set to false, then only output the first token embedding
     required bool output_all_token_embeddings = 10 [default = true];
 }
@@ -41,7 +41,6 @@ message Transformer {
 message TextEncoder {
     required Transformer transformer = 1;
     required string separator = 2 [default = ' '];
-    optional uint32 hash_bucket_size = 3;
 }
 
 message BSTEncoder {
