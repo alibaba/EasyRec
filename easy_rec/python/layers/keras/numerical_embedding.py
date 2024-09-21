@@ -256,11 +256,12 @@ class NaryDisEmbedding(Layer):
     self.emb_dim = int(params.embedding_dim)
     self.carries = params.get_or_default('carries', [2, 9])
     self.lengths = list(map(self.max_length, self.carries))
-    self.vocab_size = sum(self.lengths)
+    self.vocab_size = int(sum(self.lengths))
     self.multiplier = params.get_or_default('multiplier', 1.0)
     self.intra_ary_pooling = params.get_or_default('intra_ary_pooling', 'sum')
     self.inter_ary_pooling = params.get_or_default('inter_ary_pooling',
                                                    'concat')
+    self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
     logging.info(
         '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'
         .format(self.name, ','.join(map(str, self.carries)),
@@ -273,15 +274,23 @@ class NaryDisEmbedding(Layer):
     bits = math.log(4294967295, carry)
     return (math.floor(bits) + 1) * carry
 
+  def build(self, input_shape):
+    assert isinstance(input_shape,
+                      tf.TensorShape), 'NaryDisEmbedding only takes 1 input'
+    self.num_features = int(input_shape[-1])
+    logging.info('%s has %d input features', self.name, self.num_features)
+    vocab_size = self.num_features * self.vocab_size
+    self.embedding_table = self.add_weight(
+        'embed_table',
+        shape=[vocab_size, self.emb_dim],
+        initializer='he_uniform',
+        dtype=tf.float32,
+        trainable=True)
+    super(NaryDisEmbedding, self).build(input_shape)
+
   def call(self, inputs, **kwargs):
     if inputs.shape.ndims != 2:
       raise ValueError('inputs of NaryDisEmbedding must have 2 dimensions.')
-    batch_size = tf.shape(inputs)[0]
-    num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.name, reuse=self.reuse):
-      embedding_table = tf.get_variable(
-          'embedding_table',
-          shape=[num_features * self.vocab_size, self.emb_dim])
     if self.multiplier != 1.0:
       inputs *= self.multiplier
     inputs = tf.to_int32(inputs)
@@ -294,9 +303,9 @@ class NaryDisEmbedding(Layer):
     indices = tf.concat(emb_indices, axis=0)
     splits = tf.concat(emb_splits, axis=0)
     # embedding shape: [B*N*C, D]
-    embedding = tf.nn.embedding_lookup(embedding_table, indices)
+    embedding = tf.nn.embedding_lookup(self.embedding_table, indices)
 
-    total_length = batch_size * len(self.carries)
+    total_length = tf.size(splits)
     if self.intra_ary_pooling == 'sum':
       segment_ids = repeat(tf.range(total_length), repeats=splits)
       embedding = tf.math.segment_sum(embedding, segment_ids)
@@ -313,7 +322,13 @@ class NaryDisEmbedding(Layer):
     else:
       raise ValueError('Unsupported inter ary pooling method %s' %
                        self.inter_ary_pooling)
-    embedding = tf.reshape(
-        embedding,
-        [-1, num_features, len(self.carries) * self.emb_dim])
-    return embedding  # [B, N, C*D]
+    if self.output_3d_tensor:
+      embedding = tf.reshape(
+          embedding, [-1, self.num_features,
+                      len(self.carries) * self.emb_dim])  # [B, N, C*D]
+    else:
+      embedding = tf.reshape(
+          embedding, [-1, self.num_features * len(self.carries) * self.emb_dim
+                      ])  # [B, N*C*D]
+    print('NaryDisEmbedding:', embedding)
+    return embedding

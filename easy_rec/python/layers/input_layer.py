@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import os
 from collections import OrderedDict
 
@@ -220,12 +221,26 @@ class InputLayer(object):
     feature_group = self._feature_groups[group_name]
     offset = 0
     values = []
+    weights = []
     for feature in feature_group.feature_names:
-      # suppose feature already have be bucketized
-      value = tf.to_int32(features[feature])
+      vocab = self._fc_parser.get_feature_vocab_size(feature)
+      logging.info('vocab size of feature %s is %d' % (feature, vocab))
+      weights.append(None)
+      if tf.is_numeric_tensor(features[feature]):
+        # suppose feature already have be bucketized
+        value = tf.to_int64(features[feature])
+      elif isinstance(features[feature], tf.SparseTensor):
+        # TagFeature
+        dense = tf.sparse.to_dense(features[feature], default_value='')
+        value = tf.string_to_hash_bucket_fast(dense, vocab)
+        if (feature + '_w') in features:
+          weights[-1] = features[feature + '_w']  # SparseTensor
+          logging.info('feature %s has weight %s', feature, feature + '_w')
+      else:  # IdFeature
+        value = tf.string_to_hash_bucket_fast(features[feature], vocab)
       values.append(value + offset)
-      offset += self._fc_parser.get_feature_vocab_size(feature)
-    return values, offset
+      offset += vocab
+    return values, offset, weights
 
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.

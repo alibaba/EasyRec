@@ -71,7 +71,17 @@ class Package(object):
         if not input_layer.has_group(group):
           raise KeyError('invalid feature group name: ' + group)
         if group in input_feature_groups:
-          logging.warning('input `%s` already exists in other block' % group)
+          if layer == input_layer:
+            logging.warning('input `%s` already exists in other block' % group)
+          elif layer == 'raw_input':
+            input_fn = input_feature_groups[group]
+            self._name_to_layer[block.name] = input_fn
+          elif layer == 'embedding_layer':
+            inputs, vocab, weights = input_feature_groups[group]
+            block.embedding_layer.vocab_size = vocab
+            params = Parameter.make_from_pb(block.embedding_layer)
+            input_fn = EmbeddingLayer(params, block.name)
+            self._name_to_layer[block.name] = input_fn
         else:
           if layer == 'input_layer':
             input_fn = EnhancedInputLayer(self._input_layer, self._features,
@@ -81,12 +91,14 @@ class Package(object):
             input_fn = self._input_layer.get_raw_features(self._features, group)
             input_feature_groups[group] = input_fn
           else:  # embedding_layer
-            inputs, vocab = self._input_layer.get_bucketized_features(
+            inputs, vocab, weights = self._input_layer.get_bucketized_features(
                 self._features, group)
-            params = Parameter.make_from_pb(block.layer)
-            params.set('vocab_size', vocab)
+            block.embedding_layer.vocab_size = vocab
+            params = Parameter.make_from_pb(block.embedding_layer)
             input_fn = EmbeddingLayer(params, block.name)
-            input_feature_groups[group] = inputs
+            input_feature_groups[group] = (inputs, vocab, weights)
+            logging.info('add an embedding layer %s with vocab size %d',
+                         block.name, vocab)
           self._name_to_layer[block.name] = input_fn
       else:
         self.define_layers(layer, block, block.name, reuse)
@@ -160,14 +172,16 @@ class Package(object):
     num_groups = len(input_feature_groups)
     assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
 
-    if len(config.concat_blocks) == 0:
+    if len(config.concat_blocks) == 0 and len(config.output_blocks) == 0:
       leaf = self._dag.all_leaves()
       logging.warning(
-          '%s has no `concat_blocks`, try to use all leaf blocks: %s' %
-          (config.name, ','.join(leaf)))
+          '%s has no `concat_blocks` or `output_blocks`, try to concat all leaf blocks: %s'
+          % (config.name, ','.join(leaf)))
       self._config.concat_blocks.extend(leaf)
 
     Package.__packages[self._config.name] = self
+    logging.info('%s layers: %s' %
+                 (config.name, ','.join(self._name_to_layer.keys())))
 
   def define_layers(self, layer, layer_cnf, name, reuse):
     if layer == 'keras_layer':
@@ -249,7 +263,12 @@ class Package(object):
     if config.merge_inputs_into_list:
       output = inputs
     else:
-      output = merge_inputs(inputs, config.input_concat_axis, config.name)
+      try:
+        output = merge_inputs(inputs, config.input_concat_axis, config.name)
+      except ValueError as e:
+        logging.error('merge inputs of block %s failed: %s', config.name,
+                      e.message)
+        raise e
 
     if config.HasField('extra_input_fn'):
       fn = eval(config.extra_input_fn)
@@ -295,21 +314,34 @@ class Package(object):
       elif layer == 'embedding_layer':
         input_fn = self._name_to_layer[block]
         feature_group = config.inputs[0].feature_group_name
-        input_features = self._feature_group_inputs[feature_group]
-        block_outputs[block] = input_fn(input_features, is_training)
+        inputs, _, weights = self._feature_group_inputs[feature_group]
+        block_outputs[block] = input_fn([inputs, weights], is_training)
       else:
         inputs = self.block_input(config, block_outputs, is_training, **kwargs)
         output = self.call_layer(inputs, config, block, is_training, **kwargs)
         block_outputs[block] = output
 
     outputs = []
+    for output in self._config.output_blocks:
+      if output in block_outputs:
+        temp = block_outputs[output]
+        outputs.append(temp)
+      else:
+        raise ValueError('No output `%s` of backbone to be concat' % output)
+    if outputs:
+      return outputs
+
     for output in self._config.concat_blocks:
       if output in block_outputs:
         temp = block_outputs[output]
         outputs.append(temp)
       else:
         raise ValueError('No output `%s` of backbone to be concat' % output)
-    output = merge_inputs(outputs, msg='backbone')
+    try:
+      output = merge_inputs(outputs, msg='backbone')
+    except ValueError as e:
+      logging.error("merge backbone's output failed: %s", e.message)
+      raise e
     return output
 
   def load_keras_layer(self, layer_conf, name, reuse=None):
@@ -367,7 +399,12 @@ class Package(object):
     layer, customize = self._name_to_layer[name]
     cls = layer.__class__.__name__
     if customize:
-      output = layer(inputs, training=training, **kwargs)
+      try:
+        output = layer(inputs, training=training, **kwargs)
+      except Exception as e:
+        logging.error('call keras layer %s (%s) failed: %s' %
+                      (name, cls, e.message))
+        raise e
     else:
       try:
         output = layer(inputs, training=training)
@@ -448,7 +485,10 @@ class Backbone(object):
     main_pkg = backbone_pb2.BlockPackage()
     main_pkg.name = 'backbone'
     main_pkg.blocks.MergeFrom(config.blocks)
-    main_pkg.concat_blocks.extend(config.concat_blocks)
+    if config.concat_blocks:
+      main_pkg.concat_blocks.extend(config.concat_blocks)
+    if config.output_blocks:
+      main_pkg.output_blocks.extend(config.output_blocks)
     self._main_pkg = Package(main_pkg, features, input_layer, l2_reg)
     for pkg in config.packages:
       Package(pkg, features, input_layer, l2_reg)
@@ -460,6 +500,8 @@ class Backbone(object):
       params = Parameter.make_from_pb(self._config.top_mlp)
       params.l2_regularizer = self._l2_reg
       final_mlp = MLP(params, name='backbone_top_mlp')
+      if type(output) in (list, tuple):
+        output = tf.concat(output, axis=-1)
       output = final_mlp(output, training=is_training, **kwargs)
     return output
 

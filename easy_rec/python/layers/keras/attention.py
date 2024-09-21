@@ -203,12 +203,7 @@ class Attention(Layer):
       # or None if the value mask is not provided.
       return v_mask
 
-  def call(
-      self,
-      inputs,
-      mask=None,
-      training=False,
-  ):
+  def call(self, inputs, mask=None, training=False, **kwargs):
     self._validate_inputs(inputs=inputs, mask=mask)
     q = inputs[0]
     v = inputs[1]

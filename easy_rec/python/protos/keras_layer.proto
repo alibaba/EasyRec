@@ -31,7 +31,8 @@ message KerasLayer {
         OverlapFeature overlap = 19;
         MappedDotProduct dot_product = 20;
         Attention attention = 22;
-        Transformer transformer = 23;
-        TextEncoder text_encoder = 24;
+        MultiHeadAttention multi_head_attention = 23;
+        Transformer transformer = 24;
+        TextEncoder text_encoder = 25;
     }
 }

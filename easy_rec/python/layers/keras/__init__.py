@@ -27,6 +27,6 @@ from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import NaryDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
 from .ppnet import PPNet
+from .transformer import TextEncoder
 from .transformer import TransformerBlock
 from .transformer import TransformerEncoder
-from .transformer import TextEncoder

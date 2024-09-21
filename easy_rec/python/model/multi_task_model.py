@@ -4,7 +4,6 @@ import logging
 from collections import OrderedDict
 
 import tensorflow as tf
-from google.protobuf import struct_pb2
 from tensorflow.python.keras.layers import Dense
 
 from easy_rec.python.builders import loss_builder
@@ -12,6 +11,7 @@ from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.layers.keras.attention import Attention
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.model.rank_model import RankModel
+from easy_rec.python.protos import seq_encoder_pb2
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
@@ -103,9 +103,9 @@ class MultiTaskModel(RankModel):
           queries = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           keys = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           values = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
-          st_params = struct_pb2.Struct()
-          st_params.update({'scale_by_dim': True})
-          params = Parameter(st_params, True)
+          attn_cfg = seq_encoder_pb2.Attention()
+          attn_cfg.use_scale = True
+          params = Parameter.make_from_pb(attn_cfg)
           attention_layer = Attention(params, name='AITM_%s' % tower_name)
           result = attention_layer([queries, values, keys])
           relation_fea = result[:, 0, :]
