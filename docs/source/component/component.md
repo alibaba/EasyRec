@@ -252,38 +252,46 @@ The calculation follows the steps:
 
 - MultiHeadAttention
 
-| 参数                  | 类型        | 默认值 | 说明                 |
-| ------------------- | --------- | --- | ------------------ |
-| attention           | Attention | 无   | Attention子组件的配置    |
-| hidden_size         | int       |     | transformer 编码层单元数 |
-| num_attention_heads | int       |     | transformer head数  |
+| 参数                      | 类型     | 默认值   | 说明                                                                                                                                                                        |
+| ----------------------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| num_heads               | uint32 | 无     | Number of attention heads.                                                                                                                                                |
+| key_dim                 | uint32 |       | Size of each attention head for query and key.                                                                                                                            |
+| value_dim               | uint32 |       | Size of each attention head for value.                                                                                                                                    |
+| dropout                 | float  | 0.0   | Dropout probability.                                                                                                                                                      |
+| use_bias                | bool   | true  | whether the dense layers use bias vectors/matrices.                                                                                                                       |
+| return_attention_scores | bool   | false | whether the output should be (attention_output, attention_scores)                                                                                                         |
+| use_causal_mask         | bool   | false | whether to apply a causal mask to prevent tokens from attending to future tokens (e.g., used in a decoder Transformer).                                                   |
+| output_shape            | uint32 |       | The expected shape of an output tensor, besides the batch and sequence dims. If not specified, projects back to the query feature dim (the query input's last dimension). |
+| kernel_initializer      | string |       | Initializer for dense layer kernels.                                                                                                                                      |
+| bias_initializer        | string |       | Initializer for dense layer biases.                                                                                                                                       |
 
 - TransformerBlock
 
 Transformer encoder 的其中一个layer。
 
-| 参数                  | 类型        | 默认值  | 说明                 |
-| ------------------- | --------- | ---- | ------------------ |
-| attention           | Attention | 无    | Attention子组件的配置    |
-| hidden_size         | int       |      | transformer 编码层单元数 |
-| num_attention_heads | int       |      | transformer head数  |
-| intermediate_size   | int       |      | transformer中间层单元数  |
-| hidden_act          | string    | relu | 隐藏层激活函数            |
-| hidden_dropout_prob | float     | 0.1  | 隐藏层dropout rate    |
+| 参数                           | 类型     | 默认值  | 说明                      |
+| ---------------------------- | ------ | ---- | ----------------------- |
+| hidden_size                  | int    |      | transformer 编码层单元数      |
+| num_attention_heads          | int    |      | transformer head数       |
+| intermediate_size            | int    |      | transformer中间层单元数       |
+| hidden_act                   | string | relu | 隐藏层激活函数                 |
+| hidden_dropout_prob          | float  | 0.1  | 隐藏层dropout rate         |
+| attention_probs_dropout_prob | float  | 0.0  | attention层的dropout rate |
 
 - TransformerEncoder
 
-| 参数                          | 类型        | 默认值  | 说明                    |
-| --------------------------- | --------- | ---- | --------------------- |
-| attention                   | Attention | 无    | Attention子组件的配置       |
-| hidden_size                 | int       |      | transformer 编码层单元数    |
-| num_hidden_layers           | int       |      | transformer层数         |
-| num_attention_heads         | int       |      | transformer head数     |
-| intermediate_size           | int       |      | transformer中间层单元数     |
-| hidden_act                  | string    | relu | 隐藏层激活函数               |
-| hidden_dropout_prob         | float     | 0.1  | 隐藏层dropout rate       |
-| max_position_embeddings     | int       | 512  | 序列最大长度                |
-| output_all_token_embeddings | bool      | true | 是否输出所有token embedding |
+| 参数                           | 类型     | 默认值  | 说明                      |
+| ---------------------------- | ------ | ---- | ----------------------- |
+| vocab_size                   | uint32 |      | 词汇表大小                   |
+| hidden_size                  | uint32 |      | transformer 编码层单元数      |
+| num_hidden_layers            | uint32 |      | transformer层数           |
+| num_attention_heads          | uint32 |      | transformer head数       |
+| intermediate_size            | uint32 |      | transformer中间层单元数       |
+| hidden_act                   | string | relu | 隐藏层激活函数                 |
+| hidden_dropout_prob          | float  | 0.1  | 隐藏层dropout rate         |
+| attention_probs_dropout_prob | float  | 0.0  | attention层的dropout rate |
+| max_position_embeddings      | uint32 | 512  | 序列最大长度                  |
+| output_all_token_embeddings  | bool   | true | 是否输出所有token embedding   |
 
 - TextEncoder
 

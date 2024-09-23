@@ -113,10 +113,15 @@ class TransformerEncoder(Layer):
         TransformerBlock(params, 'layer_%d' % i) for i in range(num_layers)
     ]
     self._vocab_size = vocab_size
+    self._max_position = max_position
 
   @property
   def vocab_size(self):
     return self._vocab_size
+
+  @property
+  def max_position(self):
+    return self._max_position
 
   def call(self, inputs, training=None, **kwargs):
     x, mask = inputs
@@ -168,9 +173,17 @@ class TextEncoder(Layer):
       token_ids = self.vocab._transform_feature(features)
       token_ids = tf.sparse.to_dense(
           token_ids, default_value=self.default_token_id, name='token_ids')
+      length = tf.shape(token_ids)[-1]
+      token_ids = tf.cond(
+          tf.less_equal(length, self.encoder.max_position), lambda: token_ids,
+          lambda: tf.slice(token_ids, [0, 0], [-1, self.encoder.max_position]))
       mask = tf.not_equal(token_ids, self.default_token_id, name='mask')
     else:
       tokens = tf.sparse.to_dense(tokens, default_value='')
+      length = tf.shape(tokens)[-1]
+      tokens = tf.cond(
+          tf.less_equal(length, self.encoder.max_position), lambda: tokens,
+          lambda: tf.slice(tokens, [0, 0], [-1, self.encoder.max_position]))
       token_ids = tf.string_to_hash_bucket_fast(
           tokens, self.encoder.vocab_size, name='token_ids')
       mask = tf.not_equal(tokens, '', name='mask')
