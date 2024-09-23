@@ -409,14 +409,14 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/highway_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
-  # @unittest.skipIf(
-  #     LooseVersion(tf.__version__) >= LooseVersion('2.0.0'),
-  #     'has no CustomOp when tf version == 2.4')
-  # def test_custom_op(self):
-  #   self._success = test_utils.test_single_train_eval(
-  #       'samples/model_config/cl4srec_on_taobao_with_custom_op.config',
-  #       self._test_dir)
-  #   self.assertTrue(self._success)
+  @unittest.skipIf(
+      LooseVersion(tf.__version__) >= LooseVersion('2.0.0'),
+      'has no CustomOp when tf version == 2.4')
+  def test_custom_op(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/cl4srec_on_taobao_with_custom_op.config',
+        self._test_dir)
+    self.assertTrue(self._success)
 
   def test_cdn(self):
     self._success = test_utils.test_single_train_eval(
