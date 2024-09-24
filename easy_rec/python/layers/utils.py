@@ -163,6 +163,10 @@ def mark_input_src(name, src_desc):
 
 
 def is_proto_message(pb_obj, field):
+  if not hasattr(pb_obj, 'DESCRIPTOR'):
+    return False
+  if field not in pb_obj.DESCRIPTOR.fields_by_name:
+    return False
   field_type = pb_obj.DESCRIPTOR.fields_by_name[field].type
   return field_type == FieldDescriptor.TYPE_MESSAGE
 
@@ -199,7 +203,6 @@ class Parameter(object):
         return Parameter(value, True, self._l2_reg)
       else:
         return value
-
     value = getattr(self.params, key)
     if is_proto_message(self.params, key):
       return Parameter(value, False, self._l2_reg)
@@ -220,12 +223,14 @@ class Parameter(object):
       return def_val
     else:  # pb message
       value = getattr(self.params, key, def_val)
-      if hasattr(value, '__len__'):
-        if len(value) > 0:
+      if hasattr(value, '__len__'):  # repeated
+        return value if len(value) > 0 else def_val
+      try:
+        if self.params.HasField(key):
           return value
-      elif self.params.HasField(key):
-        return value
-      return def_val
+      except ValueError:
+        pass
+      return def_val  # maybe not equal to the default value of msg field
 
   def check_required(self, keys):
     if not self.is_struct:

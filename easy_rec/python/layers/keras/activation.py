@@ -80,6 +80,25 @@ class Dice(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
+class MaskedSoftmax(Layer):
+
+  def __init__(self, axis=-1, **kwargs):
+    super(MaskedSoftmax, self).__init__(**kwargs)
+    self.axis = axis
+
+  def call(self, inputs, mask=None):
+    if mask is not None:
+      adder = (1.0 - tf.cast(mask, inputs.dtype)) * -1e9
+      inputs += adder
+    # Calculate softmax
+    if isinstance(self.axis, (tuple, list)):
+      if len(self.axis) > 1:
+        raise ValueError('MaskedSoftmax not support multiple axis')
+      else:
+        return tf.nn.softmax(inputs, axis=self.axis[0])
+    return tf.nn.softmax(inputs, axis=self.axis)
+
+
 def activation_layer(activation):
   if activation in ('dice', 'Dice'):
     act_layer = Dice()

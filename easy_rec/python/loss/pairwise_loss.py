@@ -42,7 +42,7 @@ def pairwise_loss(labels,
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0)) - margin
   pairwise_mask = tf.greater(
-      tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
   if session_ids is not None:
     logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(
@@ -91,7 +91,7 @@ def pairwise_focal_loss(labels,
   pairwise_logits = tf.expand_dims(logits, -1) - tf.expand_dims(logits, 0)
 
   pairwise_mask = tf.greater(
-      tf.expand_dims(labels, -1) - tf.expand_dims(labels, 0), 0)
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
   if hinge_margin is not None:
     hinge_mask = tf.less(pairwise_logits, hinge_margin)
     pairwise_mask = tf.logical_and(pairwise_mask, hinge_mask)
@@ -134,7 +134,7 @@ def pairwise_logistic_loss(labels,
                            ohem_ratio=1.0,
                            use_label_margin=False,
                            name=''):
-  r"""Computes pairwise logistic loss between `labels` and `logits`.
+  r"""Computes pairwise logistic loss between `labels` and `logits`, equivalent to RankNet loss.
 
   Definition:
   $$
@@ -146,7 +146,8 @@ def pairwise_logistic_loss(labels,
     labels: A `Tensor` of the same shape as `logits` representing graded
       relevance.
     logits: A `Tensor` with shape [batch_size].
-    session_ids: a `Tensor` with shape [batch_size]. Session ids of each sample, used to max GAUC metric. e.g. user_id
+    session_ids: a `Tensor` with shape [batch_size]. Session ids of each
+      sample, used to max GAUC metric. e.g. user_id
     temperature: (Optional) The temperature to use for scaling the logits.
     hinge_margin: the margin between positive and negative logits
     weights: A scalar, a `Tensor` with shape [batch_size] for each sample
@@ -163,23 +164,23 @@ def pairwise_logistic_loss(labels,
     logits /= temperature
     if use_label_margin:
       labels /= temperature
+
   pairwise_logits = tf.math.subtract(
       tf.expand_dims(logits, -1), tf.expand_dims(logits, 0))
-  pairwise_labels = tf.math.subtract(
-      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+  if use_label_margin:
+    pairwise_logits -= tf.math.subtract(
+        tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
+  elif hinge_margin is not None:
+    pairwise_logits -= hinge_margin
 
-  pairwise_mask = tf.greater(pairwise_labels, 0)
-  if hinge_margin is not None:
-    hinge_mask = tf.less(pairwise_logits, hinge_margin)
-    pairwise_mask = tf.logical_and(pairwise_mask, hinge_mask)
+  pairwise_mask = tf.greater(
+      tf.expand_dims(labels, -1), tf.expand_dims(labels, 0))
   if session_ids is not None:
     logging.info('[%s] use session ids' % loss_name)
     group_equal = tf.equal(
         tf.expand_dims(session_ids, -1), tf.expand_dims(session_ids, 0))
     pairwise_mask = tf.logical_and(pairwise_mask, group_equal)
 
-  if use_label_margin:
-    pairwise_logits -= pairwise_labels
   pairwise_logits = tf.boolean_mask(pairwise_logits, pairwise_mask)
   num_pair = tf.size(pairwise_logits)
   tf.summary.scalar('loss/%s_num_of_pairs' % loss_name, num_pair)

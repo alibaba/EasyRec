@@ -4,6 +4,65 @@ package protos;
 import "easy_rec/python/protos/dnn.proto";
 
 
+message Attention {
+    optional bool use_scale = 1 [default = false];
+    optional bool scale_by_dim = 2 [default = false];
+    optional string score_mode = 3 [default = 'dot'];
+    optional float dropout = 4 [default = 0.0];
+    optional int32 seed = 5;
+    optional bool return_attention_scores = 6 [default = false];
+    optional bool use_causal_mask = 7 [default = false];
+}
+
+message MultiHeadAttention {
+    required uint32 num_heads = 1;
+    required uint32 key_dim = 2;
+    optional uint32 value_dim = 3;
+    optional float dropout = 4 [default = 0.0];
+    optional bool use_bias = 5 [default = true];
+    optional bool return_attention_scores = 6 [default = false];
+    optional bool use_causal_mask = 7 [default = false];
+    //  The expected shape of an output tensor, besides the batch
+    //  and sequence dims. If not specified, projects back to the query
+    //  feature dim (the query input's last dimension).
+    optional uint32 output_shape = 8;
+    // axes over which the attention is applied.
+    repeated int32 attention_axes = 9;
+    optional string kernel_initializer = 10 [default = 'glorot_uniform'];
+    optional string bias_initializer = 11 [default = 'zeros'];
+}
+
+message Transformer {
+    // Size of the encoder layers and the pooler layer
+    required uint32 hidden_size = 1;
+    // Number of hidden layers in the Transformer encoder
+    required uint32 num_hidden_layers = 2;
+    // Number of attention heads for each attention layer in the Transformer encoder
+    required uint32 num_attention_heads = 3;
+    // The size of the "intermediate" (i.e. feed-forward) layer in the Transformer encoder
+    required uint32 intermediate_size = 4;
+    // The non-linear activation function (function or string) in the encoder and pooler.
+    required string hidden_act = 5 [default = 'relu'];
+    // The dropout probability for all fully connected layers in the embeddings, encoder, and pooler
+    required float hidden_dropout_prob = 6 [default = 0.1];
+    required uint32 vocab_size = 7;
+    // The maximum sequence length that this model might ever be used with
+    required uint32 max_position_embeddings = 8 [default = 512];
+    // Whether to add position embeddings for the position of each token in the text sequence
+    required bool use_position_embeddings = 9 [default = false];
+    // Whether to output all token embedding, if set to false, then only output the first token embedding
+    required bool output_all_token_embeddings = 10 [default = true];
+    // The dropout ratio for the attention probabilities
+    optional float attention_probs_dropout_prob = 11 [default = 0.0];
+}
+
+message TextEncoder {
+    required Transformer transformer = 1;
+    required string separator = 2 [default = ' '];
+    optional string vocab_file = 3;
+    optional int32 default_token_id = 4 [default = 0];
+}
+
 message BSTEncoder {
     // Size of the encoder layers and the pooler layer
     required uint32 hidden_size = 1;

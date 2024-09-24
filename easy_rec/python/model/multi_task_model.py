@@ -4,7 +4,6 @@ import logging
 from collections import OrderedDict
 
 import tensorflow as tf
-from google.protobuf import struct_pb2
 from tensorflow.python.keras.layers import Dense
 
 from easy_rec.python.builders import loss_builder
@@ -12,6 +11,7 @@ from easy_rec.python.layers.dnn import DNN
 from easy_rec.python.layers.keras.attention import Attention
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.model.rank_model import RankModel
+from easy_rec.python.protos import seq_encoder_pb2
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
@@ -103,9 +103,9 @@ class MultiTaskModel(RankModel):
           queries = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           keys = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
           values = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
-          st_params = struct_pb2.Struct()
-          st_params.update({'scale_by_dim': True})
-          params = Parameter(st_params, True)
+          attn_cfg = seq_encoder_pb2.Attention()
+          attn_cfg.use_scale = True
+          params = Parameter.make_from_pb(attn_cfg)
           attention_layer = Attention(params, name='AITM_%s' % tower_name)
           result = attention_layer([queries, values, keys])
           relation_fea = result[:, 0, :]
@@ -235,6 +235,16 @@ class MultiTaskModel(RankModel):
           task_tower_cfg.HasField('task_space_indicator_label'):
         in_task_space = tf.to_float(
             self._labels[task_tower_cfg.task_space_indicator_label] > 0)
+        loss_weight = loss_weight * (
+            task_tower_cfg.in_task_space_weight * in_task_space +
+            task_tower_cfg.out_task_space_weight * (1 - in_task_space))
+
+      if task_tower_cfg.HasField('task_space_indicator_name') and \
+          task_tower_cfg.HasField('task_space_indicator_value'):
+        in_task_space = tf.to_float(
+            tf.equal(
+                self._feature_dict[task_tower_cfg.task_space_indicator_name],
+                task_tower_cfg.task_space_indicator_value))
         loss_weight = loss_weight * (
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))

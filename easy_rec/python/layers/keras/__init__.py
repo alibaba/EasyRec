@@ -12,6 +12,7 @@ from .custom_ops import SeqAugmentOps
 from .custom_ops import TextNormalize
 from .data_augment import SeqAugment
 from .din import DIN
+from .embedding import EmbeddingLayer
 from .fibinet import BiLinear
 from .fibinet import FiBiNet
 from .fibinet import SENet
@@ -20,7 +21,12 @@ from .interaction import Cross
 from .interaction import DotInteraction
 from .mask_net import MaskBlock
 from .mask_net import MaskNet
+from .multi_head_attention import MultiHeadAttention
 from .multi_task import MMoE
 from .numerical_embedding import AutoDisEmbedding
+from .numerical_embedding import NaryDisEmbedding
 from .numerical_embedding import PeriodicEmbedding
 from .ppnet import PPNet
+from .transformer import TextEncoder
+from .transformer import TransformerBlock
+from .transformer import TransformerEncoder

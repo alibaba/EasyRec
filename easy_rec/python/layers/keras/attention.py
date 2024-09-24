@@ -79,9 +79,13 @@ class Attention(Layer):
     self.seed = params.get_or_default('seed', None)
     self.scale = None
     self.concat_score_weight = None
-    self.return_attention_scores = params.get_or_default(
+    self._return_attention_scores = params.get_or_default(
         'return_attention_scores', False)
     self.use_causal_mask = params.get_or_default('use_causal_mask', False)
+
+  @property
+  def return_attention_scores(self):
+    return self._return_attention_scores
 
   def build(self, input_shape):
     self._validate_inputs(input_shape)
@@ -199,12 +203,7 @@ class Attention(Layer):
       # or None if the value mask is not provided.
       return v_mask
 
-  def call(
-      self,
-      inputs,
-      mask=None,
-      training=False,
-  ):
+  def call(self, inputs, mask=None, training=False, **kwargs):
     self._validate_inputs(inputs=inputs, mask=mask)
     q = inputs[0]
     v = inputs[1]
@@ -220,7 +219,7 @@ class Attention(Layer):
       # Mask of shape [batch_size, Tq, 1].
       q_mask = tf.expand_dims(q_mask, axis=-1)
       result *= tf.cast(q_mask, dtype=result.dtype)
-    if self.return_attention_scores:
+    if self._return_attention_scores:
       return result, attention_scores
     return result
 

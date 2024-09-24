@@ -1,5 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
+
 import tensorflow as tf
 from tensorflow.python.keras.layers import Activation
 from tensorflow.python.keras.layers import Dense
@@ -55,6 +57,7 @@ class MaskBlock(Layer):
         name='aggregation')
     self.weight_layer = Dense(input_dim, name='weights')
     if self._projection_dim is not None:
+      logging.info('%s project dim is %d', self.name, self._projection_dim)
       self.project_layer = Dense(
           self._projection_dim,
           kernel_regularizer=self.l2_reg,
@@ -78,7 +81,7 @@ class MaskBlock(Layer):
       self.output_layer_norm = LayerNormalization(name='output_ln')
     super(MaskBlock, self).build(input_shape)
 
-  def call(self, inputs, **kwargs):
+  def call(self, inputs, training=None, **kwargs):
     if type(inputs) in (tuple, list):
       net, mask_input = inputs[:2]
     else:
