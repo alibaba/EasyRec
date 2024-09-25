@@ -146,7 +146,7 @@ class InputLayer(object):
       if is_embedding_column(col):
         embedding_reg_lst.append(val)
 
-    if self._embedding_regularizer is not None:
+    if self._embedding_regularizer is not None and len(embedding_reg_lst) > 0:
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
     return output_features, group_features
@@ -186,7 +186,7 @@ class InputLayer(object):
         seq_features.append((tmp_embedding, tmp_seq_len))
         embedding_reg_lst.append(tmp_embedding)
 
-    if self._embedding_regularizer is not None:
+    if self._embedding_regularizer is not None and len(embedding_reg_lst) > 0:
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
     return seq_features
