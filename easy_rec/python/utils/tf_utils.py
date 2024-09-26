@@ -1,12 +1,25 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Common functions used for odps input."""
+import json
+import os
+
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
+
+def get_ps_num_from_tf_config():
+  tf_config = os.environ.get('TF_CONFIG')
+  if tf_config:
+    tf_config_json = json.loads(tf_config)
+    cluster = tf_config_json.get('cluster', {})
+    ps_hosts = cluster.get('ps', [])
+    return len(ps_hosts)
+  return 0
 
 
 def get_tf_type(field_type):

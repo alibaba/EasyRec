@@ -78,9 +78,10 @@ class TextNormalize(Layer):
     inputs = inputs if type(inputs) in (tuple, list) else [inputs]
     with ops.device('/CPU:0'):
       result = [
-        self.txt_normalizer(
-            txt, parameter=self.norm_parameter, remove_space=self.remove_space)
-        for txt in inputs
+          self.txt_normalizer(
+              txt,
+              parameter=self.norm_parameter,
+              remove_space=self.remove_space) for txt in inputs
       ]
     if len(result) == 1:
       return result[0]

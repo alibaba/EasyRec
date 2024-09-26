@@ -10,6 +10,7 @@ from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.compat.array_ops import repeat
 from easy_rec.python.utils.activation import get_activation
+from easy_rec.python.utils.tf_utils import get_ps_num_from_tf_config
 
 curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
@@ -37,8 +38,8 @@ except Exception as ex:
                   (custom_op_path, str(ex)))
   custom_ops = None
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
+# if tf.__version__ >= '2.0':
+#   tf = tf.compat.v1
 
 
 class NLinear(object):
@@ -282,11 +283,16 @@ class NaryDisEmbedding(Layer):
     logging.info('%s has %d input features', self.name, self.num_features)
     vocab_size = self.num_features * self.vocab_size
     emb_dim = self.emb_dim * self.num_replicas
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
     self.embedding_table = self.add_weight(
         'embed_table',
         shape=[vocab_size, emb_dim],
         initializer='he_uniform',
         dtype=tf.float32,
+        partitioner=partitioner,
         trainable=True)
     super(NaryDisEmbedding, self).build(input_shape)
 
@@ -310,10 +316,16 @@ class NaryDisEmbedding(Layer):
 
     total_length = tf.size(splits)
     if self.intra_ary_pooling == 'sum':
-      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      if tf.__version__ >= '2.0':
+        segment_ids = tf.repeat(tf.range(total_length), repeats=splits)
+      else:
+        segment_ids = repeat(tf.range(total_length), repeats=splits)
       embedding = tf.math.segment_sum(embedding, segment_ids)
     elif self.intra_ary_pooling == 'mean':
-      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      if tf.__version__ >= '2.0':
+        segment_ids = tf.repeat(tf.range(total_length), repeats=splits)
+      else:
+        segment_ids = repeat(tf.range(total_length), repeats=splits)
       embedding = tf.math.segment_mean(embedding, segment_ids)
     else:
       raise ValueError('Unsupported intra ary pooling method %s' %

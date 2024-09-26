@@ -4,14 +4,10 @@ import logging
 from collections import OrderedDict
 
 import tensorflow as tf
-from tensorflow.python.keras.layers import Dense
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers.dnn import DNN
-from easy_rec.python.layers.keras.attention import Attention
-from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.model.rank_model import RankModel
-from easy_rec.python.protos import seq_encoder_pb2
 from easy_rec.python.protos import tower_pb2
 from easy_rec.python.protos.easy_rec_model_pb2 import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType

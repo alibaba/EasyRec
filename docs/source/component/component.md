@@ -112,15 +112,15 @@
 
 - NaryDisEmbedding
 
-| 参数                | 类型     | 默认值   | 说明                                                  |
-| ----------------- | ------ | ----- | --------------------------------------------------- |
-| embedding_dim     | uint32 |       | embedding维度                                         |
-| carries           | list   |       | N-ary 数值特征需要编码的进制列表                                 |
-| multiplier        | float  | 1.0   | 针对float类型的特征，放大`multiplier`倍再取整后进行进制编码              |
-| intra_ary_pooling | string | sum   | 同一进制的不同位的数字embedding如何聚合成最终的embedding, 可选：sum, mean |
-| num_replicas      | uint32 | 1     | 每个特征输出多少个embedding表征                                |
-| output_tensor_list | bool   | false | 是否同时输出embedding列表                                 |
-| output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效 |
+| 参数                 | 类型     | 默认值   | 说明                                                  |
+| ------------------ | ------ | ----- | --------------------------------------------------- |
+| embedding_dim      | uint32 |       | embedding维度                                         |
+| carries            | list   |       | N-ary 数值特征需要编码的进制列表                                 |
+| multiplier         | float  | 1.0   | 针对float类型的特征，放大`multiplier`倍再取整后进行进制编码              |
+| intra_ary_pooling  | string | sum   | 同一进制的不同位的数字embedding如何聚合成最终的embedding, 可选：sum, mean |
+| num_replicas       | uint32 | 1     | 每个特征输出多少个embedding表征                                |
+| output_tensor_list | bool   | false | 是否同时输出embedding列表                                   |
+| output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效   |
 
 备注：该组件依赖自定义Tensorflow OP，可能在某些版本的TF上无法使用
 
