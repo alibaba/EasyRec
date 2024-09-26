@@ -9,6 +9,7 @@
 | Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
 | PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](backbone.md#dlrm-embedding)                                                                                                        |
 | AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+| NaryDisEmbedding  | N进制编码  | 数值特征Embedding                   | [dlrm_on_criteo_with_narydis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_narydis.config) |
 | TextCNN           | 文本卷积   | 提取文本序列的特征                       | [text_cnn_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/text_cnn_on_movielens.config)             |
 
 **备注**：Gate组件的第一个输入是权重向量，后面的输入拼凑成一个列表，权重向量的长度应等于列表的长度
@@ -47,9 +48,10 @@
 
 ## 5. 多目标学习组件
 
-| 类名   | 功能                          | 说明        | 示例                      |
-| ---- | --------------------------- | --------- | ----------------------- |
-| MMoE | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](backbone.md#mmoe) |
+| 类名        | 功能                          | 说明        | 示例                            |
+| --------- | --------------------------- | --------- | ----------------------------- |
+| MMoE      | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](backbone.md#mmoe)       |
+| AITMTower | AITM模型的一个tower              | AITM模型的组件 | [AITM](../models/aitm.md#id2) |
 
 ## 6. 辅助损失函数组件
 
@@ -107,6 +109,20 @@
 | temperature        | float  |       | softmax函数的温度系数                                    |
 | output_tensor_list | bool   | false | 是否同时输出embedding列表                                 |
 | output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效 |
+
+- NaryDisEmbedding
+
+| 参数                | 类型     | 默认值   | 说明                                                  |
+| ----------------- | ------ | ----- | --------------------------------------------------- |
+| embedding_dim     | uint32 |       | embedding维度                                         |
+| carries           | list   |       | N-ary 数值特征需要编码的进制列表                                 |
+| multiplier        | float  | 1.0   | 针对float类型的特征，放大`multiplier`倍再取整后进行进制编码              |
+| intra_ary_pooling | string | sum   | 同一进制的不同位的数字embedding如何聚合成最终的embedding, 可选：sum, mean |
+| num_replicas      | uint32 | 1     | 每个特征输出多少个embedding表征                                |
+| output_tensor_list | bool   | false | 是否同时输出embedding列表                                 |
+| output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效 |
+
+备注：该组件依赖自定义Tensorflow OP，可能在某些版本的TF上无法使用
 
 - TextCNN
 
@@ -313,6 +329,14 @@ BERT模型结构
 | num_task   | uint32 |     | 任务数          |
 | num_expert | uint32 | 0   | expert数量     |
 | expert_mlp | MLP    | 可选  | expert的mlp参数 |
+
+- AITMTower
+
+| 参数            | 类型     | 默认值  | 说明                             |
+| ------------- | ------ | ---- | ------------------------------ |
+| project_dim   | uint32 | 可选   | attention Query, Key, Value的维度 |
+| stop_gradient | bool   | True | 是否需要停用对依赖的输入的梯度                |
+| transfer_mlp  | MLP    |      | transfer的mlp参数                 |
 
 ## 6. 计算辅助损失函数的组件
 

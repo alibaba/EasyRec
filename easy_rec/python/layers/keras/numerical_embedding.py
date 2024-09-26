@@ -5,6 +5,7 @@ import math
 import os
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.compat.array_ops import repeat
@@ -255,19 +256,19 @@ class NaryDisEmbedding(Layer):
     params.check_required(['embedding_dim', 'carries'])
     self.emb_dim = int(params.embedding_dim)
     self.carries = params.get_or_default('carries', [2, 9])
+    self.num_replicas = params.get_or_default('num_replicas', 1)
+    assert self.num_replicas >= 1, 'num replicas must be >= 1'
     self.lengths = list(map(self.max_length, self.carries))
     self.vocab_size = int(sum(self.lengths))
     self.multiplier = params.get_or_default('multiplier', 1.0)
     self.intra_ary_pooling = params.get_or_default('intra_ary_pooling', 'sum')
-    self.inter_ary_pooling = params.get_or_default('inter_ary_pooling',
-                                                   'concat')
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
+    self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     logging.info(
-        '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'
+        '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, replicas: {}, multiplier: {}'
         .format(self.name, ','.join(map(str, self.carries)),
                 ','.join(map(str, self.lengths)), self.vocab_size,
-                self.intra_ary_pooling, self.inter_ary_pooling,
-                self.multiplier))
+                self.intra_ary_pooling, self.num_replicas, self.multiplier))
 
   @staticmethod
   def max_length(carry):
@@ -280,9 +281,10 @@ class NaryDisEmbedding(Layer):
     self.num_features = int(input_shape[-1])
     logging.info('%s has %d input features', self.name, self.num_features)
     vocab_size = self.num_features * self.vocab_size
+    emb_dim = self.emb_dim * self.num_replicas
     self.embedding_table = self.add_weight(
         'embed_table',
-        shape=[vocab_size, self.emb_dim],
+        shape=[vocab_size, emb_dim],
         initializer='he_uniform',
         dtype=tf.float32,
         trainable=True)
@@ -295,11 +297,12 @@ class NaryDisEmbedding(Layer):
       inputs *= self.multiplier
     inputs = tf.to_int32(inputs)
     offset, emb_indices, emb_splits = 0, [], []
-    for carry, length in zip(self.carries, self.lengths):
-      values, splits = self.nary_carry(inputs, carry=carry, offset=offset)
-      offset += length
-      emb_indices.append(values)
-      emb_splits.append(splits)
+    with ops.device('/CPU:0'):
+      for carry, length in zip(self.carries, self.lengths):
+        values, splits = self.nary_carry(inputs, carry=carry, offset=offset)
+        offset += length
+        emb_indices.append(values)
+        emb_splits.append(splits)
     indices = tf.concat(emb_indices, axis=0)
     splits = tf.concat(emb_splits, axis=0)
     # embedding shape: [B*N*C, D]
@@ -315,20 +318,42 @@ class NaryDisEmbedding(Layer):
     else:
       raise ValueError('Unsupported intra ary pooling method %s' %
                        self.intra_ary_pooling)
+    # B: batch size
+    # N: num features
+    # C: num carries
+    # D: embedding dimension
+    # R: num replicas
+    # shape of embedding: [B*N*C, R*D]
+    N = self.num_features
+    C = len(self.carries)
+    D = self.emb_dim
+    if self.num_replicas == 1:
+      embedding = tf.reshape(embedding, [C, -1, D])  # [C, B*N, D]
+      embedding = tf.transpose(embedding, perm=[1, 0, 2])  # [B*N, C, D]
+      embedding = tf.reshape(embedding, [-1, C * D])  # [B*N, C*D]
+      output = tf.reshape(embedding, [-1, N * C * D])  # [B, N*C*D]
+      if self.output_tensor_list:
+        return output, tf.split(embedding, N)  # [B, C*D] * N
+      if self.output_3d_tensor:
+        embedding = tf.reshape(embedding, [-1, N, C * D])  # [B, N, C*D]
+        return output, embedding
+      return output
 
-    if self.inter_ary_pooling == 'concat':
-      embeddings = tf.split(embedding, len(self.carries))
-      embedding = tf.concat(embeddings, axis=-1)  # [B*N, C*D]
-    else:
-      raise ValueError('Unsupported inter ary pooling method %s' %
-                       self.inter_ary_pooling)
-    if self.output_3d_tensor:
-      embedding = tf.reshape(
-          embedding, [-1, self.num_features,
-                      len(self.carries) * self.emb_dim])  # [B, N, C*D]
-    else:
-      embedding = tf.reshape(
-          embedding, [-1, self.num_features * len(self.carries) * self.emb_dim
-                      ])  # [B, N*C*D]
-    print('NaryDisEmbedding:', embedding)
-    return embedding
+    # self.num_replicas > 1:
+    replicas = tf.split(embedding, self.num_replicas, axis=1)
+    outputs = []
+    outputs2 = []
+    for replica in replicas:
+      # shape of replica: [B*N*C, D]
+      embedding = tf.reshape(replica, [C, -1, D])  # [C, B*N, D]
+      embedding = tf.transpose(embedding, perm=[1, 0, 2])  # [B*N, C, D]
+      embedding = tf.reshape(embedding, [-1, C * D])  # [B*N, C*D]
+      output = tf.reshape(embedding, [-1, N * C * D])  # [B, N*C*D]
+      outputs.append(output)
+      if self.output_tensor_list:
+        embedding = tf.split(embedding, N)  # [B, C*D] * N
+        outputs2.append(embedding)
+      elif self.output_3d_tensor:
+        embedding = tf.reshape(embedding, [-1, N, C * D])  # [B, N, C*D]
+        outputs2.append(embedding)
+    return outputs + outputs2

@@ -32,7 +32,7 @@ class MLP(Layer):
 
   def __init__(self, params, name='mlp', reuse=None, **kwargs):
     super(MLP, self).__init__(name=name, **kwargs)
-    self.layer_name = name
+    self.layer_name = name  # for add to output
     params.check_required('hidden_units')
     use_bn = params.get_or_default('use_bn', True)
     use_final_bn = params.get_or_default('use_final_bn', True)
@@ -79,14 +79,14 @@ class MLP(Layer):
                      use_bn_after_activation,
                      name,
                      l2_reg=None):
-    act_layer = activation_layer(activation)
+    act_layer = activation_layer(activation, name='%s/act' % name)
     if use_bn and not use_bn_after_activation:
       dense = Dense(
           units=num_units,
           use_bias=use_bias,
           kernel_initializer=initializer,
           kernel_regularizer=l2_reg,
-          name=name)
+          name='%s/dense' % name)
       self._sub_layers.append(dense)
       bn = tf.keras.layers.BatchNormalization(
           name='%s/bn' % name, trainable=True)
@@ -98,7 +98,7 @@ class MLP(Layer):
           use_bias=use_bias,
           kernel_initializer=initializer,
           kernel_regularizer=l2_reg,
-          name=name)
+          name='%s/dense' % name)
       self._sub_layers.append(dense)
       self._sub_layers.append(act_layer)
       if use_bn and use_bn_after_activation:
@@ -117,7 +117,7 @@ class MLP(Layer):
       cls = layer.__class__.__name__
       if cls in ('Dropout', 'BatchNormalization', 'Dice'):
         x = layer(x, training=training)
-        if cls in ('BatchNormalization', 'Dice'):
+        if cls in ('BatchNormalization', 'Dice') and training:
           add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
         x = layer(x)
@@ -183,8 +183,14 @@ class Gate(Layer):
   def __init__(self, params, name='gate', reuse=None, **kwargs):
     super(Gate, self).__init__(name=name, **kwargs)
     self.weight_index = params.get_or_default('weight_index', 0)
+    if params.has_field('mlp'):
+      mlp_cfg = Parameter.make_from_pb(params.mlp)
+      mlp_cfg.l2_regularizer = params.l2_regularizer
+      self.top_mlp = MLP(mlp_cfg, name='top_mlp')
+    else:
+      self.top_mlp = None
 
-  def call(self, inputs, **kwargs):
+  def call(self, inputs, training=None, **kwargs):
     assert len(
         inputs
     ) > 1, 'input of Gate layer must be a list containing at least 2 elements'
@@ -198,6 +204,8 @@ class Gate(Layer):
       else:
         output += weights[:, j, None] * x
       j += 1
+    if self.top_mlp is not None:
+      output = self.top_mlp(output, training=training)
     return output
 
 
@@ -248,7 +256,7 @@ class TextCNN(Layer):
       pooled_outputs.append(pooled)
     net = self.concat_layer(pooled_outputs)
     if self.mlp is not None:
-      output = self.mlp(net)
+      output = self.mlp(net, training=training)
     else:
       output = net
     return output

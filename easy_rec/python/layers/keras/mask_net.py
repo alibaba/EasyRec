@@ -149,7 +149,7 @@ class MaskNet(Layer):
       ]
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
       if self.mlp is not None:
-        output = self.mlp(all_mask_outputs)
+        output = self.mlp(all_mask_outputs, training=training)
       else:
         output = all_mask_outputs
       return output
@@ -160,7 +160,7 @@ class MaskNet(Layer):
         net = mask_layer((net, inputs))
 
       if self.mlp is not None:
-        output = self.mlp(net)
+        output = self.mlp(net, training=training)
       else:
         output = net
       return output

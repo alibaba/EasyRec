@@ -59,65 +59,45 @@ class MultiTaskModel(RankModel):
     tower_features = {}
     for i, task_tower_cfg in enumerate(config.task_towers):
       tower_name = task_tower_cfg.tower_name
-      if task_tower_cfg.HasField('dnn'):
-        tower_dnn = DNN(
-            task_tower_cfg.dnn,
-            self._l2_reg,
-            name=tower_name,
-            is_training=self._is_training)
-        tower_output = tower_dnn(task_input_list[i])
-      else:
-        tower_output = task_input_list[i]
-      tower_features[tower_name] = tower_output
+      with tf.name_scope(tower_name):
+        if task_tower_cfg.HasField('dnn'):
+          tower_dnn = DNN(
+              task_tower_cfg.dnn,
+              self._l2_reg,
+              name=tower_name,
+              is_training=self._is_training)
+          tower_output = tower_dnn(task_input_list[i])
+        else:
+          tower_output = task_input_list[i]
+        tower_features[tower_name] = tower_output
 
     tower_outputs = {}
     relation_features = {}
     # bayes network
     for task_tower_cfg in config.task_towers:
       tower_name = task_tower_cfg.tower_name
-      if task_tower_cfg.HasField('relation_dnn'):
-        relation_dnn = DNN(
-            task_tower_cfg.relation_dnn,
-            self._l2_reg,
-            name=tower_name + '/relation_dnn',
-            is_training=self._is_training)
-        tower_inputs = [tower_features[tower_name]]
-        for relation_tower_name in task_tower_cfg.relation_tower_names:
-          tower_inputs.append(relation_features[relation_tower_name])
-        relation_input = tf.concat(
-            tower_inputs, axis=-1, name=tower_name + '/relation_input')
-        relation_fea = relation_dnn(relation_input)
-        relation_features[tower_name] = relation_fea
-      elif task_tower_cfg.use_ait_module:
-        tower_inputs = [tower_features[tower_name]]
-        for relation_tower_name in task_tower_cfg.relation_tower_names:
-          tower_inputs.append(relation_features[relation_tower_name])
-        if len(tower_inputs) == 1:
-          relation_fea = tower_inputs[0]
+      with tf.name_scope(tower_name):
+        if task_tower_cfg.HasField('relation_dnn'):
+          relation_dnn = DNN(
+              task_tower_cfg.relation_dnn,
+              self._l2_reg,
+              name=tower_name + '/relation_dnn',
+              is_training=self._is_training)
+          tower_inputs = [tower_features[tower_name]]
+          for relation_tower_name in task_tower_cfg.relation_tower_names:
+            tower_inputs.append(relation_features[relation_tower_name])
+          relation_input = tf.concat(
+              tower_inputs, axis=-1, name=tower_name + '/relation_input')
+          relation_fea = relation_dnn(relation_input)
           relation_features[tower_name] = relation_fea
         else:
-          if task_tower_cfg.HasField('ait_project_dim'):
-            dim = task_tower_cfg.ait_project_dim
-          else:
-            dim = int(tower_inputs[0].shape[-1])
-          queries = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
-          keys = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
-          values = tf.stack([Dense(dim)(x) for x in tower_inputs], axis=1)
-          attn_cfg = seq_encoder_pb2.Attention()
-          attn_cfg.use_scale = True
-          params = Parameter.make_from_pb(attn_cfg)
-          attention_layer = Attention(params, name='AITM_%s' % tower_name)
-          result = attention_layer([queries, values, keys])
-          relation_fea = result[:, 0, :]
-          relation_features[tower_name] = relation_fea
-      else:
-        relation_fea = tower_features[tower_name]
+          relation_fea = tower_features[tower_name]
 
-      output_logits = tf.layers.dense(
-          relation_fea,
-          task_tower_cfg.num_class,
-          kernel_regularizer=self._l2_reg,
-          name=tower_name + '/output')
+        output_logits = tf.layers.dense(
+            relation_fea,
+            task_tower_cfg.num_class,
+            kernel_regularizer=self._l2_reg,
+            name=tower_name + '/output')
       tower_outputs[tower_name] = output_logits
 
     self._add_to_prediction_dict(tower_outputs)

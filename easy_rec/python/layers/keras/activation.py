@@ -99,14 +99,14 @@ class MaskedSoftmax(Layer):
     return tf.nn.softmax(inputs, axis=self.axis)
 
 
-def activation_layer(activation):
+def activation_layer(activation, name=None):
   if activation in ('dice', 'Dice'):
-    act_layer = Dice()
+    act_layer = Dice(name=name)
   elif isinstance(activation, (str, unicode)):
     act_fn = easy_rec.python.utils.activation.get_activation(activation)
-    act_layer = Activation(act_fn)
+    act_layer = Activation(act_fn, name=name)
   elif issubclass(activation, Layer):
-    act_layer = activation()
+    act_layer = activation(name=name)
   else:
     raise ValueError(
         'Invalid activation,found %s.You should use a str or a Activation Layer Class.'

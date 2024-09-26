@@ -317,7 +317,9 @@ class Package(object):
         inputs, _, weights = self._feature_group_inputs[feature_group]
         block_outputs[block] = input_fn([inputs, weights], is_training)
       else:
-        inputs = self.block_input(config, block_outputs, is_training, **kwargs)
+        with tf.name_scope(block + '_input'):
+          inputs = self.block_input(config, block_outputs, is_training,
+                                    **kwargs)
         output = self.call_layer(inputs, config, block, is_training, **kwargs)
         block_outputs[block] = output
 
