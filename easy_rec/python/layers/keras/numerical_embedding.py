@@ -152,41 +152,47 @@ class PeriodicEmbedding(Layer):
     self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def call(self, inputs, **kwargs):
-    if inputs.shape.ndims != 2:
-      raise ValueError('inputs of PeriodicEmbedding must have 2 dimensions.')
-
-    num_features = int(inputs.shape[-1])
+  def build(self, input_shape):
+    if input_shape.ndims != 2:
+      raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
+    self.num_features = int(input_shape[-1])
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
     emb_dim = self.embedding_dim // 2
-    with tf.variable_scope(self.name, reuse=self.reuse):
-      c = tf.get_variable(
-          'coefficients',
-          shape=[1, num_features, emb_dim],
-          initializer=self.initializer)
+    self.coef = self.add_weight(
+        'coefficients',
+        shape=[1, self.num_features, emb_dim],
+        partitioner=partitioner,
+        initializer=self.initializer)
+    if self.add_linear_layer:
+      self.linear = NLinear(
+          self.num_features,
+          self.embedding_dim,
+          self.embedding_dim,
+          scope='nd_linear',
+          reuse=self.reuse)
+    super(PeriodicEmbedding, self).build(input_shape)
 
-      features = inputs[..., None]  # [B, N, 1]
-      v = 2 * math.pi * c * features  # [B, N, E]
-      emb = tf.concat([tf.sin(v), tf.cos(v)], axis=-1)  # [B, N, 2E]
+  def call(self, inputs, **kwargs):
+    features = inputs[..., None]  # [B, N, 1]
+    v = 2 * math.pi * self.coef * features  # [B, N, E]
+    emb = tf.concat([tf.sin(v), tf.cos(v)], axis=-1)  # [B, N, 2E]
 
-      dim = self.embedding_dim
-      if self.add_linear_layer:
-        linear = NLinear(
-            num_features,
-            dim,
-            dim,
-            scope='%s_nd_linear' % self.name,
-            reuse=self.reuse)
-        emb = linear(emb)
-        act = get_activation(self.linear_activation)
-        if callable(act):
-          emb = act(emb)
-      output = tf.reshape(emb, [-1, num_features * dim])
+    dim = self.embedding_dim
+    if self.add_linear_layer:
+      emb = self.linear(emb)
+      act = get_activation(self.linear_activation)
+      if callable(act):
+        emb = act(emb)
+    output = tf.reshape(emb, [-1, self.num_features * dim])
 
-      if self.output_tensor_list:
-        return output, tf.unstack(emb, axis=1)
-      if self.output_3d_tensor:
-        return output, emb
-      return output
+    if self.output_tensor_list:
+      return output, tf.unstack(emb, axis=1)
+    if self.output_3d_tensor:
+      return output, emb
+    return output
 
 
 class AutoDisEmbedding(Layer):
@@ -206,42 +212,51 @@ class AutoDisEmbedding(Layer):
     self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def call(self, inputs, **kwargs):
-    if inputs.shape.ndims != 2:
+  def build(self, input_shape):
+    if input_shape.ndims != 2:
       raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
+    self.num_features = int(input_shape[-1])
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
+    self.meta_emb = self.add_weight(
+        'meta_embedding',
+        shape=[self.num_features, self.num_bins, self.emb_dim],
+        partitioner=partitioner)
+    self.proj_w = self.add_weight(
+        'project_w',
+        shape=[1, self.num_features, self.num_bins],
+        partitioner=partitioner)
+    self.proj_mat = self.add_weight(
+        'project_mat',
+        shape=[self.num_features, self.num_bins, self.num_bins],
+        partitioner=partitioner)
+    super(AutoDisEmbedding, self).build(input_shape)
 
-    num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.name, reuse=self.reuse):
-      meta_emb = tf.get_variable(
-          'meta_embedding', shape=[num_features, self.num_bins, self.emb_dim])
-      w = tf.get_variable('project_w', shape=[1, num_features, self.num_bins])
-      mat = tf.get_variable(
-          'project_mat', shape=[num_features, self.num_bins, self.num_bins])
+  def call(self, inputs, **kwargs):
+    x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
+    hidden = tf.nn.leaky_relu(self.proj_w * x)  # [B, N, num_bin]
+    # 低版本的tf(1.12) matmul 不支持广播，所以改成 einsum
+    # y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
+    # y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
+    y = tf.einsum('nik,bnk->bni', self.proj_mat, hidden)  # [B, N, num_bin]
 
-      x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
-      hidden = tf.nn.leaky_relu(w * x)  # [B, N, num_bin]
-      # 低版本的tf(1.12) matmul 不支持广播，所以改成 einsum
-      # y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
-      # y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
-      y = tf.einsum('nik,bnk->bni', mat, hidden)  # [B, N, num_bin]
+    # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
+    alpha = self.keep_prob
+    x_bar = y + alpha * hidden  # [B, N, num_bin]
+    x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
 
-      # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
-      alpha = self.keep_prob
-      x_bar = y + alpha * hidden  # [B, N, num_bin]
-      x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
+    # emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
+    # emb = tf.squeeze(emb, axis=2)  # [B, N, D]
+    emb = tf.einsum('bnk,nkd->bnd', x_hat, self.meta_emb)
+    output = tf.reshape(emb, [-1, self.emb_dim * self.num_features])  # [B, N*D]
 
-      # emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
-      # emb = tf.squeeze(emb, axis=2)  # [B, N, D]
-      emb = tf.einsum('bnk,nkd->bnd', x_hat, meta_emb)
-
-      output = tf.reshape(emb, [-1, self.emb_dim * num_features])  # [B, N*D]
-
-      if self.output_tensor_list:
-        return output, tf.unstack(emb, axis=1)
-
-      if self.output_3d_tensor:
-        return output, emb
-      return output
+    if self.output_tensor_list:
+      return output, tf.unstack(emb, axis=1)
+    if self.output_3d_tensor:
+      return output, emb
+    return output
 
 
 class NaryDisEmbedding(Layer):
@@ -288,12 +303,7 @@ class NaryDisEmbedding(Layer):
     if num_ps > 0:
       partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
     self.embedding_table = self.add_weight(
-        'embed_table',
-        shape=[vocab_size, emb_dim],
-        initializer='he_uniform',
-        dtype=tf.float32,
-        partitioner=partitioner,
-        trainable=True)
+        'embed_table', shape=[vocab_size, emb_dim], partitioner=partitioner)
     super(NaryDisEmbedding, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
