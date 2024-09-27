@@ -96,7 +96,7 @@ class NLinear(Layer):
     else:
       self.bias = None
 
-  def __call__(self, x, *args, **kwargs):
+  def call(self, x, **kwargs):
     if x.shape.ndims != 3:
       raise ValueError(
           'The input must have three dimensions (batch_size, n_tokens, d_embedding)'
