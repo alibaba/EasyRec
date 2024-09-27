@@ -38,11 +38,8 @@ except Exception as ex:
                   (custom_op_path, str(ex)))
   custom_ops = None
 
-# if tf.__version__ >= '2.0':
-#   tf = tf.compat.v1
 
-
-class NLinear(object):
+class NLinear(Layer):
   """N linear layers for N token (feature) embeddings.
 
   To understand this module, let's revise `tf.layers.dense`. When `tf.layers.dense` is
@@ -76,8 +73,8 @@ class NLinear(object):
                d_in,
                d_out,
                bias=True,
-               scope='nd_linear',
-               reuse=None):
+               name='nd_linear',
+               **kwargs):
     """Init with input shapes.
 
     Args:
@@ -85,20 +82,19 @@ class NLinear(object):
         d_in: the input dimension
         d_out: the output dimension
         bias: indicates if the underlying linear layers have biases
-        scope: variable scope name
-        reuse: whether to reuse variables
+        name: layer name
     """
-    with tf.variable_scope(scope, reuse=reuse):
-      self.weight = tf.get_variable(
-          'weights', [1, n_tokens, d_in, d_out], dtype=tf.float32)
-      if bias:
-        initializer = tf.constant_initializer(0.0)
-        self.bias = tf.get_variable(
-            'bias', [1, n_tokens, d_out],
-            dtype=tf.float32,
-            initializer=initializer)
-      else:
-        self.bias = None
+    super(NLinear, self).__init__(name=name, **kwargs)
+    self.weight = self.add_weight(
+        'weights', [1, n_tokens, d_in, d_out], dtype=tf.float32)
+    if bias:
+      initializer = tf.constant_initializer(0.0)
+      self.bias = self.add_weight(
+          'bias', [1, n_tokens, d_out],
+          dtype=tf.float32,
+          initializer=initializer)
+    else:
+      self.bias = None
 
   def __call__(self, x, *args, **kwargs):
     if x.shape.ndims != 3:
@@ -171,8 +167,7 @@ class PeriodicEmbedding(Layer):
           self.num_features,
           self.embedding_dim,
           self.embedding_dim,
-          scope='nd_linear',
-          reuse=self.reuse)
+          name='nd_linear')
     super(PeriodicEmbedding, self).build(input_shape)
 
   def call(self, inputs, **kwargs):

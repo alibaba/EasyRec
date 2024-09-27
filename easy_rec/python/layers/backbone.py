@@ -266,8 +266,8 @@ class Package(object):
       try:
         output = merge_inputs(inputs, config.input_concat_axis, config.name)
       except ValueError as e:
-        logging.error('merge inputs of block %s failed: %s', config.name,
-                      e.message)
+        msg = getattr(e, 'message', str(e))
+        logging.error('merge inputs of block %s failed: %s', config.name, msg)
         raise e
 
     if config.HasField('extra_input_fn'):
@@ -342,7 +342,8 @@ class Package(object):
     try:
       output = merge_inputs(outputs, msg='backbone')
     except ValueError as e:
-      logging.error("merge backbone's output failed: %s", e.message)
+      msg = getattr(e, 'message', str(e))
+      logging.error("merge backbone's output failed: %s", msg)
       raise e
     return output
 
@@ -404,8 +405,8 @@ class Package(object):
       try:
         output = layer(inputs, training=training, **kwargs)
       except Exception as e:
-        logging.error('call keras layer %s (%s) failed: %s' %
-                      (name, cls, e.message))
+        msg = getattr(e, 'message', str(e))
+        logging.error('call keras layer %s (%s) failed: %s' % (name, cls, msg))
         raise e
     else:
       try:
