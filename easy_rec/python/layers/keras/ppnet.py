@@ -32,20 +32,18 @@ class GateNN(tf.keras.layers.Layer):
     dense = tf.keras.layers.Dense(
         units=hidden_dim,
         use_bias=not do_batch_norm,
-        kernel_initializer=initializer,
-        name=name)
+        kernel_initializer=initializer)
     self._sub_layers.append(dense)
 
     if do_batch_norm:
-      bn = tf.keras.layers.BatchNormalization(
-          name='%s/bn' % name, trainable=True)
+      bn = tf.keras.layers.BatchNormalization(trainable=True)
       self._sub_layers.append(bn)
 
     act_layer = activation_layer(activation)
     self._sub_layers.append(act_layer)
 
     if 0.0 < dropout_rate < 1.0:
-      dropout = tf.keras.layers.Dropout(dropout_rate, name='%s/dropout' % name)
+      dropout = tf.keras.layers.Dropout(dropout_rate)
       self._sub_layers.append(dropout)
     elif dropout_rate >= 1.0:
       raise ValueError('invalid dropout_ratio: %.3f' % dropout_rate)
@@ -55,7 +53,7 @@ class GateNN(tf.keras.layers.Layer):
         activation='sigmoid',
         use_bias=not do_batch_norm,
         kernel_initializer=initializer,
-        name=name)
+        name='weight')
     self._sub_layers.append(dense)
     self._sub_layers.append(lambda x: x * 2)
 
@@ -65,7 +63,7 @@ class GateNN(tf.keras.layers.Layer):
       cls = layer.__class__.__name__
       if cls in ('Dropout', 'BatchNormalization', 'Dice'):
         x = layer(x, training=training)
-        if cls in ('BatchNormalization', 'Dice'):
+        if cls in ('BatchNormalization', 'Dice') and training:
           add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
         x = layer(x)
@@ -143,14 +141,14 @@ class PPNet(tf.keras.layers.Layer):
                      use_bn_after_activation,
                      name,
                      l2_reg=None):
-    act_layer = activation_layer(activation)
+    act_layer = activation_layer(activation, name='%s/act' % name)
     if use_bn and not use_bn_after_activation:
       dense = tf.keras.layers.Dense(
           units=num_units,
           use_bias=use_bias,
           kernel_initializer=initializer,
           kernel_regularizer=l2_reg,
-          name=name)
+          name='%s/dense' % name)
       self._sub_layers.append(dense)
       bn = tf.keras.layers.BatchNormalization(
           name='%s/bn' % name, trainable=True)
@@ -162,7 +160,7 @@ class PPNet(tf.keras.layers.Layer):
           use_bias=use_bias,
           kernel_initializer=initializer,
           kernel_regularizer=l2_reg,
-          name=name)
+          name='%s/dense' % name)
       self._sub_layers.append(dense)
       self._sub_layers.append(act_layer)
       if use_bn and use_bn_after_activation:
@@ -189,7 +187,7 @@ class PPNet(tf.keras.layers.Layer):
         x *= gate
       elif cls in ('Dropout', 'BatchNormalization', 'Dice'):
         x = layer(x, training=training)
-        if cls in ('BatchNormalization', 'Dice'):
+        if cls in ('BatchNormalization', 'Dice') and training:
           add_elements_to_collection(layer.updates, tf.GraphKeys.UPDATE_OPS)
       else:
         x = layer(x)

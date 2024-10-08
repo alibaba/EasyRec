@@ -34,5 +34,7 @@ message KerasLayer {
         MultiHeadAttention multi_head_attention = 23;
         Transformer transformer = 24;
         TextEncoder text_encoder = 25;
+        WeightedGate gate = 26;
+        AITMTower aitm = 27;
     }
 }

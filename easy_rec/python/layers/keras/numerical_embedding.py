@@ -5,10 +5,12 @@ import math
 import os
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.compat.array_ops import repeat
 from easy_rec.python.utils.activation import get_activation
+from easy_rec.python.utils.tf_utils import get_ps_num_from_tf_config
 
 curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
@@ -36,11 +38,8 @@ except Exception as ex:
                   (custom_op_path, str(ex)))
   custom_ops = None
 
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
 
-
-class NLinear(object):
+class NLinear(Layer):
   """N linear layers for N token (feature) embeddings.
 
   To understand this module, let's revise `tf.layers.dense`. When `tf.layers.dense` is
@@ -74,8 +73,8 @@ class NLinear(object):
                d_in,
                d_out,
                bias=True,
-               scope='nd_linear',
-               reuse=None):
+               name='nd_linear',
+               **kwargs):
     """Init with input shapes.
 
     Args:
@@ -83,22 +82,21 @@ class NLinear(object):
         d_in: the input dimension
         d_out: the output dimension
         bias: indicates if the underlying linear layers have biases
-        scope: variable scope name
-        reuse: whether to reuse variables
+        name: layer name
     """
-    with tf.variable_scope(scope, reuse=reuse):
-      self.weight = tf.get_variable(
-          'weights', [1, n_tokens, d_in, d_out], dtype=tf.float32)
-      if bias:
-        initializer = tf.constant_initializer(0.0)
-        self.bias = tf.get_variable(
-            'bias', [1, n_tokens, d_out],
-            dtype=tf.float32,
-            initializer=initializer)
-      else:
-        self.bias = None
+    super(NLinear, self).__init__(name=name, **kwargs)
+    self.weight = self.add_weight(
+        'weights', [1, n_tokens, d_in, d_out], dtype=tf.float32)
+    if bias:
+      initializer = tf.constant_initializer(0.0)
+      self.bias = self.add_weight(
+          'bias', [1, n_tokens, d_out],
+          dtype=tf.float32,
+          initializer=initializer)
+    else:
+      self.bias = None
 
-  def __call__(self, x, *args, **kwargs):
+  def call(self, x, **kwargs):
     if x.shape.ndims != 3:
       raise ValueError(
           'The input must have three dimensions (batch_size, n_tokens, d_embedding)'
@@ -150,41 +148,46 @@ class PeriodicEmbedding(Layer):
     self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def call(self, inputs, **kwargs):
-    if inputs.shape.ndims != 2:
-      raise ValueError('inputs of PeriodicEmbedding must have 2 dimensions.')
-
-    num_features = int(inputs.shape[-1])
+  def build(self, input_shape):
+    if input_shape.ndims != 2:
+      raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
+    self.num_features = int(input_shape[-1])
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
     emb_dim = self.embedding_dim // 2
-    with tf.variable_scope(self.name, reuse=self.reuse):
-      c = tf.get_variable(
-          'coefficients',
-          shape=[1, num_features, emb_dim],
-          initializer=self.initializer)
+    self.coef = self.add_weight(
+        'coefficients',
+        shape=[1, self.num_features, emb_dim],
+        partitioner=partitioner,
+        initializer=self.initializer)
+    if self.add_linear_layer:
+      self.linear = NLinear(
+          self.num_features,
+          self.embedding_dim,
+          self.embedding_dim,
+          name='nd_linear')
+    super(PeriodicEmbedding, self).build(input_shape)
 
-      features = inputs[..., None]  # [B, N, 1]
-      v = 2 * math.pi * c * features  # [B, N, E]
-      emb = tf.concat([tf.sin(v), tf.cos(v)], axis=-1)  # [B, N, 2E]
+  def call(self, inputs, **kwargs):
+    features = inputs[..., None]  # [B, N, 1]
+    v = 2 * math.pi * self.coef * features  # [B, N, E]
+    emb = tf.concat([tf.sin(v), tf.cos(v)], axis=-1)  # [B, N, 2E]
 
-      dim = self.embedding_dim
-      if self.add_linear_layer:
-        linear = NLinear(
-            num_features,
-            dim,
-            dim,
-            scope='%s_nd_linear' % self.name,
-            reuse=self.reuse)
-        emb = linear(emb)
-        act = get_activation(self.linear_activation)
-        if callable(act):
-          emb = act(emb)
-      output = tf.reshape(emb, [-1, num_features * dim])
+    dim = self.embedding_dim
+    if self.add_linear_layer:
+      emb = self.linear(emb)
+      act = get_activation(self.linear_activation)
+      if callable(act):
+        emb = act(emb)
+    output = tf.reshape(emb, [-1, self.num_features * dim])
 
-      if self.output_tensor_list:
-        return output, tf.unstack(emb, axis=1)
-      if self.output_3d_tensor:
-        return output, emb
-      return output
+    if self.output_tensor_list:
+      return output, tf.unstack(emb, axis=1)
+    if self.output_3d_tensor:
+      return output, emb
+    return output
 
 
 class AutoDisEmbedding(Layer):
@@ -204,42 +207,51 @@ class AutoDisEmbedding(Layer):
     self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
 
-  def call(self, inputs, **kwargs):
-    if inputs.shape.ndims != 2:
+  def build(self, input_shape):
+    if input_shape.ndims != 2:
       raise ValueError('inputs of AutoDisEmbedding must have 2 dimensions.')
+    self.num_features = int(input_shape[-1])
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
+    self.meta_emb = self.add_weight(
+        'meta_embedding',
+        shape=[self.num_features, self.num_bins, self.emb_dim],
+        partitioner=partitioner)
+    self.proj_w = self.add_weight(
+        'project_w',
+        shape=[1, self.num_features, self.num_bins],
+        partitioner=partitioner)
+    self.proj_mat = self.add_weight(
+        'project_mat',
+        shape=[self.num_features, self.num_bins, self.num_bins],
+        partitioner=partitioner)
+    super(AutoDisEmbedding, self).build(input_shape)
 
-    num_features = int(inputs.shape[-1])
-    with tf.variable_scope(self.name, reuse=self.reuse):
-      meta_emb = tf.get_variable(
-          'meta_embedding', shape=[num_features, self.num_bins, self.emb_dim])
-      w = tf.get_variable('project_w', shape=[1, num_features, self.num_bins])
-      mat = tf.get_variable(
-          'project_mat', shape=[num_features, self.num_bins, self.num_bins])
+  def call(self, inputs, **kwargs):
+    x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
+    hidden = tf.nn.leaky_relu(self.proj_w * x)  # [B, N, num_bin]
+    # 低版本的tf(1.12) matmul 不支持广播，所以改成 einsum
+    # y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
+    # y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
+    y = tf.einsum('nik,bnk->bni', self.proj_mat, hidden)  # [B, N, num_bin]
 
-      x = tf.expand_dims(inputs, axis=-1)  # [B, N, 1]
-      hidden = tf.nn.leaky_relu(w * x)  # [B, N, num_bin]
-      # 低版本的tf(1.12) matmul 不支持广播，所以改成 einsum
-      # y = tf.matmul(mat, hidden[..., None])  # [B, N, num_bin, 1]
-      # y = tf.squeeze(y, axis=3)  # [B, N, num_bin]
-      y = tf.einsum('nik,bnk->bni', mat, hidden)  # [B, N, num_bin]
+    # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
+    alpha = self.keep_prob
+    x_bar = y + alpha * hidden  # [B, N, num_bin]
+    x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
 
-      # keep_prob(float): if dropout_flag is True, keep_prob rate to keep connect
-      alpha = self.keep_prob
-      x_bar = y + alpha * hidden  # [B, N, num_bin]
-      x_hat = tf.nn.softmax(x_bar / self.temperature)  # [B, N, num_bin]
+    # emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
+    # emb = tf.squeeze(emb, axis=2)  # [B, N, D]
+    emb = tf.einsum('bnk,nkd->bnd', x_hat, self.meta_emb)
+    output = tf.reshape(emb, [-1, self.emb_dim * self.num_features])  # [B, N*D]
 
-      # emb = tf.matmul(x_hat[:, :, None, :], meta_emb)  # [B, N, 1, D]
-      # emb = tf.squeeze(emb, axis=2)  # [B, N, D]
-      emb = tf.einsum('bnk,nkd->bnd', x_hat, meta_emb)
-
-      output = tf.reshape(emb, [-1, self.emb_dim * num_features])  # [B, N*D]
-
-      if self.output_tensor_list:
-        return output, tf.unstack(emb, axis=1)
-
-      if self.output_3d_tensor:
-        return output, emb
-      return output
+    if self.output_tensor_list:
+      return output, tf.unstack(emb, axis=1)
+    if self.output_3d_tensor:
+      return output, emb
+    return output
 
 
 class NaryDisEmbedding(Layer):
@@ -255,19 +267,19 @@ class NaryDisEmbedding(Layer):
     params.check_required(['embedding_dim', 'carries'])
     self.emb_dim = int(params.embedding_dim)
     self.carries = params.get_or_default('carries', [2, 9])
+    self.num_replicas = params.get_or_default('num_replicas', 1)
+    assert self.num_replicas >= 1, 'num replicas must be >= 1'
     self.lengths = list(map(self.max_length, self.carries))
     self.vocab_size = int(sum(self.lengths))
     self.multiplier = params.get_or_default('multiplier', 1.0)
     self.intra_ary_pooling = params.get_or_default('intra_ary_pooling', 'sum')
-    self.inter_ary_pooling = params.get_or_default('inter_ary_pooling',
-                                                   'concat')
     self.output_3d_tensor = params.get_or_default('output_3d_tensor', False)
+    self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     logging.info(
-        '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, inter_ary: {}, multiplier: {}'
+        '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, replicas: {}, multiplier: {}'
         .format(self.name, ','.join(map(str, self.carries)),
                 ','.join(map(str, self.lengths)), self.vocab_size,
-                self.intra_ary_pooling, self.inter_ary_pooling,
-                self.multiplier))
+                self.intra_ary_pooling, self.num_replicas, self.multiplier))
 
   @staticmethod
   def max_length(carry):
@@ -280,12 +292,13 @@ class NaryDisEmbedding(Layer):
     self.num_features = int(input_shape[-1])
     logging.info('%s has %d input features', self.name, self.num_features)
     vocab_size = self.num_features * self.vocab_size
+    emb_dim = self.emb_dim * self.num_replicas
+    num_ps = get_ps_num_from_tf_config()
+    partitioner = None
+    if num_ps > 0:
+      partitioner = tf.fixed_size_partitioner(num_shards=num_ps)
     self.embedding_table = self.add_weight(
-        'embed_table',
-        shape=[vocab_size, self.emb_dim],
-        initializer='he_uniform',
-        dtype=tf.float32,
-        trainable=True)
+        'embed_table', shape=[vocab_size, emb_dim], partitioner=partitioner)
     super(NaryDisEmbedding, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
@@ -295,11 +308,12 @@ class NaryDisEmbedding(Layer):
       inputs *= self.multiplier
     inputs = tf.to_int32(inputs)
     offset, emb_indices, emb_splits = 0, [], []
-    for carry, length in zip(self.carries, self.lengths):
-      values, splits = self.nary_carry(inputs, carry=carry, offset=offset)
-      offset += length
-      emb_indices.append(values)
-      emb_splits.append(splits)
+    with ops.device('/CPU:0'):
+      for carry, length in zip(self.carries, self.lengths):
+        values, splits = self.nary_carry(inputs, carry=carry, offset=offset)
+        offset += length
+        emb_indices.append(values)
+        emb_splits.append(splits)
     indices = tf.concat(emb_indices, axis=0)
     splits = tf.concat(emb_splits, axis=0)
     # embedding shape: [B*N*C, D]
@@ -307,28 +321,56 @@ class NaryDisEmbedding(Layer):
 
     total_length = tf.size(splits)
     if self.intra_ary_pooling == 'sum':
-      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      if tf.__version__ >= '2.0':
+        segment_ids = tf.repeat(tf.range(total_length), repeats=splits)
+      else:
+        segment_ids = repeat(tf.range(total_length), repeats=splits)
       embedding = tf.math.segment_sum(embedding, segment_ids)
     elif self.intra_ary_pooling == 'mean':
-      segment_ids = repeat(tf.range(total_length), repeats=splits)
+      if tf.__version__ >= '2.0':
+        segment_ids = tf.repeat(tf.range(total_length), repeats=splits)
+      else:
+        segment_ids = repeat(tf.range(total_length), repeats=splits)
       embedding = tf.math.segment_mean(embedding, segment_ids)
     else:
       raise ValueError('Unsupported intra ary pooling method %s' %
                        self.intra_ary_pooling)
+    # B: batch size
+    # N: num features
+    # C: num carries
+    # D: embedding dimension
+    # R: num replicas
+    # shape of embedding: [B*N*C, R*D]
+    N = self.num_features
+    C = len(self.carries)
+    D = self.emb_dim
+    if self.num_replicas == 1:
+      embedding = tf.reshape(embedding, [C, -1, D])  # [C, B*N, D]
+      embedding = tf.transpose(embedding, perm=[1, 0, 2])  # [B*N, C, D]
+      embedding = tf.reshape(embedding, [-1, C * D])  # [B*N, C*D]
+      output = tf.reshape(embedding, [-1, N * C * D])  # [B, N*C*D]
+      if self.output_tensor_list:
+        return output, tf.split(embedding, N)  # [B, C*D] * N
+      if self.output_3d_tensor:
+        embedding = tf.reshape(embedding, [-1, N, C * D])  # [B, N, C*D]
+        return output, embedding
+      return output
 
-    if self.inter_ary_pooling == 'concat':
-      embeddings = tf.split(embedding, len(self.carries))
-      embedding = tf.concat(embeddings, axis=-1)  # [B*N, C*D]
-    else:
-      raise ValueError('Unsupported inter ary pooling method %s' %
-                       self.inter_ary_pooling)
-    if self.output_3d_tensor:
-      embedding = tf.reshape(
-          embedding, [-1, self.num_features,
-                      len(self.carries) * self.emb_dim])  # [B, N, C*D]
-    else:
-      embedding = tf.reshape(
-          embedding, [-1, self.num_features * len(self.carries) * self.emb_dim
-                      ])  # [B, N*C*D]
-    print('NaryDisEmbedding:', embedding)
-    return embedding
+    # self.num_replicas > 1:
+    replicas = tf.split(embedding, self.num_replicas, axis=1)
+    outputs = []
+    outputs2 = []
+    for replica in replicas:
+      # shape of replica: [B*N*C, D]
+      embedding = tf.reshape(replica, [C, -1, D])  # [C, B*N, D]
+      embedding = tf.transpose(embedding, perm=[1, 0, 2])  # [B*N, C, D]
+      embedding = tf.reshape(embedding, [-1, C * D])  # [B*N, C*D]
+      output = tf.reshape(embedding, [-1, N * C * D])  # [B, N*C*D]
+      outputs.append(output)
+      if self.output_tensor_list:
+        embedding = tf.split(embedding, N)  # [B, C*D] * N
+        outputs2.append(embedding)
+      elif self.output_3d_tensor:
+        embedding = tf.reshape(embedding, [-1, N, C * D])  # [B, N, C*D]
+        outputs2.append(embedding)
+    return outputs + outputs2
