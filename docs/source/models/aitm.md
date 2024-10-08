@@ -31,7 +31,7 @@ model_config {
   }
   backbone {
     blocks {
-      name: "mlp"
+      name: "share_bottom"
       inputs {
         feature_group_name: "all"
       }
@@ -42,6 +42,49 @@ model_config {
         }
       }
     }
+    blocks {
+      name: "ctr_tower"
+      inputs {
+        block_name: "share_bottom"
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: 128
+        }
+      }
+    }
+    blocks {
+      name: "cvr_tower"
+      inputs {
+        block_name: "share_bottom"
+      }
+      keras_layer {
+        class_name: 'MLP'
+        mlp {
+          hidden_units: 128
+        }
+      }
+    }
+    blocks {
+      name: "cvr_aitm"
+      inputs {
+        block_name: "cvr_tower"
+      }
+      inputs {
+        block_name: "ctr_tower"
+      }
+      merge_inputs_into_list: true
+      keras_layer {
+        class_name: "AITMTower"
+        aitm {
+          transfer_mlp {
+            hidden_units: 128
+          }
+        }
+      }
+    }
+    output_blocks: ["ctr_tower", "cvr_aitm"]
   }
   model_params {
     task_towers {
@@ -52,9 +95,8 @@ model_config {
         auc {}
       }
       dnn {
-        hidden_units: [256, 128]
+        hidden_units: 64
       }
-      use_ait_module: true
       weight: 1.0
     }
     task_towers {
@@ -70,11 +112,8 @@ model_config {
         auc {}
       }
       dnn {
-        hidden_units: [256, 128]
+        hidden_units: 64
       }
-      relation_tower_names: ["ctr"]
-      use_ait_module: true
-      ait_project_dim: 128
       weight: 1.0
     }
     l2_regularization: 1e-6
@@ -95,15 +134,15 @@ model_config {
   - name/inputs: 每个`block`有一个唯一的名字（name），并且有一个或多个输入(inputs)和输出
   - keras_layer: 加载由`class_name`指定的自定义或系统内置的keras layer，执行一段代码逻辑；[参考文档](../component/backbone.md#keraslayer)
   - mlp: MLP模型的参数，详见[参考文档](../component/component.md#id1)
+  - cvr_aitm: AITMTower组件，该组件块的input的顺序不能乱写，第一个input必须是当前tower的输入，后续的inputs是依赖的前驱模块
+  - output_blocks: backbone的输出tensor列表，顺序必须与下面`model_params`里配置的任务tower一致
 
-- model_params: AITM相关的参数
+- model_params: 多目标建模相关的参数
 
   - task_towers 根据任务数配置task_towers
     - tower_name
     - dnn deep part的参数配置
       - hidden_units: dnn每一层的channel数目，即神经元的数目
-    - use_ait_module: if true 使用`AITM`模型；否则，使用[DBMTL](dbmtl.md)模型
-    - ait_project_dim: 每个tower对应的表征向量的维度，一般设为最后一个隐藏的维度即可
     - 默认为二分类任务，即num_class默认为1，weight默认为1.0，loss_type默认为CLASSIFICATION，metrics_set为auc
     - loss_type: ORDER_CALIBRATE_LOSS 使用目标依赖关系校正预测结果的辅助损失函数，详见原始论文
     - 注：label_fields需与task_towers一一对齐。

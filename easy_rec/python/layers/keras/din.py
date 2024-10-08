@@ -17,6 +17,12 @@ class DIN(Layer):
     self.reuse = reuse
     self.l2_reg = params.l2_regularizer
     self.config = params.get_pb_config()
+    self.config.attention_dnn.use_final_bn = False
+    self.config.attention_dnn.use_final_bias = True
+    self.config.attention_dnn.final_activation = 'linear'
+    mlp_params = Parameter.make_from_pb(self.config.attention_dnn)
+    mlp_params.l2_regularizer = self.l2_reg
+    self.din_layer = MLP(mlp_params, 'din_attention', reuse=self.reuse)
 
   def call(self, inputs, training=None, **kwargs):
     keys, seq_len, query = inputs
@@ -36,14 +42,7 @@ class DIN(Layer):
     queries = tf.tile(tf.expand_dims(query, 1), [1, max_seq_len, 1])
     din_all = tf.concat([queries, keys, queries - keys, queries * keys],
                         axis=-1)
-
-    self.config.attention_dnn.use_final_bn = False
-    self.config.attention_dnn.use_final_bias = True
-    self.config.attention_dnn.final_activation = 'linear'
-    params = Parameter.make_from_pb(self.config.attention_dnn)
-    params.l2_regularizer = self.l2_reg
-    din_layer = MLP(params, name=self.name + '/din_attention', reuse=self.reuse)
-    output = din_layer(din_all, training)  # [B, L, 1]
+    output = self.din_layer(din_all, training)  # [B, L, 1]
     scores = tf.transpose(output, [0, 2, 1])  # [B, 1, L]
 
     seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)

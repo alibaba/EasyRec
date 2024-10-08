@@ -58,10 +58,11 @@ class SeqAugmentOps(Layer):
       mask_emb = tf.get_variable(
           'mask', (embedding_dim,), dtype=tf.float32, trainable=True)
     seq_len = tf.to_int32(seq_len)
-    aug_seq, aug_len = self.seq_augment(seq_input, seq_len, mask_emb,
-                                        self.seq_aug_params.crop_rate,
-                                        self.seq_aug_params.reorder_rate,
-                                        self.seq_aug_params.mask_rate)
+    with ops.device('/CPU:0'):
+      aug_seq, aug_len = self.seq_augment(seq_input, seq_len, mask_emb,
+                                          self.seq_aug_params.crop_rate,
+                                          self.seq_aug_params.reorder_rate,
+                                          self.seq_aug_params.mask_rate)
     return aug_seq, aug_len
 
 
@@ -75,11 +76,13 @@ class TextNormalize(Layer):
 
   def call(self, inputs, training=None, **kwargs):
     inputs = inputs if type(inputs) in (tuple, list) else [inputs]
-    result = [
-        self.txt_normalizer(
-            txt, parameter=self.norm_parameter, remove_space=self.remove_space)
-        for txt in inputs
-    ]
+    with ops.device('/CPU:0'):
+      result = [
+          self.txt_normalizer(
+              txt,
+              parameter=self.norm_parameter,
+              remove_space=self.remove_space) for txt in inputs
+      ]
     if len(result) == 1:
       return result[0]
     return result

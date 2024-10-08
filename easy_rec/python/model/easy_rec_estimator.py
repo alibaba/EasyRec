@@ -153,6 +153,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
     return tmp_saver_cls
 
   def _train_model_fn(self, features, labels, run_config):
+    tf.keras.backend.set_learning_phase(1)
     model = self._model_cls(
         self.model_config,
         self.feature_configs,
@@ -471,6 +472,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         training_hooks=hooks)
 
   def _eval_model_fn(self, features, labels, run_config):
+    tf.keras.backend.set_learning_phase(0)
     start = time.time()
     model = self._model_cls(
         self.model_config,
@@ -510,6 +512,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         eval_metric_ops=metric_dict)
 
   def _distribute_eval_model_fn(self, features, labels, run_config):
+    tf.keras.backend.set_learning_phase(0)
     start = time.time()
     model = self._model_cls(
         self.model_config,
@@ -562,6 +565,7 @@ class EasyRecEstimator(tf.estimator.Estimator):
         scaffold=scaffold)
 
   def _export_model_fn(self, features, labels, run_config, params):
+    tf.keras.backend.set_learning_phase(0)
     model = self._model_cls(
         self.model_config,
         self.feature_configs,

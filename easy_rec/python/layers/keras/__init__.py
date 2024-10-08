@@ -22,6 +22,7 @@ from .interaction import DotInteraction
 from .mask_net import MaskBlock
 from .mask_net import MaskNet
 from .multi_head_attention import MultiHeadAttention
+from .multi_task import AITMTower
 from .multi_task import MMoE
 from .numerical_embedding import AutoDisEmbedding
 from .numerical_embedding import NaryDisEmbedding
