@@ -80,7 +80,6 @@ def np_to_tf_type(np_type):
       int: tf.int32,
       np.int32: tf.int32,
       np.int64: tf.int64,
-      np.str: tf.string,
       str: tf.string,
       np.float: tf.float32,
       np.float32: tf.float32,

@@ -47,8 +47,8 @@ def _get_np_type(field_type):
   type_map = {
       DatasetConfig.INT32: np.int32,
       DatasetConfig.INT64: np.int64,
-      DatasetConfig.STRING: np.str,
-      DatasetConfig.BOOL: np.bool,
+      DatasetConfig.STRING: str,
+      DatasetConfig.BOOL: bool,
       DatasetConfig.FLOAT: np.float32,
       DatasetConfig.DOUBLE: np.double
   }
@@ -329,7 +329,7 @@ class NegativeSamplerInMemory(BaseSampler):
     for col_id in range(len(self._attr_np_types)):
       np_type = self._attr_np_types[col_id]
       print('\tcol_id[%d], dtype=%s' % (col_id, self._attr_gl_types[col_id]))
-      if np_type != np.str:
+      if np_type != str:
         self._cols[col_id] = np.array(self._cols[col_id], dtype=np_type)
       else:
         self._cols[col_id] = np.asarray(
@@ -417,7 +417,7 @@ class NegativeSamplerInMemory(BaseSampler):
     for col_id in range(len(self._cols)):
       tmp_col = self._cols[col_id]
       np_type = self._attr_np_types[col_id]
-      if np_type != np.str:
+      if np_type != str:
         sel_feas = tmp_col[sel_ids]
         features.append(sel_feas)
       else:
