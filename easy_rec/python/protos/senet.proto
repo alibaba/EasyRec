@@ -1,8 +1,0 @@
-syntax = "proto2";
-package protos;
-
-
-message SENet {
-    uint32 num_squeeze_group = 1 [default = 2];
-    uint32 reduction_ratio = 2 [default = 4];
-}

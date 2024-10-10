@@ -3,9 +3,9 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/simi.proto";
-import "easy_rec/python/protos/senet.proto"
+import "easy_rec/python/protos/layer.proto";
 
-message DSSMTower {
+message DSSM_SENet_Tower {
   required string id = 1;
   required SENet senet = 2;
   required DNN dnn = 3;
@@ -14,8 +14,8 @@ message DSSMTower {
 
 
 message DSSM_SENet {
-    required DSSMTower user_tower = 1;
-    required DSSMTower item_tower = 2;
+    required DSSM_SENet_Tower user_tower = 1;
+    required DSSM_SENet_Tower item_tower = 2;
     required float l2_regularization = 3 [default = 1e-4];
     optional Similarity simi_func = 4 [default=COSINE];
     // add a layer for scaling the similarity
