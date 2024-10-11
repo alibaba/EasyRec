@@ -9,7 +9,7 @@ message DSSM_SENet_Tower {
   required string id = 1;
   required SENet senet = 2;
   required DNN dnn = 3;
-  
+
 };
 
 

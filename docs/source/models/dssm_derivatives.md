@@ -1,11 +1,11 @@
-# DSSM衍生扩展模型 
+# DSSM衍生扩展模型
 
 ## DSSM + SENet
+
 ### 简介
 
 在推荐场景中，往往存在多种用户特征和物品特征，特征类型各不相同，各种特征经过embedding层后进入双塔模型的DNN层进行训练，在部分场景中甚至还会引入多模态embedding特征, 如图像和文本的embedding。
 然而各个特征对目标的影响不尽相同，有的特征重要性高，对模型整体表现影响大，有的特征则影响较小。因此当特征不断增多时，可以结合SENet自动学习每个特征的权重，增强重要信息到塔顶的能力。
-
 
 ![dssm+senet](../../images/models/dssm+senet.png)
 
@@ -70,12 +70,14 @@ model_config:{
 }
 ```
 
-- senet参数配置: 
+- senet参数配置:
   - num_squeeze_group: 每个特征embedding的分组个数， 默认为2
   - reduction_ratio: 维度压缩比例， 默认为4
 
 ### 示例Config
+
 [dssm_senet_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dssm_senet_on_taobao.config)
 
 ### 参考论文
+
 [Squeeze-and-Excitation Networks](https://arxiv.org/abs/1709.01507)

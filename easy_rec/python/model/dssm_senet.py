@@ -3,13 +3,14 @@
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
+from easy_rec.python.layers import senet
+from easy_rec.python.model.dssm import DSSM
 from easy_rec.python.model.match_model import MatchModel
-from easy_rec.python.protos.dssm_senet_pb2 import DSSM_SENet as DSSM_SENet_Config
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.simi_pb2 import Similarity
 from easy_rec.python.utils.proto_util import copy_obj
-from easy_rec.python.layers import senet
-from easy_rec.python.model.dssm import DSSM  
+
+from easy_rec.python.protos.dssm_senet_pb2 import DSSM_SENet as DSSM_SENet_Config
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -25,7 +26,8 @@ class DSSM_SENet(DSSM):
                labels=None,
                is_training=False):
 
-    MatchModel.__init__(self, model_config, feature_configs, features, labels, is_training)
+    MatchModel.__init__(self, model_config, feature_configs, features, labels,
+                        is_training)
 
     assert self._model_config.WhichOneof('model') == 'dssm_senet', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
@@ -35,13 +37,15 @@ class DSSM_SENet(DSSM):
     # copy_obj so that any modification will not affect original config
     self.user_tower = copy_obj(self._model_config.user_tower)
 
-    self.user_seq_features, self.user_plain_features, self.user_feature_list = self._input_layer(self._feature_dict, 'user', is_combine=False)
+    self.user_seq_features, self.user_plain_features, self.user_feature_list = self._input_layer(
+        self._feature_dict, 'user', is_combine=False)
     self.user_num_fields = len(self.user_feature_list)
 
     # copy_obj so that any modification will not affect original config
     self.item_tower = copy_obj(self._model_config.item_tower)
 
-    self.item_seq_features, self.item_plain_features, self.item_feature_list = self._input_layer(self._feature_dict, 'item', is_combine=False)
+    self.item_seq_features, self.item_plain_features, self.item_feature_list = self._input_layer(
+        self._feature_dict, 'item', is_combine=False)
     self.item_num_fields = len(self.item_feature_list)
 
     self._user_tower_emb = None
@@ -49,12 +53,11 @@ class DSSM_SENet(DSSM):
 
   def build_predict_graph(self):
     user_senet = senet.SENet(
-      num_fields=self.user_num_fields, 
-      num_squeeze_group=self.user_tower.senet.num_squeeze_group, 
-      reduction_ratio=self.user_tower.senet.reduction_ratio, 
-      l2_reg=self._l2_reg, 
-      name='user_senet'
-    )
+        num_fields=self.user_num_fields,
+        num_squeeze_group=self.user_tower.senet.num_squeeze_group,
+        reduction_ratio=self.user_tower.senet.reduction_ratio,
+        l2_reg=self._l2_reg,
+        name='user_senet')
     user_senet_output_list = user_senet(self.user_feature_list)
     user_senet_output = tf.concat(user_senet_output_list, axis=-1)
 
@@ -70,15 +73,14 @@ class DSSM_SENet(DSSM):
         name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
 
     item_senet = senet.SENet(
-      num_fields=self.item_num_fields, 
-      num_squeeze_group=self.item_tower.senet.num_squeeze_group, 
-      reduction_ratio=self.item_tower.senet.reduction_ratio, 
-      l2_reg=self._l2_reg, 
-      name='item_senet'
-    )
-    
+        num_fields=self.item_num_fields,
+        num_squeeze_group=self.item_tower.senet.num_squeeze_group,
+        reduction_ratio=self.item_tower.senet.reduction_ratio,
+        l2_reg=self._l2_reg,
+        name='item_senet')
+
     item_senet_output_list = item_senet(self.item_feature_list)
-    item_senet_output = tf.concat(item_senet_output_list, axis=-1) 
+    item_senet_output = tf.concat(item_senet_output_list, axis=-1)
 
     num_item_dnn_layer = len(self.item_tower.dnn.hidden_units)
     last_item_hidden = self.item_tower.dnn.hidden_units.pop()
@@ -137,5 +139,5 @@ class DSSM_SENet(DSSM):
 
   def build_output_dict(self):
     output_dict = MatchModel.build_output_dict(self)
-    
+
     return output_dict
