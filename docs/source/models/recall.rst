@@ -6,6 +6,7 @@
 
    dssm
    dssm_neg_sampler
+   dssm_derivatives
    mind
    co_metric_learning_i2i
    pdn
