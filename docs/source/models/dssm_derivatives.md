@@ -70,6 +70,10 @@ model_config:{
 }
 ```
 
+- senet参数配置: 
+  - num_squeeze_group: 每个特征embedding的分组个数， 默认为2
+  - reduction_ratio: 维度压缩比例， 默认为4
+
 ### 示例Config
 [dssm_senet_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dssm_senet_on_taobao.config)
 
