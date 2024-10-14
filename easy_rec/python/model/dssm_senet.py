@@ -6,10 +6,11 @@ from easy_rec.python.layers import dnn
 from easy_rec.python.layers import senet
 from easy_rec.python.model.dssm import DSSM
 from easy_rec.python.model.match_model import MatchModel
-from easy_rec.python.protos.dssm_senet_pb2 import DSSM_SENet as DSSM_SENet_Config  # NOQA
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.protos.simi_pb2 import Similarity
 from easy_rec.python.utils.proto_util import copy_obj
+
+from easy_rec.python.protos.dssm_senet_pb2 import DSSM_SENet as DSSM_SENet_Config  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
