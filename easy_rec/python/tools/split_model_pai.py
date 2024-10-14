@@ -17,7 +17,7 @@ if tf.__version__ >= '2.0':
   from tensorflow.python.saved_model.path_helpers import get_variables_path
   from tensorflow.python.ops.resource_variable_ops import _from_proto_fn
 else:
-  from tensorflow.compat.v1.python.saved_model.utils_impl import get_variables_path
+  from tensorflow.python.saved_model.utils_impl import get_variables_path
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('model_dir', '', '')
