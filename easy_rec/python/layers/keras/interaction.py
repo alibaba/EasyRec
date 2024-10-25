@@ -308,5 +308,91 @@ class Cross(tf.keras.layers.Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
+class CIN(tf.keras.layers.Layer):
+  """Compressed Interaction Network(CIN) module in xDeepFM model.
+
+  CIN layer is aimed at achieving high-order feature interactions at
+  vector-wise level rather than bit-wise level.
+
+
+  Reference:
+  [xDeepFM](https://arxiv.org/pdf/1803.05170)
+   xDeepFM: Combining Explicit and Implicit Feature Interactions for Recommender Systems
+  """
+
+  def __init__(self, params, name='cin', reuse=None, **kwargs):
+    super(CIN, self).__init__(name=name, **kwargs)
+    self._name = name
+    self._hidden_feature_dims = params.get_or_default('hidden_feature_dims', [])
+    assert isinstance(
+        self._hidden_feature_dims,
+        list), 'parameter hidden_feature_dims should be type of list of int'
+
+  def build(self, input_shape):
+    hidden_feature_dims = [
+        input_shape[1]
+    ] + self._hidden_feature_dims  # [number_of_features, hidden_feature_dims]
+
+    with tf.variable_scope(self._name):
+      self.kernel_list = [
+          tf.get_variable(
+              f'cin_kernel_{i}',
+              shape=[
+                  hidden_feature_dims[i + 1], hidden_feature_dims[i],
+                  hidden_feature_dims[0]
+              ],
+              initializer=tf.keras.initializers.he_normal())
+          for i in range(len(self._hidden_feature_dims))
+      ]
+
+    super(CIN, self).build(input_shape)
+
+  def call(self, input, **kwargs):
+    """Computes the crossed feature maps.
+
+    Args:
+      inputs: The input tensor shape (b, h0, d), where b is batch_size,
+            h0 is the number of features, d is the feature dimension.
+
+    Returns:
+     Tensor of crossed feature map.
+    """
+    x_0 = input
+    x_i = input
+    x_0_expanded = tf.expand_dims(x_0, 1)  # shape = (b, 1, h0, d)
+
+    pooled_feature_map_list = []
+    for i in range(len(self._hidden_feature_dims)):
+      hk = self._hidden_feature_dims[i]
+
+      x_i_expanded = tf.expand_dims(x_i, 2)  # shape = (b, h1, 1, d)
+      intermediate_tensor = tf.multiply(x_0_expanded,
+                                        x_i_expanded)  # shape (b, h1, h0, d)
+
+      intermediate_tensor_expanded = tf.expand_dims(
+          intermediate_tensor, 1)  # shape = (b, 1, h1, h0, d)
+      intermediate_tensor_expanded = tf.tile(
+          intermediate_tensor_expanded,
+          [1, hk, 1, 1, 1])  # shape = (b, hk, h1, h0, d)
+
+      feature_map_elementwise = tf.multiply(
+          intermediate_tensor_expanded,
+          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1),
+                         0)  # shape = (1, hk, h1, h0, 1)
+      )
+      feature_map = tf.reduce_sum(
+          tf.reduce_sum(feature_map_elementwise, axis=3),
+          axis=2)  # shape = (b, hk, d)
+      x_i = feature_map
+      pooled_feature_map_list.append(
+          tf.reduce_sum(feature_map, axis=-1)  # shape = (b, hk)
+      )
+    return tf.concat(
+        pooled_feature_map_list, axis=-1)  # shape = (b, h1 + ... + hk)
+
+  def get_config(self):
+    pass
+
+
 def _clone_initializer(initializer):
   return initializer.__class__.from_config(initializer.get_config())
