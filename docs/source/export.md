@@ -63,12 +63,14 @@ export_config {
 #### Local
 
 ```bash
-python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel.config --export_dir ./export
+python -m easy_rec.python.export --pipeline_config_path dwd_avazu_ctr_deepmodel.config --export_dir ./export --export_done_file EXPORT_DONE
 ```
 
 - --pipeline_config_path: config文件路径
 - --model_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用
 - --export_dir: 导出的目录
+- --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
+- --clear_export: 删除旧的导出文件目录
 
 #### PAI
 
@@ -92,3 +94,86 @@ pai -name easy_rec_ext -project algo_public
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
 - 如果是pai内部版,则不需要指定arn和ossHost, arn和ossHost放在-Dbuckets里面
   - -Dbuckets=oss://easyrec/?role_arn=acs:ram::xxx:role/ev-ext-test-oss&host=oss-cn-beijing-internal.aliyuncs.com
+- -Dextra_params: 其它参数, 没有在pai -name easy_rec_ext中定义的参数, 可以通过extra_params传入, 如:
+  - --export_done_file: 导出完成标志文件名, 导出完成后，在导出目录下创建一个文件表示导出完成了
+  - --clear_export: 删除旧的导出文件目录
+  - --place_embedding_on_cpu: 将embedding相关的操作放在cpu上，有助于提升模型在gpu环境下的推理速度
+- 模型导出之后可以使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS平台
+
+### 双塔召回模型
+
+如果是双塔召回模型(如dssm, mind等), 模型导出之后, 一般还需要进行模型切分和索引构建, 才能使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS上.
+
+#### 模型切分
+
+```sql
+pai -name easy_rec_ext
+-Dcmd='custom'
+-DentryFile='easy_rec/python/tools/split_model_pai.py'
+-Dversion='{easyrec_version}'
+-Dbuckets='oss://{oss_bucket}/'
+-Darn='{oss_arn}'
+-DossHost='oss-{region}-internal.aliyuncs.com'
+-Dcluster='{{
+    \\"worker\\": {{
+        \\"count\\": 1,
+        \\"cpu\\": 100
+    }}
+}}'
+-Dextra_params='--model_dir=oss://{oss_bucket}/dssm/export/final --user_model_dir=oss://{oss_bucket}/dssm/export/user --item_model_dir=oss://{oss_bucket}/dssm/export/item --user_fg_json_path=oss://{oss_bucket}/dssm/user_fg.json --item_fg_json_path=oss://{oss_bucket}/dssm/item_fg.json';
+```
+
+- -Dextra_params:
+  - --model_dir: 待切分的saved_model目录
+  - --user_model_dir: 切分好的用户塔模型目录
+  - --item_model_dir: 切分好的物品塔模型目录
+  - --user_fg_json_path: 用户塔的fg json
+  - --item_fg_json_path: 物品塔的fg json
+
+#### 物品Embedding预测和索引构建
+
+```sql
+pai -name easy_rec_ext
+-Dcmd='predict'
+-Dsaved_model_dir='oss://{oss_bucket}/dssm/export/item/'
+-Dinput_table='odps://{project}/tables/item_feature_t'
+-Doutput_table='odps://{project}/tables/dssm_item_embedding'
+-Dreserved_cols='item_id'
+-Doutput_cols='item_emb string'
+-Dmodel_outputs='item_emb'
+-Dbuckets='oss://{oss_bucket}/'
+-Darn='{oss_arn}'
+-DossHost='oss-{region}-internal.aliyuncs.com'
+-Dcluster='{{
+    \\"worker\\": {{
+        \\"count\\": 16,
+        \\"cpu\\": 600,
+        \\"memory\\": 10000
+    }}
+}}';
+```
+
+```sql
+pai -name easy_rec_py3_ext
+-Dcmd='custom'
+-DentryFile='easy_rec/python/tools/faiss_index_pai.py'
+-Dtables='odps://{project}/tables/dssm_item_embedding'
+-Dbuckets='oss://{oss_bucket}/'
+-Darn='{oss_arn}'
+-DossHost='oss-{region}-internal.aliyuncs.com'
+-Dcluster='{{
+    \\"worker\\": {{
+        \\"count\\": 1,
+        \\"cpu\\": 100
+    }}
+}}'
+-Dextra_params='--index_output_dir=oss://{oss_bucket}/dssm/export/user';
+```
+
+- -Dtables: 物品向量表
+- -Dextra_params:
+  - --index_output_dir: 索引输出目录, 一般设置为已切分好的用户塔模型目录，便于用EasyRec Processor部署
+  - --index_type: 索引类型，可选 IVFFlat | HNSWFlat，默认为 IVFFlat
+  - --ivf_nlist: 索引类型为IVFFlat是，聚簇的数目
+  - --hnsw_M: 索引类型为HNSWFlat的索引参数M
+  - --hnsw_efConstruction: 索引类型为HNSWFlat的索引参数efConstruction

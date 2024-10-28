@@ -6,8 +6,10 @@ import "easy_rec/python/protos/dnn.proto";
 message HighWayTower {
     optional string input = 1;
     required uint32 emb_size = 2;
-    required string activation = 3 [default = 'gelu'];
+    required string activation = 3 [default = 'relu'];
     optional float dropout_rate = 4;
+    optional float init_gate_bias = 5 [default = -3.0];
+    optional uint32 num_layers = 6 [default = 1];
 }
 
 message PeriodicEmbedding {
@@ -26,6 +28,18 @@ message AutoDisEmbedding {
     required float temperature = 4;
     optional bool output_3d_tensor = 5;
     optional bool output_tensor_list = 6;
+}
+
+message NaryDisEmbedding {
+    required uint32 embedding_dim = 1;
+    repeated uint32 carries = 2;
+    optional float multiplier = 3 [default = 1.0];
+    optional string intra_ary_pooling = 4 [default = 'sum'];
+    // for now, inter_ary_pooling not support yet
+    optional string inter_ary_pooling = 5 [default = 'concat'];
+    optional bool output_3d_tensor = 6 [default = false];
+    optional bool output_tensor_list = 7;
+    optional uint32 num_replicas = 8 [default = 1];
 }
 
 message SENet {
@@ -71,6 +85,13 @@ message MMoELayer {
     optional uint32 num_expert = 3;
 }
 
+// used in CDN model
+message WeightedGate {
+    optional uint32 weight_index = 1 [default = 0];
+    optional MLP mlp = 2;
+}
+
+// used in PPNet
 message GateNN {
     optional uint32 output_dim = 1;
     optional uint32 hidden_dim = 2;
@@ -87,4 +108,39 @@ message PPNet {
     // run mode: eager, lazy
     required string mode = 3 [default = 'eager'];
     optional bool full_gate_input = 4 [default = true];
+}
+
+message TextCNN {
+    repeated uint32 filter_sizes = 1;
+    repeated uint32 num_filters = 2;
+    required uint32 pad_sequence_length = 3;
+    optional string activation = 4 [default = 'relu'];
+    optional MLP mlp = 5;
+}
+
+message OverlapFeature {
+    optional string separator = 1;
+    optional string default_value = 2;
+    repeated string methods = 3;
+    optional string normalize_fn = 4;
+    repeated float boundaries = 5;
+    optional int32 embedding_dim = 6;
+    optional int32 print_first_n = 7 [default = 0];
+    optional int32 summarize = 8;
+}
+
+message MappedDotProduct {
+    optional string separator = 1;
+    optional float default_value = 2;
+    optional string normalize_fn = 3;
+    repeated float boundaries = 4;
+    optional int32 embedding_dim = 5;
+    optional int32 print_first_n = 6 [default = 0];
+    optional int32 summarize = 7;
+}
+
+message AITMTower {
+    optional uint32 project_dim = 1;
+    optional MLP transfer_mlp = 2;
+    optional bool stop_gradient = 3 [default = true];
 }

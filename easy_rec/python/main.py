@@ -14,6 +14,7 @@ import time
 import six
 import tensorflow as tf
 from tensorflow.core.protobuf import saved_model_pb2
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.builders import strategy_builder
@@ -41,7 +42,6 @@ except Exception:
   hvd = None
 
 if tf.__version__ >= '2.0':
-  gfile = tf.compat.v1.gfile
   from tensorflow.core.protobuf import config_pb2
 
   ConfigProto = config_pb2.ConfigProto
@@ -49,7 +49,6 @@ if tf.__version__ >= '2.0':
 
   tf = tf.compat.v1
 else:
-  gfile = tf.gfile
   GPUOptions = tf.GPUOptions
   ConfigProto = tf.ConfigProto
 
@@ -106,7 +105,16 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=True)  # False)
 
-  if hvd is not None and pipeline_config.train_config.train_distribute != DistributionStrategy.NoStrategy:
+  logging.info(
+      'train_config.train_distribute=%s[value=%d]' %
+      (DistributionStrategy.Name(pipeline_config.train_config.train_distribute),
+       pipeline_config.train_config.train_distribute))
+
+  # set gpu options only under hvd scenes
+  if hvd is not None and pipeline_config.train_config.train_distribute in [
+      DistributionStrategy.EmbeddingParallelStrategy,
+      DistributionStrategy.SokStrategy, DistributionStrategy.HorovodStrategy
+  ]:
     local_rnk = hvd.local_rank()
     gpus = tf.config.experimental.list_physical_devices('GPU')
     logging.info('local_rnk=%d num_gpus=%d' % (local_rnk, len(gpus)))

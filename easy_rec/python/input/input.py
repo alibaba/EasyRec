@@ -461,7 +461,7 @@ class Input(six.with_metaclass(_meta_type, object)):
             indices, tmp_ks, parsed_dict[feature_name].dense_shape)
         parsed_dict[feature_name + '_w'] = tf.sparse.SparseTensor(
             indices, tmp_vs, parsed_dict[feature_name].dense_shape)
-      if not fc.HasField('hash_bucket_size'):
+      if not fc.HasField('hash_bucket_size') and fc.num_buckets > 0:
         check_list = [
             tf.py_func(
                 check_string_to_number,
@@ -921,8 +921,16 @@ class Input(six.with_metaclass(_meta_type, object)):
         ], 'invalid label dtype: %s' % str(field_dict[input_name].dtype)
         label_dict[input_name] = field_dict[input_name]
 
-    if self._data_config.HasField('sample_weight'):
-      if self._mode != tf.estimator.ModeKeys.PREDICT:
+    if self._mode != tf.estimator.ModeKeys.PREDICT:
+      for func_config in self._data_config.extra_label_func:
+        lbl_name = func_config.label_name
+        func_name = func_config.label_func
+        logging.info('generating new label `%s` by transform: %s' %
+                     (lbl_name, func_name))
+        lbl_fn = load_by_path(func_name)
+        label_dict[lbl_name] = lbl_fn(label_dict)
+
+      if self._data_config.HasField('sample_weight'):
         parsed_dict[constant.SAMPLE_WEIGHT] = field_dict[
             self._data_config.sample_weight]
 
@@ -1039,7 +1047,7 @@ class Input(six.with_metaclass(_meta_type, object)):
         dataset = self._build(mode, params)
         return dataset
       elif mode is None:  # serving_input_receiver_fn for export SavedModel
-        place_on_cpu = os.getenv('place_embedding_on_cpu')
+        place_on_cpu = os.getenv(constant.EmbeddingOnCPU)
         place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
         if export_config.multi_placeholder:
           with conditional(place_on_cpu, ops.device('/CPU:0')):

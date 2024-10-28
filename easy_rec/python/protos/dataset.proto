@@ -176,6 +176,14 @@ message DatasetConfig {
     // are labels have dimension > 1
     repeated uint32 label_dim = 42;
 
+    message LabelFunction {
+        required string label_name = 1;
+        required string label_func = 2;
+    }
+
+    // extra transformation functions that generate new labels
+    repeated LabelFunction extra_label_func = 43;
+
     // whether to shuffle data
     optional bool shuffle = 5 [default = true];
 

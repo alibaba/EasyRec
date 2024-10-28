@@ -192,7 +192,7 @@ class MatchModel(EasyRecModel):
 
     # build kd loss
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
-                                              self._labels)
+                                              self._labels, self._feature_dict)
     self._loss_dict.update(kd_loss_dict)
     return self._loss_dict
 
@@ -231,7 +231,7 @@ class MatchModel(EasyRecModel):
                         label, logits[:, :batch_size],
                         metric.recall_at_topk.topk)
       else:
-        ValueError('invalid metric type: %s' % str(metric))
+        raise ValueError('invalid metric type: %s' % str(metric))
     return metric_dict
 
   def _build_point_wise_metric_graph(self, eval_config):
@@ -248,7 +248,7 @@ class MatchModel(EasyRecModel):
         metric_dict['mean_absolute_error'] = metrics_tf.mean_absolute_error(
             tf.to_float(label), self._prediction_dict['y'])
       else:
-        ValueError('invalid metric type: %s' % str(metric))
+        raise ValueError('invalid metric type: %s' % str(metric))
     return metric_dict
 
   def get_outputs(self):

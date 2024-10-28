@@ -1,3 +1,64 @@
+# 组件库介绍
+
+## 1.基础组件
+
+| 类名                | 功能     | 说明                              | 示例                                                                                                                                       |
+| ----------------- | ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| MLP               | 多层感知机  | 可定制激活函数、initializer、Dropout、BN等 | [案例1](backbone.md#wide-deep)                                                                                                             |
+| Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调           | [highway network](../models/highway.html)                                                                                                |
+| Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](backbone.md#dlrm-embedding)                                                                                                        |
+| AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
+| NaryDisEmbedding  | N进制编码  | 数值特征Embedding                   | [dlrm_on_criteo_with_narydis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_narydis.config) |
+| TextCNN           | 文本卷积   | 提取文本序列的特征                       | [text_cnn_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/text_cnn_on_movielens.config)             |
+
+**备注**：Gate组件的第一个输入是权重向量，后面的输入拼凑成一个列表，权重向量的长度应等于列表的长度
+
+## 2.特征交叉组件
+
+| 类名             | 功能               | 说明           | 示例                                                                                                                         |
+| -------------- | ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](backbone.md#deepfm)                                                                                                  |
+| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](backbone.md#dlrm)                                                                                                    |
+| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](backbone.md#dcn)                                                                                                     |
+| BiLinear       | 双线性              | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+| FiBiNet        | SENet & BiLinear | FiBiNet模型    | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
+
+## 3.特征重要度学习组件
+
+| 类名        | 功能                | 说明           | 示例                                                    |
+| --------- | ----------------- | ------------ | ----------------------------------------------------- |
+| SENet     | 建模特征重要度           | FiBiNet模型的组件 | [MMoE](../models/mmoe.html#id4)                       |
+| MaskBlock | 建模特征重要度           | MaskNet模型的组件 | [Cross Decoupling Network](../models/cdn.html#id2)    |
+| MaskNet   | 多个串行或并行的MaskBlock | MaskNet模型    | [DBMTL](../models/dbmtl.html#dbmtl-based-on-backbone) |
+| PPNet     | 参数个性化网络           | PPNet模型      | [PPNet](../models/ppnet.html#id2)                     |
+
+## 4. 序列特征编码组件
+
+| 类名                 | 功能                    | 说明                  | 示例                                                                                                                       |
+| ------------------ | --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| DIN                | target attention      | DIN模型的组件            | [DIN_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/din_backbone_on_taobao.config) |
+| BST                | transformer           | BST模型的组件            | [BST_backbone.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/bst_backbone_on_taobao.config) |
+| SeqAugment         | 序列数据增强                | crop, mask, reorder | [CL4SRec](../models/cl4srec.html#id2)                                                                                    |
+| Attention          | Dot-product attention | Transformer模型的组件    |                                                                                                                          |
+| MultiHeadAttention | Multi-head attention  | Transformer模型的组件    |                                                                                                                          |
+| TransformerBlock   | Transformer layer     | Transformer模型的组件    |                                                                                                                          |
+| TransformerEncoder | Transformer encoder   | Transformer模型的组件    |                                                                                                                          |
+| TextEncoder        | BERT 模型               | 类似BERT模型            |                                                                                                                          |
+
+## 5. 多目标学习组件
+
+| 类名        | 功能                          | 说明        | 示例                            |
+| --------- | --------------------------- | --------- | ----------------------------- |
+| MMoE      | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](backbone.md#mmoe)       |
+| AITMTower | AITM模型的一个tower              | AITM模型的组件 | [AITM](../models/aitm.md#id2) |
+
+## 6. 辅助损失函数组件
+
+| 类名            | 功能         | 说明        | 示例                     |
+| ------------- | ---------- | --------- | ---------------------- |
+| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 | [案例7](backbone.md#id7) |
+
 # 组件详细参数
 
 ## 1.基础组件
@@ -48,6 +109,32 @@
 | temperature        | float  |       | softmax函数的温度系数                                    |
 | output_tensor_list | bool   | false | 是否同时输出embedding列表                                 |
 | output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效 |
+
+- NaryDisEmbedding
+
+| 参数                 | 类型     | 默认值   | 说明                                                  |
+| ------------------ | ------ | ----- | --------------------------------------------------- |
+| embedding_dim      | uint32 |       | embedding维度                                         |
+| carries            | list   |       | N-ary 数值特征需要编码的进制列表                                 |
+| multiplier         | float  | 1.0   | 针对float类型的特征，放大`multiplier`倍再取整后进行进制编码              |
+| intra_ary_pooling  | string | sum   | 同一进制的不同位的数字embedding如何聚合成最终的embedding, 可选：sum, mean |
+| num_replicas       | uint32 | 1     | 每个特征输出多少个embedding表征                                |
+| output_tensor_list | bool   | false | 是否同时输出embedding列表                                   |
+| output_3d_tensor   | bool   | false | 是否同时输出3d tensor, `output_tensor_list=true`时该参数不生效   |
+
+备注：该组件依赖自定义Tensorflow OP，可能在某些版本的TF上无法使用
+
+- TextCNN
+
+| 参数                  | 类型           | 默认值  | 说明               |
+| ------------------- | ------------ | ---- | ---------------- |
+| num_filters         | list<uint32> |      | 卷积核个数列表          |
+| filter_sizes        | list<uint32> |      | 卷积核步长列表          |
+| activation          | string       | relu | 卷积操作的激活函数        |
+| pad_sequence_length | uint32       |      | 序列补齐或截断的长度       |
+| mlp                 | MLP          |      | protobuf message |
+
+备注：pad_sequence_length 参数必须要配置，否则模型predict的分数可能不稳定
 
 ## 2.特征交叉组件
 
@@ -117,7 +204,7 @@
 
 ## 4. 序列特征编码组件
 
-- SeqAugment
+- SeqAugment (序列数据增强)
 
 | 参数           | 类型    | 默认值 | 说明              |
 | ------------ | ----- | --- | --------------- |
@@ -141,8 +228,8 @@
 | num_hidden_layers            | int    |      | transformer层数                          |
 | num_attention_heads          | int    |      | transformer head数                      |
 | intermediate_size            | int    |      | transformer中间层单元数                      |
-| hidden_act                   | string | gelu | 隐藏激活函数                                 |
-| hidden_dropout_prob          | float  | 0.1  | 隐藏dropout rate                         |
+| hidden_act                   | string | gelu | 隐藏层激活函数                                |
+| hidden_dropout_prob          | float  | 0.1  | 隐藏层dropout rate                        |
 | attention_probs_dropout_prob | float  | 0.1  | attention层dropout rate                 |
 | max_position_embeddings      | int    | 512  | 序列最大长度                                 |
 | use_position_embeddings      | bool   | true | 是否使用位置编码                               |
@@ -150,6 +237,88 @@
 | output_all_token_embeddings  | bool   | true | 是否输出所有token embedding                  |
 | target_item_position         | string | head | target item的插入位置，可选：head, tail, ignore |
 | reserve_target_position      | bool   | true | 是否为target item保留一个位置                   |
+
+- Attention
+
+Dot-product attention layer, a.k.a. Luong-style attention.
+
+The calculation follows the steps:
+
+1. Calculate attention scores using query and key with shape (batch_size, Tq, Tv).
+1. Use scores to calculate a softmax distribution with shape (batch_size, Tq, Tv).
+1. Use the softmax distribution to create a linear combination of value with shape (batch_size, Tq, dim).
+
+| 参数                      | 类型     | 默认值   | 说明                                                                                                                                                                                                                                     |
+| ----------------------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| use_scale               | bool   | False | If True, will create a scalar variable to scale the attention scores.                                                                                                                                                                  |
+| scale_by_dim            | bool   | Fasle | whether to scale by dimension                                                                                                                                                                                                          |
+| score_mode              | string | dot   | Function to use to compute attention scores, one of {"dot", "concat"}. "dot" refers to the dot product between the query and key vectors. "concat" refers to the hyperbolic tangent of the concatenation of the query and key vectors. |
+| dropout                 | float  | 0.0   | Float between 0 and 1. Fraction of the units to drop for the attention scores.                                                                                                                                                         |
+| seed                    | int    | None  | A Python integer to use as random seed incase of dropout.                                                                                                                                                                              |
+| return_attention_scores | bool   | False | if True, returns the attention scores (after masking and softmax) as an additional output argument.                                                                                                                                    |
+| use_causal_mask         | bool   | False | Set to True for decoder self-attention. Adds a mask such that position i cannot attend to positions j > i. This prevents the flow of information from the future towards the past.                                                     |
+
+> - inputs: List of the following tensors:
+>   \- query: Query tensor of shape (batch_size, Tq, dim).
+>   \- value: Value tensor of shape (batch_size, Tv, dim).
+>   \- key: Optional key tensor of shape (batch_size, Tv, dim). If not given, will use value for both key and value, which is the most common case.
+> - output:
+>   \- Attention outputs of shape (batch_size, Tq, dim).
+>   \- (Optional) Attention scores after masking and softmax with shape (batch_size, Tq, Tv).
+
+- MultiHeadAttention
+
+| 参数                      | 类型     | 默认值   | 说明                                                                                                                                                                        |
+| ----------------------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| num_heads               | uint32 | 无     | Number of attention heads.                                                                                                                                                |
+| key_dim                 | uint32 |       | Size of each attention head for query and key.                                                                                                                            |
+| value_dim               | uint32 |       | Size of each attention head for value.                                                                                                                                    |
+| dropout                 | float  | 0.0   | Dropout probability.                                                                                                                                                      |
+| use_bias                | bool   | true  | whether the dense layers use bias vectors/matrices.                                                                                                                       |
+| return_attention_scores | bool   | false | whether the output should be (attention_output, attention_scores)                                                                                                         |
+| use_causal_mask         | bool   | false | whether to apply a causal mask to prevent tokens from attending to future tokens (e.g., used in a decoder Transformer).                                                   |
+| output_shape            | uint32 |       | The expected shape of an output tensor, besides the batch and sequence dims. If not specified, projects back to the query feature dim (the query input's last dimension). |
+| kernel_initializer      | string |       | Initializer for dense layer kernels.                                                                                                                                      |
+| bias_initializer        | string |       | Initializer for dense layer biases.                                                                                                                                       |
+
+- TransformerBlock
+
+Transformer encoder 的其中一个layer。
+
+| 参数                           | 类型     | 默认值  | 说明                      |
+| ---------------------------- | ------ | ---- | ----------------------- |
+| hidden_size                  | int    |      | transformer 编码层单元数      |
+| num_attention_heads          | int    |      | transformer head数       |
+| intermediate_size            | int    |      | transformer中间层单元数       |
+| hidden_act                   | string | relu | 隐藏层激活函数                 |
+| hidden_dropout_prob          | float  | 0.1  | 隐藏层dropout rate         |
+| attention_probs_dropout_prob | float  | 0.0  | attention层的dropout rate |
+
+- TransformerEncoder
+
+| 参数                           | 类型     | 默认值  | 说明                      |
+| ---------------------------- | ------ | ---- | ----------------------- |
+| vocab_size                   | uint32 |      | 词汇表大小                   |
+| hidden_size                  | uint32 |      | transformer 编码层单元数      |
+| num_hidden_layers            | uint32 |      | transformer层数           |
+| num_attention_heads          | uint32 |      | transformer head数       |
+| intermediate_size            | uint32 |      | transformer中间层单元数       |
+| hidden_act                   | string | relu | 隐藏层激活函数                 |
+| hidden_dropout_prob          | float  | 0.1  | 隐藏层dropout rate         |
+| attention_probs_dropout_prob | float  | 0.0  | attention层的dropout rate |
+| max_position_embeddings      | uint32 | 512  | 序列最大长度                  |
+| output_all_token_embeddings  | bool   | true | 是否输出所有token embedding   |
+
+- TextEncoder
+
+BERT模型结构
+
+| 参数               | 类型                 | 默认值 | 说明                            |
+| ---------------- | ------------------ | --- | ----------------------------- |
+| transformer      | TransformerEncoder | 无   | transformer 子组件的配置            |
+| separator        | string             | ' ' | 文本分隔符                         |
+| vocab_file       | string             | 无   | 词汇表文件路径，不设置时使用hash获得token id  |
+| default_token_id | int32              | 0   | Out of vocabulary 的token的默认id |
 
 ## 5. 多任务学习组件
 
@@ -160,6 +329,14 @@
 | num_task   | uint32 |     | 任务数          |
 | num_expert | uint32 | 0   | expert数量     |
 | expert_mlp | MLP    | 可选  | expert的mlp参数 |
+
+- AITMTower
+
+| 参数            | 类型     | 默认值  | 说明                             |
+| ------------- | ------ | ---- | ------------------------------ |
+| project_dim   | uint32 | 可选   | attention Query, Key, Value的维度 |
+| stop_gradient | bool   | True | 是否需要停用对依赖的输入的梯度                |
+| transfer_mlp  | MLP    |      | transfer的mlp参数                 |
 
 ## 6. 计算辅助损失函数的组件
 

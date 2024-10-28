@@ -10,17 +10,13 @@ import unittest
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import test_utils
 from easy_rec.python.utils.test_utils import RunAsSubprocess
-
-if tf.__version__ >= '2.0':
-  gfile = tf.compat.v1.gfile
-else:
-  gfile = tf.gfile
 
 
 class ExportTest(tf.test.TestCase):
@@ -119,6 +115,7 @@ class ExportTest(tf.test.TestCase):
         --pipeline_config_path %s
         --export_dir %s
         --asset_files fg.json:samples/model_config/taobao_fg.json
+        --export_done_file ExportDone
     """ % (
         config_path,
         export_dir,
@@ -131,6 +128,7 @@ class ExportTest(tf.test.TestCase):
     export_dir = files[0]
     assert gfile.Exists(export_dir + '/assets/taobao_fg.json')
     assert gfile.Exists(export_dir + '/assets/pipeline.config')
+    assert gfile.Exists(export_dir + '/ExportDone')
 
   def test_export_with_out_in_ckpt_config(self):
     test_dir = test_utils.get_tmp_dir()

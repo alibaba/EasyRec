@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import os
 from collections import OrderedDict
 
@@ -14,7 +15,8 @@ from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
 from easy_rec.python.layers import sequence_feature_layer
 from easy_rec.python.layers import variational_dropout_layer
-from easy_rec.python.layers.common_layers import text_cnn
+from easy_rec.python.layers.keras import TextCNN
+from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
@@ -144,7 +146,7 @@ class InputLayer(object):
       if is_embedding_column(col):
         embedding_reg_lst.append(val)
 
-    if self._embedding_regularizer is not None:
+    if self._embedding_regularizer is not None and len(embedding_reg_lst) > 0:
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
     return output_features, group_features
@@ -184,10 +186,61 @@ class InputLayer(object):
         seq_features.append((tmp_embedding, tmp_seq_len))
         embedding_reg_lst.append(tmp_embedding)
 
-    if self._embedding_regularizer is not None:
+    if self._embedding_regularizer is not None and len(embedding_reg_lst) > 0:
       regularizers.apply_regularization(
           self._embedding_regularizer, weights_list=embedding_reg_lst)
     return seq_features
+
+  def get_raw_features(self, features, group_name):
+    """Get features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all raw features in list
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+    feature_group = self._feature_groups[group_name]
+    return [features[x] for x in feature_group.feature_names]
+
+  def get_bucketized_features(self, features, group_name):
+    """Get features by group_name.
+
+    Args:
+      features: input tensor dict
+      group_name: feature_group name
+
+    Return:
+      features: all raw features in list, added feature offset
+    """
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
+        group_name, ','.join([x for x in self._feature_groups]))
+    feature_group = self._feature_groups[group_name]
+    offset = 0
+    values = []
+    weights = []
+    for feature in feature_group.feature_names:
+      vocab = self._fc_parser.get_feature_vocab_size(feature)
+      logging.info('vocab size of feature %s is %d' % (feature, vocab))
+      weights.append(None)
+      if tf.is_numeric_tensor(features[feature]):
+        # suppose feature already have be bucketized
+        value = tf.to_int64(features[feature])
+      elif isinstance(features[feature], tf.SparseTensor):
+        # TagFeature
+        dense = tf.sparse.to_dense(features[feature], default_value='')
+        value = tf.string_to_hash_bucket_fast(dense, vocab)
+        if (feature + '_w') in features:
+          weights[-1] = features[feature + '_w']  # SparseTensor
+          logging.info('feature %s has weight %s', feature, feature + '_w')
+      else:  # IdFeature
+        value = tf.string_to_hash_bucket_fast(features[feature], vocab)
+      values.append(value + offset)
+      offset += vocab
+    return values, offset, weights
 
   def __call__(self, features, group_name, is_combine=True, is_dict=False):
     """Get features by group_name.
@@ -285,9 +338,9 @@ class InputLayer(object):
           seq_features.append(seq_feature)
           cols_to_output_tensors[column] = seq_feature
         elif sequence_combiner.WhichOneof('combiner') == 'text_cnn':
-          num_filters = sequence_combiner.text_cnn.num_filters
-          filter_sizes = sequence_combiner.text_cnn.filter_sizes
-          cnn_feature = text_cnn(seq_feature, filter_sizes, num_filters)
+          params = Parameter.make_from_pb(sequence_combiner.text_cnn)
+          text_cnn_layer = TextCNN(params, name=column.name + '_text_cnn')
+          cnn_feature = text_cnn_layer((seq_feature, seq_len))
           seq_features.append(cnn_feature)
           cols_to_output_tensors[column] = cnn_feature
         else:

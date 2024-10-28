@@ -36,12 +36,14 @@ cd EasyRec
 
 -- Docker环境可选
 (1) `python=3.6.9` + `tenserflow=1.15.5`
-docker pull mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
-docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.6.3
+docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
+docker exec -it <CONTAINER_ID> bash
+
 
 (2) `python=3.8.10` + `tenserflow=2.10.0`
-docker pull mybigpai-registry-vpc.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.6.4
-docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.6.4
+docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.7.4
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.7.4
 
 docker exec -it <CONTAINER_ID> bash
 ```
@@ -55,11 +57,11 @@ cd EasyRec
 -- Docker环境可选
 (1) `python=3.6.9` + `tenserflow=1.15.5`
 bash scripts/build_docker.sh
-sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
+sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
 
 (2) `python=3.8.10` + `tenserflow=2.10.0`
 bash scripts/build_docker_tf210.sh
-sudo docker run -td --network host -v /local_path:/docker_path mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-<easyrec_version>
+sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-<easyrec_version>
 
 sudo docker exec -it <CONTAINER_ID> bash
 ```

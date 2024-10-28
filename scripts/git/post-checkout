@@ -1,1 +1,1 @@
-python git-lfs/git_lfs.py pull
+python git-lfs/git_lfs.py pull -f

@@ -30,7 +30,7 @@ class SENet(Layer):
   """
 
   def __init__(self, params, name='SENet', reuse=None, **kwargs):
-    super(SENet, self).__init__(name, **kwargs)
+    super(SENet, self).__init__(name=name, **kwargs)
     self.config = params.get_pb_config()
     self.reuse = reuse
     if tf.__version__ >= '2.0':
@@ -58,6 +58,7 @@ class SENet(Layer):
         name='W1')
     self.excite_layer = Dense(
         units=emb_size, kernel_initializer='glorot_normal', name='W2')
+    super(SENet, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
     g = self.config.num_squeeze_group
@@ -123,7 +124,7 @@ class BiLinear(Layer):
   """
 
   def __init__(self, params, name='bilinear', reuse=None, **kwargs):
-    super(BiLinear, self).__init__(name, **kwargs)
+    super(BiLinear, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     params.check_required(['num_output_units'])
     bilinear_plus = params.get_or_default('use_plus', True)
@@ -169,6 +170,7 @@ class BiLinear(Layer):
               units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j))
           for i, j in itertools.combinations(range(field_num), 2)
       ]
+    super(BiLinear, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
     embeddings = inputs
@@ -210,7 +212,7 @@ class FiBiNet(Layer):
   """
 
   def __init__(self, params, name='fibinet', reuse=None, **kwargs):
-    super(FiBiNet, self).__init__(name, **kwargs)
+    super(FiBiNet, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self._config = params.get_pb_config()
 

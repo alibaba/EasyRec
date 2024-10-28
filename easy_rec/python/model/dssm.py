@@ -61,12 +61,14 @@ class DSSM(MatchModel):
         kernel_regularizer=self._l2_reg,
         name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
 
-    if self._loss_type == LossType.CLASSIFICATION:
-      if self._model_config.simi_func == Similarity.COSINE:
-        user_tower_emb = self.norm(user_tower_emb)
-        item_tower_emb = self.norm(item_tower_emb)
+    if self._model_config.simi_func == Similarity.COSINE:
+      user_tower_emb = self.norm(user_tower_emb)
+      item_tower_emb = self.norm(item_tower_emb)
+      temperature = self._model_config.temperature
+    else:
+      temperature = 1.0
 
-    user_item_sim = self.sim(user_tower_emb, item_tower_emb)
+    user_item_sim = self.sim(user_tower_emb, item_tower_emb) / temperature
     if self._model_config.scale_simi:
       sim_w = tf.get_variable(
           'sim_w',
@@ -105,15 +107,21 @@ class DSSM(MatchModel):
 
   def get_outputs(self):
     if self._loss_type == LossType.CLASSIFICATION:
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       self._prediction_dict['logits'] = tf.squeeze(
           self._prediction_dict['logits'], axis=-1)
       self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
-      return ['logits', 'probs', 'user_emb', 'item_emb']
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
     elif self._loss_type == LossType.L2_LOSS:
-      return ['y', 'user_emb', 'item_emb']
+      return ['y', 'user_emb', 'item_emb', 'user_tower_emb', 'item_tower_emb']
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
 

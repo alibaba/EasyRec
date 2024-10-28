@@ -99,7 +99,7 @@ class SeqAugment(Layer):
   """Do data augmentation for input sequence embedding."""
 
   def __init__(self, params, name='seq_aug', reuse=None, **kwargs):
-    super(SeqAugment, self).__init__(name, **kwargs)
+    super(SeqAugment, self).__init__(name=name, **kwargs)
     self.reuse = reuse
     self.seq_aug_params = params.get_pb_config()
 

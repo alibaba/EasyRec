@@ -13,6 +13,7 @@ message KerasLayer {
         google.protobuf.Struct st_params = 2;
         PeriodicEmbedding periodic_embedding = 3;
         AutoDisEmbedding auto_dis_embedding = 4;
+        NaryDisEmbedding nary_dis_embedding = 21;
         FM fm = 5;
         MaskBlock mask_block = 6;
         MaskNet masknet = 7;
@@ -25,5 +26,15 @@ message KerasLayer {
         MMoELayer mmoe = 14;
         SequenceAugment seq_aug = 15;
         PPNet ppnet = 16;
+        TextCNN text_cnn = 17;
+        HighWayTower highway = 18;
+        OverlapFeature overlap = 19;
+        MappedDotProduct dot_product = 20;
+        Attention attention = 22;
+        MultiHeadAttention multi_head_attention = 23;
+        Transformer transformer = 24;
+        TextEncoder text_encoder = 25;
+        WeightedGate gate = 26;
+        AITMTower aitm = 27;
     }
 }

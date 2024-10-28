@@ -9,6 +9,7 @@
 - 该数据集是淘宝展示广告点击率预估数据集，包含用户、广告特征和行为日志。[天池比赛链接](https://tianchi.aliyun.com/dataset/dataDetail?dataId=56)
 - 训练数据表：pai_online_project.easyrec_demo_taobao_train_data
 - 测试数据表：pai_online_project.easyrec_demo_taobao_test_data
+- 其中pai_online_project是一个公共读的MaxCompute project，里面写入了一些数据表做测试，不需要申请权限。
 - 在PAI上面测试使用的资源包括2个parameter server，9个worker，其中一个worker做评估:
   ```json
   {"ps":{"count":2,

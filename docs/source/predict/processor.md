@@ -1,17 +1,17 @@
 # EasyRec Processor
 
-EasyRec Processor, 是EasyRec对应的高性能在线打分引擎, 包含特征处理和模型推理功能. EasyRecProcessor运行在PAI-EAS之上, 可以充分利用PAI-EAS多种优化特性.
+EasyRec Processor([阿里云上的EasyRec Processor详细文档，包括版本、使用方式](https://help.aliyun.com/zh/pai/user-guide/easyrec)), 是EasyRec对应的高性能在线打分引擎, 包含特征处理和模型推理功能. EasyRecProcessor运行在PAI-EAS之上, 可以充分利用PAI-EAS多种优化特性.
 
 ## 架构设计
 
-EasyRec Processor包含三个部分: Item特征缓存, 特征处理(Feature Generator), TFModel(tensorflow model).
+EasyRec Processor包含三个部分: Item特征缓存（支持通过[FeatureStore](https://help.aliyun.com/zh/pai/user-guide/featurestore-overview)加载MaxCompute表做初始化）, 特征生成(Feature Generator), TFModel(tensorflow model).
 ![image.png](../../images/processor/easy_rec_processor_1.png)
 
 ## 性能优化
 
 ### 基础实现
 
-将FeatureGenerator和TFModel分开, 先做特征生成，然后再Run TFModel.
+将FeatureGenerator和TFModel分开, 先做特征生成（即fg），然后再Run TFModel得到预测结果.
 
 ### 优化实现
 

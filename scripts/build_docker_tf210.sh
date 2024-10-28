@@ -18,4 +18,4 @@ then
   exit 1
 fi
 
-sudo docker build --progress=plain --network=host . -f docker/Dockerfile_tf210 -t  mybigpai-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-${version}
+sudo docker build --progress=plain --network=host . -f docker/Dockerfile_tf210 -t  mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-${version}

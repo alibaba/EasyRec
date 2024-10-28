@@ -1,0 +1,27 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+import "easy_rec/python/protos/layer.proto";
+
+message DSSM_SENet_Tower {
+  required string id = 1;
+  required SENet senet = 2;
+  required DNN dnn = 3;
+
+};
+
+
+message DSSM_SENet {
+    required DSSM_SENet_Tower user_tower = 1;
+    required DSSM_SENet_Tower item_tower = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+    optional Similarity simi_func = 4 [default=COSINE];
+    // add a layer for scaling the similarity
+    optional bool scale_simi = 5 [default = true];
+    optional string item_id = 9;
+    required bool ignore_in_batch_neg_sam = 10 [default = false];
+    // normalize user_tower_embedding and item_tower_embedding
+    optional float temperature = 11 [default = 1.0];
+}

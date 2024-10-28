@@ -65,3 +65,9 @@ def is_embedding_parallel():
 
 def sort_col_by_name():
   return constant.SORT_COL_BY_NAME in os.environ
+
+
+def embedding_on_cpu():
+  place_on_cpu = os.getenv(constant.EmbeddingOnCPU)
+  place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
+  return place_on_cpu

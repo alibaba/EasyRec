@@ -27,7 +27,7 @@ import "easy_rec/python/protos/variational_dropout.proto";
 import "easy_rec/python/protos/multi_tower_recall.proto";
 import "easy_rec/python/protos/tower.proto";
 import "easy_rec/python/protos/pdn.proto";
-// import "easy_rec/python/protos/ppnet.proto";
+import "easy_rec/python/protos/dssm_senet.proto";
 
 // for input performance test
 message DummyModel {
@@ -36,7 +36,7 @@ message DummyModel {
 // configure backbone network common parameters
 message ModelParams {
   optional float l2_regularization = 1;
-
+  repeated string outputs = 2;
   repeated BayesTaskTower task_towers = 3;
 }
 
@@ -50,11 +50,33 @@ message KD {
   required string soft_label_name = 21;
   // default to be logits
   optional bool label_is_logits = 22 [default=true];
-  // currently only support CROSS_ENTROPY_LOSS and L2_LOSS
   required LossType loss_type = 3;
   optional float loss_weight = 4 [default=1.0];
-  // only for loss_type == CROSS_ENTROPY_LOSS
+  // only for loss_type == CROSS_ENTROPY_LOSS or BINARY_CROSS_ENTROPY_LOSS or KL_DIVERGENCE_LOSS
   optional float temperature = 5 [default=1.0];
+  // field name for indicating the sample space for this task
+  optional string task_space_indicator_name = 6;
+  // field value for indicating the sample space for this task
+  optional string task_space_indicator_value = 7;
+  // the loss weight for sample in the task space
+  optional float in_task_space_weight = 8 [default = 1.0];
+  // the loss weight for sample out the task space
+  optional float out_task_space_weight = 9 [default = 1.0];
+
+  oneof loss_param {
+    F1ReweighedLoss f1_reweighted_loss = 101;
+    SoftmaxCrossEntropyWithNegativeMining softmax_loss = 102;
+    CircleLoss circle_loss = 103;
+    MultiSimilarityLoss multi_simi_loss = 104;
+    BinaryFocalLoss binary_focal_loss = 105;
+    PairwiseLoss pairwise_loss = 106;
+    PairwiseFocalLoss pairwise_focal_loss = 107;
+    PairwiseLogisticLoss pairwise_logistic_loss = 108;
+    JRCLoss jrc_loss = 109;
+    PairwiseHingeLoss pairwise_hinge_loss = 110;
+    ListwiseRankLoss listwise_rank_loss = 111;
+    ListwiseDistillLoss listwise_distill_loss = 112;
+  }
 }
 
 message EasyRecModel {
@@ -85,14 +107,13 @@ message EasyRecModel {
         DropoutNet dropoutnet = 203;
         CoMetricLearningI2I metric_learning = 204;
         PDN pdn = 205;
+        DSSM_SENet dssm_senet = 206;
 
         MMoE mmoe = 301;
         ESMM esmm = 302;
         DBMTL dbmtl = 303;
         SimpleMultiTask simple_multi_task = 304;
         PLE ple = 305;
-
-        // PPNetV3 ppnet = 306;
 
         RocketLaunching rocket_launching = 401;
     }
@@ -126,4 +147,7 @@ message EasyRecModel {
     required LossWeightStrategy loss_weight_strategy = 16 [default = Fixed];
 
     optional BackboneTower backbone = 17;
+
+    // label name for rank_model to select one label between multiple labels
+    optional string label_name = 18;
 }

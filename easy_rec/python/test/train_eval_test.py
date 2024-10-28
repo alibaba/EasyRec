@@ -7,11 +7,11 @@ import os
 import threading
 import time
 import unittest
-from distutils.version import LooseVersion
 
 import numpy as np
 import six
 import tensorflow as tf
+from distutils.version import LooseVersion
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
@@ -409,6 +409,15 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/highway_on_movielens.config', self._test_dir)
     self.assertTrue(self._success)
 
+  # @unittest.skipIf(
+  #     LooseVersion(tf.__version__) >= LooseVersion('2.0.0'),
+  #     'has no CustomOp when tf version == 2.4')
+  # def test_custom_op(self):
+  #   self._success = test_utils.test_single_train_eval(
+  #       'samples/model_config/cl4srec_on_taobao_with_custom_op.config',
+  #       self._test_dir)
+  #   self.assertTrue(self._success)
+
   def test_cdn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/cdn_on_taobao.config', self._test_dir)
@@ -648,6 +657,11 @@ class TrainEvalTest(tf.test.TestCase):
   def test_tag_kv_input(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/kv_tag.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_aitm(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/aitm_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_dbmtl(self):
@@ -1232,6 +1246,12 @@ class TrainEvalTest(tf.test.TestCase):
   def test_pdn(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/pdn_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_senet(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_senet_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
 

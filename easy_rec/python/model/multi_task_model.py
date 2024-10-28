@@ -38,6 +38,8 @@ class MultiTaskModel(RankModel):
     model = self._model_config.WhichOneof('model')
     assert model == 'model_params', '`model_params` must be configured'
     config = self._model_config.model_params
+    for out in config.outputs:
+      self._outputs.append(out)
 
     self._init_towers(config.task_towers)
 
@@ -53,43 +55,45 @@ class MultiTaskModel(RankModel):
     tower_features = {}
     for i, task_tower_cfg in enumerate(config.task_towers):
       tower_name = task_tower_cfg.tower_name
-      if task_tower_cfg.HasField('dnn'):
-        tower_dnn = DNN(
-            task_tower_cfg.dnn,
-            self._l2_reg,
-            name=tower_name,
-            is_training=self._is_training)
-        tower_output = tower_dnn(task_input_list[i])
-      else:
-        tower_output = task_input_list[i]
-      tower_features[tower_name] = tower_output
+      with tf.name_scope(tower_name):
+        if task_tower_cfg.HasField('dnn'):
+          tower_dnn = DNN(
+              task_tower_cfg.dnn,
+              self._l2_reg,
+              name=tower_name,
+              is_training=self._is_training)
+          tower_output = tower_dnn(task_input_list[i])
+        else:
+          tower_output = task_input_list[i]
+        tower_features[tower_name] = tower_output
 
     tower_outputs = {}
     relation_features = {}
     # bayes network
     for task_tower_cfg in config.task_towers:
       tower_name = task_tower_cfg.tower_name
-      if task_tower_cfg.HasField('relation_dnn'):
-        relation_dnn = DNN(
-            task_tower_cfg.relation_dnn,
-            self._l2_reg,
-            name=tower_name + '/relation_dnn',
-            is_training=self._is_training)
-        tower_inputs = [tower_features[tower_name]]
-        for relation_tower_name in task_tower_cfg.relation_tower_names:
-          tower_inputs.append(relation_features[relation_tower_name])
-        relation_input = tf.concat(
-            tower_inputs, axis=-1, name=tower_name + '/relation_input')
-        relation_fea = relation_dnn(relation_input)
-        relation_features[tower_name] = relation_fea
-      else:
-        relation_fea = tower_features[tower_name]
+      with tf.name_scope(tower_name):
+        if task_tower_cfg.HasField('relation_dnn'):
+          relation_dnn = DNN(
+              task_tower_cfg.relation_dnn,
+              self._l2_reg,
+              name=tower_name + '/relation_dnn',
+              is_training=self._is_training)
+          tower_inputs = [tower_features[tower_name]]
+          for relation_tower_name in task_tower_cfg.relation_tower_names:
+            tower_inputs.append(relation_features[relation_tower_name])
+          relation_input = tf.concat(
+              tower_inputs, axis=-1, name=tower_name + '/relation_input')
+          relation_fea = relation_dnn(relation_input)
+          relation_features[tower_name] = relation_fea
+        else:
+          relation_fea = tower_features[tower_name]
 
-      output_logits = tf.layers.dense(
-          relation_fea,
-          task_tower_cfg.num_class,
-          kernel_regularizer=self._l2_reg,
-          name=tower_name + '/output')
+        output_logits = tf.layers.dense(
+            relation_fea,
+            task_tower_cfg.num_class,
+            kernel_regularizer=self._l2_reg,
+            name=tower_name + '/output')
       tower_outputs[tower_name] = output_logits
 
     self._add_to_prediction_dict(tower_outputs)
@@ -161,10 +165,12 @@ class MultiTaskModel(RankModel):
       losses = task_tower_cfg.losses
       n = len(losses)
       if n > 0:
-        loss_weights[tower_name] = [loss.weight for loss in losses]
+        loss_weights[tower_name] = [
+            loss.weight * task_tower_cfg.weight for loss in losses
+        ]
         num_loss += n
       else:
-        loss_weights[tower_name] = [1.0]
+        loss_weights[tower_name] = [task_tower_cfg.weight]
         num_loss += 1
 
     strategy = self._base_model_config.loss_weight_strategy
@@ -197,7 +203,7 @@ class MultiTaskModel(RankModel):
     task_loss_weights = self.build_loss_weight()
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
-      loss_weight = task_tower_cfg.weight
+      loss_weight = 1.0
       if task_tower_cfg.use_sample_weight:
         loss_weight *= self._sample_weight
 
@@ -205,6 +211,16 @@ class MultiTaskModel(RankModel):
           task_tower_cfg.HasField('task_space_indicator_label'):
         in_task_space = tf.to_float(
             self._labels[task_tower_cfg.task_space_indicator_label] > 0)
+        loss_weight = loss_weight * (
+            task_tower_cfg.in_task_space_weight * in_task_space +
+            task_tower_cfg.out_task_space_weight * (1 - in_task_space))
+
+      if task_tower_cfg.HasField('task_space_indicator_name') and \
+          task_tower_cfg.HasField('task_space_indicator_value'):
+        in_task_space = tf.to_float(
+            tf.equal(
+                self._feature_dict[task_tower_cfg.task_space_indicator_name],
+                task_tower_cfg.task_space_indicator_value))
         loss_weight = loss_weight * (
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))
@@ -222,7 +238,17 @@ class MultiTaskModel(RankModel):
         for loss_name in loss_dict.keys():
           loss_dict[loss_name] = loss_dict[loss_name] * task_loss_weight[0]
       else:
+        calibrate_loss = []
         for loss in losses:
+          if loss.loss_type == LossType.ORDER_CALIBRATE_LOSS:
+            y_t = self._prediction_dict['probs_%s' % tower_name]
+            for relation_tower_name in task_tower_cfg.relation_tower_names:
+              y_rt = self._prediction_dict['probs_%s' % relation_tower_name]
+              cali_loss = tf.reduce_mean(tf.nn.relu(y_t - y_rt))
+              calibrate_loss.append(cali_loss * loss.weight)
+              logging.info('calibrate loss: %s -> %s' %
+                           (relation_tower_name, tower_name))
+            continue
           loss_param = loss.WhichOneof('loss_param')
           if loss_param is not None:
             loss_param = getattr(loss, loss_param)
@@ -241,16 +267,22 @@ class MultiTaskModel(RankModel):
                   loss.loss_type, loss_name, loss_value)
             else:
               loss_dict[loss_name] = loss_value * task_loss_weight[i]
+        if calibrate_loss:
+          cali_loss = tf.add_n(calibrate_loss)
+          loss_dict['order_calibrate_loss'] = cali_loss
+          tf.summary.scalar('loss/order_calibrate_loss', cali_loss)
       self._loss_dict.update(loss_dict)
 
     kd_loss_dict = loss_builder.build_kd_loss(self.kd, self._prediction_dict,
-                                              self._labels)
+                                              self._labels, self._feature_dict)
     self._loss_dict.update(kd_loss_dict)
 
     return self._loss_dict
 
   def get_outputs(self):
     outputs = []
+    if self._outputs:
+      outputs.extend(self._outputs)
     for task_tower_cfg in self._task_towers:
       tower_name = task_tower_cfg.tower_name
       if len(task_tower_cfg.losses) == 0:
@@ -261,6 +293,8 @@ class MultiTaskModel(RankModel):
                 suffix='_%s' % tower_name))
       else:
         for loss in task_tower_cfg.losses:
+          if loss.loss_type == LossType.ORDER_CALIBRATE_LOSS:
+            continue
           outputs.extend(
               self._get_outputs_impl(
                   loss.loss_type,

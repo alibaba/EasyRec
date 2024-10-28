@@ -48,7 +48,10 @@ class MetaGraphEditor:
     else:
       assert meta_graph_def, 'either saved_model_dir or meta_graph_def must be set'
       tf.reset_default_graph()
-      tf.train.import_meta_graph(meta_graph_def)
+      from tensorflow.python.framework import meta_graph
+      meta_graph.import_scoped_meta_graph_with_return_elements(
+          meta_graph_def, clear_devices=True)
+      # tf.train.import_meta_graph(meta_graph_def)
     self._meta_graph_version = meta_graph_def.meta_info_def.meta_graph_version
     self._signature_def = meta_graph_def.signature_def[
         signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]

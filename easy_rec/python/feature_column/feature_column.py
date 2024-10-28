@@ -115,6 +115,7 @@ class FeatureColumnParser(object):
         embed_name: [] for embed_name in self._share_embed_names
     }
 
+    self._feature_vocab_size = {}
     for config in self._feature_configs:
       assert isinstance(config, FeatureConfig)
       try:
@@ -132,7 +133,7 @@ class FeatureColumnParser(object):
           self.parse_sequence_feature(config)
         elif config.feature_type == config.ExprFeature:
           self.parse_expr_feature(config)
-        else:
+        elif config.feature_type != config.PassThroughFeature:
           assert False, 'invalid feature type: %s' % config.feature_type
       except FeatureKeyError:
         pass
@@ -235,6 +236,9 @@ class FeatureColumnParser(object):
     return self._wide_deep_dict[feature_name] in [
         WideOrDeep.DEEP, WideOrDeep.WIDE_AND_DEEP
     ]
+
+  def get_feature_vocab_size(self, feature):
+    return self._feature_vocab_size.get(feature, 1)
 
   def _get_vocab_size(self, vocab_path):
     if vocab_path in self._vocab_size:
@@ -623,6 +627,7 @@ class FeatureColumnParser(object):
     feature_name = config.feature_name if config.HasField('feature_name') \
         else config.input_names[0]
     assert config.embedding_dim > 0, 'embedding_dim is not set for %s' % feature_name
+    self._feature_vocab_size[feature_name] = fc.num_buckets
     if config.embedding_name in self._deep_share_embed_columns:
       fc = self._add_shared_embedding_column(config.embedding_name, fc)
     else:

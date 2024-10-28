@@ -17,6 +17,16 @@ message InputLayer {
     optional bool concat_seq_feature = 10 [default = true];
 }
 
+message RawInputLayer {
+}
+
+message EmbeddingLayer {
+    required uint32 embedding_dim = 1;
+    optional uint32 vocab_size = 2;
+    optional string combiner = 3 [default = 'weight'];
+    optional bool concat = 4 [default = true];
+}
+
 message Lambda {
     required string expression = 1;
 }
@@ -78,6 +88,8 @@ message Block {
         KerasLayer keras_layer = 103;
         RecurrentLayer recurrent = 104;
         RepeatLayer repeat = 105;
+        RawInputLayer raw_input = 106;
+        EmbeddingLayer embedding_layer = 107;
     }
 }
 
@@ -87,8 +99,10 @@ message BlockPackage {
     required string name = 1;
     // a few blocks generating a DAG
     repeated Block blocks = 2;
-    // the names of output blocks
+    // the names of output blocks, will be merge into a tensor
     repeated string concat_blocks = 3;
+    // the names of output blocks, return as a list or single tensor
+    repeated string output_blocks = 4;
 }
 
 message BackboneTower {
@@ -96,8 +110,10 @@ message BackboneTower {
     repeated BlockPackage packages = 1;
     // a few blocks generating a DAG
     repeated Block blocks = 2;
-    // the names of output blocks
+    // the names of output blocks, will be merge into a tensor
     repeated string concat_blocks = 3;
+    // the names of output blocks, return as a list or single tensor
+    repeated string output_blocks = 4;
     // optional top mlp layer
-    optional MLP top_mlp = 4;
+    optional MLP top_mlp = 5;
 }
