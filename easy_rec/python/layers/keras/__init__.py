@@ -16,6 +16,7 @@ from .embedding import EmbeddingLayer
 from .fibinet import BiLinear
 from .fibinet import FiBiNet
 from .fibinet import SENet
+from .interaction import CIN
 from .interaction import FM
 from .interaction import Cross
 from .interaction import DotInteraction

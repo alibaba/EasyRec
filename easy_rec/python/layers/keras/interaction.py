@@ -323,70 +323,81 @@ class CIN(tf.keras.layers.Layer):
   def __init__(self, params, name='cin', reuse=None, **kwargs):
     super(CIN, self).__init__(name=name, **kwargs)
     self._name = name
-    self._hidden_feature_dims = params.get_or_default('hidden_feature_dims', [])
-    assert isinstance(
-        self._hidden_feature_dims,
-        list), 'parameter hidden_feature_dims should be type of list of int'
+    self._hidden_feature_sizes = list(
+        params.get_or_default('hidden_feature_sizes', []))
+
+    assert isinstance(self._hidden_feature_sizes, list) and len(
+        self._hidden_feature_sizes
+    ) > 0, 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
 
   def build(self, input_shape):
-    hidden_feature_dims = [
-        input_shape[1]
-    ] + self._hidden_feature_dims  # [number_of_features, hidden_feature_dims]
+    if len(input_shape) != 3:
+      raise ValueError(
+          'Unexpected inputs dimensions %d, expect to be 3 dimensions' %
+          (len(input_shape)))
 
-    with tf.variable_scope(self._name):
+    hidden_feature_sizes = [input_shape[1]
+                            ] + [h for h in self._hidden_feature_sizes]
+
+    with tf.compat.v1.variable_scope(self._name):
       self.kernel_list = [
-          tf.get_variable(
-              f'cin_kernel_{i}',
+          tf.compat.v1.get_variable(
+              name=f'cin_kernel_{i}',
               shape=[
-                  hidden_feature_dims[i + 1], hidden_feature_dims[i],
-                  hidden_feature_dims[0]
+                  hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
+                  hidden_feature_sizes[0]
               ],
-              initializer=tf.keras.initializers.he_normal())
-          for i in range(len(self._hidden_feature_dims))
+              initializer=tf.keras.initializers.HeNormal)
+          for i in range(len(self._hidden_feature_sizes))
+      ]
+      self.bias_list = [
+          tf.compat.v1.get_variable(
+              name=f'cin_bias_{i}',
+              shape=[hidden_feature_sizes[i + 1]],
+              initializer=tf.keras.initializers.Zeros)
+          for i in range(len(self._hidden_feature_sizes))
       ]
 
     super(CIN, self).build(input_shape)
 
   def call(self, input, **kwargs):
-    """Computes the crossed feature maps.
+    """Computes the compressed feature maps.
 
     Args:
-      inputs: The input tensor shape (b, h0, d), where b is batch_size,
-            h0 is the number of features, d is the feature dimension.
+      input: The 3D input tensor with shape (b, h0, d), where b is batch_size,
+            h0 is the number of features, d is the feature embedding dimension.
 
     Returns:
-     Tensor of crossed feature map.
+      2D tensor of compressed feature map with shape (b, featuremap_num),
+      where b is the batch_size, featuremap_num is sum of the hidden layer sizes
     """
     x_0 = input
     x_i = input
-    x_0_expanded = tf.expand_dims(x_0, 1)  # shape = (b, 1, h0, d)
-
+    x_0_expanded = tf.expand_dims(x_0, 1)
     pooled_feature_map_list = []
-    for i in range(len(self._hidden_feature_dims)):
-      hk = self._hidden_feature_dims[i]
+    for i in range(len(self._hidden_feature_sizes)):
+      hk = self._hidden_feature_sizes[i]
 
-      x_i_expanded = tf.expand_dims(x_i, 2)  # shape = (b, h1, 1, d)
-      intermediate_tensor = tf.multiply(x_0_expanded,
-                                        x_i_expanded)  # shape (b, h1, h0, d)
+      x_i_expanded = tf.expand_dims(x_i, 2)
+      intermediate_tensor = tf.multiply(x_0_expanded, x_i_expanded)
 
-      intermediate_tensor_expanded = tf.expand_dims(
-          intermediate_tensor, 1)  # shape = (b, 1, h1, h0, d)
-      intermediate_tensor_expanded = tf.tile(
-          intermediate_tensor_expanded,
-          [1, hk, 1, 1, 1])  # shape = (b, hk, h1, h0, d)
+      intermediate_tensor_expanded = tf.expand_dims(intermediate_tensor, 1)
+      intermediate_tensor_expanded = tf.tile(intermediate_tensor_expanded,
+                                             [1, hk, 1, 1, 1])
 
       feature_map_elementwise = tf.multiply(
           intermediate_tensor_expanded,
-          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1),
-                         0)  # shape = (1, hk, h1, h0, 1)
-      )
+          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0))
       feature_map = tf.reduce_sum(
-          tf.reduce_sum(feature_map_elementwise, axis=3),
-          axis=2)  # shape = (b, hk, d)
+          tf.reduce_sum(feature_map_elementwise, axis=3), axis=2)
+
+      feature_map = tf.add(
+          feature_map,
+          tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0))
+      feature_map = tf.nn.relu(feature_map)
+
       x_i = feature_map
-      pooled_feature_map_list.append(
-          tf.reduce_sum(feature_map, axis=-1)  # shape = (b, hk)
-      )
+      pooled_feature_map_list.append(tf.reduce_sum(feature_map, axis=-1))
     return tf.concat(
         pooled_feature_map_list, axis=-1)  # shape = (b, h1 + ... + hk)
 
