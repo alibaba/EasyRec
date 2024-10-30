@@ -1254,6 +1254,19 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dssm_senet_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_on_taobao_backbone.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_senet_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_senet_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()

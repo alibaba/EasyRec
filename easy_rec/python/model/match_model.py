@@ -8,6 +8,7 @@ import tensorflow as tf
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
+from easy_rec.python.protos.simi_pb2 import Similarity
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -42,13 +43,13 @@ class MatchModel(EasyRecModel):
 
     self._item_ids = None
     assert sub_model_config is not None, 'sub_model_config undefined: model_cls = %s' % cls_mem
-    if sub_model_config.item_id != '':
+    if getattr(sub_model_config, 'item_id', '') != '':
       logging.info('item_id feature is: %s' % sub_model_config.item_id)
       self._item_ids = features[sub_model_config.item_id]
 
   def _mask_in_batch(self, logits):
     batch_size = tf.shape(logits)[0]
-    if self._model_config.ignore_in_batch_neg_sam:
+    if getattr(self._model_config, 'ignore_in_batch_neg_sam', False):
       in_batch = logits[:, :batch_size] - (
           1 - tf.diag(tf.ones([batch_size], dtype=tf.float32))) * 1e32
       return tf.concat([in_batch, logits[:, batch_size:]], axis=1)
@@ -142,7 +143,66 @@ class MatchModel(EasyRecModel):
     return fea_norm
 
   def build_predict_graph(self):
-    raise NotImplementedError('MatchModel could not be instantiated')
+    if not self.has_backbone:
+      raise NotImplementedError(
+          'method `build_predict_graph` must be implemented when you donot use backbone network'
+      )
+    model = self._model_config.WhichOneof('model')
+    assert model == 'model_params', '`model_params` must be configured'
+    model_params = self._model_config.model_params
+    for out in model_params.outputs:
+      self._outputs.append(out)
+
+    output = self.backbone
+
+    user_tower_emb = output[model_params.user_tower_idx_in_output]
+    item_tower_emb = output[model_params.item_tower_idx_in_output]
+
+    if model_params.simi_func == Similarity.COSINE:
+      user_tower_emb = self.norm(user_tower_emb)
+      item_tower_emb = self.norm(item_tower_emb)
+      temperature = model_params.temperature
+    else:
+      temperature = 1.0
+
+    user_item_sim = self.sim(user_tower_emb, item_tower_emb) / temperature
+
+    if model_params.scale_simi:
+      sim_w = tf.get_variable(
+          'sim_w',
+          dtype=tf.float32,
+          shape=(1),
+          initializer=tf.ones_initializer())
+      sim_b = tf.get_variable(
+          'sim_b',
+          dtype=tf.float32,
+          shape=(1),
+          initializer=tf.zeros_initializer())
+      y_pred = user_item_sim * tf.abs(sim_w) + sim_b
+    else:
+      y_pred = user_item_sim
+
+    if self._is_point_wise:
+      y_pred = tf.reshape(y_pred, [-1])
+
+    if self._loss_type == LossType.CLASSIFICATION:
+      self._prediction_dict['logits'] = y_pred
+      self._prediction_dict['probs'] = tf.nn.sigmoid(y_pred)
+    elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
+      y_pred = self._mask_in_batch(y_pred)
+      self._prediction_dict['logits'] = y_pred
+      self._prediction_dict['probs'] = tf.nn.softmax(y_pred)
+    else:
+      self._prediction_dict['y'] = y_pred
+
+    self._prediction_dict['user_tower_emb'] = user_tower_emb
+    self._prediction_dict['item_tower_emb'] = item_tower_emb
+    self._prediction_dict['user_emb'] = tf.reduce_join(
+        tf.as_string(user_tower_emb), axis=-1, separator=',')
+    self._prediction_dict['item_emb'] = tf.reduce_join(
+        tf.as_string(item_tower_emb), axis=-1, separator=',')
+
+    return self._prediction_dict
 
   def build_loss_graph(self):
     if self._is_point_wise:
@@ -252,5 +312,24 @@ class MatchModel(EasyRecModel):
     return metric_dict
 
   def get_outputs(self):
-    raise NotImplementedError(
-        'could not call get_outputs on abstract class MatchModel')
+    if not self.has_backbone:
+      raise NotImplementedError(
+          'could not call get_outputs on abstract class MatchModel')
+    if self._loss_type == LossType.CLASSIFICATION:
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
+    elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
+      self._prediction_dict['logits'] = tf.squeeze(
+          self._prediction_dict['logits'], axis=-1)
+      self._prediction_dict['probs'] = tf.nn.sigmoid(
+          self._prediction_dict['logits'])
+      return [
+          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
+          'item_tower_emb'
+      ]
+    elif self._loss_type == LossType.L2_LOSS:
+      return ['y', 'user_emb', 'item_emb', 'user_tower_emb', 'item_tower_emb']
+    else:
+      raise ValueError('invalid loss type: %s' % str(self._loss_type))

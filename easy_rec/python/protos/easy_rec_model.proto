@@ -28,7 +28,7 @@ import "easy_rec/python/protos/multi_tower_recall.proto";
 import "easy_rec/python/protos/tower.proto";
 import "easy_rec/python/protos/pdn.proto";
 import "easy_rec/python/protos/dssm_senet.proto";
-
+import "easy_rec/python/protos/simi.proto";
 // for input performance test
 message DummyModel {
 }
@@ -38,6 +38,12 @@ message ModelParams {
   optional float l2_regularization = 1;
   repeated string outputs = 2;
   repeated BayesTaskTower task_towers = 3;
+  optional int32 user_tower_idx_in_output = 4 [default = 0];
+  optional int32 item_tower_idx_in_output = 5 [default = 1];
+  optional Similarity simi_func = 6 [default = COSINE];
+  optional float temperature = 7 [default = 1.0];
+  optional bool scale_simi = 8 [default = false];
+
 }
 
 // for knowledge distillation
