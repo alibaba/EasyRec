@@ -78,6 +78,8 @@ model_config:{
 
 [dssm_senet_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dssm_senet_on_taobao.config)
 
+[dssm_senet_on_taobao_backbone.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/dssm_senet_on_taobao_backbone.config)
+
 ### 参考论文
 
 [Squeeze-and-Excitation Networks](https://arxiv.org/abs/1709.01507)
