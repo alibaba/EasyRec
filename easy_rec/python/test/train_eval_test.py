@@ -1267,6 +1267,13 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_parallel_dssm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/parallel_dssm_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
