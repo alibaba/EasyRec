@@ -81,3 +81,13 @@ model_config:{
 ### 参考论文
 
 [Squeeze-and-Excitation Networks](https://arxiv.org/abs/1709.01507)
+
+## 并行DSSM
+
+在召回中，我们希望尽可能把不同的特征进行交叉融合，以便提取到隐藏的信息。而不同的特征提取器侧重点不尽相同，比如MLP是隐式特征交叉，FM和DCN都属于显式、有限阶特征交叉, CIN可以实现vector-wise显式交叉。因此可以让信息经由不同的通道向塔顶流动，每种通道各有所长，相互取长补短。最终将各通道得到的Embedding聚合成最终的Embedding，与对侧交互，从而提升召回的效果。
+
+![parallel_dssm](../../images/models/parallel_dssm.png)
+
+### 示例Config
+
+[parallel_dssm_on_taobao_backbone.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/parallel_dssm_on_taobao_backbone.config)
