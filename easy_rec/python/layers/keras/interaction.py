@@ -330,6 +330,11 @@ class CIN(tf.keras.layers.Layer):
         self._hidden_feature_sizes
     ) > 0, 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
 
+    kernel_regularizer = params.get_or_default('kernel_regularizer', None)
+    self._kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
+    bias_regularizer = params.get_or_default('bias_regularizer', None)
+    self._bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+
   def build(self, input_shape):
     if len(input_shape) != 3:
       raise ValueError(
@@ -347,15 +352,17 @@ class CIN(tf.keras.layers.Layer):
                   hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
                   hidden_feature_sizes[0]
               ],
-              initializer=tf.keras.initializers.HeNormal)
-          for i in range(len(self._hidden_feature_sizes))
+              initializer=tf.keras.initializers.HeNormal,
+              regularizer=self._kernel_regularizer,
+              trainable=True) for i in range(len(self._hidden_feature_sizes))
       ]
       self.bias_list = [
           tf.compat.v1.get_variable(
               name=f'cin_bias_{i}',
               shape=[hidden_feature_sizes[i + 1]],
-              initializer=tf.keras.initializers.Zeros)
-          for i in range(len(self._hidden_feature_sizes))
+              initializer=tf.keras.initializers.Zeros,
+              regularizer=self._bias_regularizer,
+              trainable=True) for i in range(len(self._hidden_feature_sizes))
       ]
 
     super(CIN, self).build(input_shape)
