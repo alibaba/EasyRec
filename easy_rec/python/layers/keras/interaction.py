@@ -347,7 +347,7 @@ class CIN(tf.keras.layers.Layer):
     with tfv1.variable_scope(self._name):
       self.kernel_list = [
           tfv1.get_variable(
-              name=f'cin_kernel_{i}',
+              name='cin_kernel_%d' % i,
               shape=[
                   hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
                   hidden_feature_sizes[0]
@@ -358,7 +358,7 @@ class CIN(tf.keras.layers.Layer):
       ]
       self.bias_list = [
           tfv1.get_variable(
-              name=f'cin_bias_{i}',
+              name='cin_bias_%d' % i,
               shape=[hidden_feature_sizes[i + 1]],
               initializer=tf.keras.initializers.Zeros,
               regularizer=self._bias_regularizer,
