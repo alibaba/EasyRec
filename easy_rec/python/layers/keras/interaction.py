@@ -343,10 +343,10 @@ class CIN(tf.keras.layers.Layer):
 
     hidden_feature_sizes = [input_shape[1]
                             ] + [h for h in self._hidden_feature_sizes]
-
+    tfv1 = tf.compat.v1 if tf.__version__ >= '2.0' else tf
     with tf.compat.v1.variable_scope(self._name):
       self.kernel_list = [
-          tf.compat.v1.get_variable(
+          tfv1.get_variable(
               name=f'cin_kernel_{i}',
               shape=[
                   hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
@@ -357,7 +357,7 @@ class CIN(tf.keras.layers.Layer):
               trainable=True) for i in range(len(self._hidden_feature_sizes))
       ]
       self.bias_list = [
-          tf.compat.v1.get_variable(
+          tfv1.get_variable(
               name=f'cin_bias_{i}',
               shape=[hidden_feature_sizes[i + 1]],
               initializer=tf.keras.initializers.Zeros,
