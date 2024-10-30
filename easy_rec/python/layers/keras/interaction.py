@@ -344,7 +344,7 @@ class CIN(tf.keras.layers.Layer):
     hidden_feature_sizes = [input_shape[1]
                             ] + [h for h in self._hidden_feature_sizes]
     tfv1 = tf.compat.v1 if tf.__version__ >= '2.0' else tf
-    with tf.compat.v1.variable_scope(self._name):
+    with tfv1.variable_scope(self._name):
       self.kernel_list = [
           tfv1.get_variable(
               name=f'cin_kernel_{i}',
@@ -352,7 +352,7 @@ class CIN(tf.keras.layers.Layer):
                   hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
                   hidden_feature_sizes[0]
               ],
-              initializer=tf.keras.initializers.HeNormal,
+              initializer=tf.initializers.he_normal(),
               regularizer=self._kernel_regularizer,
               trainable=True) for i in range(len(self._hidden_feature_sizes))
       ]
