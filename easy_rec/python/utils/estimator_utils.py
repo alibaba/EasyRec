@@ -885,8 +885,11 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
                                                ignore_ckpt_error):
   ckpt_path = None
   if checkpoint_path.endswith('/') or gfile.IsDirectory(checkpoint_path + '/'):
-    if gfile.Exists(checkpoint_path):
-      ckpt_path = latest_checkpoint(checkpoint_path)
+    checkpoint_dir = checkpoint_path
+    if not checkpoint_dir.endswith('/'):
+      checkpoint_dir = checkpoint_dir + '/'
+    if gfile.Exists(checkpoint_dir):
+      ckpt_path = latest_checkpoint(checkpoint_dir)
       if ckpt_path:
         logging.info(
             'fine_tune_checkpoint is directory, will use the latest checkpoint: %s'
