@@ -6,6 +6,7 @@
 
    multi_tower
    deepfm
+   xdeepfm
    fm
    wide_and_deep
    dlrm

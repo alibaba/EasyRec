@@ -1274,6 +1274,12 @@ class TrainEvalTest(tf.test.TestCase):
         self._test_dir)
     self.assertTrue(self._success)
 
+  def test_xdeefm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/xdeepfm_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
 
 if __name__ == '__main__':
   tf.test.main()
