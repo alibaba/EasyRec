@@ -23,6 +23,7 @@ enum LossType {
     KL_DIVERGENCE_LOSS = 16;
     LISTWISE_RANK_LOSS = 18;
     LISTWISE_DISTILL_LOSS = 19;
+    ZILN_LOSS = 20;
 }
 
 message Loss {

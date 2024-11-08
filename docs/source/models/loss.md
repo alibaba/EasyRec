@@ -25,6 +25,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | ORDER_CALIBRATE_LOSS                       | 使用目标依赖关系校正预测结果的辅助损失函数，详见[AITM](aitm.md)模型                  |
 | LISTWISE_RANK_LOSS                         | listwise的排序损失                                              |
 | LISTWISE_DISTILL_LOSS                      | 用来蒸馏给定list排序的损失函数，与listwise rank loss 比较类似                 |
+| ZILN_LOSS                                  | LTV预测任务的损失函数（num_class必须设置为3）                              |
 
 - 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
@@ -184,3 +185,4 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 - [Reasonable Effectiveness of Random Weighting: A Litmus Test for Multi-Task Learning](https://arxiv.org/abs/2111.10603)
 - [AITM: Modeling the Sequential Dependence among Audience Multi-step Conversions with Multi-task Learning in Targeted Display Advertising](https://arxiv.org/pdf/2105.08489.pdf)
 - [Pairwise Ranking Distillation for Deep Face Recognition](https://ceur-ws.org/Vol-2744/paper30.pdf)
+- [A DEEP PROBABILISTIC MODEL FOR CUSTOMER LIFETIME VALUE PREDICTION](https://arxiv.org/pdf/1912.07753)

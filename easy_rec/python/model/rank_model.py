@@ -9,6 +9,8 @@ from easy_rec.python.builders import loss_builder
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 
+from easy_rec.python.loss.zero_inflated_lognormal import zero_inflated_lognormal_pred  # NOQA
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
@@ -78,6 +80,12 @@ class RankModel(EasyRecModel):
       prediction_dict['logits' + suffix] = output
       prediction_dict['pos_logits' + suffix] = output[:, 1]
       prediction_dict['probs' + suffix] = probs[:, 1]
+    elif loss_type == LossType.ZILN_LOSS:
+      assert num_class == 3, 'num_class must be 3 when loss type is ZILN_LOSS'
+      probs = zero_inflated_lognormal_pred(output)
+      tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
+      prediction_dict['logits' + suffix] = output
+      prediction_dict['probs' + suffix] = probs
     elif loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
         output = tf.squeeze(output, axis=1)
@@ -138,7 +146,7 @@ class RankModel(EasyRecModel):
           LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
           LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
           LossType.JRC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
-          LossType.LISTWISE_RANK_LOSS
+          LossType.LISTWISE_RANK_LOSS, LossType.ZILN_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -181,7 +189,7 @@ class RankModel(EasyRecModel):
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
         LossType.PAIRWISE_LOGISTIC_LOSS, LossType.JRC_LOSS,
-        LossType.LISTWISE_DISTILL_LOSS
+        LossType.LISTWISE_DISTILL_LOSS, LossType.ZILN_LOSS
     }
     if loss_type in {
         LossType.CLASSIFICATION, LossType.BINARY_CROSS_ENTROPY_LOSS
@@ -293,7 +301,7 @@ class RankModel(EasyRecModel):
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
       assert loss_type & binary_loss_set
-      if num_class == 1 or loss_type & {LossType.JRC_LOSS}:
+      if num_class == 1 or loss_type & {LossType.JRC_LOSS, LossType.ZILN_LOSS}:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['auc' + suffix] = metrics_tf.auc(
             label,
@@ -309,7 +317,7 @@ class RankModel(EasyRecModel):
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'gauc':
       assert loss_type & binary_loss_set
-      if num_class == 1 or loss_type & {LossType.JRC_LOSS}:
+      if num_class == 1 or loss_type & {LossType.JRC_LOSS, LossType.ZILN_LOSS}:
         label = tf.to_int64(self._labels[label_name])
         uids = self._feature_dict[metric.gauc.uid_field]
         if isinstance(uids, tf.sparse.SparseTensor):
@@ -332,7 +340,7 @@ class RankModel(EasyRecModel):
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'session_auc':
       assert loss_type & binary_loss_set
-      if num_class == 1 or loss_type & {LossType.JRC_LOSS}:
+      if num_class == 1 or loss_type & {LossType.JRC_LOSS, LossType.ZILN_LOSS}:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['session_auc' + suffix] = metrics_lib.session_auc(
             label,
@@ -350,7 +358,7 @@ class RankModel(EasyRecModel):
         raise ValueError('Wrong class number')
     elif metric.WhichOneof('metric') == 'max_f1':
       assert loss_type & binary_loss_set
-      if num_class == 1 or loss_type & {LossType.JRC_LOSS}:
+      if num_class == 1 or loss_type & {LossType.JRC_LOSS, LossType.ZILN_LOSS}:
         label = tf.to_int64(self._labels[label_name])
         metric_dict['max_f1' + suffix] = metrics_lib.max_f1(
             label, self._prediction_dict['logits' + suffix])
@@ -429,7 +437,8 @@ class RankModel(EasyRecModel):
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.LISTWISE_DISTILL_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
+        LossType.ZILN_LOSS
     }
     if loss_type in binary_loss_set:
       return ['probs' + suffix, 'logits' + suffix]

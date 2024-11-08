@@ -10,4 +10,5 @@ pyarrow
 pyodps
 PyYAML
 scikit-learn
+tensorflow-probability
 xlrd >= 0.9.0
