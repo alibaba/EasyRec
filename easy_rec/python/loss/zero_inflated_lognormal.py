@@ -49,6 +49,8 @@ def zero_inflated_lognormal_loss(labels, logits, name=''):
   """
   loss_name = name if name else 'ziln_loss'
   labels = tf.cast(labels, dtype=tf.float32)
+  if labels.shape.ndims == 1:
+    labels = tf.expand_dims(labels, 1)  # [B, 1]
   positive = tf.cast(labels > 0, tf.float32)
 
   logits = tf.convert_to_tensor(logits, dtype=tf.float32)
