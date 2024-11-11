@@ -42,12 +42,13 @@ def zero_inflated_lognormal_loss(labels, logits, name=''):
   Arguments:
     labels: True targets, tensor of shape [batch_size, 1].
     logits: Logits of output layer, tensor of shape [batch_size, 3].
+    name: the name of loss
 
   Returns:
     Zero inflated lognormal loss value.
   """
   loss_name = name if name else 'ziln_loss'
-  labels = tf.convert_to_tensor(labels, dtype=tf.float32)
+  labels = tf.cast(labels, dtype=tf.float32)
   positive = tf.cast(labels > 0, tf.float32)
 
   logits = tf.convert_to_tensor(logits, dtype=tf.float32)
@@ -57,7 +58,7 @@ def zero_inflated_lognormal_loss(labels, logits, name=''):
   positive_logits = logits[..., :1]
   classification_loss = tf.keras.backend.binary_crossentropy(
       positive, positive_logits, from_logits=True)
-  classification_loss = tf.keras.backend.mean(classification_loss, axis=-1)
+  classification_loss = tf.keras.backend.mean(classification_loss)
   tf.summary.scalar('loss/%s_classify' % loss_name, classification_loss)
 
   loc = logits[..., 1:2]
@@ -67,8 +68,6 @@ def zero_inflated_lognormal_loss(labels, logits, name=''):
   safe_labels = positive * labels + (
       1 - positive) * tf.keras.backend.ones_like(labels)
   regression_loss = -tf.keras.backend.mean(
-      positive * tfd.LogNormal(loc=loc, scale=scale).log_prob(safe_labels),
-      axis=-1)
-
+      positive * tfd.LogNormal(loc=loc, scale=scale).log_prob(safe_labels))
   tf.summary.scalar('loss/%s_regression' % loss_name, regression_loss)
   return classification_loss + regression_loss

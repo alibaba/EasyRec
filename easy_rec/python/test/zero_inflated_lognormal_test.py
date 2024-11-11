@@ -43,8 +43,9 @@ class ZeroInflatedLognormalLossTest(tf.test.TestCase):
 
   def test_loss_value(self):
     expected_loss = self.zero_inflated_lognormal(self.labels, self.logits)
+    expected_loss = np.average(expected_loss)
     loss = zero_inflated_lognormal_loss(self.labels, self.logits)
-    self.assertArrayNear(self.evaluate(loss), expected_loss, _ERR_TOL)
+    self.assertNear(self.evaluate(loss), expected_loss, _ERR_TOL)
 
 
 if __name__ == '__main__':
