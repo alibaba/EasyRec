@@ -100,6 +100,7 @@ fi
 cp -R $root_dir/easy_rec ./easy_rec
 sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
+echo "tensorflow-probability==0.5.0" > requirements.txt
 
 if [ ! -d "datahub" ]
 then
@@ -143,7 +144,7 @@ then
   rm -rf faiss.tar.gz
 fi
 
-tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss run.py
+tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss run.py requirements.txt
 
 # 2 means generate only
 if [ $mode -ne 2 ]

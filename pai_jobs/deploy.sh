@@ -92,6 +92,7 @@ fi
 cp easy_rec/__init__.py easy_rec/__init__.py.bak
 sed -i -e "s/\[VERSION\]/$VERSION/g" easy_rec/__init__.py
 find -L easy_rec -name "*.pyc" | xargs rm -rf
+echo "tensorflow-probability==0.5.0" > requirements.txt
 
 if [ ! -d "datahub" ]
 then
@@ -102,7 +103,7 @@ then
   fi
   tar -zvxf pydatahub.tar.gz
 fi
-tar -cvzhf $RES_PATH easy_rec run.py
+tar -cvzhf $RES_PATH easy_rec run.py requirements.txt
 mv easy_rec/__init__.py.bak easy_rec/__init__.py
 
 # 2 means generate only
