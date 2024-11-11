@@ -55,8 +55,9 @@ def zero_inflated_lognormal_loss(labels, logits, name=''):
       tf.TensorShape(labels.shape[:-1].as_list() + [3]))
 
   positive_logits = logits[..., :1]
-  classification_loss = tf.keras.losses.binary_crossentropy(
-      y_true=positive, y_pred=positive_logits, from_logits=True)
+  classification_loss = tf.keras.backend.binary_crossentropy(
+      positive, positive_logits, from_logits=True)
+  classification_loss = tf.keras.backend.mean(classification_loss, axis=-1)
   tf.summary.scalar('loss/%s_classify' % loss_name, classification_loss)
 
   loc = logits[..., 1:2]
