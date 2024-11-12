@@ -17,6 +17,7 @@ def zero_inflated_lognormal_pred(logits):
     logits: [batch_size, 3] tensor of logits.
 
   Returns:
+    positive_probs: [batch_size, 1] tensor of positive probability.
     preds: [batch_size, 1] tensor of predicted mean.
   """
   logits = tf.convert_to_tensor(logits, dtype=tf.float32)
@@ -26,7 +27,7 @@ def zero_inflated_lognormal_pred(logits):
   preds = (
       positive_probs *
       tf.keras.backend.exp(loc + 0.5 * tf.keras.backend.square(scale)))
-  return preds
+  return positive_probs, preds
 
 
 def zero_inflated_lognormal_loss(labels, logits, name=''):

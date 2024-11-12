@@ -27,6 +27,10 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 | LISTWISE_DISTILL_LOSS                      | 用来蒸馏给定list排序的损失函数，与listwise rank loss 比较类似                 |
 | ZILN_LOSS                                  | LTV预测任务的损失函数（num_class必须设置为3）                              |
 
+- ZILN_LOSS：使用时模型有3个可选的输出（在多目标任务重，输出名有一个目标相关的后缀）
+  - probs: 预估的转化概率
+  - y: 预估的LTV值
+  - logits: Shape为`[batch_size, 3]`的tensor，第一列是`probs`，第二列和第三列是学习到的LogNormal分布的均值与方差
 - 说明：SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING
   - 支持参数配置，升级为 [support vector guided softmax loss](https://128.84.21.199/abs/1812.11317) ，
   - 目前只在DropoutNet模型中可用，可参考《 [冷启动推荐模型DropoutNet深度解析与改进](https://zhuanlan.zhihu.com/p/475117993) 》。

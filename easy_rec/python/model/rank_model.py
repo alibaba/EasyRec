@@ -82,10 +82,12 @@ class RankModel(EasyRecModel):
       prediction_dict['probs' + suffix] = probs[:, 1]
     elif loss_type == LossType.ZILN_LOSS:
       assert num_class == 3, 'num_class must be 3 when loss type is ZILN_LOSS'
-      probs = zero_inflated_lognormal_pred(output)
+      probs, preds = zero_inflated_lognormal_pred(output)
       tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
+      tf.summary.scalar('prediction/y', tf.reduce_mean(preds))
       prediction_dict['logits' + suffix] = output
       prediction_dict['probs' + suffix] = probs
+      prediction_dict['y' + suffix] = preds
     elif loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
         output = tf.squeeze(output, axis=1)
@@ -146,7 +148,7 @@ class RankModel(EasyRecModel):
           LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
           LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
           LossType.JRC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
-          LossType.LISTWISE_RANK_LOSS, LossType.ZILN_LOSS
+          LossType.LISTWISE_RANK_LOSS
       }
       if loss_types & binary_loss_set:
         if 'probs' in self._prediction_dict:
@@ -156,7 +158,7 @@ class RankModel(EasyRecModel):
               'failed to build RTP rank_predict output: classification model ' +
               "expect 'probs' prediction, which is not found. Please check if" +
               ' build_predict_graph() is called.')
-      elif loss_types & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+      elif loss_types & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
         if 'y' in self._prediction_dict:
           forwarded = self._prediction_dict['y']
         else:
@@ -377,7 +379,7 @@ class RankModel(EasyRecModel):
           metric.recall_at_topk.topk)
     elif metric.WhichOneof('metric') == 'mean_absolute_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
         metric_dict['mean_absolute_error' +
                     suffix] = metrics_tf.mean_absolute_error(
                         label, self._prediction_dict['y' + suffix])
@@ -389,7 +391,7 @@ class RankModel(EasyRecModel):
         assert False, 'mean_absolute_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
         metric_dict['mean_squared_error' +
                     suffix] = metrics_tf.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -401,7 +403,7 @@ class RankModel(EasyRecModel):
         assert False, 'mean_squared_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'root_mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS}:
+      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
         metric_dict['root_mean_squared_error' +
                     suffix] = metrics_tf.root_mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -437,13 +439,14 @@ class RankModel(EasyRecModel):
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
         LossType.BINARY_FOCAL_LOSS, LossType.PAIRWISE_FOCAL_LOSS,
         LossType.LISTWISE_RANK_LOSS, LossType.PAIRWISE_HINGE_LOSS,
-        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
-        LossType.ZILN_LOSS
+        LossType.PAIRWISE_LOGISTIC_LOSS, LossType.LISTWISE_DISTILL_LOSS
     }
     if loss_type in binary_loss_set:
       return ['probs' + suffix, 'logits' + suffix]
     if loss_type == LossType.JRC_LOSS:
       return ['probs' + suffix, 'pos_logits' + suffix]
+    if loss_type == LossType.ZILN_LOSS:
+      return ['probs' + suffix, 'y' + suffix, 'logits' + suffix]
     if loss_type == LossType.CLASSIFICATION:
       if num_class == 1:
         return ['probs' + suffix, 'logits' + suffix]
