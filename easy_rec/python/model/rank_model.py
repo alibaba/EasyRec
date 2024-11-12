@@ -296,7 +296,7 @@ class RankModel(EasyRecModel):
         LossType.PAIR_WISE_LOSS, LossType.BINARY_FOCAL_LOSS,
         LossType.PAIRWISE_FOCAL_LOSS, LossType.PAIRWISE_LOGISTIC_LOSS,
         LossType.JRC_LOSS, LossType.LISTWISE_DISTILL_LOSS,
-        LossType.LISTWISE_RANK_LOSS
+        LossType.LISTWISE_RANK_LOSS, LossType.ZILN_LOSS
     }
     metric_dict = {}
     if metric.WhichOneof('metric') == 'auc':
