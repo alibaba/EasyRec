@@ -1,4 +1,3 @@
-
 version: 2
 
 build:
@@ -15,3 +14,4 @@ python:
   - requirements: requirements/docs.txt
   - method: setuptools
     path: .
+  - tensorflow-probability
