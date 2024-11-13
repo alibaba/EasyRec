@@ -5,3 +5,4 @@ recommonmark==0.6.0
 sphinx==5.1.1
 sphinx_markdown_tables==0.0.17
 sphinx_rtd_theme
+tensorflow-probability
