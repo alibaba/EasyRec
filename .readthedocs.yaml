@@ -14,4 +14,3 @@ python:
   - requirements: requirements/docs.txt
   - method: setuptools
     path: .
-  - tensorflow-probability
