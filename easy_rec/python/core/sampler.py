@@ -79,7 +79,10 @@ class BaseSampler(object):
       if 'ps' in tf_config['cluster']:
         # ps mode
         tf_config = json.loads(os.environ['TF_CONFIG'])
-        task_count = len(tf_config['cluster']['worker']) + 2
+        if 'worker' in tf_config['cluster']:
+          task_count = len(tf_config['cluster']['worker']) + 2
+        else:
+          task_count = 2
         if self._is_on_ds:
           gl.set_tracker_mode(0)
           server_hosts = [
