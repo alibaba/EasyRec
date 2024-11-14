@@ -4,10 +4,10 @@
 
 | 类名                | 功能     | 说明                              | 示例                                                                                                                                       |
 | ----------------- | ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| MLP               | 多层感知机  | 可定制激活函数、initializer、Dropout、BN等 | [案例1](backbone.md#wide-deep)                                                                                                             |
+| MLP               | 多层感知机  | 可定制激活函数、initializer、Dropout、BN等 | [案例1](backbone.html#wide-deep)                                                                                                           |
 | Highway           | 类似残差链接 | 可用来对预训练embedding做增量微调           | [highway network](../models/highway.html)                                                                                                |
 | Gate              | 门控     | 多个输入的加权求和                       | [Cross Decoupling Network](../models/cdn.html#id2)                                                                                       |
-| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](backbone.md#dlrm-embedding)                                                                                                        |
+| PeriodicEmbedding | 周期激活函数 | 数值特征Embedding                   | [案例5](backbone.html#dlrm-embedding)                                                                                                      |
 | AutoDisEmbedding  | 自动离散化  | 数值特征Embedding                   | [dlrm_on_criteo_with_autodis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_autodis.config) |
 | NaryDisEmbedding  | N进制编码  | 数值特征Embedding                   | [dlrm_on_criteo_with_narydis.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dlrm_on_criteo_with_narydis.config) |
 | TextCNN           | 文本卷积   | 提取文本序列的特征                       | [text_cnn_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/text_cnn_on_movielens.config)             |
@@ -18,9 +18,9 @@
 
 | 类名             | 功能               | 说明           | 示例                                                                                                                         |
 | -------------- | ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](backbone.md#deepfm)                                                                                                  |
-| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](backbone.md#dlrm)                                                                                                    |
-| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](backbone.md#dcn)                                                                                                     |
+| FM             | 二阶交叉             | DeepFM模型的组件  | [案例2](backbone.html#deepfm)                                                                                                |
+| DotInteraction | 二阶内积交叉           | DLRM模型的组件    | [案例4](backbone.html#dlrm)                                                                                                  |
+| Cross          | bit-wise交叉       | DCN v2模型的组件  | [案例3](backbone.html#dcn)                                                                                                   |
 | BiLinear       | 双线性              | FiBiNet模型的组件 | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
 | FiBiNet        | SENet & BiLinear | FiBiNet模型    | [fibinet_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/fibinet_on_movielens.config) |
 
@@ -50,14 +50,14 @@
 
 | 类名        | 功能                          | 说明        | 示例                            |
 | --------- | --------------------------- | --------- | ----------------------------- |
-| MMoE      | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](backbone.md#mmoe)       |
+| MMoE      | Multiple Mixture of Experts | MMoE模型的组件 | [案例8](backbone.html#mmoe)     |
 | AITMTower | AITM模型的一个tower              | AITM模型的组件 | [AITM](../models/aitm.md#id2) |
 
 ## 6. 辅助损失函数组件
 
-| 类名            | 功能         | 说明        | 示例                     |
-| ------------- | ---------- | --------- | ---------------------- |
-| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 | [案例7](backbone.md#id7) |
+| 类名            | 功能         | 说明        | 示例                       |
+| ------------- | ---------- | --------- | ------------------------ |
+| AuxiliaryLoss | 用来计算辅助损失函数 | 常用在自监督学习中 | [案例7](backbone.html#id7) |
 
 # 组件详细参数
 
@@ -137,6 +137,31 @@
 备注：pad_sequence_length 参数必须要配置，否则模型predict的分数可能不稳定
 
 ## 2.特征交叉组件
+
+- FM
+
+| 参数          | 类型   | 默认值   | 说明                         |
+| ----------- | ---- | ----- | -------------------------- |
+| use_variant | bool | false | 是否使用FM的变体：所有二阶交叉项直接输出，而不求和 |
+
+- DotInteraction
+
+| 参数               | 类型   | 默认值   | 说明                                   |
+| ---------------- | ---- | ----- | ------------------------------------ |
+| self_interaction | bool | false | 是否运行特征自己与自己交叉                        |
+| skip_gather      | bool | false | 一个优化开关，设置为true，可以提高运行速度，但需要占用更多的内存空间 |
+
+- Cross
+
+| 参数                 | 类型     | 默认值              | 说明                                                                                                                        |
+| ------------------ | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| projection_dim     | uint32 | None             | 使用矩阵分解降低计算开销，把大的权重矩阵分解为两个小的矩阵相乘，projection_dim是第一个小矩阵的列数，也是第二个小矩阵的行数                                                      |
+| diag_scale         | float  | 0                | used to increase the diagonal of the kernel W by `diag_scale`, that is, W + diag_scale * I, where I is an identity matrix |
+| use_bias           | bool   | true             | whether to add a bias term for this layer.                                                                                |
+| kernel_initializer | string | truncated_normal | Initializer to use on the kernel matrix                                                                                   |
+| bias_initializer   | string | zeros            | Initializer to use on the bias vector                                                                                     |
+| kernel_regularizer | string | None             | Regularizer to use on the kernel matrix                                                                                   |
+| bias_regularizer   | string | None             | Regularizer to use on bias vector                                                                                         |
 
 - Bilinear
 

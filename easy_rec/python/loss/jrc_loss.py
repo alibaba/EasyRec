@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import numpy as np
 import tensorflow as tf
 
@@ -122,6 +123,6 @@ def jrc_loss(labels,
   else:
     raise ValueError('Unsupported loss weight strategy `%s` for jrc loss' %
                      loss_weight_strategy)
-  if np.isscalar(sample_weights):
+  if np.isscalar(sample_weights) and sample_weights != 1.0:
     return loss * sample_weights
   return loss
