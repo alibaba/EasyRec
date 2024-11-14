@@ -25,6 +25,15 @@ class DAT(MatchModel):
                               is_training)
     assert self._model_config.WhichOneof('model') == 'dat', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
+
+    feature_group_names = [
+        fg.group_name for fg in self._model_config.feature_groups
+    ]
+    assert 'user' in feature_group_names, 'user feature group not found'
+    assert 'item' in feature_group_names, 'item feature group not found'
+    assert 'user_id_augment' in feature_group_names, 'user_id_augment feature group not found'
+    assert 'item_id_augment' in feature_group_names, 'item_id_augment feature group not found'
+
     self._model_config = self._model_config.dat
     assert isinstance(self._model_config, DATConfig)
 
