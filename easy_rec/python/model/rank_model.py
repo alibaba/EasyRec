@@ -158,7 +158,9 @@ class RankModel(EasyRecModel):
               'failed to build RTP rank_predict output: classification model ' +
               "expect 'probs' prediction, which is not found. Please check if" +
               ' build_predict_graph() is called.')
-      elif loss_types & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
+      elif loss_types & {
+          LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS
+      }:
         if 'y' in self._prediction_dict:
           forwarded = self._prediction_dict['y']
         else:
@@ -379,7 +381,9 @@ class RankModel(EasyRecModel):
           metric.recall_at_topk.topk)
     elif metric.WhichOneof('metric') == 'mean_absolute_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
+      if loss_type & {
+          LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS
+      }:
         metric_dict['mean_absolute_error' +
                     suffix] = metrics_tf.mean_absolute_error(
                         label, self._prediction_dict['y' + suffix])
@@ -391,7 +395,9 @@ class RankModel(EasyRecModel):
         assert False, 'mean_absolute_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
+      if loss_type & {
+          LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS
+      }:
         metric_dict['mean_squared_error' +
                     suffix] = metrics_tf.mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
@@ -403,7 +409,9 @@ class RankModel(EasyRecModel):
         assert False, 'mean_squared_error is not supported for this model'
     elif metric.WhichOneof('metric') == 'root_mean_squared_error':
       label = tf.to_float(self._labels[label_name])
-      if loss_type & {LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS}:
+      if loss_type & {
+          LossType.L2_LOSS, LossType.SIGMOID_L2_LOSS, LossType.ZILN_LOSS
+      }:
         metric_dict['root_mean_squared_error' +
                     suffix] = metrics_tf.root_mean_squared_error(
                         label, self._prediction_dict['y' + suffix])
