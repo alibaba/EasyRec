@@ -227,6 +227,19 @@ class MatchModel(EasyRecModel):
       # if pos_simi < 0, produce loss
       reg_pos_loss = tf.nn.relu(-pos_simi)
       self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
+
+      # the AMM loss for DAT model
+      if all([
+          k in self._prediction_dict.keys() for k in
+          ['augmented_p_u', 'augmented_p_i', 'augmented_a_u', 'augmented_a_i']
+      ]):
+        self._loss_dict['amm_loss_u'] = tf.reduce_mean(
+            tf.square(self._prediction_dict['augmented_a_u'] -
+                      self._prediction_dict['augmented_p_i'][:batch_size]))
+        self._loss_dict['amm_loss_i'] = tf.reduce_mean(
+            tf.square(self._prediction_dict['augmented_a_i'][:batch_size] -
+                      self._prediction_dict['augmented_p_u']))
+
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
     return self._loss_dict

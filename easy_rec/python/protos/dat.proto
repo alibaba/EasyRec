@@ -1,0 +1,21 @@
+syntax = "proto2";
+package protos;
+
+import "easy_rec/python/protos/dnn.proto";
+import "easy_rec/python/protos/simi.proto";
+
+
+message DATTower {
+  required string id = 1;
+  required DNN dnn = 2;
+};
+
+
+message DAT {
+    required DATTower user_tower = 1;
+    required DATTower item_tower = 2;
+    required float l2_regularization = 3 [default = 1e-4];
+    optional Similarity simi_func = 4 [default=COSINE];
+    required bool ignore_in_batch_neg_sam = 5 [default = false];
+    optional float temperature = 6 [default = 1.0];
+}

@@ -1,6 +1,6 @@
 # DSSM衍生扩展模型
 
-## DSSM + SENet
+## 1. DSSM + SENet
 
 ### 简介
 
@@ -84,7 +84,7 @@ model_config:{
 
 [Squeeze-and-Excitation Networks](https://arxiv.org/abs/1709.01507)
 
-## 并行DSSM
+## 2. 并行DSSM
 
 在召回中，我们希望尽可能把不同的特征进行交叉融合，以便提取到隐藏的信息。而不同的特征提取器侧重点不尽相同，比如MLP是隐式特征交叉，FM和DCN都属于显式、有限阶特征交叉, CIN可以实现vector-wise显式交叉。因此可以让信息经由不同的通道向塔顶流动，每种通道各有所长，相互取长补短。最终将各通道得到的Embedding聚合成最终的Embedding，与对侧交互，从而提升召回的效果。
 
@@ -93,3 +93,54 @@ model_config:{
 ### 示例Config
 
 [parallel_dssm_on_taobao_backbone.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/parallel_dssm_on_taobao_backbone.config)
+
+## 3. 对偶增强双塔 Dual Augmented Two-Tower
+
+双塔模型对用户和物品的特征分开进行建模，在对特征进行了多层神经网络的整合后进行交互。由于网络的整合可能会损失一部分信息，因此过晚的user/item交互不利于模型的学习，这也是DSSM的一个主要的弊端。在对偶增强双塔算法中，作者设计了一个辅助向量，通过学习对user和item进行增强，使得user和item的交互更加有效。
+
+![dat](../../images/models/dat.png)
+
+### 配置说明
+
+作为DSSM的衍生模型，DAT的配置与DSSM类似，在model_config中除了user和item的feature_group外，还需要增加user_id_augment feature_group和item_id_augment feature_group, 作为模型输入的增强向量。
+两塔各自的DNN最后一层输出维度需要和user_id_augment的embedding维度保持一致，以便构造AMM损失（Adaptive-Mimic Mechanism）。
+
+```
+  feature_groups: {
+    group_name: 'user_id_augment'
+    feature_names: 'user_id'
+    wide_deep:DEEP
+  }
+  feature_groups: {
+    group_name: 'item_id_augment'
+    feature_names: 'adgroup_id'
+    wide_deep:DEEP
+  }
+
+  dat {
+    user_tower {
+      id: "user_id"
+      dnn {
+        hidden_units: [ 128,  32]
+        # dropout_ratio : [0.1, 0.1, 0.1, 0.1]
+      }
+    }
+    item_tower {
+      id: "adgroup_id"
+      dnn {
+        hidden_units: [ 128, 32]
+      }
+    }
+    simi_func: COSINE
+    temperature: 0.01
+    l2_regularization: 1e-6
+  }
+```
+
+### 示例Config
+
+[dat_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/dat_on_taobao.config)
+
+### 参考论文
+
+[A Dual Augmented Two-tower Model for Online Large-scale Recommendation](https://dlp-kdd.github.io/assets/pdf/DLP-KDD_2021_paper_4.pdf)
