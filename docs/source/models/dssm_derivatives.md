@@ -96,16 +96,32 @@ model_config:{
 
 ## 3. 对偶增强双塔 Dual Augmented Two-Tower
 
-双塔模型对用户和物品的特征分开进行建模，在对特征进行了多层神经网络的整合后进行交互。由于网络的整合可能会损失一部分信息，因此过晚的user/item交互不利于模型的学习，这也是DSSM的一个主要的弊端。在对偶增强双塔算法中，作者设计了一个辅助向量，通过学习对user和item进行增强，使得user和item的交互更加有效。
+双塔模型对用户和物品的特征分开进行建模，在对特征进行了多层神经网络的整合后进行交互。由于网络的整合可能会损失一部分信息，因此过晚的user/item交互不利于模型的学习，这也是DSSM的一个主要的弊端。在对偶增强双塔算法中，作者设计了一个辅助向量，通过对user和item进行增强，使得user和item的交互更加有效。
 
-![dat](../../images/models/dat.png)
+![dat](../../images/models/DAT.png)
 
 ### 配置说明
 
-作为DSSM的衍生模型，DAT的配置与DSSM类似，在model_config中除了user和item的feature_group外，还需要增加user_id_augment feature_group和item_id_augment feature_group, 作为模型输入的增强向量。
-两塔各自的DNN最后一层输出维度需要和user_id_augment的embedding维度保持一致，以便构造AMM损失（Adaptive-Mimic Mechanism）。
+作为DSSM的衍生模型，DAT的配置与DSSM类似，在model_config中除了user和item的feature_group外，还需要增加user_id_augment的feature_group和item_id_augment的feature_group, 作为模型输入的增强向量。
+两塔各自的DNN最后一层输出维度需要和user_id/item_id的embedding维度保持一致，以便构造AMM损失（Adaptive-Mimic Mechanism）。
 
 ```
+  features: {
+    input_names: 'user_id'
+    feature_type: IdFeature
+    embedding_dim: 32
+    hash_bucket_size: 100000
+  }
+  features: {
+    input_names: 'adgroup_id'
+    feature_type: IdFeature
+    embedding_dim: 32
+    hash_bucket_size: 100000
+  }
+  .
+  .
+  .
+
   feature_groups: {
     group_name: 'user_id_augment'
     feature_names: 'user_id'
