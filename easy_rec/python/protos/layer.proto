@@ -144,3 +144,7 @@ message AITMTower {
     optional MLP transfer_mlp = 2;
     optional bool stop_gradient = 3 [default = true];
 }
+
+message CIN {
+    repeated int32 hidden_feature_sizes = 1;
+}

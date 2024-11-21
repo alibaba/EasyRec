@@ -308,5 +308,109 @@ class Cross(tf.keras.layers.Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
+class CIN(tf.keras.layers.Layer):
+  """Compressed Interaction Network(CIN) module in xDeepFM model.
+
+  CIN layer is aimed at achieving high-order feature interactions at
+  vector-wise level rather than bit-wise level.
+
+
+  Reference:
+  [xDeepFM](https://arxiv.org/pdf/1803.05170)
+   xDeepFM: Combining Explicit and Implicit Feature Interactions for Recommender Systems
+  """
+
+  def __init__(self, params, name='cin', reuse=None, **kwargs):
+    super(CIN, self).__init__(name=name, **kwargs)
+    self._name = name
+    self._hidden_feature_sizes = list(
+        params.get_or_default('hidden_feature_sizes', []))
+
+    assert isinstance(self._hidden_feature_sizes, list) and len(
+        self._hidden_feature_sizes
+    ) > 0, 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
+
+    kernel_regularizer = params.get_or_default('kernel_regularizer', None)
+    self._kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
+    bias_regularizer = params.get_or_default('bias_regularizer', None)
+    self._bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+
+  def build(self, input_shape):
+    if len(input_shape) != 3:
+      raise ValueError(
+          'Unexpected inputs dimensions %d, expect to be 3 dimensions' %
+          (len(input_shape)))
+
+    hidden_feature_sizes = [input_shape[1]
+                            ] + [h for h in self._hidden_feature_sizes]
+    tfv1 = tf.compat.v1 if tf.__version__ >= '2.0' else tf
+    with tfv1.variable_scope(self._name):
+      self.kernel_list = [
+          tfv1.get_variable(
+              name='cin_kernel_%d' % i,
+              shape=[
+                  hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
+                  hidden_feature_sizes[0]
+              ],
+              initializer=tf.initializers.he_normal(),
+              regularizer=self._kernel_regularizer,
+              trainable=True) for i in range(len(self._hidden_feature_sizes))
+      ]
+      self.bias_list = [
+          tfv1.get_variable(
+              name='cin_bias_%d' % i,
+              shape=[hidden_feature_sizes[i + 1]],
+              initializer=tf.keras.initializers.Zeros,
+              regularizer=self._bias_regularizer,
+              trainable=True) for i in range(len(self._hidden_feature_sizes))
+      ]
+
+    super(CIN, self).build(input_shape)
+
+  def call(self, input, **kwargs):
+    """Computes the compressed feature maps.
+
+    Args:
+      input: The 3D input tensor with shape (b, h0, d), where b is batch_size,
+            h0 is the number of features, d is the feature embedding dimension.
+
+    Returns:
+      2D tensor of compressed feature map with shape (b, featuremap_num),
+      where b is the batch_size, featuremap_num is sum of the hidden layer sizes
+    """
+    x_0 = input
+    x_i = input
+    x_0_expanded = tf.expand_dims(x_0, 1)
+    pooled_feature_map_list = []
+    for i in range(len(self._hidden_feature_sizes)):
+      hk = self._hidden_feature_sizes[i]
+
+      x_i_expanded = tf.expand_dims(x_i, 2)
+      intermediate_tensor = tf.multiply(x_0_expanded, x_i_expanded)
+
+      intermediate_tensor_expanded = tf.expand_dims(intermediate_tensor, 1)
+      intermediate_tensor_expanded = tf.tile(intermediate_tensor_expanded,
+                                             [1, hk, 1, 1, 1])
+
+      feature_map_elementwise = tf.multiply(
+          intermediate_tensor_expanded,
+          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0))
+      feature_map = tf.reduce_sum(
+          tf.reduce_sum(feature_map_elementwise, axis=3), axis=2)
+
+      feature_map = tf.add(
+          feature_map,
+          tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0))
+      feature_map = tf.nn.relu(feature_map)
+
+      x_i = feature_map
+      pooled_feature_map_list.append(tf.reduce_sum(feature_map, axis=-1))
+    return tf.concat(
+        pooled_feature_map_list, axis=-1)  # shape = (b, h1 + ... + hk)
+
+  def get_config(self):
+    pass
+
+
 def _clone_initializer(initializer):
   return initializer.__class__.from_config(initializer.get_config())

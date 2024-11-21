@@ -131,6 +131,7 @@ MovieLens-1M数据集效果对比：
 - 还有一些特殊的`block`关联了一个特殊的模块，包括`lambda layer`、`sequential layers`、`repeated layer`和`recurrent layer`。这些特殊layer分别实现了自定义表达式、顺序执行多个layer、重复执行某个layer、循环执行某个layer的功能。
 - DAG的输出节点名由`concat_blocks`配置项指定，配置了多个输出节点时自动执行tensor的concat操作。
 - 如果不配置`concat_blocks`，框架会自动拼接DAG的所有叶子节点并输出。
+- 如果多个`block`的输出不需要 concat 在一起，而是作为一个list类型（下游对接多目标学习的tower）可以用`output_blocks`代替`concat_blocks`
 - 可以为主干网络配置一个可选的`MLP`模块。
 
 ![](../../images/component/wide_deep.png)
@@ -1275,6 +1276,8 @@ message InputLayer {
     optional bool only_output_3d_tensor = 6;
     optional bool output_2d_tensor_and_feature_list = 7;
     optional bool output_seq_and_normal_feature = 8;
+    optional uint32 wide_output_dim = 9;
+    optional bool concat_seq_feature = 10 [default = true];
 }
 ```
 
@@ -1288,6 +1291,8 @@ message InputLayer {
 - `only_output_3d_tensor` 输出`feature group`对应的一个3d tensor，在`embedding_dim`相同时可配置该项
 - `output_2d_tensor_and_feature_list` 是否同时输出2d tensor与特征list
 - `output_seq_and_normal_feature` 是否输出(sequence特征, 常规特征）元组
+- `wide_output_dim` wide模型每个特征的参数权重维度，一般设定为1
+- `concat_seq_feature` 是否需要把序列特征的embedding拼接在一起
 
 ## 3. Lambda组件块
 
@@ -1436,6 +1441,12 @@ blocks {
   }
 }
 ```
+
+## 8. 输出组件
+
+- 使用`concat_blocks`或者`output_blocks`配置主干网络的输出
+- 两种的区别是前者会对多个输出组件块的结果按照最后一个axis拼接在一起；后者不会拼接，而是以list类型输出
+- 如果不配置上述两个选项，框架会自动拼接DAG的所有叶子节点并输出。
 
 ## 通过`组件包`实现参数共享的子网络
 

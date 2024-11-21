@@ -117,8 +117,8 @@ If EasyRec is useful for your research, please cite:
 
 ### Join Us
 
-- DingDing Group: 32260796. (EasyRec usage general discussion.)
-- DingDing Group2: 37930014162, click [this url](https://qr.dingtalk.com/action/joingroup?code=v1,k1,oHNqtNObbu+xUClHh77gCuKdGGH8AYoQ8AjKU23zTg4=&_dt_no_comment=1&origin=11) or scan QrCode to join![new_group.jpg](docs/images/qrcode/new_group.jpg)
+- DingDing Group: 32260796. click [this url](https://page.dingtalk.com/wow/z/dingtalk/simple/ddhomedownload?action=joingroup&code=v1,k1,MwaiOIY1Tb2W+onmBBumO7sQsdDOYjBmv6FXC6wTGns=&_dt_no_comment=1&origin=11#/) or scan QrCode to join![dinggroup1.png](docs/images/qrcode/dinggroup1.png)
+- DingDing Group2: 37930014162, click [this url](https://page.dingtalk.com/wow/z/dingtalk/simple/ddhomedownload?action=joingroup&code=v1,k1,1ppFWEXXNPyxUClHh77gCmpfB+JcPhbFv6FXC6wTGns=&_dt_no_comment=1&origin=11#/) or scan QrCode to join![dinggroup2.png](docs/images/qrcode/dinggroup2.png)
 - Email Group: easy_rec@service.aliyun.com.
 
 ### Enterprise Service

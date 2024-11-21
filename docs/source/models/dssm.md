@@ -68,6 +68,8 @@ model_config:{
 
 [DSSM_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dssm.config)
 
+[dssm_on_taobao_backbone.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/dssm_on_taobao_backbone.config)
+
 ### 效果评估
 
 [效果评估](https://easyrec.oss-cn-beijing.aliyuncs.com/docs/recall_eval.pdf)

@@ -374,6 +374,12 @@ class TrainEvalTest(tf.test.TestCase):
         'samples/model_config/dcn_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
+  def test_ziln_loss(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/mlp_on_taobao_with_ziln_loss.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
   def test_fibinet(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/fibinet_on_taobao.config', self._test_dir)
@@ -1252,6 +1258,38 @@ class TrainEvalTest(tf.test.TestCase):
   def test_dssm_senet(self):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dssm_senet_on_taobao.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_on_taobao_backbone.config', self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dssm_senet_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dssm_senet_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_parallel_dssm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/parallel_dssm_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  def test_xdeefm_backbone_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/xdeepfm_on_taobao_backbone.config',
+        self._test_dir)
+    self.assertTrue(self._success)
+
+  @unittest.skipIf(gl is None, 'graphlearn is not installed')
+  def test_dat_on_taobao(self):
+    self._success = test_utils.test_single_train_eval(
+        'samples/model_config/dat_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
 

@@ -1,4 +1,6 @@
-# 自定义损失函数组件
+# 自定义辅助损失函数组件
+
+可以使用如下方法添加多个辅助损失函数。
 
 在`easy_rec/python/layers/keras/auxiliary_loss.py`里添加一个新的loss函数。
 如果计算逻辑比较复杂，建议在一个单独的python文件中实现，然后在`auxiliary_loss.py`里import并使用。
