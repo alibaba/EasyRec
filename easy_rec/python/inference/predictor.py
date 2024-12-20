@@ -534,7 +534,7 @@ class Predictor(PredictorInterface):
               ]
           for k in self._reserved_cols:
             if k in all_vals and all_vals[k].dtype == np.object:
-              all_vals[k] = [val.decode('utf-8') for val in all_vals[k]]
+              all_vals[k] = [val.decode('utf-8', errors='ignore') for val in all_vals[k]]
 
           ts2 = time.time()
           reserve_vals = self._get_reserve_vals(self._reserved_cols,
