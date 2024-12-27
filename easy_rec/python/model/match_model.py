@@ -217,8 +217,12 @@ class MatchModel(EasyRecModel):
       indices = tf.concat([indices[:, None], indices[:, None]], axis=1)
       hit_prob = tf.gather_nd(
           self._prediction_dict['probs'][:batch_size, :batch_size], indices)
+
+      sample_weights = tf.cast(tf.squeeze(self._sample_weight), tf.float32)
       self._loss_dict['cross_entropy_loss'] = -tf.reduce_mean(
-          tf.log(hit_prob + 1e-12) * tf.squeeze(self._sample_weight))
+          tf.log(hit_prob + 1e-12) *
+          sample_weights) / tf.reduce_mean(sample_weights)
+
       logging.info('softmax cross entropy loss is used')
 
       user_features = self._prediction_dict['user_tower_emb']
@@ -226,7 +230,8 @@ class MatchModel(EasyRecModel):
       pos_simi = tf.reduce_sum(user_features * pos_item_emb, axis=1)
       # if pos_simi < 0, produce loss
       reg_pos_loss = tf.nn.relu(-pos_simi)
-      self._loss_dict['reg_pos_loss'] = tf.reduce_mean(reg_pos_loss)
+      self._loss_dict['reg_pos_loss'] = tf.reduce_mean(
+          reg_pos_loss * sample_weights) / tf.reduce_mean(sample_weights)
 
       # the AMM loss for DAT model
       if all([
@@ -235,10 +240,12 @@ class MatchModel(EasyRecModel):
       ]):
         self._loss_dict['amm_loss_u'] = tf.reduce_mean(
             tf.square(self._prediction_dict['augmented_a_u'] -
-                      self._prediction_dict['augmented_p_i'][:batch_size]))
+                      self._prediction_dict['augmented_p_i'][:batch_size]) *
+            sample_weights) / tf.reduce_mean(sample_weights)
         self._loss_dict['amm_loss_i'] = tf.reduce_mean(
             tf.square(self._prediction_dict['augmented_a_i'][:batch_size] -
-                      self._prediction_dict['augmented_p_u']))
+                      self._prediction_dict['augmented_p_u']) *
+            sample_weights) / tf.reduce_mean(sample_weights)
 
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
