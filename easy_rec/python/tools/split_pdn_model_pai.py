@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+import sys
 
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
@@ -12,6 +13,7 @@ from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.utils_impl import get_variables_path
 from tensorflow.python.tools import saved_model_utils
 from tensorflow.python.training import saver as tf_saver
+from easy_rec.python.utils import io_util
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('model_dir', '', '')
@@ -265,4 +267,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()

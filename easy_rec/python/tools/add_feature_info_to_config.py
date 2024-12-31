@@ -3,10 +3,12 @@
 import json
 import logging
 import os
+import sys
 
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import io_util
 from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
@@ -139,4 +141,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()

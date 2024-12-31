@@ -20,12 +20,14 @@ from __future__ import print_function
 import json
 import logging
 import os
+import sys
 
 import graphlearn as gl
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import io_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
 from easy_rec.python.utils.hit_rate_utils import load_graph
@@ -217,4 +219,5 @@ def main():
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   main()

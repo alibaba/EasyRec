@@ -185,3 +185,24 @@ def read_data_from_json_path(json_path):
   else:
     logging.info('json_path not exists, return None')
     return None
+
+def filter_unknown_args(flags, args):
+  """Filter unknown args."""
+  defined_flags = set(flag.name for flag in flags._flags().values())
+  logging.info('defined arguments: %s', ', '.join(defined_flags))
+  logging.info('actual arguments: %s', ', '.join(args[1:]))
+  known_args = [args[0]]
+  unknown = False
+  for arg in args[1:]:
+    if arg.startswith('--'):
+      flag_name = arg.split('=')[0][2:]
+      if flag_name in defined_flags:
+        known_args.append(arg)
+        unknown = False
+      else:
+        unknown = True
+        logging.warning('Ignore unknown arg: %s' % arg)
+    elif not unknown:
+      known_args.append(arg)
+  logging.info('keep arguments: %s', ', '.join(known_args[1:]))
+  return known_args

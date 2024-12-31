@@ -17,8 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
 import tensorflow as tf
 
+from easy_rec.python.utils import io_util
 from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
 from easy_rec.python.utils.hit_rate_utils import load_graph
 from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
@@ -131,4 +133,5 @@ def main():
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   main()
