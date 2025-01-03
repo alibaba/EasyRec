@@ -230,7 +230,11 @@ def convert_tf_flags_to_argparse(flags):
             help=help_str)
       elif multi:
         parser.add_argument(
-            '--' + flag_name, type=str, default=default, help=help_str)
+            '--' + flag_name,
+            type=str,
+            action='append',
+            default=default,
+            help=help_str)
       else:
         parser.add_argument(
             '--' + flag_name, type=str, default=default, help=help_str)
