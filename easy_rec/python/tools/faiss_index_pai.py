@@ -4,10 +4,12 @@ from __future__ import print_function
 
 import logging
 import os
+import sys
 
 import faiss
 import numpy as np
 import tensorflow as tf
+from easy_rec.python.utils import io_util
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -109,4 +111,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()

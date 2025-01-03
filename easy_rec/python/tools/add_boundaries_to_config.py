@@ -3,11 +3,13 @@
 import json
 import logging
 import os
+import sys
 
 import common_io
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import io_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -61,4 +63,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()

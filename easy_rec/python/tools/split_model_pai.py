@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+import sys
 
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
@@ -11,6 +12,7 @@ from tensorflow.python.framework.dtypes import _TYPE_TO_STRING
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.tools import saved_model_utils
 from tensorflow.python.training import saver as tf_saver
+from easy_rec.python.utils import io_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -282,4 +284,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()

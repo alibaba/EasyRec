@@ -3,12 +3,14 @@
 import json
 import logging
 import os
+import sys
 
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
+from easy_rec.python.utils import io_util
 from easy_rec.python.utils.check_utils import check_env_and_input_path
 from easy_rec.python.utils.check_utils import check_sequence
 
@@ -114,4 +116,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   tf.app.run()
