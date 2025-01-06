@@ -273,6 +273,8 @@ def filter_unknown_args(flags, args):
   if len(unknown) > 1:
     logging.info('undefined arguments: %s', ', '.join(unknown[1:]))
   for key, value in vars(args).items():
+    if value is None:
+      continue
     if type(value) in (list, dict) and not value:
       continue
     known_args.append('--' + key + '=' + str(value))
