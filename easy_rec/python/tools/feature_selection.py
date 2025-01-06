@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import json
 import os
+import sys
 from collections import OrderedDict
 
 import numpy as np
@@ -11,6 +12,7 @@ import tensorflow as tf
 from tensorflow.python.framework.meta_graph import read_meta_graph_file
 
 from easy_rec.python.utils import config_util
+from easy_rec.python.utils import io_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -299,6 +301,7 @@ class VariationalDropoutFS:
 
 
 if __name__ == '__main__':
+  sys.argv = io_util.filter_unknown_args(FLAGS, sys.argv)
   if FLAGS.model_type == 'variational_dropout':
     fs = VariationalDropoutFS(
         FLAGS.config_path,
