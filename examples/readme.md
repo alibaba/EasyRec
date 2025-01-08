@@ -42,8 +42,8 @@ docker exec -it <CONTAINER_ID> bash
 
 
 (2) `python=3.8.10` + `tenserflow=2.10.0`
-docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.7.4
-docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.7.4
+docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.8.1
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-0.8.1
 
 docker exec -it <CONTAINER_ID> bash
 ```
