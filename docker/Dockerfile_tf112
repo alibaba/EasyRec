@@ -1,0 +1,74 @@
+#FROM tensorflow/tensorflow:1.12.0
+FROM my_tensorflow_base:1.12.0-py2
+
+COPY docker/sources_18.04.list /etc/apt/sources.list
+
+# necessary for later commands to take effect
+RUN md5sum /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install apt-utils inetutils-ping wget curl telnet vim strace libpq-dev curl libsasl2-dev gcc g++ unzip openjdk-8-jdk -y \
+    && apt-get install build-essential cython -y \
+    && pip install cython \
+    && pip install setuptools_scm
+# 检查 Cython 是否安装成功
+RUN python -c "import Cython"
+RUN pip --version
+
+RUN mkdir /EasyRec
+COPY requirements /EasyRec/requirements
+COPY requirements.txt /EasyRec/
+COPY easy_rec /EasyRec/easy_rec/
+COPY setup.cfg  /EasyRec/
+COPY setup.py /EasyRec/
+COPY MANIFEST.in /EasyRec/
+COPY README.md /EasyRec/
+COPY scripts /EasyRec/scripts
+
+RUN curl "http://easyrec.oss-cn-beijing.aliyuncs.com/tools/odpscmd_public_0.45.0.zip" -o /EasyRec/odpscmd_public.zip
+RUN mkdir /usr/local/odps_clt/ && cd /usr/local/odps_clt/ && unzip /EasyRec/odpscmd_public.zip
+RUN ln -s /usr/local/odps_clt/bin/odpscmd /usr/local/bin/odpscmd
+
+RUN pip install pystack-debugger idna kafka-python -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
+# 升级pip
+RUN pip install --upgrade pip setuptools wheel
+
+# 安装 setuptools-rust 和 rustc
+RUN pip install setuptools-rust
+RUN pip install tensorflow_probability==0.5.0
+RUN apt-get update && apt-get install -y rustc
+RUN apt-get update && \
+    apt-get install -y rustc && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    . $HOME/.cargo/env
+# 安装 cryptography
+RUN pip install cryptography
+# 安装基础工具链与依赖项
+RUN apt-get update && \
+    apt-get install -y build-essential libssl-dev libffi-dev python-dev && \
+    apt-get install -y rustc cargo cmake curl
+
+# 设置国内的 Rust 镜像源
+RUN echo '[source.crates-io]\n' > $HOME/.cargo/config
+RUN echo 'replace-with = "ustc"' >> $HOME/.cargo/config
+RUN echo '[source.ustc]\n' >> $HOME/.cargo/config
+RUN echo 'registry = "https://mirrors.ustc.edu.cn/crates.io-index"' >> $HOME/.cargo/config
+
+# 确保 curl 支持 HTTP2
+RUN curl -V
+
+# 显示安装好的工具链版本，确保已正确安装
+RUN rustc --version
+RUN cargo --version
+RUN cmake --version
+
+RUN pip install -r /EasyRec/requirements/runtime.txt   -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
+RUN pip install -r /EasyRec/requirements/extra.txt   -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
+
+RUN pip install --user -U https://tfsmoke1.oss-cn-zhangjiakou.aliyuncs.com/tunnel_paiio/common_io/py2/common_io-0.1.0-cp27-cp27mu-linux_x86_64.whl
+RUN pip install graphlearn
+
+RUN cd /EasyRec && python setup.py install
+RUN rm -rf /EasyRec
+RUN python -c "import easy_rec; import pyhive; import datahub; import kafka"
+
+COPY docker/hadoop_env.sh /opt/hadoop_env.sh

@@ -1,4 +1,5 @@
-eas_prediction
+eas_prediction == 0.24; python_version < '3.0'
+eas_prediction; python_version >= '3.0'
 future
 matplotlib
 numpy <= 1.23
