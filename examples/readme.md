@@ -56,12 +56,12 @@ cd EasyRec
 
 -- Docker环境可选
 (1) `python=3.6.9` + `tenserflow=1.15.5`
-bash scripts/build_docker.sh
+bash scripts/build_docker_tf115.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
 
 (2) `python=3.8.10` + `tenserflow=2.12.0`
-bash scripts/build_docker_tf210.sh
-sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.10-<easyrec_version>
+bash scripts/build_docker_tf212.sh
+sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-<easyrec_version>
 
 sudo docker exec -it <CONTAINER_ID> bash
 ```
