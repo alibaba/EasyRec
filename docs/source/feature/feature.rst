@@ -136,7 +136,6 @@ RawFeature：连续值特征
     features {
       input_names: "ctr"
       feature_type: RawFeature
-      embedding_dim: 8
     }
   }
 
