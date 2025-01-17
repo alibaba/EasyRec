@@ -139,6 +139,18 @@ RawFeature：连续值特征
     }
   }
 
+也可以为每个RawFeature添加一个Field Embedding(原始特征值乘上一个可学习embedding参数)，如下：
+
+.. code:: protobuf
+
+  feature_config:{
+    features {
+      input_names: "ctr"
+      feature_type: RawFeature
+      embedding_dim: 8
+    }
+  }
+
 分箱组件使用方法见： `机器学习组件 <https://help.aliyun.com/document_detail/54352.html>`_
 也可以手动导入分箱信息。如下：
 
