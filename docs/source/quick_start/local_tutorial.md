@@ -8,7 +8,7 @@
 
 #### 本地Anaconda安装
 
-温馨提示：**在搭载Apple芯片的MacBook上必须使用TensorFlow 2.5或更高版本**。
+温馨提示：**在搭载Apple芯片的MacBook上必须使用TensorFlow 2.5或更高版本**，安装方法请查看TF官方文档。
 
 Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
 
