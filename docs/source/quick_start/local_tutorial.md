@@ -8,7 +8,7 @@
 
 #### 本地Anaconda安装
 
-温馨提示：**在搭载Apple芯片的MacBook上必须使用TensorFlow 2.5或更高版本**，安装方法请查看TF官方文档。
+温馨提示：**在搭载Apple M系列芯片的MacBook上必须使用TensorFlow 2.5或更高版本**，安装方法请查看TF官方文档。
 
 Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
 
@@ -19,7 +19,7 @@ pip install tensorflow==1.12.0
 pip install tensorflow_probability==0.5.0
 ```
 
-注意：必须要安装`tensorflow_probability`包，需要根据tensorflow的版本安装对应版本的`tensorflow_robability`包。
+注意：必须要安装`tensorflow_probability`包，需要根据tensorflow的版本安装对应版本的`tensorflow_probability`包。
 
 常见版本对应关系：
 
