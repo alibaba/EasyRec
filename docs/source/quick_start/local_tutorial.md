@@ -59,7 +59,7 @@ docker exec -it <CONTAINER_ID> bash
 
 ##### 方法二：自行构建Docker镜像
 
-我们提供四个版本的tensorflow镜像构建示例，对应的脚步路径如下：
+我们提供四个版本的tensorflow镜像构建示例，对应的脚本路径如下：
 
 - scripts/build_docker_tf112.sh
 - scripts/build_docker_tf115.sh
