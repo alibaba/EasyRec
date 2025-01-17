@@ -37,7 +37,7 @@ pai -name easy_rec_ext -project algo_public_dev
 
 ## 使用示例
 
-### 1. 创建查询表
+### 1. 创建索引表
 
 ```sql
 create table doc_table(pk BIGINT,vector string) partitioned by (pt string);
@@ -53,7 +53,7 @@ VALUES
 ;
 ```
 
-### 2. 创建索引表
+### 2. 创建查询表
 
 ```sql
 create table query_table(pk BIGINT,vector string) partitioned by (pt string);
