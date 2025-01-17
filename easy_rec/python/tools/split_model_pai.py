@@ -12,6 +12,7 @@ from tensorflow.python.framework.dtypes import _TYPE_TO_STRING
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.tools import saved_model_utils
 from tensorflow.python.training import saver as tf_saver
+
 from easy_rec.python.utils import io_util
 
 if tf.__version__ >= '2.0':
