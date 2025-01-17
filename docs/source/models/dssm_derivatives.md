@@ -109,13 +109,13 @@ model_config:{
   features: {
     input_names: 'user_id'
     feature_type: IdFeature
-    embedding_dim: 32
+    embedding_dim: 32         # user_id特征embedding维度
     hash_bucket_size: 100000
   }
   features: {
     input_names: 'adgroup_id'
     feature_type: IdFeature
-    embedding_dim: 32
+    embedding_dim: 32        # item_id特征embedding维度
     hash_bucket_size: 100000
   }
   .
@@ -123,12 +123,12 @@ model_config:{
   .
 
   feature_groups: {
-    group_name: 'user_id_augment'
+    group_name: 'user_id_augment' # 增加user_augment特征组，对user_id特征进行embedding作为辅助向量
     feature_names: 'user_id'
     wide_deep:DEEP
   }
   feature_groups: {
-    group_name: 'item_id_augment'
+    group_name: 'item_id_augment' # 增加item_augment特征组，对item_id特征进行embedding作为辅助向量
     feature_names: 'adgroup_id'
     wide_deep:DEEP
   }
@@ -137,19 +137,21 @@ model_config:{
     user_tower {
       id: "user_id"
       dnn {
-        hidden_units: [ 128,  32]
+        hidden_units: [ 128,  32]  # 输出维度需要保证和item_augment特征组的embedding维度一致
         # dropout_ratio : [0.1, 0.1, 0.1, 0.1]
       }
     }
     item_tower {
       id: "adgroup_id"
       dnn {
-        hidden_units: [ 128, 32]
+        hidden_units: [ 128, 32]  # 输出维度需要保证和user_augment特征组的embedding维度一致
       }
     }
     simi_func: COSINE
     temperature: 0.01
     l2_regularization: 1e-6
+    amm_i_weight: 0.5      # AMM损失权重
+    amm_u_weight: 0.5
   }
 ```
 
