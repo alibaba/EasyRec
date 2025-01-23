@@ -13,6 +13,7 @@ from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.utils_impl import get_variables_path
 from tensorflow.python.tools import saved_model_utils
 from tensorflow.python.training import saver as tf_saver
+
 from easy_rec.python.utils import io_util
 
 FLAGS = tf.app.flags.FLAGS

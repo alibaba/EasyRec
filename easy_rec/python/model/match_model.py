@@ -238,14 +238,16 @@ class MatchModel(EasyRecModel):
           k in self._prediction_dict.keys() for k in
           ['augmented_p_u', 'augmented_p_i', 'augmented_a_u', 'augmented_a_i']
       ]):
-        self._loss_dict['amm_loss_u'] = tf.reduce_mean(
-            tf.square(self._prediction_dict['augmented_a_u'] -
-                      self._prediction_dict['augmented_p_i'][:batch_size]) *
-            sample_weights) / tf.reduce_mean(sample_weights)
-        self._loss_dict['amm_loss_i'] = tf.reduce_mean(
-            tf.square(self._prediction_dict['augmented_a_i'][:batch_size] -
-                      self._prediction_dict['augmented_p_u']) *
-            sample_weights) / tf.reduce_mean(sample_weights)
+        self._loss_dict[
+            'amm_loss_u'] = self._model_config.amm_u_weight * tf.reduce_mean(
+                tf.square(self._prediction_dict['augmented_a_u'] -
+                          self._prediction_dict['augmented_p_i'][:batch_size]) *
+                sample_weights) / tf.reduce_mean(sample_weights)
+        self._loss_dict[
+            'amm_loss_i'] = self._model_config.amm_i_weight * tf.reduce_mean(
+                tf.square(self._prediction_dict['augmented_a_i'][:batch_size] -
+                          self._prediction_dict['augmented_p_u']) *
+                sample_weights) / tf.reduce_mean(sample_weights)
 
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))
