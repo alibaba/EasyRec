@@ -43,8 +43,9 @@ model_config:{
     user_tower {
       id: "user_id"
       senet {
-        num_squeeze_group : 2
-        reduction_ratio: 4
+        num_squeeze_group : 1
+        reduction_ratio: 2
+        excitation_acitvation: 'relu'
       }
       dnn {
         hidden_units: [128, 32]
@@ -53,8 +54,9 @@ model_config:{
     item_tower {
       id: "adgroup_id"
       senet {
-        num_squeeze_group : 2
-        reduction_ratio: 4
+        num_squeeze_group : 1
+        reduction_ratio: 2
+        excitation_acitvation: 'relu'
       }
       dnn {
         hidden_units: [128, 32]
@@ -71,14 +73,13 @@ model_config:{
 ```
 
 - senet参数配置:
-  - num_squeeze_group: 每个特征embedding的分组个数， 默认为2
-  - reduction_ratio: 维度压缩比例， 默认为4
+  - num_squeeze_group: 每个特征embedding的分组个数， 默认为1
+  - reduction_ratio: 维度压缩比例， 默认为2
+  - excitation_acitvation: excitation weights layer激活函数，默认为'relu'
 
 ### 示例Config
 
 [dssm_senet_on_taobao.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dssm_senet_on_taobao.config)
-
-[dssm_senet_on_taobao_backbone.config](https://github.com/alibaba/EasyRec/tree/master/samples/model_config/dssm_senet_on_taobao_backbone.config)
 
 ### 参考论文
 
