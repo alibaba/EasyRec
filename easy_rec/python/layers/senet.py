@@ -25,33 +25,36 @@ class SENet:
                num_fields,
                num_squeeze_group,
                reduction_ratio,
+               excitation_acitvation,
                l2_reg,
                name='SENet'):
     self.num_fields = num_fields
     self.num_squeeze_group = num_squeeze_group
     self.reduction_ratio = reduction_ratio
+    self.excitation_acitvation = excitation_acitvation
     self._l2_reg = l2_reg
     self._name = name
 
   def __call__(self, inputs):
-    g = self.num_squeeze_group
-    f = self.num_fields
     r = self.reduction_ratio
-    reduction_size = max(1, f * g * 2 // r)
+    g = self.num_squeeze_group
 
     emb_size = 0
     for input in inputs:
       emb_size += int(input.shape[-1])
 
-    group_embs = [
-        tf.reshape(emb, [-1, g, int(emb.shape[-1]) // g]) for emb in inputs
-    ]
+    group_embs = []
+    for emb in inputs:
+      g_dim = max(2, int(emb.shape[-1]) // g)
+      ghat = emb.shape[-1] // g_dim
+      group_embs.append(tf.reshape(emb, [-1, ghat, g_dim]))
 
     squeezed = []
     for emb in group_embs:
-      squeezed.append(tf.reduce_max(emb, axis=-1))  # [B, g]
       squeezed.append(tf.reduce_mean(emb, axis=-1))  # [B, g]
-    z = tf.concat(squeezed, axis=1)  # [bs, field_size * num_groups * 2]
+    z = tf.concat(squeezed, axis=1)  # [bs,  num_groups*field_size]
+
+    reduction_size = max(1, z.shape[-1] // r)
 
     reduced = tf.layers.dense(
         inputs=z,
@@ -64,6 +67,7 @@ class SENet:
         inputs=reduced,
         units=emb_size,
         kernel_initializer='glorot_normal',
+        activation=self.excitation_acitvation,
         name='%s/excite' % self._name)
 
     # Re-weight

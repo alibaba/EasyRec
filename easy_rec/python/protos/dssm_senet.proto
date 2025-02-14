@@ -3,11 +3,18 @@ package protos;
 
 import "easy_rec/python/protos/dnn.proto";
 import "easy_rec/python/protos/simi.proto";
-import "easy_rec/python/protos/layer.proto";
+
+
+message SENet_Module {
+    required uint32 reduction_ratio = 1 [default = 2];
+    optional uint32 num_squeeze_group = 2 [default = 1];
+    optional string excitation_acitvation = 3 [default = 'relu'];
+}
+
 
 message DSSM_SENet_Tower {
   required string id = 1;
-  required SENet senet = 2;
+  required SENet_Module senet = 2;
   required DNN dnn = 3;
 
 };

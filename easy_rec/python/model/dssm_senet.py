@@ -56,10 +56,17 @@ class DSSM_SENet(DSSM):
         num_fields=self.user_num_fields,
         num_squeeze_group=self.user_tower.senet.num_squeeze_group,
         reduction_ratio=self.user_tower.senet.reduction_ratio,
+        excitation_acitvation=self.user_tower.senet.excitation_acitvation,
         l2_reg=self._l2_reg,
         name='user_senet')
     user_senet_output_list = user_senet(self.user_feature_list)
     user_senet_output = tf.concat(user_senet_output_list, axis=-1)
+
+    user_senet_output = tf.layers.batch_normalization(
+        user_senet_output,
+        training=self._is_training,
+        trainable=True,
+        name='user_senet_bn')
 
     num_user_dnn_layer = len(self.user_tower.dnn.hidden_units)
     last_user_hidden = self.user_tower.dnn.hidden_units.pop()
@@ -76,11 +83,17 @@ class DSSM_SENet(DSSM):
         num_fields=self.item_num_fields,
         num_squeeze_group=self.item_tower.senet.num_squeeze_group,
         reduction_ratio=self.item_tower.senet.reduction_ratio,
+        excitation_acitvation=self.item_tower.senet.excitation_acitvation,
         l2_reg=self._l2_reg,
         name='item_senet')
 
     item_senet_output_list = item_senet(self.item_feature_list)
     item_senet_output = tf.concat(item_senet_output_list, axis=-1)
+    item_senet_output = tf.layers.batch_normalization(
+        item_senet_output,
+        training=self._is_training,
+        trainable=True,
+        name='item_senet_bn')
 
     num_item_dnn_layer = len(self.item_tower.dnn.hidden_units)
     last_item_hidden = self.item_tower.dnn.hidden_units.pop()
