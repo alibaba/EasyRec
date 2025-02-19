@@ -143,26 +143,27 @@ then
   rm -rf faiss.tar.gz
 fi
 
-if [ ! -d "tensorflow_probability" ]
+if [ -d "tensorflow_probability" ]
 then
-  if [ $is_tf15 -gt 0 ]; then
-    tfp_version='0.8.0'
-  else
-    tfp_version='0.5.0'
-  fi
-  if [ ! -e "tensorflow_probability" ]
-  then
-    wget http://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/probability-${tfp_version}.tar.gz
-    if [ $? -ne 0 ]
-    then
-      echo "tensorflow_probability download failed."
-    fi
-  fi
-  tar -xzvf probability-${tfp_version}.tar.gz --strip-components=1 probability-${tfp_version}/tensorflow_probability
-  rm -rf tensorflow_probability/examples
-  rm -rf tensorflow_probability/g3doc
-  rm -rf probability-${tfp_version}.tar.gz
+  rm -rf tensorflow_probability
 fi
+if [ $is_tf15 -gt 0 ]; then
+  tfp_version='0.8.0'
+else
+  tfp_version='0.5.0'
+fi
+if [ ! -e "tensorflow_probability" ]
+then
+  wget http://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/probability-${tfp_version}.tar.gz
+  if [ $? -ne 0 ]
+  then
+    echo "tensorflow_probability download failed."
+  fi
+fi
+tar -xzvf probability-${tfp_version}.tar.gz --strip-components=1 probability-${tfp_version}/tensorflow_probability
+rm -rf tensorflow_probability/examples
+rm -rf tensorflow_probability/g3doc
+rm -rf probability-${tfp_version}.tar.gz
 
 tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss tensorflow_probability run.py
 
