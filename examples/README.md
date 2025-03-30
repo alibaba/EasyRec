@@ -63,6 +63,14 @@ sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-r
 bash scripts/build_docker_tf212.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-<easyrec_version>
 
+(3) `python=3.8.10` + `tenserflow-gpu=2.12.0`
+bash scripts/build_docker_tf212gpu.sh
+sudo docker run \
+    -td --network host \
+    --gpus all \
+    -v /local_path:/docker_path \
+    mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12gpu-<easyrec_version>
+
 sudo docker exec -it <CONTAINER_ID> bash
 ```
 
