@@ -18,4 +18,8 @@ then
   exit 1
 fi
 
-sudo docker build --network=host . -f docker/Dockerfile_tf212gpu -t mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12gpu-${version}
+# sudo docker build --network=host . -f docker/Dockerfile_tf212gpu -t mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12gpu-${version}
+sudo docker build --network=host . -f docker/Dockerfile_tf212gpu -t fanyang0801/easyrec:py38-tf2.12gpu-${version}
+
+# next step is to push the image to registry
+# sudo docker push fanyang0801/easyrec:py38-tf2.12gpu-${version}
