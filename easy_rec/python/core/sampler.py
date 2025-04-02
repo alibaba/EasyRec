@@ -7,12 +7,14 @@ import json
 import logging
 import math
 import os
+import sys
 # import re
 import threading
 
 import numpy as np
 import six
 import tensorflow as tf
+from graphlearn.python.data.values import Values
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
@@ -28,6 +30,24 @@ except Exception:
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
+
+
+# patch graph-learn string_attrs for utf-8
+@property
+def string_attrs(self):  # NOQA
+  self._init()
+  return self._string_attrs
+
+
+# pyre-ignore [56]
+@string_attrs.setter
+# pyre-ignore [2, 3]
+def string_attrs(self, string_attrs):  # NOQA
+  self._string_attrs = self._reshape(string_attrs, expand_shape=True)
+  self._inited = True
+
+
+Values.string_attrs = string_attrs
 
 
 def _get_gl_type(field_type):
@@ -197,7 +217,9 @@ class BaseSampler(object):
         feature = nodes.float_attrs[:, :, float_idx]
         float_idx += 1
       elif attr_gl_type == 'string':
-        feature = nodes.string_attrs[:, :, string_idx]
+        feature = nodes.string_attrs[:, :, string_idx].astype(np.string_)
+        if int(sys.version_info[0]) == 3:
+          feature = np.char.decode(feature, 'utf-8')
         string_idx += 1
       else:
         raise ValueError('Unknown attr type %s' % attr_gl_type)
