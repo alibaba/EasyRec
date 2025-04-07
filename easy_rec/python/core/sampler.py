@@ -14,7 +14,6 @@ import threading
 import numpy as np
 import six
 import tensorflow as tf
-from graphlearn.python.data.values import Values
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
@@ -23,6 +22,7 @@ from easy_rec.python.utils.tf_utils import get_tf_type
 
 try:
   import graphlearn as gl
+  from graphlearn.python.data.values import Values
 except Exception:
   logging.info(
       'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"'  # noqa: E501
