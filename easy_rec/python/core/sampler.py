@@ -217,9 +217,9 @@ class BaseSampler(object):
         feature = nodes.float_attrs[:, :, float_idx]
         float_idx += 1
       elif attr_gl_type == 'string':
-        feature = nodes.string_attrs[:, :, string_idx].astype(np.string_)
+        feature = nodes.string_attrs[:, :, string_idx]
         if int(sys.version_info[0]) == 3:
-          feature = np.char.decode(feature, 'utf-8')
+          feature = np.char.decode(feature.astype(np.string_), 'utf-8')
         string_idx += 1
       else:
         raise ValueError('Unknown attr type %s' % attr_gl_type)
