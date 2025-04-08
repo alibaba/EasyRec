@@ -20,17 +20,6 @@ from easy_rec.python.utils import ds_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.tf_utils import get_tf_type
 
-try:
-  import graphlearn as gl
-  from graphlearn.python.data.values import Values
-except Exception:
-  logging.info(
-      'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"'  # noqa: E501
-  )
-
-if tf.__version__ >= '2.0':
-  tf = tf.compat.v1
-
 
 # patch graph-learn string_attrs for utf-8
 @property
@@ -47,7 +36,17 @@ def string_attrs(self, string_attrs):  # NOQA
   self._inited = True
 
 
-Values.string_attrs = string_attrs
+try:
+  import graphlearn as gl
+  from graphlearn.python.data.values import Values
+  Values.string_attrs = string_attrs
+except Exception:
+  logging.info(
+      'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"'  # noqa: E501
+  )
+
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
 
 
 def _get_gl_type(field_type):
