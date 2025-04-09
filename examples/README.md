@@ -33,18 +33,23 @@ python setup.py install
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
+```
 
 -- Docker环境可选
 (1) `python=3.6.9` + `tenserflow=1.15.5`
+
+```bash
 docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.8.5
 docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.8.5
 docker exec -it <CONTAINER_ID> bash
+```
 
 
 (2) `python=3.8.10` + `tenserflow=2.12.0`
+
+```bash
 docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-0.8.5
 docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-0.8.5
-
 docker exec -it <CONTAINER_ID> bash
 ```
 
@@ -53,25 +58,45 @@ docker exec -it <CONTAINER_ID> bash
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
+```
 
--- Docker环境可选
+Docker环境可选
+
 (1) `python=3.6.9` + `tenserflow=1.15.5`
+
+```bash
 bash scripts/build_docker_tf115.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-<easyrec_version>
+```
 
 (2) `python=3.8.10` + `tenserflow=2.12.0`
+
+```bash
 bash scripts/build_docker_tf212.sh
 sudo docker run -td --network host -v /local_path:/docker_path mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-<easyrec_version>
+```
+
+Example
+
+```bash
+bash scripts/build_docker_tf212.sh
+sudo docker run \
+    -td --network host \
+    -v /Users/fanyang/Repositories/EasyRec:/EasyRec \
+    mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-0.8.5
+sudo docker exec -it <CONTAINER_ID> /bin/bash
+```
 
 (3) `python=3.8.10` + `tenserflow-gpu=2.12.0`
+
+```bash
 bash scripts/build_docker_tf212gpu.sh
 sudo docker run \
     -td --network host \
     --gpus all \
     -v /local_path:/docker_path \
     mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12gpu-<easyrec_version>
-
-sudo docker exec -it <CONTAINER_ID> bash
+sudo docker exec -it <CONTAINER_ID> /bin/bash
 ```
 
 注：\<easyrec_version>需匹配当前EasyRec版本。

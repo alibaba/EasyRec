@@ -18,4 +18,4 @@ then
   exit 1
 fi
 
-sudo docker build --network=host . -f docker/Dockerfile_tf212 -t  mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-${version}
+sudo docker build --network=host . -f docker/Dockerfile_tf212 -t mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-${version}
