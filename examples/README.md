@@ -82,7 +82,7 @@ Example
 bash scripts/build_docker_tf212.sh
 sudo docker run \
     -td --network host \
-    -v /Users/fanyang/Repositories/EasyRec:/EasyRec \
+    -v ${PWD}:/EasyRec \
     mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-0.8.5
 sudo docker exec -it <CONTAINER_ID> /bin/bash
 ```

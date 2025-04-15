@@ -11,7 +11,7 @@ RUN mkdir /EasyRec
 COPY requirements /EasyRec/requirements
 COPY requirements.txt /EasyRec/
 COPY easy_rec /EasyRec/easy_rec/
-COPY setup.cfg  /EasyRec/
+COPY setup.cfg /EasyRec/
 COPY setup.py /EasyRec/
 COPY MANIFEST.in /EasyRec/
 COPY README.md /EasyRec/
