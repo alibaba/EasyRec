@@ -26,10 +26,10 @@ RUN pip3 install -r /EasyRec/requirements/runtime.txt   -i http://mirrors.aliyun
 RUN pip3 install -r /EasyRec/requirements/extra.txt   -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
 RUN pip3 install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-1.1.0-cp38-cp38-linux_x86_64.whl -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
 # RUN pip3 install http://easyrec.oss-cn-beijing.aliyuncs.com/releases/pai_automl-0.0.1rc1-py3-none-any.whl -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
-RUN pip3 install tensorflow_probability==0.20.0
+RUN pip3 install tensorflow_probability==0.20.0 -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
 #RUN pip3 install encodings
 RUN pip3 install https://dlc-task.oss-cn-hangzhou.aliyuncs.com/whl/common_io-0.4.1%2Btunnel-py2.py3-none-any.whl -i http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
-RUN cd /EasyRec && python setup.py install
+RUN cd /EasyRec && pip install .
 RUN rm -rf /EasyRec
 # RUN python -c "import easy_rec; easy_rec.help(); import pyhive; import datahub; import kafka"
 
