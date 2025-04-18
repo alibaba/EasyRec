@@ -34,3 +34,13 @@ pai_jobs/easy_rec*.tar.gz
 
 .DS_Store
 .python-version
+
+# data
+/**/*data
+
+# checkpoints
+/**/ckpt/
+
+# github
+.github/
+
