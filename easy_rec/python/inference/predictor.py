@@ -9,6 +9,8 @@ import json
 import logging
 import math
 import os
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "1"   # enable oneDNN ops,
+                                            # should be added before importing tensorflow
 import time
 
 import numpy as np
@@ -192,6 +194,25 @@ class PredictorImpl(object):
         gpu_options=gpu_options,
         allow_soft_placement=True,
         log_device_placement=(self._profiling_file is not None))
+    
+    # Thread optimization - adjust these values based on your CPU
+    total_cores = os.cpu_count()
+    logging.info(f"[PredictorImpl][_build_model] Total CPU cores available: {total_cores}")
+    num_physical_cores = int(total_cores * 0.75)
+    logging.info(f"[PredictorImpl][_build_model] Using {num_physical_cores} of {total_cores} cores for computation")
+    session_config.intra_op_parallelism_threads = num_physical_cores
+    session_config.inter_op_parallelism_threads = num_physical_cores
+
+    # Graph optimization
+    session_config.graph_options.optimizer_options.do_constant_folding = True
+    session_config.graph_options.optimizer_options.do_function_inlining = True
+    session_config.graph_options.optimizer_options.opt_level = tf.OptimizerOptions.L1
+
+    # Enable JIT/XLA compilation for potentially faster CPU execution
+    tf.config.optimizer.set_jit(True)
+    session_config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
+    logging.info(f"[PredictorImpl][_build_model] XLA enabled: {tf.config.optimizer.get_jit()}")  # Check global XLA    
+
     self._session = tf.Session(config=session_config, graph=self._graph)
 
     with self._graph.as_default():

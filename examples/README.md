@@ -277,6 +277,13 @@ python -m easy_rec.python.train_eval --pipeline_config_path examples/configs/dee
 
   `python -m easy_rec.python.export --pipeline_config_path examples/configs/deepfm_on_criteo.config --export_dir examples/ckpt/export/deepfm_on_criteo`
 
+```bash
+python -m easy_rec.python.export \
+  --pipeline_config_path examples/configs/wide_and_deep_on_movielens.config \
+  --export_dir examples/ckpt/export/wide_and_deep_on_movielens \
+  --export_done_file EXPORT_DONE
+```
+
 # 评估结果
 
 在公开数据集上的demo实验以及评估结果如下，仅供参考。
