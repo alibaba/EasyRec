@@ -101,7 +101,7 @@ def _get_input_fn(data_config,
 
 
 def _create_estimator(pipeline_config, distribution=None, params={}):
-  model_config = pipeline_config.model_config
+  model_config = pipeline_config.model_config   # NOTE: the model class is determined from model_config
   train_config = pipeline_config.train_config
   gpu_options = GPUOptions(allow_growth=True)  # False)
 
@@ -135,6 +135,9 @@ def _create_estimator(pipeline_config, distribution=None, params={}):
         session_config.graph_options.rewrite_options.OFF
 
   session_config.device_filters.append('/job:ps')
+  # NOTE: 
+  # - EasyRec creates the model class dynamically using a "Factory Pattern"
+  # - create_class() defined in models/model_factory.py
   model_cls = EasyRecModel.create_class(model_config.model_class)
 
   save_checkpoints_steps = None
@@ -316,6 +319,8 @@ def _train_and_evaluate_impl(pipeline_config,
   params = {}
   if train_config.is_profiling:
     params['log_device_placement'] = True
+  
+  # NOTE: create estimator (the model)
   estimator, run_config = _create_estimator(
       pipeline_config, distribution=distribution, params=params)
 

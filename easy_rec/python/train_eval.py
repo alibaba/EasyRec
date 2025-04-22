@@ -187,6 +187,7 @@ if __name__ == '__main__':
           has_evaluator=False)
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
+      # NOTE: model creation in _train_and_evaluate_impl(...) defined in main.py
       _train_and_evaluate_impl(
           pipeline_config,
           args.continue_train,
