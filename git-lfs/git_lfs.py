@@ -224,6 +224,7 @@ if __name__ == '__main__':
         'usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]'
     )
     sys.exit(1)
+  home_directory = os.path.expanduser("~")
   with open('.git_oss_config_pub', 'r') as fin:
     git_oss_data_dir = None
     host = None
@@ -237,7 +238,7 @@ if __name__ == '__main__':
         continue
       if line_str.startswith('#'):
         continue
-      line_str = line_str.replace('~/', os.environ['HOME'] + '/')
+      line_str = line_str.replace('~/', home_directory + '/')
       line_str = line_str.replace('${TMPDIR}/',
                                   os.environ.get('TMPDIR', '/tmp/'))
       line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
@@ -251,7 +252,7 @@ if __name__ == '__main__':
       elif line_tok[0] == 'git_oss_private_config':
         git_oss_private_path = line_tok[1]
         if git_oss_private_path.startswith('~/'):
-          git_oss_private_path = os.path.join(os.environ['HOME'],
+          git_oss_private_path = os.path.join(home_directory,
                                               git_oss_private_path[2:])
       elif line_tok[0] == 'git_oss_cache_dir':
         git_oss_cache_dir = line_tok[1]

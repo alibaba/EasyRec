@@ -136,6 +136,17 @@ RawFeature：连续值特征
     features {
       input_names: "ctr"
       feature_type: RawFeature
+    }
+  }
+
+也可以为每个RawFeature添加一个Field Embedding(原始特征值乘上一个可学习embedding参数)，如下：
+
+.. code:: protobuf
+
+  feature_config:{
+    features {
+      input_names: "ctr"
+      feature_type: RawFeature
       embedding_dim: 8
     }
   }

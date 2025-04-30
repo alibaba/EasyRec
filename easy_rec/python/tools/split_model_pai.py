@@ -9,15 +9,16 @@ from tensorflow.core.framework import graph_pb2
 from tensorflow.python.framework import importer
 from tensorflow.python.framework import ops
 from tensorflow.python.framework.dtypes import _TYPE_TO_STRING
+from tensorflow.python.ops.resource_variable_ops import _from_proto_fn
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.tools import saved_model_utils
 from tensorflow.python.training import saver as tf_saver
+
 from easy_rec.python.utils import io_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
   from tensorflow.python.saved_model.path_helpers import get_variables_path
-  from tensorflow.python.ops.resource_variable_ops import _from_proto_fn
 else:
   from tensorflow.python.saved_model.utils_impl import get_variables_path
 
@@ -206,10 +207,7 @@ def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
       graph = ops.get_default_graph()
       importer.import_graph_def(inference_graph, name='')
       for name in variables_to_keep:
-        if tf.__version__ >= '2.0':
-          variable = _from_proto_fn(variable_protos[name.split(':')[0]])
-        else:
-          variable = graph.get_tensor_by_name(name)
+        variable = _from_proto_fn(variable_protos[name.split(':')[0]])
         graph.add_to_collection(ops.GraphKeys.SAVEABLE_OBJECTS, variable)
       saver = tf_saver.Saver()
       saver.restore(sess, get_variables_path(model_dir))

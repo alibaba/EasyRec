@@ -31,3 +31,6 @@ pai_jobs/easy_rec*.tar.gz
 # unit test
 /data
 /UNIT_TEST_CASE_LIST
+
+.DS_Store
+.python-version

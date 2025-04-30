@@ -9,6 +9,7 @@ import sys
 import faiss
 import numpy as np
 import tensorflow as tf
+
 from easy_rec.python.utils import io_util
 
 logging.basicConfig(

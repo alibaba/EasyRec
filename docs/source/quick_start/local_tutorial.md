@@ -8,20 +8,39 @@
 
 #### 本地Anaconda安装
 
+温馨提示：**在搭载Apple M系列芯片的MacBook上必须使用TensorFlow 2.5或更高版本**，安装方法请查看TF官方文档。
+
 Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
 
 ```bash
 conda create -n py36_tf12 python=3.6.8
 conda activate py36_tf12
 pip install tensorflow==1.12.0
+pip install tensorflow_probability==0.5.0
 ```
+
+注意：必须要安装`tensorflow_probability`包，需要根据tensorflow的版本安装对应版本的`tensorflow_probability`包。
+
+常见版本对应关系：
+
+| TensorFlow版本 | TensorFlowProbability版本 |
+| ------------ | ----------------------- |
+| 1.12         | 0.5.0                   |
+| 1.15         | 0.8.0                   |
+| 2.5.0        | 0.13.0                  |
+| 2.6.0        | 0.14.0                  |
+| 2.7.0        | 0.15.0                  |
+| 2.8.0        | 0.16.0                  |
+| 2.10         | 0.18.0                  |
+| 2.12         | 0.20.0                  |
+
+其他版本对应关系请查看链接：[Releases · tensorflow/probability](https://github.com/tensorflow/probability/releases)。
 
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
 bash scripts/init.sh
 python setup.py install
-
 ```
 
 #### Docker镜像启动
@@ -33,12 +52,21 @@ Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
 cd EasyRec
-docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
-docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.7.4
+docker pull mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.8.5
+docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15-0.8.5
 docker exec -it <CONTAINER_ID> bash
 ```
 
 ##### 方法二：自行构建Docker镜像
+
+我们提供四个版本的tensorflow镜像构建示例，对应的脚本路径如下：
+
+- scripts/build_docker_tf112.sh
+- scripts/build_docker_tf115.sh
+- scripts/build_docker_tf210.sh
+- scripts/build_docker_tf212.sh
+
+默认使用`tensorflow 1.15`的版本，示例脚本如下，请根据需要替换脚本路径：
 
 ```bash
 git clone https://github.com/alibaba/EasyRec.git
