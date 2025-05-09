@@ -10,7 +10,7 @@
 
 温馨提示：**在搭载Apple M系列芯片的MacBook上必须使用TensorFlow 2.5或更高版本**，安装方法请查看TF官方文档。
 
-Demo实验中使用的环境为 `python=3.6.8` + `tenserflow=1.12.0`
+Demo实验中使用的环境为 `python=3.6.8` + `tensorflow=1.12.0`
 
 ```bash
 conda create -n py36_tf12 python=3.6.8
@@ -45,7 +45,7 @@ python setup.py install
 
 #### Docker镜像启动
 
-Docker的环境为`python=3.6.9` + `tenserflow=1.15.5`
+Docker的环境为`python=3.6.9` + `tensorflow=1.15.5`
 
 ##### 方法一：拉取已上传的镜像（推荐）
 
