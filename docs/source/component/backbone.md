@@ -1294,6 +1294,23 @@ message InputLayer {
 - `wide_output_dim` wide模型每个特征的参数权重维度，一般设定为1
 - `concat_seq_feature` 是否需要把序列特征的embedding拼接在一起
 
+比如同一个group的所有特征 pooling 为一个特征的示例如下：
+
+- 前提条件：这个group内的所有特征的在embedding_dim都相同
+
+```protobuf
+blocks {
+  name: 'feat_pooling'
+  inputs {
+    feature_group_name: 'feat_group'
+  }
+  input_layer {
+    only_output_3d_tensor: true
+  }
+  extra_input_fn: 'lambda x: tf.reduce_sum(x, axis=1)'
+}
+```
+
 ## 3. Lambda组件块
 
 `Lambda组件块`可以配置一个lambda函数，执行一些较简单的操作。示例如下：

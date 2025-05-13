@@ -73,6 +73,43 @@ blocks {
 }
 ```
 
+## 对输入序列pooling的例子
+
+```protobuf
+model_config: {
+  model_name: 'SumPooling'
+  model_class: 'RankModel
+  ...
+  feature_groups: {
+    group_name: 'sequence'
+    feature_names: "tag_category_list"
+    feature_names: "tag_brand_list"
+    wide_deep: DEEP
+  }
+  backbone {
+
+    blocks {
+      name: 'seq_input'
+      inputs {
+        feature_group_name: 'sequence'
+      }
+      input_layer {
+        output_seq_and_normal_feature: true
+      }
+    }
+    blocks {
+      name: 'sum_pooling'
+      inputs {
+        block_name: 'seq_input'
+        input_slice: '[0]'
+      }
+      extra_input_fn: 'lambda x: tf.reduce_sum(x, axis=1)'
+    }
+    ...
+  }
+}
+```
+
 ## 完整的例子
 
 - [DIN](../models/din.md)
