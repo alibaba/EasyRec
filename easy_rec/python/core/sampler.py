@@ -7,6 +7,7 @@ import json
 import logging
 import math
 import os
+import sys
 # import re
 import threading
 
@@ -19,8 +20,26 @@ from easy_rec.python.utils import ds_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.tf_utils import get_tf_type
 
+
+# patch graph-learn string_attrs for utf-8
+@property
+def string_attrs(self):  # NOQA
+  self._init()
+  return self._string_attrs
+
+
+# pyre-ignore [56]
+@string_attrs.setter
+# pyre-ignore [2, 3]
+def string_attrs(self, string_attrs):  # NOQA
+  self._string_attrs = self._reshape(string_attrs, expand_shape=True)
+  self._inited = True
+
+
 try:
   import graphlearn as gl
+  from graphlearn.python.data.values import Values
+  Values.string_attrs = string_attrs
 except Exception:
   logging.info(
       'GraphLearn is not installed. You can install it by "pip install https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/graphlearn-0.7-cp27-cp27mu-linux_x86_64.whl"'  # noqa: E501
@@ -198,6 +217,8 @@ class BaseSampler(object):
         float_idx += 1
       elif attr_gl_type == 'string':
         feature = nodes.string_attrs[:, :, string_idx]
+        if int(sys.version_info[0]) == 3:
+          feature = np.char.decode(feature.astype(np.string_), 'utf-8')
         string_idx += 1
       else:
         raise ValueError('Unknown attr type %s' % attr_gl_type)
