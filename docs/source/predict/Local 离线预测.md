@@ -26,6 +26,7 @@ CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.predict --input_path 'data/test
   - 如果有多列，用逗号分割, eg: output_cols='probs double,embedding string'
 - input_sep: 输入文件的分隔符，默认","
 - output_sep: 输出文件的分隔符，默认"\\u0001"
+- with_header: 当输入是csv文件时，可以指定文件是否有表头, 默认false
 
 ### 输出表schema
 

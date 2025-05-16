@@ -180,6 +180,7 @@ class PredictorTestOnDS(tf.test.TestCase):
     predictor = CSVPredictor(
         saved_model_dir,
         pipeline_config.data_config,
+        with_header=True,
         output_sep=';',
         selected_cols='')
 

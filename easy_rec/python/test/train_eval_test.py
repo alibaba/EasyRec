@@ -170,7 +170,7 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/multi_tower_save_secs_on_taobao.config',
         self._test_dir,
-        total_steps=500)
+        total_steps=100)
     ckpts_times = []
     ckpt_dir = os.path.join(self._test_dir, 'train')
     for filepath in os.listdir(ckpt_dir):

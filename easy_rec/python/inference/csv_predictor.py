@@ -24,6 +24,7 @@ class CSVPredictor(Predictor):
   def __init__(self,
                model_path,
                data_config,
+               with_header=False,
                ds_vector_recall=False,
                fg_json_path=None,
                profiling_file=None,
@@ -33,7 +34,7 @@ class CSVPredictor(Predictor):
     self._output_sep = output_sep
     self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
-    self._with_header = data_config.with_header
+    self._with_header = with_header
 
     if 'rtp' in input_type:
       self._is_rtp = True

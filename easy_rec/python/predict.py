@@ -30,7 +30,8 @@ logging.basicConfig(
 tf.app.flags.DEFINE_string('input_path', None, 'predict data path')
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
 tf.app.flags.DEFINE_integer('batch_size', 1024, help='batch size')
-
+tf.app.flags.DEFINE_bool('with_header', False,
+                         'whether the input csv file has header')
 # predict by checkpoint
 tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'Path to pipeline config '
@@ -119,6 +120,7 @@ def main(argv):
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
           pipeline_config.data_config,
+          FLAGS.with_header,
           ds_vector_recall=FLAGS.ds_vector_recall,
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
