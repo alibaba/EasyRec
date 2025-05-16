@@ -224,7 +224,7 @@ if __name__ == '__main__':
         'usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]'
     )
     sys.exit(1)
-  home_directory = os.path.expanduser("~")
+  home_directory = os.path.expanduser('~')
   with open('.git_oss_config_pub', 'r') as fin:
     git_oss_data_dir = None
     host = None
