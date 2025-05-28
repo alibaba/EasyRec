@@ -3,7 +3,10 @@
 import logging
 
 import tensorflow as tf
-from tensorflow.python.platform import gfile
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 
 from easy_rec.python.input.criteo_binary_reader import BinaryDataset
 from easy_rec.python.input.input import Input

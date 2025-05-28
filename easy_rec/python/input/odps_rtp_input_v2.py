@@ -6,7 +6,10 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
-
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 try:
   import pai
   import rtp_fg
@@ -45,7 +48,7 @@ class OdpsRTPInputV2(OdpsRTPInput):
     logging.info('fg config path: {}'.format(self._fg_config_path))
     if self._fg_config_path is None:
       raise ValueError('fg_json_path is not set')
-    with tf.gfile.GFile(self._fg_config_path, 'r') as f:
+    with gfile.GFile(self._fg_config_path, 'r') as f:
       self._fg_config = json.load(f)
 
   def _parse_table(self, *fields):

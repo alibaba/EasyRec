@@ -7,6 +7,10 @@ from collections import defaultdict
 
 import numpy as np
 import tensorflow as tf
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 from sklearn import metrics as sklearn_metrics
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
@@ -184,7 +188,7 @@ def _distribute_separated_auc_impl(labels,
   cur_task_index, task_num = get_task_index_and_num()
   cur_work_device = 'job_' + cur_job_name + '__' + 'task_' + str(cur_task_index)
   eval_tmp_results_dir = os.environ['eval_tmp_results_dir']
-  assert tf.gfile.IsDirectory(
+  assert gfile.IsDirectory(
       eval_tmp_results_dir), 'eval_tmp_results_dir not exists'
 
   def update_pyfunc(labels, predictions, keys):

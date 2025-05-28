@@ -15,7 +15,7 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
-  gfile = tf.compat.v1.gfile
+  gfile = tf.io.gfile
   from tensorflow.core.protobuf import config_pb2
 
   ConfigProto = config_pb2.ConfigProto

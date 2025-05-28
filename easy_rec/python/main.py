@@ -13,8 +13,11 @@ import time
 
 import six
 import tensorflow as tf
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 from tensorflow.core.protobuf import saved_model_pb2
-from tensorflow.python.platform import gfile
 
 import easy_rec
 from easy_rec.python.builders import strategy_builder

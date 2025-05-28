@@ -5,9 +5,11 @@ import logging
 import traceback
 
 import tensorflow as tf
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 from tensorflow.python.framework import dtypes
-from tensorflow.python.platform import gfile
-
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import odps_util
 from easy_rec.python.utils.config_util import parse_time

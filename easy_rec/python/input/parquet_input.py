@@ -3,17 +3,14 @@
 import logging
 import multiprocessing
 import queue
-# import threading
 import time
 
-# import numpy as np
-# import pandas as pd
 import tensorflow as tf
-# from tensorflow.python.framework import ops
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tf.io.gfile as gfile
 from tensorflow.python.ops import array_ops
-# from tensorflow.python.ops import logging_ops
-# from tensorflow.python.ops import math_ops
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.compat import queues
 from easy_rec.python.input import load_parquet
