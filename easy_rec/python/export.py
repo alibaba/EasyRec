@@ -8,7 +8,7 @@ from tensorflow.python.lib.io import file_io
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
-  import tf.io.gfile as gfile
+  import tensorflow.io.gfile as gfile
 from easy_rec.python.main import export
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util

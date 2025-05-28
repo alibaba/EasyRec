@@ -10,7 +10,7 @@ import tensorflow as tf
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
-  import tf.io.gfile as gfile
+  import tensorflow.io.gfile as gfile
 from sklearn import metrics as sklearn_metrics
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops

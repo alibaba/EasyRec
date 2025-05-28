@@ -16,7 +16,7 @@ import tensorflow as tf
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
-  import tf.io.gfile as gfile
+  import tensorflow.io.gfile as gfile
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path

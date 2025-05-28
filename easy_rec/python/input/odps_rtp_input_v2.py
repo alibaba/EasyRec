@@ -9,7 +9,7 @@ from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
-  import tf.io.gfile as gfile
+  import tensorflow.io.gfile as gfile
 try:
   import pai
   import rtp_fg

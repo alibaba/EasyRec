@@ -16,7 +16,7 @@ import tensorflow as tf
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
-  import tf.io.gfile as gfile
+  import tensorflow.io.gfile as gfile
 from tensorflow.core.protobuf import saved_model_pb2
 
 import easy_rec
