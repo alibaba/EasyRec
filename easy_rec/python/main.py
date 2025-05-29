@@ -69,6 +69,8 @@ BestExporter = exporter.BestExporter
 
 
 def is_directory(path):
+  if tf.__version__.startswith('1.'):
+    return gfile.IsDirectory(path)
   if not gfile.exists(path):
     return False
   try:
