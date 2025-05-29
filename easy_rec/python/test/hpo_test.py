@@ -15,13 +15,13 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
-  gfile = tf.io.gfile
+  import tensorflow.io.gfile as gfile
   from tensorflow.core.protobuf import config_pb2
 
   ConfigProto = config_pb2.ConfigProto
   GPUOptions = config_pb2.GPUOptions
 else:
-  gfile = tf.gfile
+  from tensorflow.python.platform import gfile
   GPUOptions = tf.GPUOptions
   ConfigProto = tf.ConfigProto
 
