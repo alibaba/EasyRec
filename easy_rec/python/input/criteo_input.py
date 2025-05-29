@@ -3,13 +3,14 @@
 import logging
 
 import tensorflow as tf
+
+from easy_rec.python.input.criteo_binary_reader import BinaryDataset
+from easy_rec.python.input.input import Input
+
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
   import tensorflow.io.gfile as gfile
-
-from easy_rec.python.input.criteo_binary_reader import BinaryDataset
-from easy_rec.python.input.input import Input
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

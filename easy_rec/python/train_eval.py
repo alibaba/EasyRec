@@ -6,10 +6,7 @@ import logging
 import os
 
 import tensorflow as tf
-if tf.__version__.startswith('1.'):
-  from tensorflow.python.platform import gfile
-else:
-  import tensorflow.io.gfile as gfile
+
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util
@@ -20,6 +17,11 @@ from easy_rec.python.utils import hpo_util
 from easy_rec.python.utils.config_util import process_neg_sampler_data_path
 from easy_rec.python.utils.config_util import set_eval_input_path
 from easy_rec.python.utils.config_util import set_train_input_path
+
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tensorflow.io.gfile as gfile
 
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
 

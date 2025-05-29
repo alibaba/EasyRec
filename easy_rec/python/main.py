@@ -13,10 +13,6 @@ import time
 
 import six
 import tensorflow as tf
-if tf.__version__.startswith('1.'):
-  from tensorflow.python.platform import gfile
-else:
-  import tensorflow.io.gfile as gfile
 from tensorflow.core.protobuf import saved_model_pb2
 
 import easy_rec
@@ -66,18 +62,6 @@ load_class.auto_import()
 FinalExporter = exporter.FinalExporter
 LatestExporter = exporter.LatestExporter
 BestExporter = exporter.BestExporter
-
-
-def is_directory(path):
-  if tf.__version__.startswith('1.'):
-    return gfile.IsDirectory(path)
-  if not gfile.exists(path):
-    return False
-  try:
-    gfile.listdir(path)
-    return True
-  except:
-    return False
 
 
 def _get_input_fn(data_config,
@@ -255,27 +239,27 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
 
 def _check_model_dir(model_dir, continue_train):
   if not continue_train:
-    if not is_directory(model_dir):
-      gfile.MakeDirs(model_dir)
+    if not tf.gfile.IsDirectory(model_dir):
+      tf.gfile.MakeDirs(model_dir)
     else:
-      assert len(gfile.Glob(model_dir + '/model.ckpt-*.meta')) == 0, \
+      assert len(tf.gfile.Glob(model_dir + '/model.ckpt-*.meta')) == 0, \
           'model_dir[=%s] already exists and not empty(if you ' \
           'want to continue train on current model_dir please ' \
           'delete dir %s or specify --continue_train[internal use only])' % (
               model_dir, model_dir)
   else:
-    if not is_directory(model_dir):
+    if not tf.gfile.IsDirectory(model_dir):
       logging.info('%s does not exists, create it automatically' % model_dir)
-      gfile.MakeDirs(model_dir)
+      tf.gfile.MakeDirs(model_dir)
 
 
 def _get_ckpt_path(pipeline_config, checkpoint_path):
   if checkpoint_path != '' and checkpoint_path is not None:
-    if is_directory(checkpoint_path):
+    if tf.gfile.IsDirectory(checkpoint_path):
       ckpt_path = estimator_utils.latest_checkpoint(checkpoint_path)
     else:
       ckpt_path = checkpoint_path
-  elif is_directory(pipeline_config.model_dir):
+  elif tf.gfile.IsDirectory(pipeline_config.model_dir):
     ckpt_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
                  'will use latest checkpoint %s from %s' %
@@ -299,7 +283,8 @@ def train_and_evaluate(pipeline_config_path, continue_train=False):
   Returns:
     None, the model will be saved into pipeline_config.model_dir
   """
-  assert gfile.Exists(pipeline_config_path), 'pipeline_config_path not exists'
+  assert tf.gfile.Exists(
+      pipeline_config_path), 'pipeline_config_path not exists'
   pipeline_config = config_util.get_configs_from_pipeline_file(
       pipeline_config_path)
 
@@ -338,7 +323,7 @@ def _train_and_evaluate_impl(pipeline_config,
   if estimator_utils.is_chief():
     _check_model_dir(pipeline_config.model_dir, continue_train)
     config_util.save_pipeline_config(pipeline_config, pipeline_config.model_dir)
-    with gfile.GFile(version_file, 'w') as f:
+    with tf.gfile.GFile(version_file, 'w') as f:
       f.write(easy_rec.__version__ + '\n')
 
   train_steps = None
@@ -524,7 +509,7 @@ def evaluate(pipeline_config,
   model_dir = pipeline_config.model_dir
   eval_result_file = os.path.join(model_dir, eval_result_filename)
   logging.info('save eval result to file %s' % eval_result_file)
-  with gfile.GFile(eval_result_file, 'w') as ofile:
+  with tf.gfile.GFile(eval_result_file, 'w') as ofile:
     result_to_write = {}
     for key in sorted(eval_result):
       # skip logging binary data
@@ -577,10 +562,11 @@ def distribute_evaluate(pipeline_config,
     return eval_result
   model_dir = get_model_dir_path(pipeline_config)
   eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
-  if not is_directory(eval_tmp_results_dir):
+  if not tf.gfile.IsDirectory(eval_tmp_results_dir):
     logging.info('create eval tmp results dir {}'.format(eval_tmp_results_dir))
-    gfile.MakeDirs(eval_tmp_results_dir)
-  assert is_directory(eval_tmp_results_dir), 'tmp results dir not create success.'
+    tf.gfile.MakeDirs(eval_tmp_results_dir)
+  assert tf.gfile.IsDirectory(
+      eval_tmp_results_dir), 'tmp results dir not create success.'
   os.environ['eval_tmp_results_dir'] = eval_tmp_results_dir
 
   server_target = None
@@ -693,7 +679,7 @@ def distribute_evaluate(pipeline_config,
   if cur_job_name == 'master':
     print('eval_result = ', eval_result)
     logging.info('eval_result = {0}'.format(eval_result))
-    with gfile.GFile(eval_result_file, 'w') as ofile:
+    with tf.gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {'eval_method': 'distribute'}
       for key in sorted(eval_result):
         # skip logging binary data
@@ -780,8 +766,8 @@ def export(export_dir,
     AssertionError, if:
       * pipeline_config_path does not exist
   """
-  if not gfile.Exists(export_dir):
-    gfile.MakeDirs(export_dir)
+  if not tf.gfile.Exists(export_dir):
+    tf.gfile.MakeDirs(export_dir)
 
   pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config)
   if pipeline_config.fg_json_path:
@@ -844,10 +830,10 @@ def export(export_dir,
   ]
   export_ts = export_ts[-1]
   saved_pb_path = os.path.join(final_export_dir, 'saved_model.pb')
-  with gfile.GFile(saved_pb_path, 'rb') as fin:
+  with tf.gfile.GFile(saved_pb_path, 'rb') as fin:
     saved_model.ParseFromString(fin.read())
   saved_model.meta_graphs[0].meta_info_def.meta_graph_version = export_ts
-  with gfile.GFile(saved_pb_path, 'wb') as fout:
+  with tf.gfile.GFile(saved_pb_path, 'wb') as fout:
     fout.write(saved_model.SerializeToString())
 
   logging.info('model has been exported to %s successfully' % final_export_dir)

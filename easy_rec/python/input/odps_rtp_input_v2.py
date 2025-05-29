@@ -6,6 +6,7 @@ import logging
 import tensorflow as tf
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
+
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:

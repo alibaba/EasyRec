@@ -5,14 +5,16 @@ import logging
 import traceback
 
 import tensorflow as tf
+from tensorflow.python.framework import dtypes
+
+from easy_rec.python.input.input import Input
+from easy_rec.python.utils import odps_util
+from easy_rec.python.utils.config_util import parse_time
+
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
   import tensorflow.io.gfile as gfile
-from tensorflow.python.framework import dtypes
-from easy_rec.python.input.input import Input
-from easy_rec.python.utils import odps_util
-from easy_rec.python.utils.config_util import parse_time
 
 try:
   import common_io
