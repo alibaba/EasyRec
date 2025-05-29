@@ -68,6 +68,16 @@ LatestExporter = exporter.LatestExporter
 BestExporter = exporter.BestExporter
 
 
+def is_directory(path):
+  if not gfile.exists(path):
+    return False
+  try:
+    gfile.listdir(path)
+    return True
+  except:
+    return False
+
+
 def _get_input_fn(data_config,
                   feature_configs,
                   data_path=None,
@@ -243,7 +253,7 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
 
 def _check_model_dir(model_dir, continue_train):
   if not continue_train:
-    if not gfile.IsDirectory(model_dir):
+    if not is_directory(model_dir):
       gfile.MakeDirs(model_dir)
     else:
       assert len(gfile.Glob(model_dir + '/model.ckpt-*.meta')) == 0, \
@@ -252,18 +262,18 @@ def _check_model_dir(model_dir, continue_train):
           'delete dir %s or specify --continue_train[internal use only])' % (
               model_dir, model_dir)
   else:
-    if not gfile.IsDirectory(model_dir):
+    if not is_directory(model_dir):
       logging.info('%s does not exists, create it automatically' % model_dir)
       gfile.MakeDirs(model_dir)
 
 
 def _get_ckpt_path(pipeline_config, checkpoint_path):
   if checkpoint_path != '' and checkpoint_path is not None:
-    if gfile.IsDirectory(checkpoint_path):
+    if is_directory(checkpoint_path):
       ckpt_path = estimator_utils.latest_checkpoint(checkpoint_path)
     else:
       ckpt_path = checkpoint_path
-  elif gfile.IsDirectory(pipeline_config.model_dir):
+  elif is_directory(pipeline_config.model_dir):
     ckpt_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
     logging.info('checkpoint_path is not specified, '
                  'will use latest checkpoint %s from %s' %
@@ -565,11 +575,10 @@ def distribute_evaluate(pipeline_config,
     return eval_result
   model_dir = get_model_dir_path(pipeline_config)
   eval_tmp_results_dir = os.path.join(model_dir, 'distribute_eval_tmp_results')
-  if not gfile.IsDirectory(eval_tmp_results_dir):
+  if not is_directory(eval_tmp_results_dir):
     logging.info('create eval tmp results dir {}'.format(eval_tmp_results_dir))
     gfile.MakeDirs(eval_tmp_results_dir)
-  assert gfile.IsDirectory(
-      eval_tmp_results_dir), 'tmp results dir not create success.'
+  assert is_directory(eval_tmp_results_dir), 'tmp results dir not create success.'
   os.environ['eval_tmp_results_dir'] = eval_tmp_results_dir
 
   server_target = None
