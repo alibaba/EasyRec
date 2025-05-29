@@ -12,6 +12,7 @@ import numpy as np
 import six
 import tensorflow as tf
 from distutils.version import LooseVersion
+from tensorflow.python.platform import gfile
 
 from easy_rec.python.main import predict
 from easy_rec.python.utils import config_util
