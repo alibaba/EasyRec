@@ -19,11 +19,6 @@ from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils import test_utils
 
-if tf.__version__.startswith('1.'):
-  from tensorflow.python.platform import gfile
-else:
-  import tensorflow.io.gfile as gfile
-
 try:
   import graphlearn as gl
 except Exception:
