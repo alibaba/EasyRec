@@ -3,6 +3,7 @@
 import logging
 
 import tensorflow as tf
+
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils.input_utils import get_type_defaults
 

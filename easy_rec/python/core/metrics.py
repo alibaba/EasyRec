@@ -184,7 +184,7 @@ def _distribute_separated_auc_impl(labels,
   cur_task_index, task_num = get_task_index_and_num()
   cur_work_device = 'job_' + cur_job_name + '__' + 'task_' + str(cur_task_index)
   eval_tmp_results_dir = os.environ['eval_tmp_results_dir']
-  assert gfile.IsDirectory(
+  assert tf.gfile.IsDirectory(
       eval_tmp_results_dir), 'eval_tmp_results_dir not exists'
 
   def update_pyfunc(labels, predictions, keys):
