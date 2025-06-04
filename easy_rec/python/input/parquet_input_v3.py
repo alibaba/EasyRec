@@ -3,7 +3,6 @@
 import logging
 
 import tensorflow as tf
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils.input_utils import get_type_defaults
@@ -18,6 +17,9 @@ try:
 except Exception:
   _has_deep_rec = False
   pass
+
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
 
 
 class ParquetInputV3(Input):
@@ -114,7 +116,7 @@ class ParquetInputV3(Input):
   def _build(self, mode, params):
     input_files = []
     for sub_path in self._input_path.strip().split(','):
-      input_files.extend(gfile.Glob(sub_path))
+      input_files.extend(tf.gfile.Glob(sub_path))
     file_num = len(input_files)
     logging.info('[task_index=%d] total_file_num=%d task_num=%d' %
                  (self._task_index, file_num, self._task_num))
