@@ -57,6 +57,13 @@ docker run -td --network host -v /local_path/EasyRec:/docker_path/EasyRec mybigp
 docker exec -it <CONTAINER_ID> bash
 ```
 
+可选镜像：
+
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-0.8.5
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-0.8.5
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-gpu-0.8.5
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py38-tf2.12-gpu-0.8.5
+
 ##### 方法二：自行构建Docker镜像
 
 我们提供四个版本的tensorflow镜像构建示例，对应的脚本路径如下：
