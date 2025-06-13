@@ -26,6 +26,9 @@ EmbeddingParallel = 'EmbeddingParallel'
 # environ variable to force embedding placement on cpu
 EmbeddingOnCPU = 'place_embedding_on_cpu'
 
+# clear ps counter queue at start to reuse existing ps
+ClearPsCounterQueue = 'CLEAR_PS_COUNTER_QUEUE'
+
 
 def enable_avx_str_split():
   os.environ[ENABLE_AVX_STR_SPLIT] = '1'
