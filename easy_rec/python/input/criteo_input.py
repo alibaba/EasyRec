@@ -3,7 +3,6 @@
 import logging
 
 import tensorflow as tf
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.input.criteo_binary_reader import BinaryDataset
 from easy_rec.python.input.input import Input
@@ -38,9 +37,9 @@ class CriteoInput(Input):
       for label_path, dense_path, category_path in zip(
           input_path.label_path, input_path.dense_path,
           input_path.category_path):
-        label_paths = gfile.Glob(input_path.label_path)
-        dense_paths = gfile.Glob(input_path.dense_path)
-        category_paths = gfile.Glob(input_path.category_path)
+        label_paths = tf.gfile.Glob(input_path.label_path)
+        dense_paths = tf.gfile.Glob(input_path.dense_path)
+        category_paths = tf.gfile.Glob(input_path.category_path)
         assert len(label_paths) == len(dense_paths) and len(label_paths) == \
             len(category_paths), 'label_path(%s) dense_path(%s) category_path(%s) ' + \
             'matched different number of files(%d %d %d)' % (

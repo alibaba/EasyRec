@@ -3,21 +3,17 @@
 import logging
 import multiprocessing
 import queue
-# import threading
 import time
 
-# import numpy as np
-# import pandas as pd
 import tensorflow as tf
-# from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
-# from tensorflow.python.ops import logging_ops
-# from tensorflow.python.ops import math_ops
-from tensorflow.python.platform import gfile
 
 from easy_rec.python.compat import queues
 from easy_rec.python.input import load_parquet
 from easy_rec.python.input.input import Input
+
+if tf.__version__ >= '2.0':
+  tf = tf.compat.v1
 
 
 class ParquetInput(Input):
@@ -40,7 +36,7 @@ class ParquetInput(Input):
 
     self._input_files = []
     for sub_path in input_path.strip().split(','):
-      self._input_files.extend(gfile.Glob(sub_path))
+      self._input_files.extend(tf.gfile.Glob(sub_path))
     logging.info('parquet input_path=%s file_num=%d' %
                  (input_path, len(self._input_files)))
     mp_ctxt = multiprocessing.get_context('spawn')

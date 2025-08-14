@@ -8,7 +8,6 @@ import logging
 import math
 import os
 import sys
-# import re
 import threading
 
 import numpy as np
@@ -19,6 +18,11 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
 from easy_rec.python.utils.tf_utils import get_tf_type
+
+if tf.__version__.startswith('1.'):
+  from tensorflow.python.platform import gfile
+else:
+  import tensorflow.io.gfile as gfile
 
 
 # patch graph-learn string_attrs for utf-8
@@ -395,7 +399,7 @@ class NegativeSamplerInMemory(BaseSampler):
     item_id_col = 0
     fea_id_col = 2
     print('NegativeSamplerInMemory: load sample feature from %s' % data_path)
-    with tf.gfile.GFile(data_path, 'r') as fin:
+    with gfile.GFile(data_path, 'r') as fin:
       for line_id, line_str in enumerate(fin):
         line_str = line_str.strip()
         cols = line_str.split('\t')
