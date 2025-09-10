@@ -4,7 +4,7 @@
 是一套把原始输入转换为模型所需输入（特征）的数据变换过程，用来保证离线、在线样本生成结果的一致性。
 特征生成也可以理解为特征变换，对单个特征或者多个特征做变换。我们提供了各种类型的FG算子来完成各种特征变换操作。
 
-特征生成只关注同时需要在离线和在线样本生成过程中的变换操作。如果某个变换操作只需要作用在离线阶段，则不需要定义为FG的操作。 
+特征生成只关注同时需要在离线和在线样本生成过程中的变换操作。如果某个变换操作只需要作用在离线阶段，则不需要定义为FG的操作。
 
 FG模块在推荐系统架构中的位置如下图所示：
 
@@ -55,21 +55,21 @@ FG模块在推荐系统架构中的位置如下图所示：
 
 FG支持的特征变换算子与EasyRec支持的特征（`Feature Column`）之间没有严格的对应关系，大致可以参加如下表格：
 
-| FG 算子        | EasyRec Feature Column              |
-|:-------------|:------------------------------------|
-| id_feature   | IdFeature 或 TagFeature              |
-| raw_feature  | RawFeature                          |
-| expr_feature | RawFeature                          |
-| combo_feature | IdFeature 或 TagFeature              | 
-| lookup_feature | RawFeature 或 IdFeature 或 TagFeature |
-| match_feature | RawFeature 或 IdFeature 或 TagFeature |
-| overlap_feature | RawFeature |
-| sequence_feature | SequenceFeature 或 TagFeature |
-| bm25_feature | RawFeature |
-| kv_dot_product | RawFeature |
-| tokenize_feature | TagFeature |
-| text_normalizer | IdFeature |
-| regex_replace_feature | IdFeature |
+| FG 算子                 | EasyRec Feature Column              |
+| :-------------------- | :---------------------------------- |
+| id_feature            | IdFeature 或 TagFeature              |
+| raw_feature           | RawFeature                          |
+| expr_feature          | RawFeature                          |
+| combo_feature         | IdFeature 或 TagFeature              |
+| lookup_feature        | RawFeature 或 IdFeature 或 TagFeature |
+| match_feature         | RawFeature 或 IdFeature 或 TagFeature |
+| overlap_feature       | RawFeature                          |
+| sequence_feature      | SequenceFeature 或 TagFeature        |
+| bm25_feature          | RawFeature                          |
+| kv_dot_product        | RawFeature                          |
+| tokenize_feature      | TagFeature                          |
+| text_normalizer       | IdFeature                           |
+| regex_replace_feature | IdFeature                           |
 
 备注：**FG的执行结果输出给EasyRec模型，两种之间是串联的关系**。
 
@@ -122,8 +122,8 @@ pai -name easy_rec_ext
     如果不是, 可以通过-Dedit_config_json='{"export_config.multi_placeholder":true}' 进行修改
 
   - 如果有设置feature_config.features.max_partitions, 请加入下面的命令重置:
-    - -Dedit_config_json='{"feature_config.features\[:\].max_partitions":1}'进行修改, 可以获得更好的性能
 
+    - -Dedit_config_json='{"feature_config.features\[:\].max_partitions":1}'进行修改, 可以获得更好的性能
 
 #### 特征筛选
 

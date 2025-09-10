@@ -32,8 +32,9 @@ class OdpsInputV3(Input):
                          task_num, check_mode, pipeline_config)
     self._num_epoch = 0
     if common_io is None:
-      logging.error("""please install common_io pip install
-                    https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0.4.2%2Btunnel-py2.py3-none-any.whl"""
+      logging.error('''
+        please install common_io pip install
+        https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0.4.2%2Btunnel-py2.py3-none-any.whl'''
                     )
       sys.exit(1)
 

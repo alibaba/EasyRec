@@ -60,7 +60,7 @@ docker exec -it <CONTAINER_ID> bash
 
 可选镜像：
 
-- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.12-0.8.5 [只能跑在DLC环境]
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.12-0.8.5 \[只能跑在DLC环境\]
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.15-0.8.5
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-0.8.5
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-gpu-0.8.5
