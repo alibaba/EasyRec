@@ -43,7 +43,7 @@ def get_hdfs_tmp_dir(test_dir):
   return test_rand_dir
 
 
-def proc_wait(proc, timeout=1800):
+def proc_wait(proc, timeout=1200):
   t0 = time.time()
   while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1)
