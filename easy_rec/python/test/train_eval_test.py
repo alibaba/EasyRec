@@ -817,6 +817,7 @@ class TrainEvalTest(tf.test.TestCase):
     self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/multi_tower_on_taobao.config',
         self._test_dir,
+        total_steps=10,
         num_evaluator=1,
         fit_on_eval=True)
     self.assertTrue(self._success)
