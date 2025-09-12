@@ -462,27 +462,6 @@ ExprFeature：表达式特征
     - 当前版本未定义"&","|"的符号优先级，建议使用括号保证优先级。
     - customized normalization: "tf.math.log1p(user_age) / 10.0"
 
-EmbeddingVariable
-----------------------------------------------------------------
-Key Value Hash, 减少hash冲突, 支持特征准入和特征淘汰。
-
-.. code:: protobuf
-
-  model_config {
-    model_class: "MultiTower"
-    ...
-    ev_params {
-      filter_freq: 2
-    }
-  }
-- 配置方式:
-   - feature_config单独配置ev_params
-   - model_config里面统一配置ev_params
-
-- ev_params : EVParams
-   - filter_freq: 频次过滤, 低频特征噪声大,过滤噪声让模型更鲁棒
-   - steps_to_live: 特征淘汰, 淘汰过期特征,防止模型过大
-- Note: 仅在安装PAI-TF/DeepRec时可用
 
 特征选择
 ----------------------------------------------------------------
