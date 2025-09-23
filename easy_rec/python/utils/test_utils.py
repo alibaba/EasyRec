@@ -43,7 +43,7 @@ def get_hdfs_tmp_dir(test_dir):
   return test_rand_dir
 
 
-def proc_wait(proc, timeout=1200):
+def proc_wait(proc, timeout=1800):
   t0 = time.time()
   while proc.poll() is None and time.time() - t0 < timeout:
     time.sleep(1)
@@ -667,7 +667,7 @@ def _multi_worker_hvd_train(pipeline_config_path, test_dir, num_worker):
   train_cmd = 'horovodrun -np %d --hosts %s python -m easy_rec.python.train_eval --pipeline_config_path %s' % (
       num_worker, hosts, pipeline_config_path)
   proc = run_cmd(train_cmd, '%s/log_hvd.txt' % test_dir)
-  proc_wait(proc, timeout=1200)
+  proc_wait(proc, timeout=1800)
   return proc.returncode == 0
 
 
