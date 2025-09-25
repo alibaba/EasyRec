@@ -121,7 +121,7 @@ class ExitBarrierHook(SessionRunHook):
 
     Sometimes ps is not exit, the last run enqueued elements will remain in the queue
     """
-    if self._is_chief and constant.ClearPsCounterQueue in os.environ:
+    if self._is_chief:
       # clear the queue
       que_size = session.run(self._que_size)
       while que_size > 0:
