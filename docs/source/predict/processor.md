@@ -107,6 +107,22 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
   <tr><td>easyrec-1.3</td><td>支持PAI-FeatureStore; 支持从max compute加载数据</td></tr>
   <tr><td>easyrec-1.4</td><td>优化keras model性能; input自动扩展; placement优化</td></tr>
   <tr><td>easyrec-1.5</td><td>graph pattern match bugfix</td></tr>
+  <tr><td>easyrec-1.6</td><td>优化keras model性能; input自动扩展; placement优化</td></tr>
+  <tr><td>easyrec-1.7</td>fix bug; 旧featurestore最终版本<td></td></tr>
+  <tr><td>easyrec-1.8</td><td>支持云上版本 FeatureStore</td></tr>
+  <tr><td>easyrec-1.9</td>修复了 tag feature 带有 kv_separator 时请求报错的问题<td></td></tr>
+  <tr><td>easyrec-2.0</td><td>修复了feature_column_pass里面unordered_map::at导致的exception</td></tr>
+  <tr><td>easyrec-2.1</td><td>fix threadpool bug, 导致模型启动有小概率会hang住;
+修复了Concat axis=-1不能被feature_tile识别的问题</td></tr>
+  <tr><td>easyrec-2.2</td>FeatureStore 修复最大字符长度的限制，支持自建存储 FeatureDB<td></td></tr>
+  <tr><td>easyrec-2.3</td><td>增加statefulpartitionedcall展开功能, 适配tf2+keras导出的模型优化</td></tr>
+  <tr><td>easyrec-2.4</td><td>1. feature store  支持 feature db; 2. feature store 支持 sts token; 3. request 支持 double (float64) 类型</td></tr>
+  <tr><td>easyrec-2.5</td><td>更新新版本 feature store cpp sdk, 支持 featuredb 拉取全量特征，支持设置 hologres 端口，支持默认不从远程拉取特征。</td></tr>
+  <tr><td>easyrec-2.6</td><td>修复 lookup feature 值为 string 时报错的问题</td></tr>
+  <tr><td>easyrec-2.7</td><td>支持 feature store cpp sdk 所有参数</td></tr>
+  <tr><td>easyrec-2.8</td><td>修复输入 text_cnn 的特征不能 tile 的 bug</td></tr>
+  <tr><td>easyrec-2.9</td><td>集成新版fg lib 0.7.0</td></tr>
+  <tr><td>easyrec-3.0</td><td>集成新版fg lib 0.7.3; 修复无法解析新版fg新增算子的 bug; 优化`fg_mode=normal`模式的性能</td></tr>
 </table>
 
 ### 部署
