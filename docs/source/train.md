@@ -210,15 +210,6 @@ pai -name easy_rec_ext -project algo_public
       ...
    }
   ```
-- 如使用key-Value Embedding, 需要设置model_config.ev_params
-  ```
-  model_config {
-    ...
-    ev_params {
-    }
-    ...
-  }
-  ```
 
 ### 命令
 
