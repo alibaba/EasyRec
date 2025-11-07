@@ -50,7 +50,22 @@ def build(loss_type,
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.ZILN_LOSS:
-    loss = zero_inflated_lognormal_loss(label, pred)
+    if loss_param is None:
+      loss = zero_inflated_lognormal_loss(label, pred)
+    else:
+      mu_reg = loss_param.mu_regularization
+      sigma_reg = loss_param.sigma_regularization
+      max_sigma = loss_param.max_sigma
+      class_weight = loss_param.classification_weight
+      reg_weight = loss_param.regression_weight
+      loss = zero_inflated_lognormal_loss(
+          label,
+          pred,
+          max_sigma=max_sigma,
+          mu_reg=mu_reg,
+          sigma_reg=sigma_reg,
+          class_weight=class_weight,
+          reg_weight=reg_weight)
     if np.isscalar(loss_weight) and loss_weight != 1.0:
       return loss * loss_weight
     return loss

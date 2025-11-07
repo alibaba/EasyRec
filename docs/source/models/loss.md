@@ -53,7 +53,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
 下面的配置可以同时使用`F1_REWEIGHTED_LOSS`和`PAIR_WISE_LOSS`，总的loss为这两个损失函数的加权求和。
 
-```
+```protobuf
   losses {
     loss_type: F1_REWEIGHTED_LOSS
     weight: 1.0
@@ -71,7 +71,7 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
   可以调节二分类模型recall/precision相对权重的损失函数，配置如下：
 
-  ```
+  ```protobuf
   {
     loss_type: F1_REWEIGHTED_LOSS
     f1_reweight_loss {
@@ -134,6 +134,10 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - session_name: list分组的字段名，比如user_id
   - 参考论文：《 [Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model](https://arxiv.org/pdf/2208.06164.pdf) 》
   - 使用示例: [dbmtl_with_jrc_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/dbmtl_on_taobao_with_multi_loss.config)
+  - 有几个注意点：
+    1. JRC_Loss不要和普通二分类loss一起使用，因为它内部已经包含了二分类loss了，最好是先单独使用
+    1. JRC_Loss依赖mini-batch类的同session样本对，因此样本不能全局随机打散； 要把样本按照session_id 分组，同一组的样本需要shuffle到一起；（考验sql功力，如果搞不定不分组也可以，但需要保证同一个session的样本尽量排在一起，即group by session_id）
+    1. 模型训练时`batch_size`尽可能大，在内存能够支撑的前提下`batch_size`调到最大（比如，8192）之后，再调整其他参数（如果需要的话）
 
 - LISTWISE_RANK_LOSS 的参数配置
 
@@ -141,6 +145,33 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - session_name: list分组的字段名，比如user_id
   - label_is_logits: bool, 标记label是否为teacher模型的输出logits，默认为false
   - scale_logits: bool, 是否需要对模型的logits进行线性缩放，默认为false
+
+- ZILN_LOSS 的参数配置
+
+  - mu_regularization: mu参数的正则化系数，默认值为0.01
+  - sigma_regularization: sigma参数的正则化系数，默认值为0.01
+  - max_sigma: sigma参数的最大值，默认值为5.0（sigma>5 就会让均值乘上 exp(0.5\*25) ≈ 2.7e5 的因子，已经很激进）
+  - max_log_clip_value: log(预测值)的最大值，默认值为20.0（最大预测值默认为exp(20)）
+  - return_log_pred_value: 是否返回log(预测值)，默认值为false
+  - classification_weight: 分类任务的权重，默认值为1.0
+  - regression_weight: 回归任务的权重，默认值为1.0；零值越多，建议分类权重越小，回归权重越大
+  - 配置示例如下
+    ```protobuf
+    losses {
+      loss_type: ZILN_LOSS
+      weight: 1.0
+      loss_name: "LTV"
+      ziln_loss {
+        mu_regularization: 0.01
+        sigma_regularization: 0.01
+        max_log_clip_value: 20.0
+        max_sigma: 5.0
+        return_log_pred_value: false
+        classification_weight: 1.0
+        regression_weight: 1.0
+      }
+    }
+    ```
 
 排序模型同时使用多个损失函数的完整示例：
 [cmbf_with_multi_loss.config](https://github.com/alibaba/EasyRec/blob/master/samples/model_config/cmbf_with_multi_loss.config)
@@ -182,6 +213,31 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
   - 表示通过不确定性来度量损失函数的权重；目前在`learn_loss_weight: true`时必须要设置该值
 - loss_weight_strategy: Random
   - 表示损失函数的权重设定为归一化的随机数
+
+### 根据样本设定损失函数权重（Masked Loss）
+
+多目标学习任务中，通常需要根据样本的属性来设定损失函数的权重。
+
+#### 根据样本属性设定损失函数权重
+
+在某个目标的tower里配置`task_space_indicator_name`和`task_space_indicator_value`
+
+- task_space_indicator_name 是特征名
+- task_space_indicator_value 是特征值
+- in_task_space_weight 目标样本的loss权重，默认值为1.0
+- out_task_space_weight 非目标样本的loss权重，默认值为1.0
+
+如果样本的特征值与你配置的`task_space_indicator_value`相等, loss 权重 * `in_task_space_weight`;
+不相等则loss权重 * `out_task_space_weight`。
+
+`out_task_space_weight`的值改为0.0，则可实现`Masked Loss`。
+
+#### 根据样本label来设定损失函数权重
+
+在某个目标的tower里配置`task_space_indicator_label`这个字段，标记一个 label 的名字，
+如果这个label的值大于0, 则 loss 权重 \*`in_task_space_weight`;  否则 loss权重 * `out_task_space_weight`。
+
+`out_task_space_weight`的值改为0.0，则可实现`Masked Loss`。
 
 ### 参考论文：
 

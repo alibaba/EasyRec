@@ -24,7 +24,7 @@ odps_oss_config = OdpsOSSConfig()
 
 
 class TestPipelineOnOdps(tf.test.TestCase):
-  """train eval export test on odps."""
+  """Train eval export test on odps."""
 
   def test_deepfm(self):
     start_files = ['deep_fm/create_inner_deepfm_table.sql']

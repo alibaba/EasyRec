@@ -2636,7 +2636,7 @@ class NumericColumn(
     collections.namedtuple('NumericColumn',
                            ('feature_name', 'key', 'shape', 'default_value',
                             'dtype', 'normalizer_fn'))):
-  """see `numeric_column`."""
+  """See `numeric_column`."""
 
   @property
   def _is_v2_column(self):
@@ -3873,7 +3873,7 @@ class HashedCategoricalColumn(
     collections.namedtuple('HashedCategoricalColumn',
                            ('feature_name', 'key', 'hash_bucket_size', 'dtype'))
 ):
-  """see `categorical_column_with_hash_bucket`."""
+  """See `categorical_column_with_hash_bucket`."""
 
   @property
   def _is_v2_column(self):

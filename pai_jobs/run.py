@@ -485,7 +485,7 @@ def main(argv):
         FLAGS.job_name,
         eval_method='none')
 
-    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
+    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 worker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
     export_dir = FLAGS.export_dir

@@ -263,9 +263,10 @@ class PredictorImpl(object):
             type_name = asset_file.tensor_info.name.split(':')[0]
             asset_path = os.path.join(model_path, constants.ASSETS_DIRECTORY,
                                       asset_file.filename)
-            assert gfile.Exists(
-                asset_path), '%s is missing in saved model' % asset_path
-            self._assets[type_name] = asset_path
+            # assert gfile.Exists(
+            #     asset_path), '%s is missing in saved model' % asset_path
+            if gfile.Exists(asset_path):
+              self._assets[type_name] = asset_path
           logging.info(self._assets)
 
           # get export config
@@ -275,7 +276,7 @@ class PredictorImpl(object):
           #  self._export_config = json.loads(export_config_collection[0])
           #  logging.info('load export config info %s' % export_config_collection[0])
         else:
-          raise ValueError('currently only savedmodel is supported')
+          raise ValueError('currently only saved_model is supported')
 
   def predict(self, input_data_dict, output_names=None):
     """Predict input data with loaded model.

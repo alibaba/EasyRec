@@ -624,7 +624,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
       for asset_file in export_config.asset_files:
         if asset_file.startswith('!'):
           asset_file = asset_file[1:]
-        _, asset_name = os.path.split(asset_file)
+        if ':' not in asset_file or asset_file.startswith(
+            'oss:') or asset_file.startswith('hdfs:'):
+          _, asset_name = os.path.split(asset_file)
+        else:
+          asset_name, asset_file = asset_file.split(':', 1)
         ops.add_to_collection(
             ops.GraphKeys.ASSET_FILEPATHS,
             tf.constant(asset_file, dtype=tf.string, name=asset_name))

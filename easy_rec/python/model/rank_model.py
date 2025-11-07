@@ -57,7 +57,8 @@ class RankModel(EasyRecModel):
                                  output,
                                  loss_type,
                                  num_class=1,
-                                 suffix=''):
+                                 suffix='',
+                                 **kwargs):
     prediction_dict = {}
     binary_loss_type = {
         LossType.F1_REWEIGHTED_LOSS, LossType.PAIR_WISE_LOSS,
@@ -82,7 +83,14 @@ class RankModel(EasyRecModel):
       prediction_dict['probs' + suffix] = probs[:, 1]
     elif loss_type == LossType.ZILN_LOSS:
       assert num_class == 3, 'num_class must be 3 when loss type is ZILN_LOSS'
-      probs, preds = zero_inflated_lognormal_pred(output)
+      max_log_clip_val = kwargs.get('max_log_clip_value', 20.0)
+      return_log = kwargs.get('return_log_pred_value', False)
+      max_sigma = kwargs.get('max_sigma', 5.0)
+      probs, preds = zero_inflated_lognormal_pred(
+          output,
+          max_sigma=max_sigma,
+          max_log_clip=max_log_clip_val,
+          return_log=return_log)
       tf.summary.scalar('prediction/probs', tf.reduce_mean(probs))
       tf.summary.scalar('prediction/y', tf.reduce_mean(preds))
       prediction_dict['logits' + suffix] = output
@@ -121,8 +129,19 @@ class RankModel(EasyRecModel):
       self._prediction_dict.update(prediction_dict)
     else:
       for loss in self._losses:
+        kwargs = {}
+        if loss.loss_type == LossType.ZILN_LOSS:
+          loss_param = loss.WhichOneof('loss_param')
+          if loss_param is not None:
+            loss_param = getattr(loss, loss_param)
+            kwargs['max_log_clip_value'] = loss_param.max_log_clip_value
+            kwargs['return_log_pred_value'] = loss_param.return_log_pred_value
+            kwargs['max_sigma'] = loss_param.max_sigma
         prediction_dict = self._output_to_prediction_impl(
-            output, loss_type=loss.loss_type, num_class=self._num_class)
+            output,
+            loss_type=loss.loss_type,
+            num_class=self._num_class,
+            **kwargs)
         self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):
