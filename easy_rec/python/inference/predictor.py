@@ -464,7 +464,7 @@ class Predictor(PredictorInterface):
       for x in output_cols.split(','):
         if x.strip() == '':
           continue
-        tmp_keys = x.split(' ')
+        tmp_keys = x.strip().split(' ')
         tmp_cols.append(tmp_keys[0].strip())
       self._output_cols = tmp_cols
 
