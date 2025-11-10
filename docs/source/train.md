@@ -60,7 +60,7 @@
   - 使用SyncReplicasOptimizer进行分布式训练(同步模式)
   - 仅在train_distribute为NoStrategy时可以设置成true，其它情况应该设置为false
   - PS异步训练也设置为false
-  - 注意在设置为 true 时，总共的训练步数为：min(total_sample_num \* num_epochs / batch_size, num_steps) / num_workers
+  - 注意在设置为 true 时，总共的训练步数为：min(total_sample_num * num_epochs / batch_size, num_steps) / num_workers
 
 - train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式, 可以分成两种模式: PS-Worker模式 和 All-Reduce模式
 
