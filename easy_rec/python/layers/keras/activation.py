@@ -1,8 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.python.keras.layers import Activation
-from tensorflow.python.keras.layers import Layer
+from tensorflow.python.keras.layers import Activation, Layer
 
 import easy_rec.python.utils.activation
 
@@ -51,12 +50,14 @@ class Dice(Layer):
 
   def build(self, input_shape):
     self.bn = BatchNormalization(
-        axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
+      axis=self.axis, epsilon=self.epsilon, center=False, scale=False
+    )
     self.alphas = self.add_weight(
-        shape=(input_shape[-1],),
-        initializer=Zeros(),
-        dtype=tf.float32,
-        name='dice_alpha')  # name='alpha_'+self.name
+      shape=(input_shape[-1], ),
+      initializer=Zeros(),
+      dtype=tf.float32,
+      name='dice_alpha'
+    )  # name='alpha_'+self.name
     super(Dice, self).build(input_shape)  # Be sure to call this somewhere!
     self.uses_learning_phase = True
 
@@ -74,7 +75,7 @@ class Dice(Layer):
   def updates(self):
     return self.bn.updates
 
-  def get_config(self,):
+  def get_config(self, ):
     config = {'axis': self.axis, 'epsilon': self.epsilon}
     base_config = super(Dice, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
@@ -109,6 +110,7 @@ def activation_layer(activation, name=None):
     act_layer = activation(name=name)
   else:
     raise ValueError(
-        'Invalid activation,found %s.You should use a str or a Activation Layer Class.'
-        % (activation))
+      'Invalid activation,found %s.You should use a str or a Activation Layer Class.'
+      % (activation)
+    )
   return act_layer

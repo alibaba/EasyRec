@@ -109,7 +109,7 @@ metric_dict={'auc_is_like':0.25, 'auc_is_valid_play':0.5, 'auc_is_comment':0.25}
 与begin训练的`差异点`:
 
 - 每个配置模块支持jinja模版渲染
-- 配置finetune日期{% set date_list = \[20220616,20220617\] %}
+- 配置finetune日期{% set date_list = [20220616,20220617] %}
 - 配置finetune开始日期{% set date_begin = 20220616 %}，Dfine_tune_checkpoint开始日期和后续日期采取的model路径不一样
 - 假设每天finetune：
   - {bizdate} 必须保留，将会在代码中根据当天日期进行替换

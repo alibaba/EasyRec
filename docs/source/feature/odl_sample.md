@@ -202,7 +202,7 @@
 1. label生成, 目前提供三种[python udf](http://easyrec.oss-cn-beijing.aliyuncs.com/deploy/label_gen.zip):
 
    - playtime: sum_over(events, 'playtime')
-   - click:  has_event(events, 'click')
+   - click: has_event(events, 'click')
    - min_over / max_over: min_over(events, 'eventTime')
    - 可以使用python自定义任意udf, [参考文档](https://flink.apache.org/2020/04/09/pyflink-udf-support-flink.html)
    - udf 上传([vvp-console](https://vvp.console.aliyun.com/)):
@@ -299,7 +299,7 @@
      ```
      - ttl(miliseconds)的设置考虑两个因素:
        - odl_sample_with_lbl相对请求时间request_time的延迟
-         - ttl \< 相对延迟, 就会有样本丢失
+         - ttl < 相对延迟, 就会有样本丢失
          - 统计相对延迟:
            - 将odl_sample_with_lbl / odl_callback_log落到MaxCompute
            - 按request_id join 计算ts的差异

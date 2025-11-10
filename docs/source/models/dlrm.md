@@ -2,7 +2,7 @@
 
 ### 简介
 
-DLRM(Deep Learning Recommendation Model for Personalization and Recommendation Systems\[Facebook\])是一种DNN模型, 支持使用连续值特征(price/age/...)和ID类特征(user_id/item_id/...), 并对特征之间的交互(interaction)进行了建模(基于内积的方式).
+DLRM(Deep Learning Recommendation Model for Personalization and Recommendation Systems[Facebook])是一种DNN模型, 支持使用连续值特征(price/age/...)和ID类特征(user_id/item_id/...), 并对特征之间的交互(interaction)进行了建模(基于内积的方式).
 
 ```
 output:

@@ -1,6 +1,6 @@
 ## 调优结果
 
-在运行实验后，可以在命令行界面中找到如下的Web界面地址 ：\[Your IP\]:\[Your Port\]
+在运行实验后，可以在命令行界面中找到如下的Web界面地址 ：\[Your IP\]:[Your Port]
 ![image.png](../../images/automl/pai_nni_create.jpg)
 
 ### 查看概要页面

@@ -18,20 +18,11 @@
 NOTE: This API is a work in progress and will likely be changing frequently.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import collections
-
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import tensor_shape
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import check_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import parsing_ops
-from tensorflow.python.ops import sparse_ops
+from tensorflow.python.framework import dtypes, ops, tensor_shape
+from tensorflow.python.ops import array_ops, check_ops, math_ops, parsing_ops, sparse_ops  # NOQA
 
 from easy_rec.python.compat.feature_column import feature_column as fc_v1
 from easy_rec.python.compat.feature_column import feature_column_v2 as fc
@@ -92,11 +83,12 @@ class SequenceFeatures(fc._BaseFeaturesLayer):
         `SequenceDenseColumn`.
     """
     super(SequenceFeatures, self).__init__(
-        feature_columns=feature_columns,
-        trainable=trainable,
-        name=name,
-        expected_column_type=fc.SequenceDenseColumn,
-        **kwargs)
+      feature_columns=feature_columns,
+      trainable=trainable,
+      name=name,
+      expected_column_type=fc.SequenceDenseColumn,
+      **kwargs
+    )
 
   def _target_shape(self, input_shape, total_elements):
     return (input_shape[0], input_shape[1], total_elements)
@@ -120,8 +112,9 @@ class SequenceFeatures(fc._BaseFeaturesLayer):
       ValueError: If features are not a dictionary.
     """
     if not isinstance(features, dict):
-      raise ValueError('We expected a dictionary here. Instead we got: ',
-                       features)
+      raise ValueError(
+        'We expected a dictionary here. Instead we got: ', features
+      )
     transformation_cache = fc.FeatureTransformationCache(features)
     output_tensors = []
     sequence_lengths = []
@@ -129,14 +122,16 @@ class SequenceFeatures(fc._BaseFeaturesLayer):
     for column in self._feature_columns:
       with ops.name_scope(column.name):
         dense_tensor, sequence_length = column.get_sequence_dense_tensor(
-            transformation_cache, self._state_manager)
+          transformation_cache, self._state_manager
+        )
         # Flattens the final dimension to produce a 3D Tensor.
         output_tensors.append(self._process_dense_tensor(column, dense_tensor))
         sequence_lengths.append(sequence_length)
 
     # Check and process sequence lengths.
-    fc._verify_static_batch_size_equality(sequence_lengths,
-                                          self._feature_columns)
+    fc._verify_static_batch_size_equality(
+      sequence_lengths, self._feature_columns
+    )
     sequence_length = _assert_all_equal_and_return(sequence_lengths)
 
     return self._verify_and_concat_tensors(output_tensors), sequence_length
@@ -163,38 +158,45 @@ def concatenate_context_input(context_input, sequence_input):
       not have rank 2.
   """
   seq_rank_check = check_ops.assert_rank(
-      sequence_input,
-      3,
-      message='sequence_input must have rank 3',
-      data=[array_ops.shape(sequence_input)])
+    sequence_input,
+    3,
+    message='sequence_input must have rank 3',
+    data=[array_ops.shape(sequence_input)]
+  )
   seq_type_check = check_ops.assert_type(
-      sequence_input,
-      dtypes.float32,
-      message='sequence_input must have dtype float32; got {}.'.format(
-          sequence_input.dtype))
+    sequence_input,
+    dtypes.float32,
+    message='sequence_input must have dtype float32; got {}.'.format(
+      sequence_input.dtype
+    )
+  )
   ctx_rank_check = check_ops.assert_rank(
-      context_input,
-      2,
-      message='context_input must have rank 2',
-      data=[array_ops.shape(context_input)])
+    context_input,
+    2,
+    message='context_input must have rank 2',
+    data=[array_ops.shape(context_input)]
+  )
   ctx_type_check = check_ops.assert_type(
-      context_input,
-      dtypes.float32,
-      message='context_input must have dtype float32; got {}.'.format(
-          context_input.dtype))
+    context_input,
+    dtypes.float32,
+    message='context_input must have dtype float32; got {}.'.format(
+      context_input.dtype
+    )
+  )
   with ops.control_dependencies(
-      [seq_rank_check, seq_type_check, ctx_rank_check, ctx_type_check]):
+    [seq_rank_check, seq_type_check, ctx_rank_check, ctx_type_check]
+  ):
     padded_length = array_ops.shape(sequence_input)[1]
     tiled_context_input = array_ops.tile(
-        array_ops.expand_dims(context_input, 1),
-        array_ops.concat([[1], [padded_length], [1]], 0))
+      array_ops.expand_dims(context_input, 1),
+      array_ops.concat([[1], [padded_length], [1]], 0)
+    )
   return array_ops.concat([sequence_input, tiled_context_input], 2)
 
 
-def sequence_categorical_column_with_identity(key,
-                                              num_buckets,
-                                              default_value=None,
-                                              feature_name=None):
+def sequence_categorical_column_with_identity(
+  key, num_buckets, default_value=None, feature_name=None
+):
   """Returns a feature column that represents sequences of integers.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -235,21 +237,26 @@ def sequence_categorical_column_with_identity(key,
     ValueError: if `default_value` is not in range `[0, num_buckets)`.
   """
   return fc.SequenceCategoricalColumn(
-      fc.categorical_column_with_identity(
-          feature_name=feature_name,
-          key=key,
-          num_buckets=num_buckets,
-          default_value=default_value))
+    fc.categorical_column_with_identity(
+      feature_name=feature_name,
+      key=key,
+      num_buckets=num_buckets,
+      default_value=default_value
+    )
+  )
 
 
 def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
-  if not isinstance(source_column, (SequenceNumericColumn,)):  # pylint: disable=protected-access
+  if not isinstance(source_column, (SequenceNumericColumn, )):  # pylint: disable=protected-access
     raise ValueError(
-        'source_column must be a column generated with sequence_numeric_column(). '
-        'Given: {}'.format(source_column))
+      'source_column must be a column generated with sequence_numeric_column(). '
+      'Given: {}'.format(source_column)
+    )
   if len(source_column.shape) > 1:
-    raise ValueError('source_column must be one-dimensional column. '
-                     'Given: {}'.format(source_column))
+    raise ValueError(
+      'source_column must be one-dimensional column. '
+      'Given: {}'.format(source_column)
+    )
   if not boundaries:
     raise ValueError('boundaries must not be empty.')
   if not (isinstance(boundaries, list) or isinstance(boundaries, tuple)):
@@ -261,32 +268,35 @@ def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
 
 
 def sequence_numeric_column_with_raw_column(source_column, sequence_length):
-  if not isinstance(source_column, (SequenceNumericColumn,)):  # pylint: disable=protected-access
+  if not isinstance(source_column, (SequenceNumericColumn, )):  # pylint: disable=protected-access
     raise ValueError(
-        'source_column must be a column generated with sequence_numeric_column(). '
-        'Given: {}'.format(source_column))
+      'source_column must be a column generated with sequence_numeric_column(). '
+      'Given: {}'.format(source_column)
+    )
   if len(source_column.shape) > 1:
-    raise ValueError('source_column must be one-dimensional column. '
-                     'Given: {}'.format(source_column))
+    raise ValueError(
+      'source_column must be one-dimensional column. '
+      'Given: {}'.format(source_column)
+    )
 
   return fc.SequenceNumericColumn(source_column, sequence_length)
 
 
-def sequence_weighted_categorical_column(categorical_column,
-                                         weight_feature_key,
-                                         dtype=dtypes.float32):
+def sequence_weighted_categorical_column(
+  categorical_column, weight_feature_key, dtype=dtypes.float32
+):
   if (dtype is None) or not (dtype.is_integer or dtype.is_floating):
     raise ValueError('dtype {} is not convertible to float.'.format(dtype))
   return fc.SequenceWeightedCategoricalColumn(
-      categorical_column=categorical_column,
-      weight_feature_key=weight_feature_key,
-      dtype=dtype)
+    categorical_column=categorical_column,
+    weight_feature_key=weight_feature_key,
+    dtype=dtype
+  )
 
 
-def sequence_categorical_column_with_hash_bucket(key,
-                                                 hash_bucket_size,
-                                                 dtype=dtypes.string,
-                                                 feature_name=None):
+def sequence_categorical_column_with_hash_bucket(
+  key, hash_bucket_size, dtype=dtypes.string, feature_name=None
+):
   """A sequence of categorical terms where ids are set by hashing.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -324,20 +334,24 @@ def sequence_categorical_column_with_hash_bucket(key,
     ValueError: `dtype` is neither string nor integer.
   """
   return fc.SequenceCategoricalColumn(
-      fc.categorical_column_with_hash_bucket(
-          feature_name=feature_name,
-          key=key,
-          hash_bucket_size=hash_bucket_size,
-          dtype=dtype))
+    fc.categorical_column_with_hash_bucket(
+      feature_name=feature_name,
+      key=key,
+      hash_bucket_size=hash_bucket_size,
+      dtype=dtype
+    )
+  )
 
 
-def sequence_categorical_column_with_vocabulary_file(key,
-                                                     vocabulary_file,
-                                                     vocabulary_size=None,
-                                                     num_oov_buckets=0,
-                                                     default_value=None,
-                                                     dtype=dtypes.string,
-                                                     feature_name=None):
+def sequence_categorical_column_with_vocabulary_file(
+  key,
+  vocabulary_file,
+  vocabulary_size=None,
+  num_oov_buckets=0,
+  default_value=None,
+  dtype=dtypes.string,
+  feature_name=None
+):
   """A sequence of categorical terms where ids use a vocabulary file.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -390,22 +404,26 @@ def sequence_categorical_column_with_vocabulary_file(key,
     ValueError: `dtype` is neither string nor integer.
   """
   return fc.SequenceCategoricalColumn(
-      fc.categorical_column_with_vocabulary_file(
-          feature_name=feature_name,
-          key=key,
-          vocabulary_file=vocabulary_file,
-          vocabulary_size=vocabulary_size,
-          num_oov_buckets=num_oov_buckets,
-          default_value=default_value,
-          dtype=dtype))
+    fc.categorical_column_with_vocabulary_file(
+      feature_name=feature_name,
+      key=key,
+      vocabulary_file=vocabulary_file,
+      vocabulary_size=vocabulary_size,
+      num_oov_buckets=num_oov_buckets,
+      default_value=default_value,
+      dtype=dtype
+    )
+  )
 
 
-def sequence_categorical_column_with_vocabulary_list(key,
-                                                     vocabulary_list,
-                                                     dtype=None,
-                                                     default_value=-1,
-                                                     num_oov_buckets=0,
-                                                     feature_name=None):
+def sequence_categorical_column_with_vocabulary_list(
+  key,
+  vocabulary_list,
+  dtype=None,
+  default_value=-1,
+  num_oov_buckets=0,
+  feature_name=None
+):
   """A sequence of categorical terms where ids use an in-memory list.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -457,21 +475,25 @@ def sequence_categorical_column_with_vocabulary_list(key,
     ValueError: if `dtype` is not integer or string.
   """
   return fc.SequenceCategoricalColumn(
-      fc.categorical_column_with_vocabulary_list(
-          feature_name=feature_name,
-          key=key,
-          vocabulary_list=vocabulary_list,
-          dtype=dtype,
-          default_value=default_value,
-          num_oov_buckets=num_oov_buckets))
+    fc.categorical_column_with_vocabulary_list(
+      feature_name=feature_name,
+      key=key,
+      vocabulary_list=vocabulary_list,
+      dtype=dtype,
+      default_value=default_value,
+      num_oov_buckets=num_oov_buckets
+    )
+  )
 
 
-def sequence_numeric_column(key,
-                            shape=(1,),
-                            default_value=0.,
-                            dtype=dtypes.float32,
-                            normalizer_fn=None,
-                            feature_name=None):
+def sequence_numeric_column(
+  key,
+  shape=(1, ),
+  default_value=0.,
+  dtype=dtypes.float32,
+  normalizer_fn=None,
+  feature_name=None
+):
   """Returns a feature column that represents sequences of numeric data.
 
   Example:
@@ -514,19 +536,23 @@ def sequence_numeric_column(key,
   """
   shape = fc._check_shape(shape=shape, key=key)
   if not (dtype.is_integer or dtype.is_floating):
-    raise ValueError('dtype must be convertible to float. '
-                     'dtype: {}, key: {}'.format(dtype, key))
+    raise ValueError(
+      'dtype must be convertible to float. '
+      'dtype: {}, key: {}'.format(dtype, key)
+    )
   if normalizer_fn is not None and not callable(normalizer_fn):
     raise TypeError(
-        'normalizer_fn must be a callable. Given: {}'.format(normalizer_fn))
+      'normalizer_fn must be a callable. Given: {}'.format(normalizer_fn)
+    )
 
   return SequenceNumericColumn(
-      feature_name=feature_name,
-      key=key,
-      shape=shape,
-      default_value=default_value,
-      dtype=dtype,
-      normalizer_fn=normalizer_fn)
+    feature_name=feature_name,
+    key=key,
+    shape=shape,
+    default_value=default_value,
+    dtype=dtype,
+    normalizer_fn=normalizer_fn
+  )
 
 
 def _assert_all_equal_and_return(tensors, name=None):
@@ -542,10 +568,13 @@ def _assert_all_equal_and_return(tensors, name=None):
 
 
 class SequenceNumericColumn(
-    fc.SequenceDenseColumn, fc_v1._FeatureColumn,
-    collections.namedtuple('SequenceNumericColumn',
-                           ('feature_name', 'key', 'shape', 'default_value',
-                            'dtype', 'normalizer_fn'))):
+  fc.SequenceDenseColumn, fc_v1._FeatureColumn,
+  collections.namedtuple(
+    'SequenceNumericColumn', (
+      'feature_name', 'key', 'shape', 'default_value', 'dtype', 'normalizer_fn'
+    )
+  )
+):
   """Represents sequences of numeric data."""
 
   @property
@@ -609,10 +638,12 @@ class SequenceNumericColumn(
     """
     sp_tensor = transformation_cache.get(self, state_manager)
     dense_tensor = sparse_ops.sparse_tensor_to_dense(
-        sp_tensor, default_value=self.default_value)
+      sp_tensor, default_value=self.default_value
+    )
     # Reshape into [batch_size, T, variable_shape].
     dense_shape = array_ops.concat(
-        [array_ops.shape(dense_tensor)[:1], [-1], self.variable_shape], axis=0)
+      [array_ops.shape(dense_tensor)[:1], [-1], self.variable_shape], axis=0
+    )
     dense_tensor = array_ops.reshape(dense_tensor, shape=dense_shape)
 
     # Get the number of timesteps per example
@@ -624,10 +655,12 @@ class SequenceNumericColumn(
     else:
       num_elements = 1
     seq_length = fc_utils.sequence_length_from_sparse_tensor(
-        sp_tensor, num_elements=num_elements)
+      sp_tensor, num_elements=num_elements
+    )
 
     return fc.SequenceDenseColumn.TensorSequenceLengthPair(
-        dense_tensor=dense_tensor, sequence_length=seq_length)
+      dense_tensor=dense_tensor, sequence_length=seq_length
+    )
 
   # TODO(b/119409767): Implement parents, _{get,from}_config.
   @property

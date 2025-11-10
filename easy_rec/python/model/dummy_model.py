@@ -8,14 +8,17 @@ from easy_rec.python.model.easy_rec_model import EasyRecModel
 
 class DummyModel(EasyRecModel):
 
-  def __init__(self,
-               model_config,
-               feature_configs,
-               features,
-               labels=None,
-               is_training=False):
-    super(DummyModel, self).__init__(model_config, feature_configs, features,
-                                     labels, is_training)
+  def __init__(
+    self,
+    model_config,
+    feature_configs,
+    features,
+    labels=None,
+    is_training=False
+  ):
+    super(DummyModel, self).__init__(
+      model_config, feature_configs, features, labels, is_training
+    )
 
     if self._labels is not None:
       self._labels = list(self._labels.values())
@@ -36,9 +39,10 @@ class DummyModel(EasyRecModel):
 
   def build_loss_graph(self):
     return {
-        'cross_ent':
-            tf.reduce_sum(
-                tf.square(self._prediction_dict['output'] - self._labels[0]))
+      'cross_ent':
+      tf.reduce_sum(
+        tf.square(self._prediction_dict['output'] - self._labels[0])
+      )
     }
 
   def get_outputs(self):

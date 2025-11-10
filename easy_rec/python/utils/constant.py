@@ -35,8 +35,8 @@ def enable_avx_str_split():
 
 
 def has_avx_str_split():
-  return ENABLE_AVX_STR_SPLIT in os.environ and os.environ[
-      ENABLE_AVX_STR_SPLIT] == '1'
+  return ENABLE_AVX_STR_SPLIT in os.environ and os.environ[ENABLE_AVX_STR_SPLIT
+                                                          ] == '1'
 
 
 def disable_avx_str_split():

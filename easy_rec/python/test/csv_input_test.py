@@ -3,17 +3,15 @@
 """Define cv_input, the base class for cv tasks."""
 
 import os
-import unittest
-
 import tensorflow as tf
+import unittest
 from google.protobuf import text_format
 
 from easy_rec.python.input.csv_input import CSVInput
 from easy_rec.python.input.csv_input_ex import CSVInputEx
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import constant
+from easy_rec.python.utils import config_util, constant
 from easy_rec.python.utils.test_utils import RunAsSubprocess
 
 if tf.__version__ >= '2.0':
@@ -72,8 +70,9 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(dataset_config, feature_configs,
-                              self._input_path).create_input()
+    train_input_fn = CSVInput(
+      dataset_config, feature_configs, self._input_path
+    ).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -81,9 +80,10 @@ class CSVInputTest(tf.test.TestCase):
     init_op = tf.get_collection(tf.GraphKeys.TABLE_INITIALIZERS)
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=False)
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=False
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -135,8 +135,9 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(dataset_config, feature_configs,
-                              self._input_path).create_input()
+    train_input_fn = CSVInput(
+      dataset_config, feature_configs, self._input_path
+    ).create_input()
     try:
       dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)  # noqa: F841
       passed = True
@@ -192,8 +193,9 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(dataset_config, feature_configs,
-                              self._input_path).create_input()
+    train_input_fn = CSVInput(
+      dataset_config, feature_configs, self._input_path
+    ).create_input()
 
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
 
@@ -203,9 +205,10 @@ class CSVInputTest(tf.test.TestCase):
     init_op = tf.get_collection(tf.GraphKeys.TABLE_INITIALIZERS)
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=False)
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=False
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -252,8 +255,9 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInputEx(dataset_config, feature_configs,
-                                self._input_path_with_quote).create_input()
+    train_input_fn = CSVInputEx(
+      dataset_config, feature_configs, self._input_path_with_quote
+    ).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -261,15 +265,18 @@ class CSVInputTest(tf.test.TestCase):
     init_op = tf.get_collection(tf.GraphKeys.TABLE_INITIALIZERS)
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=False)
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=False
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
 
-  @unittest.skipIf('AVX_TEST' not in os.environ,
-                   'Only execute when avx512 instructions are supported')
+  @unittest.skipIf(
+    'AVX_TEST' not in os.environ,
+    'Only execute when avx512 instructions are supported'
+  )
   @RunAsSubprocess
   def test_csv_input_ex_avx(self):
     constant.enable_avx_str_split()
@@ -319,8 +326,9 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(dataset_config, feature_configs,
-                              self._input_path_with_quote).create_input()
+    train_input_fn = CSVInput(
+      dataset_config, feature_configs, self._input_path_with_quote
+    ).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -328,9 +336,10 @@ class CSVInputTest(tf.test.TestCase):
     init_op = tf.get_collection(tf.GraphKeys.TABLE_INITIALIZERS)
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=False)
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=False
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])

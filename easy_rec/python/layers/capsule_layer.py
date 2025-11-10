@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import numpy as np
 import tensorflow as tf
 
@@ -41,8 +40,10 @@ class CapsuleLayer:
     return scale_factor * inputs
 
   def _build_capsule_simi(self, high_capsules, capsule_num):
-    high_capsule_mask = tf.sequence_mask(capsule_num,
-                                         tf.shape(high_capsules)[1])
+    high_capsule_mask = tf.sequence_mask(
+      capsule_num,
+      tf.shape(high_capsules)[1]
+    )
     high_capsules = high_capsules * tf.to_float(high_capsule_mask[:, :, None])
     high_capsules = tf.nn.l2_normalize(high_capsules, axis=-1)
     sum_sqr = tf.square(tf.reduce_sum(high_capsules, axis=1))
@@ -69,27 +70,32 @@ class CapsuleLayer:
     """
     # pad or clip to max_seq_len
     seq_feas = tf.cond(
-        tf.greater(tf.shape(seq_feas)[1], self._max_seq_len),
-        lambda: seq_feas[:, :self._max_seq_len, :], lambda: tf.cond(
-            tf.less(tf.shape(seq_feas)[1], self._max_seq_len), lambda: tf.pad(
-                seq_feas, [[0, 0], [
-                    0, self._max_seq_len - tf.shape(seq_feas)[1]
-                ], [0, 0]]), lambda: seq_feas))
+      tf.greater(tf.shape(seq_feas)[1], self._max_seq_len),
+      lambda: seq_feas[:, :self._max_seq_len, :], lambda: tf.cond(
+        tf.less(tf.shape(seq_feas)[1], self._max_seq_len), lambda: tf.pad(
+          seq_feas,
+          [[0, 0], [0, self._max_seq_len - tf.shape(seq_feas)[1]], [0, 0]]
+        ), lambda: seq_feas
+      )
+    )
     seq_lens = tf.minimum(seq_lens, self._max_seq_len)
 
     batch_size = tf.shape(seq_lens)[0]
     # max_seq_len x max_num_high_capsule(sh)
     if self._is_training:
       routing_logits = tf.truncated_normal(
-          [batch_size, self._max_seq_len, self._max_k],
-          stddev=self._routing_logits_stddev)
+        [batch_size, self._max_seq_len, self._max_k],
+        stddev=self._routing_logits_stddev
+      )
     else:
       np.random.seed(28)
       routing_logits = tf.constant(
-          np.random.uniform(
-              high=self._routing_logits_stddev,
-              size=[self._max_seq_len, self._max_k]),
-          dtype=tf.float32)
+        np.random.uniform(
+          high=self._routing_logits_stddev,
+          size=[self._max_seq_len, self._max_k]
+        ),
+        dtype=tf.float32
+      )
       routing_logits = tf.tile(routing_logits[None, :, :], [batch_size, 1, 1])
     routing_logits = tf.stop_gradient(routing_logits)
     # batch_size x max_seq_len x max_k(bsh)
@@ -97,7 +103,8 @@ class CapsuleLayer:
     # map low capsule features to high capsule features:
     #    low_fea_dim x high_dim(de)
     bilinear_matrix = tf.get_variable(
-        dtype=tf.float32, shape=[low_fea_dim, self._high_dim], name='capsule/S')
+      dtype=tf.float32, shape=[low_fea_dim, self._high_dim], name='capsule/S'
+    )
     # map sequence feature to high dimensional space
     seq_feas_high = tf.tensordot(seq_feas, bilinear_matrix, axes=1)
     seq_feas_high_stop = tf.stop_gradient(seq_feas_high)
@@ -108,11 +115,12 @@ class CapsuleLayer:
       num_high_capsules = tf.zeros_like(seq_lens, dtype=tf.int32) + self._max_k
     else:
       logging.info(
-          'will use log(seq_len) number of capsules, max_capsules: %d' %
-          self._max_k)
+        'will use log(seq_len) number of capsules, max_capsules: %d' %
+        self._max_k
+      )
       num_high_capsules = tf.maximum(
-          1, tf.minimum(self._max_k,
-                        tf.to_int32(tf.log(tf.to_float(seq_lens)))))
+        1, tf.minimum(self._max_k, tf.to_int32(tf.log(tf.to_float(seq_lens))))
+      )
 
     # batch_size x max_seq_len(bs)
     mask = tf.sequence_mask(seq_lens, self._max_seq_len)
@@ -139,19 +147,27 @@ class CapsuleLayer:
 
       # batch_size x max_k x high_dim(bse,bsh->bhe)
       high_capsules = tf.einsum(
-          'bse, bsh->bhe', seq_feas_high_stop
-          if iter_id + 1 < self._num_iters else seq_feas_high, routing_logits)
+        'bse, bsh->bhe',
+        seq_feas_high_stop if iter_id + 1 < self._num_iters else seq_feas_high,
+        routing_logits
+      )
       if iter_id + 1 == self._num_iters:
-        capsule_simi = self._build_capsule_simi(high_capsules,
-                                                num_high_capsules)
+        capsule_simi = self._build_capsule_simi(
+          high_capsules, num_high_capsules
+        )
         tf.summary.scalar('caspule/simi_%d' % iter_id, capsule_simi)
-        tf.summary.scalar('capsule/before_squash',
-                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
+        tf.summary.scalar(
+          'capsule/before_squash',
+          tf.reduce_mean(tf.norm(high_capsules, axis=-1))
+        )
         high_capsules = self.squash(high_capsules)
-        tf.summary.scalar('capsule/after_squash',
-                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
-        capsule_simi_final = self._build_capsule_simi(high_capsules,
-                                                      num_high_capsules)
+        tf.summary.scalar(
+          'capsule/after_squash',
+          tf.reduce_mean(tf.norm(high_capsules, axis=-1))
+        )
+        capsule_simi_final = self._build_capsule_simi(
+          high_capsules, num_high_capsules
+        )
         tf.summary.scalar('caspule/simi_final', capsule_simi_final)
         break
 
@@ -162,13 +178,16 @@ class CapsuleLayer:
       # batch_size x max_seq_len x max_k(bse, bhe->bsh)
       if self._routing_logits_scale > 0:
         if iter_id == 0:
-          logging.info('routing_logits_scale = %.2f' %
-                       self._routing_logits_scale)
-        routing_logits = tf.einsum('bse, bhe->bsh', seq_feas_high_norm,
-                                   high_capsules) * self._routing_logits_scale
+          logging.info(
+            'routing_logits_scale = %.2f' % self._routing_logits_scale
+          )
+        routing_logits = tf.einsum(
+          'bse, bhe->bsh', seq_feas_high_norm, high_capsules
+        ) * self._routing_logits_scale
       else:
-        routing_logits = tf.einsum('bse, bhe->bsh', seq_feas_high_stop,
-                                   high_capsules)
+        routing_logits = tf.einsum(
+          'bse, bhe->bsh', seq_feas_high_stop, high_capsules
+        )
 
     # zero paddings
     high_capsule_mask = tf.sequence_mask(num_high_capsules, self._max_k)

@@ -4,7 +4,6 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.multi_task_model import MultiTaskModel
-
 from easy_rec.python.protos.simple_multi_task_pb2 import SimpleMultiTask as SimpleMultiTaskConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -13,14 +12,17 @@ if tf.__version__ >= '2.0':
 
 class SimpleMultiTask(MultiTaskModel):
 
-  def __init__(self,
-               model_config,
-               feature_configs,
-               features,
-               labels=None,
-               is_training=False):
-    super(SimpleMultiTask, self).__init__(model_config, feature_configs,
-                                          features, labels, is_training)
+  def __init__(
+    self,
+    model_config,
+    feature_configs,
+    features,
+    labels=None,
+    is_training=False
+  ):
+    super(SimpleMultiTask, self).__init__(
+      model_config, feature_configs, features, labels, is_training
+    )
 
     assert self._model_config.WhichOneof('model') == 'simple_multi_task', \
         'invalid model config: %s' % self._model_config.WhichOneof('model')
@@ -38,16 +40,18 @@ class SimpleMultiTask(MultiTaskModel):
     for i, task_tower_cfg in enumerate(self._task_towers):
       tower_name = task_tower_cfg.tower_name
       task_dnn = dnn.DNN(
-          task_tower_cfg.dnn,
-          self._l2_reg,
-          name=tower_name,
-          is_training=self._is_training)
+        task_tower_cfg.dnn,
+        self._l2_reg,
+        name=tower_name,
+        is_training=self._is_training
+      )
       task_fea = task_dnn(self._features)
       task_output = tf.layers.dense(
-          inputs=task_fea,
-          units=task_tower_cfg.num_class,
-          kernel_regularizer=self._l2_reg,
-          name='dnn_output_%d' % i)
+        inputs=task_fea,
+        units=task_tower_cfg.num_class,
+        kernel_regularizer=self._l2_reg,
+        name='dnn_output_%d' % i
+      )
       tower_outputs[tower_name] = task_output
 
     self._add_to_prediction_dict(tower_outputs)

@@ -1,21 +1,22 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import tensorflow as tf
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def sigmoid_focal_loss_with_logits(labels,
-                                   logits,
-                                   gamma=2.0,
-                                   alpha=None,
-                                   ohem_ratio=1.0,
-                                   sample_weights=None,
-                                   label_smoothing=0,
-                                   name=''):
+def sigmoid_focal_loss_with_logits(
+  labels,
+  logits,
+  gamma=2.0,
+  alpha=None,
+  ohem_ratio=1.0,
+  sample_weights=None,
+  label_smoothing=0,
+  name=''
+):
   """Implements the focal loss function.
 
   Focal loss was first introduced in the RetinaNet paper
@@ -52,8 +53,10 @@ def sigmoid_focal_loss_with_logits(labels,
   if gamma and gamma < 0:
     raise ValueError('Value of gamma should be greater than or equal to zero')
   logging.info(
-      '[{}] gamma: {}, alpha: {}, ohem_ratho: {}, label smoothing: {}'.format(
-          loss_name, gamma, alpha, ohem_ratio, label_smoothing))
+    '[{}] gamma: {}, alpha: {}, ohem_ratho: {}, label smoothing: {}'.format(
+      loss_name, gamma, alpha, ohem_ratio, label_smoothing
+    )
+  )
 
   y_true = tf.cast(labels, logits.dtype)
 
@@ -78,14 +81,16 @@ def sigmoid_focal_loss_with_logits(labels,
 
   if ohem_ratio == 1.0:
     return tf.losses.sigmoid_cross_entropy(
-        y_true, logits, weights=weights, label_smoothing=label_smoothing)
+      y_true, logits, weights=weights, label_smoothing=label_smoothing
+    )
 
   losses = tf.losses.sigmoid_cross_entropy(
-      y_true,
-      logits,
-      weights=weights,
-      label_smoothing=label_smoothing,
-      reduction=tf.losses.Reduction.NONE)
+    y_true,
+    logits,
+    weights=weights,
+    label_smoothing=label_smoothing,
+    reduction=tf.losses.Reduction.NONE
+  )
   k = tf.to_float(tf.size(losses)) * tf.convert_to_tensor(ohem_ratio)
   k = tf.to_int32(tf.math.rint(k))
   topk = tf.nn.top_k(losses, k)

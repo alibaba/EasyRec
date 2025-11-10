@@ -27,17 +27,19 @@ def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
      ACM, 2018: 1059-1068.] (https://arxiv.org/pdf/1706.06978.pdf)
   """
   alphas = tf.get_variable(
-      'alpha_' + name,
-      _x.get_shape()[-1],
-      initializer=tf.constant_initializer(0.0),
-      dtype=tf.float32)
+    'alpha_' + name,
+    _x.get_shape()[-1],
+    initializer=tf.constant_initializer(0.0),
+    dtype=tf.float32
+  )
   inputs_normed = tf.layers.batch_normalization(
-      inputs=_x,
-      axis=axis,
-      epsilon=epsilon,
-      center=False,
-      scale=False,
-      training=training)
+    inputs=_x,
+    axis=axis,
+    epsilon=epsilon,
+    center=False,
+    scale=False,
+    training=training
+  )
   x_p = tf.sigmoid(inputs_normed)
   return alphas * (1.0 - x_p) * _x + x_p * _x
 
@@ -56,8 +58,9 @@ def gelu(x, name='gelu'):
     `x` with the GELU activation applied.
   """
   with tf.name_scope(name):
-    cdf = 0.5 * (1.0 + tf.tanh(
-        (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
+    cdf = 0.5 * (
+      1.0 + tf.tanh((np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3))))
+    )
     return x * cdf
 
 

@@ -3,26 +3,22 @@
 
 import logging
 import os
+import oss2
 import time
 import traceback
 
-import oss2
-
 try:
   from datahub import DataHub
-  from datahub.exceptions import InvalidOperationException
-  from datahub.exceptions import ResourceExistException
+  from datahub.exceptions import InvalidOperationException, ResourceExistException  # NOQA
   # from datahub.exceptions import LimitExceededException
   # from datahub.exceptions import ResourceNotFoundException
   # from datahub.models import BlobRecord
   # from datahub.models import CursorType
-  from datahub.models import FieldType
-  from datahub.models import RecordSchema
-  from datahub.models import RecordType
-  from datahub.models import TupleRecord
+  from datahub.models import FieldType, RecordSchema, RecordType, TupleRecord
 except Exception:
   logging.error(
-      'DataHub is not installed, please installed it by: pip install pydatahub')
+    'DataHub is not installed, please installed it by: pip install pydatahub'
+  )
   DataHub = None
 
 try:
@@ -133,27 +129,29 @@ class OdpsOSSConfig:
           pass
 
   def clean_subscription(self, topic_name):
-    subscriptions = self.dh.list_subscription(self.dh_project, topic_name, '',
-                                              1, 100).subscriptions
+    subscriptions = self.dh.list_subscription(
+      self.dh_project, topic_name, '', 1, 100
+    ).subscriptions
     for subscription in subscriptions:
       self.dh.delete_subscription(self.dh_project, topic_name, subscription)
 
   def get_input_type(self, input_type):
     DhDict = {
-        'INT64': FieldType.BIGINT,
-        'INT32': FieldType.BIGINT,
-        'STRING': FieldType.STRING,
-        'BOOLEAN': FieldType.BOOLEAN,
-        'FLOAT32': FieldType.DOUBLE,
-        'FLOAT64': FieldType.DOUBLE
+      'INT64': FieldType.BIGINT,
+      'INT32': FieldType.BIGINT,
+      'STRING': FieldType.STRING,
+      'BOOLEAN': FieldType.BOOLEAN,
+      'FLOAT32': FieldType.DOUBLE,
+      'FLOAT64': FieldType.DOUBLE
     }
 
     return DhDict.get(input_type)
 
   def init_dh_and_odps(self):
     self.dh = DataHub(self.dh_id, self.dh_key, self.dh_endpoint)
-    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name,
-                     self.odps_endpoint)
+    self.odps = ODPS(
+      self.dh_id, self.dh_key, self.project_name, self.odps_endpoint
+    )
     self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
     read_odps = DataFrame(self.odps.get_table(self.odpsTable))
@@ -170,12 +168,13 @@ class OdpsOSSConfig:
     try:
       # project_name, topic_name, shard_count, life_cycle, record_schema, comment
       self.dh.create_tuple_topic(
-          self.dh_project,
-          self.dh_topic,
-          7,
-          3,
-          record_schema,
-          comment='EasyRecTest')
+        self.dh_project,
+        self.dh_topic,
+        7,
+        3,
+        record_schema,
+        comment='EasyRecTest'
+      )
       logging.info('create tuple topic %s success!' % self.dh_topic)
     except ResourceExistException:
       logging.info('topic %s already exist!' % self.dh_topic)
@@ -184,8 +183,9 @@ class OdpsOSSConfig:
       logging.error(traceback.format_exc())
     try:
       self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
-      logging.info('datahub[%s,%s] shards all ready' %
-                   (self.dh_project, self.dh_topic))
+      logging.info(
+        'datahub[%s,%s] shards all ready' % (self.dh_project, self.dh_topic)
+      )
       topic_result = self.dh.get_topic(self.dh_project, self.dh_topic)
       if topic_result.record_type != RecordType.TUPLE:
         logging.error('invalid topic type: %s' % str(topic_result.record_type))

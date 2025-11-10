@@ -16,31 +16,32 @@
 
 import logging
 import traceback
-
 from tensorflow.python.data.ops import dataset_ops
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import tensor_shape
+from tensorflow.python.framework import dtypes, ops, tensor_shape
 
 try:
   from easy_rec.python.ops import gen_kafka_ops
 except ImportError:
-  logging.warning('failed to import gen_kafka_ops: %s' % traceback.format_exc())
+  logging.warning(
+    'failed to import gen_kafka_ops: %s' % traceback.format_exc()
+  )
 
 
 class KafkaDataset(dataset_ops.Dataset):
   """A Kafka Dataset that consumes the message."""
 
-  def __init__(self,
-               topics,
-               servers='localhost',
-               group='',
-               eof=False,
-               timeout=1000,
-               config_global=None,
-               config_topic=None,
-               message_key=False,
-               message_offset=False):
+  def __init__(
+    self,
+    topics,
+    servers='localhost',
+    group='',
+    eof=False,
+    timeout=1000,
+    config_global=None,
+    config_topic=None,
+    message_key=False,
+    message_offset=False
+  ):
     """Create a KafkaReader.
 
     Args:
@@ -67,20 +68,26 @@ class KafkaDataset(dataset_ops.Dataset):
       message_offset: If True, the kafka will output both message value and offset.
     """
     self._topics = ops.convert_to_tensor(
-        topics, dtype=dtypes.string, name='topics')
+      topics, dtype=dtypes.string, name='topics'
+    )
     self._servers = ops.convert_to_tensor(
-        servers, dtype=dtypes.string, name='servers')
+      servers, dtype=dtypes.string, name='servers'
+    )
     self._group = ops.convert_to_tensor(
-        group, dtype=dtypes.string, name='group')
+      group, dtype=dtypes.string, name='group'
+    )
     self._eof = ops.convert_to_tensor(eof, dtype=dtypes.bool, name='eof')
     self._timeout = ops.convert_to_tensor(
-        timeout, dtype=dtypes.int64, name='timeout')
+      timeout, dtype=dtypes.int64, name='timeout'
+    )
     config_global = config_global if config_global else []
     self._config_global = ops.convert_to_tensor(
-        config_global, dtype=dtypes.string, name='config_global')
+      config_global, dtype=dtypes.string, name='config_global'
+    )
     config_topic = config_topic if config_topic else []
     self._config_topic = ops.convert_to_tensor(
-        config_topic, dtype=dtypes.string, name='config_topic')
+      config_topic, dtype=dtypes.string, name='config_topic'
+    )
     self._message_key = message_key
     self._message_offset = message_offset
     super(KafkaDataset, self).__init__()
@@ -90,15 +97,15 @@ class KafkaDataset(dataset_ops.Dataset):
 
   def _as_variant_tensor(self):
     return gen_kafka_ops.io_kafka_dataset_v2(
-        self._topics,
-        self._servers,
-        self._group,
-        self._eof,
-        self._timeout,
-        self._config_global,
-        self._config_topic,
-        self._message_key,
-        self._message_offset,
+      self._topics,
+      self._servers,
+      self._group,
+      self._eof,
+      self._timeout,
+      self._config_global,
+      self._config_topic,
+      self._message_key,
+      self._message_offset,
     )
 
   @property
@@ -114,8 +121,12 @@ class KafkaDataset(dataset_ops.Dataset):
     if self._message_key ^ self._message_offset:
       return ((tensor_shape.TensorShape([]), tensor_shape.TensorShape([])))
     elif self._message_key and self._message_offset:
-      return ((tensor_shape.TensorShape([]), tensor_shape.TensorShape([]),
-               tensor_shape.TensorShape([])))
+      return (
+        (
+          tensor_shape.TensorShape([]), tensor_shape.TensorShape([]),
+          tensor_shape.TensorShape([])
+        )
+      )
     return ((tensor_shape.TensorShape([])))
 
   @property
@@ -141,4 +152,5 @@ def write_kafka_v2(message, topic, servers='localhost', name=None):
     A `Tensor` of type `string`. 0-D.
   """
   return gen_kafka_ops.io_write_kafka_v2(
-      message=message, topic=topic, servers=servers, name=name)
+    message=message, topic=topic, servers=servers, name=name
+  )

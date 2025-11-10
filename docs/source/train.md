@@ -2,9 +2,9 @@
 
 ## train_config
 
-- log_step_count_steps: 200    # 每200步打印一行log
+- log_step_count_steps: 200 # 每200步打印一行log
 
-- optimizer_config     # 优化器相关的参数
+- optimizer_config # 优化器相关的参数
 
   ```protobuf
   {
@@ -55,7 +55,7 @@
       - 设置两个optimizer时, 第一个optimizer仅用于wide参数;
       - 如果要给deep embedding单独设置optimizer, 需要设置3个optimizer.
 
-- sync_replicas: true  # 是否同步训练，默认是false
+- sync_replicas: true # 是否同步训练，默认是false
 
   - 使用SyncReplicasOptimizer进行分布式训练(同步模式)
   - 仅在train_distribute为NoStrategy时可以设置成true，其它情况应该设置为false

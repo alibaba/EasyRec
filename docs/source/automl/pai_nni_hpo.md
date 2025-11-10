@@ -106,8 +106,8 @@ nnictl create --config exp.yml
 ```
 
 - 启动入口为exp.yml
-- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务。
-- 通过字段searchSpaceFile: search_space.json    连接 search_space.json;
+- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini 连接用户的具体的启动任务。
+- 通过字段searchSpaceFile: search_space.json 连接 search_space.json;
 
 配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
 
@@ -253,8 +253,8 @@ train_config {
 [NNI searchSpace参考手册](https://nni.readthedocs.io/en/v2.2/Tutorial/SearchSpaceSpec.html)
 
 - {"\_type": "choice", "\_value": options}：从options中选取一个。
-- {"\_type": "randint", "\_value": \[lower, upper\]}：\[low,upper)之间选择一个随机整数。
-- {"\_type": "uniform", "\_value": \[low, high\]}：\[low,upper\]之间随机采样。
+- {"\_type": "randint", "\_value": [lower, upper]}：\[low,upper)之间选择一个随机整数。
+- {"\_type": "uniform", "\_value": [low, high]}：[low,upper]之间随机采样。
 
 #### 高级
 
@@ -324,7 +324,7 @@ nnictl create --config config.yml --port=8780
 
 - 如果NNICTL一开始成功，后续突然不成功，可以清空ECS环境中的python进程，重试
 
-  例如/mnt/data/project/project/exp/$experiment_id/log/nnictl_stderr.log中无报错，但是Failed to establish a new connection: \[Errno 111\] Connection refused'))
+  例如/mnt/data/project/project/exp/$experiment_id/log/nnictl_stderr.log中无报错，但是Failed to establish a new connection: [Errno 111] Connection refused'))
 
   命令：ps -ef|grep python|grep -v grep|cut -c 9-15|xargs kill -15
 

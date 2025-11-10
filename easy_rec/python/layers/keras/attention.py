@@ -72,15 +72,18 @@ class Attention(Layer):
     self.scale_by_dim = params.get_or_default('scale_by_dim', False)
     self.score_mode = params.get_or_default('score_mode', 'dot')
     if self.score_mode not in ['dot', 'concat']:
-      raise ValueError('Invalid value for argument score_mode. '
-                       "Expected one of {'dot', 'concat'}. "
-                       'Received: score_mode=%s' % self.score_mode)
+      raise ValueError(
+        'Invalid value for argument score_mode. '
+        "Expected one of {'dot', 'concat'}. "
+        'Received: score_mode=%s' % self.score_mode
+      )
     self.dropout = params.get_or_default('dropout', 0.0)
     self.seed = params.get_or_default('seed', None)
     self.scale = None
     self.concat_score_weight = None
     self._return_attention_scores = params.get_or_default(
-        'return_attention_scores', False)
+      'return_attention_scores', False
+    )
     self.use_causal_mask = params.get_or_default('use_causal_mask', False)
 
   @property
@@ -91,21 +94,22 @@ class Attention(Layer):
     self._validate_inputs(input_shape)
     if self.use_scale:
       self.scale = self.add_weight(
-          name='scale',
-          shape=(),
-          initializer='ones',
-          dtype=self.dtype,
-          trainable=True,
+        name='scale',
+        shape=(),
+        initializer='ones',
+        dtype=self.dtype,
+        trainable=True,
       )
     if self.score_mode == 'concat':
       self.concat_score_weight = self.add_weight(
-          name='concat_score_weight',
-          shape=(),
-          initializer='ones',
-          dtype=self.dtype,
-          trainable=True,
+        name='concat_score_weight',
+        shape=(),
+        initializer='ones',
+        dtype=self.dtype,
+        trainable=True,
       )
-    super(Attention, self).build(input_shape)  # Be sure to call this somewhere!
+    super(Attention,
+          self).build(input_shape)  # Be sure to call this somewhere!
 
   def _calculate_scores(self, query, key):
     """Calculates attention scores as a query-key dot product.
@@ -132,10 +136,12 @@ class Attention(Layer):
       k_reshaped = tf.expand_dims(key, axis=-3)
       if self.scale is not None:
         scores = self.concat_score_weight * tf.reduce_sum(
-            tf.tanh(self.scale * (q_reshaped + k_reshaped)), axis=-1)
+          tf.tanh(self.scale * (q_reshaped + k_reshaped)), axis=-1
+        )
       else:
         scores = self.concat_score_weight * tf.reduce_sum(
-            tf.tanh(q_reshaped + k_reshaped), axis=-1)
+          tf.tanh(q_reshaped + k_reshaped), axis=-1
+        )
     return scores
 
   def _apply_scores(self, scores, value, scores_mask=None, training=False):
@@ -211,10 +217,12 @@ class Attention(Layer):
     q_mask = mask[0] if mask else None
     v_mask = mask[1] if mask else None
     scores = self._calculate_scores(query=q, key=k)
-    scores_mask = self._calculate_score_mask(scores, v_mask,
-                                             self.use_causal_mask)
+    scores_mask = self._calculate_score_mask(
+      scores, v_mask, self.use_causal_mask
+    )
     result, attention_scores = self._apply_scores(
-        scores=scores, value=v, scores_mask=scores_mask, training=training)
+      scores=scores, value=v, scores_mask=scores_mask, training=training
+    )
     if q_mask is not None:
       # Mask of shape [batch_size, Tq, 1].
       q_mask = tf.expand_dims(q_mask, axis=-1)
@@ -237,31 +245,40 @@ class Attention(Layer):
     """Validates arguments of the call method."""
     class_name = self.__class__.__name__
     if not isinstance(inputs, list):
-      raise ValueError('{class_name} layer must be called on a list of inputs, '
-                       'namely [query, value] or [query, value, key]. '
-                       'Received: inputs={inputs}.'.format(
-                           class_name=class_name, inputs=inputs))
+      raise ValueError(
+        '{class_name} layer must be called on a list of inputs, '
+        'namely [query, value] or [query, value, key]. '
+        'Received: inputs={inputs}.'.format(
+          class_name=class_name, inputs=inputs
+        )
+      )
     if len(inputs) < 2 or len(inputs) > 3:
-      raise ValueError('%s layer accepts inputs list of length 2 or 3, '
-                       'namely [query, value] or [query, value, key]. '
-                       'Received length: %d.' % (class_name, len(inputs)))
+      raise ValueError(
+        '%s layer accepts inputs list of length 2 or 3, '
+        'namely [query, value] or [query, value, key]. '
+        'Received length: %d.' % (class_name, len(inputs))
+      )
     if mask is not None:
       if not isinstance(mask, list):
         raise ValueError(
-            '{class_name} layer mask must be a list, '
-            'namely [query_mask, value_mask]. Received: mask={mask}.'.format(
-                class_name=class_name, mask=mask))
+          '{class_name} layer mask must be a list, '
+          'namely [query_mask, value_mask]. Received: mask={mask}.'.format(
+            class_name=class_name, mask=mask
+          )
+        )
       if len(mask) < 2 or len(mask) > 3:
         raise ValueError(
-            '{class_name} layer accepts mask list of length 2 or 3. '
-            'Received: inputs={inputs}, mask={mask}.'.format(
-                class_name=class_name, inputs=inputs, mask=mask))
+          '{class_name} layer accepts mask list of length 2 or 3. '
+          'Received: inputs={inputs}, mask={mask}.'.format(
+            class_name=class_name, inputs=inputs, mask=mask
+          )
+        )
 
   def get_config(self):
     base_config = super(Attention, self).get_config()
     config = {
-        'use_scale': self.use_scale,
-        'score_mode': self.score_mode,
-        'dropout': self.dropout,
+      'use_scale': self.use_scale,
+      'score_mode': self.score_mode,
+      'dropout': self.dropout,
     }
     return dict(list(base_config.items()) + list(config.items()))

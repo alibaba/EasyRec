@@ -6,20 +6,16 @@ repos:
         additional_dependencies: [
           'flake8-docstrings==1.5.0'
         ]
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v2.2.0
-    hooks:
-      - id: seed-isort-config
-  - repo: https://github.com/timothycrosley/isort
-    rev: 4.3.21
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
     hooks:
       - id: isort
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.30.0
+  - repo: https://github.com/google/yapf
+    rev: v0.43.0
     hooks:
       - id: yapf
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.1.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         args: ["--no-markdown-linebreak-ext"]
@@ -30,15 +26,15 @@ repos:
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
-  - repo: https://github.com/myint/docformatter
+  - repo: https://github.com/PyCQA/docformatter
     rev: v1.7.7
     hooks:
       - id: docformatter
         args: ["--in-place", "--wrap-descriptions", "0", "--wrap-summaries", "0"]
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.1
+    rev: 0.7.22
     hooks:
     - id: mdformat
       additional_dependencies: [
-        'mdformat-tables==0.4.0'
+        'mdformat-tables'
       ]

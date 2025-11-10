@@ -24,7 +24,8 @@ class MultiOptimizer(optimizer.Optimizer):
     grad_and_vars = []
     for gid, opt in enumerate(self._opts):
       grad_and_vars.extend(
-          opt.compute_gradients(loss, self._grouped_vars[gid], **kwargs))
+        opt.compute_gradients(loss, self._grouped_vars[gid], **kwargs)
+      )
     return grad_and_vars
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):

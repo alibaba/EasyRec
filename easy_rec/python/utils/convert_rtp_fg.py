@@ -3,15 +3,12 @@
 import json
 import logging
 import sys
-import traceback
-
 import tensorflow as tf
+import traceback
 from google.protobuf import text_format
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureGroupConfig
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, FeatureGroupConfig, WideOrDeep  # NOQA
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.utils import config_util
 
@@ -21,8 +18,9 @@ if tf.__version__ >= '2.0':
 MAX_HASH_BUCKET_SIZE = 9223372036854775807
 
 
-def _gen_raw_config(feature, input_field, feature_config, is_multi,
-                    curr_embed_dim):
+def _gen_raw_config(
+  feature, input_field, feature_config, is_multi, curr_embed_dim
+):
   if 'bucketize_boundaries' in feature:
     if is_multi:
       input_field.input_type = DatasetConfig.STRING
@@ -31,7 +29,8 @@ def _gen_raw_config(feature, input_field, feature_config, is_multi,
       input_field.input_type = DatasetConfig.INT32
       feature_config.feature_type = feature_config.IdFeature
     feature_config.num_buckets = len(
-        feature['bucketize_boundaries'].split(',')) + 1
+      feature['bucketize_boundaries'].split(',')
+    ) + 1
     feature_config.embedding_dim = curr_embed_dim
   else:
     feature_config.feature_type = feature_config.RawFeature
@@ -57,8 +56,9 @@ def _set_hash_bucket(feature, feature_config, input_field):
     if feature_config.hash_bucket_size > 10000000:
       if 'max_partitions' not in feature:
         logging.error(
-            'it is suggested to set max_partitions > 1 for large hash buckets[%s]'
-            % feature['feature_name'])
+          'it is suggested to set max_partitions > 1 for large hash buckets[%s]'
+          % feature['feature_name']
+        )
         sys.exit(1)
     if feature.get('filter_freq', -1) >= 0:
       feature_config.ev_params.filter_freq = feature['filter_freq']
@@ -77,20 +77,23 @@ def _set_hash_bucket(feature, feature_config, input_field):
     assert False, 'one of hash_bucket_size,vocab_file,vocab_list,num_buckets must be set'
 
 
-def process_features(feature_type,
-                     feature_name,
-                     feature,
-                     pipeline_config,
-                     embedding_dim,
-                     incol_separator,
-                     is_sequence=False):
+def process_features(
+  feature_type,
+  feature_name,
+  feature,
+  pipeline_config,
+  embedding_dim,
+  incol_separator,
+  is_sequence=False
+):
   feature_config = FeatureConfig()
   feature_config.input_names.append(feature_name)
   feature_config.separator = incol_separator
   input_field = DatasetConfig.Field()
   input_field.input_name = feature_name
-  curr_embed_dim = feature.get('embedding_dimension',
-                               feature.get('embedding_dim', embedding_dim))
+  curr_embed_dim = feature.get(
+    'embedding_dimension', feature.get('embedding_dim', embedding_dim)
+  )
   curr_combiner = feature.get('combiner', 'sum')
   if feature.get('is_cache', False):
     logging.info('will cache %s' % feature_name)
@@ -128,8 +131,9 @@ def process_features(feature_type,
   elif feature_type == 'lookup_feature':
     need_discrete = feature.get('needDiscrete', True)
     if not need_discrete:
-      _gen_raw_config(feature, input_field, feature_config, is_multi,
-                      curr_embed_dim)
+      _gen_raw_config(
+        feature, input_field, feature_config, is_multi, curr_embed_dim
+      )
     else:
       feature_config.feature_type = feature_config.TagFeature
       if feature.get('needWeighting', False):
@@ -138,8 +142,9 @@ def process_features(feature_type,
       _set_hash_bucket(feature, feature_config, input_field)
       feature_config.combiner = curr_combiner
   elif feature_type == 'raw_feature':
-    _gen_raw_config(feature, input_field, feature_config, is_multi,
-                    curr_embed_dim)
+    _gen_raw_config(
+      feature, input_field, feature_config, is_multi, curr_embed_dim
+    )
   elif feature_type == 'match_feature':
     need_discrete = feature.get('needDiscrete', True)
     if feature.get('matchType', '') == 'multihit':
@@ -153,8 +158,9 @@ def process_features(feature_type,
       feature_config.combiner = curr_combiner
     else:
       assert 'bucketize_boundaries' not in feature
-      _gen_raw_config(feature, input_field, feature_config, is_multi,
-                      curr_embed_dim)
+      _gen_raw_config(
+        feature, input_field, feature_config, is_multi, curr_embed_dim
+      )
   elif feature_type == 'combo_feature':
     feature_config.feature_type = feature_config.TagFeature
     _set_hash_bucket(feature, feature_config, input_field)
@@ -183,7 +189,7 @@ def process_features(feature_type,
     extra_combo_info = feature['extra_combo_info']
     feature_names = extra_combo_info.get('feature_names', [])
     assert len(
-        feature_names
+      feature_names
     ) >= 1, 'The feature number for ComboFeature must be greater than 2.'
     combo_feature_config = FeatureConfig()
     combo_feature_config.input_names.append(feature_name)
@@ -192,13 +198,15 @@ def process_features(feature_type,
       combo_feature_config.input_names.append(fea_name)
 
     final_feature_name = 'combo__' + '_'.join(combo_feature_config.input_names)
-    final_feature_name = extra_combo_info.get('final_feature_name',
-                                              final_feature_name)
+    final_feature_name = extra_combo_info.get(
+      'final_feature_name', final_feature_name
+    )
     combo_feature_config.feature_name = final_feature_name
     combo_feature_config.feature_type = combo_feature_config.ComboFeature
     curr_embed_dim = extra_combo_info.get(
-        'embedding_dimension',
-        extra_combo_info.get('embedding_dim', embedding_dim))
+      'embedding_dimension',
+      extra_combo_info.get('embedding_dim', embedding_dim)
+    )
     curr_combiner = extra_combo_info.get('combiner', 'mean')
     combo_feature_config.embedding_dim = curr_embed_dim
     combo_feature_config.combiner = curr_combiner
@@ -212,10 +220,9 @@ def process_features(feature_type,
   return pipeline_config
 
 
-def load_input_field_and_feature_config(rtp_fg,
-                                        label_fields,
-                                        embedding_dim=16,
-                                        incol_separator='\003'):
+def load_input_field_and_feature_config(
+  rtp_fg, label_fields, embedding_dim=16, incol_separator='\003'
+):
   embedding_dim = rtp_fg.get('embedding_dim', embedding_dim)
   logging.info('embedding_dim = %s' % embedding_dim)
   logging.info('label_fields = %s' % ','.join(label_fields))
@@ -237,9 +244,10 @@ def load_input_field_and_feature_config(rtp_fg,
       if 'feature_name' in feature:
         feature_type = feature['feature_type']
         feature_name = feature['feature_name']
-        pipeline_config = process_features(feature_type, feature_name, feature,
-                                           pipeline_config, embedding_dim,
-                                           incol_separator)
+        pipeline_config = process_features(
+          feature_type, feature_name, feature, pipeline_config, embedding_dim,
+          incol_separator
+        )
       elif 'sequence_name' in feature:
         logging.info('Set sequence_features group later.')
         sequence_name = feature['sequence_name']
@@ -248,33 +256,38 @@ def load_input_field_and_feature_config(rtp_fg,
           sub_feature_name = sub_feature['feature_name']
           all_sub_feature_name = sequence_name + '_' + sub_feature_name
           pipeline_config = process_features(
-              sub_feature_type,
-              all_sub_feature_name,
-              sub_feature,
-              pipeline_config,
-              embedding_dim,
-              incol_separator,
-              is_sequence=True)
+            sub_feature_type,
+            all_sub_feature_name,
+            sub_feature,
+            pipeline_config,
+            embedding_dim,
+            incol_separator,
+            is_sequence=True
+          )
     except Exception:
-      logging.info('convert feature[%s] exception[%s]' %
-                   (str(feature), traceback.format_exc()))
+      logging.info(
+        'convert feature[%s] exception[%s]' %
+        (str(feature), traceback.format_exc())
+      )
       sys.exit(1)
   return pipeline_config
 
 
-def convert_rtp_fg(rtp_fg,
-                   embedding_dim=16,
-                   batch_size=1024,
-                   label_fields=[],
-                   num_steps=10,
-                   model_type='',
-                   separator='\002',
-                   incol_separator='\003',
-                   train_input_path=None,
-                   eval_input_path=None,
-                   selected_cols='',
-                   input_type='OdpsRTPInput',
-                   is_async=False):
+def convert_rtp_fg(
+  rtp_fg,
+  embedding_dim=16,
+  batch_size=1024,
+  label_fields=[],
+  num_steps=10,
+  model_type='',
+  separator='\002',
+  incol_separator='\003',
+  train_input_path=None,
+  eval_input_path=None,
+  selected_cols='',
+  input_type='OdpsRTPInput',
+  is_async=False
+):
   with tf.gfile.GFile(rtp_fg, 'r') as fin:
     rtp_fg = json.load(fin)
 
@@ -292,9 +305,9 @@ def convert_rtp_fg(rtp_fg,
   logging.info('model_path = %s' % model_path)
   logging.info('edit_config_json = %s' % edit_config_json)
 
-  pipeline_config = load_input_field_and_feature_config(rtp_fg, label_fields,
-                                                        embedding_dim,
-                                                        incol_separator)
+  pipeline_config = load_input_field_and_feature_config(
+    rtp_fg, label_fields, embedding_dim, incol_separator
+  )
   pipeline_config.model_dir = model_dir
   pipeline_config.data_config.separator = separator
   if selected_cols:
@@ -336,8 +349,10 @@ def convert_rtp_fg(rtp_fg,
 
       sync_replicas: %s
     }
-    """ % ('adam_optimizer' if not is_async else 'adam_async_optimizer',
-           'true' if not is_async else 'false')
+    """ % (
+      'adam_optimizer' if not is_async else 'adam_async_optimizer',
+      'true' if not is_async else 'false'
+    )
     text_format.Merge(train_config_str, pipeline_config)
 
   pipeline_config.train_config.num_steps = num_steps
@@ -410,11 +425,11 @@ def convert_rtp_fg(rtp_fg,
 
     feature_groups = {}
     group_map = {
-        'u': 'user',
-        'i': 'item',
-        'ctx': 'combo',
-        'q': 'combo',
-        'comb': 'combo'
+      'u': 'user',
+      'i': 'item',
+      'ctx': 'combo',
+      'q': 'combo',
+      'comb': 'combo'
     }
     for feature in rtp_features:
       feature_name = feature['feature_name'].strip()
@@ -432,8 +447,8 @@ def convert_rtp_fg(rtp_fg,
         feature_groups[group_name] = [feature_name]
 
     logging.info(
-        'if group is specified, group will be used as feature group name; '
-        'otherwise, the prefix of feature_name in fg.json is used as feature group name'
+      'if group is specified, group will be used as feature group name; '
+      'otherwise, the prefix of feature_name in fg.json is used as feature group name'
     )
     logging.info('prefix map: %s' % str(group_map))
     for group_name in feature_groups:
@@ -596,17 +611,20 @@ def convert_rtp_fg(rtp_fg,
     pipeline_config.model_config.embedding_regularization = 5e-6
 
   if model_type in ['wide_and_deep', 'deepfm', 'multi_tower']:
-    text_format.Merge("""
+    text_format.Merge(
+      """
       metrics_set {
         auc {}
       }
-      """, pipeline_config.eval_config)
+      """, pipeline_config.eval_config
+    )
 
   text_format.Merge(
-      """ export_config {
+    """ export_config {
           multi_placeholder: false
         }
-    """, pipeline_config)
+    """, pipeline_config
+  )
 
   if edit_config_json:
     for edit_obj in edit_config_json:

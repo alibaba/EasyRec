@@ -4,35 +4,33 @@ import json
 import logging
 import os
 import sys
-
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import fg_util
-from easy_rec.python.utils import io_util
-from easy_rec.python.utils.check_utils import check_env_and_input_path
-from easy_rec.python.utils.check_utils import check_sequence
+from easy_rec.python.utils import config_util, fg_util, io_util
+from easy_rec.python.utils.check_utils import check_env_and_input_path, check_sequence  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
-    format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
-tf.app.flags.DEFINE_string('pipeline_config_path', None,
-                           'Path to pipeline config '
-                           'file.')
+  format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
+  level=logging.INFO
+)
+tf.app.flags.DEFINE_string(
+  'pipeline_config_path', None, 'Path to pipeline config '
+  'file.'
+)
 tf.app.flags.DEFINE_multi_string(
-    'data_input_path', None, help='data input path')
+  'data_input_path', None, help='data input path'
+)
 
 FLAGS = tf.app.flags.FLAGS
 
 
-def _get_input_fn(data_config,
-                  feature_configs,
-                  data_path=None,
-                  export_config=None):
+def _get_input_fn(
+  data_config, feature_configs, data_path=None, export_config=None
+):
   """Build estimator input function.
 
   Args:
@@ -58,19 +56,21 @@ def _get_input_fn(data_config,
     task_index = 0
 
   input_obj = input_class(
-      data_config,
-      feature_configs,
-      data_path,
-      task_index=task_index,
-      task_num=worker_num,
-      check_mode=True)
+    data_config,
+    feature_configs,
+    data_path,
+    task_index=task_index,
+    task_num=worker_num,
+    check_mode=True
+  )
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
 
 def loda_pipeline_config(pipeline_config_path):
   pipeline_config = config_util.get_configs_from_pipeline_file(
-      pipeline_config_path, False)
+    pipeline_config_path, False
+  )
   if pipeline_config.fg_json_path:
     fg_util.load_fg_json_to_config(pipeline_config)
   config_util.auto_expand_share_feature_configs(pipeline_config)
@@ -81,16 +81,18 @@ def run_check(pipeline_config, input_path):
   logging.info('data_input_path: %s' % input_path)
   check_env_and_input_path(pipeline_config, input_path)
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
-  eval_input_fn = _get_input_fn(pipeline_config.data_config, feature_configs,
-                                input_path)
+  eval_input_fn = _get_input_fn(
+    pipeline_config.data_config, feature_configs, input_path
+  )
   eval_spec = tf.estimator.EvalSpec(
-      name='val',
-      input_fn=eval_input_fn,
-      steps=None,
-      throttle_secs=10,
-      exporters=[])
-  input_iter = eval_spec.input_fn(
-      mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
+    name='val',
+    input_fn=eval_input_fn,
+    steps=None,
+    throttle_secs=10,
+    exporters=[]
+  )
+  input_iter = eval_spec.input_fn(mode=tf.estimator.ModeKeys.EVAL
+                                 ).make_one_shot_iterator()
   with tf.Session() as sess:
     try:
       while (True):

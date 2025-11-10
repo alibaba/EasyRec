@@ -4,15 +4,14 @@
 import logging
 import os
 import sys
+import tensorflow as tf
 import traceback
 
-import tensorflow as tf
-
 if sys.version_info.major == 2:
-  from urllib2 import urlopen, Request, HTTPError
+  from urllib2 import HTTPError, Request, urlopen
 else:
-  from urllib.request import urlopen, Request
   from urllib.error import HTTPError
+  from urllib.request import Request, urlopen
 
 
 def is_on_pai():
@@ -77,7 +76,7 @@ def process_config(configs, task_index=0, worker_num=1):
 
 def test():
   f = download(
-      'https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel.config'
+    'https://easy-rec.oss-cn-hangzhou.aliyuncs.com/config/MultiTower/dwd_avazu_ctr_deepmodel.config'
   )
   assert f == 'dwd_avazu_ctr_deepmodel.config'
 

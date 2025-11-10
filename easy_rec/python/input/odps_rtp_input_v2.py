@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
 import logging
-
 import tensorflow as tf
 
 from easy_rec.python.input.odps_rtp_input import OdpsRTPInput
@@ -31,18 +30,21 @@ class OdpsRTPInputV2(OdpsRTPInput):
      selected columns are labels
   """
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               fg_json_path=None,
-               pipeline_config=None):
-    super(OdpsRTPInputV2,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+    self,
+    data_config,
+    feature_config,
+    input_path,
+    task_index=0,
+    task_num=1,
+    check_mode=False,
+    fg_json_path=None,
+    pipeline_config=None
+  ):
+    super(OdpsRTPInputV2, self).__init__(
+      data_config, feature_config, input_path, task_index, task_num,
+      check_mode, pipeline_config
+    )
     if fg_json_path.startswith('!'):
       fg_json_path = fg_json_path[1:]
     self._fg_config_path = fg_json_path
@@ -87,12 +89,14 @@ class OdpsRTPInputV2(OdpsRTPInput):
   def create_multi_placeholders(self, *args, **kwargs):
     """Create serving multi-placeholders with rtp_fg."""
     raise NotImplementedError(
-        'create_multi_placeholders is not supported for OdpsRTPInputV2')
+      'create_multi_placeholders is not supported for OdpsRTPInputV2'
+    )
 
   def check_rtp(self):
     if rtp_fg is None:
       raise NotImplementedError(
-          'OdpsRTPInputV2 cannot run without rtp_fg, which is not installed')
+        'OdpsRTPInputV2 cannot run without rtp_fg, which is not installed'
+      )
 
   def _pre_build(self, mode, params):
     try:

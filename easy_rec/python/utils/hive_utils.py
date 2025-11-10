@@ -38,13 +38,15 @@ class TableInfo(object):
 class HiveUtils(object):
   """Common IO based interface, could run at local or on data science."""
 
-  def __init__(self,
-               data_config,
-               hive_config,
-               selected_cols='',
-               record_defaults=[],
-               task_index=0,
-               task_num=1):
+  def __init__(
+    self,
+    data_config,
+    hive_config,
+    selected_cols='',
+    record_defaults=[],
+    task_index=0,
+    task_num=1
+  ):
 
     self._data_config = data_config
     self._hive_config = hive_config
@@ -65,16 +67,18 @@ class HiveUtils(object):
     else:
       partition_kv = None
 
-    table_info = TableInfo(table_name, self._selected_cols, partition_kv,
-                           limit_num)
+    table_info = TableInfo(
+      table_name, self._selected_cols, partition_kv, limit_num
+    )
     return table_info
 
   def _construct_hive_connect(self):
     conn = hive.Connection(
-        host=self._hive_config.host,
-        port=self._hive_config.port,
-        username=self._hive_config.username,
-        database=self._hive_config.database)
+      host=self._hive_config.host,
+      port=self._hive_config.port,
+      username=self._hive_config.username,
+      database=self._hive_config.database
+    )
     return conn
 
   def hive_read_line(self, input_path, limit_num=None):
@@ -119,13 +123,13 @@ class HiveUtils(object):
       data = []
     return data
 
-  def is_table_or_partition_exist(self,
-                                  table_name,
-                                  partition_name=None,
-                                  partition_val=None):
+  def is_table_or_partition_exist(
+    self, table_name, partition_name=None, partition_val=None
+  ):
     if partition_name and partition_val:
-      sql = 'show partitions %s partition(%s=%s)' % (table_name, partition_name,
-                                                     partition_val)
+      sql = 'show partitions %s partition(%s=%s)' % (
+        table_name, partition_name, partition_val
+      )
       try:
         res = self.run_sql(sql)
         if not res:
@@ -174,8 +178,8 @@ class HiveUtils(object):
 
     for col in data:
       col_name = col[0].strip()
-      if col_name and (not col_name.startswith('#')) and (col_name
-                                                          not in col_names):
+      if col_name and (not col_name.startswith('#')
+                      ) and (col_name not in col_names):
         if col_name != pt_name:
           col_names.append(col_name)
           cols_types.append(col[1].strip())

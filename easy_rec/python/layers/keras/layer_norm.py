@@ -1,8 +1,6 @@
 """Layer Normalization layer."""
 import tensorflow as tf
-from tensorflow.python.keras import constraints
-from tensorflow.python.keras import initializers
-from tensorflow.python.keras import regularizers
+from tensorflow.python.keras import constraints, initializers, regularizers
 from tensorflow.python.keras.layers import Layer
 
 
@@ -21,8 +19,10 @@ def validate_axis(axis, input_shape):
   rank = input_shape.ndims
   if not rank:
     raise ValueError(
-        'Input has undefined rank. Received: input_shape={input_shape}'.format(
-            input_shape=input_shape))
+      'Input has undefined rank. Received: input_shape={input_shape}'.format(
+        input_shape=input_shape
+      )
+    )
 
   # Convert axis to list and resolve negatives
   if isinstance(axis, int):
@@ -36,10 +36,13 @@ def validate_axis(axis, input_shape):
   # Validate axes
   for x in axis:
     if x < 0 or x >= rank:
-      raise ValueError('Invalid value for `axis` argument. '
-                       'Expected 0 <= axis < inputs.rank (with '
-                       'inputs.rank={rank}). Received: axis={axis}'.format(
-                           rank=rank, axis=tuple(axis)))
+      raise ValueError(
+        'Invalid value for `axis` argument. '
+        'Expected 0 <= axis < inputs.rank (with '
+        'inputs.rank={rank}). Received: axis={axis}'.format(
+          rank=rank, axis=tuple(axis)
+        )
+      )
   if len(axis) != len(set(axis)):
     raise ValueError('Duplicate axis: {axis}'.format(axis=tuple(axis)))
   return axis
@@ -168,26 +171,30 @@ class LayerNormalization(Layer):
     - [Lei Ba et al., 2016](https://arxiv.org/abs/1607.06450).
   """
 
-  def __init__(self,
-               axis=-1,
-               epsilon=1e-3,
-               center=True,
-               scale=True,
-               beta_initializer='zeros',
-               gamma_initializer='ones',
-               beta_regularizer=None,
-               gamma_regularizer=None,
-               beta_constraint=None,
-               gamma_constraint=None,
-               **kwargs):
+  def __init__(
+    self,
+    axis=-1,
+    epsilon=1e-3,
+    center=True,
+    scale=True,
+    beta_initializer='zeros',
+    gamma_initializer='ones',
+    beta_regularizer=None,
+    gamma_regularizer=None,
+    beta_constraint=None,
+    gamma_constraint=None,
+    **kwargs
+  ):
     super(LayerNormalization, self).__init__(**kwargs)
     if isinstance(axis, (list, tuple)):
       self.axis = list(axis)
     elif isinstance(axis, int):
       self.axis = axis
     else:
-      raise TypeError('Expected an int or a list/tuple of ints for the '
-                      "argument 'axis', but received: %r" % axis)
+      raise TypeError(
+        'Expected an int or a list/tuple of ints for the '
+        "argument 'axis', but received: %r" % axis
+      )
 
     self.epsilon = epsilon
     self.center = center
@@ -236,24 +243,24 @@ class LayerNormalization(Layer):
     param_shape = [input_shape[dim] for dim in self.axis]
     if self.scale:
       self.gamma = self.add_weight(
-          name='gamma',
-          shape=param_shape,
-          initializer=self.gamma_initializer,
-          regularizer=self.gamma_regularizer,
-          constraint=self.gamma_constraint,
-          trainable=True,
+        name='gamma',
+        shape=param_shape,
+        initializer=self.gamma_initializer,
+        regularizer=self.gamma_regularizer,
+        constraint=self.gamma_constraint,
+        trainable=True,
       )
     else:
       self.gamma = None
 
     if self.center:
       self.beta = self.add_weight(
-          name='beta',
-          shape=param_shape,
-          initializer=self.beta_initializer,
-          regularizer=self.beta_regularizer,
-          constraint=self.beta_constraint,
-          trainable=True,
+        name='beta',
+        shape=param_shape,
+        initializer=self.beta_initializer,
+        regularizer=self.beta_regularizer,
+        constraint=self.beta_constraint,
+        trainable=True,
       )
     else:
       self.beta = None
@@ -274,7 +281,9 @@ class LayerNormalization(Layer):
       broadcast_shape[dim] = input_shape.dims[dim].value
 
     def _broadcast(v):
-      if (v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]):
+      if (
+        v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]
+      ):
         return tf.reshape(v, broadcast_shape)
       return v
 
@@ -293,12 +302,12 @@ class LayerNormalization(Layer):
       # Compute layer normalization using the batch_normalization
       # function.
       outputs = tf.nn.batch_normalization(
-          inputs,
-          mean,
-          variance,
-          offset=offset,
-          scale=scale,
-          variance_epsilon=self.epsilon,
+        inputs,
+        mean,
+        variance,
+        offset=offset,
+        scale=scale,
+        variance_epsilon=self.epsilon,
       )
       outputs = tf.cast(outputs, input_dtype)
     else:
@@ -324,11 +333,11 @@ class LayerNormalization(Layer):
 
       # Compute layer normalization using the fused_batch_norm function.
       outputs, _, _ = tf.compat.v1.nn.fused_batch_norm(
-          inputs,
-          scale=scale,
-          offset=offset,
-          epsilon=self.epsilon,
-          data_format=data_format,
+        inputs,
+        scale=scale,
+        offset=offset,
+        epsilon=self.epsilon,
+        data_format=data_format,
       )
 
       outputs = tf.reshape(outputs, tensor_shape)
@@ -349,16 +358,16 @@ class LayerNormalization(Layer):
 
   def get_config(self):
     config = {
-        'axis': self.axis,
-        'epsilon': self.epsilon,
-        'center': self.center,
-        'scale': self.scale,
-        'beta_initializer': initializers.serialize(self.beta_initializer),
-        'gamma_initializer': initializers.serialize(self.gamma_initializer),
-        'beta_regularizer': regularizers.serialize(self.beta_regularizer),
-        'gamma_regularizer': regularizers.serialize(self.gamma_regularizer),
-        'beta_constraint': constraints.serialize(self.beta_constraint),
-        'gamma_constraint': constraints.serialize(self.gamma_constraint),
+      'axis': self.axis,
+      'epsilon': self.epsilon,
+      'center': self.center,
+      'scale': self.scale,
+      'beta_initializer': initializers.serialize(self.beta_initializer),
+      'gamma_initializer': initializers.serialize(self.gamma_initializer),
+      'beta_regularizer': regularizers.serialize(self.beta_regularizer),
+      'gamma_regularizer': regularizers.serialize(self.gamma_regularizer),
+      'beta_constraint': constraints.serialize(self.beta_constraint),
+      'gamma_constraint': constraints.serialize(self.gamma_constraint),
     }
     base_config = super(LayerNormalization, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

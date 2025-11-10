@@ -11,7 +11,7 @@
 输入一般是MaxCompute表:
 
 - train: pai_online_project.dwd_avazu_ctr_deepmodel_train
-- test:  pai_online_project.dwd_avazu_ctr_deepmodel_test
+- test: pai_online_project.dwd_avazu_ctr_deepmodel_test
 
 说明：原则上这两张表是自己odps的表，为了方便，以上提供case的两张表可在国内用户的MaxCompute项目空间中访问。
 
@@ -49,13 +49,13 @@ pai -name easy_rec_ext -project algo_public
 - -Dfine_tune_checkpoint: 可选，从checkpoint restore参数，进行finetune
 - 可以指定directory，将使用directory里面的最新的checkpoint.
 - -Dmodel_dir: 如果指定了model_dir将会覆盖config里面的model_dir，一般在周期性调度的时候使用。
-- -Darn: rolearn  注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn;或者阿里云控制台人工智能平台PAI，左侧菜单"开通和授权"，找到全部云产品依赖->Designer->OSS->查看授权信息。
+- -Darn: rolearn 注意这个的arn要替换成客户自己的。可以从dataworks的设置中查看arn;或者阿里云控制台人工智能平台PAI，左侧菜单"开通和授权"，找到全部云产品依赖->Designer->OSS->查看授权信息。
 - -Dbuckets: config所在的bucket和保存模型的bucket; 如果有多个bucket，逗号分割
 - -DossHost: ossHost地址
 
 ### 注意：
 
-- dataworks和PAI的project一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual)  ，其中regionId可能不一致。
+- dataworks和PAI的project一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual) ，其中regionId可能不一致。
 
   ![mc_gpu](../../images/quick_start/mc_gpu.png)
 

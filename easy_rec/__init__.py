@@ -13,11 +13,13 @@ parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
 logging.basicConfig(
-    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
+)
 
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
   from tensorflow.python.platform import tf_logging
+
   # In DeepRec, logger.propagate of tf_logging is False, should be True
   tf_logging._logger.propagate = True
 
@@ -66,7 +68,8 @@ _global_config = {}
 
 
 def help():
-  print("""
+  print(
+    """
 1 Train
 1.1 Train 1gpu
   CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval
@@ -111,4 +114,5 @@ def help():
     for row in reader:
       inputs.append({ f : row[fid+1] for fid, f in enumerate(field_keys) })
     output_res = self._predictor.predict(inputs, batch_size=32)
-""")
+"""
+  )

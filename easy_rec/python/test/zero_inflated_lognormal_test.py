@@ -41,10 +41,11 @@ class ZeroInflatedLognormalLossTest(tf.test.TestCase):
     if np.any(mask):
       # scipy 参数化：s=shape= sigma, scale=exp(mu), loc=0
       logprob[mask, 0] = stats.lognorm.logpdf(
-          x=labels[mask, 0].astype(np.float64),
-          s=sigma[mask, 0].astype(np.float64),
-          loc=0.0,
-          scale=np.exp(mu[mask, 0].astype(np.float64)))
+        x=labels[mask, 0].astype(np.float64),
+        s=sigma[mask, 0].astype(np.float64),
+        loc=0.0,
+        scale=np.exp(mu[mask, 0].astype(np.float64))
+      )
     num_pos = np.sum(positive) + 1e-8
     regression_loss = -(np.sum(positive * logprob) / num_pos)
     # 与实现一致的组合（此处测试会把正则项设为0）
@@ -55,7 +56,8 @@ class ZeroInflatedLognormalLossTest(tf.test.TestCase):
     expected_loss = self.zero_inflated_lognormal(self.labels, self.logits)
     expected_loss = np.average(expected_loss)
     loss = zero_inflated_lognormal_loss(
-        self.labels, self.logits, mu_reg=0, sigma_reg=0)
+      self.labels, self.logits, mu_reg=0, sigma_reg=0
+    )
     # Absolute error tolerance in asserting array near.
     _ERR_TOL = 1e-6
     self.assertNear(self.evaluate(loss), expected_loss, _ERR_TOL)

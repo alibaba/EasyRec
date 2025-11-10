@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import numpy as np
 import tensorflow as tf
 
@@ -9,14 +8,16 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def jrc_loss(labels,
-             logits,
-             session_ids,
-             alpha=0.5,
-             loss_weight_strategy='fixed',
-             sample_weights=1.0,
-             same_label_loss=True,
-             name=''):
+def jrc_loss(
+  labels,
+  logits,
+  session_ids,
+  alpha=0.5,
+  loss_weight_strategy='fixed',
+  sample_weights=1.0,
+  same_label_loss=True,
+  name=''
+):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
      https://arxiv.org/abs/2208.06164
@@ -33,11 +34,15 @@ def jrc_loss(labels,
     name: the name of loss
   """
   loss_name = name if name else 'jrc_loss'
-  logging.info('[{}] alpha: {}, loss_weight_strategy: {}'.format(
-      loss_name, alpha, loss_weight_strategy))
+  logging.info(
+    '[{}] alpha: {}, loss_weight_strategy: {}'.format(
+      loss_name, alpha, loss_weight_strategy
+    )
+  )
 
   ce_loss = tf.losses.sparse_softmax_cross_entropy(
-      labels, logits, weights=sample_weights)
+    labels, logits, weights=sample_weights
+  )
 
   labels = tf.expand_dims(labels, 1)  # [B, 1]
   labels = tf.concat([1 - labels, labels], axis=1)  # [B, 2]
@@ -47,7 +52,8 @@ def jrc_loss(labels,
   # Mask: shape [B, B], mask[i,j]=1 indicates the i-th sample
   # and j-th sample are in the same context
   mask = tf.equal(
-      tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0))
+    tf.expand_dims(session_ids, 1), tf.expand_dims(session_ids, 0)
+  )
   mask = tf.to_float(mask)
 
   # Tile logits and label: [B, 2]->[B, B, 2]
@@ -74,7 +80,8 @@ def jrc_loss(labels,
     loss_pos = -tf.reduce_sum(y_pos * tf.nn.log_softmax(l_pos, axis=0), axis=0)
     loss_neg = -tf.reduce_sum(y_neg * tf.nn.log_softmax(l_neg, axis=0), axis=0)
     ge_loss = tf.reduce_mean(
-        (loss_pos + loss_neg) / tf.reduce_sum(mask, axis=0))
+      (loss_pos + loss_neg) / tf.reduce_sum(mask, axis=0)
+    )
   else:
     logging.info('[%s] disable same_label_loss' % loss_name)
     diag = tf.one_hot(tf.range(batch_size), batch_size)
@@ -105,24 +112,30 @@ def jrc_loss(labels,
     bern = tf.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
     weights = bern.sample(2)
     loss_weight = tf.cond(
-        tf.equal(tf.reduce_sum(weights), 1), lambda: weights,
-        lambda: tf.convert_to_tensor([0.5, 0.5]))
+      tf.equal(tf.reduce_sum(weights), 1), lambda: weights,
+      lambda: tf.convert_to_tensor([0.5, 0.5])
+    )
     loss = loss_weight[0] * ce_loss + loss_weight[1] * ge_loss
     tf.summary.scalar('loss/%s_ce_weight' % loss_name, loss_weight[0])
     tf.summary.scalar('loss/%s_ge_weight' % loss_name, loss_weight[1])
   elif loss_weight_strategy == 'uncertainty':
     uncertainty1 = tf.Variable(
-        0, name='%s_ranking_loss_weight' % loss_name, dtype=tf.float32)
+      0, name='%s_ranking_loss_weight' % loss_name, dtype=tf.float32
+    )
     tf.summary.scalar('loss/%s_ranking_uncertainty' % loss_name, uncertainty1)
     uncertainty2 = tf.Variable(
-        0, name='%s_calibration_loss_weight' % loss_name, dtype=tf.float32)
-    tf.summary.scalar('loss/%s_calibration_uncertainty' % loss_name,
-                      uncertainty2)
+      0, name='%s_calibration_loss_weight' % loss_name, dtype=tf.float32
+    )
+    tf.summary.scalar(
+      'loss/%s_calibration_uncertainty' % loss_name, uncertainty2
+    )
     loss = tf.exp(-uncertainty1) * ce_loss + 0.5 * uncertainty1
     loss += tf.exp(-uncertainty2) * ge_loss + 0.5 * uncertainty2
   else:
-    raise ValueError('Unsupported loss weight strategy `%s` for jrc loss' %
-                     loss_weight_strategy)
+    raise ValueError(
+      'Unsupported loss weight strategy `%s` for jrc loss' %
+      loss_weight_strategy
+    )
   if np.isscalar(sample_weights) and sample_weights != 1.0:
     return loss * sample_weights
   return loss

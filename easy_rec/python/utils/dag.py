@@ -1,8 +1,6 @@
 import logging
-from collections import OrderedDict
-from collections import defaultdict
-from copy import copy
-from copy import deepcopy
+from collections import OrderedDict, defaultdict
+from copy import copy, deepcopy
 
 
 class DAG(object):
@@ -113,8 +111,10 @@ class DAG(object):
           nodes.append(downstream_node)
       i += 1
     return list(
-        filter(lambda node: node in nodes_seen,
-               self.topological_sort(graph=graph)))
+      filter(
+        lambda node: node in nodes_seen, self.topological_sort(graph=graph)
+      )
+    )
 
   def all_leaves(self, graph=None):
     """Return a list of all leaves (nodes with no downstreams)."""
@@ -146,7 +146,8 @@ class DAG(object):
       graph = self.graph
 
     dependent_nodes = set(
-        node for dependents in graph.values() for node in dependents)
+      node for dependents in graph.values() for node in dependents
+    )
     return [node for node in graph.keys() if node not in dependent_nodes]
 
   def validate(self, graph=None):

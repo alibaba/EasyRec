@@ -105,7 +105,7 @@ model_config: {
   - 配置一个名为`general`的feature_group，包含需要做跨模态attention的常规特征，这些特征的`embedding_dim`必须相同。
   - 配置一个名为`text`的feature_group，包含需要做跨模态attention的不定长文本序列特征，这些特征的`embedding_dim`必须相同。
   - 注意：CMBF 模型要求所有文本侧（包括`text`和`general`两个特征组）输入特征的 embedding_dim 保持一致。
-  - \[可选\] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
+  - [可选] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
 
 - cmbf/config: CMBF 模型相关的参数
 
@@ -115,7 +115,7 @@ model_config: {
   - text_multi_head_num: 文本单模态学习模块中的 head 数量，默认为1
   - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
   - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size
-  - image_feature_patch_num: \[可选，默认值为1\] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
+  - image_feature_patch_num: [可选，默认值为1] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
   - image_self_attention_layer_num: 单模态学习模块中的图像tower，multi-headed self-attention的层数；当只有一个图像特征时，可设置为0
   - text_self_attention_layer_num: 单模态学习模块中的文本tower，multi-headed self-attention的层数
   - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1
@@ -127,7 +127,7 @@ model_config: {
   - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
   - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
   - text_seq_emb_dropout_prob: 文本序列embedding的dropout概率
-  - other_feature_dnn: \[可选\] 其他特征的MLP网络配置
+  - other_feature_dnn: [可选] 其他特征的MLP网络配置
 
 - cmbf/final_dnn: 输出模块的MLP网络配置
 

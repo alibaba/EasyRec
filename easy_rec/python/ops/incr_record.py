@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-
 import tensorflow as tf
 
 import easy_rec
@@ -20,11 +19,13 @@ except ImportError as ex:
   get_sparse_indices = None
   set_sparse_indices = None
   kv_resource_incr_gather = None
-  logging.warning('failed to import gen_io_ops.collect_sparse_indices: %s' %
-                  str(ex))
+  logging.warning(
+    'failed to import gen_io_ops.collect_sparse_indices: %s' % str(ex)
+  )
 except Exception as ex:
   get_sparse_indices = None
   set_sparse_indices = None
   kv_resource_incr_gather = None
-  logging.warning('failed to import gen_io_ops.collect_sparse_indices: %s' %
-                  str(ex))
+  logging.warning(
+    'failed to import gen_io_ops.collect_sparse_indices: %s' % str(ex)
+  )

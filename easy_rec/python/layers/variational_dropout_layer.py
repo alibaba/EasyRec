@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
-
 import numpy as np
 import tensorflow as tf
 
@@ -20,11 +19,13 @@ class VariationalDropoutLayer(object):
   arXiv: 1712.08645
   """
 
-  def __init__(self,
-               variational_dropout_config,
-               features_dimension,
-               is_training=False,
-               name=''):
+  def __init__(
+    self,
+    variational_dropout_config,
+    features_dimension,
+    is_training=False,
+    name=''
+  ):
     self._config = variational_dropout_config
     self.features_dimension = features_dimension
     self.features_total_dimension = sum(self.features_dimension.values())
@@ -39,13 +40,15 @@ class VariationalDropoutLayer(object):
 
     logit_p_name = 'logit_p' if name == 'all' else 'logit_p_%s' % name
     self.logit_p = tf.get_variable(
-        name=logit_p_name,
-        shape=self.drop_param_shape,
-        dtype=tf.float32,
-        initializer=None)
+      name=logit_p_name,
+      shape=self.drop_param_shape,
+      dtype=tf.float32,
+      initializer=None
+    )
     tf.add_to_collection(
-        'variational_dropout',
-        json.dumps([name, list(self.features_dimension.items())]))
+      'variational_dropout',
+      json.dumps([name, list(self.features_dimension.items())])
+    )
 
   def get_lambda(self):
     return self._config.regularization_lambda
@@ -63,7 +66,8 @@ class VariationalDropoutLayer(object):
     batch_size_range = tf.range(batch_size)
     expand_range_axis = tf.expand_dims(batch_size_range, 1)
     batch_size_range_expand_dim_len = tf.tile(
-        expand_range_axis, [1, self.features_total_dimension])
+      expand_range_axis, [1, self.features_total_dimension]
+    )
     index_i = tf.reshape(batch_size_range_expand_dim_len, [-1, 1])
     expanded_index = tf.concat([index_i, expanded_index], 1)
     return expanded_index
@@ -80,7 +84,9 @@ class VariationalDropoutLayer(object):
         # expand dropout layer
         expanded_index = self.build_expand_index(batch_size)
         expanded_p = tf.gather_nd(p, expanded_index)
-        expanded_p = tf.reshape(expanded_p, [-1, self.features_total_dimension])
+        expanded_p = tf.reshape(
+          expanded_p, [-1, self.features_total_dimension]
+        )
         scaled_input = input * (1 - expanded_p)
 
       return scaled_input
@@ -107,11 +113,13 @@ class VariationalDropoutLayer(object):
   def concrete_dropout_neuron(self, dropout_p, temp=1.0 / 10.0):
     EPSILON = np.finfo(float).eps
     unif_noise = tf.random_uniform(
-        tf.shape(dropout_p), dtype=tf.float32, seed=None, name='unif_noise')
+      tf.shape(dropout_p), dtype=tf.float32, seed=None, name='unif_noise'
+    )
 
     approx = (
-        tf.log(dropout_p + EPSILON) - tf.log(1. - dropout_p + EPSILON) +
-        tf.log(unif_noise + EPSILON) - tf.log(1. - unif_noise + EPSILON))
+      tf.log(dropout_p + EPSILON) - tf.log(1. - dropout_p + EPSILON) +
+      tf.log(unif_noise + EPSILON) - tf.log(1. - unif_noise + EPSILON)
+    )
 
     approx_output = tf.sigmoid(approx / temp)
     return 1 - approx_output
@@ -121,10 +129,12 @@ class VariationalDropoutLayer(object):
     noisy_input = self.sample_noisy_input(output_features)
     dropout_p = tf.sigmoid(self.logit_p)
     variational_dropout_penalty = 1. - dropout_p
-    variational_dropout_penalty_lambda = self.get_lambda() / tf.cast(
-        batch_size, dtype=tf.float32)
+    variational_dropout_penalty_lambda = self.get_lambda(
+    ) / tf.cast(batch_size, dtype=tf.float32)
     variational_dropout_loss_sum = variational_dropout_penalty_lambda * tf.reduce_sum(
-        variational_dropout_penalty, axis=0)
-    tf.add_to_collection('variational_dropout_loss',
-                         variational_dropout_loss_sum)
+      variational_dropout_penalty, axis=0
+    )
+    tf.add_to_collection(
+      'variational_dropout_loss', variational_dropout_loss_sum
+    )
     return noisy_input

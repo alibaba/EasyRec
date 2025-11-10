@@ -100,7 +100,7 @@ model_config: {
   - 配置一个名为`general`的feature_group，包含需要做跨模态attention的常规特征，这些特征的`embedding_dim`必须相同。
   - 配置一个名为`text`的feature_group，包含需要做跨模态attention的不定长文本序列特征，这些特征的`embedding_dim`必须相同。
   - 注意：CMBF 模型要求所有文本侧（包括`text`和`general`两个特征组）输入特征的 embedding_dim 保持一致。
-  - \[可选\] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
+  - [可选] 配置一个名为`other`的feature_group，包含不需要做跨模态attention的其他特征，如各类统计特征。
 
 - uniter/config: UNITER 模型相关的参数
 
@@ -113,7 +113,7 @@ model_config: {
   - hidden_dropout_prob: multi-headed attention模块中FC layer的dropout概率
   - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
   - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
-  - other_feature_dnn: \[可选\] 其他特征的MLP网络配置
+  - other_feature_dnn: [可选] 其他特征的MLP网络配置
 
 - uniter/final_dnn: 输出模块的MLP网络配置
 

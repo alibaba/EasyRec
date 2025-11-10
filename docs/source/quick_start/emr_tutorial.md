@@ -158,7 +158,7 @@ resource:
 - 使用el_submit提交导出任务, **el_submit**相关参数请参考[**tf_on_yarn**](https://help.aliyun.com/document_detail/93031.html)
 
 --pipeline_config_path: EasyRec配置文件
---export_dir: 导出模型目录 
+--export_dir: 导出模型目录
 --checkpoint_path: 指定checkpoint，默认不指定，不指定则使用model_dir下面最新的checkpoint
 
 ### 开源TF模式

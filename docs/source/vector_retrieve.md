@@ -21,19 +21,19 @@ pai -name easy_rec_ext -project algo_public_dev
 
 ## 参数说明
 
-| 参数名                   | 默认值           | 参数说明                                                                      |
-| --------------------- | ------------- | ------------------------------------------------------------------------- |
-| query_table           | 无             | 输入查询表, schema: (id bigint, vector string)                                 |
-| doc_table             | 无             | 输入索引表, schema: (id bigint, vector string)                                 |
-| output_table          | 无             | 输出表, schema: (query_id bigint, doc_id bigint, distance double)            |
+| 参数名                | 默认值        | 参数说明                                                                           |
+| --------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| query_table           | 无            | 输入查询表, schema: (id bigint, vector string)                                     |
+| doc_table             | 无            | 输入索引表, schema: (id bigint, vector string)                                     |
+| output_table          | 无            | 输出表, schema: (query_id bigint, doc_id bigint, distance double)                  |
 | knn_distance          | inner_product | 计算距离的方法：l2、inner_product                                                  |
-| knn_num_neighbours    | 无             | top n, 每个query输出多少个近邻                                                     |
-| knn_feature_dims      | 无             | 向量维度                                                                      |
-| knn_feature_delimiter | ,             | 向量字符串分隔符                                                                  |
-| knn_index_type        | ivfflat       | 向量索引类型：'flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg' |
-| knn_nlist             | 5             | 聚类的簇个数, number of split cluster on each worker                            |
-| knn_nprobe            | 2             | 检索时只考虑距离与输入向量最近的簇个数, number of probe part on each worker                  |
-| knn_compress_dim      | 8             | 当index_type为`ivfpq` and `gpu_ivfpq`时, 指定压缩的维度，必须为float属性个数的因子             |
+| knn_num_neighbours    | 无            | top n, 每个query输出多少个近邻                                                     |
+| knn_feature_dims      | 无            | 向量维度                                                                           |
+| knn_feature_delimiter | ,             | 向量字符串分隔符                                                                   |
+| knn_index_type        | ivfflat       | 向量索引类型：'flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'   |
+| knn_nlist             | 5             | 聚类的簇个数, number of split cluster on each worker                               |
+| knn_nprobe            | 2             | 检索时只考虑距离与输入向量最近的簇个数, number of probe part on each worker        |
+| knn_compress_dim      | 8             | 当index_type为`ivfpq` and `gpu_ivfpq`时, 指定压缩的维度，必须为float属性个数的因子 |
 
 ## 使用示例
 

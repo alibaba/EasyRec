@@ -19,7 +19,7 @@ os.environ.pop('__PYVENV_LAUNCHER__', None)
 # start templated
 INSTALL_PYTHON = '/apsarapangu/disk2/yancheng.lgq/miniconda3/envs/tf_1_15/bin/python'
 ARGS = [
-    'hook-impl', '--config=.pre-commit-config.yaml', '--hook-type=pre-commit'
+  'hook-impl', '--config=.pre-commit-config.yaml', '--hook-type=pre-commit'
 ]
 # end templated
 ARGS.extend(('--hook-dir', os.path.realpath(os.path.dirname(__file__))))

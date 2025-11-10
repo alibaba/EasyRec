@@ -46,7 +46,7 @@ model_config:{
 
   需要两个feature_group: wide group和deep group, **group name不能变**
 
-- deepfm:  deepfm相关的参数
+- deepfm: deepfm相关的参数
 
 - dnn: deep part的参数配置
 

@@ -1,34 +1,16 @@
 from .attention import Attention
 from .auxiliary_loss import AuxiliaryLoss
-from .blocks import MLP
-from .blocks import Gate
-from .blocks import Highway
-from .blocks import TextCNN
+from .blocks import MLP, Gate, Highway, TextCNN
 from .bst import BST
-from .custom_ops import EditDistance
-from .custom_ops import MappedDotProduct
-from .custom_ops import OverlapFeature
-from .custom_ops import SeqAugmentOps
-from .custom_ops import TextNormalize
+from .custom_ops import EditDistance, MappedDotProduct, OverlapFeature, SeqAugmentOps, TextNormalize  # NOQA
 from .data_augment import SeqAugment
 from .din import DIN
 from .embedding import EmbeddingLayer
-from .fibinet import BiLinear
-from .fibinet import FiBiNet
-from .fibinet import SENet
-from .interaction import CIN
-from .interaction import FM
-from .interaction import Cross
-from .interaction import DotInteraction
-from .mask_net import MaskBlock
-from .mask_net import MaskNet
+from .fibinet import BiLinear, FiBiNet, SENet
+from .interaction import CIN, FM, Cross, DotInteraction
+from .mask_net import MaskBlock, MaskNet
 from .multi_head_attention import MultiHeadAttention
-from .multi_task import AITMTower
-from .multi_task import MMoE
-from .numerical_embedding import AutoDisEmbedding
-from .numerical_embedding import NaryDisEmbedding
-from .numerical_embedding import PeriodicEmbedding
+from .multi_task import AITMTower, MMoE
+from .numerical_embedding import AutoDisEmbedding, NaryDisEmbedding, PeriodicEmbedding  # NOQA
 from .ppnet import PPNet
-from .transformer import TextEncoder
-from .transformer import TransformerBlock
-from .transformer import TransformerEncoder
+from .transformer import TextEncoder, TransformerBlock, TransformerEncoder

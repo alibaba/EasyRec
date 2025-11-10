@@ -9,9 +9,9 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 def is_type_compatiable(odps_type, input_type):
   """Check that odps_type are compatiable with input_type."""
   type_map = {
-      'bigint': DatasetConfig.INT64,
-      'string': DatasetConfig.STRING,
-      'double': DatasetConfig.DOUBLE
+    'bigint': DatasetConfig.INT64,
+    'string': DatasetConfig.STRING,
+    'double': DatasetConfig.DOUBLE
   }
   tmp_type = type_map[odps_type]
   if tmp_type == input_type:
@@ -30,9 +30,9 @@ def is_type_compatiable(odps_type, input_type):
 def odps_type_to_input_type(odps_type):
   """Check that odps_type are compatiable with input_type."""
   odps_type_map = {
-      'bigint': DatasetConfig.INT64,
-      'string': DatasetConfig.STRING,
-      'double': DatasetConfig.DOUBLE
+    'bigint': DatasetConfig.INT64,
+    'string': DatasetConfig.STRING,
+    'double': DatasetConfig.DOUBLE
   }
   assert odps_type in odps_type_map, 'only support [bigint, string, double]'
   input_type = odps_type_map[odps_type]

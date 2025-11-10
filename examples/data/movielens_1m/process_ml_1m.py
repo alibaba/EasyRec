@@ -1,6 +1,5 @@
-import re
-
 import pandas as pd
+import re
 from sklearn.utils import shuffle
 
 
@@ -11,12 +10,13 @@ def process_data():
   print('----User Data----')
   users_title = ['UserID', 'Gender', 'Age', 'JobID', 'ZipCode']
   users = pd.read_table(
-      'ml-1m/users.dat',
-      sep='::',
-      header=None,
-      names=users_title,
-      engine='python',
-      encoding='ISO-8859-1')
+    'ml-1m/users.dat',
+    sep='::',
+    header=None,
+    names=users_title,
+    engine='python',
+    encoding='ISO-8859-1'
+  )
   users = users.filter(regex='UserID|Gender|Age|JobID|ZipCode')
   # process the gender and age of user
   gender_map = {'F': 0, 'M': 1}
@@ -29,23 +29,24 @@ def process_data():
   print('----Movie Data----')
   movies_title = ['MovieID', 'Title', 'Genres']
   movies = pd.read_table(
-      'ml-1m/movies.dat',
-      sep='::',
-      header=None,
-      names=movies_title,
-      engine='python',
-      encoding='ISO-8859-1')
+    'ml-1m/movies.dat',
+    sep='::',
+    header=None,
+    names=movies_title,
+    engine='python',
+    encoding='ISO-8859-1'
+  )
 
   # split the title and year in Feature:'Title'
   pattern = re.compile(r'^(.*)\((\d+)\)$')
 
   title_map = {
-      val: pattern.match(val).group(1)
-      for ii, val in enumerate(set(movies['Title']))
+    val: pattern.match(val).group(1)
+    for ii, val in enumerate(set(movies['Title']))
   }
   year_map = {
-      val: pattern.match(val).group(2)
-      for ii, val in enumerate(set(movies['Title']))
+    val: pattern.match(val).group(2)
+    for ii, val in enumerate(set(movies['Title']))
   }
   movies['Year'] = movies['Title'].map(year_map)
   movies['Title'] = movies['Title'].map(title_map)
@@ -54,12 +55,13 @@ def process_data():
   print('----Rating Data----')
   ratings_title = ['UserID', 'MovieID', 'ratings', 'timestamps']
   ratings = pd.read_table(
-      'ml-1m/ratings.dat',
-      sep='::',
-      header=None,
-      names=ratings_title,
-      engine='python',
-      encoding='ISO-8859-1')
+    'ml-1m/ratings.dat',
+    sep='::',
+    header=None,
+    names=ratings_title,
+    engine='python',
+    encoding='ISO-8859-1'
+  )
   ratings = ratings.filter(regex='UserID|MovieID|ratings')
   # ratings of 4 and 5 are viewed as positive samples [label:1]
   # ratings of 0, 1 and 2 are viewed as negative samples [label:0]
@@ -87,7 +89,9 @@ print(data_new.count())
 # split train set and test set, and write to file
 print('Start writing to file.')
 data_new[:665110].to_csv(
-    r'movies_train_data', index=False, sep='\t', mode='a', header=False)
+  r'movies_train_data', index=False, sep='\t', mode='a', header=False
+)
 data_new[665110:].to_csv(
-    r'movies_test_data', index=False, sep='\t', mode='a', header=False)
+  r'movies_test_data', index=False, sep='\t', mode='a', header=False
+)
 print('Done.')

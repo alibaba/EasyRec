@@ -10,7 +10,8 @@ class EmbedInputLayer(object):
 
   def __init__(self, feature_groups_config, dump_dir=None):
     self._feature_groups = {
-        x.group_name: FeatureGroup(x) for x in feature_groups_config
+      x.group_name: FeatureGroup(x)
+      for x in feature_groups_config
     }
     self._dump_dir = dump_dir
 

@@ -7,11 +7,10 @@ import logging
 import os
 import pkgutil
 import pydoc
-import traceback
-from abc import ABCMeta
-
 import six
 import tensorflow as tf
+import traceback
+from abc import ABCMeta
 
 import easy_rec
 from easy_rec.python.utils import compat
@@ -73,8 +72,9 @@ def _get_method_declare(aMethod):
       return sig_str
     else:
       spec = inspect.getargspec(aMethod)
-      args = inspect.formatargspec(spec.args, spec.varargs, spec.keywords,
-                                   spec.defaults)
+      args = inspect.formatargspec(
+        spec.args, spec.varargs, spec.keywords, spec.defaults
+      )
       return '%s%s' % (name, args)
   except TypeError:
     return '%s(cls, ...)' % name
@@ -108,8 +108,10 @@ def check_class(cls, impl_cls, function_names=None):
       missing[name + '()'] = 'method signature differs'
 
   if len(missing) > 0:
-    raise Exception('incompatible Implementation-implementation %s: %s' %
-                    (impl_cls.__class__.__name__, missing))
+    raise Exception(
+      'incompatible Implementation-implementation %s: %s' %
+      (impl_cls.__class__.__name__, missing)
+    )
 
 
 def import_pkg(pkg_info, prefix_to_remove=None):
@@ -158,8 +160,8 @@ def auto_import(user_path=None):
   """
   # True False indicates import recursively or not
   pre_defined_dirs = [
-      ('easy_rec/python/model', False),
-      ('easy_rec/python/input', False),
+    ('easy_rec/python/model', False),
+    ('easy_rec/python/input', False),
   ]
 
   parent_dir = easy_rec.parent_dir
@@ -168,9 +170,10 @@ def auto_import(user_path=None):
   # to make class name starts with easy_rec
   if parent_dir != '':
     for idx in range(len(pre_defined_dirs)):
-      pre_defined_dirs[idx] = (os.path.join(parent_dir,
-                                            pre_defined_dirs[idx][0]),
-                               pre_defined_dirs[idx][1])
+      pre_defined_dirs[idx] = (
+        os.path.join(parent_dir,
+                     pre_defined_dirs[idx][0]), pre_defined_dirs[idx][1]
+      )
     prefix_to_remove = parent_dir + '/'
 
   if user_path is not None:
@@ -213,8 +216,10 @@ def get_register_class_meta(class_map, have_abstract_class=True):
         if name in class_map:
           return class_map[name]
         else:
-          raise Exception('Class %s is not registered. Available ones are %s' %
-                          (name, list(class_map.keys())))
+          raise Exception(
+            'Class %s is not registered. Available ones are %s' %
+            (name, list(class_map.keys()))
+          )
 
       setattr(newclass, 'create_class', create_class)
       return newclass
@@ -244,6 +249,7 @@ def load_keras_layer(name):
     return pydoc.locate(path), False
   except pydoc.ErrorDuringImport:
     print('load keras layer %s failed' % name)
-    logging.error('load keras layer %s failed: %s' %
-                  (name, traceback.format_exc()))
+    logging.error(
+      'load keras layer %s failed: %s' % (name, traceback.format_exc())
+    )
     return None, False

@@ -27,12 +27,12 @@ python -m easy_rec.python.tools.create_config_from_excel --model_type multi_towe
 
 - 输入输出文件
 
-  --train_input_path TRAIN_INPUT_PATH    --eval_input_path EVAL_INPUT_PATH
+  --train_input_path TRAIN_INPUT_PATH --eval_input_path EVAL_INPUT_PATH
 
 - 默认数据文件(csv)列(column)分割符号是, 列(column)内部里面字符分割符号是|
 
   可以自定义分隔符:
-  --column_separator $'|'  --incol_separator   $','
+  --column_separator $'|' --incol_separator $','
 
 - 训练数据路径
   --train_input_path

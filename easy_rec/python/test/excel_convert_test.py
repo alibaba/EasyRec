@@ -3,7 +3,6 @@
 
 import logging
 import os
-
 import tensorflow as tf
 
 from easy_rec.python.utils import test_utils
@@ -29,13 +28,16 @@ class ExcelConvertTest(tf.test.TestCase):
         --train_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
         --eval_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
     """ % pipeline_config_path
-    proc = test_utils.run_cmd(convert_cmd,
-                              '%s/log_%s.txt' % (test_dir, 'convert'))
+    proc = test_utils.run_cmd(
+      convert_cmd, '%s/log_%s.txt' % (test_dir, 'convert')
+    )
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     self.assertTrue(
-        test_utils.test_single_train_eval(
-            pipeline_config_path, test_dir=test_dir))
+      test_utils.test_single_train_eval(
+        pipeline_config_path, test_dir=test_dir
+      )
+    )
     test_utils.clean_up(test_dir)
 
   def test_multi_tower_convert(self):
@@ -50,13 +52,16 @@ class ExcelConvertTest(tf.test.TestCase):
         --train_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
         --eval_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
     """ % pipeline_config_path
-    proc = test_utils.run_cmd(convert_cmd,
-                              '%s/log_%s.txt' % (test_dir, 'convert'))
+    proc = test_utils.run_cmd(
+      convert_cmd, '%s/log_%s.txt' % (test_dir, 'convert')
+    )
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     self.assertTrue(
-        test_utils.test_single_train_eval(
-            pipeline_config_path, test_dir=test_dir))
+      test_utils.test_single_train_eval(
+        pipeline_config_path, test_dir=test_dir
+      )
+    )
     test_utils.clean_up(test_dir)
 
 

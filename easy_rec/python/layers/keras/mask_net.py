@@ -1,11 +1,8 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import tensorflow as tf
-from tensorflow.python.keras.layers import Activation
-from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.layers import Layer
+from tensorflow.python.keras.layers import Activation, Dense, Layer
 
 from easy_rec.python.layers.keras.blocks import MLP
 from easy_rec.python.layers.keras.layer_norm import LayerNormalization
@@ -47,36 +44,42 @@ class MaskBlock(Layer):
       aggregation_size = self.config.aggregation_size
     else:
       raise ValueError(
-          'Need one of reduction factor or aggregation size for MaskBlock.')
+        'Need one of reduction factor or aggregation size for MaskBlock.'
+      )
 
     self.aggr_layer = Dense(
-        aggregation_size,
-        activation='relu',
-        kernel_initializer='he_uniform',
-        kernel_regularizer=self.l2_reg,
-        name='aggregation')
+      aggregation_size,
+      activation='relu',
+      kernel_initializer='he_uniform',
+      kernel_regularizer=self.l2_reg,
+      name='aggregation'
+    )
     self.weight_layer = Dense(input_dim, name='weights')
     if self._projection_dim is not None:
       logging.info('%s project dim is %d', self.name, self._projection_dim)
       self.project_layer = Dense(
-          self._projection_dim,
-          kernel_regularizer=self.l2_reg,
-          use_bias=False,
-          name='project')
+        self._projection_dim,
+        kernel_regularizer=self.l2_reg,
+        use_bias=False,
+        name='project'
+      )
     if self.config.input_layer_norm:
       # 推荐在调用MaskBlock之前做好 layer norm，否则每一次调用都需要对input做ln
       if tf.__version__ >= '2.0':
         self.input_layer_norm = tf.keras.layers.LayerNormalization(
-            name='input_ln')
+          name='input_ln'
+        )
       else:
         self.input_layer_norm = LayerNormalization(name='input_ln')
 
     if self.config.HasField('output_size'):
       self.output_layer = Dense(
-          self.config.output_size, use_bias=False, name='output')
+        self.config.output_size, use_bias=False, name='output'
+      )
     if tf.__version__ >= '2.0':
       self.output_layer_norm = tf.keras.layers.LayerNormalization(
-          name='output_ln')
+        name='output_ln'
+      )
     else:
       self.output_layer_norm = LayerNormalization(name='output_ln')
     super(MaskBlock, self).build(input_shape)
@@ -135,7 +138,8 @@ class MaskNet(Layer):
     if self.config.input_layer_norm:
       if tf.__version__ >= '2.0':
         self.input_layer_norm = tf.keras.layers.LayerNormalization(
-            name='input_ln')
+          name='input_ln'
+        )
       else:
         self.input_layer_norm = LayerNormalization(name='input_ln')
 
@@ -145,7 +149,7 @@ class MaskNet(Layer):
 
     if self.config.use_parallel:
       mask_outputs = [
-          mask_layer((inputs, inputs)) for mask_layer in self.mask_layers
+        mask_layer((inputs, inputs)) for mask_layer in self.mask_layers
       ]
       all_mask_outputs = tf.concat(mask_outputs, axis=1)
       if self.mlp is not None:

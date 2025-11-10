@@ -34,3 +34,5 @@ pai_jobs/easy_rec*.tar.gz
 
 .DS_Store
 .python-version
+easy_rec/python/test/odps_input_v3_test.py
+easy_rec/python/test.py

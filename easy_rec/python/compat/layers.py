@@ -15,30 +15,26 @@
 # ==============================================================================
 """Higher level ops for building layers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import functools
-
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import nn
-from tensorflow.python.ops import variable_scope
+from tensorflow.python.framework import dtypes, ops
+from tensorflow.python.ops import init_ops, nn, variable_scope
 
 
-def layer_norm(inputs,
-               center=True,
-               scale=True,
-               activation_fn=None,
-               reuse=None,
-               variables_collections=None,
-               outputs_collections=None,
-               trainable=True,
-               begin_norm_axis=1,
-               begin_params_axis=-1,
-               scope=None):
+def layer_norm(
+  inputs,
+  center=True,
+  scale=True,
+  activation_fn=None,
+  reuse=None,
+  variables_collections=None,
+  outputs_collections=None,
+  trainable=True,
+  begin_norm_axis=1,
+  begin_params_axis=-1,
+  scope=None
+):
   """Adds a Layer Normalization layer.
 
   Based on the paper:
@@ -98,7 +94,8 @@ def layer_norm(inputs,
       graph build time.
   """
   with variable_scope.variable_scope(
-      scope, 'LayerNorm', [inputs], reuse=reuse) as sc:
+    scope, 'LayerNorm', [inputs], reuse=reuse
+  ) as sc:
     inputs = ops.convert_to_tensor(inputs)
     inputs_shape = inputs.shape
     inputs_rank = inputs_shape.ndims
@@ -108,47 +105,56 @@ def layer_norm(inputs,
     if begin_norm_axis < 0:
       begin_norm_axis = inputs_rank + begin_norm_axis
     if begin_params_axis >= inputs_rank or begin_norm_axis >= inputs_rank:
-      raise ValueError('begin_params_axis (%d) and begin_norm_axis (%d) '
-                       'must be < rank(inputs) (%d)' %
-                       (begin_params_axis, begin_norm_axis, inputs_rank))
+      raise ValueError(
+        'begin_params_axis (%d) and begin_norm_axis (%d) '
+        'must be < rank(inputs) (%d)' %
+        (begin_params_axis, begin_norm_axis, inputs_rank)
+      )
     params_shape = inputs_shape[begin_params_axis:]
     if not params_shape.is_fully_defined():
       raise ValueError(
-          'Inputs %s: shape(inputs)[%s:] is not fully defined: %s' %
-          (inputs.name, begin_params_axis, inputs_shape))
+        'Inputs %s: shape(inputs)[%s:] is not fully defined: %s' %
+        (inputs.name, begin_params_axis, inputs_shape)
+      )
     # Allocate parameters for the beta and gamma of the normalization.
     beta, gamma = None, None
     if center:
-      beta_collections = get_variable_collections(variables_collections, 'beta')
+      beta_collections = get_variable_collections(
+        variables_collections, 'beta'
+      )
       beta = model_variable(
-          'beta',
-          shape=params_shape,
-          dtype=dtype,
-          initializer=init_ops.zeros_initializer(),
-          collections=beta_collections,
-          trainable=trainable)
+        'beta',
+        shape=params_shape,
+        dtype=dtype,
+        initializer=init_ops.zeros_initializer(),
+        collections=beta_collections,
+        trainable=trainable
+      )
     if scale:
-      gamma_collections = get_variable_collections(variables_collections,
-                                                   'gamma')
+      gamma_collections = get_variable_collections(
+        variables_collections, 'gamma'
+      )
       gamma = model_variable(
-          'gamma',
-          shape=params_shape,
-          dtype=dtype,
-          initializer=init_ops.ones_initializer(),
-          collections=gamma_collections,
-          trainable=trainable)
+        'gamma',
+        shape=params_shape,
+        dtype=dtype,
+        initializer=init_ops.ones_initializer(),
+        collections=gamma_collections,
+        trainable=trainable
+      )
     # Calculate the moments on the last axis (layer activations).
     norm_axes = list(range(begin_norm_axis, inputs_rank))
     mean, variance = nn.moments(inputs, norm_axes, keep_dims=True)
     # Compute layer normalization using the batch_normalization function.
     variance_epsilon = 1e-12
     outputs = nn.batch_normalization(
-        inputs,
-        mean,
-        variance,
-        offset=beta,
-        scale=gamma,
-        variance_epsilon=variance_epsilon)
+      inputs,
+      mean,
+      variance,
+      offset=beta,
+      scale=gamma,
+      variance_epsilon=variance_epsilon
+    )
     outputs.set_shape(inputs_shape)
     if activation_fn is not None:
       outputs = activation_fn(outputs)
@@ -205,18 +211,20 @@ def append_tensor_alias(tensor, alias):
   return tensor
 
 
-def variable(name,
-             shape=None,
-             dtype=None,
-             initializer=None,
-             regularizer=None,
-             trainable=True,
-             collections=None,
-             caching_device=None,
-             device=None,
-             partitioner=None,
-             custom_getter=None,
-             use_resource=None):
+def variable(
+  name,
+  shape=None,
+  dtype=None,
+  initializer=None,
+  regularizer=None,
+  trainable=True,
+  collections=None,
+  caching_device=None,
+  device=None,
+  partitioner=None,
+  custom_getter=None,
+  use_resource=None
+):
   """Gets an existing variable with these parameters or creates a new one.
 
   Args:
@@ -246,41 +254,47 @@ def variable(name,
   Returns:
     The created or existing variable.
   """
-  collections = list(collections if collections is not None else
-                     [ops.GraphKeys.GLOBAL_VARIABLES])
+  collections = list(
+    collections
+    if collections is not None else [ops.GraphKeys.GLOBAL_VARIABLES]
+  )
 
   # Remove duplicates
   collections = list(set(collections))
   getter = variable_scope.get_variable
   if custom_getter is not None:
     getter = functools.partial(
-        custom_getter, reuse=variable_scope.get_variable_scope().reuse)
+      custom_getter, reuse=variable_scope.get_variable_scope().reuse
+    )
   with ops.device(device or ''):
     return getter(
-        name,
-        shape=shape,
-        dtype=dtype,
-        initializer=initializer,
-        regularizer=regularizer,
-        trainable=trainable,
-        collections=collections,
-        caching_device=caching_device,
-        partitioner=partitioner,
-        use_resource=use_resource)
+      name,
+      shape=shape,
+      dtype=dtype,
+      initializer=initializer,
+      regularizer=regularizer,
+      trainable=trainable,
+      collections=collections,
+      caching_device=caching_device,
+      partitioner=partitioner,
+      use_resource=use_resource
+    )
 
 
-def model_variable(name,
-                   shape=None,
-                   dtype=dtypes.float32,
-                   initializer=None,
-                   regularizer=None,
-                   trainable=True,
-                   collections=None,
-                   caching_device=None,
-                   device=None,
-                   partitioner=None,
-                   custom_getter=None,
-                   use_resource=None):
+def model_variable(
+  name,
+  shape=None,
+  dtype=dtypes.float32,
+  initializer=None,
+  regularizer=None,
+  trainable=True,
+  collections=None,
+  caching_device=None,
+  device=None,
+  partitioner=None,
+  custom_getter=None,
+  use_resource=None
+):
   """Gets an existing model variable with these parameters or creates a new one.
 
   Args:
@@ -312,18 +326,21 @@ def model_variable(name,
     The created or existing variable.
   """
   collections = list(collections or [])
-  collections += [ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.MODEL_VARIABLES]
+  collections += [
+    ops.GraphKeys.GLOBAL_VARIABLES, ops.GraphKeys.MODEL_VARIABLES
+  ]
   var = variable(
-      name,
-      shape=shape,
-      dtype=dtype,
-      initializer=initializer,
-      regularizer=regularizer,
-      trainable=trainable,
-      collections=collections,
-      caching_device=caching_device,
-      device=device,
-      partitioner=partitioner,
-      custom_getter=custom_getter,
-      use_resource=use_resource)
+    name,
+    shape=shape,
+    dtype=dtype,
+    initializer=initializer,
+    regularizer=regularizer,
+    trainable=trainable,
+    collections=collections,
+    caching_device=caching_device,
+    device=device,
+    partitioner=partitioner,
+    custom_getter=custom_getter,
+    use_resource=use_resource
+  )
   return var

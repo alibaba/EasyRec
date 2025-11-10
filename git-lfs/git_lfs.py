@@ -12,14 +12,15 @@ import traceback
 blank_split = re.compile('[\t ]')
 
 logging.basicConfig(
-    format='[%(levelname)s] %(asctime)s %(filename)s[%(lineno)d] : %(message)s',
-    level=logging.INFO)
+  format='[%(levelname)s] %(asctime)s %(filename)s[%(lineno)d] : %(message)s',
+  level=logging.INFO
+)
 
 try:
   import oss2
 except ImportError:
   logging.error(
-      'please install python_oss from https://github.com/aliyun/aliyun-oss-python-sdk.git'
+    'please install python_oss from https://github.com/aliyun/aliyun-oss-python-sdk.git'
   )
   sys.exit(1)
 
@@ -49,8 +50,8 @@ def load_git_url():
       for line_str in fin:
         line_str = line_str.strip()
         line_json = json.loads(line_str)
-        git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
-                                                   line_json['remote_path'])
+        git_bin_url_map[line_json['leaf_path']
+                       ] = (line_json['sig'], line_json['remote_path'])
   except Exception as ex:
     logging.warning('exception: %s' % str(ex))
     pass
@@ -64,7 +65,8 @@ def save_git_url(git_bin_url_map):
     for key in keys:
       val = git_bin_url_map[key]
       tmp_str = '{"leaf_path": "%s", "sig": "%s", "remote_path": "%s"}' % (
-          key, val[0], val[1])
+        key, val[0], val[1]
+      )
       fout.write('%s\n' % tmp_str)
 
 
@@ -104,8 +106,9 @@ def load_git_bin():
         line_json = json.loads(line_str)
         file_arr[line_json['leaf_name']] = line_json['leaf_file']
       except Exception as ex:
-        logging.warning('%s is corrupted : %s' %
-                        (git_bin_path, traceback.format_exc(ex)))
+        logging.warning(
+          '%s is corrupted : %s' % (git_bin_path, traceback.format_exc(ex))
+        )
   return file_arr
 
 
@@ -118,7 +121,8 @@ def save_git_bin(git_arr):
       leaf_files.sort()
       # make sure that leaf_name is in front of leaf_file
       tmp_str = '{"leaf_name": "%s", "leaf_file": %s}' % (
-          leaf_path, json.dumps(leaf_files))
+        leaf_path, json.dumps(leaf_files)
+      )
       fout.write('%s\n' % tmp_str)
 
 
@@ -221,7 +225,7 @@ def get_yes_no(msg):
 if __name__ == '__main__':
   if len(sys.argv) < 2:
     logging.error(
-        'usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]'
+      'usage: python git_lfs.py [pull] [push] [add filename] [resolve_conflict]'
     )
     sys.exit(1)
   home_directory = os.path.expanduser('~')
@@ -239,8 +243,9 @@ if __name__ == '__main__':
       if line_str.startswith('#'):
         continue
       line_str = line_str.replace('~/', home_directory + '/')
-      line_str = line_str.replace('${TMPDIR}/',
-                                  os.environ.get('TMPDIR', '/tmp/'))
+      line_str = line_str.replace(
+        '${TMPDIR}/', os.environ.get('TMPDIR', '/tmp/')
+      )
       line_str = line_str.replace('${PROJECT_NAME}', get_proj_name())
       line_tok = [x.strip() for x in line_str.split('=') if x != '']
       if line_tok[0] == 'host':
@@ -252,15 +257,18 @@ if __name__ == '__main__':
       elif line_tok[0] == 'git_oss_private_config':
         git_oss_private_path = line_tok[1]
         if git_oss_private_path.startswith('~/'):
-          git_oss_private_path = os.path.join(home_directory,
-                                              git_oss_private_path[2:])
+          git_oss_private_path = os.path.join(
+            home_directory, git_oss_private_path[2:]
+          )
       elif line_tok[0] == 'git_oss_cache_dir':
         git_oss_cache_dir = line_tok[1]
       elif line_tok[0] == 'accl_endpoint':
         accl_endpoint = line_tok[1]
 
-    logging.info('git_oss_data_dir=%s, host=%s, bucket_name=%s' %
-                 (git_oss_data_dir, host, bucket_name))
+    logging.info(
+      'git_oss_data_dir=%s, host=%s, bucket_name=%s' %
+      (git_oss_data_dir, host, bucket_name)
+    )
 
   logging.info('git_oss_cache_dir: %s' % git_oss_cache_dir)
 
@@ -281,8 +289,10 @@ if __name__ == '__main__':
     oss_auth = oss2.Auth(accessid, accesskey)
     oss_bucket = oss2.Bucket(oss_auth, host, bucket_name)
   else:
-    logging.info('git_oss_private_path[%s] is not found, read-only mode' %
-                 git_oss_private_path)
+    logging.info(
+      'git_oss_private_path[%s] is not found, read-only mode' %
+      git_oss_private_path
+    )
     # pull only mode
     oss_auth = None
     oss_bucket = None
@@ -353,14 +363,15 @@ if __name__ == '__main__':
         local_sig = ''
 
       update = False
-      if len(sys.argv) > 2 and (sys.argv[2] == '-f' or
-                                sys.argv[2] == '--force'):
+      if len(sys.argv
+            ) > 2 and (sys.argv[2] == '-f' or sys.argv[2] == '--force'):
         update = True
       else:
         if has_conflict(leaf_path, leaf_files):
           update = get_yes_no(
-              'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
-              (leaf_path, remote_sig, local_sig))
+            'update %s using remote file[remote_sig=%s local_sig=%s]?[N/Y]' %
+            (leaf_path, remote_sig, local_sig)
+          )
         else:
           update = True
       if not update:
@@ -382,9 +393,13 @@ if __name__ == '__main__':
               if sys.platform.startswith('linux'):
                 subprocess.check_output(['wget', url, '-O', tar_tmp_path])
               elif sys.platform.startswith('darwin'):
-                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
+                subprocess.check_output(
+                  ['curl', url, '--output', tar_tmp_path]
+                )
               elif sys.platform.startswith('win'):
-                subprocess.check_output(['curl', url, '--output', tar_tmp_path])
+                subprocess.check_output(
+                  ['curl', url, '--output', tar_tmp_path]
+                )
           else:
             in_cache = True
             logging.info('%s is in cache' % file_name_with_sig)
@@ -396,8 +411,10 @@ if __name__ == '__main__':
             logging.warning('cache invalid, will download from remote')
             os.remove(tar_tmp_path)
             continue
-          logging.warning('download failed, local_sig(%s) != remote_sig(%s)' %
-                          (local_sig, remote_sig))
+          logging.warning(
+            'download failed, local_sig(%s) != remote_sig(%s)' %
+            (local_sig, remote_sig)
+          )
         except subprocess.CalledProcessError as ex:
           logging.error('exception: %s' % str(ex))
         except oss2.exceptions.RequestError as ex:
@@ -503,8 +520,10 @@ if __name__ == '__main__':
           else:
             git_objs[leaf_name] = leaf_file
         else:
-          logging.warning('invalid state: merge_start = %d, line_str = %s' %
-                          (merge_start, line_str))
+          logging.warning(
+            'invalid state: merge_start = %d, line_str = %s' %
+            (merge_start, line_str)
+          )
     save_git_bin(git_objs)
 
     git_bin_url_map = {}
@@ -520,15 +539,18 @@ if __name__ == '__main__':
         elif merge_start in [0, 1, 2]:
           line_json = json.loads(line_str)
           if line_json['leaf_path'] in git_objs:
-            git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
-                                                       line_json['remote_path'])
+            git_bin_url_map[line_json['leaf_path']
+                           ] = (line_json['sig'], line_json['remote_path'])
         else:
-          logging.warning('invalid state: merge_start = %d, line_str = %s' %
-                          (merge_start, line_str))
+          logging.warning(
+            'invalid state: merge_start = %d, line_str = %s' %
+            (merge_start, line_str)
+          )
     save_git_url(git_bin_url_map)
     logging.info('all conflicts fixed.')
   else:
     logging.warning('invalid cmd: %s' % sys.argv[1])
     logging.warning(
-        'choices are: %s' %
-        ','.join(['push', 'pull', 'add', 'remove', 'resolve_conflict']))
+      'choices are: %s' %
+      ','.join(['push', 'pull', 'add', 'remove', 'resolve_conflict'])
+    )

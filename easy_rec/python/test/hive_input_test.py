@@ -3,9 +3,8 @@
 """Define cv_input, the base class for cv tasks."""
 import logging
 import os
-import unittest
-
 import tensorflow as tf
+import unittest
 from google.protobuf import text_format
 
 from easy_rec.python.input.hive_input import HiveInput
@@ -13,8 +12,7 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.protos.hive_config_pb2 import HiveConfig
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import test_utils
+from easy_rec.python.utils import config_util, test_utils
 
 if tf.__version__ >= '2.0':
   import tensorflow.compat.v1 as tf
@@ -59,12 +57,13 @@ class HiveInputTest(tf.test.TestCase):
   def __init__(self, methodName='HiveInputTest'):
     super(HiveInputTest, self).__init__(methodName=methodName)
 
-  @unittest.skipIf('hive_host' not in os.environ or
-                   'hive_username' not in os.environ or
-                   'hive_table_name' not in os.environ or
-                   'hive_hash_fields' not in os.environ,
-                   """Only execute hive_config var are specified,hive_host、
-       hive_username、hive_table_name、hive_hash_fields is available.""")
+  @unittest.skipIf(
+    'hive_host' not in os.environ or 'hive_username' not in os.environ
+    or 'hive_table_name' not in os.environ
+    or 'hive_hash_fields' not in os.environ,
+    """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available."""
+  )
   def test_hive_input(self):
     self._init_config()
     data_config_str = """
@@ -231,8 +230,9 @@ class HiveInputTest(tf.test.TestCase):
       empty_config.input_names.pop()
     while len(empty_config.shared_names) > 0:
       empty_config.shared_names.pop()
-    train_input_fn = HiveInput(dataset_config, feature_configs,
-                               self.hive_train_input_config).create_input()
+    train_input_fn = HiveInput(
+      dataset_config, feature_configs, self.hive_train_input_config
+    ).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -240,9 +240,10 @@ class HiveInputTest(tf.test.TestCase):
     init_op = tf.get_collection(tf.GraphKeys.TABLE_INITIALIZERS)
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=False)
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=False
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -253,12 +254,13 @@ class HiveInputTest(tf.test.TestCase):
         print(key, label_dict[key][:5])
     return 0
 
-  @unittest.skipIf('hive_host' not in os.environ or
-                   'hive_username' not in os.environ or
-                   'hive_table_name' not in os.environ or
-                   'hive_hash_fields' not in os.environ,
-                   """Only execute hive_config var are specified,hive_host、
-       hive_username、hive_table_name、hive_hash_fields is available.""")
+  @unittest.skipIf(
+    'hive_host' not in os.environ or 'hive_username' not in os.environ
+    or 'hive_table_name' not in os.environ
+    or 'hive_hash_fields' not in os.environ,
+    """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available."""
+  )
   def test_mmoe(self):
     pipeline_config_path = 'samples/emr_script/mmoe/mmoe_census_income.config'
     gpus = test_utils.get_available_gpus()
@@ -276,7 +278,8 @@ class HiveInputTest(tf.test.TestCase):
       pipeline_config = pipeline_config_path
     else:
       pipeline_config = test_utils._load_config_for_test(
-          pipeline_config_path, self._test_dir)
+        pipeline_config_path, self._test_dir
+      )
 
     pipeline_config.train_config.train_distribute = 0
     pipeline_config.train_config.num_gpus_per_worker = 1
@@ -286,9 +289,11 @@ class HiveInputTest(tf.test.TestCase):
     test_pipeline_config_path = os.path.join(self._test_dir, 'pipeline.config')
     hyperparam_str = ''
     train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-        test_pipeline_config_path, hyperparam_str)
-    proc = test_utils.run_cmd(train_cmd,
-                              '%s/log_%s.txt' % (self._test_dir, 'master'))
+      test_pipeline_config_path, hyperparam_str
+    )
+    proc = test_utils.run_cmd(
+      train_cmd, '%s/log_%s.txt' % (self._test_dir, 'master')
+    )
     proc.wait()
     if proc.returncode != 0:
       logging.error('train %s failed' % test_pipeline_config_path)

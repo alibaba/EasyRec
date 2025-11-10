@@ -2,14 +2,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Add embedding column for EmbeddingVariable which is only available on pai."""
 
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import sparse_tensor
-from tensorflow.python.framework import tensor_shape
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import embedding_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import sparse_ops
+from tensorflow.python.framework import dtypes, ops, sparse_tensor, tensor_shape  # NOQA
+from tensorflow.python.ops import array_ops, embedding_ops, math_ops, sparse_ops  # NOQA
 
 
 def _prune_invalid_ids(sparse_ids, sparse_weights):
@@ -17,8 +11,9 @@ def _prune_invalid_ids(sparse_ids, sparse_weights):
   is_id_valid = math_ops.greater_equal(sparse_ids.values, 0)
   if sparse_weights is not None:
     is_id_valid = math_ops.logical_and(
-        is_id_valid,
-        array_ops.ones_like(sparse_weights.values, dtype=dtypes.bool))
+      is_id_valid,
+      array_ops.ones_like(sparse_weights.values, dtype=dtypes.bool)
+    )
   sparse_ids = sparse_ops.sparse_retain(sparse_ids, is_id_valid)
   if sparse_weights is not None:
     sparse_weights = sparse_ops.sparse_retain(sparse_weights, is_id_valid)
@@ -34,14 +29,16 @@ def _prune_invalid_weights(sparse_ids, sparse_weights):
   return sparse_ids, sparse_weights
 
 
-def safe_embedding_lookup_sparse(embedding_weights,
-                                 sparse_ids,
-                                 sparse_weights=None,
-                                 combiner='mean',
-                                 default_id=None,
-                                 name=None,
-                                 partition_strategy='div',
-                                 max_norm=None):
+def safe_embedding_lookup_sparse(
+  embedding_weights,
+  sparse_ids,
+  sparse_weights=None,
+  combiner='mean',
+  default_id=None,
+  name=None,
+  partition_strategy='div',
+  max_norm=None
+):
   """Lookup embedding results, accounting for invalid IDs and empty features.
 
   Fixed so that could be used with Pai EmbeddingVariables.
@@ -91,72 +88,90 @@ def safe_embedding_lookup_sparse(embedding_weights,
     raise ValueError('Missing embedding_weights %s.' % embedding_weights)
 
   embed_tensors = [ops.convert_to_tensor(embedding_weights)]
-  with ops.name_scope(name, 'embedding_lookup',
-                      embed_tensors + [sparse_ids, sparse_weights]) as scope:
+  with ops.name_scope(
+    name, 'embedding_lookup', embed_tensors + [sparse_ids, sparse_weights]
+  ) as scope:
     # Reshape higher-rank sparse ids and weights to linear segment ids.
     original_shape = sparse_ids.dense_shape
     original_rank_dim = sparse_ids.dense_shape.get_shape()[0]
     original_rank = (
-        array_ops.size(original_shape)
-        if original_rank_dim.value is None else original_rank_dim.value)
-    sparse_ids = sparse_ops.sparse_reshape(sparse_ids, [
+      array_ops.size(original_shape)
+      if original_rank_dim.value is None else original_rank_dim.value
+    )
+    sparse_ids = sparse_ops.sparse_reshape(
+      sparse_ids, [
         math_ops.reduce_prod(
-            array_ops.slice(original_shape, [0], [original_rank - 1])),
+          array_ops.slice(original_shape, [0], [original_rank - 1])
+        ),
         array_ops.gather(original_shape, original_rank - 1)
-    ])
+      ]
+    )
     if sparse_weights is not None:
-      sparse_weights = sparse_tensor.SparseTensor(sparse_ids.indices,
-                                                  sparse_weights.values,
-                                                  sparse_ids.dense_shape)
+      sparse_weights = sparse_tensor.SparseTensor(
+        sparse_ids.indices, sparse_weights.values, sparse_ids.dense_shape
+      )
 
     # Prune invalid ids and weights.
     sparse_ids, sparse_weights = _prune_invalid_ids(sparse_ids, sparse_weights)
     if combiner != 'sum':
       sparse_ids, sparse_weights = _prune_invalid_weights(
-          sparse_ids, sparse_weights)
+        sparse_ids, sparse_weights
+      )
 
     # Fill in dummy values for empty features, if necessary.
     sparse_ids, is_row_empty = sparse_ops.sparse_fill_empty_rows(
-        sparse_ids, default_id or 0)
+      sparse_ids, default_id or 0
+    )
     if sparse_weights is not None:
-      sparse_weights, _ = sparse_ops.sparse_fill_empty_rows(sparse_weights, 1.0)
+      sparse_weights, _ = sparse_ops.sparse_fill_empty_rows(
+        sparse_weights, 1.0
+      )
 
     indices = sparse_ids.indices
     values = sparse_ids.values
     if values.dtype != dtypes.int64:
       values = math_ops.to_int64(values)
     sparse_ids = sparse_tensor.SparseTensor(
-        indices=indices, values=values, dense_shape=sparse_ids.dense_shape)
+      indices=indices, values=values, dense_shape=sparse_ids.dense_shape
+    )
 
     result = embedding_ops.embedding_lookup_sparse(
-        embedding_weights,
-        sparse_ids,
-        sparse_weights,
-        combiner=combiner,
-        partition_strategy=partition_strategy,
-        name=None if default_id is None else scope,
-        max_norm=max_norm)
+      embedding_weights,
+      sparse_ids,
+      sparse_weights,
+      combiner=combiner,
+      partition_strategy=partition_strategy,
+      name=None if default_id is None else scope,
+      max_norm=max_norm
+    )
 
     if default_id is None:
       # Broadcast is_row_empty to the same shape as embedding_lookup_result,
       # for use in Select.
       is_row_empty = array_ops.tile(
-          array_ops.reshape(is_row_empty, [-1, 1]),
-          array_ops.stack([1, array_ops.shape(result)[1]]))
+        array_ops.reshape(is_row_empty, [-1, 1]),
+        array_ops.stack([1, array_ops.shape(result)[1]])
+      )
 
       result = array_ops.where(
-          is_row_empty, array_ops.zeros_like(result), result, name=scope)
+        is_row_empty, array_ops.zeros_like(result), result, name=scope
+      )
 
     # Reshape back from linear ids back into higher-dimensional dense result.
     final_result = array_ops.reshape(
-        result,
-        array_ops.concat([
-            array_ops.slice(
-                math_ops.cast(original_shape, dtypes.int32), [0],
-                [original_rank - 1]),
-            array_ops.slice(array_ops.shape(result), [1], [-1])
-        ], 0))
+      result,
+      array_ops.concat(
+        [
+          array_ops.slice(
+            math_ops.cast(original_shape, dtypes.int32), [0],
+            [original_rank - 1]
+          ),
+          array_ops.slice(array_ops.shape(result), [1], [-1])
+        ], 0
+      )
+    )
     final_result.set_shape(
-        tensor_shape.unknown_shape(
-            (original_rank_dim - 1).value).concatenate(result.get_shape()[1:]))
+      tensor_shape.unknown_shape((original_rank_dim - 1).value
+                                ).concatenate(result.get_shape()[1:])
+    )
     return final_result

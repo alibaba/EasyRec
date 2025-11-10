@@ -17,13 +17,13 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 
 ### 参数说明
 
-- --config_path  easyrec训练配置文件
-- --exp_dir  调优实验目录
-- --debug  保留本地临时目录
+- --config_path easyrec训练配置文件
+- --exp_dir 调优实验目录
+- --debug 保留本地临时目录
 - --metric_name  调优的指标，默认是auc，其它可选指标\[参考../eval.md)
 - --max_parallel   同一时刻可以并行跑的实验数目，默认4
 - --total_trial_num  总共跑多少组实验，默认6
-- --el_submit_params  el_submit指定PS/Worker资源的一些参数，包括-t x -m x \[-pn x -pc x -pm x\] -wn x -wc x -wm x -wg x 默认值
+- --el_submit_params el_submit指定PS/Worker资源的一些参数，包括-t x -m x [-pn x -pc x -pm x] -wn x -wc x -wm x -wg x 默认值
 
 ```bash
 -t standalone -m local -wn 1 -wc 6 -wm 20000 -wg 1
@@ -43,9 +43,9 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 ]
 ```
 
-- name:  easy_rec pipeline_config里面的参数名称，注意要用全路径
+- name: easy_rec pipeline_config里面的参数名称，注意要用全路径
 
-  feature_config.features\[**input_names\[0\]=field_name1**\].embedding_dim
+  feature_config.features\[**input_names[0]=field_name1**\].embedding_dim
 
   - 由于feature_config.features是一个数组，所以需要用到选择器，根据**属性值**选择部分特征:
 
@@ -68,7 +68,7 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 
 有些参数的值是关联的，比如对于deepfm算法，所有的embedding_dim必须是一样的
 
-- name里面可以指定多个要调整的参数名称，用";"分割feature_config.features\[input_names\[0\]=field1\].embedding_dim;feature_config.features\[input_names\[0\]=field20\].embedding_dim
+- name里面可以指定多个要调整的参数名称，用";"分割feature_config.features\[input_names[0]=field1\].embedding_dim;feature_config.features\[input_names[0]=field20\].embedding_dim
 - 如果name里面包含了多个参数名称，那么candidates也需要有多个参数值，用";"分割如"32;32"
 - candidates: 候选值
 - type: 候选值类型, 支持Categorical, Integer, Real
@@ -101,12 +101,12 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 ![image.png](../../images/automl/emr_log.png)
 一共做了5组实验，可以看到embedding_dim越小越好。
 
-- 实验目录信息(exp_dir):  hdfs:///user/easy_rec_test/experiment/hpo_test_v8
+- 实验目录信息(exp_dir): hdfs:///user/easy_rec_test/experiment/hpo_test_v8
 
 ![image.png](../../images/automl/emr_exp.png)
 
 - 如果设置了--debug，那么将会保留本地临时目录: /tmp/emr_easy_rec_hpo_1600519258
 
-  rewrite\_\[0-4\].json定义了每组实验的参数
+  rewrite\_[0-4].json定义了每组实验的参数
   ![image.png](../../images/automl/emr_json.png)
   ![image.png](../../images/automl/emr_json2.png)

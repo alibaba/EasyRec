@@ -26,7 +26,7 @@ def _process_enum(enum, input_names, prefix=''):
 
 def _get_expression_list(expression, input_names, prefix=''):
   ops = [
-      '+', '-', '*', '/', '(', ')', '>', '>=', '<', '<=', '==', '=', '&', '|'
+    '+', '-', '*', '/', '(', ')', '>', '>=', '<', '<=', '==', '=', '&', '|'
   ]
   expression_list = []
   eunm = ''
@@ -113,6 +113,8 @@ def _expression_eval(expr_list):
 
 
 def get_expression(expression, input_names, prefix=''):
-  expression_list = _get_expression_list(expression, input_names, prefix=prefix)
+  expression_list = _get_expression_list(
+    expression, input_names, prefix=prefix
+  )
   expression = _expression_eval(expression_list)
   return expression

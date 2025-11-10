@@ -54,12 +54,12 @@ pai -name easy_rec_ext
   - 二分类模型(要求num_class=1)，导出字段:logits、probs，对应: sigmoid之前的值/概率
   - 回归模型，导出字段: y，对应: 预测值
   - 多分类模型(num_class > 1)，导出字段:
-    - logits: string(json), softmax之前的vector, shape\[num_class\]
-    - probs: string(json), softmax之后的vector, shape\[num_class\]
+    - logits: string(json), softmax之前的vector, shape[num_class]
+    - probs: string(json), softmax之后的vector, shape[num_class]
       - 如果一个分类目标是is_click, 输出概率的变量名称是probs_is_click
       - 多目标模型中有一个回归目标是paytime，那么输出回归预测分的变量名称是：y_paytime
-    - logits_y: logits\[y\], float, 类别y对应的softmax之前的概率
-    - probs_y: probs\[y\], float, 类别y对应的概率
+    - logits_y: logits[y], float, 类别y对应的softmax之前的概率
+    - probs_y: probs[y], float, 类别y对应的概率
     - y: 类别id, = argmax(probs_y), int, 概率最大的类别
     - 示例:
     ```sql

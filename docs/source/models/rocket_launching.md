@@ -59,7 +59,7 @@ model_config: {
     - hidden_units: dnn每一层的channel数目，即神经元的数目
   - booster_dnn: 助推器网络的参数配置
     - hidden_units: dnn每一层的channel数目，即神经元的数目
-  - light_dnn:  轻量网络的参数配置
+  - light_dnn: 轻量网络的参数配置
     - hidden_units: dnn每一层的channel数目，即神经元的数目
   - feature_based_distillation：是否配置特征蒸馏（默认不配）
   - feature_distillation_function：中间层相似度衡量指标（COSINE; EUCLID; 默认COSINE）

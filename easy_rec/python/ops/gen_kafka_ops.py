@@ -6,10 +6,9 @@ Original C++ source file: kafka_ops_deprecated.cc
 
 import logging
 import os
-import traceback
-
 import six as _six
 import tensorflow as tf
+import traceback
 from tensorflow.python import pywrap_tensorflow as _pywrap_tensorflow
 from tensorflow.python.eager import context as _context
 from tensorflow.python.eager import core as _core
@@ -28,21 +27,24 @@ if easy_rec.ops_dir is not None:
     try:
       kafka_module = tf.load_op_library(kafka_ops_path)
     except Exception:
-      logging.warning('load %s failed: %s' %
-                      (kafka_ops_path, traceback.format_exc()))
+      logging.warning(
+        'load %s failed: %s' % (kafka_ops_path, traceback.format_exc())
+      )
 
 
 @tf_export('io_kafka_dataset_v2')
-def io_kafka_dataset_v2(topics,
-                        servers,
-                        group,
-                        eof,
-                        timeout,
-                        config_global,
-                        config_topic,
-                        message_key,
-                        message_offset,
-                        name=None):
+def io_kafka_dataset_v2(
+  topics,
+  servers,
+  group,
+  eof,
+  timeout,
+  config_global,
+  config_topic,
+  message_key,
+  message_offset,
+  name=None
+):
   """Creates a dataset that emits the messages of one or more Kafka topics.
 
   Args:
@@ -73,29 +75,32 @@ def io_kafka_dataset_v2(topics,
     A `Tensor` of type `variant`.
   """
   return kafka_module.io_kafka_dataset_v2(
-      topics=topics,
-      servers=servers,
-      group=group,
-      eof=eof,
-      timeout=timeout,
-      config_global=config_global,
-      config_topic=config_topic,
-      message_key=message_key,
-      message_offset=message_offset,
-      name=name)
+    topics=topics,
+    servers=servers,
+    group=group,
+    eof=eof,
+    timeout=timeout,
+    config_global=config_global,
+    config_topic=config_topic,
+    message_key=message_key,
+    message_offset=message_offset,
+    name=name
+  )
 
 
-def io_kafka_dataset_eager_fallback(topics,
-                                    servers,
-                                    group,
-                                    eof,
-                                    timeout,
-                                    config_global,
-                                    config_topic,
-                                    message_key,
-                                    message_offset,
-                                    name=None,
-                                    ctx=None):
+def io_kafka_dataset_eager_fallback(
+  topics,
+  servers,
+  group,
+  eof,
+  timeout,
+  config_global,
+  config_topic,
+  message_key,
+  message_offset,
+  name=None,
+  ctx=None
+):
   """This is the slowpath function for Eager mode.
 
   This is for function io_kafka_dataset
@@ -111,19 +116,21 @@ def io_kafka_dataset_eager_fallback(topics,
   message_key = _ops.convert_to_tensor(message_key, _dtypes.bool)
   message_offset = _ops.convert_to_tensor(message_offset, _dtypes.bool)
   _inputs_flat = [
-      topics, servers, group, eof, timeout, config_global, config_topic,
-      message_key, message_offset
+    topics, servers, group, eof, timeout, config_global, config_topic,
+    message_key, message_offset
   ]
   _attrs = None
   _result = _execute.execute(
-      b'IOKafkaDataset',
-      1,
-      inputs=_inputs_flat,
-      attrs=_attrs,
-      ctx=_ctx,
-      name=name)
-  _execute.record_gradient('IOKafkaDataset', _inputs_flat, _attrs, _result,
-                           name)
+    b'IOKafkaDataset',
+    1,
+    inputs=_inputs_flat,
+    attrs=_attrs,
+    ctx=_ctx,
+    name=name
+  )
+  _execute.record_gradient(
+    'IOKafkaDataset', _inputs_flat, _attrs, _result, name
+  )
   _result, = _result
   return _result
 
@@ -144,24 +151,28 @@ def io_write_kafka_v2(message, topic, servers, name=None):
   _ctx = _context._context
   if _ctx is None or not _ctx._eager_context.is_eager:
     _op = kafka_module.io_write_kafka_v2(
-        message=message, topic=topic, servers=servers, name=name)
+      message=message, topic=topic, servers=servers, name=name
+    )
     _result = _op.outputs[:]
     _inputs_flat = _op.inputs
     _attrs = None
-    _execute.record_gradient('IOWriteKafka', _inputs_flat, _attrs, _result,
-                             name)
+    _execute.record_gradient(
+      'IOWriteKafka', _inputs_flat, _attrs, _result, name
+    )
     _result, = _result
     return _result
 
   else:
     try:
       _result = _pywrap_tensorflow.TFE_Py_FastPathExecute(
-          _ctx._context_handle, _ctx._eager_context.device_name, 'IOWriteKafka',
-          name, _ctx._post_execution_callbacks, message, topic, servers)
+        _ctx._context_handle, _ctx._eager_context.device_name, 'IOWriteKafka',
+        name, _ctx._post_execution_callbacks, message, topic, servers
+      )
       return _result
     except _core._FallbackException:
       return io_write_kafka_eager_fallback(
-          message, topic, servers, name=name, ctx=_ctx)
+        message, topic, servers, name=name, ctx=_ctx
+      )
     except _core._NotOkStatusException as e:
       if name is not None:
         message = e.message + ' name: ' + name
@@ -170,7 +181,9 @@ def io_write_kafka_v2(message, topic, servers, name=None):
       _six.raise_from(_core._status_to_exception(e.code, message), None)
 
 
-def io_write_kafka_eager_fallback(message, topic, servers, name=None, ctx=None):
+def io_write_kafka_eager_fallback(
+  message, topic, servers, name=None, ctx=None
+):
   """This is the slowpath function for Eager mode.
 
   This is for function io_write_kafka
@@ -182,12 +195,8 @@ def io_write_kafka_eager_fallback(message, topic, servers, name=None, ctx=None):
   _inputs_flat = [message, topic, servers]
   _attrs = None
   _result = _execute.execute(
-      b'IOWriteKafka',
-      1,
-      inputs=_inputs_flat,
-      attrs=_attrs,
-      ctx=_ctx,
-      name=name)
+    b'IOWriteKafka', 1, inputs=_inputs_flat, attrs=_attrs, ctx=_ctx, name=name
+  )
   _execute.record_gradient('IOWriteKafka', _inputs_flat, _attrs, _result, name)
   _result, = _result
   return _result

@@ -31,7 +31,7 @@ def info_nce_loss(query, positive, temperature=0.1):
   # Embedding vectors should have same number of components.
   if query.shape[-1] != positive.shape[-1]:
     raise ValueError(
-        'Vectors of <query> and <positive> should have the same number of components.'
+      'Vectors of <query> and <positive> should have the same number of components.'
     )
 
   # Negative keys are implicitly off-diagonal positive keys.
@@ -65,9 +65,11 @@ def nce_loss(z_i, z_j, temperature=1.0):
   z = tf.concat((z_i, z_j), axis=0)
   sim = tf.matmul(z, tf.transpose(z)) / temperature
   sim_i_j = tf.matrix_diag_part(
-      tf.slice(sim, [batch_size, 0], [batch_size, batch_size]))
+    tf.slice(sim, [batch_size, 0], [batch_size, batch_size])
+  )
   sim_j_i = tf.matrix_diag_part(
-      tf.slice(sim, [0, batch_size], [batch_size, batch_size]))
+    tf.slice(sim, [0, batch_size], [batch_size, batch_size])
+  )
   positive_samples = tf.reshape(tf.concat((sim_i_j, sim_j_i), axis=0), (N, 1))
   mask = get_mask_matrix(batch_size)
   negative_samples = tf.reshape(tf.boolean_mask(sim, mask), (N, -1))

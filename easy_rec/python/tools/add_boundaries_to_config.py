@@ -1,28 +1,29 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import common_io
 import json
 import logging
 import os
 import sys
-
-import common_io
 import tensorflow as tf
 
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import io_util
+from easy_rec.python.utils import config_util, io_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
-    format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
-tf.app.flags.DEFINE_string('template_config_path', None,
-                           'Path to template pipeline config '
-                           'file.')
-tf.app.flags.DEFINE_string('output_config_path', None,
-                           'Path to output pipeline config '
-                           'file.')
+  format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
+  level=logging.INFO
+)
+tf.app.flags.DEFINE_string(
+  'template_config_path', None, 'Path to template pipeline config '
+  'file.'
+)
+tf.app.flags.DEFINE_string(
+  'output_config_path', None, 'Path to output pipeline config '
+  'file.'
+)
 tf.app.flags.DEFINE_string('tables', '', 'quantile binning table')
 
 FLAGS = tf.app.flags.FLAGS
@@ -30,11 +31,13 @@ FLAGS = tf.app.flags.FLAGS
 
 def main(argv):
   pipeline_config = config_util.get_configs_from_pipeline_file(
-      FLAGS.template_config_path)
+    FLAGS.template_config_path
+  )
 
   feature_boundaries_info = {}
   reader = common_io.table.TableReader(
-      FLAGS.tables, selected_cols='feature,json')
+    FLAGS.tables, selected_cols='feature,json'
+  )
   while True:
     try:
       record = reader.read()

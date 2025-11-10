@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
@@ -12,13 +11,15 @@ if tf.__version__ >= '2.0':
 
 class MMOE:
 
-  def __init__(self,
-               expert_dnn_config,
-               l2_reg,
-               num_task,
-               num_expert=None,
-               name='mmoe',
-               is_training=False):
+  def __init__(
+    self,
+    expert_dnn_config,
+    l2_reg,
+    num_task,
+    num_expert=None,
+    name='mmoe',
+    is_training=False
+  ):
     """Initializes a `DNN` Layer.
 
     Args:
@@ -52,10 +53,11 @@ class MMOE:
 
   def gate(self, unit, deep_fea, name):
     fea = tf.layers.dense(
-        inputs=deep_fea,
-        units=unit,
-        kernel_regularizer=self._l2_reg,
-        name='%s/dnn' % name)
+      inputs=deep_fea,
+      units=unit,
+      kernel_regularizer=self._l2_reg,
+      name='%s/dnn' % name
+    )
     fea = tf.nn.softmax(fea, axis=1)
     return fea
 
@@ -64,10 +66,11 @@ class MMOE:
     for expert_id in range(self._num_expert):
       expert_dnn_config = self._expert_dnn_configs[expert_id]
       expert_dnn = dnn.DNN(
-          expert_dnn_config,
-          self._l2_reg,
-          name='%s/expert_%d' % (self._name, expert_id),
-          is_training=self._is_training)
+        expert_dnn_config,
+        self._l2_reg,
+        name='%s/expert_%d' % (self._name, expert_id),
+        is_training=self._is_training
+      )
       expert_fea = expert_dnn(deep_fea)
       expert_fea_list.append(expert_fea)
     experts_fea = tf.stack(expert_fea_list, axis=1)
@@ -75,7 +78,8 @@ class MMOE:
     task_input_list = []
     for task_id in range(self._num_task):
       gate = self.gate(
-          self._num_expert, deep_fea, name='%s/gate_%d' % (self._name, task_id))
+        self._num_expert, deep_fea, name='%s/gate_%d' % (self._name, task_id)
+      )
       gate = tf.expand_dims(gate, -1)
       task_input = tf.multiply(experts_fea, gate)
       task_input = tf.reduce_sum(task_input, axis=1)

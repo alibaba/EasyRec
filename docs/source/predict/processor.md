@@ -24,8 +24,8 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
   - 在线推理User Feature的BatchSize = 1, 因此只需要计算一次, Tile可以放到UserFeature EmbeddingLookUp的后面，和EmbeddingLookUp融合起来
 - EmbeddingLookup OpFusion
   - embedding lookup涉及到GatherV2 / SparseSegmentMean等多个小op, 使用OpFusion可以减少kernel launch以及Tensor内存分配和拷贝的开销
-  - embedding lookup的过程需要用到比较多的SparseSegment Mean/Sum操作,  使用avx指令优化向量运算
-- MatchFeature /  LookupFeature优化
+  - embedding lookup的过程需要用到比较多的SparseSegment Mean/Sum操作, 使用avx指令优化向量运算
+- MatchFeature / LookupFeature优化
   - 使用string_view代替std::string，减少string拷贝的开销
 - Sequence特征优化
   - sequence特征建模通常需要带上side info才能取得比较好的效果, 将side info放在请求中传递过来会带来通信的开销, EasyRec Processor在客户侧缓存了item特征, 因此在请求中只传递item_id sequence, side info sequence通过item_id查找客户侧缓存构建.
@@ -39,7 +39,7 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
 
   - 特征:
 
-   <table class="docutils" border=1>
+  <table class="docutils" border=1>
    <tr><th>id_feature</th><th>raw_feature</th><th>lookup_feature</th><th>sequence_feature</th></tr>
    <tr><td> 67 </td><td> 170 </td><td> 756 </td> <td>main seq num: 4 | sideinfo seq num: 32 | max seq len: 50 </td></tr>
    </table>
@@ -52,7 +52,7 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
     - CPU型号: [IceLake](https://help.aliyun.com/document_detail/68564.html#p-zpg-gvj-g91)
   - 测试结果:
 
-   <table class="docutils" border=1>
+  <table class="docutils" border=1>
    <tr><th></th><th>CPU利用率</th><th>QPS</th><th>AVG RT</th><th>TP99</th></tr>
    <tr><td>优化前</td><td>96 </td><td> 20   </td><td> 247ms </td><td> 333ms </td></tr>
    <tr><td>优化后</td><td>91 </td><td> 55   </td><td> 86ms  </td><td> 113ms </td></tr>
@@ -63,7 +63,7 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
 
   - 特征数:
 
-   <table class="docutils" border=1>
+  <table class="docutils" border=1>
    <tr><th> id_feature </th><th> raw_feature </th><th> lookup_feature </th><th> match_feature </th></tr>
    <tr><td> 306 </td><td>  77 </td><td>  60 </td><td> 1000 </td></tr>
    </table>
@@ -76,7 +76,7 @@ FeatureGenerator作为算子嵌入, 和TFModel联合优化，主要的优化点�
     - CPU型号: [IceLake](https://help.aliyun.com/document_detail/68564.html#p-zpg-gvj-g91)
   - 测试结果:
 
-   <table class="docutils" border=1>
+  <table class="docutils" border=1>
      <tr><th></th><th> CPU利用率 </th><th> QPS </th><th> AVG RT </th><th> TP99 </th></tr>
      <tr><td> 优化前 </td><td> 89 </td><td> 33   </td><td> 288 </td><td> 362</td></tr>
      <tr><td> 优化后 </td><td> 93 </td><td> 226  </td><td> 34  </td><td> 57 </td></tr>

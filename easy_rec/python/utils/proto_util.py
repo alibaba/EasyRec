@@ -85,6 +85,8 @@ def is_cache_from_redis(name, redis_cache_names):
   for y in redis_cache_names:
     for k in tok:
       if k.startswith(y):
-        logging.info('embedding %s will be cached[specified by %s]' % (name, y))
+        logging.info(
+          'embedding %s will be cached[specified by %s]' % (name, y)
+        )
         return True
   return False

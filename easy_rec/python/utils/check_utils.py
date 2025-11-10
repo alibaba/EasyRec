@@ -10,8 +10,9 @@ if tf.__version__ >= '2.0':
 
 
 def check_split(line, sep, requried_field_num, field_name=''):
-  assert sep, 'must have separator.' + (' field: %s.' %
-                                        field_name) if field_name else ''
+  assert sep, 'must have separator.' + (
+    ' field: %s.' % field_name
+  ) if field_name else ''
 
   for one_line in line:
     field_num = len(one_line.split(sep))
@@ -62,12 +63,12 @@ def check_env_and_input_path(pipeline_config, input_path):
   input_type = pipeline_config.data_config.input_type
   input_type_name = DatasetConfig.InputType.Name(input_type)
   ignore_input_list = [
-      DatasetConfig.InputType.TFRecordInput,
-      DatasetConfig.InputType.BatchTFRecordInput,
-      DatasetConfig.InputType.KafkaInput,
-      DatasetConfig.InputType.DataHubInput,
-      DatasetConfig.InputType.HiveInput,
-      DatasetConfig.InputType.DummyInput,
+    DatasetConfig.InputType.TFRecordInput,
+    DatasetConfig.InputType.BatchTFRecordInput,
+    DatasetConfig.InputType.KafkaInput,
+    DatasetConfig.InputType.DataHubInput,
+    DatasetConfig.InputType.HiveInput,
+    DatasetConfig.InputType.DummyInput,
   ]
   if input_type in ignore_input_list:
     return True

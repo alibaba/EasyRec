@@ -1,29 +1,23 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import abc
 import json
 import logging
 import math
-import os
-import time
-
 import numpy as np
+import os
 import six
 import tensorflow as tf
+import time
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
-from tensorflow.python.saved_model import constants
-from tensorflow.python.saved_model import signature_constants
+from tensorflow.python.saved_model import constants, signature_constants
 
 import easy_rec
 from easy_rec.python.utils import numpy_utils
-from easy_rec.python.utils.config_util import get_configs_from_pipeline_file
-from easy_rec.python.utils.config_util import get_input_name_from_fg_json
-from easy_rec.python.utils.config_util import search_fg_json
+from easy_rec.python.utils.config_util import get_configs_from_pipeline_file, get_input_name_from_fg_json, search_fg_json  # NOQA
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
 
@@ -39,7 +33,8 @@ SINGLE_PLACEHOLDER_FEATURE_KEY = 'features'
 
 _PREDICTOR_CLASS_MAP = {}
 _register_abc_meta = get_register_class_meta(
-    _PREDICTOR_CLASS_MAP, have_abstract_class=True)
+  _PREDICTOR_CLASS_MAP, have_abstract_class=True
+)
 
 
 class PredictorInterface(six.with_metaclass(_register_abc_meta, object)):
@@ -154,14 +149,18 @@ class PredictorImpl(object):
       raise ValueError('savedmodel is not found in directory %s' % directory)
     elif len(dir_list) > 1:
       if self._use_latest:
-        logging.info('find %d models: %s' % (len(dir_list), ','.join(dir_list)))
+        logging.info(
+          'find %d models: %s' % (len(dir_list), ','.join(dir_list))
+        )
         dir_list = sorted(
-            dir_list,
-            key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)]))
+          dir_list,
+          key=lambda x: int(x.split('/')[(-2 if (x[-1] == '/') else -1)])
+        )
         return dir_list[-1]
       else:
-        raise ValueError('multiple saved model found in directory %s' %
-                         directory)
+        raise ValueError(
+          'multiple saved model found in directory %s' % directory
+        )
 
     return dir_list[0]
 
@@ -169,17 +168,20 @@ class PredictorImpl(object):
     pipeline_path = os.path.join(model_path, 'assets/pipeline.config')
     if not gfile.Exists(pipeline_path):
       logging.warning(
-          '%s not exists, default values maybe inconsistent with the values used in training.'
-          % pipeline_path)
+        '%s not exists, default values maybe inconsistent with the values used in training.'
+        % pipeline_path
+      )
       return {}
     pipeline_config = get_configs_from_pipeline_file(pipeline_path)
     input_fields = pipeline_config.data_config.input_fields
     input_fields_info = {
-        input_field.input_name:
-        (input_field.input_type, input_field.default_val)
-        for input_field in input_fields
+      input_field.input_name:
+      (input_field.input_type, input_field.default_val)
+      for input_field in input_fields
     }
-    input_fields_list = [input_field.input_name for input_field in input_fields]
+    input_fields_list = [
+      input_field.input_name for input_field in input_fields
+    ]
 
     return input_fields_info, input_fields_list
 
@@ -189,9 +191,10 @@ class PredictorImpl(object):
     self._graph = tf.Graph()
     gpu_options = tf.GPUOptions(allow_growth=True)
     session_config = tf.ConfigProto(
-        gpu_options=gpu_options,
-        allow_soft_placement=True,
-        log_device_placement=(self._profiling_file is not None))
+      gpu_options=gpu_options,
+      allow_soft_placement=True,
+      log_device_placement=(self._profiling_file is not None)
+    )
     self._session = tf.Session(config=session_config, graph=self._graph)
 
     with self._graph.as_default():
@@ -203,15 +206,17 @@ class PredictorImpl(object):
           model_path = self.search_pb(model_path)
           logging.info('model find in %s' % model_path)
           self._input_fields_info, self._input_fields_list = self._get_input_fields_from_pipeline_config(
-              model_path)
+            model_path
+          )
           assert tf.saved_model.loader.maybe_saved_model_directory(model_path), \
               'saved model does not exists in %s' % model_path
           self._is_saved_model = True
           meta_graph_def = tf.saved_model.loader.load(
-              self._session, [tf.saved_model.tag_constants.SERVING], model_path)
+            self._session, [tf.saved_model.tag_constants.SERVING], model_path
+          )
           # parse signature
           signature_def = meta_graph_def.signature_def[
-              signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+            signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
           inputs = signature_def.inputs
           # each input_info is a tuple of input_id, name, data_type
           input_info = []
@@ -219,7 +224,9 @@ class PredictorImpl(object):
           if self._is_multi_placeholder:
             for gid, item in enumerate(inputs.items()):
               name, tensor = item
-              logging.info('Load input binding: %s -> %s' % (name, tensor.name))
+              logging.info(
+                'Load input binding: %s -> %s' % (name, tensor.name)
+              )
               input_name = tensor.name
               input_name, _ = input_name.split(':')
               try:
@@ -231,19 +238,24 @@ class PredictorImpl(object):
                 # same as they are defined, thereforce, list input
                 # could not be supported, only dict input could be supported
                 logging.warning(
-                    'could not determine input_id from input_name: %s' %
-                    input_name)
+                  'could not determine input_id from input_name: %s' %
+                  input_name
+                )
                 input_id = gid
               input_info.append((input_id, name, tensor.dtype))
               self._inputs_map[name] = self._graph.get_tensor_by_name(
-                  tensor.name)
+                tensor.name
+              )
           else:
             # only one input, all features concatenate together
             for name, tensor in inputs.items():
-              logging.info('Load input binding: %s -> %s' % (name, tensor.name))
+              logging.info(
+                'Load input binding: %s -> %s' % (name, tensor.name)
+              )
               input_info.append((0, name, tensor.dtype))
               self._inputs_map[name] = self._graph.get_tensor_by_name(
-                  tensor.name)
+                tensor.name
+              )
           # sort inputs by input_ids so as to match the order of csv data
           input_info.sort(key=lambda t: t[0])
           self._input_names = [t[1] for t in input_info]
@@ -252,7 +264,8 @@ class PredictorImpl(object):
           for name, tensor in outputs.items():
             logging.info('Load output binding: %s -> %s' % (name, tensor.name))
             self._outputs_map[name] = self._graph.get_tensor_by_name(
-                tensor.name)
+              tensor.name
+            )
 
           # get assets
           self._assets = {}
@@ -261,8 +274,9 @@ class PredictorImpl(object):
             asset_file = meta_graph_pb2.AssetFileDef()
             any_proto.Unpack(asset_file)
             type_name = asset_file.tensor_info.name.split(':')[0]
-            asset_path = os.path.join(model_path, constants.ASSETS_DIRECTORY,
-                                      asset_file.filename)
+            asset_path = os.path.join(
+              model_path, constants.ASSETS_DIRECTORY, asset_file.filename
+            )
             # assert gfile.Exists(
             #     asset_path), '%s is missing in saved model' % asset_path
             if gfile.Exists(asset_path):
@@ -316,10 +330,11 @@ class PredictorImpl(object):
           run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
           run_metadata = tf.RunMetadata()
           results = self._session.run(
-              fetch_dict,
-              feed_dict,
-              options=run_options,
-              run_metadata=run_metadata)
+            fetch_dict,
+            feed_dict,
+            options=run_options,
+            run_metadata=run_metadata
+          )
           # Create the Timeline object, and write it to a json
           from tensorflow.python.client import timeline
           tl = timeline.Timeline(run_metadata.step_stats)
@@ -331,11 +346,9 @@ class PredictorImpl(object):
 
 class Predictor(PredictorInterface):
 
-  def __init__(self,
-               model_path,
-               profiling_file=None,
-               fg_json_path=None,
-               use_latest=True):
+  def __init__(
+    self, model_path, profiling_file=None, fg_json_path=None, use_latest=True
+  ):
     """Initialize a `Predictor`.
 
     Args:
@@ -346,7 +359,9 @@ class Predictor(PredictorInterface):
       fg_json_path: fg.json file
       use_latest: use latest saved_model.pb if multiple one exists.
     """
-    self._predictor_impl = PredictorImpl(model_path, profiling_file, use_latest)
+    self._predictor_impl = PredictorImpl(
+      model_path, profiling_file, use_latest
+    )
     self._inputs_map = self._predictor_impl._inputs_map
     self._outputs_map = self._predictor_impl._outputs_map
     self._profiling_file = profiling_file
@@ -385,18 +400,21 @@ class Predictor(PredictorInterface):
     else:
       defaults = {'string': '', 'double': 0.0, 'bigint': 0}
       assert col_type in defaults, 'invalid col_type: %s, col_type: %s' % (
-          col_name, col_type)
+        col_name, col_type
+      )
       default_val = defaults[col_type]
       logging.info(
-          'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
-          % (col_name, default_val))
+        'col_name: %s, default_val: %s.[not defined in saved_model_dir/assets/pipeline.config]'
+        % (col_name, default_val)
+      )
     return default_val
 
   def _parse_line(self, line):
     pass
 
-  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num,
-                   slice_id):
+  def _get_dataset(
+    self, input_path, num_parallel_calls, batch_size, slice_num, slice_id
+  ):
     pass
 
   def _get_writer(self, output_path, slice_id):
@@ -433,14 +451,14 @@ class Predictor(PredictorInterface):
     pass
 
   def predict_impl(
-      self,
-      input_path,
-      output_path,
-      reserved_cols='',
-      output_cols=None,
-      batch_size=1024,
-      slice_id=0,
-      slice_num=1,
+    self,
+    input_path,
+    output_path,
+    reserved_cols='',
+    output_cols=None,
+    batch_size=1024,
+    slice_id=0,
+    slice_num=1,
   ):
     """Predict table input with loaded model.
 
@@ -471,10 +489,12 @@ class Predictor(PredictorInterface):
     with tf.Graph().as_default(), tf.Session() as sess:
       num_parallel_calls = 8
       self._reserved_args = reserved_cols
-      dataset = self._get_dataset(input_path, num_parallel_calls, batch_size,
-                                  slice_num, slice_id)
+      dataset = self._get_dataset(
+        input_path, num_parallel_calls, batch_size, slice_num, slice_id
+      )
       dataset = dataset.map(
-          self._parse_line, num_parallel_calls=num_parallel_calls)
+        self._parse_line, num_parallel_calls=num_parallel_calls
+      )
       if hasattr(tf.data, 'make_one_shot_iterator'):
         iterator = tf.data.make_one_shot_iterator(dataset)
       else:
@@ -498,9 +518,10 @@ class Predictor(PredictorInterface):
             else:
               assert self._all_input_names, 'must set fg_json_path when use fg input'
               assert fg_input_size == len(self._all_input_names), (
-                  'The number of features defined in fg_json != the size of fg input. '
-                  'The number of features defined in fg_json is: %d; The size of fg input is: %d'
-                  % (len(self._all_input_names), fg_input_size))
+                'The number of features defined in fg_json != the size of fg input. '
+                'The number of features defined in fg_json is: %d; The size of fg input is: %d'
+                % (len(self._all_input_names), fg_input_size)
+              )
               for i, k in enumerate(self._all_input_names):
                 split_index.append(k)
                 split_vals[k] = []
@@ -530,19 +551,19 @@ class Predictor(PredictorInterface):
               outputs[x] = [val[0] for val in outputs[x]]
             elif len(outputs[x].shape) > 1:
               outputs[x] = [
-                  json.dumps(val, cls=numpy_utils.NumpyEncoder)
-                  for val in outputs[x]
+                json.dumps(val, cls=numpy_utils.NumpyEncoder)
+                for val in outputs[x]
               ]
           for k in self._reserved_cols:
             if k in all_vals and all_vals[k].dtype == np.object:
               all_vals[k] = [
-                  val.decode('utf-8', errors='ignore') for val in all_vals[k]
+                val.decode('utf-8', errors='ignore') for val in all_vals[k]
               ]
 
           ts2 = time.time()
-          reserve_vals = self._get_reserve_vals(self._reserved_cols,
-                                                self._output_cols, all_vals,
-                                                outputs)
+          reserve_vals = self._get_reserve_vals(
+            self._reserved_cols, self._output_cols, all_vals, outputs
+          )
           outputs = [x for x in zip(*reserve_vals)]
           logging.info('predict size: %s' % len(outputs))
           self._write_lines(table_writer, outputs)
@@ -555,12 +576,18 @@ class Predictor(PredictorInterface):
         except self.out_of_range_exception:
           break
         if progress % 100 == 0:
-          logging.info('progress: batch_num=%d sample_num=%d' %
-                       (progress, progress * batch_size))
-          logging.info('time_stats: read: %.2f predict: %.2f write: %.2f' %
-                       (sum_t0, sum_t1, sum_t2))
-      logging.info('Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
-                   (sum_t0, sum_t1, sum_t2))
+          logging.info(
+            'progress: batch_num=%d sample_num=%d' %
+            (progress, progress * batch_size)
+          )
+          logging.info(
+            'time_stats: read: %.2f predict: %.2f write: %.2f' %
+            (sum_t0, sum_t1, sum_t2)
+          )
+      logging.info(
+        'Final_time_stats: read: %.2f predict: %.2f write: %.2f' %
+        (sum_t0, sum_t1, sum_t2)
+      )
       table_writer.close()
       self.load_to_table(output_path, slice_num, slice_id)
       logging.info('Predict %s done.' % input_path)

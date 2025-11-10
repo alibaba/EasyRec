@@ -13,16 +13,12 @@
 # limitations under the License.
 # ==============================================================================
 """Common util functions used by layers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import json
-
 from google.protobuf import struct_pb2
 from google.protobuf.descriptor import FieldDescriptor
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import sparse_tensor
+from tensorflow.python.framework import ops, sparse_tensor
 from tensorflow.python.ops import variables
 
 try:
@@ -35,9 +31,9 @@ ColumnNameInCollection = {}
 
 def _tensor_to_map(tensor):
   return {
-      'node_path': tensor.name,
-      'shape': tensor.shape.as_list() if tensor.shape else None,
-      'dtype': tensor.dtype.name
+    'node_path': tensor.name,
+    'shape': tensor.shape.as_list() if tensor.shape else None,
+    'dtype': tensor.dtype.name
   }
 
 
@@ -80,12 +76,14 @@ def _process_item(collection_name, name, func):
     idx_found = ColumnNameInCollection[key]
     if idx_found >= len(col):
       raise Exception(
-          'Find column name in collection failed: index out of range')
+        'Find column name in collection failed: index out of range'
+      )
 
     item_found = json.loads(col[idx_found])
     if item_found['name'] != name:
       raise Exception(
-          'Find column name in collection failed: item name not match')
+        'Find column name in collection failed: item name not match'
+      )
     func(item_found)
     col[idx_found] = json.dumps(item_found)
   else:
@@ -125,11 +123,13 @@ def unique_name_in_collection(collection_name, name):
   return unique_name
 
 
-def gen_embedding_attrs(column=None,
-                        variable=None,
-                        bucket_size=None,
-                        combiner=None,
-                        is_embedding_var=None):
+def gen_embedding_attrs(
+  column=None,
+  variable=None,
+  bucket_size=None,
+  combiner=None,
+  is_embedding_var=None
+):
   attrs = dict()
   attrs['name'] = column.name
   attrs['bucket_size'] = bucket_size
@@ -143,9 +143,11 @@ def gen_embedding_attrs(column=None,
       attrs['embedding_var_values'] = variable._shared_name + '-values'
     elif (isinstance(variable, variables.PartitionedVariable)) and \
         (isinstance(variable._get_variable_list()[0], kv_variable_ops.EmbeddingVariable)):
-      attrs['embedding_var_keys'] = [v._shared_name + '-keys' for v in variable]
+      attrs['embedding_var_keys'] = [
+        v._shared_name + '-keys' for v in variable
+      ]
       attrs['embedding_var_values'] = [
-          v._shared_name + '-values' for v in variable
+        v._shared_name + '-values' for v in variable
       ]
     else:
       attrs['is_embedding_var'] = False
@@ -155,11 +157,13 @@ def gen_embedding_attrs(column=None,
 
 
 def mark_input_src(name, src_desc):
-  ops.add_to_collection(ops.GraphKeys.RANK_SERVICE_INPUT_SRC,
-                        json.dumps({
-                            'name': name,
-                            'src': src_desc
-                        }))
+  ops.add_to_collection(
+    ops.GraphKeys.RANK_SERVICE_INPUT_SRC,
+    json.dumps({
+      'name': name,
+      'src': src_desc
+    })
+  )
 
 
 def is_proto_message(pb_obj, field):

@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-
 import tensorflow as tf
 from tensorflow.python.ops import string_ops
 
@@ -23,6 +22,8 @@ def str_split_by_chr(input_str, sep, skip_empty):
     assert len(sep) == 1, \
         'invalid data_config.separator(%s) len(%d) != 1' % (
         sep, len(sep))
-    return str_avx_op.avx512_string_split(input_str, sep, skip_empty=skip_empty)
+    return str_avx_op.avx512_string_split(
+      input_str, sep, skip_empty=skip_empty
+    )
   else:
     return string_ops.string_split(input_str, sep, skip_empty=skip_empty)

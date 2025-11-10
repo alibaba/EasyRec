@@ -2,7 +2,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
-
 import numpy as np
 import tensorflow as tf
 from google.protobuf import text_format
@@ -11,8 +10,7 @@ from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.input.dummy_input import DummyInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, WideOrDeep
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -64,7 +62,8 @@ class EmbedTest(tf.test.TestCase):
     feature_configs = [feature_config]
     features = {'field1': tf.constant(['0.1,0.2,0.3,0.4,0.5'])}
     dummy_input = DummyInput(
-        data_config, feature_configs, '', input_vals=features)
+      data_config, feature_configs, '', input_vals=features
+    )
     field_dict, _ = dummy_input._build(tf.estimator.ModeKeys.TRAIN, {})
 
     wide_and_deep_dict = {'field1': WideOrDeep.WIDE_AND_DEEP}
@@ -130,7 +129,8 @@ class EmbedTest(tf.test.TestCase):
     feature_configs = [feature_config]
     features = {'field1': tf.constant(['0112', '132430'])}
     dummy_input = DummyInput(
-        data_config, feature_configs, '', input_vals=features)
+      data_config, feature_configs, '', input_vals=features
+    )
     field_dict, _ = dummy_input._build(tf.estimator.ModeKeys.TRAIN, {})
 
     wide_and_deep_dict = {'field1': WideOrDeep.DEEP}

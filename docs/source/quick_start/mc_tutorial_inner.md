@@ -57,7 +57,7 @@ pai -name easy_rec_ext -project algo_public
 
 ### 注意：
 
-- dataworks和pai的project 一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual)  ，其中regionId可能不一致。
+- dataworks和pai的project 一样，案例都是pai_online_project，用户需要根据自己的环境修改。如果需要使用gpu，PAI的project需要设置开通GPU。链接：[https://pai.data.aliyun.com/console?projectId=&regionId=cn-beijing#/visual](https://pai.data.aliyun.com/console?projectId=%C2%AEionId=cn-beijing#/visual) ，其中regionId可能不一致。
 
   ![mc_gpu](../../images/quick_start/mc_gpu.png)
 

@@ -80,9 +80,9 @@ model_config: {
   - group_name: 可以根据实际情况取
   - wide_deep: 必须是DEEP
 - losses: 可选，可以选择同时配置两个loss函数，并且为每个loss配置不同的权重
-  - loss_type: CLASSIFICATION \[默认值\] 二分类的sigmoid cross entropy loss
-  - loss_type: PAIR_WISE_LOSS \[可选\] 以优化AUC为主要目标的 pairwise rank loss
-  - loss_type: F1_REWEIGHTED_LOSS \[可选\] 可以调节二分类模型recall/precision相对权重的loss; 注意不要与`loss_type: CLASSIFICATION`同时使用
+  - loss_type: CLASSIFICATION [默认值] 二分类的sigmoid cross entropy loss
+  - loss_type: PAIR_WISE_LOSS [可选] 以优化AUC为主要目标的 pairwise rank loss
+  - loss_type: F1_REWEIGHTED_LOSS [可选] 可以调节二分类模型recall/precision相对权重的loss; 注意不要与`loss_type: CLASSIFICATION`同时使用
 - f1_reweight_loss: 可以调节二分类模型`recall/precision`相对权重的损失函数
   - f1_beta_square: 大于1的值会导致模型更关注`recall`，小于1的值会导致模型更关注`precision`
   - F1 分数，又称平衡F分数（balanced F Score），它被定义为精确率和召回率的调和平均数。

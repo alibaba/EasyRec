@@ -1,6 +1,6 @@
 # EasyRec Introduction
 
-🎉 See our ongoing recommendation framework **[TorchEasyRec](https://github.com/alibaba/TorchEasyRec) !** 🎉  This evolution of EasyRec is built on **PyTorch**, featuring **GPU acceleration** and **hybrid parallelism** for enhanced performance.
+🎉 See our ongoing recommendation framework **[TorchEasyRec](https://github.com/alibaba/TorchEasyRec) !** 🎉 This evolution of EasyRec is built on **PyTorch**, featuring **GPU acceleration** and **hybrid parallelism** for enhanced performance.
 
 &#160;
 
@@ -44,7 +44,7 @@ Running Platform:
 
 - Flexible feature config and simple model config
 - [Build models by combining some components](docs/source/component/backbone.md)
-- Efficient and robust feature generation\[used in taobao\]
+- Efficient and robust feature generation[used in taobao]
 - Nice web interface in development
 
 ### It is smart

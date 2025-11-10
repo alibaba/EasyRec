@@ -24,16 +24,16 @@ pip install tensorflow_probability==0.5.0
 常见版本对应关系：
 
 | TensorFlow版本 | TensorFlowProbability版本 |
-| ------------ | ----------------------- |
-| 1.12         | 0.5.0                   |
-| 1.15         | 0.8.0                   |
-| 2.5.0        | 0.13.0                  |
-| 2.6.0        | 0.14.0                  |
-| 2.7.0        | 0.15.0                  |
-| 2.8.0        | 0.16.0                  |
-| 2.10         | 0.18.0                  |
-| 2.11         | 0.19.0                  |
-| 2.12         | 0.20.0                  |
+| -------------- | ------------------------- |
+| 1.12           | 0.5.0                     |
+| 1.15           | 0.8.0                     |
+| 2.5.0          | 0.13.0                    |
+| 2.6.0          | 0.14.0                    |
+| 2.7.0          | 0.15.0                    |
+| 2.8.0          | 0.16.0                    |
+| 2.10           | 0.18.0                    |
+| 2.11           | 0.19.0                    |
+| 2.12           | 0.20.0                    |
 
 其他版本对应关系请查看链接：[Releases · tensorflow/probability](https://github.com/tensorflow/probability/releases)。
 
@@ -60,7 +60,7 @@ docker exec -it <CONTAINER_ID> bash
 
 可选镜像：
 
-- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.12-0.8.5 \[只能跑在DLC环境\]
+- mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.12-0.8.5 [只能跑在DLC环境]
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-paitf1.15-0.8.5
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-0.8.5
 - mybigpai-public-registry.cn-beijing.cr.aliyuncs.com/easyrec/easyrec:py36-tf1.15.5-gpu-0.8.5

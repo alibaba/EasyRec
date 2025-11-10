@@ -1,6 +1,6 @@
 # EasyRec简介
 
-🎉 See our ongoing recommendation framework **[TorchEasyRec](https://github.com/alibaba/TorchEasyRec) !** 🎉  This evolution of EasyRec is built on **PyTorch**, featuring **GPU acceleration** and **hybrid parallelism** for enhanced performance.
+🎉 See our ongoing recommendation framework **[TorchEasyRec](https://github.com/alibaba/TorchEasyRec) !** 🎉 This evolution of EasyRec is built on **PyTorch**, featuring **GPU acceleration** and **hybrid parallelism** for enhanced performance.
 
 ## What is EasyRec?
 
@@ -30,7 +30,7 @@ EasyRec implements state of the art machine learning models used in common recom
 ### Simple to config
 
 - Flexible feature config and simple model config
-- Efficient and robust feature generation\[used in taobao\]
+- Efficient and robust feature generation[used in taobao]
 - Nice web interface in development
 
 ### It is smart

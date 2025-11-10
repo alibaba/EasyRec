@@ -4,7 +4,6 @@ import logging
 import os
 import subprocess
 import traceback
-
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import estimator_utils
@@ -52,7 +51,8 @@ def cache_ckpt(pipeline_config):
       logging.info('will copy %s to local path %s' % (src_path, dst_path))
       try:
         output = subprocess.check_output(
-            'hadoop fs -get %s %s' % (src_path, dst_path), shell=True)
+          'hadoop fs -get %s %s' % (src_path, dst_path), shell=True
+        )
         logging.info('copy succeed: %s' % output)
       except Exception:
         logging.warning('exception: %s' % traceback.format_exc())

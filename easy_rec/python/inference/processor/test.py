@@ -5,19 +5,17 @@ import ctypes
 import glob
 import json
 import logging
+import numpy as np
 import os
 import subprocess
 import time
-
-import numpy as np
 from google.protobuf import text_format
 
-from easy_rec.python.protos import dataset_pb2
-from easy_rec.python.protos import pipeline_pb2
-from easy_rec.python.protos import tf_predict_pb2
+from easy_rec.python.protos import dataset_pb2, pipeline_pb2, tf_predict_pb2
 
 logging.basicConfig(
-    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
+)
 
 PROCESSOR_VERSION = 'LaRec-0.9.5d-b1b1604-TF-2.5.0-Linux'
 PROCESSOR_FILE = PROCESSOR_VERSION + '.tar.gz'
@@ -51,18 +49,20 @@ def build_array_proto(array_proto, data, dtype):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--input_path', type=str, default=None, help='input data path')
+    '--input_path', type=str, default=None, help='input data path'
+  )
   parser.add_argument(
-      '--output_path', type=str, default=None, help='output data path')
+    '--output_path', type=str, default=None, help='output data path'
+  )
   parser.add_argument(
-      '--libc_path',
-      type=str,
-      default='/lib64/libc.so.6',
-      help='libc.so.6 path')
+    '--libc_path', type=str, default='/lib64/libc.so.6', help='libc.so.6 path'
+  )
   parser.add_argument(
-      '--saved_model_dir', type=str, default=None, help='saved model directory')
+    '--saved_model_dir', type=str, default=None, help='saved model directory'
+  )
   parser.add_argument(
-      '--test_dir', type=str, default=None, help='test directory')
+    '--test_dir', type=str, default=None, help='test directory'
+  )
   args = parser.parse_args()
 
   if not os.path.exists('processor'):
@@ -70,33 +70,39 @@ if __name__ == '__main__':
   if not os.path.exists(PROCESSOR_ENTRY_LIB):
     if not os.path.exists('processor/' + PROCESSOR_FILE):
       subprocess.check_output(
-          'wget %s -O processor/%s' % (PROCESSOR_URL, PROCESSOR_FILE),
-          shell=True)
+        'wget %s -O processor/%s' % (PROCESSOR_URL, PROCESSOR_FILE),
+        shell=True
+      )
     subprocess.check_output(
-        'cd processor && tar -zvxf %s' % PROCESSOR_FILE, shell=True)
+      'cd processor && tar -zvxf %s' % PROCESSOR_FILE, shell=True
+    )
     assert os.path.exists(
-        PROCESSOR_ENTRY_LIB), 'invalid processor path: %s' % PROCESSOR_ENTRY_LIB
+      PROCESSOR_ENTRY_LIB
+    ), 'invalid processor path: %s' % PROCESSOR_ENTRY_LIB
 
   assert os.path.exists(args.libc_path), '%s does not exist' % args.libc_path
   assert args.saved_model_dir is not None and os.path.isdir(
-      args.saved_model_dir
+    args.saved_model_dir
   ), '%s is not a valid directory' % args.saved_model_dir
   assert args.input_path is not None and os.path.exists(
-      args.input_path), '%s does not exist' % args.input_path
+    args.input_path
+  ), '%s does not exist' % args.input_path
   assert args.output_path is not None, 'output_path is not set'
 
   pipeline_config = pipeline_pb2.EasyRecConfig()
-  pipeline_config_path = os.path.join(args.saved_model_dir,
-                                      'assets/pipeline.config')
+  pipeline_config_path = os.path.join(
+    args.saved_model_dir, 'assets/pipeline.config'
+  )
   with open(pipeline_config_path) as fin:
     config_str = fin.read()
   text_format.Merge(config_str, pipeline_config)
 
   data_config = pipeline_config.data_config
 
-  input_fields = [[]
-                  for x in data_config.input_fields
-                  if x.input_name not in data_config.label_fields]
+  input_fields = [
+    [] for x in data_config.input_fields
+    if x.input_name not in data_config.label_fields
+  ]
 
   with open(args.input_path, 'r') as fin:
     for line_str in fin:
@@ -108,9 +114,10 @@ if __name__ == '__main__':
   req = tf_predict_pb2.PredictRequest()
   req.signature_name = 'serving_default'
   for i in range(len(input_fields)):
-    build_array_proto(req.inputs[data_config.input_fields[i + 1].input_name],
-                      input_fields[i],
-                      data_config.input_fields[i + 1].input_type)
+    build_array_proto(
+      req.inputs[data_config.input_fields[i + 1].input_name], input_fields[i],
+      data_config.input_fields[i + 1].input_type
+    )
 
   tf_predictor = ctypes.cdll.LoadLibrary(PROCESSOR_ENTRY_LIB)
   tf_predictor.saved_model_init.restype = ctypes.c_void_p
@@ -123,7 +130,8 @@ if __name__ == '__main__':
   # last_step could be greater than num_steps for sync_replicas: false
   train_dir = os.path.dirname(args.saved_model_dir.strip('/'))
   all_models = glob.glob(
-      os.path.join(args.test_dir, 'train/model.ckpt-*.index'))
+    os.path.join(args.test_dir, 'train/model.ckpt-*.index')
+  )
   iters = [int(x.split('-')[-1].replace('.index', '')) for x in all_models]
   iters.sort()
   last_step = iters[-1]
@@ -134,13 +142,15 @@ if __name__ == '__main__':
   start_ts = time.time()
   while sparse_step.value < last_step or dense_step.value < last_step:
     tf_predictor.saved_model_step(
-        ctypes.c_void_p(handle), ctypes.byref(sparse_step),
-        ctypes.byref(dense_step))
+      ctypes.c_void_p(handle), ctypes.byref(sparse_step),
+      ctypes.byref(dense_step)
+    )
     time.sleep(1)
     if time.time() - start_ts > 300:
       logging.warning(
-          'could not reach last_step, sparse_step=%d dense_step=%d' %
-          (sparse_step.value, dense_step.value))
+        'could not reach last_step, sparse_step=%d dense_step=%d' %
+        (sparse_step.value, dense_step.value)
+      )
       break
 
   data_bin = req.SerializeToString()
@@ -152,8 +162,9 @@ if __name__ == '__main__':
   tf_predictor.saved_model_predict.restype = ctypes.c_void_p
   out_len = ctypes.c_int(0)
   res_p = tf_predictor.saved_model_predict(
-      ctypes.c_void_p(handle), data_bin, ctypes.c_int32(len(data_bin)),
-      ctypes.byref(out_len))
+    ctypes.c_void_p(handle), data_bin, ctypes.c_int32(len(data_bin)),
+    ctypes.byref(out_len)
+  )
   res_bytes = bytearray(ctypes.string_at(res_p, out_len))
   res = tf_predict_pb2.PredictResponse()
   res.ParseFromString(res_bytes)

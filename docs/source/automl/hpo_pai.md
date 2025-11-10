@@ -45,9 +45,9 @@ accessKeyID = xxx
 accessKeySecret= xxx
 ```
 
-- --bucket   oss_bucket
+- --bucket oss_bucket
 
-- --role_arn   acs:ram::xxx:role/xxx
+- --role_arn acs:ram::xxx:role/xxx
 
   pai tensorflow 任务访问oss数据的钥匙，[获取方式](https://help.aliyun.com/document_detail/190477.html?spm=h2-url-1)。
 
@@ -57,13 +57,13 @@ accessKeySecret= xxx
 
 - --exp_dir 调优目录, oss上的目录
 
-- --config_path  easyrec训练配置文件
+- --config_path easyrec训练配置文件
 
-- --metric_name  调优的指标，默认是auc，其它可选指标[参考](../eval.md)
+- --metric_name 调优的指标，默认是auc，其它可选指标[参考](../eval.md)
 
-- --max_parallel   同一时刻可以并行跑的实验数目
+- --max_parallel 同一时刻可以并行跑的实验数目
 
-- --total_trial_num  总共跑多少组实验
+- --total_trial_num 总共跑多少组实验
 
 - --is_outer 内部pai还是外部pai
 
@@ -89,7 +89,7 @@ accessKeySecret= xxx
 ]
 ```
 
-- name:  easy_rec pipeline_config里面的参数名称，注意要用全路径
+- name: easy_rec pipeline_config里面的参数名称，注意要用全路径
   ```
       feature_config.features[input_names[0]=field1].embedding_dim
   ```

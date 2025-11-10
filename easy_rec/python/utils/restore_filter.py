@@ -2,8 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define filters for restore."""
 
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 

@@ -1,7 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-
 import tensorflow as tf
 
 from easy_rec.python.utils.load_class import load_by_path
@@ -25,15 +24,17 @@ def _list_prob_loss(x, labels, logits, session_ids):
   return -tf.reduce_sum(y * y_hat)
 
 
-def listwise_rank_loss(labels,
-                       logits,
-                       session_ids,
-                       transform_fn=None,
-                       temperature=1.0,
-                       label_is_logits=False,
-                       scale_logits=False,
-                       weights=1.0,
-                       name='listwise_loss'):
+def listwise_rank_loss(
+  labels,
+  logits,
+  session_ids,
+  transform_fn=None,
+  temperature=1.0,
+  label_is_logits=False,
+  scale_logits=False,
+  weights=1.0,
+  name='listwise_loss'
+):
   r"""Computes listwise softmax cross entropy loss between `labels` and `logits`.
 
   Definition:
@@ -56,21 +57,26 @@ def listwise_rank_loss(labels,
     name: the name of loss
   """
   loss_name = name if name else 'listwise_rank_loss'
-  logging.info('[{}] temperature: {}, scale logits: {}'.format(
-      loss_name, temperature, scale_logits))
+  logging.info(
+    '[{}] temperature: {}, scale logits: {}'.format(
+      loss_name, temperature, scale_logits
+    )
+  )
   labels = tf.to_float(labels)
   if scale_logits:
     with tf.variable_scope(loss_name):
       w = tf.get_variable(
-          'scale_w',
-          dtype=tf.float32,
-          shape=(1,),
-          initializer=tf.ones_initializer())
+        'scale_w',
+        dtype=tf.float32,
+        shape=(1, ),
+        initializer=tf.ones_initializer()
+      )
       b = tf.get_variable(
-          'scale_b',
-          dtype=tf.float32,
-          shape=(1,),
-          initializer=tf.zeros_initializer())
+        'scale_b',
+        dtype=tf.float32,
+        shape=(1, ),
+        initializer=tf.zeros_initializer()
+      )
     logits = logits * tf.abs(w) + b
   if temperature != 1.0:
     logits /= temperature
@@ -83,10 +89,10 @@ def listwise_rank_loss(labels,
   sessions, _ = tf.unique(tf.squeeze(session_ids))
   tf.summary.scalar('loss/%s_num_of_group' % loss_name, tf.size(sessions))
   losses = tf.map_fn(
-      lambda x: _list_wise_loss(x, labels, logits, session_ids, label_is_logits
-                                ),
-      sessions,
-      dtype=tf.float32)
+    lambda x: _list_wise_loss(x, labels, logits, session_ids, label_is_logits),
+    sessions,
+    dtype=tf.float32
+  )
   if tf.is_numeric_tensor(weights):
     logging.error('[%s] use unsupported sample weight' % loss_name)
     return tf.reduce_mean(losses)
@@ -94,15 +100,17 @@ def listwise_rank_loss(labels,
     return tf.reduce_mean(losses) * weights
 
 
-def listwise_distill_loss(labels,
-                          logits,
-                          session_ids,
-                          transform_fn=None,
-                          temperature=1.0,
-                          label_clip_max_value=512,
-                          scale_logits=False,
-                          weights=1.0,
-                          name='listwise_distill_loss'):
+def listwise_distill_loss(
+  labels,
+  logits,
+  session_ids,
+  transform_fn=None,
+  temperature=1.0,
+  label_clip_max_value=512,
+  scale_logits=False,
+  weights=1.0,
+  name='listwise_distill_loss'
+):
   r"""Computes listwise softmax cross entropy loss between `labels` and `logits`.
 
   Definition:
@@ -135,15 +143,17 @@ def listwise_distill_loss(labels,
   if scale_logits:
     with tf.variable_scope(loss_name):
       w = tf.get_variable(
-          'scale_w',
-          dtype=tf.float32,
-          shape=(1,),
-          initializer=tf.ones_initializer())
+        'scale_w',
+        dtype=tf.float32,
+        shape=(1, ),
+        initializer=tf.ones_initializer()
+      )
       b = tf.get_variable(
-          'scale_b',
-          dtype=tf.float32,
-          shape=(1,),
-          initializer=tf.zeros_initializer())
+        'scale_b',
+        dtype=tf.float32,
+        shape=(1, ),
+        initializer=tf.zeros_initializer()
+      )
     logits = logits * tf.abs(w) + b
   if temperature != 1.0:
     logits /= temperature
@@ -151,9 +161,10 @@ def listwise_distill_loss(labels,
   sessions, _ = tf.unique(tf.squeeze(session_ids))
   tf.summary.scalar('loss/%s_num_of_group' % loss_name, tf.size(sessions))
   losses = tf.map_fn(
-      lambda x: _list_prob_loss(x, labels, logits, session_ids),
-      sessions,
-      dtype=tf.float32)
+    lambda x: _list_prob_loss(x, labels, logits, session_ids),
+    sessions,
+    dtype=tf.float32
+  )
   if tf.is_numeric_tensor(weights):
     logging.error('[%s] use unsupported sample weight' % loss_name)
     return tf.reduce_mean(losses)

@@ -4,25 +4,26 @@ import json
 import logging
 import os
 import sys
-
 import tensorflow as tf
 
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import io_util
+from easy_rec.python.utils import config_util, io_util
 from easy_rec.python.utils.hive_utils import HiveUtils
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
-    format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
-tf.app.flags.DEFINE_string('template_config_path', None,
-                           'Path to template pipeline config '
-                           'file.')
-tf.app.flags.DEFINE_string('output_config_path', None,
-                           'Path to output pipeline config '
-                           'file.')
+  format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
+  level=logging.INFO
+)
+tf.app.flags.DEFINE_string(
+  'template_config_path', None, 'Path to template pipeline config '
+  'file.'
+)
+tf.app.flags.DEFINE_string(
+  'output_config_path', None, 'Path to output pipeline config '
+  'file.'
+)
 tf.app.flags.DEFINE_string('config_table', '', 'config table')
 
 FLAGS = tf.app.flags.FLAGS
@@ -30,17 +31,19 @@ FLAGS = tf.app.flags.FLAGS
 
 def main(argv):
   pipeline_config = config_util.get_configs_from_pipeline_file(
-      FLAGS.template_config_path)
+    FLAGS.template_config_path
+  )
   sels = 'feature,feature_info,message'
   feature_info_map = {}
   drop_feature_names = []
 
   if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
     hive_util = HiveUtils(
-        data_config=pipeline_config.data_config,
-        hive_config=pipeline_config.hive_train_input,
-        selected_cols=sels,
-        record_defaults=['', '', ''])
+      data_config=pipeline_config.data_config,
+      hive_config=pipeline_config.hive_train_input,
+      selected_cols=sels,
+      record_defaults=['', '', '']
+    )
     reader = hive_util.hive_read_line(FLAGS.config_table)
     for record in reader:
       feature_name = record[0][0]
@@ -50,7 +53,9 @@ def main(argv):
 
   else:
     import common_io
-    reader = common_io.table.TableReader(FLAGS.config_table, selected_cols=sels)
+    reader = common_io.table.TableReader(
+      FLAGS.config_table, selected_cols=sels
+    )
     while True:
       try:
         record = reader.read()
@@ -74,23 +79,28 @@ def main(argv):
     if feature_name in feature_info_map:
       logging.info('edited %s' % feature_name)
       feature_config.embedding_dim = int(
-          feature_info_map[feature_name]['embedding_dim'])
+        feature_info_map[feature_name]['embedding_dim']
+      )
       logging.info('modify embedding_dim to %s' % feature_config.embedding_dim)
       if 'boundary' in feature_info_map[feature_name]:
         feature_config.ClearField('boundaries')
         feature_config.boundaries.extend(
-            [float(i) for i in feature_info_map[feature_name]['boundary']])
+          [float(i) for i in feature_info_map[feature_name]['boundary']]
+        )
         logging.info('modify boundaries to %s' % feature_config.boundaries)
       elif 'hash_bucket_size' in feature_info_map[feature_name]:
         feature_config.hash_bucket_size = int(
-            feature_info_map[feature_name]['hash_bucket_size'])
-        logging.info('modify hash_bucket_size to %s' %
-                     feature_config.hash_bucket_size)
+          feature_info_map[feature_name]['hash_bucket_size']
+        )
+        logging.info(
+          'modify hash_bucket_size to %s' % feature_config.hash_bucket_size
+        )
   # modify num_steps
   pipeline_config.train_config.num_steps = feature_info_map['__NUM_STEPS__'][
-      'num_steps']
-  logging.info('modify num_steps to %s' %
-               pipeline_config.train_config.num_steps)
+    'num_steps']
+  logging.info(
+    'modify num_steps to %s' % pipeline_config.train_config.num_steps
+  )
   # modify decay_steps
   optimizer_configs = pipeline_config.train_config.optimizer_config
   for optimizer_config in optimizer_configs:
@@ -100,7 +110,7 @@ def main(argv):
     learning_rate = getattr(optimizer.learning_rate, learning_rate)
     if hasattr(learning_rate, 'decay_steps'):
       learning_rate.decay_steps = feature_info_map['__DECAY_STEPS__'][
-          'decay_steps']
+        'decay_steps']
     logging.info('modify decay_steps to %s' % learning_rate.decay_steps)
 
   for feature_group in pipeline_config.model_config.feature_groups:

@@ -2,21 +2,23 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import math
-import sys
-
 import numpy as np
 import pandas as pd
+import sys
 
 from easy_rec.python.utils import config_util
 
 logging.basicConfig(
-    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
+)
 
 
 class ModelConfigConverter:
 
-  def __init__(self, excel_path, output_path, model_type, column_separator,
-               incol_separator, train_input_path, eval_input_path, model_dir):
+  def __init__(
+    self, excel_path, output_path, model_type, column_separator,
+    incol_separator, train_input_path, eval_input_path, model_dir
+  ):
     self._excel_path = excel_path
     self._output_path = output_path
     self._model_type = model_type
@@ -32,25 +34,27 @@ class ModelConfigConverter:
     self._model_dir = model_dir
     if not self._model_dir:
       self._model_dir = 'experiments/demo'
-      logging.warning('model_dir is not specified, set to %s' % self._model_dir)
+      logging.warning(
+        'model_dir is not specified, set to %s' % self._model_dir
+      )
 
   def _get_type_name(self, input_name):
     type_dict = {
-        'bigint': 'INT64',
-        'double': 'DOUBLE',
-        'float': 'FLOAT',
-        'string': 'STRING',
-        'bool': 'BOOL'
+      'bigint': 'INT64',
+      'double': 'DOUBLE',
+      'float': 'FLOAT',
+      'string': 'STRING',
+      'bool': 'BOOL'
     }
     return type_dict[input_name]
 
   def _get_type_default(self, input_name):
     type_dict = {
-        'bigint': '0',
-        'double': '0.0',
-        'float': '0.0',
-        'string': '',
-        'bool': 'false'
+      'bigint': '0',
+      'double': '0.0',
+      'float': '0.0',
+      'string': '',
+      'bool': 'false'
     }
     return type_dict[input_name]
 
@@ -80,9 +84,9 @@ class ModelConfigConverter:
           tower_names = ['wide', 'deep']
         else:
           raise ValueError(
-              'invalid tower_name[%s] for deepfm model, '
-              'only[label, deep, wide, wide_and_deep are supported]' %
-              tower_name)
+            'invalid tower_name[%s] for deepfm model, '
+            'only[label, deep, wide, wide_and_deep are supported]' % tower_name
+          )
         for tower_name in tower_names:
           if tower_name in self._tower_dicts:
             self._tower_dicts[tower_name].append(field)
@@ -128,19 +132,19 @@ class ModelConfigConverter:
           return str(v) not in ['nan', '']
 
         if _is_good(self._dict_global[field['global']]['default_value']):
-          field['default_value'] = self._dict_global[
-              field['global']]['default_value']
+          field['default_value'] = self._dict_global[field['global']
+                                                    ]['default_value']
         if _is_good(self._dict_global[field['global']]['hash_bucket_size']):
-          field['hash_bucket_size'] = self._dict_global[
-              field['global']]['hash_bucket_size']
+          field['hash_bucket_size'] = self._dict_global[field['global']
+                                                       ]['hash_bucket_size']
         if _is_good(self._dict_global[field['global']]['embedding_dim']):
-          field['embedding_dim'] = self._dict_global[
-              field['global']]['embedding_dim']
+          field['embedding_dim'] = self._dict_global[field['global']
+                                                    ]['embedding_dim']
         field['embedding_name'] = field['global']
 
       for t in [
-          'type', 'global', 'hash_bucket_size', 'embedding_dim',
-          'default_value', 'weights', 'boundaries'
+        'type', 'global', 'hash_bucket_size', 'embedding_dim', 'default_value',
+        'weights', 'boundaries'
       ]:
         if t not in row:
           continue
@@ -179,14 +183,15 @@ class ModelConfigConverter:
     # check that tag features weights are one of the fields
     for name, config in self._feature_details.items():
       if config['type'] == 'tags':
-        if 'weights' in config and config[
-            'weights'] not in self._feature_details:
+        if 'weights' in config and config['weights'
+                                         ] not in self._feature_details:
           raise ValueError(config['weights'] + ' not in field names')
 
   def _write_train_eval_config(self, fout):
     fout.write('train_input_path: "%s"\n' % self._train_input_path)
     fout.write('eval_input_path: "%s"\n' % self._eval_input_path)
-    fout.write("""
+    fout.write(
+      """
     model_dir: "%s"
 
     train_config {
@@ -212,7 +217,8 @@ class ModelConfigConverter:
       metrics_set: {
            auc {}
       }
-    }""" % self._model_dir)
+    }""" % self._model_dir
+    )
 
   def _write_deepfm_config(self, fout):
     # write model_config
@@ -234,7 +240,8 @@ class ModelConfigConverter:
       fout.write('  }\n')
 
     # write deepfm configs
-    fout.write("""
+    fout.write(
+      """
       deepfm {
         dnn {
           hidden_units: [128, 64, 32]
@@ -247,7 +254,8 @@ class ModelConfigConverter:
       }
       embedding_regularization: 1e-5
     }
-    """)
+    """
+    )
 
   def _write_multi_tower_config(self, fout):
     # write model_config
@@ -272,22 +280,26 @@ class ModelConfigConverter:
     fout.write('multi_tower { \n')
 
     for tower_name in tower_names:
-      fout.write("""
+      fout.write(
+        """
       towers {
         input: "%s"
         dnn {
           hidden_units: [256, 192, 128]
         }
-      }""" % tower_name)
+      }""" % tower_name
+      )
 
-    fout.write("""
+    fout.write(
+      """
         final_dnn {
           hidden_units: [192, 128, 64]
         }
         l2_regularization: 1e-5
       }
       embedding_regularization: 1e-5
-    }""")
+    }"""
+    )
 
   def _write_data_config(self, fout):
     fout.write('data_config {\n')
@@ -295,19 +307,25 @@ class ModelConfigConverter:
     for name in self._feature_names:
       fout.write('  input_fields: {\n')
       fout.write('    input_name: "%s"\n' % name)
-      fout.write('    input_type: %s\n' %
-                 self._get_type_name(self._feature_details[name]['data_type']))
+      fout.write(
+        '    input_type: %s\n' %
+        self._get_type_name(self._feature_details[name]['data_type'])
+      )
       if 'default_value' in self._feature_details[name]:
-        fout.write('    default_val:"%s"\n' %
-                   self._feature_details[name]['default_value'])
+        fout.write(
+          '    default_val:"%s"\n' %
+          self._feature_details[name]['default_value']
+        )
       fout.write('  }\n')
 
     fout.write('  label_fields: "%s"\n' % self._label)
-    fout.write("""
+    fout.write(
+      """
       batch_size: 1024
       prefetch_size: 32
       input_type: CSVInput
-    }""")
+    }"""
+    )
 
   def _write_feature_config(self, fout):
     for name in self._feature_names:
@@ -328,10 +346,12 @@ class ModelConfigConverter:
         fout.write('  feature_type: RawFeature\n')
         if self._model_type == 'deepfm':
           assert feature[
-              'boundaries'] != '', 'raw features must be discretized by specifying boundaries'
+            'boundaries'
+          ] != '', 'raw features must be discretized by specifying boundaries'
         if 'boundaries' in feature and feature['boundaries'] != '':
-          fout.write('  boundaries: [%s]\n' %
-                     str(feature['boundaries']).strip())
+          fout.write(
+            '  boundaries: [%s]\n' % str(feature['boundaries']).strip()
+          )
           fout.write('  embedding_dim: %d\n' % int(feature['embedding_dim']))
       elif feature['type'] == 'tags':
         if 'weights' in feature:
@@ -358,8 +378,9 @@ class ModelConfigConverter:
   def convert(self):
     self._parse_features()
     logging.info(
-        'TOWERS[%d]: %s' %
-        (len(self._tower_dicts), ','.join(list(self._tower_dicts.keys()))))
+      'TOWERS[%d]: %s' %
+      (len(self._tower_dicts), ','.join(list(self._tower_dicts.keys())))
+    )
     with open(self._output_path, 'w') as fout:
       self._write_train_eval_config(fout)
       self._write_data_config(fout)
@@ -370,11 +391,12 @@ class ModelConfigConverter:
         self._write_multi_tower_config(fout)
       else:
         logging.warning(
-            'the model_config could not be generated automatically, you have to write the model_config manually.'
+          'the model_config could not be generated automatically, you have to write the model_config manually.'
         )
     # reformat the config
     pipeline_config = config_util.get_configs_from_pipeline_file(
-        self._output_path)
+      self._output_path
+    )
     config_util.save_message(pipeline_config, self._output_path)
 
 
@@ -385,26 +407,31 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--model_type',
-      type=str,
-      choices=model_types,
-      help='model type, currently support: %s' % ','.join(model_types))
+    '--model_type',
+    type=str,
+    choices=model_types,
+    help='model type, currently support: %s' % ','.join(model_types)
+  )
   parser.add_argument('--excel_path', type=str, help='excel config path')
   parser.add_argument('--output_path', type=str, help='generated config path')
   parser.add_argument(
-      '--column_separator',
-      type=str,
-      default=',',
-      help='column separator, separator betwen features')
+    '--column_separator',
+    type=str,
+    default=',',
+    help='column separator, separator betwen features'
+  )
   parser.add_argument(
-      '--incol_separator',
-      type=str,
-      default='|',
-      help='separator within features, such as tag features')
+    '--incol_separator',
+    type=str,
+    default='|',
+    help='separator within features, such as tag features'
+  )
   parser.add_argument(
-      '--train_input_path', type=str, default='', help='train input path')
+    '--train_input_path', type=str, default='', help='train input path'
+  )
   parser.add_argument(
-      '--eval_input_path', type=str, default='', help='eval input path')
+    '--eval_input_path', type=str, default='', help='eval input path'
+  )
   parser.add_argument('--model_dir', type=str, default='', help='model dir')
   args = parser.parse_args()
 
@@ -412,13 +439,16 @@ if __name__ == '__main__':
     parser.print_usage()
     sys.exit(1)
 
-  logging.info('column_separator = %s in_column_separator = %s' %
-               (args.column_separator, args.incol_separator))
+  logging.info(
+    'column_separator = %s in_column_separator = %s' %
+    (args.column_separator, args.incol_separator)
+  )
 
-  converter = ModelConfigConverter(args.excel_path, args.output_path,
-                                   args.model_type, args.column_separator,
-                                   args.incol_separator, args.train_input_path,
-                                   args.eval_input_path, args.model_dir)
+  converter = ModelConfigConverter(
+    args.excel_path, args.output_path, args.model_type, args.column_separator,
+    args.incol_separator, args.train_input_path, args.eval_input_path,
+    args.model_dir
+  )
   converter.convert()
   logging.info('Conversion done')
   logging.info('Tips:')

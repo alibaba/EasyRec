@@ -21,12 +21,14 @@ class SENet:
     name: str, name of the layer.
   """
 
-  def __init__(self,
-               num_fields,
-               num_squeeze_group,
-               reduction_ratio,
-               l2_reg,
-               name='SENet'):
+  def __init__(
+    self,
+    num_fields,
+    num_squeeze_group,
+    reduction_ratio,
+    l2_reg,
+    name='SENet'
+  ):
     self.num_fields = num_fields
     self.num_squeeze_group = num_squeeze_group
     self.reduction_ratio = reduction_ratio
@@ -44,7 +46,7 @@ class SENet:
       emb_size += int(input.shape[-1])
 
     group_embs = [
-        tf.reshape(emb, [-1, g, int(emb.shape[-1]) // g]) for emb in inputs
+      tf.reshape(emb, [-1, g, int(emb.shape[-1]) // g]) for emb in inputs
     ]
 
     squeezed = []
@@ -54,17 +56,19 @@ class SENet:
     z = tf.concat(squeezed, axis=1)  # [bs, field_size * num_groups * 2]
 
     reduced = tf.layers.dense(
-        inputs=z,
-        units=reduction_size,
-        kernel_regularizer=self._l2_reg,
-        activation='relu',
-        name='%s/reduce' % self._name)
+      inputs=z,
+      units=reduction_size,
+      kernel_regularizer=self._l2_reg,
+      activation='relu',
+      name='%s/reduce' % self._name
+    )
 
     excited_weights = tf.layers.dense(
-        inputs=reduced,
-        units=emb_size,
-        kernel_initializer='glorot_normal',
-        name='%s/excite' % self._name)
+      inputs=reduced,
+      units=emb_size,
+      kernel_initializer='glorot_normal',
+      name='%s/excite' % self._name
+    )
 
     # Re-weight
     inputs = tf.concat(inputs, axis=-1)

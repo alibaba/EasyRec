@@ -5,9 +5,8 @@
 import logging
 import os
 import sys
-import unittest
-
 import tensorflow as tf
+import unittest
 
 from easy_rec.python.utils import test_utils
 
@@ -17,18 +16,22 @@ if tf.__version__ >= '2.0':
 tf.app.flags.DEFINE_bool('list_tests', False, 'list all tests')
 tf.app.flags.DEFINE_string('list_test_to_file', None, 'list all tests')
 tf.app.flags.DEFINE_string('pattern', '*_test.py', 'test file pattern')
-tf.app.flags.DEFINE_string('test_dir', 'easy_rec/python/test',
-                           'directory to be tested')
-tf.app.flags.DEFINE_integer('num_parallel', 10,
-                            'number of parallel executed cases.')
-tf.app.flags.DEFINE_integer('timeout', 3600,
-                            'maximal execute time in seconds for each case.')
+tf.app.flags.DEFINE_string(
+  'test_dir', 'easy_rec/python/test', 'directory to be tested'
+)
+tf.app.flags.DEFINE_integer(
+  'num_parallel', 10, 'number of parallel executed cases.'
+)
+tf.app.flags.DEFINE_integer(
+  'timeout', 3600, 'maximal execute time in seconds for each case.'
+)
 FLAGS = tf.flags.FLAGS
 
 
 def gather_test_cases(test_dir, pattern):
   discover = unittest.defaultTestLoader.discover(
-      test_dir, pattern=pattern, top_level_dir=None)
+    test_dir, pattern=pattern, top_level_dir=None
+  )
   all_tests = []
   for suite_discovered in discover:
     for test_case in suite_discovered:
@@ -76,8 +79,9 @@ def main(argv):
   test_log_dir = os.path.join(test_dir, 'logs')
   if not os.path.exists(test_log_dir):
     os.makedirs(test_log_dir)
-  logging.info('Total number of cases: %d test_dir: %s' %
-               (len(all_tests), test_dir))
+  logging.info(
+    'Total number of cases: %d test_dir: %s' % (len(all_tests), test_dir)
+  )
 
   max_num_port_per_proc = 3
   total_port_num = (max_num_port_per_proc + 2) * FLAGS.num_parallel * 10
@@ -101,7 +105,8 @@ def main(argv):
     cmd = 'python -m easy_rec.python.test.%s %s' % (case_file, case_name)
     log_file = '%s/%s.%s.log' % (test_log_dir, case_file, case_name)
     tmp_ports = ','.join(
-        [str(x) for x in all_available_ports[:max_num_port_per_proc]])
+      [str(x) for x in all_available_ports[:max_num_port_per_proc]]
+    )
     all_available_ports = all_available_ports[max_num_port_per_proc:]
 
     logging.info('Run %s.%s Log: %s' % (case_file, case_name, log_file))
@@ -113,10 +118,13 @@ def main(argv):
   for proc in procs:
     try:
       test_utils.proc_wait(
-          proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200)))
+        proc, timeout=int(os.environ.get('TEST_TIME_OUT', 1200))
+      )
     except Exception as ex:
       fail_file, fail_name = procs[proc]
-      logging.info('Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex)))
+      logging.info(
+        'Case Exception: %s.%s %s' % (fail_file, fail_name, str(ex))
+      )
       proc.kill()
 
     if proc.returncode != 0:
@@ -126,8 +134,10 @@ def main(argv):
   if len(failed_cases) > 0:
     logging.info('Number Cases Failed: %d' % len(failed_cases))
     for fail_file, fail_name, exit_code in failed_cases:
-      logging.info('\t%s.%s failed, exit_code:%d log: %s.%s.log' %
-                   (fail_file, fail_name, exit_code, fail_file, fail_name))
+      logging.info(
+        '\t%s.%s failed, exit_code:%d log: %s.%s.log' %
+        (fail_file, fail_name, exit_code, fail_file, fail_name)
+      )
     return 1
   else:
     logging.info('TestSucceed.')

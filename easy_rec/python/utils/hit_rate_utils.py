@@ -1,6 +1,5 @@
-import logging
-
 import graphlearn as gl
+import logging
 import numpy as np
 import tensorflow as tf
 
@@ -27,19 +26,17 @@ def load_graph(i_emb_table, emb_dim, knn_metric, timeout, knn_strict):
     option.nlist = 5
     option.nprobe = 2
   g = gl.Graph().node(
-      i_emb_table,
-      node_type='i',
-      decoder=gl.Decoder(attr_types=['float'] * emb_dim, attr_delimiter=','),
-      option=option)
+    i_emb_table,
+    node_type='i',
+    decoder=gl.Decoder(attr_types=['float'] * emb_dim, attr_delimiter=','),
+    option=option
+  )
   return g
 
 
-def batch_hitrate(src_ids,
-                  recall_ids,
-                  recall_distances,
-                  gt_items,
-                  num_interests,
-                  mask=None):
+def batch_hitrate(
+  src_ids, recall_ids, recall_distances, gt_items, num_interests, mask=None
+):
   """Compute hitrate of a batch of src ids.
 
   Args:
@@ -109,37 +106,42 @@ def reduce_hitrate(cluster, hits, count, task_index):
     have completed the calculation of hitrate.
   """
   with tf.device(
-      tf.train.replica_device_setter(
-          worker_device='/job:worker/task:%d' % task_index, cluster=cluster)):
+    tf.train.replica_device_setter(
+      worker_device='/job:worker/task:%d' % task_index, cluster=cluster
+    )
+  ):
     with tf.variable_scope('hitrate_var', reuse=tf.AUTO_REUSE):
       var_worker_count = tf.get_variable(
-          'worker_count',
-          shape=(),
-          dtype=tf.int32,
-          initializer=tf.zeros_initializer())
+        'worker_count',
+        shape=(),
+        dtype=tf.int32,
+        initializer=tf.zeros_initializer()
+      )
       var_hits = tf.get_variable(
-          'hits',
-          shape=(),
-          dtype=tf.float32,
-          initializer=tf.zeros_initializer())
+        'hits', shape=(), dtype=tf.float32, initializer=tf.zeros_initializer()
+      )
       var_gt_count = tf.get_variable(
-          'gt_count',
-          shape=(),
-          dtype=tf.float32,
-          initializer=tf.zeros_initializer())
+        'gt_count',
+        shape=(),
+        dtype=tf.float32,
+        initializer=tf.zeros_initializer()
+      )
       var_total_hitrate = tf.get_variable(
-          'total_hitate',
-          shape=(),
-          dtype=tf.float32,
-          initializer=tf.zeros_initializer())
+        'total_hitate',
+        shape=(),
+        dtype=tf.float32,
+        initializer=tf.zeros_initializer()
+      )
 
       var_hits = tf.assign_add(var_hits, hits, use_locking=True)
       var_gt_count = tf.assign_add(var_gt_count, count, use_locking=True)
       var_gt_count = tf.Print(
-          var_gt_count, [var_gt_count, var_hits],
-          message='var_gt_count/var_hits')
+        var_gt_count, [var_gt_count, var_hits],
+        message='var_gt_count/var_hits'
+      )
       var_total_hitrate = tf.assign(
-          var_total_hitrate, var_hits / var_gt_count, use_locking=True)
+        var_total_hitrate, var_hits / var_gt_count, use_locking=True
+      )
       with tf.control_dependencies([var_total_hitrate]):
         var_worker_count = tf.assign_add(var_worker_count, 1, use_locking=True)
   return var_total_hitrate, var_worker_count
@@ -171,7 +173,8 @@ def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
     if x == '':
       return np.zeros([emb_dim], dtype=np.float32)
     embed = np.array(x.split(','), dtype=np.float32)
-    assert len(embed) == emb_dim, 'invalid embed len=%d, x=%s' % (len(embed), x)
+    assert len(embed
+              ) == emb_dim, 'invalid embed len=%d, x=%s' % (len(embed), x)
     return embed
 
   def _to_multi_float_attrs(x, userid):
@@ -180,29 +183,35 @@ def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
     else:
       arr = [_to_float_attrs(sub_x) for sub_x in x.split('|')]
     assert len(arr) == num_interests, 'invalid arr len=%d, x=%s, userid=%s' % (
-        len(arr), x, userid)
+      len(arr), x, userid
+    )
     return arr
 
   src_ids = np.array([src_items[0] for src_items in gt_record])
-  user_embedding = np.array([
+  user_embedding = np.array(
+    [
       _to_multi_float_attrs(src_items[2], src_items[0])
       for src_items in gt_record
-  ])
+    ]
+  )
   user_emb_num = [src_items[3] for src_items in gt_record]
 
-  print('max(user_emb_num) = %d len(src_ids) = %d' %
-        (np.max(user_emb_num), len(src_ids)))
+  print(
+    'max(user_emb_num) = %d len(src_ids) = %d' %
+    (np.max(user_emb_num), len(src_ids))
+  )
 
   # a list of list.
   gt_items = [
-      list(map(int, src_items[1].split(','))) for src_items in gt_record
+    list(map(int, src_items[1].split(','))) for src_items in gt_record
   ]
 
   logging.info('src_nodes.float_attrs.shape=%s' % str(user_embedding.shape))
   user_embedding = user_embedding.reshape([-1, user_embedding.shape[-1]])
   # numpy array
-  recall_ids, recall_distances = g.search('i', user_embedding,
-                                          gl.KnnOption(k=top_k))
+  recall_ids, recall_distances = g.search(
+    'i', user_embedding, gl.KnnOption(k=top_k)
+  )
   logging.info('recall_ids.shape=%s' % str(recall_ids.shape))
 
   def _make_mask(lens):
@@ -214,7 +223,9 @@ def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
   mask = _make_mask(user_emb_num)
   recall_ids = recall_ids.reshape([-1, num_interests, recall_ids.shape[-1]])
   recall_distances = recall_distances.reshape(
-      [-1, num_interests, recall_distances.shape[-1]])
+    [-1, num_interests, recall_distances.shape[-1]]
+  )
   hitrates, bad_cases, bad_dists, hits, gt_count = batch_hitrate(
-      src_ids, recall_ids, recall_distances, gt_items, num_interests, mask)
+    src_ids, recall_ids, recall_distances, gt_items, num_interests, mask
+  )
   return hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists
