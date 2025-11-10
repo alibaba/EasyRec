@@ -1,5 +1,6 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn, fm
@@ -47,6 +48,10 @@ class DeepFM(RankModel):
     if not has_final:
       assert model_config.deepfm.wide_output_dim == model_config.num_class
     self._wide_output_dim = model_config.deepfm.wide_output_dim
+    if self._wide_output_dim != 1:
+      logging.warning(
+        'wide_output_dim not equal to 1, it is not a standard model'
+      )
     super(DeepFM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):

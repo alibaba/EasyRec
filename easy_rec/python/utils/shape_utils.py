@@ -175,9 +175,8 @@ def pad_or_clip_nd(tensor, output_shape):
   """
   tensor_shape = tf.shape(tensor)
   clip_size = [
-    tf.where(tensor_shape[i] -
-             shape > 0, shape, -1) if shape is not None else -1
-    for i, shape in enumerate(output_shape)
+    tf.where(tensor_shape[i] - shape > 0, shape, -1)
+    if shape is not None else -1 for i, shape in enumerate(output_shape)
   ]
   clipped_tensor = tf.slice(
     tensor, begin=tf.zeros(len(clip_size), dtype=tf.int32), size=clip_size

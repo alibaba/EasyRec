@@ -497,20 +497,21 @@ def _get_grad_norm(grads_and_vars, embedding_parallel=False):
       sparse_norms.append(gen_nn_ops.l2_loss(grad.values))
     else:
       dense_norms.append(gen_nn_ops.l2_loss(grad))
-  reduced_norms = hvd.grouped_allreduce(
-    part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor
-  )
-  sparse_norms = sparse_norms + reduced_norms
-  all_norms = reduced_norms + dense_norms
+  if hvd is not None and part_norms:
+    reduced_norms = hvd.grouped_allreduce(
+      part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor
+    )
+    sparse_norms = sparse_norms + reduced_norms
+  all_norms = sparse_norms + dense_norms
   sparse_norm = math_ops.sqrt(
     math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0)
-  )
+  ) if sparse_norms else tf.constant(0.0)
   dense_norm = math_ops.sqrt(
     math_ops.reduce_sum(array_ops.stack(dense_norms) * 2.0)
-  )
+  ) if dense_norms else tf.constant(0.0)
   grad_norm = math_ops.sqrt(
     math_ops.reduce_sum(array_ops.stack(all_norms)) * 2.0
-  )
+  ) if all_norms else tf.constant(0.0)
   return sparse_norm, dense_norm, grad_norm
 
 

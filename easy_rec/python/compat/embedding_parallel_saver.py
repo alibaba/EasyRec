@@ -171,8 +171,8 @@ class EmbeddingParallelSaver(saver.Saver):
           embed_ids_o = part_id_o + embed_ids_o * len(embed_files)
           sel_ids = np.where(
             np.logical_and(
-              (embed_ids_o % part_num) == part_id, embed_ids_o
-              < embed_part_size * part_num
+              (embed_ids_o % part_num) == part_id,
+              embed_ids_o < embed_part_size * part_num
             )
           )[0]
           part_update_cnt += len(sel_ids)

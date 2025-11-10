@@ -209,13 +209,13 @@ def _create_eval_export_spec(pipeline_config, eval_data, check_mode=False):
       )
       if export_config.metric_bigger:
         return (
-          best_eval_result[export_config.best_exporter_metric]
-          < current_eval_result[export_config.best_exporter_metric]
+          best_eval_result[export_config.best_exporter_metric] <
+          current_eval_result[export_config.best_exporter_metric]
         )
       else:
         return (
-          best_eval_result[export_config.best_exporter_metric]
-          > current_eval_result[export_config.best_exporter_metric]
+          best_eval_result[export_config.best_exporter_metric] >
+          current_eval_result[export_config.best_exporter_metric]
         )
 
     exporters = [
