@@ -15,6 +15,16 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: recursive
+
+      - name: Update pre-commit
+        run: |
+          source ~/.bashrc
+          source activate tf25_py3
+          pip install --upgrade pre-commit>=3.0.0
+          pre-commit --version
+          pre-commit clean
+          pre-commit install-hooks
+
       - name: RunCiTest
         id: run_ci_test
         env:
