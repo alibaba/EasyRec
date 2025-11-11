@@ -6,11 +6,7 @@ repos:
         additional_dependencies: [
           'flake8-docstrings==1.5.0'
         ]
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v2.2.0
-    hooks:
-      - id: seed-isort-config
-  - repo: https://github.com/timothycrosley/isort
+  - repo: https://github.com/pycqa/isort
     rev: 4.3.21
     hooks:
       - id: isort

@@ -49,7 +49,7 @@ class DeepFM(RankModel):
     if not has_final:
       assert model_config.deepfm.wide_output_dim == model_config.num_class
     self._wide_output_dim = model_config.deepfm.wide_output_dim
-    if self._wide_output_dim != 1:
+    if self._wide_output_dim != self._num_class:
       logging.warning(
         'wide_output_dim not equal to 1, it is not a standard model'
       )
@@ -57,9 +57,17 @@ class DeepFM(RankModel):
 
   def build_predict_graph(self):
     # Wide
-    wide_fea = tf.reduce_sum(
-      self._wide_features, axis=1, keepdims=True, name='wide_feature'
-    )
+    if self._num_class > 1 and self._wide_output_dim == self._num_class:
+      wide_shape = tf.shape(self._wide_features)
+      new_shape = tf.stack(
+        [-1, wide_shape[1] // self._num_class, self._num_class]
+      )
+      wide_fea = tf.reshape(self._wide_features, new_shape)
+      wide_fea = tf.reduce_sum(wide_fea, axis=1, name='wide_feature')
+    else:
+      wide_fea = tf.reduce_sum(
+        self._wide_features, axis=1, keepdims=True, name='wide_feature'
+      )
 
     # FM
     fm_fea = fm.FM(name='fm_feature')(self._fm_features)

@@ -16,12 +16,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: recursive
 
-      - name: Clean pre-commit
-        run: |
-          pre-commit --version
-          pre-commit clean || true
-          pre-commit gc || true
-
       - name: RunCiTest
         id: run_ci_test
         env:
