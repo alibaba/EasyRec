@@ -3,8 +3,9 @@
 import argparse
 import json
 import logging
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
 
 import easy_rec

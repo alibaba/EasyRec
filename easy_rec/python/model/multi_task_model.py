@@ -1,8 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-import tensorflow as tf
 from collections import OrderedDict
+
+import tensorflow as tf
 
 from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers.dnn import DNN

@@ -129,10 +129,11 @@ from __future__ import absolute_import, division, print_function
 import abc
 import collections
 import math
-import numpy as np
 import os
-import six
 import sys
+
+import numpy as np
+import six
 import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes, ops
@@ -143,7 +144,6 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.keras import utils
 from tensorflow.python.keras.engine import training
 from tensorflow.python.keras.engine.base_layer import Layer
-from tensorflow.python.ops import array_ops, check_ops, control_flow_ops, embedding_ops, init_ops, lookup_ops, math_ops, nn_ops, parsing_ops, sparse_ops, string_ops, variable_scope, variables  # NOQA
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import checkpoint_utils
@@ -153,8 +153,11 @@ from tensorflow.python.util import deprecation, nest
 from easy_rec.python.compat import ops as compat_ops
 from easy_rec.python.compat.feature_column import feature_column as fc_old
 from easy_rec.python.compat.feature_column import utils as fc_utils
-from easy_rec.python.compat.feature_column.feature_column import embedding_lookup_ragged  # NOQA
 from easy_rec.python.layers import utils as layer_utils
+
+from tensorflow.python.ops import array_ops, check_ops, control_flow_ops, embedding_ops, init_ops, lookup_ops, math_ops, nn_ops, parsing_ops, sparse_ops, string_ops, variable_scope, variables  # NOQA
+
+from easy_rec.python.compat.feature_column.feature_column import embedding_lookup_ragged  # NOQA
 
 _FEATURE_COLUMN_DEPRECATION_DATE = None
 _FEATURE_COLUMN_DEPRECATION = (

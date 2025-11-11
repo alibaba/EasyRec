@@ -4,10 +4,12 @@ import argparse
 import json
 import logging
 import os
+
 import tensorflow as tf
 
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
+
 from easy_rec.python.utils import config_util, ds_util, estimator_utils, fg_util, hpo_util  # NOQA
 from easy_rec.python.utils.config_util import process_neg_sampler_data_path, set_eval_input_path, set_train_input_path  # NOQA
 

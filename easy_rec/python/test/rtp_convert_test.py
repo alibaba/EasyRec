@@ -3,6 +3,7 @@
 
 import logging
 import os
+
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util, test_utils

@@ -4,9 +4,10 @@
 import logging
 import os
 import re
+from abc import abstractmethod
+
 import six
 import tensorflow as tf
-from abc import abstractmethod
 from tensorflow.python.framework import ops, tensor_shape
 from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile

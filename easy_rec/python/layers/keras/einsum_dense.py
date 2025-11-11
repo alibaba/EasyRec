@@ -2,9 +2,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import re
 import string
+
 import tensorflow as tf
-from tensorflow.python.keras import activations, constraints, initializers, regularizers  # NOQA
 from tensorflow.python.keras.layers import Layer
+
+from tensorflow.python.keras import activations, constraints, initializers, regularizers  # NOQA
 
 
 class EinsumDense(Layer):

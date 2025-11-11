@@ -5,10 +5,11 @@ import concurrent
 import concurrent.futures
 import glob
 import logging
-import numpy as np
 import os
 import queue
 import time
+
+import numpy as np
 
 
 class BinaryDataset:

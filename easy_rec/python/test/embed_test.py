@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+
 import numpy as np
 import tensorflow as tf
 from google.protobuf import text_format

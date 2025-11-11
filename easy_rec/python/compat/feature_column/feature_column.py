@@ -133,8 +133,9 @@ from __future__ import absolute_import, division, print_function
 import abc
 import collections
 import math
-import numpy as np
 import os
+
+import numpy as np
 import six
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes, ops
@@ -142,8 +143,6 @@ from tensorflow.python.framework import sparse_tensor as sparse_tensor_lib
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.keras.engine import training
 from tensorflow.python.layers import base
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops, check_ops, control_flow_ops, data_flow_ops, embedding_ops, init_ops, lookup_ops, math_ops, nn_ops, parsing_ops, resource_variable_ops, sparse_ops, string_ops, template, variable_scope, variables  # NOQA
 # from tensorflow.python.ops.ragged import ragged_tensor
 # from tensorflow.python.ops.ragged import ragged_util
 from tensorflow.python.platform import gfile
@@ -153,6 +152,9 @@ from tensorflow.python.util import nest
 
 from easy_rec.python.compat.feature_column import utils as fc_utils
 from easy_rec.python.utils import conditional, constant, embedding_utils
+
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import array_ops, check_ops, control_flow_ops, data_flow_ops, embedding_ops, init_ops, lookup_ops, math_ops, nn_ops, parsing_ops, resource_variable_ops, sparse_ops, string_ops, template, variable_scope, variables  # NOQA
 
 try:
   from easy_rec.python.compat import dynamic_variable

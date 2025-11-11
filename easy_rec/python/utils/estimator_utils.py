@@ -4,24 +4,27 @@ from __future__ import absolute_import, division, print_function
 
 import json
 import logging
-import numpy as np
 import os
 import re
-import six
 import sys
-import tensorflow as tf
 import time
+
+import numpy as np
+import six
+import tensorflow as tf
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.client import device_lib
 from tensorflow.python.framework import errors_impl, meta_graph, ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import gfile
-from tensorflow.python.training import basic_session_run_hooks, session_run_hook  # NOQA
-from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
-from easy_rec.python.ops.incr_record import get_sparse_indices, kv_resource_incr_gather  # NOQA
 from easy_rec.python.utils import constant, embedding_utils, shape_utils
+
+from tensorflow.python.training import basic_session_run_hooks, session_run_hook  # NOQA
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
+
+from easy_rec.python.ops.incr_record import get_sparse_indices, kv_resource_incr_gather  # NOQA
 
 try:
   import horovod.tensorflow as hvd

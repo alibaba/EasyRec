@@ -2,16 +2,19 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
 import logging
-import numpy as np
 import os
-import tensorflow as tf
 from collections import defaultdict
+
+import numpy as np
+import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
-from tensorflow.python.ops import array_ops, math_ops, state_ops, variable_scope  # NOQA
 
 from easy_rec.python.utils.estimator_utils import get_task_index_and_num
-from easy_rec.python.utils.io_util import read_data_from_json_path, save_data_to_json_path  # NOQA
 from easy_rec.python.utils.shape_utils import get_shape_list
+
+from tensorflow.python.ops import array_ops, math_ops, state_ops, variable_scope  # NOQA
+
+from easy_rec.python.utils.io_util import read_data_from_json_path, save_data_to_json_path  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

@@ -1,5 +1,6 @@
-import pandas as pd
 import random
+
+import pandas as pd
 
 print('Start reading data...')
 title = ['UserID', 'BookID', 'Time']

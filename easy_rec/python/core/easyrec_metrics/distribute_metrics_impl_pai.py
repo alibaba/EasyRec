@@ -18,11 +18,12 @@ from __future__ import absolute_import, division, print_function
 
 from tensorflow.python.eager import context
 from tensorflow.python.framework import dtypes, ops, sparse_tensor
-from tensorflow.python.ops import array_ops, check_ops, confusion_matrix, control_flow_ops, math_ops, nn, sets, sparse_ops, state_ops, variable_scope, weights_broadcast_ops  # NOQA
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import distribution_strategy_context
 from tensorflow.python.util.deprecation import deprecated
 from tensorflow.python.util.tf_export import tf_export
+
+from tensorflow.python.ops import array_ops, check_ops, confusion_matrix, control_flow_ops, math_ops, nn, sets, sparse_ops, state_ops, variable_scope, weights_broadcast_ops  # NOQA
 
 
 def metric_variable(shape, dtype, validate_shape=True, name=None):

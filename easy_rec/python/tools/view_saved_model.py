@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
 import logging
+
 from google.protobuf import text_format
 from tensorflow.core.protobuf import saved_model_pb2
 from tensorflow.python.platform.gfile import GFile

@@ -1,10 +1,11 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import common_io
 import json
 import logging
 import os
 import sys
+
+import common_io
 import tensorflow as tf
 
 from easy_rec.python.utils import config_util, io_util

@@ -18,6 +18,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+
 from tensorflow.python.estimator import gc, util
 from tensorflow.python.estimator.canned import metric_keys
 from tensorflow.python.estimator.exporter import Exporter, _SavedModelExporter

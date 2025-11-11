@@ -1,10 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
-from setuptools import find_packages, setup
-
 import codecs
 import os
+from setuptools import find_packages, setup
 
 
 def readme():

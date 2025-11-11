@@ -18,6 +18,7 @@
 from __future__ import absolute_import, division, print_function
 
 import functools
+
 from tensorflow.python.framework import dtypes, ops
 from tensorflow.python.ops import init_ops, nn, variable_scope
 

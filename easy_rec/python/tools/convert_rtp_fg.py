@@ -4,6 +4,7 @@
 import argparse
 import logging
 import sys
+
 import tensorflow as tf
 
 from easy_rec.python.utils.config_util import save_message

@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import cmbf, dnn
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.cmbf_pb2 import CMBF as CMBFConfig  # NOQA
 
 if tf.__version__ >= '2.0':

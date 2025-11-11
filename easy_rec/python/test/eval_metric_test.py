@@ -3,6 +3,7 @@
 from __future__ import division
 
 import logging
+
 import tensorflow as tf
 from absl.testing import parameterized
 

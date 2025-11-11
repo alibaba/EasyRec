@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convenience blocks for building models."""
 import logging
+
 import tensorflow as tf
 from tensorflow.python.keras.initializers import Constant
 from tensorflow.python.keras.layers import Dense, Dropout, Lambda, Layer

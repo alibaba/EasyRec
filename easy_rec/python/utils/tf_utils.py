@@ -3,6 +3,7 @@
 """Common functions used for odps input."""
 import json
 import os
+
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig

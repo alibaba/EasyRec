@@ -5,10 +5,11 @@
 import functools
 import json
 import logging
-import numpy as np
 import os
-import tensorflow as tf
 import unittest
+
+import numpy as np
+import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 import easy_rec

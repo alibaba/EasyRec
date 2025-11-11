@@ -4,12 +4,14 @@ from __future__ import absolute_import, division, print_function
 
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
-from easy_rec.python.inference.predictor import SINGLE_PLACEHOLDER_FEATURE_KEY, Predictor  # NOQA
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils.check_utils import check_split
+
+from easy_rec.python.inference.predictor import SINGLE_PLACEHOLDER_FEATURE_KEY, Predictor  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

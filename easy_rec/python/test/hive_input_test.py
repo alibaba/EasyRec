@@ -3,8 +3,9 @@
 """Define cv_input, the base class for cv tasks."""
 import logging
 import os
-import tensorflow as tf
 import unittest
+
+import tensorflow as tf
 from google.protobuf import text_format
 
 from easy_rec.python.input.hive_input import HiveInput

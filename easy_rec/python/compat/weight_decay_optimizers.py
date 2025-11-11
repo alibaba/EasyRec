@@ -16,11 +16,12 @@
 from __future__ import absolute_import, division, print_function
 
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops, control_flow_ops, resource_variable_ops, state_ops  # NOQA
 from tensorflow.python.training import adam
 from tensorflow.python.training import momentum as momentum_opt
 from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
+
+from tensorflow.python.ops import array_ops, control_flow_ops, resource_variable_ops, state_ops  # NOQA
 
 
 class DecoupledWeightDecayExtension(object):

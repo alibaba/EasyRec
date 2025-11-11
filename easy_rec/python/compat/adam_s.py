@@ -17,8 +17,9 @@ from __future__ import absolute_import, division, print_function
 
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops, control_flow_ops, math_ops, resource_variable_ops, state_ops  # NOQA
 from tensorflow.python.training import optimizer, training_ops
+
+from tensorflow.python.ops import array_ops, control_flow_ops, math_ops, resource_variable_ops, state_ops  # NOQA
 
 
 class AdamOptimizerS(optimizer.Optimizer):

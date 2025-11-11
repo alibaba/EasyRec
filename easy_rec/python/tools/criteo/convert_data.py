@@ -4,11 +4,12 @@ import argparse
 import gzip
 import logging
 import multiprocessing
-import numpy as np
 import os
+import traceback
+
+import numpy as np
 import pandas as pd
 import six
-import traceback
 from tensorflow.python.platform import gfile
 
 logging.basicConfig(

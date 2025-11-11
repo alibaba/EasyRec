@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.multi_task_model import MultiTaskModel
+
 from easy_rec.python.protos.simple_multi_task_pb2 import SimpleMultiTask as SimpleMultiTaskConfig  # NOQA
 
 if tf.__version__ >= '2.0':

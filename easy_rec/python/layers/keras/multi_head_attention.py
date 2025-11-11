@@ -1,8 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import math
-import numpy as np
 import string
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import constraints, initializers, regularizers
 from tensorflow.python.keras.layers import Dropout, Layer, Softmax

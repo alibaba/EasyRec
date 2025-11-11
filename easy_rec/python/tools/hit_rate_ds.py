@@ -15,18 +15,20 @@
 # """Evaluation of Top k hitrate."""
 from __future__ import absolute_import, division, print_function
 
-import graphlearn as gl
 import json
 import logging
 import os
 import sys
+
+import graphlearn as gl
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util, io_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
-from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch, load_graph, reduce_hitrate  # NOQA
 from easy_rec.python.utils.hive_utils import HiveUtils
+
+from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch, load_graph, reduce_hitrate  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

@@ -6,20 +6,22 @@ import abc
 import json
 import logging
 import math
-import numpy as np
 import os
+import time
+
+import numpy as np
 import six
 import tensorflow as tf
-import time
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import constants, signature_constants
 
 import easy_rec
 from easy_rec.python.utils import numpy_utils
-from easy_rec.python.utils.config_util import get_configs_from_pipeline_file, get_input_name_from_fg_json, search_fg_json  # NOQA
 from easy_rec.python.utils.input_utils import get_type_defaults
 from easy_rec.python.utils.load_class import get_register_class_meta
+
+from easy_rec.python.utils.config_util import get_configs_from_pipeline_file, get_input_name_from_fg_json, search_fg_json  # NOQA
 
 try:
   tf.load_op_library(os.path.join(easy_rec.ops_dir, 'libcustom_ops.so'))

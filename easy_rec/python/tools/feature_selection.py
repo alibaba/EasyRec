@@ -1,12 +1,13 @@
 from __future__ import division, print_function
 
 import json
-import numpy as np
 import os
-import pandas as pd
 import sys
-import tensorflow as tf
 from collections import OrderedDict
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 from tensorflow.python.framework.meta_graph import read_meta_graph_file
 
 from easy_rec.python.utils import config_util, io_util

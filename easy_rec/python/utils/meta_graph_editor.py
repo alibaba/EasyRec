@@ -1,7 +1,8 @@
 # -*- encoding:utf-8 -*-
 import logging
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.python.framework import ops

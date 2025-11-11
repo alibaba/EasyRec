@@ -1,5 +1,6 @@
 import logging
 import os
+
 import tensorflow as tf
 
 from easy_rec.python.utils import pai_util

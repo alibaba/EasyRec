@@ -2,11 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import print_function
 
-import faiss
 import logging
-import numpy as np
 import os
 import sys
+
+import faiss
+import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.utils import io_util

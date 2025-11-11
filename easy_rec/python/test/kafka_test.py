@@ -3,14 +3,15 @@
 
 import json
 import logging
-import numpy as np
 import os
-import six
-import tensorflow as tf
 import threading
 import time
 import traceback
 import unittest
+
+import numpy as np
+import six
+import tensorflow as tf
 from tensorflow.python.data.ops import iterator_ops
 from tensorflow.python.platform import gfile
 

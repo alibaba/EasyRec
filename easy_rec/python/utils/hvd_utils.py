@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 import logging
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.training import session_run_hook

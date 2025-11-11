@@ -15,6 +15,7 @@
 #
 
 import json
+
 import tensorflow as tf
 from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
 from sparse_operation_kit.experiment.communication import num_gpus
@@ -22,6 +23,7 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 # from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import resource_variable_ops
+
 from tensorflow.python.ops.resource_variable_ops import ResourceVariable, variable_accessed  # NOQA
 
 # from tensorflow.python.util import object_identity

@@ -19,6 +19,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numbers
+
 from tensorflow.python.framework import constant_op, ops
 from tensorflow.python.ops import math_ops, nn, standard_ops
 from tensorflow.python.platform import tf_logging as logging

@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convenience blocks for building models."""
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers.keras.activation import activation_layer

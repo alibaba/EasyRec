@@ -7,10 +7,11 @@ import logging
 import os
 import pkgutil
 import pydoc
-import six
-import tensorflow as tf
 import traceback
 from abc import ABCMeta
+
+import six
+import tensorflow as tf
 
 import easy_rec
 from easy_rec.python.utils import compat

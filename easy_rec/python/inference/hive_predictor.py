@@ -3,8 +3,9 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import tensorflow as tf
 import time
+
+import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.inference.predictor import Predictor

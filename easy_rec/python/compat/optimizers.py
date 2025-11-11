@@ -18,12 +18,11 @@
 from __future__ import absolute_import, division, print_function
 
 import logging
+
 import six
 import tensorflow as tf
 # from tensorflow.contrib import framework as contrib_framework
 from tensorflow.python.framework import dtypes, ops
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops, clip_ops, control_flow_ops, gen_nn_ops, init_ops, math_ops, random_ops  # NOQA
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
 from tensorflow.python.summary import summary
@@ -33,6 +32,9 @@ from tensorflow.python.training import training as train
 
 from easy_rec.python.ops.incr_record import set_sparse_indices
 from easy_rec.python.utils import constant, estimator_utils
+
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import array_ops, clip_ops, control_flow_ops, gen_nn_ops, init_ops, math_ops, random_ops  # NOQA
 
 try:
   from tensorflow.python.framework import indexed_slices

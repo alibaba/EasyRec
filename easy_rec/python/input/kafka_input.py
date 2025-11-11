@@ -2,9 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
 import logging
+import traceback
+
 import six
 import tensorflow as tf
-import traceback
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.input.kafka_dataset import KafkaDataset

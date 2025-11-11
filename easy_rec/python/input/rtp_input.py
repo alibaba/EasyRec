@@ -1,13 +1,15 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.ops.gen_str_avx_op import str_split_by_chr
-from easy_rec.python.utils.check_utils import check_split, check_string_to_number  # NOQA
 from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.tf_utils import get_tf_type
+
+from easy_rec.python.utils.check_utils import check_split, check_string_to_number  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

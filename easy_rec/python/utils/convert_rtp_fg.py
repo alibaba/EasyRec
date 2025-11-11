@@ -3,14 +3,16 @@
 import json
 import logging
 import sys
-import tensorflow as tf
 import traceback
+
+import tensorflow as tf
 from google.protobuf import text_format
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, FeatureGroupConfig, WideOrDeep  # NOQA
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.utils import config_util
+
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, FeatureGroupConfig, WideOrDeep  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

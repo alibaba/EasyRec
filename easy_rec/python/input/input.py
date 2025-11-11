@@ -2,10 +2,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-import six
-import tensorflow as tf
 from abc import abstractmethod
 from collections import OrderedDict
+
+import six
+import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops, sparse_ops, string_ops
 from tensorflow.python.platform import gfile
@@ -13,11 +14,12 @@ from tensorflow.python.platform import gfile
 from easy_rec.python.core import sampler as sampler_lib
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import conditional, config_util, constant
-from easy_rec.python.utils.check_utils import check_split, check_string_to_number  # NOQA
 from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.utils.load_class import get_register_class_meta, load_by_path  # NOQA
 from easy_rec.python.utils.tf_utils import get_tf_type
+
+from easy_rec.python.utils.check_utils import check_split, check_string_to_number  # NOQA
+from easy_rec.python.utils.load_class import get_register_class_meta, load_by_path  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

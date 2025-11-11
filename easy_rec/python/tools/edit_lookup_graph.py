@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import sys
+
 import tensorflow as tf
 from tensorflow.core.protobuf import saved_model_pb2
 from tensorflow.python.lib.io.file_io import file_exists, recursive_create_dir

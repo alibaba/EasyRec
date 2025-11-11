@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn, fm

@@ -16,9 +16,11 @@
 from __future__ import absolute_import, division, print_function
 
 import sys
+
 import tensorflow as tf
 
 from easy_rec.python.utils import io_util
+
 from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch, load_graph, reduce_hitrate  # NOQA
 
 flags = tf.app.flags

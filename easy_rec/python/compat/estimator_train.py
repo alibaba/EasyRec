@@ -2,14 +2,16 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
+
 import tensorflow as tf
-from tensorflow.python.distribute import estimator_training as distribute_coordinator_training  # NOQA
 from tensorflow.python.estimator import run_config as run_config_lib
-from tensorflow.python.estimator.training import _assert_eval_spec, _ContinuousEvalListener, _TrainingExecutor  # NOQA
 from tensorflow.python.util import compat
 
 from easy_rec.python.compat.exporter import FinalExporter
 from easy_rec.python.utils import estimator_utils
+
+from tensorflow.python.distribute import estimator_training as distribute_coordinator_training  # NOQA
+from tensorflow.python.estimator.training import _assert_eval_spec, _ContinuousEvalListener, _TrainingExecutor  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

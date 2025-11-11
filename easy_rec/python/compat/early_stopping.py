@@ -19,18 +19,20 @@ import datetime
 import logging
 import operator
 import os
-import tensorflow as tf
 import threading
 import time
+
+import tensorflow as tf
 from distutils.version import LooseVersion
 from tensorflow.python.framework import dtypes, ops
 from tensorflow.python.ops import init_ops, state_ops, variable_scope
 from tensorflow.python.platform import gfile, tf_logging
 from tensorflow.python.summary import summary_iterator
-from tensorflow.python.training import basic_session_run_hooks, session_run_hook, training_util  # NOQA
 
 from easy_rec.python.utils.config_util import parse_time
 from easy_rec.python.utils.load_class import load_by_path
+
+from tensorflow.python.training import basic_session_run_hooks, session_run_hook, training_util  # NOQA
 
 if LooseVersion(tf.__version__) >= LooseVersion('2.12.0'):
   from tensorflow_estimator.python.estimator.estimator_export import estimator_export  # NOQA

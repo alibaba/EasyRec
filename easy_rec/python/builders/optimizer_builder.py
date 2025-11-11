@@ -15,6 +15,7 @@
 # ==============================================================================
 """Functions to build training optimizers."""
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.compat import weight_decay_optimizers

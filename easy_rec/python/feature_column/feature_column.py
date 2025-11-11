@@ -3,15 +3,17 @@
 import collections
 import logging
 import sys
+
 import tensorflow as tf
 from tensorflow.python.ops import partitioned_variables
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.builders import hyperparams_builder
-from easy_rec.python.compat.feature_column import feature_column_v2 as feature_column  # NOQA
 from easy_rec.python.compat.feature_column import sequence_feature_column
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, WideOrDeep
 from easy_rec.python.utils.proto_util import copy_obj
+
+from easy_rec.python.compat.feature_column import feature_column_v2 as feature_column  # NOQA
 
 MAX_HASH_BUCKET_SIZE = 9223372036854775807
 

@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import sys
+
 from kafka import KafkaConsumer
 from kafka.structs import TopicPartition
 

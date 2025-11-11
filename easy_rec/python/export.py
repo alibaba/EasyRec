@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 

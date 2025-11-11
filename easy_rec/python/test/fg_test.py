@@ -1,8 +1,9 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
-import tensorflow as tf
 import unittest
+
+import tensorflow as tf
 from google.protobuf import text_format
 
 from easy_rec.python.utils import config_util, fg_util, test_utils

@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import six
 import tensorflow as tf
 from google.protobuf import struct_pb2

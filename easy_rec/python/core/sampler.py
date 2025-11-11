@@ -5,12 +5,13 @@ from __future__ import division, print_function
 import json
 import logging
 import math
-import numpy as np
 import os
-import six
 import sys
-import tensorflow as tf
 import threading
+
+import numpy as np
+import six
+import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import ds_util

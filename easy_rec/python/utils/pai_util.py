@@ -4,8 +4,9 @@
 import logging
 import os
 import sys
-import tensorflow as tf
 import traceback
+
+import tensorflow as tf
 
 if sys.version_info.major == 2:
   from urllib2 import HTTPError, Request, urlopen

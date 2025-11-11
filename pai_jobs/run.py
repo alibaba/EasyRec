@@ -5,8 +5,9 @@ from __future__ import print_function
 import logging
 # use few threads to avoid oss error
 import os
-import tensorflow as tf
 import time
+
+import tensorflow as tf
 import yaml
 from tensorflow.python.platform import gfile
 
@@ -14,6 +15,7 @@ import easy_rec
 from easy_rec.python.inference.odps_predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
+
 from easy_rec.python.utils import config_util, constant, estimator_utils, fg_util, hpo_util, pai_util  # NOQA
 from easy_rec.python.utils.distribution_utils import DistributionStrategyMap, set_distribution_config  # NOQA
 

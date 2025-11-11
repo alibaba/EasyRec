@@ -6,8 +6,9 @@ from easy_rec.python.builders import loss_builder
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
 from easy_rec.python.protos.loss_pb2 import LossType
-from easy_rec.python.protos.rocket_launching_pb2 import RocketLaunching as RocketLaunchingConfig  # NOQA
 from easy_rec.python.protos.simi_pb2 import Similarity
+
+from easy_rec.python.protos.rocket_launching_pb2 import RocketLaunching as RocketLaunchingConfig  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

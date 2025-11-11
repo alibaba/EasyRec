@@ -3,6 +3,7 @@
 
 import logging
 import sys
+
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input

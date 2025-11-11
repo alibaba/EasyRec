@@ -3,6 +3,7 @@
 """Convenience blocks for using custom ops."""
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.layers import Layer

@@ -3,9 +3,10 @@
 import csv
 import json
 import logging
-import numpy as np
 import os
 import shutil
+
+import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.inference.csv_predictor import CSVPredictor

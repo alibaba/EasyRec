@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division, print_function
 
 import math
+
 import tensorflow as tf
 
 from easy_rec.python.compat.layers import layer_norm as tf_layer_norm

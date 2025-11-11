@@ -17,10 +17,11 @@ from __future__ import absolute_import, division, print_function
 
 from tensorflow.core.framework import types_pb2
 from tensorflow.python.framework import errors_impl, ops
-from tensorflow.python.ops import array_ops, control_flow_ops, data_flow_ops, state_ops, variable_scope, variables  # NOQA
 from tensorflow.python.platform import tf_logging as logging
-from tensorflow.python.training import optimizer, queue_runner, session_manager, session_run_hook  # NOQA
 from tensorflow.python.util.tf_export import tf_export
+
+from tensorflow.python.ops import array_ops, control_flow_ops, data_flow_ops, state_ops, variable_scope, variables  # NOQA
+from tensorflow.python.training import optimizer, queue_runner, session_manager, session_run_hook  # NOQA
 
 
 # Please note that the gradients from replicas are averaged instead of summed

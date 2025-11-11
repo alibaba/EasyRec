@@ -3,6 +3,7 @@ import copy
 import logging
 import os
 import sys
+
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
 from tensorflow.python.framework import importer, ops

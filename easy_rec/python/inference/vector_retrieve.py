@@ -2,11 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import absolute_import, division, print_function
 
-import common_io
 import logging
+from datetime import datetime
+
+import common_io
 import numpy as np
 import tensorflow as tf
-from datetime import datetime
 
 try:
   import graphlearn as gl

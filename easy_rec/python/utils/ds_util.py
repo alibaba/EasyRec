@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 import traceback
+
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.utils import estimator_utils

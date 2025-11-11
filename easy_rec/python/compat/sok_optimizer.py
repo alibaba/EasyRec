@@ -18,10 +18,11 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 # from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-# from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import array_ops, gradients, resource_variable_ops, state_ops  # NOQA
 
 from easy_rec.python.compat.dynamic_variable import DynamicVariable
+
+# from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import array_ops, gradients, resource_variable_ops, state_ops  # NOQA
 
 
 def OptimizerWrapper(optimizer):

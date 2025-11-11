@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
+
 import numpy as np
 import tensorflow as tf
 

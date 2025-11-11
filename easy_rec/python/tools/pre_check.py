@@ -4,10 +4,12 @@ import json
 import logging
 import os
 import sys
+
 import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.utils import config_util, fg_util, io_util
+
 from easy_rec.python.utils.check_utils import check_env_and_input_path, check_sequence  # NOQA
 
 if tf.__version__ >= '2.0':

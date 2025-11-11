@@ -6,9 +6,10 @@ import json
 import logging
 import os
 import re
-import tensorflow as tf
 import time
 from collections import OrderedDict
+
+import tensorflow as tf
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
@@ -19,15 +20,16 @@ from tensorflow.python.training import basic_session_run_hooks, saver
 
 from easy_rec.python.builders import optimizer_builder
 from easy_rec.python.compat import optimizers, sync_replicas_optimizer
-from easy_rec.python.compat.early_stopping import custom_early_stop_hook, deadline_stop_hook, find_early_stop_var, oss_stop_hook, stop_if_no_decrease_hook, stop_if_no_increase_hook  # NOQA
-from easy_rec.python.compat.embedding_parallel_saver import EmbeddingParallelSaver  # NOQA
 from easy_rec.python.compat.ops import GraphKeys
 from easy_rec.python.input.input import Input
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
-from easy_rec.python.utils import constant, embedding_utils, estimator_utils, hvd_utils, pai_util  # NOQA
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+
+from easy_rec.python.compat.early_stopping import custom_early_stop_hook, deadline_stop_hook, find_early_stop_var, oss_stop_hook, stop_if_no_decrease_hook, stop_if_no_increase_hook  # NOQA
+from easy_rec.python.compat.embedding_parallel_saver import EmbeddingParallelSaver  # NOQA
+from easy_rec.python.utils import constant, embedding_utils, estimator_utils, hvd_utils, pai_util  # NOQA
 
 try:
   import horovod.tensorflow as hvd

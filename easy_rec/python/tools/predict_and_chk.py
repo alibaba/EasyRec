@@ -3,9 +3,10 @@
 import argparse
 import json
 import logging
-import numpy as np
 import os
 import sys
+
+import numpy as np
 
 import easy_rec
 from easy_rec.python.inference.predictor import Predictor

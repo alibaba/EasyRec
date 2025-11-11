@@ -1,16 +1,18 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import numpy as np
 import tensorflow as tf
 
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
 from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.loss.jrc_loss import jrc_loss
+from easy_rec.python.protos.loss_pb2 import LossType
+
+from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
 from easy_rec.python.loss.listwise_loss import listwise_distill_loss, listwise_rank_loss  # NOQA
 from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss, pairwise_hinge_loss, pairwise_logistic_loss, pairwise_loss  # NOQA
 from easy_rec.python.loss.zero_inflated_lognormal import zero_inflated_lognormal_loss  # NOQA
-from easy_rec.python.protos.loss_pb2 import LossType
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

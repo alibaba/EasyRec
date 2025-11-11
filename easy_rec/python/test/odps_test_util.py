@@ -3,9 +3,10 @@
 
 import logging
 import os
-import oss2
 import time
 import traceback
+
+import oss2
 
 try:
   from datahub import DataHub

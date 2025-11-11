@@ -6,9 +6,10 @@ Original C++ source file: kafka_ops_deprecated.cc
 
 import logging
 import os
+import traceback
+
 import six as _six
 import tensorflow as tf
-import traceback
 from tensorflow.python import pywrap_tensorflow as _pywrap_tensorflow
 from tensorflow.python.eager import context as _context
 from tensorflow.python.eager import core as _core

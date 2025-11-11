@@ -1,10 +1,12 @@
 import json
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.utils.config_util import get_compatible_feature_configs
+
 from easy_rec.python.utils.convert_rtp_fg import load_input_field_and_feature_config  # NOQA
 
 if tf.__version__ >= '2.0':

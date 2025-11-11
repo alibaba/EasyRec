@@ -3,6 +3,7 @@
 
 import logging
 import os
+
 import six
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
@@ -10,6 +11,7 @@ from tensorflow.python.lib.io import file_io
 from easy_rec.python.main import distribute_evaluate, evaluate
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import config_util, ds_util, estimator_utils
+
 from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_distribute_eval_worker_num_on_ds  # NOQA
 
 if tf.__version__ >= '2.0':

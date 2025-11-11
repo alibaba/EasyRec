@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import time
+
 from pai.automl import hpo
 
 from easy_rec.python.utils import hpo_util

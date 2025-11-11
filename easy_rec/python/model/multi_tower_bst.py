@@ -2,11 +2,13 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import math
+
 import tensorflow as tf
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.layers import dnn, layer_norm, seq_input_layer
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
 if tf.__version__ >= '2.0':

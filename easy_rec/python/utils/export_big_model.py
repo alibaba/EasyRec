@@ -3,21 +3,24 @@
 
 import json
 import logging
-import numpy as np
 import os
-import tensorflow as tf
 import time
+
+import numpy as np
+import tensorflow as tf
 from google.protobuf import json_format
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.variables import global_variables
-from tensorflow.python.platform.gfile import DeleteRecursively, Exists, GFile, Remove  # NOQA
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training.device_setter import replica_device_setter
-from tensorflow.python.training.monitored_session import ChiefSessionCreator, Scaffold  # NOQA
 from tensorflow.python.training.saver import export_meta_graph
 
 import easy_rec
+
+from tensorflow.python.platform.gfile import DeleteRecursively, Exists, GFile, Remove  # NOQA
+from tensorflow.python.training.monitored_session import ChiefSessionCreator, Scaffold  # NOQA
+
 from easy_rec.python.utils import constant, estimator_utils, io_util, proto_util  # NOQA
 from easy_rec.python.utils.meta_graph_editor import EMBEDDING_INITIALIZERS, MetaGraphEditor  # NOQA
 

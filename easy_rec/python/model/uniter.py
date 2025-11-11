@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn, uniter
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.uniter_pb2 import Uniter as UNITERConfig  # NOQA
 
 if tf.__version__ >= '2.0':

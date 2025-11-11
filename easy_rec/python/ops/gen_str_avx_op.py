@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.ops import string_ops
 

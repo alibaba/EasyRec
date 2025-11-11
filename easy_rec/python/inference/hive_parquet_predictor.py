@@ -2,11 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from __future__ import absolute_import, division, print_function
 
-import numpy as np
 import os
+import time
+
+import numpy as np
 import pandas as pd
 import tensorflow as tf
-import time
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.inference.predictor import Predictor

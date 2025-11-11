@@ -1,10 +1,12 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import multihead_attention
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.autoint_pb2 import AutoInt as AutoIntConfig  # NOQA
 
 if tf.__version__ >= '2.0':

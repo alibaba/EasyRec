@@ -1,13 +1,15 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
+
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
 
 from easy_rec.python.builders import loss_builder
-from easy_rec.python.loss.zero_inflated_lognormal import zero_inflated_lognormal_pred  # NOQA
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
+
+from easy_rec.python.loss.zero_inflated_lognormal import zero_inflated_lognormal_pred  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

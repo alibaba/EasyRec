@@ -1,5 +1,6 @@
-import graphlearn as gl
 import logging
+
+import graphlearn as gl
 import numpy as np
 import tensorflow as tf
 

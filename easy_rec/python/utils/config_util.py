@@ -8,11 +8,12 @@ Such as Hyper parameter tuning or automatic feature expanding.
 import datetime
 import json
 import logging
-import numpy as np
 import os
 import re
-import six
 import sys
+
+import numpy as np
+import six
 import tensorflow as tf
 from google.protobuf import json_format, text_format
 from tensorflow.python.lib.io import file_io

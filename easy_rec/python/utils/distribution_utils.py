@@ -5,10 +5,12 @@ from __future__ import print_function
 import json
 import logging
 import os
+
 import tensorflow as tf
 
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
 from easy_rec.python.utils import estimator_utils
+
 from easy_rec.python.utils.estimator_utils import chief_to_master, master_to_chief  # NOQA
 
 DistributionStrategyMap = {

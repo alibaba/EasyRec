@@ -3,12 +3,14 @@ import logging
 import os
 import shutil
 import sys
+
 import tensorflow as tf
 
 from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import prepare
-from easy_rec.python.test.odps_test_util import OdpsOSSConfig, delete_oss_path, get_oss_bucket  # NOQA
 from easy_rec.python.utils import test_utils
+
+from easy_rec.python.test.odps_test_util import OdpsOSSConfig, delete_oss_path, get_oss_bucket  # NOQA
 
 logging.basicConfig(
   level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'

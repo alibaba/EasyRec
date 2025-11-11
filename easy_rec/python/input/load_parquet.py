@@ -1,8 +1,9 @@
 import logging
 import multiprocessing
+import queue
+
 import numpy as np
 import pandas as pd
-import queue
 
 
 def start_data_proc(

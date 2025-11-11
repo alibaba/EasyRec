@@ -4,9 +4,10 @@
 import glob
 import logging
 import os
-import oss2
 import shutil
 import sys
+
+import oss2
 
 from easy_rec.python.test.odps_test_util import OdpsOSSConfig, get_oss_bucket
 

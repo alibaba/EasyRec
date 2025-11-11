@@ -1,17 +1,19 @@
 # -*- encoding:utf-8 -*-
 
 import logging
-import numpy as np
 import os
+
+import numpy as np
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.python.framework import dtypes, ops
-# from tensorflow.python.ops import math_ops
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops, control_flow_ops, script_ops, state_ops  # NOQA
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import saver
 
 from easy_rec.python.utils import constant
+
+# from tensorflow.python.ops import math_ops
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import array_ops, control_flow_ops, script_ops, state_ops  # NOQA
 
 try:
   import horovod.tensorflow as hvd

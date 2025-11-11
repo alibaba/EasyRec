@@ -3,10 +3,11 @@
 
 import json
 import logging
-import numpy as np
 import os
-import tensorflow as tf
 import time
+
+import numpy as np
+import tensorflow as tf
 
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.utils import config_util, hpo_util, test_utils

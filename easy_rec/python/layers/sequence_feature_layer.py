@@ -1,5 +1,6 @@
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 

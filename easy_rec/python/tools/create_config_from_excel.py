@@ -2,9 +2,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import math
+import sys
+
 import numpy as np
 import pandas as pd
-import sys
 
 from easy_rec.python.utils import config_util
 

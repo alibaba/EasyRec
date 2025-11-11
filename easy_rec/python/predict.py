@@ -4,11 +4,11 @@
 import json
 import logging
 import os
+
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from easy_rec.python.inference.csv_predictor import CSVPredictor
-from easy_rec.python.inference.hive_parquet_predictor import HiveParquetPredictor  # NOQA
 from easy_rec.python.inference.hive_predictor import HivePredictor
 from easy_rec.python.inference.parquet_predictor import ParquetPredictor
 from easy_rec.python.inference.parquet_predictor_v2 import ParquetPredictorV2
@@ -16,6 +16,8 @@ from easy_rec.python.main import predict
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util, numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
+
+from easy_rec.python.inference.hive_parquet_predictor import HiveParquetPredictor  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

@@ -21,12 +21,14 @@ NOTE: This API is a work in progress and will likely be changing frequently.
 from __future__ import absolute_import, division, print_function
 
 import collections
+
 from tensorflow.python.framework import dtypes, ops, tensor_shape
-from tensorflow.python.ops import array_ops, check_ops, math_ops, parsing_ops, sparse_ops  # NOQA
 
 from easy_rec.python.compat.feature_column import feature_column as fc_v1
 from easy_rec.python.compat.feature_column import feature_column_v2 as fc
 from easy_rec.python.compat.feature_column import utils as fc_utils
+
+from tensorflow.python.ops import array_ops, check_ops, math_ops, parsing_ops, sparse_ops  # NOQA
 
 # pylint: disable=protected-access
 

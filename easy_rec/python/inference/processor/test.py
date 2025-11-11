@@ -5,10 +5,11 @@ import ctypes
 import glob
 import json
 import logging
-import numpy as np
 import os
 import subprocess
 import time
+
+import numpy as np
 from google.protobuf import text_format
 
 from easy_rec.python.protos import dataset_pb2, pipeline_pb2, tf_predict_pb2

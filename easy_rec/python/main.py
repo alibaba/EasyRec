@@ -7,9 +7,10 @@ import json
 import logging
 import math
 import os
+import time
+
 import six
 import tensorflow as tf
-import time
 from tensorflow.core.protobuf import saved_model_pb2
 
 import easy_rec
@@ -19,6 +20,7 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.model.easy_rec_estimator import EasyRecEstimator
 from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
+
 from easy_rec.python.utils import config_util, constant, estimator_utils, fg_util, load_class  # NOQA
 from easy_rec.python.utils.config_util import get_eval_input_path, get_model_dir_path, get_train_input_path, set_eval_input_path  # NOQA
 from easy_rec.python.utils.export_big_model import export_big_model, export_big_model_to_oss  # NOQA

@@ -3,6 +3,7 @@
 import argparse
 import logging
 import sys
+
 # from kafka import KafkaConsumer
 from kafka import KafkaAdminClient, KafkaProducer
 from kafka.admin import NewTopic

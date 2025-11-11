@@ -3,10 +3,11 @@
 
 import json
 import logging
-import numpy as np
 import os
-import tensorflow as tf
 import unittest
+
+import numpy as np
+import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.inference.predictor import Predictor

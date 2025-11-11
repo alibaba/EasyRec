@@ -2,8 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import json
 import logging
-import tensorflow as tf
 import traceback
+
+import tensorflow as tf
 from tensorflow.python.framework import dtypes
 
 from easy_rec.python.input.input import Input

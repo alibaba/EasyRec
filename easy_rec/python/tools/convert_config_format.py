@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os
+
 from google.protobuf import json_format, text_format
 
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig

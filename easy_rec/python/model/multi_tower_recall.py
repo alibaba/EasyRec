@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
+
 from easy_rec.python.protos.multi_tower_recall_pb2 import MultiTowerRecall as MultiTowerRecallConfig  # NOQA
 
 if tf.__version__ >= '2.0':

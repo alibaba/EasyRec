@@ -2,21 +2,23 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import logging
 import os
-import tensorflow as tf
 from collections import OrderedDict
+
+import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops, variable_scope
 
 from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
-from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
-from easy_rec.python.layers import sequence_feature_layer, variational_dropout_layer  # NOQA
 from easy_rec.python.layers.keras import TextCNN
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional, shape_utils
+
+from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
+from easy_rec.python.layers import sequence_feature_layer, variational_dropout_layer  # NOQA
 
 
 class InputLayer(object):

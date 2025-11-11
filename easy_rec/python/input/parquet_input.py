@@ -3,8 +3,9 @@
 import logging
 import multiprocessing
 import queue
-import tensorflow as tf
 import time
+
+import tensorflow as tf
 from tensorflow.python.ops import array_ops
 
 from easy_rec.python.compat import queues

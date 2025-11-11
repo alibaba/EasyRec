@@ -11,7 +11,6 @@ import collections
 import errno
 import logging
 import os
-import six
 import sys
 import threading
 import time
@@ -19,6 +18,8 @@ import weakref
 from multiprocessing import connection
 from multiprocessing.util import Finalize, is_exiting, register_after_fork
 from queue import Empty, Full
+
+import six
 
 try:
   from multiprocessing import context

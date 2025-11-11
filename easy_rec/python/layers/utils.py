@@ -16,6 +16,7 @@
 from __future__ import absolute_import, division, print_function
 
 import json
+
 from google.protobuf import struct_pb2
 from google.protobuf.descriptor import FieldDescriptor
 from tensorflow.python.framework import ops, sparse_tensor

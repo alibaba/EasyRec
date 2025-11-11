@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import logging
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import variable_scope

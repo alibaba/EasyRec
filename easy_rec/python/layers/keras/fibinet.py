@@ -2,6 +2,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import itertools
 import logging
+
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dense, Layer
 

@@ -4,11 +4,12 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.loss.pairwise_loss import pairwise_loss
-from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
 from easy_rec.python.model.easy_rec_model import EasyRecModel
-from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
+
+from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
+from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
