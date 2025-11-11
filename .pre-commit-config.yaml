@@ -15,7 +15,7 @@ repos:
     hooks:
       - id: yapf
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
         args: ["--no-markdown-linebreak-ext"]
