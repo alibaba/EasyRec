@@ -11,20 +11,11 @@ if tf.__version__ >= '2.0':
 
 
 class MMoE(MultiTaskModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(MMoE, self).__init__(
-      model_config, feature_configs, features, labels, is_training
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(MMoE, self).__init__(model_config, feature_configs, features, labels, is_training)
+    assert self._model_config.WhichOneof('model') == 'mmoe', 'invalid model config: %s' % self._model_config.WhichOneof(
+      'model'
     )
-    assert self._model_config.WhichOneof('model') == 'mmoe', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.mmoe
     assert isinstance(self._model_config, MMoEConfig)
 
@@ -40,14 +31,14 @@ class MMoE(MultiTaskModel):
         self._model_config.expert_dnn,
         l2_reg=self._l2_reg,
         num_task=self._task_num,
-        num_expert=self._model_config.num_expert
+        num_expert=self._model_config.num_expert,
       )
     else:
       # For backward compatibility with original mmoe layer config
       mmoe_layer = mmoe.MMOE(
         [x.dnn for x in self._model_config.experts],
         l2_reg=self._l2_reg,
-        num_task=self._task_num
+        num_task=self._task_num,
       )
     task_input_list = mmoe_layer(self._features)
 
@@ -60,7 +51,7 @@ class MMoE(MultiTaskModel):
           task_tower_cfg.dnn,
           self._l2_reg,
           name=tower_name,
-          is_training=self._is_training
+          is_training=self._is_training,
         )
         tower_output = tower_dnn(task_input_list[i])
       else:
@@ -69,7 +60,7 @@ class MMoE(MultiTaskModel):
         inputs=tower_output,
         units=task_tower_cfg.num_class,
         kernel_regularizer=self._l2_reg,
-        name='dnn_output_%d' % i
+        name='dnn_output_%d' % i,
       )
 
       tower_outputs[tower_name] = tower_output

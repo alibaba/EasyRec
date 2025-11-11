@@ -10,9 +10,7 @@ from kafka.admin import NewTopic
 
 # from kafka.structs import TopicPartition
 
-logging.basicConfig(
-  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -43,10 +41,10 @@ if __name__ == '__main__':
           name=args.topic,
           num_partitions=1,
           replication_factor=1,
-          topic_configs={'max.message.bytes': 1024 * 1024 * 1024}
+          topic_configs={'max.message.bytes': 1024 * 1024 * 1024},
         )
       ],
-      validate_only=False
+      validate_only=False,
     )
     logging.info('create increment save topic: %s' % args.topic)
   admin_clt.close()
@@ -54,7 +52,7 @@ if __name__ == '__main__':
   producer = KafkaProducer(
     bootstrap_servers=servers,
     request_timeout_ms=args.timeout * 1000,
-    api_version=(0, 10, 1)
+    api_version=(0, 10, 1),
   )
 
   i = 1

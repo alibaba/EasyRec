@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Fused embedding layer."""
+
 import tensorflow as tf
 from tensorflow.python.keras.layers import Embedding, Layer
 
@@ -23,7 +24,6 @@ def _combine(embeddings, weights, comb_fn):
 
 
 class EmbeddingLayer(Layer):
-
   def __init__(self, params, name='embedding_layer', reuse=None, **kwargs):
     super(EmbeddingLayer, self).__init__(name=name, **kwargs)
     params.check_required(['vocab_size', 'embedding_dim'])
@@ -71,10 +71,12 @@ class EmbeddingLayer(Layer):
         batch_size = tf.shape(inputs[i])[0]
         embeddings[i] = tf.cond(
           tf.equal(tf.size(embeddings[i]), 0),
-          lambda: tf.zeros([batch_size, self.embed_dim]), lambda: _combine(
+          lambda: tf.zeros([batch_size, self.embed_dim]),
+          lambda: _combine(
             tf.reshape(embeddings[i], [batch_size, -1, self.embed_dim]),
-            weights[i], self.combine_fn
-          )
+            weights[i],
+            self.combine_fn,
+          ),
         )
     if self.do_concat:
       embeddings = tf.concat(embeddings, axis=-1)

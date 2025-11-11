@@ -5,7 +5,6 @@ import tensorflow as tf
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
-
 from easy_rec.python.protos.multi_tower_pb2 import MultiTower as MultiTowerConfig  # NOQA
 
 if tf.__version__ >= '2.0':
@@ -13,18 +12,8 @@ if tf.__version__ >= '2.0':
 
 
 class MultiTower(RankModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(MultiTower, self).__init__(
-      model_config, feature_configs, features, labels, is_training
-    )
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(MultiTower, self).__init__(model_config, feature_configs, features, labels, is_training)
     assert self._model_config.WhichOneof('model') == 'multi_tower', (
       'invalid model config: %s' % self._model_config.WhichOneof('model')
     )
@@ -48,20 +37,15 @@ class MultiTower(RankModel):
         tower_fea,
         training=self._is_training,
         trainable=True,
-        name='%s_fea_bn' % tower_name
+        name='%s_fea_bn' % tower_name,
       )
 
-      tower_dnn_layer = dnn.DNN(
-        tower.dnn, self._l2_reg, '%s_dnn' % tower_name, self._is_training
-      )
+      tower_dnn_layer = dnn.DNN(tower.dnn, self._l2_reg, '%s_dnn' % tower_name, self._is_training)
       tower_fea = tower_dnn_layer(tower_fea)
       tower_fea_arr.append(tower_fea)
 
     all_fea = tf.concat(tower_fea_arr, axis=1)
-    final_dnn_layer = dnn.DNN(
-      self._model_config.final_dnn, self._l2_reg, 'final_dnn',
-      self._is_training
-    )
+    final_dnn_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg, 'final_dnn', self._is_training)
     all_fea = final_dnn_layer(all_fea)
     output = tf.layers.dense(all_fea, self._num_class, name='output')
 

@@ -10,16 +10,18 @@ import oss2
 
 try:
   from datahub import DataHub
-  from datahub.exceptions import InvalidOperationException, ResourceExistException  # NOQA
+  from datahub.exceptions import (  # NOQA
+    InvalidOperationException,
+    ResourceExistException,
+  )
+
   # from datahub.exceptions import LimitExceededException
   # from datahub.exceptions import ResourceNotFoundException
   # from datahub.models import BlobRecord
   # from datahub.models import CursorType
   from datahub.models import FieldType, RecordSchema, RecordType, TupleRecord
 except Exception:
-  logging.error(
-    'DataHub is not installed, please installed it by: pip install pydatahub'
-  )
+  logging.error('DataHub is not installed, please installed it by: pip install pydatahub')
   DataHub = None
 
 try:
@@ -31,7 +33,6 @@ except Exception:
 
 
 class OdpsOSSConfig:
-
   def __init__(self, script_path='./samples/odps_script'):
     self.time_stamp = int(time.time())
     temp_dir = os.environ.get('TMPDIR', '/tmp')
@@ -86,11 +87,11 @@ class OdpsOSSConfig:
         line_str = line_str.strip()
         line_str = line_str.replace(' ', '')
         if line_str.startswith('accessKeyID='):
-          self.oss_key = line_str[len('accessKeyID='):].strip()
+          self.oss_key = line_str[len('accessKeyID=') :].strip()
         elif line_str.startswith('accessKeySecret='):
-          self.oss_secret = line_str[len('accessKeySecret='):].strip()
+          self.oss_secret = line_str[len('accessKeySecret=') :].strip()
         elif line_str.startswith('endpoint='):
-          self.endpoint = line_str[len('endpoint='):].strip()
+          self.endpoint = line_str[len('endpoint=') :].strip()
 
   def load_odps_config(self, config_path):
     self.odps_config_path = config_path
@@ -100,16 +101,16 @@ class OdpsOSSConfig:
         line_str = line_str.replace(' ', '')
         key_str = 'project_name='
         if line_str.startswith(key_str):
-          self.project_name = line_str[len(key_str):]
+          self.project_name = line_str[len(key_str) :]
         key_str = 'end_point='
         if line_str.startswith(key_str):
-          self.odps_endpoint = line_str[len(key_str):]
+          self.odps_endpoint = line_str[len(key_str) :]
         key_str = 'access_id='
         if line_str.startswith(key_str):
-          self.dh_id = line_str[len(key_str):]
+          self.dh_id = line_str[len(key_str) :]
         key_str = 'access_key='
         if line_str.startswith(key_str):
-          self.dh_key = line_str[len(key_str):]
+          self.dh_key = line_str[len(key_str) :]
 
   def clean_topic(self, dh_project):
     if not dh_project:
@@ -130,9 +131,7 @@ class OdpsOSSConfig:
           pass
 
   def clean_subscription(self, topic_name):
-    subscriptions = self.dh.list_subscription(
-      self.dh_project, topic_name, '', 1, 100
-    ).subscriptions
+    subscriptions = self.dh.list_subscription(self.dh_project, topic_name, '', 1, 100).subscriptions
     for subscription in subscriptions:
       self.dh.delete_subscription(self.dh_project, topic_name, subscription)
 
@@ -143,16 +142,14 @@ class OdpsOSSConfig:
       'STRING': FieldType.STRING,
       'BOOLEAN': FieldType.BOOLEAN,
       'FLOAT32': FieldType.DOUBLE,
-      'FLOAT64': FieldType.DOUBLE
+      'FLOAT64': FieldType.DOUBLE,
     }
 
     return DhDict.get(input_type)
 
   def init_dh_and_odps(self):
     self.dh = DataHub(self.dh_id, self.dh_key, self.dh_endpoint)
-    self.odps = ODPS(
-      self.dh_id, self.dh_key, self.project_name, self.odps_endpoint
-    )
+    self.odps = ODPS(self.dh_id, self.dh_key, self.project_name, self.odps_endpoint)
     self.odpsTable = 'deepfm_train_%s' % self.time_stamp
     self.clean_project()
     read_odps = DataFrame(self.odps.get_table(self.odpsTable))
@@ -174,7 +171,7 @@ class OdpsOSSConfig:
         7,
         3,
         record_schema,
-        comment='EasyRecTest'
+        comment='EasyRecTest',
       )
       logging.info('create tuple topic %s success!' % self.dh_topic)
     except ResourceExistException:
@@ -184,9 +181,7 @@ class OdpsOSSConfig:
       logging.error(traceback.format_exc())
     try:
       self.dh.wait_shards_ready(self.dh_project, self.dh_topic)
-      logging.info(
-        'datahub[%s,%s] shards all ready' % (self.dh_project, self.dh_topic)
-      )
+      logging.info('datahub[%s,%s] shards all ready' % (self.dh_project, self.dh_topic))
       topic_result = self.dh.get_topic(self.dh_project, self.dh_topic)
       if topic_result.record_type != RecordType.TUPLE:
         logging.error('invalid topic type: %s' % str(topic_result.record_type))

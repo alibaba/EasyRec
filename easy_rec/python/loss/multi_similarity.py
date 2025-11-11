@@ -17,7 +17,7 @@ def ms_loss(
   lamb=1.0,
   eps=0.1,
   ms_mining=False,
-  embed_normed=False
+  embed_normed=False,
 ):
   """Refer paper: Multi-Similarity Loss with General Pair Weighting for Deep Metric Learning.
 
@@ -35,9 +35,7 @@ def ms_loss(
   mask_pos = get_anchor_positive_triplet_mask(labels, session_ids)
   mask_neg = 1 - mask_pos - tf.eye(batch_size)
 
-  sim_mat = tf.matmul(
-    embeddings, embeddings, transpose_a=False, transpose_b=True
-  )
+  sim_mat = tf.matmul(embeddings, embeddings, transpose_a=False, transpose_b=True)
   sim_mat = tf.maximum(sim_mat, 0.0)
 
   pos_mat = tf.multiply(sim_mat, mask_pos)
@@ -46,19 +44,13 @@ def ms_loss(
   if ms_mining:
     max_val = tf.reduce_max(neg_mat, axis=1, keepdims=True)
     tmp_max_val = tf.reduce_max(pos_mat, axis=1, keepdims=True)
-    min_val = tf.reduce_min(
-      tf.multiply(sim_mat - tmp_max_val, mask_pos), axis=1, keepdims=True
-    ) + tmp_max_val
+    min_val = tf.reduce_min(tf.multiply(sim_mat - tmp_max_val, mask_pos), axis=1, keepdims=True) + tmp_max_val
 
     max_val = tf.tile(max_val, [1, batch_size])
     min_val = tf.tile(min_val, [1, batch_size])
 
-    mask_pos = tf.where(
-      pos_mat < max_val + eps, mask_pos, tf.zeros_like(mask_pos)
-    )
-    mask_neg = tf.where(
-      neg_mat > min_val - eps, mask_neg, tf.zeros_like(mask_neg)
-    )
+    mask_pos = tf.where(pos_mat < max_val + eps, mask_pos, tf.zeros_like(mask_pos))
+    mask_neg = tf.where(neg_mat > min_val - eps, mask_neg, tf.zeros_like(mask_neg))
 
   pos_exp = tf.exp(-alpha * (pos_mat - lamb))
   pos_exp = tf.where(mask_pos > 0.0, pos_exp, tf.zeros_like(pos_exp))

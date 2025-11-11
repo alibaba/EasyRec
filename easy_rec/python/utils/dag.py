@@ -69,7 +69,6 @@ class DAG(object):
     if not graph:
       graph = self.graph
     for node, edges in graph.items():
-
       if node == old_task_name:
         graph[new_task_name] = copy(edges)
         del graph[old_task_name]
@@ -110,11 +109,7 @@ class DAG(object):
           nodes_seen.add(downstream_node)
           nodes.append(downstream_node)
       i += 1
-    return list(
-      filter(
-        lambda node: node in nodes_seen, self.topological_sort(graph=graph)
-      )
-    )
+    return list(filter(lambda node: node in nodes_seen, self.topological_sort(graph=graph)))
 
   def all_leaves(self, graph=None):
     """Return a list of all leaves (nodes with no downstreams)."""
@@ -145,9 +140,7 @@ class DAG(object):
     if graph is None:
       graph = self.graph
 
-    dependent_nodes = set(
-      node for dependents in graph.values() for node in dependents
-    )
+    dependent_nodes = set(node for dependents in graph.values() for node in dependents)
     return [node for node in graph.keys() if node not in dependent_nodes]
 
   def validate(self, graph=None):

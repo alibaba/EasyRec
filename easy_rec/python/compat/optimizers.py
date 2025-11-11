@@ -21,8 +21,20 @@ import logging
 
 import six
 import tensorflow as tf
+
 # from tensorflow.contrib import framework as contrib_framework
 from tensorflow.python.framework import dtypes, ops
+
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import (  # NOQA
+  array_ops,
+  clip_ops,
+  control_flow_ops,
+  gen_nn_ops,
+  init_ops,
+  math_ops,
+  random_ops,
+)
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
 from tensorflow.python.summary import summary
@@ -32,9 +44,6 @@ from tensorflow.python.training import training as train
 
 from easy_rec.python.ops.incr_record import set_sparse_indices
 from easy_rec.python.utils import constant, estimator_utils
-
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops, clip_ops, control_flow_ops, gen_nn_ops, init_ops, math_ops, random_ops  # NOQA
 
 try:
   from tensorflow.python.framework import indexed_slices
@@ -54,18 +63,12 @@ except Exception:
   sok = None
 
 OPTIMIZER_CLS_NAMES = {
-  'Adagrad':
-  train.AdagradOptimizer,
-  'Adam':
-  train.AdamOptimizer,
-  'Ftrl':
-  train.FtrlOptimizer,
-  'Momentum':
-  lambda learning_rate: train.MomentumOptimizer(learning_rate, momentum=0.9),  # pylint: disable=line-too-long
-  'RMSProp':
-  train.RMSPropOptimizer,
-  'SGD':
-  train.GradientDescentOptimizer,
+  'Adagrad': train.AdagradOptimizer,
+  'Adam': train.AdamOptimizer,
+  'Ftrl': train.FtrlOptimizer,
+  'Momentum': lambda learning_rate: train.MomentumOptimizer(learning_rate, momentum=0.9),
+  'RMSProp': train.RMSPropOptimizer,
+  'SGD': train.GradientDescentOptimizer,
 }
 
 OPTIMIZER_SUMMARIES = [
@@ -94,7 +97,7 @@ def optimize_loss(
   not_apply_grad_after_first_step=False,
   increment_global_step=True,
   incr_save=False,
-  embedding_parallel=False
+  embedding_parallel=False,
 ):
   """Given loss and parameters for optimizer, returns a training op.
 
@@ -201,18 +204,16 @@ def optimize_loss(
     # Learning rate variable, with possible decay.
     lr = None
     if learning_rate is not None:
-      if (
-        isinstance(learning_rate, ops.Tensor)
-        and learning_rate.get_shape().ndims == 0
-      ):
+      if isinstance(learning_rate, ops.Tensor) and learning_rate.get_shape().ndims == 0:
         lr = learning_rate
       elif isinstance(learning_rate, float):
         if learning_rate < 0.0:
           raise ValueError('Invalid learning_rate %s.', learning_rate)
         lr = vs.get_variable(
-          'learning_rate', [],
+          'learning_rate',
+          [],
           trainable=False,
-          initializer=init_ops.constant_initializer(learning_rate)
+          initializer=init_ops.constant_initializer(learning_rate),
         )
       else:
         raise ValueError(
@@ -224,10 +225,7 @@ def optimize_loss(
     else:
       for summ in summaries:
         if summ not in OPTIMIZER_SUMMARIES:
-          raise ValueError(
-            'Summaries should be one of [%s], you provided %s.' %
-            (', '.join(OPTIMIZER_SUMMARIES), summ)
-          )
+          raise ValueError('Summaries should be one of [%s], you provided %s.' % (', '.join(OPTIMIZER_SUMMARIES), summ))
     if learning_rate is not None and learning_rate_decay_fn is not None:
       if global_step is None:
         raise ValueError('global_step is required for learning_rate_decay_fn.')
@@ -238,25 +236,15 @@ def optimize_loss(
     # Create optimizer, given specified parameters.
     if isinstance(optimizer, six.string_types):
       if lr is None:
-        raise ValueError(
-          'Learning rate is None, but should be specified if '
-          'optimizer is string (%s).' % optimizer
-        )
+        raise ValueError('Learning rate is None, but should be specified if ' 'optimizer is string (%s).' % optimizer)
       if optimizer not in OPTIMIZER_CLS_NAMES:
         raise ValueError(
-          'Optimizer name should be one of [%s], you provided %s.' %
-          (', '.join(OPTIMIZER_CLS_NAMES), optimizer)
+          'Optimizer name should be one of [%s], you provided %s.' % (', '.join(OPTIMIZER_CLS_NAMES), optimizer)
         )
       opt = OPTIMIZER_CLS_NAMES[optimizer](learning_rate=lr)
-    elif (
-      isinstance(optimizer, type)
-      and issubclass(optimizer, optimizer_.Optimizer)
-    ):
+    elif isinstance(optimizer, type) and issubclass(optimizer, optimizer_.Optimizer):
       if lr is None:
-        raise ValueError(
-          'Learning rate is None, but should be specified if '
-          'optimizer is class (%s).' % optimizer
-        )
+        raise ValueError('Learning rate is None, but should be specified if ' 'optimizer is class (%s).' % optimizer)
       opt = optimizer(learning_rate=lr)
     elif isinstance(optimizer, optimizer_.Optimizer):
       opt = optimizer
@@ -266,12 +254,10 @@ def optimize_loss(
       else:
         opt = optimizer()
       if not isinstance(opt, optimizer_.Optimizer):
-        raise ValueError(
-          'Unrecognized optimizer: function should return '
-          'subclass of Optimizer. Got %s.' % str(opt)
-        )
-    elif isinstance(optimizer, sok_optimizer.OptimizerWrapperV1) or \
-        isinstance(optimizer, sok_optimizer.OptimizerWrapperV2):
+        raise ValueError('Unrecognized optimizer: function should return ' 'subclass of Optimizer. Got %s.' % str(opt))
+    elif isinstance(optimizer, sok_optimizer.OptimizerWrapperV1) or isinstance(
+      optimizer, sok_optimizer.OptimizerWrapperV2
+    ):
       opt = optimizer
     else:
       raise ValueError(
@@ -286,9 +272,7 @@ def optimize_loss(
       variables = vars_.trainable_variables()
 
     # Compute gradients.
-    gradients = opt.compute_gradients(
-      loss, variables, colocate_gradients_with_ops=colocate_gradients_with_ops
-    )
+    gradients = opt.compute_gradients(loss, variables, colocate_gradients_with_ops=colocate_gradients_with_ops)
 
     if estimator_utils.has_hvd() and hvd.size() > 1:
       if not embedding_parallel:
@@ -298,8 +282,11 @@ def optimize_loss(
           reduced_grads.append(
             (
               hvd.allreduce(
-                g, op=hvd.Average, compression=hvd.compression.NoneCompressor
-              ), v
+                g,
+                op=hvd.Average,
+                compression=hvd.compression.NoneCompressor,
+              ),
+              v,
             )
           )
         gradients = reduced_grads
@@ -326,9 +313,8 @@ def optimize_loss(
           else:
             reduced_grads.append(
               (
-                indexed_slices.IndexedSlices(
-                  indices=g.indices, values=g.values / hvd.size()
-                ), v
+                indexed_slices.IndexedSlices(indices=g.indices, values=g.values / hvd.size()),
+                v,
               )
             )
 
@@ -338,14 +324,16 @@ def optimize_loss(
             reduced_part_grads = hvd.grouped_allreduce(
               part_grads,
               op=hvd.Average,
-              compression=hvd.compression.NoneCompressor
+              compression=hvd.compression.NoneCompressor,
             )
             for g, v in zip(reduced_part_grads, part_vars):
               reduced_grads.append((g, v))
           else:
             for g, v in zip(part_grads, part_vars):
               g = hvd.allreduce(
-                g, op=hvd.Average, compression=hvd.compression.NoneCompressor
+                g,
+                op=hvd.Average,
+                compression=hvd.compression.NoneCompressor,
               )
               reduced_grads.append((g, v))
         if len(part_sparse_grads) > 0:
@@ -353,23 +341,23 @@ def optimize_loss(
             reduced_part_grads = hvd.grouped_allreduce(
               part_sparse_grads,
               op=hvd.Average,
-              compression=hvd.compression.NoneCompressor
+              compression=hvd.compression.NoneCompressor,
             )
             for g, v in zip(reduced_part_grads, part_sparse_vars):
               reduced_grads.append((g, v))
           else:
             for g, v in zip(part_sparse_grads, part_sparse_vars):
               g = hvd.allreduce(
-                g, op=hvd.Average, compression=hvd.compression.NoneCompressor
+                g,
+                op=hvd.Average,
+                compression=hvd.compression.NoneCompressor,
               )
               reduced_grads.append((g, v))
         gradients = reduced_grads
 
     # Optionally add gradient noise.
     if gradient_noise_scale is not None:
-      gradients = _add_scaled_noise_to_gradients(
-        gradients, gradient_noise_scale
-      )
+      gradients = _add_scaled_noise_to_gradients(gradients, gradient_noise_scale)
 
     # Multiply some gradients.
     if gradient_multipliers is not None:
@@ -387,24 +375,18 @@ def optimize_loss(
     # Optionally clip gradients by global norm.
     if isinstance(clip_gradients, float):
       # gradients = _clip_gradients_by_norm(gradients, clip_gradients)
-      sparse_norm, dense_norm, grad_norm = _get_grad_norm(
-        gradients, embedding_parallel
-      )
+      sparse_norm, dense_norm, grad_norm = _get_grad_norm(gradients, embedding_parallel)
       summary.scalar('global_norm/sparse_grad', sparse_norm)
       summary.scalar('global_norm/dense_grad', dense_norm)
       summary.scalar('global_norm/gradient_norm', grad_norm)
       grads = [x[0] for x in gradients]
       vars = [x[1] for x in gradients]
-      clipped_grads, _ = clip_ops.clip_by_global_norm(
-        grads, clip_gradients, use_norm=grad_norm
-      )
+      clipped_grads, _ = clip_ops.clip_by_global_norm(grads, clip_gradients, use_norm=grad_norm)
       gradients = list(zip(clipped_grads, vars))
     elif callable(clip_gradients):
       gradients = clip_gradients(gradients)
     elif clip_gradients is not None:
-      raise ValueError(
-        'Unknown type %s for clip_gradients' % type(clip_gradients)
-      )
+      raise ValueError('Unknown type %s for clip_gradients' % type(clip_gradients))
 
     # Add scalar summary for loss.
     if 'loss' in summaries:
@@ -425,15 +407,11 @@ def optimize_loss(
           if 'gradient_norm' in summaries:
             summary.scalar(
               'gradient_norm/%s' % var_name,
-              clip_ops.global_norm([grad_values])
+              clip_ops.global_norm([grad_values]),
             )
 
-    if clip_gradients is not None and (
-      'global_gradient_norm' in summaries or 'gradient_norm' in summaries
-    ):
-      sparse_norm, dense_norm, grad_norm = _get_grad_norm(
-        gradients, embedding_parallel
-      )
+    if clip_gradients is not None and ('global_gradient_norm' in summaries or 'gradient_norm' in summaries):
+      sparse_norm, dense_norm, grad_norm = _get_grad_norm(gradients, embedding_parallel)
       summary.scalar('global_norm/clipped_sparse_grad', sparse_norm)
       summary.scalar('global_norm/clipped_dense_grad', dense_norm)
       summary.scalar('global_norm/clipped_gradient_norm', grad_norm)
@@ -443,7 +421,7 @@ def optimize_loss(
       grad_updates = opt.apply_gradients(
         gradients,
         global_step=global_step if increment_global_step else None,
-        name='train'
+        name='train',
       )
 
       embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
@@ -452,9 +430,7 @@ def optimize_loss(
         if var.name in embed_para_vars:
           for slot_name in slot_names:
             tmp_var = opt.get_slot(var, slot_name)
-            logging.info(
-              'add shard embedding optimizer var: %s' % tmp_var.name
-            )
+            logging.info('add shard embedding optimizer var: %s' % tmp_var.name)
             ops.add_to_collection(constant.EmbeddingParallel, tmp_var.name)
 
       incr_save_ops = []
@@ -462,14 +438,10 @@ def optimize_loss(
         for grad, var in gradients:
           if isinstance(grad, indexed_slices.IndexedSlices):
             indices = grad.indices
-            with ops.colocate_with(var), ops.control_dependencies(
-              [grad_updates]
-            ):
+            with ops.colocate_with(var), ops.control_dependencies([grad_updates]):
               incr_save_op = set_sparse_indices(indices, var_name=var.op.name)
               incr_save_ops.append(incr_save_op)
-            ops.add_to_collection(
-              'SPARSE_UPDATE_VARIABLES', (var, grad.indices.dtype)
-            )
+            ops.add_to_collection('SPARSE_UPDATE_VARIABLES', (var, grad.indices.dtype))
           else:
             ops.add_to_collection('DENSE_UPDATE_VARIABLES', var)
         return tf.group(incr_save_ops)
@@ -500,20 +472,16 @@ def _get_grad_norm(grads_and_vars, embedding_parallel=False):
     else:
       dense_norms.append(gen_nn_ops.l2_loss(grad))
   if hvd is not None and part_norms:
-    reduced_norms = hvd.grouped_allreduce(
-      part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor
-    )
+    reduced_norms = hvd.grouped_allreduce(part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor)
     sparse_norms = sparse_norms + reduced_norms
   all_norms = sparse_norms + dense_norms
-  sparse_norm = math_ops.sqrt(
-    math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0)
-  ) if sparse_norms else tf.constant(0.0)
-  dense_norm = math_ops.sqrt(
-    math_ops.reduce_sum(array_ops.stack(dense_norms) * 2.0)
-  ) if dense_norms else tf.constant(0.0)
-  grad_norm = math_ops.sqrt(
-    math_ops.reduce_sum(array_ops.stack(all_norms)) * 2.0
-  ) if all_norms else tf.constant(0.0)
+  sparse_norm = (
+    math_ops.sqrt(math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0)) if sparse_norms else tf.constant(0.0)
+  )
+  dense_norm = (
+    math_ops.sqrt(math_ops.reduce_sum(array_ops.stack(dense_norms) * 2.0)) if dense_norms else tf.constant(0.0)
+  )
+  grad_norm = math_ops.sqrt(math_ops.reduce_sum(array_ops.stack(all_norms)) * 2.0) if all_norms else tf.constant(0.0)
   return sparse_norm, dense_norm, grad_norm
 
 
@@ -521,9 +489,7 @@ def _clip_gradients_by_norm(grads_and_vars, clip_gradients):
   """Clips gradients by global norm."""
   gradients, variables = zip(*grads_and_vars)
 
-  clipped_gradients, _ = clip_ops.clip_by_global_norm(
-    gradients, clip_gradients
-  )
+  clipped_gradients, _ = clip_ops.clip_by_global_norm(gradients, clip_gradients)
   return list(zip(clipped_gradients, variables))
 
 
@@ -538,16 +504,14 @@ def _adaptive_max_norm(norm, std_factor, decay, global_step, epsilon, name):
         shape=value.get_shape(),
         dtype=value.dtype,
         initializer=init_ops.zeros_initializer(),
-        trainable=False
+        trainable=False,
       )
-      return moving_averages.assign_moving_average(
-        moving_average_variable, value, decay, zero_debias=False
-      )
+      return moving_averages.assign_moving_average(moving_average_variable, value, decay, zero_debias=False)
 
     # quicker adaptation at the beginning
     if global_step is not None:
       n = math_ops.cast(global_step, dtypes.float32)
-      decay = math_ops.minimum(decay, n / (n + 1.))
+      decay = math_ops.minimum(decay, n / (n + 1.0))
 
     # update averages
     mean = moving_average('mean', log_norm, decay)
@@ -560,13 +524,13 @@ def _adaptive_max_norm(norm, std_factor, decay, global_step, epsilon, name):
 
 
 def adaptive_clipping_fn(
-  std_factor=2.,
+  std_factor=2.0,
   decay=0.95,
   static_max_norm=None,
   global_step=None,
   report_summary=False,
   epsilon=1e-8,
-  name=None
+  name=None,
 ):
   """Adapt the clipping value using statistics on the norms.
 
@@ -599,19 +563,14 @@ def adaptive_clipping_fn(
 
     norm = clip_ops.global_norm(grads)
 
-    max_norm, log_mean = _adaptive_max_norm(
-      norm, std_factor, decay, global_step, epsilon, name
-    )
+    max_norm, log_mean = _adaptive_max_norm(norm, std_factor, decay, global_step, epsilon, name)
 
     # reports the max gradient norm for debugging
     if report_summary:
       summary.scalar('global_norm/adaptive_max_gradient_norm', max_norm)
 
     # factor will be 1. if norm is smaller than max_norm
-    factor = array_ops.where(
-      norm < max_norm, array_ops.ones_like(norm),
-      math_ops.exp(log_mean) / norm
-    )
+    factor = array_ops.where(norm < max_norm, array_ops.ones_like(norm), math_ops.exp(log_mean) / norm)
 
     if static_max_norm is not None:
       factor = math_ops.minimum(static_max_norm / norm, factor)
@@ -622,11 +581,7 @@ def adaptive_clipping_fn(
       if grad is None:
         clipped_grads.append(None)
       elif isinstance(grad, indexed_slices.IndexedSlices):
-        clipped_grads.append(
-          indexed_slices.IndexedSlices(
-            grad.values * factor, grad.indices, grad.dense_shape
-          )
-        )
+        clipped_grads.append(indexed_slices.IndexedSlices(grad.values * factor, grad.indices, grad.dense_shape))
       else:
         clipped_grads.append(grad * factor)
 
@@ -656,17 +611,12 @@ def _multiply_gradients(grads_and_vars, gradient_multipliers):
   """Multiply specified gradients."""
   multiplied_grads_and_vars = []
   for grad, var in grads_and_vars:
-    if (
-      grad is not None
-      and (var in gradient_multipliers or var.name in gradient_multipliers)
-    ):
+    if grad is not None and (var in gradient_multipliers or var.name in gradient_multipliers):
       key = var if var in gradient_multipliers else var.name
       multiplier = gradient_multipliers[key]
       if isinstance(grad, indexed_slices.IndexedSlices):
         grad_values = grad.values * multiplier
-        grad = indexed_slices.IndexedSlices(
-          grad_values, grad.indices, grad.dense_shape
-        )
+        grad = indexed_slices.IndexedSlices(grad_values, grad.indices, grad.dense_shape)
       else:
         grad *= math_ops.cast(multiplier, grad.dtype)
     multiplied_grads_and_vars.append((grad, var))

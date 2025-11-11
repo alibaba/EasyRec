@@ -13,33 +13,20 @@ if tf.__version__ >= '2.0':
 
 
 class DeepFM(RankModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(DeepFM, self).__init__(
-      model_config, feature_configs, features, labels, is_training
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(DeepFM, self).__init__(model_config, feature_configs, features, labels, is_training)
+    assert self._model_config.WhichOneof('model') == 'deepfm', (
+      'invalid model config: %s' % self._model_config.WhichOneof('model')
     )
-    assert self._model_config.WhichOneof('model') == 'deepfm', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.deepfm
     assert isinstance(self._model_config, DeepFMConfig)
 
     # backward compatibility
     if self._model_config.HasField('wide_regularization'):
-      tf.logging.warn(
-        'wide_regularization is deprecated, please use l2_regularization'
-      )
+      tf.logging.warn('wide_regularization is deprecated, please use l2_regularization')
 
     self._wide_features, _ = self._input_layer(self._feature_dict, 'wide')
-    self._deep_features, self._fm_features = self._input_layer(
-      self._feature_dict, 'deep'
-    )
+    self._deep_features, self._fm_features = self._input_layer(self._feature_dict, 'deep')
     if 'fm' in self._input_layer._feature_groups:
       _, self._fm_features = self._input_layer(self._feature_dict, 'fm')
 
@@ -50,56 +37,45 @@ class DeepFM(RankModel):
       assert model_config.deepfm.wide_output_dim == model_config.num_class
     self._wide_output_dim = model_config.deepfm.wide_output_dim
     if self._wide_output_dim != self._num_class:
-      logging.warning(
-        'wide_output_dim not equal to 1, it is not a standard model'
-      )
+      logging.warning('wide_output_dim not equal to 1, it is not a standard model')
     super(DeepFM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     # Wide
     if self._num_class > 1 and self._wide_output_dim == self._num_class:
       wide_shape = tf.shape(self._wide_features)
-      new_shape = tf.stack(
-        [-1, wide_shape[1] // self._num_class, self._num_class]
-      )
+      new_shape = tf.stack([-1, wide_shape[1] // self._num_class, self._num_class])
       wide_fea = tf.reshape(self._wide_features, new_shape)
       wide_fea = tf.reduce_sum(wide_fea, axis=1, name='wide_feature')
     else:
-      wide_fea = tf.reduce_sum(
-        self._wide_features, axis=1, keepdims=True, name='wide_feature'
-      )
+      wide_fea = tf.reduce_sum(self._wide_features, axis=1, keepdims=True, name='wide_feature')
 
     # FM
     fm_fea = fm.FM(name='fm_feature')(self._fm_features)
     self._fm_outputs = fm_fea
 
     # Deep
-    deep_layer = dnn.DNN(
-      self._model_config.dnn, self._l2_reg, 'deep_feature', self._is_training
-    )
+    deep_layer = dnn.DNN(self._model_config.dnn, self._l2_reg, 'deep_feature', self._is_training)
     deep_fea = deep_layer(self._deep_features)
 
     # Final
     if len(self._model_config.final_dnn.hidden_units) > 0:
       all_fea = tf.concat([wide_fea, fm_fea, deep_fea], axis=1)
       final_dnn_layer = dnn.DNN(
-        self._model_config.final_dnn, self._l2_reg, 'final_dnn',
-        self._is_training
+        self._model_config.final_dnn,
+        self._l2_reg,
+        'final_dnn',
+        self._is_training,
       )
       all_fea = final_dnn_layer(all_fea)
-      output = tf.layers.dense(
-        all_fea,
-        self._num_class,
-        kernel_regularizer=self._l2_reg,
-        name='output'
-      )
+      output = tf.layers.dense(all_fea, self._num_class, kernel_regularizer=self._l2_reg, name='output')
     else:
       if self._num_class > 1:
         fm_fea = tf.layers.dense(
           fm_fea,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='fm_logits'
+          name='fm_logits',
         )
       else:
         fm_fea = tf.reduce_sum(fm_fea, 1, keepdims=True)
@@ -107,7 +83,7 @@ class DeepFM(RankModel):
         deep_fea,
         self._num_class,
         kernel_regularizer=self._l2_reg,
-        name='deep_logits'
+        name='deep_logits',
       )
       output = wide_fea + fm_fea + deep_fea
 
@@ -119,16 +95,9 @@ class DeepFM(RankModel):
     outputs = super(DeepFM, self).build_feature_output_dict()
     outputs.update(
       {
-        'wide_features':
-        tf.reduce_join(
-          tf.as_string(self._wide_features), axis=-1, separator=','
-        ),
-        'deep_features':
-        tf.reduce_join(
-          tf.as_string(self._deep_features), axis=-1, separator=','
-        ),
-        'fm_outputs':
-        tf.reduce_join(tf.as_string(self._fm_outputs), axis=-1, separator=',')
+        'wide_features': tf.reduce_join(tf.as_string(self._wide_features), axis=-1, separator=','),
+        'deep_features': tf.reduce_join(tf.as_string(self._deep_features), axis=-1, separator=','),
+        'fm_outputs': tf.reduce_join(tf.as_string(self._fm_outputs), axis=-1, separator=','),
       }
     )
     return outputs

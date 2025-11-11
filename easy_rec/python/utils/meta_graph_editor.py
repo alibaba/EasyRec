@@ -7,17 +7,22 @@ import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.python.framework import ops
 from tensorflow.python.platform.gfile import GFile
+
 # from tensorflow.python.saved_model import constants
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
-from easy_rec.python.utils import conditional, constant, embedding_utils, proto_util  # NOQA
+from easy_rec.python.utils import (  # NOQA
+  conditional,
+  constant,
+  embedding_utils,
+  proto_util,
+)
 
 EMBEDDING_INITIALIZERS = 'embedding_initializers'
 
 
 class MetaGraphEditor:
-
   def __init__(
     self,
     lookup_lib_path,
@@ -34,7 +39,7 @@ class MetaGraphEditor:
     meta_graph_def=None,
     norm_name_to_ids=None,
     incr_update_params=None,
-    debug_dir=''
+    debug_dir='',
   ):
     self._lookup_op = tf.load_op_library(lookup_lib_path)
     self._debug_dir = debug_dir
@@ -48,13 +53,11 @@ class MetaGraphEditor:
       assert meta_graph_def, 'either saved_model_dir or meta_graph_def must be set'
       tf.reset_default_graph()
       from tensorflow.python.framework import meta_graph
-      meta_graph.import_scoped_meta_graph_with_return_elements(
-        meta_graph_def, clear_devices=True
-      )
+
+      meta_graph.import_scoped_meta_graph_with_return_elements(meta_graph_def, clear_devices=True)
       # tf.train.import_meta_graph(meta_graph_def)
     self._meta_graph_version = meta_graph_def.meta_info_def.meta_graph_version
-    self._signature_def = meta_graph_def.signature_def[
-      signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+    self._signature_def = meta_graph_def.signature_def[signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
 
     if self._verbose:
       debug_out_path = os.path.join(self._debug_dir, 'meta_graph_raw.txt')
@@ -163,11 +166,13 @@ class MetaGraphEditor:
       embed_name_sub = '/'.join(tmp_toks)
       if tmp_name == embed_name_sub:
         assert not sel_embed_name, 'confusions encountered: %s %s' % (
-          x, ','.join(embed_names)
+          x,
+          ','.join(embed_names),
         )
         sel_embed_name = embed_name
     assert sel_embed_name, '%s not find in shared_embeddings: %s' % (
-      tmp_name, ','.join(embed_names)
+      tmp_name,
+      ','.join(embed_names),
     )
     return sel_embed_name
 
@@ -184,28 +189,25 @@ class MetaGraphEditor:
     combiner_map = {
       'SparseSegmentSum': 'sum',
       'SparseSegmentMean': 'mean',
-      'SparseSegmentSqrtN': 'sqrtn'
+      'SparseSegmentSqrtN': 'sqrtn',
     }
     for node in self._meta_graph_def.graph_def.node:
       if node.op in combiner_map:
         norm_name, _ = proto_util.get_norm_embed_name(node.name)
         embed_combiners[norm_name] = combiner_map[node.op]
-        embed_combine_node_cts[norm_name
-                              ] = embed_combine_node_cts.get(norm_name, 0) + 1
+        embed_combine_node_cts[norm_name] = embed_combine_node_cts.get(norm_name, 0) + 1
       elif node.op == 'RealDiv' and len(node.input) == 2:
         # for tag feature with weights, and combiner == mean
         if 'SegmentSum' in node.input[0] and 'SegmentSum' in node.input[1]:
           norm_name, _ = proto_util.get_norm_embed_name(node.name)
           embed_combiners[norm_name] = 'mean'
-          embed_combine_node_cts[
-            norm_name] = embed_combine_node_cts.get(norm_name, 0) + 1
+          embed_combine_node_cts[norm_name] = embed_combine_node_cts.get(norm_name, 0) + 1
       elif node.op == 'SegmentSum':
         norm_name, _ = proto_util.get_norm_embed_name(node.name)
         # avoid overwrite RealDiv results
         if norm_name not in embed_combiners:
           embed_combiners[norm_name] = 'sum'
-        embed_combine_node_cts[norm_name
-                              ] = embed_combine_node_cts.get(norm_name, 0) + 1
+        embed_combine_node_cts[norm_name] = embed_combine_node_cts.get(norm_name, 0) + 1
     return [embed_combiners[x] for x in norm_embed_names]
 
   def _find_lookup_indices_values_shapes(self):
@@ -231,13 +233,9 @@ class MetaGraphEditor:
       if '_embedding_weights/SparseReshape' in node.name:
         if node.op == 'SparseReshape':
           # embed_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
-          fea_name, _ = proto_util.get_norm_embed_name(
-            node.name, self._verbose
-          )
+          fea_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
           for tmp_input in node.input:
-            tmp_shape = _get_output_shape(
-              self._meta_graph_def.graph_def, tmp_input
-            )
+            tmp_shape = _get_output_shape(self._meta_graph_def.graph_def, tmp_input)
             if '_embedding_weights/Cast' in tmp_input:
               continue
             elif len(tmp_shape.dim) == 2:
@@ -245,9 +243,7 @@ class MetaGraphEditor:
             elif len(tmp_shape.dim) == 1:
               shapes[fea_name] = tmp_input
         elif node.op == 'Identity':
-          fea_name, _ = proto_util.get_norm_embed_name(
-            node.name, self._verbose
-          )
+          fea_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
           values[fea_name] = node.input[0]
     return indices, values, shapes
 
@@ -282,17 +278,15 @@ class MetaGraphEditor:
     embed_is_kv = {}
     for node in self._meta_graph_def.graph_def.node:
       if 'embedding_weights' in node.name and node.op in [
-        'VariableV2', 'KvVarHandleOp'
+        'VariableV2',
+        'KvVarHandleOp',
       ]:
         tmp = node.attr['shape'].shape.dim[-1].size
         tmp2 = 1
         for x in node.attr['shape'].shape.dim[:-1]:
           tmp2 = tmp2 * x.size
-        embed_name, _ = proto_util.get_norm_embed_name(
-          node.name, self._verbose
-        )
-        assert embed_name is not None,\
-            'fail to get_norm_embed_name(%s)' % node.name
+        embed_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
+        assert embed_name is not None, 'fail to get_norm_embed_name(%s)' % node.name
         embed_dims[embed_name] = tmp
         embed_sizes[embed_name] = tmp2
         embed_is_kv[embed_name] = 1 if node.op == 'KvVarHandleOp' else 0
@@ -325,10 +319,7 @@ class MetaGraphEditor:
     weights = self._find_lookup_weights()
 
     for fea in shapes.keys():
-      logging.info(
-        'Lookup Input[%s]: indices=%s values=%s shapes=%s' %
-        (fea, indices[fea], values[fea], shapes[fea])
-      )
+      logging.info('Lookup Input[%s]: indices=%s values=%s shapes=%s' % (fea, indices[fea], values[fea], shapes[fea]))
 
     graph = tf.get_default_graph()
 
@@ -356,33 +347,36 @@ class MetaGraphEditor:
     self._embed_combiners = self._find_embed_combiners(values.keys())
 
     # get embedding dimensions
-    self._embed_names, self._embed_dims, self._embed_sizes, self._embed_is_kv\
-        = self._find_embed_names_and_dims(values.keys())
+    (
+      self._embed_names,
+      self._embed_dims,
+      self._embed_sizes,
+      self._embed_is_kv,
+    ) = self._find_embed_names_and_dims(values.keys())
 
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
-      self._embed_name_to_ids = {
-        t: tid
-        for tid, t in enumerate(embed_name_uniq)
-      }
-    self._embed_ids = [
-      int(self._embed_name_to_ids[x]) for x in self._embed_names
-    ]
+      self._embed_name_to_ids = {t: tid for tid, t in enumerate(embed_name_uniq)}
+    self._embed_ids = [int(self._embed_name_to_ids[x]) for x in self._embed_names]
 
-    self._is_cache_from_redis = [
-      proto_util.is_cache_from_redis(x, self._redis_cache_names)
-      for x in self._embed_names
-    ]
+    self._is_cache_from_redis = [proto_util.is_cache_from_redis(x, self._redis_cache_names) for x in self._embed_names]
 
     # normalized feature names
     self._feature_names = list(values.keys())
 
-    return lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights
+    return (
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
+    )
 
   def add_lookup_op(
-    self, lookup_input_indices, lookup_input_values, lookup_input_shapes,
-    lookup_input_weights
+    self,
+    lookup_input_indices,
+    lookup_input_values,
+    lookup_input_shapes,
+    lookup_input_weights,
   ):
     logging.info('add custom lookup operation to lookup embeddings from redis')
     self._lookup_outs = [None for i in range(len(lookup_input_values))]
@@ -403,7 +397,7 @@ class MetaGraphEditor:
         embedding_dims=self._embed_dims[i:i_1],
         embedding_names=self._embed_ids[i:i_1],
         cache=self._is_cache_from_redis,
-        version=self._meta_graph_version
+        version=self._meta_graph_version,
       )[0]
 
     meta_graph_def = tf.train.export_meta_graph()
@@ -411,16 +405,15 @@ class MetaGraphEditor:
     if self._verbose:
       debug_path = os.path.join(self._debug_dir, 'graph_raw.txt')
       with GFile(debug_path, 'w') as fout:
-        fout.write(
-          text_format.MessageToString(
-            self._meta_graph_def.graph_def, as_utf8=True
-          )
-        )
+        fout.write(text_format.MessageToString(self._meta_graph_def.graph_def, as_utf8=True))
     return meta_graph_def
 
   def add_oss_lookup_op(
-    self, lookup_input_indices, lookup_input_values, lookup_input_shapes,
-    lookup_input_weights
+    self,
+    lookup_input_indices,
+    lookup_input_values,
+    lookup_input_shapes,
+    lookup_input_weights,
   ):
     logging.info('add custom lookup operation to lookup embeddings from oss')
     place_on_cpu = os.getenv('place_embedding_on_cpu')
@@ -464,7 +457,7 @@ class MetaGraphEditor:
       embedding_ids=self._embed_ids,
       embedding_is_kv=self._embed_is_kv,
       shared_name='embedding_lookup_res',
-      name='embedding_lookup_fused/lookup'
+      name='embedding_lookup_fused/lookup',
     )
 
     N = np.max([int(x) for x in self._embed_ids]) + 1
@@ -473,8 +466,7 @@ class MetaGraphEditor:
     uniq_embed_combiners = ['mean' for x in range(N)]
     uniq_embed_is_kvs = [0 for x in range(N)]
     for embed_id, embed_combiner, embed_is_kv, embed_dim in zip(
-      self._embed_ids, self._embed_combiners, self._embed_is_kv,
-      self._embed_dims
+      self._embed_ids, self._embed_combiners, self._embed_is_kv, self._embed_dims
     ):
       uniq_embed_combiners[embed_id] = embed_combiner
       uniq_embed_is_kvs[embed_id] = embed_is_kv
@@ -491,7 +483,7 @@ class MetaGraphEditor:
       embedding_is_kv=uniq_embed_is_kvs,
       N=N,
       shared_name='embedding_lookup_res',
-      name='embedding_lookup_fused/init'
+      name='embedding_lookup_fused/init',
     )
 
     ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
@@ -502,11 +494,10 @@ class MetaGraphEditor:
       embedding_update = self._lookup_op.embedding_update(
         message=message_ph,
         shared_name='embedding_lookup_res',
-        name='embedding_lookup_fused/embedding_update'
+        name='embedding_lookup_fused/embedding_update',
       )
       self._embedding_update_inputs['incr_update/sparse/message'] = message_ph
-      self._embedding_update_outputs['incr_update/sparse/embedding_update'
-                                    ] = embedding_update
+      self._embedding_update_outputs['incr_update/sparse/embedding_update'] = embedding_update
 
       # dense variables are updated one by one
       dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
@@ -514,9 +505,7 @@ class MetaGraphEditor:
         dense_var_id = dense_name_to_ids[x.op.name]
         dense_input_name = 'incr_update/dense/%d/input' % dense_var_id
         dense_output_name = 'incr_update/dense/%d/output' % dense_var_id
-        dense_update_input = tf.placeholder(
-          tf.float32, x.get_shape(), name=dense_input_name
-        )
+        dense_update_input = tf.placeholder(tf.float32, x.get_shape(), name=dense_input_name)
         self._dense_update_inputs[dense_input_name] = dense_update_input
         dense_assign_op = tf.assign(x, dense_update_input)
         self._dense_update_outputs[dense_output_name] = dense_assign_op
@@ -526,11 +515,7 @@ class MetaGraphEditor:
     if self._verbose:
       debug_path = os.path.join(self._debug_dir, 'graph_raw.txt')
       with GFile(debug_path, 'w') as fout:
-        fout.write(
-          text_format.MessageToString(
-            self._meta_graph_def.graph_def, as_utf8=True
-          )
-        )
+        fout.write(text_format.MessageToString(self._meta_graph_def.graph_def, as_utf8=True))
     return meta_graph_def
 
   def bytes2str(self, x):
@@ -548,16 +533,13 @@ class MetaGraphEditor:
 
     def _clear_embedding_in_meta_collect(meta_graph_def, collect_name):
       tmp_vals = [
-        x for x in meta_graph_def.collection_def[collect_name].bytes_list.value
+        x
+        for x in meta_graph_def.collection_def[collect_name].bytes_list.value
         if 'embedding_weights' not in self.bytes2str(x)
       ]
-      meta_graph_def.collection_def[collect_name].bytes_list.ClearField(
-        'value'
-      )
+      meta_graph_def.collection_def[collect_name].bytes_list.ClearField('value')
       for tmp_v in tmp_vals:
-        meta_graph_def.collection_def[collect_name].bytes_list.value.append(
-          tmp_v
-        )
+        meta_graph_def.collection_def[collect_name].bytes_list.value.append(tmp_v)
 
     _clear_embedding_in_meta_collect(meta_graph_def, 'model_variables')
     _clear_embedding_in_meta_collect(meta_graph_def, 'trainable_variables')
@@ -565,10 +547,16 @@ class MetaGraphEditor:
 
     # clear Kv(pai embedding variable) ops in meta_info_def.stripped_op_list.op
     kept_ops = [
-      x for x in meta_graph_def.meta_info_def.stripped_op_list.op
-      if x.name not in [
-        'InitializeKvVariableOp', 'KvResourceGather', 'KvResourceImportV2',
-        'KvVarHandleOp', 'KvVarIsInitializedOp', 'ReadKvVariableOp'
+      x
+      for x in meta_graph_def.meta_info_def.stripped_op_list.op
+      if x.name
+      not in [
+        'InitializeKvVariableOp',
+        'KvResourceGather',
+        'KvResourceImportV2',
+        'KvVarHandleOp',
+        'KvVarIsInitializedOp',
+        'ReadKvVariableOp',
       ]
     ]
     meta_graph_def.meta_info_def.stripped_op_list.ClearField('op')
@@ -585,8 +573,7 @@ class MetaGraphEditor:
     for key in meta_graph_def.collection_def:
       val = meta_graph_def.collection_def[key]
       if val.HasField('node_list'):
-        if 'embedding_weights' in val.node_list.value[
-          0] and 'easy_rec' not in val.node_list.value[0]:
+        if 'embedding_weights' in val.node_list.value[0] and 'easy_rec' not in val.node_list.value[0]:
           drop_meta_collects.append(key)
       elif key == 'saved_model_assets':
         drop_meta_collects.append(key)
@@ -594,7 +581,6 @@ class MetaGraphEditor:
       meta_graph_def.collection_def.pop(key)
 
   def remove_embedding_weights_and_update_lookup_outputs(self):
-
     def _should_drop(name):
       if '_embedding_weights' in name:
         if self._verbose:
@@ -602,9 +588,7 @@ class MetaGraphEditor:
         return True
 
     logging.info('remove embedding_weights node in graph_def.node')
-    logging.info(
-      'and replace the old embedding_lookup outputs with new lookup_op outputs'
-    )
+    logging.info('and replace the old embedding_lookup outputs with new lookup_op outputs')
 
     for tid, node in enumerate(self._all_graph_nodes):
       # drop the nodes
@@ -613,21 +597,16 @@ class MetaGraphEditor:
       else:
         for i in range(len(node.input)):
           if _should_drop(node.input[i]):
-            input_name, _ = proto_util.get_norm_embed_name(
-              node.input[i], self._verbose
-            )
+            input_name, _ = proto_util.get_norm_embed_name(node.input[i], self._verbose)
             print('REPLACE:' + node.input[i] + '=>' + input_name)
-            input_name = self._lookup_outs[
-              self._feature_names.index(input_name)].name
+            input_name = self._lookup_outs[self._feature_names.index(input_name)].name
             if input_name.endswith(':0'):
               input_name = input_name.replace(':0', '')
             node.input[i] = input_name
 
   # drop by ids
   def _drop_by_ids(self, tmp_obj, key, drop_ids):
-    keep_vals = [
-      x for i, x in enumerate(getattr(tmp_obj, key)) if i not in drop_ids
-    ]
+    keep_vals = [x for i, x in enumerate(getattr(tmp_obj, key)) if i not in drop_ids]
     tmp_obj.ClearField(key)
     getattr(tmp_obj, key).extend(keep_vals)
 
@@ -650,30 +629,19 @@ class MetaGraphEditor:
 
     if self._restore_tensor_node:
       drop_ids = []
-      for tmp_id, tmp_name in enumerate(
-        self._restore_tensor_node.attr['value'].tensor.string_val
-      ):
+      for tmp_id, tmp_name in enumerate(self._restore_tensor_node.attr['value'].tensor.string_val):
         if 'embedding_weights' in self.bytes2str(tmp_name):
           drop_ids.append(tmp_id)
 
-      self._drop_by_ids(
-        self._restore_tensor_node.attr['value'].tensor, 'string_val', drop_ids
-      )
-      keep_node_num = len(
-        self._restore_tensor_node.attr['value'].tensor.string_val
-      )
+      self._drop_by_ids(self._restore_tensor_node.attr['value'].tensor, 'string_val', drop_ids)
+      keep_node_num = len(self._restore_tensor_node.attr['value'].tensor.string_val)
       logging.info(
-        'update self._restore_tensor_node: string_val keep_num = %d drop_num = %d'
-        % (keep_node_num, len(drop_ids))
+        'update self._restore_tensor_node: string_val keep_num = %d drop_num = %d' % (keep_node_num, len(drop_ids))
       )
-      self._restore_tensor_node.attr['value'].tensor.tensor_shape.dim[
-        0].size = keep_node_num
-      self._restore_tensor_node.attr['_output_shapes'].list.shape[0].dim[
-        0].size = keep_node_num
+      self._restore_tensor_node.attr['value'].tensor.tensor_shape.dim[0].size = keep_node_num
+      self._restore_tensor_node.attr['_output_shapes'].list.shape[0].dim[0].size = keep_node_num
 
-    logging.info(
-      'update save/RestoreV2, drop tensor_shapes, _output_shapes, related to embedding_weights'
-    )
+    logging.info('update save/RestoreV2, drop tensor_shapes, _output_shapes, related to embedding_weights')
     self._restore_shard_node = None
     for node_id, node in enumerate(self._all_graph_nodes):
       if not self._all_graph_node_flags[tid]:
@@ -691,17 +659,14 @@ class MetaGraphEditor:
         self._restore_all_node.append(node)
 
   def clear_save_assign(self):
-    logging.info(
-      'update save/Assign, drop tensor_shapes, _output_shapes, related to embedding_weights'
-    )
+    logging.info('update save/Assign, drop tensor_shapes, _output_shapes, related to embedding_weights')
     # edit save/Assign
     drop_save_assigns = []
     all_kv_drop = []
     for tid, node in enumerate(self._all_graph_nodes):
       if not self._all_graph_node_flags[tid]:
         continue
-      if node.op == 'Assign' and 'save/Assign' in node.name and \
-         'embedding_weights' in node.input[0]:
+      if node.op == 'Assign' and 'save/Assign' in node.name and 'embedding_weights' in node.input[0]:
         drop_save_assigns.append('^' + node.name)
         self._all_graph_node_flags[tid] = False
       elif 'embedding_weights/ConcatPartitions/concat' in node.name:
@@ -727,20 +692,16 @@ class MetaGraphEditor:
         # update node(save/Assign_[0-N])'s input[1] by the position of
         #     node.input[0] in save/RestoreV2/tensor_names
         # the outputs of save/RestoreV2 is connected to save/Assign
-        tmp_id = [
-          self.bytes2str(x)
-          for x in self._restore_tensor_node.attr['value'].tensor.string_val
-        ].index(node.input[0])
+        tmp_id = [self.bytes2str(x) for x in self._restore_tensor_node.attr['value'].tensor.string_val].index(
+          node.input[0]
+        )
         if tmp_id != 0:
           tmp_input2 = 'save/RestoreV2:%d' % tmp_id
         else:
           tmp_input2 = 'save/RestoreV2'
         if tmp_input2 != node.input[1]:
           if self._verbose:
-            logging.info(
-              "update save/Assign[%s]'s input from %s to %s" %
-              (node.name, node.input[1], tmp_input2)
-            )
+            logging.info("update save/Assign[%s]'s input from %s to %s" % (node.name, node.input[1], tmp_input2))
           node.input[1] = tmp_input2
 
     # save/restore_all need save/restore_shard as input
@@ -770,9 +731,7 @@ class MetaGraphEditor:
     save/SaveV2 input: [ save/SaveV2/tensor_names, save/SaveV2/shape_and_slices ]
     edit save/SaveV2  save/SaveV2/shape_and_slices save/SaveV2/tensor_names.
     """
-    logging.info(
-      'update save/SaveV2 input shape, _output_shapes, tensor_shape'
-    )
+    logging.info('update save/SaveV2 input shape, _output_shapes, tensor_shape')
     save_drop_ids = []
     for tid, node in enumerate(self._all_graph_nodes):
       if not self._all_graph_node_flags[tid]:
@@ -790,31 +749,21 @@ class MetaGraphEditor:
     for node in self._all_graph_nodes:
       if node.name == 'save/SaveV2/shape_and_slices' and node.op == 'Const':
         # _output_shapes # size # string_val
-        node.attr['_output_shapes'].list.shape[0].dim[0].size -= len(
-          save_drop_ids
-        )
-        node.attr['value'].tensor.tensor_shape.dim[0].size -= len(
-          save_drop_ids
-        )
-        self._drop_by_ids(
-          node.attr['value'].tensor, 'string_val', save_drop_ids
-        )
+        node.attr['_output_shapes'].list.shape[0].dim[0].size -= len(save_drop_ids)
+        node.attr['value'].tensor.tensor_shape.dim[0].size -= len(save_drop_ids)
+        self._drop_by_ids(node.attr['value'].tensor, 'string_val', save_drop_ids)
       elif node.name == 'save/SaveV2/tensor_names':
         # tensor_names may not have the same order as save/SaveV2/shape_and_slices
         tmp_drop_ids = [
-          tmp_id for tmp_id, tmp_val in
-          enumerate(node.attr['value'].tensor.string_val)
+          tmp_id
+          for tmp_id, tmp_val in enumerate(node.attr['value'].tensor.string_val)
           if 'embedding_weights' in self.bytes2str(tmp_val)
         ]
         # attr['value'].tensor.string_val  # tensor_shape  # size
         assert len(save_drop_ids) == len(save_drop_ids)
-        node.attr['_output_shapes'].list.shape[0].dim[0].size -= len(
-          tmp_drop_ids
-        )
+        node.attr['_output_shapes'].list.shape[0].dim[0].size -= len(tmp_drop_ids)
         node.attr['value'].tensor.tensor_shape.dim[0].size -= len(tmp_drop_ids)
-        self._drop_by_ids(
-          node.attr['value'].tensor, 'string_val', tmp_drop_ids
-        )
+        self._drop_by_ids(node.attr['value'].tensor, 'string_val', tmp_drop_ids)
 
   def clear_initialize(self):
     """Clear initialization ops.
@@ -835,15 +784,13 @@ class MetaGraphEditor:
         self._all_graph_node_flags[tid] = False
       elif 'embedding_weights' in node.name and node.op == 'VariableV2':
         self._all_graph_node_flags[tid] = False
-      elif 'embedding_weights' in node.name and node.name.endswith(
-        '/read'
-      ) and node.op == 'Identity':
+      elif 'embedding_weights' in node.name and node.name.endswith('/read') and node.op == 'Identity':
         self._all_graph_node_flags[tid] = False
       elif 'embedding_weights' in node.name and node.op == 'Identity':
         node_toks = node.name.split('/')
         node_tok = node_toks[-1]
         if 'embedding_weights_' in node_tok:
-          node_tok = node_tok[len('embedding_weights_'):]
+          node_tok = node_tok[len('embedding_weights_') :]
           try:
             int(node_tok)
             self._all_graph_node_flags[tid] = False
@@ -855,16 +802,13 @@ class MetaGraphEditor:
     for tid, node in enumerate(self._all_graph_nodes):
       if not self._all_graph_node_flags[tid]:
         continue
-      if node.op in [
-        'ReadKvVariableOp', 'KvVarIsInitializedOp', 'KvVarHandleOp'
-      ]:
+      if node.op in ['ReadKvVariableOp', 'KvVarIsInitializedOp', 'KvVarHandleOp']:
         self._all_graph_node_flags[tid] = False
 
   # there maybe some nodes depend on the dropped nodes, they are dropped as well
   def drop_dependent_nodes(self):
     drop_names = [
-      tmp_node.name for tid, tmp_node in enumerate(self._all_graph_nodes)
-      if not self._all_graph_node_flags[tid]
+      tmp_node.name for tid, tmp_node in enumerate(self._all_graph_nodes) if not self._all_graph_node_flags[tid]
     ]
     while True:
       more_drop_names = []
@@ -872,10 +816,7 @@ class MetaGraphEditor:
         if not self._all_graph_node_flags[tid]:
           continue
         if len(tmp_node.input) > 0 and tmp_node.input[0] in drop_names:
-          logging.info(
-            'drop dependent node: %s depend on %s' %
-            (tmp_node.name, tmp_node.input[0])
-          )
+          logging.info('drop dependent node: %s depend on %s' % (tmp_node.name, tmp_node.input[0]))
           self._all_graph_node_flags[tid] = False
           more_drop_names.append(tmp_node.name)
       drop_names = more_drop_names
@@ -884,13 +825,19 @@ class MetaGraphEditor:
 
   def edit_graph(self):
     # the main entrance
-    lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights = self.find_lookup_inputs()
+    (
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
+    ) = self.find_lookup_inputs()
 
     # add lookup op to the graph
     self._meta_graph_def = self.add_lookup_op(
-      lookup_input_indices, lookup_input_values, lookup_input_shapes,
-      lookup_input_weights
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
     )
 
     self.clear_meta_graph_embeding(self._meta_graph_def)
@@ -918,10 +865,7 @@ class MetaGraphEditor:
 
     self._meta_graph_def.graph_def.ClearField('node')
     self._meta_graph_def.graph_def.node.extend(
-      [
-        x for tid, x in enumerate(self._all_graph_nodes)
-        if self._all_graph_node_flags[tid]
-      ]
+      [x for tid, x in enumerate(self._all_graph_nodes) if self._all_graph_node_flags[tid]]
     )
 
     logging.info('old node number = %d' % self._old_node_num)
@@ -933,19 +877,23 @@ class MetaGraphEditor:
         fout.write(text_format.MessageToString(self.graph_def, as_utf8=True))
       debug_dump_path = os.path.join(self._debug_dir, 'meta_graph.txt')
       with GFile(debug_dump_path, 'w') as fout:
-        fout.write(
-          text_format.MessageToString(self._meta_graph_def, as_utf8=True)
-        )
+        fout.write(text_format.MessageToString(self._meta_graph_def, as_utf8=True))
 
   def edit_graph_for_oss(self):
     # the main entrance
-    lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights = self.find_lookup_inputs()
+    (
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
+    ) = self.find_lookup_inputs()
 
     # add lookup op to the graph
     self._meta_graph_def = self.add_oss_lookup_op(
-      lookup_input_indices, lookup_input_values, lookup_input_shapes,
-      lookup_input_weights
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
     )
 
     self.clear_meta_graph_embeding(self._meta_graph_def)
@@ -973,10 +921,7 @@ class MetaGraphEditor:
 
     self._meta_graph_def.graph_def.ClearField('node')
     self._meta_graph_def.graph_def.node.extend(
-      [
-        x for tid, x in enumerate(self._all_graph_nodes)
-        if self._all_graph_node_flags[tid]
-      ]
+      [x for tid, x in enumerate(self._all_graph_nodes) if self._all_graph_node_flags[tid]]
     )
 
     logging.info('old node number = %d' % self._old_node_num)
@@ -988,6 +933,4 @@ class MetaGraphEditor:
         fout.write(text_format.MessageToString(self.graph_def, as_utf8=True))
       debug_dump_path = os.path.join(self._debug_dir, 'meta_graph.txt')
       with GFile(debug_dump_path, 'w') as fout:
-        fout.write(
-          text_format.MessageToString(self._meta_graph_def, as_utf8=True)
-        )
+        fout.write(text_format.MessageToString(self._meta_graph_def, as_utf8=True))

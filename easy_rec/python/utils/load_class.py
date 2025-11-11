@@ -51,7 +51,6 @@ def load_by_path(path):
 
 
 def _get_methods(aClass):
-
   def should_track(func_name):
     return func_name == '__init__' or func_name[0] != '_'
 
@@ -73,9 +72,7 @@ def _get_method_declare(aMethod):
       return sig_str
     else:
       spec = inspect.getargspec(aMethod)
-      args = inspect.formatargspec(
-        spec.args, spec.varargs, spec.keywords, spec.defaults
-      )
+      args = inspect.formatargspec(spec.args, spec.varargs, spec.keywords, spec.defaults)
       return '%s%s' % (name, args)
   except TypeError:
     return '%s(cls, ...)' % name
@@ -109,10 +106,7 @@ def check_class(cls, impl_cls, function_names=None):
       missing[name + '()'] = 'method signature differs'
 
   if len(missing) > 0:
-    raise Exception(
-      'incompatible Implementation-implementation %s: %s' %
-      (impl_cls.__class__.__name__, missing)
-    )
+    raise Exception('incompatible Implementation-implementation %s: %s' % (impl_cls.__class__.__name__, missing))
 
 
 def import_pkg(pkg_info, prefix_to_remove=None):
@@ -145,6 +139,7 @@ def import_pkg(pkg_info, prefix_to_remove=None):
         __import__(module_path)
       except Exception as e:
         import traceback
+
         logging.error(traceback.format_exc())
         raise ValueError('import module %s failed: %s' % (module_path, str(e)))
 
@@ -172,8 +167,8 @@ def auto_import(user_path=None):
   if parent_dir != '':
     for idx in range(len(pre_defined_dirs)):
       pre_defined_dirs[idx] = (
-        os.path.join(parent_dir,
-                     pre_defined_dirs[idx][0]), pre_defined_dirs[idx][1]
+        os.path.join(parent_dir, pre_defined_dirs[idx][0]),
+        pre_defined_dirs[idx][1],
       )
     prefix_to_remove = parent_dir + '/'
 
@@ -197,17 +192,20 @@ def auto_import(user_path=None):
 
 
 def register_class(class_map, class_name, cls):
-  assert class_name not in class_map or class_map[class_name] == cls, \
-      'confilict class %s , %s is already register to be %s' % (
-          cls, class_name, str(class_map[class_name]))
+  assert class_name not in class_map or class_map[class_name] == cls, (
+    'confilict class %s , %s is already register to be %s'
+    % (
+      cls,
+      class_name,
+      str(class_map[class_name]),
+    )
+  )
   logging.debug('register class %s' % class_name)
   class_map[class_name] = cls
 
 
 def get_register_class_meta(class_map, have_abstract_class=True):
-
   class RegisterABCMeta(ABCMeta):
-
     def __new__(mcs, name, bases, attrs):
       newclass = super(RegisterABCMeta, mcs).__new__(mcs, name, bases, attrs)
       register_class(class_map, name, newclass)
@@ -217,10 +215,7 @@ def get_register_class_meta(class_map, have_abstract_class=True):
         if name in class_map:
           return class_map[name]
         else:
-          raise Exception(
-            'Class %s is not registered. Available ones are %s' %
-            (name, list(class_map.keys()))
-          )
+          raise Exception('Class %s is not registered. Available ones are %s' % (name, list(class_map.keys())))
 
       setattr(newclass, 'create_class', create_class)
       return newclass
@@ -250,7 +245,5 @@ def load_keras_layer(name):
     return pydoc.locate(path), False
   except pydoc.ErrorDuringImport:
     print('load keras layer %s failed' % name)
-    logging.error(
-      'load keras layer %s failed: %s' % (name, traceback.format_exc())
-    )
+    logging.error('load keras layer %s failed: %s' % (name, traceback.format_exc()))
     return None, False

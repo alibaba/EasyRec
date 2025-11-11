@@ -30,7 +30,7 @@ def exponential_decay_with_burnin(
   burnin_learning_rate=0.0,
   burnin_steps=0,
   min_learning_rate=0.0,
-  staircase=True
+  staircase=True,
 ):
   """Exponential decay schedule with burn-in period.
 
@@ -59,23 +59,22 @@ def exponential_decay_with_burnin(
     burnin_rate = learning_rate_base
   else:
     slope = (learning_rate_base - burnin_learning_rate) / burnin_steps
-    burnin_rate = slope * tf.cast(
-      global_step, tf.float32
-    ) + burnin_learning_rate
+    burnin_rate = slope * tf.cast(global_step, tf.float32) + burnin_learning_rate
   post_burnin_learning_rate = tf.train.exponential_decay(
     learning_rate_base,
     global_step - burnin_steps,
     learning_rate_decay_steps,
     learning_rate_decay_factor,
-    staircase=staircase
+    staircase=staircase,
   )
   return tf.maximum(
     tf.where(
       tf.less(tf.cast(global_step, tf.int32), tf.constant(burnin_steps)),
-      burnin_rate, post_burnin_learning_rate
+      burnin_rate,
+      post_burnin_learning_rate,
     ),
     min_learning_rate,
-    name='learning_rate'
+    name='learning_rate',
   )
 
 
@@ -85,7 +84,7 @@ def cosine_decay_with_warmup(
   total_steps,
   warmup_learning_rate=0.0,
   warmup_steps=0,
-  hold_base_rate_steps=0
+  hold_base_rate_steps=0,
 ):
   """Cosine decay schedule with warm up period.
 
@@ -113,38 +112,32 @@ def cosine_decay_with_warmup(
       or if warmup_steps is larger than total_steps.
   """
   if learning_rate_base < warmup_learning_rate:
-    raise ValueError(
-      'learning_rate_base must be larger '
-      'or equal to warmup_learning_rate.'
-    )
+    raise ValueError('learning_rate_base must be larger ' 'or equal to warmup_learning_rate.')
   if total_steps < warmup_steps:
-    raise ValueError(
-      'total_steps must be larger or equal to '
-      'warmup_steps.'
-    )
-  learning_rate = 0.5 * learning_rate_base * (
-    1 + tf.cos(
-      np.pi *
-      (tf.cast(global_step, tf.float32) - warmup_steps - hold_base_rate_steps)
-      / float(total_steps - warmup_steps - hold_base_rate_steps)
+    raise ValueError('total_steps must be larger or equal to ' 'warmup_steps.')
+  learning_rate = (
+    0.5
+    * learning_rate_base
+    * (
+      1
+      + tf.cos(
+        np.pi
+        * (tf.cast(global_step, tf.float32) - warmup_steps - hold_base_rate_steps)
+        / float(total_steps - warmup_steps - hold_base_rate_steps)
+      )
     )
   )
   if hold_base_rate_steps > 0:
     learning_rate = tf.where(
-      global_step > warmup_steps + hold_base_rate_steps, learning_rate,
-      learning_rate_base
+      global_step > warmup_steps + hold_base_rate_steps,
+      learning_rate,
+      learning_rate_base,
     )
   if warmup_steps > 0:
     slope = (learning_rate_base - warmup_learning_rate) / warmup_steps
-    warmup_rate = slope * tf.cast(
-      global_step, tf.float32
-    ) + warmup_learning_rate
-    learning_rate = tf.where(
-      global_step < warmup_steps, warmup_rate, learning_rate
-    )
-  return tf.where(
-    global_step > total_steps, 0.0, learning_rate, name='learning_rate'
-  )
+    warmup_rate = slope * tf.cast(global_step, tf.float32) + warmup_learning_rate
+    learning_rate = tf.where(global_step < warmup_steps, warmup_rate, learning_rate)
+  return tf.where(global_step > total_steps, 0.0, learning_rate, name='learning_rate')
 
 
 def manual_stepping(global_step, boundaries, rates, warmup=False):
@@ -175,18 +168,14 @@ def manual_stepping(global_step, boundaries, rates, warmup=False):
       2. len(rates) == len(boundaries) + 1
       3. boundaries[0] != 0
   """
-  if any([b < 0 for b in boundaries]
-        ) or any([not isinstance(b, int) for b in boundaries]):
+  if any([b < 0 for b in boundaries]) or any([not isinstance(b, int) for b in boundaries]):
     raise ValueError('boundaries must be a list of positive integers')
   if any([bnext <= b for bnext, b in zip(boundaries[1:], boundaries[:-1])]):
     raise ValueError('Entries in boundaries must be strictly increasing.')
   if any([not isinstance(r, float) for r in rates]):
     raise ValueError('Learning rates must be floats')
   if len(rates) != len(boundaries) + 1:
-    raise ValueError(
-      'Number of provided learning rates must exceed '
-      'number of boundary points by exactly 1.'
-    )
+    raise ValueError('Number of provided learning rates must exceed ' 'number of boundary points by exactly 1.')
 
   if boundaries and boundaries[0] == 0:
     raise ValueError('First step cannot be zero.')
@@ -202,13 +191,12 @@ def manual_stepping(global_step, boundaries, rates, warmup=False):
   num_boundaries = len(boundaries)
   rate_index = tf.reduce_max(
     tf.where(
-      tf.greater_equal(global_step, boundaries), list(range(num_boundaries)),
-      [0] * num_boundaries
+      tf.greater_equal(global_step, boundaries),
+      list(range(num_boundaries)),
+      [0] * num_boundaries,
     )
   )
-  return tf.reduce_sum(
-    rates * tf.one_hot(rate_index, depth=num_boundaries), name='learning_rate'
-  )
+  return tf.reduce_sum(rates * tf.one_hot(rate_index, depth=num_boundaries), name='learning_rate')
 
 
 def transformer_policy(
@@ -219,7 +207,7 @@ def transformer_policy(
   step_scaling_rate=1.0,
   max_lr=None,
   coefficient=1.0,
-  dtype=tf.float32
+  dtype=tf.float32,
 ):
   """Transformer's learning rate schedule.
 
@@ -246,9 +234,7 @@ def transformer_policy(
   step_num *= step_scaling_rate
   ws *= step_scaling_rate
 
-  decay = coefficient * d_model**-0.5 * tf.minimum(
-    (step_num + 1) * ws**-1.5, (step_num + 1)**-0.5
-  )
+  decay = coefficient * d_model**-0.5 * tf.minimum((step_num + 1) * ws**-1.5, (step_num + 1) ** -0.5)
 
   new_lr = decay * learning_rate
   if max_lr is not None:

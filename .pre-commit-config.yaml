@@ -1,28 +1,40 @@
 repos:
   - repo: https://github.com/pycqa/flake8.git
-    rev: 5.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         additional_dependencies: [
-          'flake8-docstrings==1.5.0'
+          'flake8-docstrings>=1.7.0'
         ]
   - repo: https://github.com/pycqa/isort
-    rev: 4.3.21
+    rev: 7.0.0
     hooks:
       - id: isort
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.32.0
+        args: ["--profile", "black", "--atomic"]
+
+  - repo: https://github.com/google/yapf
+    rev: v0.43.0
     hooks:
       - id: yapf
+        args: [--style=setup.cfg]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix, --select=E231,E501,W503, --preview]
+        types: [python]
+      - id: ruff-format
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         args: ["--no-markdown-linebreak-ext"]
       - id: check-yaml
       - id: end-of-file-fixer
       - id: requirements-txt-fixer
-      - id: double-quote-string-fixer
+      #- id: double-quote-string-fixer
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
@@ -36,5 +48,6 @@ repos:
     hooks:
     - id: mdformat
       additional_dependencies: [
-        'mdformat-tables'
+        'mdformat-tables',
+        'mdformat-black'
       ]

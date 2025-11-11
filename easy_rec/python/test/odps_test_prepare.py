@@ -44,10 +44,7 @@ def download_data(ali_bucket, script_path):
     if not os.path.exists(dst_dir):
       os.makedirs(dst_dir)
     ali_bucket.get_object_to_file(obj_key, dst_path)
-    logging.info(
-      'down file oss://%s/%s to %s completed' %
-      (ali_bucket.bucket_name, obj_key, dst_path)
-    )
+    logging.info('down file oss://%s/%s to %s completed' % (ali_bucket.bucket_name, obj_key, dst_path))
 
 
 def merge_files(merge_dir, merge_out):
@@ -108,7 +105,9 @@ def change_files(odps_oss_config, file_path):
         # tmp_e = tmp_e.replace('.aliyuncs.com', '.oss-internal.aliyun-inc.com')
         if '-Dbuckets=' in line:
           line = '-Dbuckets=oss://%s/?role_arn=%s&host=%s\n' % (
-            odps_oss_config.bucket_name, odps_oss_config.arn, tmp_e
+            odps_oss_config.bucket_name,
+            odps_oss_config.arn,
+            tmp_e,
           )
         elif '-Darn=' in line or '-DossHost' in line:
           continue
@@ -139,29 +138,28 @@ def put_data_to_bucket(odps_oss_config):
     odps_oss_config: odps oss config obj
   """
   test_bucket = get_oss_bucket(
-    odps_oss_config.oss_key, odps_oss_config.oss_secret,
-    odps_oss_config.endpoint, odps_oss_config.bucket_name
+    odps_oss_config.oss_key,
+    odps_oss_config.oss_secret,
+    odps_oss_config.endpoint,
+    odps_oss_config.bucket_name,
   )
   for sub_dir in ['configs']:
-    for root, dirs, files in os.walk(
-      os.path.join(odps_oss_config.temp_dir, sub_dir)
-    ):
+    for root, dirs, files in os.walk(os.path.join(odps_oss_config.temp_dir, sub_dir)):
       for one_file in files:
         file_path = os.path.join(root, one_file)
         obj_path = file_path.split(sub_dir + '/')[1]
         dst_path = os.path.join(odps_oss_config.exp_dir, sub_dir, obj_path)
         test_bucket.put_object_from_file(dst_path, file_path)
-        logging.info(
-          'put %s to oss://%s/%s' %
-          (file_path, odps_oss_config.bucket_name, dst_path)
-        )
+        logging.info('put %s to oss://%s/%s' % (file_path, odps_oss_config.bucket_name, dst_path))
 
 
 def prepare(odps_oss_config):
   logging.info('temp_dir = %s' % odps_oss_config.temp_dir)
   ali_bucket = get_oss_bucket(
-    odps_oss_config.ali_oss_key, odps_oss_config.ali_oss_secret,
-    odps_oss_config.ali_bucket_endpoint, odps_oss_config.ali_bucket_name
+    odps_oss_config.ali_oss_key,
+    odps_oss_config.ali_oss_secret,
+    odps_oss_config.ali_bucket_endpoint,
+    odps_oss_config.ali_bucket_name,
   )
   shutil.copytree(odps_oss_config.script_path, odps_oss_config.temp_dir)
   logging.info('start down data')
@@ -174,7 +172,7 @@ def prepare(odps_oss_config):
       file_path = os.path.join(root, file)
       # drop .template
       if file_path.endswith('.template'):
-        tmp_path = file_path[:-len('.template')]
+        tmp_path = file_path[: -len('.template')]
         os.rename(file_path, tmp_path)
         file_path = tmp_path
       if 'data' not in file_path:
@@ -191,9 +189,7 @@ def prepare(odps_oss_config):
 
 if __name__ == '__main__':
   if len(sys.argv) < 5:
-    print(
-      'usage: %s ossutilconfig bucket_name rolearn odpsconfig' % sys.argv[0]
-    )
+    print('usage: %s ossutilconfig bucket_name rolearn odpsconfig' % sys.argv[0])
     sys.exit(1)
 
   odps_oss_config = OdpsOSSConfig()

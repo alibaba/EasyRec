@@ -12,20 +12,30 @@ from google.protobuf import json_format
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.framework import ops
 from tensorflow.python.ops.variables import global_variables
+from tensorflow.python.platform.gfile import (  # NOQA
+  DeleteRecursively,
+  Exists,
+  GFile,
+  Remove,
+)
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.training.device_setter import replica_device_setter
+from tensorflow.python.training.monitored_session import (  # NOQA
+  ChiefSessionCreator,
+  Scaffold,
+)
 from tensorflow.python.training.saver import export_meta_graph
 
 import easy_rec
-
-from tensorflow.python.platform.gfile import DeleteRecursively, Exists, GFile, Remove  # NOQA
-from tensorflow.python.training.monitored_session import ChiefSessionCreator, Scaffold  # NOQA
-
 from easy_rec.python.utils import constant, estimator_utils, io_util, proto_util  # NOQA
-from easy_rec.python.utils.meta_graph_editor import EMBEDDING_INITIALIZERS, MetaGraphEditor  # NOQA
+from easy_rec.python.utils.meta_graph_editor import (  # NOQA
+  EMBEDDING_INITIALIZERS,
+  MetaGraphEditor,
+)
 
 if tf.__version__ >= '2.0':
   from tensorflow.python.framework.ops import disable_eager_execution
+
   disable_eager_execution()
 
 ConfigProto = config_pb2.ConfigProto
@@ -35,8 +45,13 @@ INCR_UPDATE_SIGNATURE_KEY = 'incr_update_sig'
 
 
 def export_big_model(
-  export_dir, pipeline_config, redis_params, serving_input_fn, estimator,
-  checkpoint_path, verbose
+  export_dir,
+  pipeline_config,
+  redis_params,
+  serving_input_fn,
+  estimator,
+  checkpoint_path,
+  verbose,
 ):
   for key in redis_params:
     logging.info('%s: %s' % (key, redis_params[key]))
@@ -54,17 +69,13 @@ def export_big_model(
   kv_module = tf.load_op_library(write_kv_lib_path)
 
   try:
-    sparse_kv_lib_path = os.path.join(
-      easy_rec.ops_dir, 'libwrite_sparse_kv.so'
-    )
+    sparse_kv_lib_path = os.path.join(easy_rec.ops_dir, 'libwrite_sparse_kv.so')
     sparse_kv_module = tf.load_op_library(sparse_kv_lib_path)
   except Exception as ex:
     logging.warning('load libwrite_sparse_kv.so failed: %s' % str(ex))
     sparse_kv_module = None
   if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(
-      pipeline_config.model_dir
-    )
+    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -74,9 +85,7 @@ def export_big_model(
     tf_config = estimator_utils.chief_to_master()
     if tf_config['task']['type'] == 'ps':
       cluster = tf.train.ClusterSpec(tf_config['cluster'])
-      server = tf.train.Server(
-        cluster, job_name='ps', task_index=tf_config['task']['index']
-      )
+      server = tf.train.Server(cluster, job_name='ps', task_index=tf_config['task']['index'])
       server.join()
     elif tf_config['task']['type'] == 'master':
       if 'ps' in tf_config['cluster']:
@@ -91,24 +100,17 @@ def export_big_model(
 
   if cluster:
     logging.info('cluster = ' + str(cluster))
-  with tf.device(
-    replica_device_setter(worker_device='/job:master/task:0', cluster=cluster)
-  ):
-    outputs = estimator._export_model_fn(
-      features, None, None, estimator.params
-    ).predictions
+  with tf.device(replica_device_setter(worker_device='/job:master/task:0', cluster=cluster)):
+    outputs = estimator._export_model_fn(features, None, None, estimator.params).predictions
 
   meta_graph_def = export_meta_graph()
   redis_embedding_version = redis_params.get('redis_embedding_version', '')
   if not redis_embedding_version:
-    meta_graph_def.meta_info_def.meta_graph_version =\
-        str(int(time.time()))
+    meta_graph_def.meta_info_def.meta_graph_version = str(int(time.time()))
   else:
     meta_graph_def.meta_info_def.meta_graph_version = redis_embedding_version
 
-  logging.info(
-    'meta_graph_version = %s' % meta_graph_def.meta_info_def.meta_graph_version
-  )
+  logging.info('meta_graph_version = %s' % meta_graph_def.meta_info_def.meta_graph_version)
 
   embed_var_parts = {}
   embed_norm_name = {}
@@ -122,13 +124,9 @@ def export_big_model(
       norm_name_to_ids[norm_name] = 1
       tmp_export = x.export()
       if x.device not in embedding_vars:
-        embedding_vars[x.device] = [
-          (norm_name, tmp_export.keys, tmp_export.values)
-        ]
+        embedding_vars[x.device] = [(norm_name, tmp_export.keys, tmp_export.values)]
       else:
-        embedding_vars[x.device].append(
-          (norm_name, tmp_export.keys, tmp_export.values)
-        )
+        embedding_vars[x.device].append((norm_name, tmp_export.keys, tmp_export.values))
     elif '/embedding_weights:' in x.name or '/embedding_weights/part_' in x.name:
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
       norm_name_to_ids[norm_name] = 1
@@ -141,10 +139,7 @@ def export_big_model(
   for tid, t in enumerate(norm_name_to_ids.keys()):
     norm_name_to_ids[t] = str(tid)
 
-  is_cache_from_redis = [  # noqa: F841
-      proto_util.is_cache_from_redis(x, redis_cache_names)
-      for x in norm_name_to_ids
-  ]
+  is_cache_from_redis = [proto_util.is_cache_from_redis(x, redis_cache_names) for x in norm_name_to_ids]  # noqa: F841
 
   for x in embed_norm_name:
     embed_norm_name[x] = norm_name_to_ids[embed_norm_name[x]]
@@ -190,7 +185,7 @@ def export_big_model(
           threads=redis_params.get('redis_threads', 5),
           batch_size=redis_params.get('redis_batch_size', 32),
           expire=redis_params.get('redis_expire', 24),
-          verbose=verbose
+          verbose=verbose,
         )
         all_write_res.append(write_kv_res)
 
@@ -211,37 +206,27 @@ def export_big_model(
           threads=redis_params.get('redis_threads', 5),
           batch_size=redis_params.get('redis_batch_size', 32),
           expire=redis_params.get('redis_expire', 24),
-          verbose=verbose
+          verbose=verbose,
         )
         all_write_res.append(write_sparse_kv_res)
 
-    session_config = ConfigProto(
-      allow_soft_placement=True, log_device_placement=False
-    )
+    session_config = ConfigProto(allow_soft_placement=True, log_device_placement=False)
     chief_sess_creator = ChiefSessionCreator(
       master=server.target if server else '',
       checkpoint_filename_with_path=checkpoint_path,
-      config=session_config
+      config=session_config,
     )
-    with tf.train.MonitoredSession(
-      session_creator=chief_sess_creator,
-      hooks=None,
-      stop_grace_period_secs=120
-    ) as sess:
+    with tf.train.MonitoredSession(session_creator=chief_sess_creator, hooks=None, stop_grace_period_secs=120) as sess:
       dump_flags = sess.run(all_write_res)
       logging.info('write embedding to redis succeed: %s' % str(dump_flags))
   else:
-    logging.info(
-      'will skip write embedding to redis because '
-      'redis_write_kv is set to 0.'
-    )
+    logging.info('will skip write embedding to redis because ' 'redis_write_kv is set to 0.')
 
   # delete embedding_weights collections so that it could be re imported
   tmp_drop = []
   for k in meta_graph_def.collection_def:
     v = meta_graph_def.collection_def[k]
-    if len(v.node_list.value
-          ) > 0 and 'embedding_weights' in v.node_list.value[0]:
+    if len(v.node_list.value) > 0 and 'embedding_weights' in v.node_list.value[0]:
       tmp_drop.append(k)
   for k in tmp_drop:
     meta_graph_def.collection_def.pop(k)
@@ -255,7 +240,7 @@ def export_big_model(
     redis_cache_names=redis_cache_names,
     meta_graph_def=meta_graph_def,
     norm_name_to_ids=norm_name_to_ids,
-    debug_dir=export_dir if verbose else ''
+    debug_dir=export_dir if verbose else '',
   )
   meta_graph_editor.edit_graph()
   tf.reset_default_graph()
@@ -269,14 +254,10 @@ def export_big_model(
       fout.write('%s\t%s\n' % (tmp_norm_name, norm_name_to_ids[tmp_norm_name]))
   ops.add_to_collection(
     tf.GraphKeys.ASSET_FILEPATHS,
-    tf.constant(
-      embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'
-    )
+    tf.constant(embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'),
   )
 
-  export_dir = os.path.join(
-    export_dir, meta_graph_def.meta_info_def.meta_graph_version
-  )
+  export_dir = os.path.join(export_dir, meta_graph_def.meta_info_def.meta_graph_version)
   export_dir = io_util.fix_oss_dir(export_dir)
   logging.info('export_dir=%s' % export_dir)
   if Exists(export_dir):
@@ -287,38 +268,33 @@ def export_big_model(
   tensor_info_inputs = {}
   for tmp_key in inputs:
     tmp = graph.get_tensor_by_name(inputs[tmp_key].name)
-    tensor_info_inputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
+    tensor_info_inputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
   tensor_info_outputs = {}
   for tmp_key in outputs:
     tmp = graph.get_tensor_by_name(outputs[tmp_key].name)
-    tensor_info_outputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
-  signature = (
-    tf.saved_model.signature_def_utils.build_signature_def(
-      inputs=tensor_info_inputs,
-      outputs=tensor_info_outputs,
-      method_name=signature_constants.PREDICT_METHOD_NAME
-    )
+    tensor_info_outputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
+  signature = tf.saved_model.signature_def_utils.build_signature_def(
+    inputs=tensor_info_inputs,
+    outputs=tensor_info_outputs,
+    method_name=signature_constants.PREDICT_METHOD_NAME,
   )
 
-  session_config = ConfigProto(
-    allow_soft_placement=True, log_device_placement=True
-  )
+  session_config = ConfigProto(allow_soft_placement=True, log_device_placement=True)
 
   saver = tf.train.Saver()
   with tf.Session(target=server.target if server else '') as sess:
     saver.restore(sess, checkpoint_path)
 
     builder.add_meta_graph_and_variables(
-      sess, [tf.saved_model.tag_constants.SERVING],
+      sess,
+      [tf.saved_model.tag_constants.SERVING],
       signature_def_map={
         signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature,
       },
       assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
       saver=saver,
       strip_default_attrs=True,
-      clear_devices=True
+      clear_devices=True,
     )
     builder.save()
 
@@ -328,8 +304,13 @@ def export_big_model(
 
 
 def export_big_model_to_oss(
-  export_dir, pipeline_config, oss_params, serving_input_fn, estimator,
-  checkpoint_path, verbose
+  export_dir,
+  pipeline_config,
+  oss_params,
+  serving_input_fn,
+  estimator,
+  checkpoint_path,
+  verbose,
 ):
   for key in oss_params:
     logging.info('%s: %s' % (key, oss_params[key]))
@@ -338,9 +319,7 @@ def export_big_model_to_oss(
   kv_module = tf.load_op_library(write_kv_lib_path)
 
   if not checkpoint_path:
-    checkpoint_path = estimator_utils.latest_checkpoint(
-      pipeline_config.model_dir
-    )
+    checkpoint_path = estimator_utils.latest_checkpoint(pipeline_config.model_dir)
   logging.info('checkpoint_path = %s' % checkpoint_path)
 
   server = None
@@ -350,9 +329,7 @@ def export_big_model_to_oss(
     tf_config = estimator_utils.chief_to_master()
     if tf_config['task']['type'] == 'ps':
       cluster = tf.train.ClusterSpec(tf_config['cluster'])
-      server = tf.train.Server(
-        cluster, job_name='ps', task_index=tf_config['task']['index']
-      )
+      server = tf.train.Server(cluster, job_name='ps', task_index=tf_config['task']['index'])
       server.join()
     elif tf_config['task']['type'] == 'master':
       if 'ps' in tf_config['cluster']:
@@ -367,25 +344,18 @@ def export_big_model_to_oss(
 
   if cluster:
     logging.info('cluster = ' + str(cluster))
-  with tf.device(
-    replica_device_setter(worker_device='/job:master/task:0', cluster=cluster)
-  ):
-    outputs = estimator._export_model_fn(
-      features, None, None, estimator.params
-    ).predictions
+  with tf.device(replica_device_setter(worker_device='/job:master/task:0', cluster=cluster)):
+    outputs = estimator._export_model_fn(features, None, None, estimator.params).predictions
 
   meta_graph_def = export_meta_graph()
   meta_graph_def.meta_info_def.meta_graph_version = str(int(time.time()))
   oss_embedding_version = oss_params.get('oss_embedding_version', '')
   if not oss_embedding_version:
-    meta_graph_def.meta_info_def.meta_graph_version =\
-        str(int(time.time()))
+    meta_graph_def.meta_info_def.meta_graph_version = str(int(time.time()))
   else:
     meta_graph_def.meta_info_def.meta_graph_version = oss_embedding_version
 
-  logging.info(
-    'meta_graph_version = %s' % meta_graph_def.meta_info_def.meta_graph_version
-  )
+  logging.info('meta_graph_version = %s' % meta_graph_def.meta_info_def.meta_graph_version)
 
   embed_var_parts = {}
   embed_norm_name = {}
@@ -400,13 +370,9 @@ def export_big_model_to_oss(
       norm_name_to_ids[norm_name] = 1
       tmp_export = x.export()
       if x.device not in embedding_vars:
-        embedding_vars[x.device] = [
-          (norm_name, tmp_export.keys, tmp_export.values, part_id)
-        ]
+        embedding_vars[x.device] = [(norm_name, tmp_export.keys, tmp_export.values, part_id)]
       else:
-        embedding_vars[x.device].append(
-          (norm_name, tmp_export.keys, tmp_export.values, part_id)
-        )
+        embedding_vars[x.device].append((norm_name, tmp_export.keys, tmp_export.values, part_id))
     elif '/embedding_weights:' in x.name or '/embedding_weights/part_' in x.name:
       norm_name, part_id = proto_util.get_norm_embed_name(x.name)
       norm_name_to_ids[norm_name] = 1
@@ -437,9 +403,7 @@ def export_big_model_to_oss(
   oss_endpoint = oss_params.get('oss_endpoint', '')
   oss_ak = oss_params.get('oss_ak', '')
   oss_sk = oss_params.get('oss_sk', '')
-  logging.info(
-    'will export to oss: %s %s %s %s', oss_path, oss_endpoint, oss_ak, oss_sk
-  )
+  logging.info('will export to oss: %s %s %s %s', oss_path, oss_endpoint, oss_ak, oss_sk)
 
   if oss_params.get('oss_write_kv', ''):
     # group embed by devices
@@ -467,7 +431,7 @@ def export_big_model_to_oss(
           threads=oss_params.get('oss_threads', 5),
           timeout=5,
           expire=5,
-          verbose=verbose
+          verbose=verbose,
         )
         all_write_res.append(write_kv_res)
 
@@ -489,37 +453,27 @@ def export_big_model_to_oss(
           sk=oss_sk,
           version=meta_graph_def.meta_info_def.meta_graph_version,
           threads=oss_params.get('oss_threads', 5),
-          verbose=verbose
+          verbose=verbose,
         )
         all_write_res.append(write_sparse_kv_res)
 
-    session_config = ConfigProto(
-      allow_soft_placement=True, log_device_placement=False
-    )
+    session_config = ConfigProto(allow_soft_placement=True, log_device_placement=False)
     chief_sess_creator = ChiefSessionCreator(
       master=server.target if server else '',
       checkpoint_filename_with_path=checkpoint_path,
-      config=session_config
+      config=session_config,
     )
-    with tf.train.MonitoredSession(
-      session_creator=chief_sess_creator,
-      hooks=None,
-      stop_grace_period_secs=120
-    ) as sess:
+    with tf.train.MonitoredSession(session_creator=chief_sess_creator, hooks=None, stop_grace_period_secs=120) as sess:
       dump_flags = sess.run(all_write_res)
       logging.info('write embedding to oss succeed: %s' % str(dump_flags))
   else:
-    logging.info(
-      'will skip write embedding to oss because '
-      'oss_write_kv is set to 0.'
-    )
+    logging.info('will skip write embedding to oss because ' 'oss_write_kv is set to 0.')
 
   # delete embedding_weights collections so that it could be re imported
   tmp_drop = []
   for k in meta_graph_def.collection_def:
     v = meta_graph_def.collection_def[k]
-    if len(v.node_list.value
-          ) > 0 and 'embedding_weights' in v.node_list.value[0]:
+    if len(v.node_list.value) > 0 and 'embedding_weights' in v.node_list.value[0]:
       tmp_drop.append(k)
   for k in tmp_drop:
     meta_graph_def.collection_def.pop(k)
@@ -535,7 +489,7 @@ def export_big_model_to_oss(
     meta_graph_def=meta_graph_def,
     norm_name_to_ids=norm_name_to_ids,
     incr_update_params=oss_params.get('incr_update', None),
-    debug_dir=export_dir if verbose else ''
+    debug_dir=export_dir if verbose else '',
   )
   meta_graph_editor.edit_graph_for_oss()
   tf.reset_default_graph()
@@ -549,22 +503,18 @@ def export_big_model_to_oss(
       fout.write('%s\t%s\n' % (tmp_norm_name, norm_name_to_ids[tmp_norm_name]))
   ops.add_to_collection(
     ops.GraphKeys.ASSET_FILEPATHS,
-    tf.constant(
-      embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'
-    )
+    tf.constant(embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'),
   )
 
   if 'incr_update' in oss_params:
-    dense_train_vars_path = os.path.join(
-      os.path.dirname(checkpoint_path), constant.DENSE_UPDATE_VARIABLES
-    )
+    dense_train_vars_path = os.path.join(os.path.dirname(checkpoint_path), constant.DENSE_UPDATE_VARIABLES)
     ops.add_to_collection(
       ops.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
         dense_train_vars_path,
         dtype=tf.string,
-        name=constant.DENSE_UPDATE_VARIABLES
-      )
+        name=constant.DENSE_UPDATE_VARIABLES,
+      ),
     )
 
     asset_file = 'incr_update.txt'
@@ -575,32 +525,24 @@ def export_big_model_to_oss(
       if 'kafka' in incr_update:
         incr_update_json['storage'] = 'kafka'
         incr_update_json['kafka'] = json.loads(
-          json_format.MessageToJson(
-            incr_update['kafka'], preserving_proto_field_name=True
-          )
+          json_format.MessageToJson(incr_update['kafka'], preserving_proto_field_name=True)
         )
       elif 'datahub' in incr_update:
         incr_update_json['storage'] = 'datahub'
         incr_update_json['datahub'] = json.loads(
-          json_format.MessageToJson(
-            incr_update['datahub'], preserving_proto_field_name=True
-          )
+          json_format.MessageToJson(incr_update['datahub'], preserving_proto_field_name=True)
         )
       elif 'fs' in incr_update:
         incr_update_json['storage'] = 'fs'
-        incr_update_json['fs'] = {
-          'incr_save_dir': incr_update['fs'].mount_path
-        }
+        incr_update_json['fs'] = {'incr_save_dir': incr_update['fs'].mount_path}
       json.dump(incr_update_json, fout, indent=2)
 
     ops.add_to_collection(
       ops.GraphKeys.ASSET_FILEPATHS,
-      tf.constant(asset_file_path, dtype=tf.string, name=asset_file)
+      tf.constant(asset_file_path, dtype=tf.string, name=asset_file),
     )
 
-  export_dir = os.path.join(
-    export_dir, meta_graph_def.meta_info_def.meta_graph_version
-  )
+  export_dir = os.path.join(export_dir, meta_graph_def.meta_info_def.meta_graph_version)
   export_dir = io_util.fix_oss_dir(export_dir)
   logging.info('export_dir=%s' % export_dir)
   if Exists(export_dir):
@@ -611,20 +553,16 @@ def export_big_model_to_oss(
   tensor_info_inputs = {}
   for tmp_key in inputs:
     tmp = graph.get_tensor_by_name(inputs[tmp_key].name)
-    tensor_info_inputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
+    tensor_info_inputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
 
   tensor_info_outputs = {}
   for tmp_key in outputs:
     tmp = graph.get_tensor_by_name(outputs[tmp_key].name)
-    tensor_info_outputs[tmp_key] = \
-        tf.saved_model.utils.build_tensor_info(tmp)
-  signature = (
-    tf.saved_model.signature_def_utils.build_signature_def(
-      inputs=tensor_info_inputs,
-      outputs=tensor_info_outputs,
-      method_name=signature_constants.PREDICT_METHOD_NAME
-    )
+    tensor_info_outputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
+  signature = tf.saved_model.signature_def_utils.build_signature_def(
+    inputs=tensor_info_inputs,
+    outputs=tensor_info_outputs,
+    method_name=signature_constants.PREDICT_METHOD_NAME,
   )
 
   if 'incr_update' in oss_params:
@@ -636,25 +574,19 @@ def export_big_model_to_oss(
     tensor_info_incr_update_outputs = {}
     for tmp_key in incr_update_inputs:
       tmp = graph.get_tensor_by_name(incr_update_inputs[tmp_key].name)
-      tensor_info_incr_update_inputs[tmp_key] = \
-          tf.saved_model.utils.build_tensor_info(tmp)
+      tensor_info_incr_update_inputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
     for tmp_key in incr_update_outputs:
       tmp = graph.get_tensor_by_name(incr_update_outputs[tmp_key].name)
-      tensor_info_incr_update_outputs[tmp_key] = \
-          tf.saved_model.utils.build_tensor_info(tmp)
-    incr_update_signature = (
-      tf.saved_model.signature_def_utils.build_signature_def(
-        inputs=tensor_info_incr_update_inputs,
-        outputs=tensor_info_incr_update_outputs,
-        method_name=signature_constants.PREDICT_METHOD_NAME
-      )
+      tensor_info_incr_update_outputs[tmp_key] = tf.saved_model.utils.build_tensor_info(tmp)
+    incr_update_signature = tf.saved_model.signature_def_utils.build_signature_def(
+      inputs=tensor_info_incr_update_inputs,
+      outputs=tensor_info_incr_update_outputs,
+      method_name=signature_constants.PREDICT_METHOD_NAME,
     )
   else:
     incr_update_signature = None
 
-  session_config = ConfigProto(
-    allow_soft_placement=True, log_device_placement=True
-  )
+  session_config = ConfigProto(allow_soft_placement=True, log_device_placement=True)
 
   saver = tf.train.Saver()
   with tf.Session(target=server.target if server else '') as sess:
@@ -662,22 +594,21 @@ def export_big_model_to_oss(
     main_op = tf.group(
       [
         Scaffold.default_local_init_op(),
-        ops.get_collection(EMBEDDING_INITIALIZERS)
+        ops.get_collection(EMBEDDING_INITIALIZERS),
       ]
     )
-    incr_update_sig_map = {
-      signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature
-    }
+    incr_update_sig_map = {signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature}
     if incr_update_signature is not None:
       incr_update_sig_map[INCR_UPDATE_SIGNATURE_KEY] = incr_update_signature
     builder.add_meta_graph_and_variables(
-      sess, [tf.saved_model.tag_constants.SERVING],
+      sess,
+      [tf.saved_model.tag_constants.SERVING],
       signature_def_map=incr_update_sig_map,
       assets_collection=ops.get_collection(ops.GraphKeys.ASSET_FILEPATHS),
       saver=saver,
       main_op=main_op,
       strip_default_attrs=True,
-      clear_devices=True
+      clear_devices=True,
     )
     builder.save()
 

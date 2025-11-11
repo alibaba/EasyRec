@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convenience blocks for using custom ops."""
+
 import logging
 import os
 
@@ -30,9 +31,7 @@ try:
   custom_ops = tf.load_op_library(custom_op_path)
   logging.info('load custom op from %s succeed' % custom_op_path)
 except Exception as ex:
-  logging.warning(
-    'load custom op from %s failed: %s' % (custom_op_path, str(ex))
-  )
+  logging.warning('load custom op from %s failed: %s' % (custom_op_path, str(ex)))
   custom_ops = None
 
 # if tf.__version__ >= '2.0':
@@ -49,27 +48,26 @@ class SeqAugmentOps(Layer):
     self.seq_augment = custom_ops.my_seq_augment
 
   def call(self, inputs, training=None, **kwargs):
-    assert isinstance(
-      inputs, (list, tuple)
-    ), 'the inputs of SeqAugmentOps must be type of list/tuple'
+    assert isinstance(inputs, (list, tuple)), 'the inputs of SeqAugmentOps must be type of list/tuple'
     assert len(inputs) >= 2, 'SeqAugmentOps must have at least 2 inputs'
     seq_input, seq_len = inputs[:2]
     embedding_dim = int(seq_input.shape[-1])
     with tf.variable_scope(self.name, reuse=self.reuse):
-      mask_emb = tf.get_variable(
-        'mask', (embedding_dim, ), dtype=tf.float32, trainable=True
-      )
+      mask_emb = tf.get_variable('mask', (embedding_dim,), dtype=tf.float32, trainable=True)
     seq_len = tf.to_int32(seq_len)
     with ops.device('/CPU:0'):
       aug_seq, aug_len = self.seq_augment(
-        seq_input, seq_len, mask_emb, self.seq_aug_params.crop_rate,
-        self.seq_aug_params.reorder_rate, self.seq_aug_params.mask_rate
+        seq_input,
+        seq_len,
+        mask_emb,
+        self.seq_aug_params.crop_rate,
+        self.seq_aug_params.reorder_rate,
+        self.seq_aug_params.mask_rate,
       )
     return aug_seq, aug_len
 
 
 class TextNormalize(Layer):
-
   def __init__(self, params, name='text_normalize', reuse=None, **kwargs):
     super(TextNormalize, self).__init__(name=name, **kwargs)
     self.txt_normalizer = custom_ops.text_normalize_op
@@ -80,9 +78,7 @@ class TextNormalize(Layer):
     inputs = inputs if type(inputs) in (tuple, list) else [inputs]
     with ops.device('/CPU:0'):
       result = [
-        self.txt_normalizer(
-          txt, parameter=self.norm_parameter, remove_space=self.remove_space
-        ) for txt in inputs
+        self.txt_normalizer(txt, parameter=self.norm_parameter, remove_space=self.remove_space) for txt in inputs
       ]
     if len(result) == 1:
       return result[0]
@@ -90,7 +86,6 @@ class TextNormalize(Layer):
 
 
 class MappedDotProduct(Layer):
-
   def __init__(self, params, name='mapped_dot_product', reuse=None, **kwargs):
     super(MappedDotProduct, self).__init__(name=name, **kwargs)
     self.mapped_dot_product = custom_ops.mapped_dot_product
@@ -108,7 +103,7 @@ class MappedDotProduct(Layer):
         self.embedding_table = tf.get_variable(
           name='dot_product_emb_table',
           shape=[vocab_size, self.emb_dim],
-          dtype=tf.float32
+          dtype=tf.float32,
         )
 
   def call(self, inputs, training=None, **kwargs):
@@ -119,17 +114,18 @@ class MappedDotProduct(Layer):
         document=doc,
         feature_name=self.name,
         separator=self.separator,
-        default_value=self.default_value
+        default_value=self.default_value,
       )
       tf.summary.scalar(self.name, tf.reduce_mean(feature))
       if self.print_first_n:
         encode_q = tf.regex_replace(query, self.separator, ' ')
         encode_t = tf.regex_replace(query, self.separator, ' ')
         feature = tf.Print(
-          feature, [encode_q, encode_t, feature],
+          feature,
+          [encode_q, encode_t, feature],
           message=self.name,
           first_n=self.print_first_n,
-          summarize=self.summarize
+          summarize=self.summarize,
         )
       if self.norm_fn is not None:
         fn = eval(self.norm_fn)
@@ -137,10 +133,11 @@ class MappedDotProduct(Layer):
         tf.summary.scalar('normalized_%s' % self.name, tf.reduce_mean(feature))
         if self.print_first_n:
           feature = tf.Print(
-            feature, [feature],
+            feature,
+            [feature],
             message='normalized %s' % self.name,
             first_n=self.print_first_n,
-            summarize=self.summarize
+            summarize=self.summarize,
           )
       if self.boundaries:
         feature = self.bucketize(feature, boundaries=self.boundaries)
@@ -153,7 +150,6 @@ class MappedDotProduct(Layer):
 
 
 class OverlapFeature(Layer):
-
   def __init__(self, params, name='overlap_feature', reuse=None, **kwargs):
     super(OverlapFeature, self).__init__(name=name, **kwargs)
     self.overlap_feature = custom_ops.overlap_fg_op
@@ -174,7 +170,7 @@ class OverlapFeature(Layer):
         self.embedding_table = tf.get_variable(
           name='overlap_emb_table',
           shape=[vocab_size, self.emb_dim],
-          dtype=tf.float32
+          dtype=tf.float32,
         )
 
   def call(self, inputs, training=None, **kwargs):
@@ -188,7 +184,7 @@ class OverlapFeature(Layer):
         default_value=self.default_value,
         boundaries=self.boundaries,
         methods=self.methods,
-        dtype=tf.int32 if self.boundaries else tf.float32
+        dtype=tf.int32 if self.boundaries else tf.float32,
       )
 
     for i, method in enumerate(self.methods):
@@ -201,10 +197,11 @@ class OverlapFeature(Layer):
       encode_q = tf.regex_replace(query, self.separator, ' ')
       encode_t = tf.regex_replace(query, self.separator, ' ')
       feature = tf.Print(
-        feature, [encode_q, encode_t, feature],
+        feature,
+        [encode_q, encode_t, feature],
         message=self.name,
         first_n=self.print_first_n,
-        summarize=self.summarize
+        summarize=self.summarize,
       )
     if self.norm_fn is not None:
       fn = eval(self.norm_fn)
@@ -219,24 +216,17 @@ class OverlapFeature(Layer):
       # Compute offsets, add to every column indices
       offsets = tf.range(num_indices) * vocab_size  # Shape: [3]
       offsets = tf.reshape(offsets, [1, num_indices])  # Shape: [1, 3]
-      offsets = tf.tile(
-        offsets, [batch_size, 1]
-      )  # Shape: [batch_size, num_indices]
+      offsets = tf.tile(offsets, [batch_size, 1])  # Shape: [batch_size, num_indices]
       shifted_indices = feature + offsets  # Shape: [batch_size, num_indices]
       flat_feature_ids = tf.reshape(shifted_indices, [-1])
-      one_hot_ids = tf.one_hot(
-        flat_feature_ids, depth=vocab_size * num_indices
-      )
+      one_hot_ids = tf.one_hot(flat_feature_ids, depth=vocab_size * num_indices)
       feature_embeddings = tf.matmul(one_hot_ids, self.embedding_table)
-      feature_embeddings = tf.reshape(
-        feature_embeddings, [batch_size, num_indices * self.emb_dim]
-      )
+      feature_embeddings = tf.reshape(feature_embeddings, [batch_size, num_indices * self.emb_dim])
       return feature_embeddings
     return feature
 
 
 class EditDistance(Layer):
-
   def __init__(self, params, name='edit_distance', reuse=None, **kwargs):
     super(EditDistance, self).__init__(name=name, **kwargs)
     self.edit_distance = custom_ops.my_edit_distance
@@ -244,9 +234,7 @@ class EditDistance(Layer):
     self.emb_size = params.get_or_default('embedding_size', 512)
     emb_dim = params.get_or_default('embedding_dim', 4)
     with tf.variable_scope(self.name, reuse=reuse):
-      self.embedding_table = tf.get_variable(
-        'embedding_table', [self.emb_size, emb_dim], tf.float32
-      )
+      self.embedding_table = tf.get_variable('embedding_table', [self.emb_size, emb_dim], tf.float32)
 
   def call(self, inputs, training=None, **kwargs):
     input1, input2 = inputs[:2]
@@ -256,7 +244,7 @@ class EditDistance(Layer):
         input2,
         normalize=False,
         dtype=tf.int32,
-        encoding=self.txt_encoding
+        encoding=self.txt_encoding,
       )
     ids = tf.clip_by_value(dist, 0, self.emb_size - 1)
     embed = tf.nn.embedding_lookup(self.embedding_table, ids)

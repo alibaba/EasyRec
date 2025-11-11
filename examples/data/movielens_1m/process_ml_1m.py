@@ -16,7 +16,7 @@ def process_data():
     header=None,
     names=users_title,
     engine='python',
-    encoding='ISO-8859-1'
+    encoding='ISO-8859-1',
   )
   users = users.filter(regex='UserID|Gender|Age|JobID|ZipCode')
   # process the gender and age of user
@@ -35,20 +35,14 @@ def process_data():
     header=None,
     names=movies_title,
     engine='python',
-    encoding='ISO-8859-1'
+    encoding='ISO-8859-1',
   )
 
   # split the title and year in Feature:'Title'
   pattern = re.compile(r'^(.*)\((\d+)\)$')
 
-  title_map = {
-    val: pattern.match(val).group(1)
-    for ii, val in enumerate(set(movies['Title']))
-  }
-  year_map = {
-    val: pattern.match(val).group(2)
-    for ii, val in enumerate(set(movies['Title']))
-  }
+  title_map = {val: pattern.match(val).group(1) for ii, val in enumerate(set(movies['Title']))}
+  year_map = {val: pattern.match(val).group(2) for ii, val in enumerate(set(movies['Title']))}
   movies['Year'] = movies['Title'].map(year_map)
   movies['Title'] = movies['Title'].map(title_map)
 
@@ -61,7 +55,7 @@ def process_data():
     header=None,
     names=ratings_title,
     engine='python',
-    encoding='ISO-8859-1'
+    encoding='ISO-8859-1',
   )
   ratings = ratings.filter(regex='UserID|MovieID|ratings')
   # ratings of 4 and 5 are viewed as positive samples [label:1]
@@ -89,10 +83,6 @@ print(data_new.count())
 
 # split train set and test set, and write to file
 print('Start writing to file.')
-data_new[:665110].to_csv(
-  r'movies_train_data', index=False, sep='\t', mode='a', header=False
-)
-data_new[665110:].to_csv(
-  r'movies_test_data', index=False, sep='\t', mode='a', header=False
-)
+data_new[:665110].to_csv(r'movies_train_data', index=False, sep='\t', mode='a', header=False)
+data_new[665110:].to_csv(r'movies_test_data', index=False, sep='\t', mode='a', header=False)
 print('Done.')

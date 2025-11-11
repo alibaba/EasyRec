@@ -28,9 +28,7 @@ tf.app.flags.DEFINE_string('item_model_dir', '', '')
 tf.app.flags.DEFINE_string('user_fg_json_path', '', '')
 tf.app.flags.DEFINE_string('item_fg_json_path', '', '')
 
-logging.basicConfig(
-  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 
 def search_pb(directory):
@@ -130,9 +128,7 @@ def load_meta_graph_def(model_dir):
   output_tensor_names = {}
   variable_protos = {}
 
-  meta_graph_def = saved_model_utils.get_meta_graph_def(
-    model_dir, tf.saved_model.tag_constants.SERVING
-  )
+  meta_graph_def = saved_model_utils.get_meta_graph_def(model_dir, tf.saved_model.tag_constants.SERVING)
   signatures = meta_graph_def.signature_def
   collections = meta_graph_def.collection_def
 
@@ -151,9 +147,7 @@ def load_meta_graph_def(model_dir):
 
   # parse signature info for SavedModel
   for sig_name in signatures:
-    if signatures[
-      sig_name
-    ].method_name == tf.saved_model.signature_constants.PREDICT_METHOD_NAME:
+    if signatures[sig_name].method_name == tf.saved_model.signature_constants.PREDICT_METHOD_NAME:
       tf.logging.info('[Signature] inputs:')
       for input_name in signatures[sig_name].inputs:
         input_tensor_shape = []
@@ -161,8 +155,11 @@ def load_meta_graph_def(model_dir):
         for dim in input_tensor.tensor_shape.dim:
           input_tensor_shape.append(int(dim.size))
         tf.logging.info(
-          '"%s": %s; %s' % (
-            input_name, _TYPE_TO_STRING[input_tensor.dtype], input_tensor_shape
+          '"%s": %s; %s'
+          % (
+            input_name,
+            _TYPE_TO_STRING[input_tensor.dtype],
+            input_tensor_shape,
           )
         )
         input_tensor_names[input_name] = input_tensor.name
@@ -173,9 +170,11 @@ def load_meta_graph_def(model_dir):
         for dim in output_tensor.tensor_shape.dim:
           output_tensor_shape.append(int(dim.size))
         tf.logging.info(
-          '"%s": %s; %s' % (
-            output_name, _TYPE_TO_STRING[output_tensor.dtype
-                                        ], output_tensor_shape
+          '"%s": %s; %s'
+          % (
+            output_name,
+            _TYPE_TO_STRING[output_tensor.dtype],
+            output_tensor_shape,
           )
         )
         output_tensor_names[output_name] = output_tensor.name
@@ -184,8 +183,13 @@ def load_meta_graph_def(model_dir):
 
 
 def export(
-  model_dir, meta_graph_def, variable_protos, input_tensor_names,
-  output_tensor_names, part_name, part_dir
+  model_dir,
+  meta_graph_def,
+  variable_protos,
+  input_tensor_names,
+  output_tensor_names,
+  part_name,
+  part_dir,
 ):
   """Export subpart saved model.
 
@@ -198,17 +202,10 @@ def export(
       part_name: subpart model name, user or item.
       part_dir: subpart model export directory.
   """
-  output_tensor_names = {
-    x: output_tensor_names[x]
-    for x in output_tensor_names.keys() if part_name in x
-  }
-  output_node_names = [
-    _node_name(output_tensor_names[x]) for x in output_tensor_names.keys()
-  ]
+  output_tensor_names = {x: output_tensor_names[x] for x in output_tensor_names.keys() if part_name in x}
+  output_node_names = [_node_name(output_tensor_names[x]) for x in output_tensor_names.keys()]
 
-  inference_graph, variables_to_keep = extract_sub_graph(
-    meta_graph_def.graph_def, output_node_names, variable_protos
-  )
+  inference_graph, variables_to_keep = extract_sub_graph(meta_graph_def.graph_def, output_node_names, variable_protos)
 
   tf.reset_default_graph()
   with tf.Session() as sess:
@@ -225,34 +222,28 @@ def export(
       signature_inputs = {}
       for input_name in input_tensor_names:
         try:
-          tensor_info = tf.saved_model.utils.build_tensor_info(
-            graph.get_tensor_by_name(input_tensor_names[input_name])
-          )
+          tensor_info = tf.saved_model.utils.build_tensor_info(graph.get_tensor_by_name(input_tensor_names[input_name]))
           signature_inputs[input_name] = tensor_info
         except Exception:
           print('ignore input: %s' % input_name)
 
       signature_outputs = {}
       for output_name in output_tensor_names:
-        tensor_info = tf.saved_model.utils.build_tensor_info(
-          graph.get_tensor_by_name(output_tensor_names[output_name])
-        )
+        tensor_info = tf.saved_model.utils.build_tensor_info(graph.get_tensor_by_name(output_tensor_names[output_name]))
         signature_outputs[output_name] = tensor_info
 
-      prediction_signature = (
-        tf.saved_model.signature_def_utils.build_signature_def(
-          inputs=signature_inputs,
-          outputs=signature_outputs,
-          method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
-        )
+      prediction_signature = tf.saved_model.signature_def_utils.build_signature_def(
+        inputs=signature_inputs,
+        outputs=signature_outputs,
+        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME,
       )
 
       builder.add_meta_graph_and_variables(
-        sess, [tf.saved_model.tag_constants.SERVING],
+        sess,
+        [tf.saved_model.tag_constants.SERVING],
         signature_def_map={
-          signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-          prediction_signature,
-        }
+          signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: prediction_signature,
+        },
       )
       builder.save()
   config_path = os.path.join(model_dir, 'assets/pipeline.config')
@@ -272,9 +263,12 @@ def export(
 def main(argv):
   model_dir = search_pb(FLAGS.model_dir)
   tf.logging.info('Loading meta graph...')
-  meta_graph_def, variable_protos, input_tensor_names, output_tensor_names = load_meta_graph_def(
-    model_dir
-  )
+  (
+    meta_graph_def,
+    variable_protos,
+    input_tensor_names,
+    output_tensor_names,
+  ) = load_meta_graph_def(model_dir)
   tf.logging.info('Exporting user part model...')
   export(
     model_dir,
@@ -283,7 +277,7 @@ def main(argv):
     input_tensor_names,
     output_tensor_names,
     part_name='user',
-    part_dir=FLAGS.user_model_dir
+    part_dir=FLAGS.user_model_dir,
   )
   tf.logging.info('Exporting item part model...')
   export(
@@ -293,7 +287,7 @@ def main(argv):
     input_tensor_names,
     output_tensor_names,
     part_name='item',
-    part_dir=FLAGS.item_model_dir
+    part_dir=FLAGS.item_model_dir,
   )
 
 

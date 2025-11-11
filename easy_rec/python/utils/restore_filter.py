@@ -31,7 +31,6 @@ class Filter:
 
 
 class KeywordFilter(Filter):
-
   def __init__(self, pattern, exclusive=False):
     """Init KeywordFilter.
 
@@ -51,7 +50,6 @@ class KeywordFilter(Filter):
 
 
 class CombineFilter(Filter):
-
   def __init__(self, filters, logical=Logical.AND):
     """Init CombineFilter.
 

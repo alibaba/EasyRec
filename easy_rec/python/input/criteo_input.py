@@ -12,7 +12,6 @@ if tf.__version__ >= '2.0':
 
 
 class CriteoInput(Input):
-
   def __init__(
     self,
     data_config,
@@ -21,21 +20,29 @@ class CriteoInput(Input):
     task_index=0,
     task_num=1,
     check_mode=False,
-    pipeline_config=None
+    pipeline_config=None,
   ):
     super(CriteoInput, self).__init__(
-      data_config, feature_config, input_path, task_index, task_num,
-      check_mode, pipeline_config
+      data_config,
+      feature_config,
+      input_path,
+      task_index,
+      task_num,
+      check_mode,
+      pipeline_config,
     )
     all_label_paths = []
     all_dense_paths = []
     all_category_paths = []
 
     if input_path is not None:
-      assert len(input_path.label_path) == len(input_path.dense_path) and \
-          len(input_path.label_path) == len(input_path.category_path), \
-          'label_path_num(%d), dense_path_num(%d), category_path_num(%d) must be the same' % \
-          (len(input_path.label_path), len(input_path.dense_path), len(input_path.category_path))
+      assert len(input_path.label_path) == len(input_path.dense_path) and len(input_path.label_path) == len(
+        input_path.category_path
+      ), 'label_path_num(%d), dense_path_num(%d), category_path_num(%d) must be the same' % (
+        len(input_path.label_path),
+        len(input_path.dense_path),
+        len(input_path.category_path),
+      )
 
       for label_path, dense_path, category_path in zip(
         input_path.label_path, input_path.dense_path, input_path.category_path
@@ -43,10 +50,10 @@ class CriteoInput(Input):
         label_paths = tf.gfile.Glob(input_path.label_path)
         dense_paths = tf.gfile.Glob(input_path.dense_path)
         category_paths = tf.gfile.Glob(input_path.category_path)
-        assert len(label_paths) == len(dense_paths) and len(label_paths) == \
-            len(category_paths), 'label_path(%s) dense_path(%s) category_path(%s) ' + \
-            'matched different number of files(%d %d %d)' % (
-            len(label_paths), len(dense_paths), len(category_paths))
+        assert len(label_paths) == len(dense_paths) and len(label_paths) == len(category_paths), (
+          'label_path(%s) dense_path(%s) category_path(%s) '
+          + 'matched different number of files(%d %d %d)' % (len(label_paths), len(dense_paths), len(category_paths))
+        )
         label_paths.sort()
         dense_paths.sort()
         category_paths.sort()
@@ -63,7 +70,7 @@ class CriteoInput(Input):
         self._batch_size,
         prefetch=self._prefetch_size,
         global_rank=self._task_index,
-        global_size=self._task_num
+        global_size=self._task_num,
       )
     else:
       self._binary_reader = None
@@ -94,25 +101,19 @@ class CriteoInput(Input):
       self._sample_generator,
       output_types=(tf.float32, tf.int32, tf.int32),
       output_shapes=(
-        tf.TensorShape([None,
-                        13]), tf.TensorShape([None,
-                                              26]), tf.TensorShape([None])
-      )
+        tf.TensorShape([None, 13]),
+        tf.TensorShape([None, 26]),
+        tf.TensorShape([None]),
+      ),
     )
     num_parallel_calls = self._data_config.num_parallel_calls
-    dataset = dataset.map(
-      self._to_fea_dict, num_parallel_calls=num_parallel_calls
-    )
+    dataset = dataset.map(self._to_fea_dict, num_parallel_calls=num_parallel_calls)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-    dataset = dataset.map(
-      map_func=self._preprocess, num_parallel_calls=num_parallel_calls
-    )
+    dataset = dataset.map(map_func=self._preprocess, num_parallel_calls=num_parallel_calls)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
-      dataset = dataset.map(
-        lambda x: (self._get_features(x), self._get_labels(x))
-      )
+      dataset = dataset.map(lambda x: (self._get_features(x), self._get_labels(x)))
     else:
       dataset = dataset.map(lambda x: (self._get_features(x)))
     return dataset

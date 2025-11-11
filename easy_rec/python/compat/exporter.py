@@ -47,14 +47,10 @@ def _loss_smaller(best_eval_result, current_eval_result):
   """
   default_key = metric_keys.MetricKeys.LOSS
   if not best_eval_result or default_key not in best_eval_result:
-    raise ValueError(
-      'best_eval_result cannot be empty or no loss is found in it.'
-    )
+    raise ValueError('best_eval_result cannot be empty or no loss is found in it.')
 
   if not current_eval_result or default_key not in current_eval_result:
-    raise ValueError(
-      'current_eval_result cannot be empty or no loss is found in it.'
-    )
+    raise ValueError('current_eval_result cannot be empty or no loss is found in it.')
 
   return best_eval_result[default_key] > current_eval_result[default_key]
 
@@ -63,21 +59,12 @@ def _verify_compare_fn_args(compare_fn):
   """Verifies compare_fn arguments."""
   args = set(util.fn_args(compare_fn))
   if 'best_eval_result' not in args:
-    raise ValueError(
-      'compare_fn (%s) must include best_eval_result argument.' % compare_fn
-    )
+    raise ValueError('compare_fn (%s) must include best_eval_result argument.' % compare_fn)
   if 'current_eval_result' not in args:
-    raise ValueError(
-      'compare_fn (%s) must include current_eval_result argument.' % compare_fn
-    )
-  non_valid_args = list(
-    args - set(['best_eval_result', 'current_eval_result'])
-  )
+    raise ValueError('compare_fn (%s) must include current_eval_result argument.' % compare_fn)
+  non_valid_args = list(args - set(['best_eval_result', 'current_eval_result']))
   if non_valid_args:
-    raise ValueError(
-      'compare_fn (%s) has following not expected args: %s' %
-      (compare_fn, non_valid_args)
-    )
+    raise ValueError('compare_fn (%s) has following not expected args: %s' % (compare_fn, non_valid_args))
 
 
 def _get_ckpt_version(path):
@@ -102,7 +89,7 @@ class BestExporter(Exporter):
     compare_fn=_loss_smaller,
     assets_extra=None,
     as_text=False,
-    exports_to_keep=5
+    exports_to_keep=5,
   ):
     """Create an `Exporter` to use with `tf.estimator.EvalSpec`.
 
@@ -184,9 +171,7 @@ class BestExporter(Exporter):
       raise ValueError('`compare_fn` must not be None.')
     _verify_compare_fn_args(self._compare_fn)
 
-    self._saved_model_exporter = _SavedModelExporter(
-      name, serving_input_receiver_fn, assets_extra, as_text
-    )
+    self._saved_model_exporter = _SavedModelExporter(name, serving_input_receiver_fn, assets_extra, as_text)
 
     self._event_file_pattern = event_file_pattern
     self._model_dir = None
@@ -194,19 +179,13 @@ class BestExporter(Exporter):
 
     self._exports_to_keep = exports_to_keep
     if exports_to_keep is not None and exports_to_keep <= 0:
-      raise ValueError(
-        '`exports_to_keep`, if provided, must be a positive number. Got %s' %
-        exports_to_keep
-      )
+      raise ValueError('`exports_to_keep`, if provided, must be a positive number. Got %s' % exports_to_keep)
 
   @property
   def name(self):
     return self._saved_model_exporter.name
 
-  def export(
-    self, estimator, export_path, checkpoint_path, eval_result,
-    is_the_final_export
-  ):
+  def export(self, estimator, export_path, checkpoint_path, eval_result, is_the_final_export):
     export_result = None
 
     if self._model_dir != estimator.model_dir and self._event_file_pattern:
@@ -214,12 +193,8 @@ class BestExporter(Exporter):
       tf_logging.info('Loading best metric from event files.')
 
       self._model_dir = estimator.model_dir
-      full_event_file_pattern = os.path.join(
-        self._model_dir, self._event_file_pattern
-      )
-      self._best_eval_result = self._get_best_eval_result(
-        full_event_file_pattern, eval_result
-      )
+      full_event_file_pattern = os.path.join(self._model_dir, self._event_file_pattern)
+      self._best_eval_result = self._get_best_eval_result(full_event_file_pattern, eval_result)
 
     if self._best_eval_result is None or self._compare_fn(
       best_eval_result=self._best_eval_result, current_eval_result=eval_result
@@ -227,17 +202,18 @@ class BestExporter(Exporter):
       tf_logging.info('Performing best model export.')
       self._best_eval_result = eval_result
       export_result = self._saved_model_exporter.export(
-        estimator, export_path, checkpoint_path, eval_result,
-        is_the_final_export
+        estimator,
+        export_path,
+        checkpoint_path,
+        eval_result,
+        is_the_final_export,
       )
       self._garbage_collect_exports(export_path)
       # cp best checkpoints to best folder
       model_dir, _ = os.path.split(checkpoint_path)
       # add / is to be compatiable with oss
       best_dir = os.path.join(model_dir, 'best_ckpt/')
-      tf_logging.info(
-        'Copy best checkpoint %s to %s' % (checkpoint_path, best_dir)
-      )
+      tf_logging.info('Copy best checkpoint %s to %s' % (checkpoint_path, best_dir))
       if not gfile.Exists(best_dir):
         gfile.MakeDirs(best_dir)
       for tmp_file in gfile.Glob(checkpoint_path + '.*'):
@@ -250,9 +226,7 @@ class BestExporter(Exporter):
         try:
           gfile.Copy(tmp_file, dst_path)
         except Exception as ex:
-          tf_logging.warn(
-            'Copy file %s to %s failed:  %s' % (tmp_file, dst_path, str(ex))
-          )
+          tf_logging.warn('Copy file %s to %s failed:  %s' % (tmp_file, dst_path, str(ex)))
       self._garbage_collect_ckpts(best_dir)
 
     return export_result
@@ -275,8 +249,8 @@ class BestExporter(Exporter):
     tmp_steps = sorted(tmp_steps)
     drop_num = len(tmp_steps) - self._exports_to_keep
     tf_logging.info(
-      'garbage_collect_ckpts: steps: %s export_to_keep: %d drop num: %d' %
-      (str(tmp_steps), self._exports_to_keep, drop_num)
+      'garbage_collect_ckpts: steps: %s export_to_keep: %d drop num: %d'
+      % (str(tmp_steps), self._exports_to_keep, drop_num)
     )
     for ver in tmp_steps[:drop_num]:
       tmp_prefix = os.path.join(best_dir, 'model.ckpt-%d.*' % ver)
@@ -307,9 +281,7 @@ class BestExporter(Exporter):
     # pylint: disable=protected-access
     keep_filter = gc._largest_export_versions(self._exports_to_keep)
     delete_filter = gc._negation(keep_filter)
-    for p in delete_filter(
-      gc._get_paths(export_dir_base, parser=_export_version_parser)
-    ):
+    for p in delete_filter(gc._get_paths(export_dir_base, parser=_export_version_parser)):
       try:
         gfile.DeleteRecursively(io_util.fix_oss_dir(p.path))
       except errors_impl.NotFoundError as e:
@@ -340,9 +312,7 @@ class BestExporter(Exporter):
             if value.HasField('simple_value'):
               event_eval_result[value.tag] = value.simple_value
           if len(event_eval_result) >= 2:
-            if best_eval_result is None or self._compare_fn(
-              best_eval_result, event_eval_result
-            ):
+            if best_eval_result is None or self._compare_fn(best_eval_result, event_eval_result):
               best_eval_result = event_eval_result
     return best_eval_result
 
@@ -353,9 +323,7 @@ class FinalExporter(Exporter):
   This class performs a single export at the end of training.
   """
 
-  def __init__(
-    self, name, serving_input_receiver_fn, assets_extra=None, as_text=False
-  ):
+  def __init__(self, name, serving_input_receiver_fn, assets_extra=None, as_text=False):
     """Create an `Exporter` to use with `tf.estimator.EvalSpec`.
 
     Args:
@@ -376,26 +344,19 @@ class FinalExporter(Exporter):
     Raises:
       ValueError: if any arguments is invalid.
     """
-    self._saved_model_exporter = _SavedModelExporter(
-      name, serving_input_receiver_fn, assets_extra, as_text
-    )
+    self._saved_model_exporter = _SavedModelExporter(name, serving_input_receiver_fn, assets_extra, as_text)
 
   @property
   def name(self):
     return self._saved_model_exporter.name
 
-  def export(
-    self, estimator, export_path, checkpoint_path, eval_result,
-    is_the_final_export
-  ):
+  def export(self, estimator, export_path, checkpoint_path, eval_result, is_the_final_export):
     if not is_the_final_export:
       return None
 
     tf_logging.info('Performing the final export in the end of training.')
 
-    return self._saved_model_exporter.export(
-      estimator, export_path, checkpoint_path, eval_result, is_the_final_export
-    )
+    return self._saved_model_exporter.export(estimator, export_path, checkpoint_path, eval_result, is_the_final_export)
 
 
 class LatestExporter(Exporter):
@@ -410,7 +371,7 @@ class LatestExporter(Exporter):
     serving_input_receiver_fn,
     assets_extra=None,
     as_text=False,
-    exports_to_keep=5
+    exports_to_keep=5,
   ):
     """Create an `Exporter` to use with `tf.estimator.EvalSpec`.
 
@@ -435,23 +396,16 @@ class LatestExporter(Exporter):
     Raises:
       ValueError: if any arguments is invalid.
     """
-    self._saved_model_exporter = _SavedModelExporter(
-      name, serving_input_receiver_fn, assets_extra, as_text
-    )
+    self._saved_model_exporter = _SavedModelExporter(name, serving_input_receiver_fn, assets_extra, as_text)
     self._exports_to_keep = exports_to_keep
     if exports_to_keep is not None and exports_to_keep <= 0:
-      raise ValueError(
-        '`exports_to_keep`, if provided, must be positive number'
-      )
+      raise ValueError('`exports_to_keep`, if provided, must be positive number')
 
   @property
   def name(self):
     return self._saved_model_exporter.name
 
-  def export(
-    self, estimator, export_path, checkpoint_path, eval_result,
-    is_the_final_export
-  ):
+  def export(self, estimator, export_path, checkpoint_path, eval_result, is_the_final_export):
     export_result = self._saved_model_exporter.export(
       estimator, export_path, checkpoint_path, eval_result, is_the_final_export
     )
@@ -482,9 +436,7 @@ class LatestExporter(Exporter):
     # pylint: disable=protected-access
     keep_filter = gc._largest_export_versions(self._exports_to_keep)
     delete_filter = gc._negation(keep_filter)
-    for p in delete_filter(
-      gc._get_paths(export_dir_base, parser=_export_version_parser)
-    ):
+    for p in delete_filter(gc._get_paths(export_dir_base, parser=_export_version_parser)):
       try:
         gfile.DeleteRecursively(io_util.fix_oss_dir(p.path))
       except errors_impl.NotFoundError as e:

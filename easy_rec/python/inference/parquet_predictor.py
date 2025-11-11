@@ -19,6 +19,7 @@ try:
   from tensorflow.python.framework.load_library import load_op_library
 
   import easy_rec
+
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
@@ -26,7 +27,6 @@ except Exception as ex:
 
 
 class ParquetPredictor(Predictor):
-
   def __init__(
     self,
     model_path,
@@ -36,10 +36,9 @@ class ParquetPredictor(Predictor):
     profiling_file=None,
     selected_cols=None,
     output_sep=chr(1),
-    pipeline_config=None
+    pipeline_config=None,
   ):
-    super(ParquetPredictor,
-          self).__init__(model_path, profiling_file, fg_json_path)
+    super(ParquetPredictor, self).__init__(model_path, profiling_file, fg_json_path)
     self._output_sep = output_sep
     self._ds_vector_recall = ds_vector_recall
     input_type = DatasetConfig.InputType.Name(data_config.input_type).lower()
@@ -73,12 +72,8 @@ class ParquetPredictor(Predictor):
     # already parsed in _get_dataset
     return self._reserved_cols
 
-  def _get_dataset(
-    self, input_path, num_parallel_calls, batch_size, slice_num, slice_id
-  ):
-    feature_configs = config_util.get_compatible_feature_configs(
-      self.pipeline_config
-    )
+  def _get_dataset(self, input_path, num_parallel_calls, batch_size, slice_num, slice_id):
+    feature_configs = config_util.get_compatible_feature_configs(self.pipeline_config)
 
     kwargs = {}
     if self._reserved_args is not None and len(self._reserved_args) > 0:
@@ -90,22 +85,17 @@ class ParquetPredictor(Predictor):
         kwargs['reserve_fields'] = all_cols
         self._all_fields = all_cols
         self._reserved_cols = all_cols
-        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
-          all_cols, parquet_file
-        )
+        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(all_cols, parquet_file)
       else:
-        self._reserved_cols = [
-          x.strip() for x in self._reserved_args.split(',') if x.strip() != ''
-        ]
+        self._reserved_cols = [x.strip() for x in self._reserved_args.split(',') if x.strip() != '']
         kwargs['reserve_fields'] = self._reserved_cols
         parquet_file = gfile.Glob(input_path.split(',')[0])[0]
-        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
-          self._reserved_cols, parquet_file
-        )
+        kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(self._reserved_cols, parquet_file)
       logging.info(
-        'reserve_fields=%s reserve_types=%s' % (
-          ','.join(self._reserved_cols
-                  ), ','.join([str(x) for x in kwargs['reserve_types']])
+        'reserve_fields=%s reserve_types=%s'
+        % (
+          ','.join(self._reserved_cols),
+          ','.join([str(x) for x in kwargs['reserve_types']]),
         )
       )
     else:
@@ -120,7 +110,7 @@ class ParquetPredictor(Predictor):
       task_index=slice_id,
       task_num=slice_num,
       pipeline_config=self.pipeline_config,
-      **kwargs
+      **kwargs,
     )
     return parquet_input._build(tf.estimator.ModeKeys.PREDICT, {})
 
@@ -129,15 +119,11 @@ class ParquetPredictor(Predictor):
       gfile.MakeDirs(output_path)
     res_path = os.path.join(output_path, 'part-%d.csv' % slice_id)
     table_writer = gfile.GFile(res_path, 'w')
-    table_writer.write(
-      self._output_sep.join(self._output_cols + self._reserved_cols) + '\n'
-    )
+    table_writer.write(self._output_sep.join(self._output_cols + self._reserved_cols) + '\n')
     return table_writer
 
   def _write_lines(self, table_writer, outputs):
-    outputs = '\n'.join(
-      [self._output_sep.join([str(i) for i in output]) for output in outputs]
-    )
+    outputs = '\n'.join([self._output_sep.join([str(i) for i in output]) for output in outputs])
     table_writer.write(outputs + '\n')
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
@@ -154,4 +140,4 @@ class ParquetPredictor(Predictor):
 
   @property
   def out_of_range_exception(self):
-    return (tf.errors.OutOfRangeError)
+    return tf.errors.OutOfRangeError

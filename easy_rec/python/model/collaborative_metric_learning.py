@@ -1,34 +1,35 @@
 import tensorflow as tf
 
+from easy_rec.python.core.metrics import (  # NOQA
+  metric_learning_average_precision_at_k,
+  metric_learning_recall_at_k,
+)
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.common_layers import highway
 from easy_rec.python.loss.circle_loss import circle_loss
 from easy_rec.python.loss.multi_similarity import ms_loss
 from easy_rec.python.model.easy_rec_model import EasyRecModel
+from easy_rec.python.protos.collaborative_metric_learning_pb2 import (
+  CoMetricLearningI2I as MetricLearningI2IConfig,  # NOQA
+)
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.activation import gelu
 from easy_rec.python.utils.proto_util import copy_obj
-
-from easy_rec.python.core.metrics import metric_learning_average_precision_at_k, metric_learning_recall_at_k  # NOQA
-from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class CoMetricLearningI2I(EasyRecModel):
-
   def __init__(
     self,
     model_config,  # pipeline.model_config
     feature_configs,  # pipeline.feature_configs
     features,  # same as model_fn input
     labels=None,
-    is_training=False
+    is_training=False,
   ):
-    super(CoMetricLearningI2I, self).__init__(
-      model_config, feature_configs, features, labels, is_training
-    )
+    super(CoMetricLearningI2I, self).__init__(model_config, feature_configs, features, labels, is_training)
     model = self._model_config.WhichOneof('model')
     assert model == 'metric_learning', 'invalid model config: %s' % model
 
@@ -46,25 +47,19 @@ class CoMetricLearningI2I(EasyRecModel):
     elif self._loss_type == LossType.MULTI_SIMILARITY_LOSS:
       self.loss = self._model_config.multi_similarity_loss
     else:
-      raise ValueError(
-        'unsupported loss type: %s' % LossType.Name(self._loss_type)
-      )
+      raise ValueError('unsupported loss type: %s' % LossType.Name(self._loss_type))
 
     if not self.has_backbone:
       self._highway_features = {}
       self._highway_num = len(self._model_config.highway)
       for _id in range(self._highway_num):
         highway_cfg = self._model_config.highway[_id]
-        highway_feature, _ = self._input_layer(
-          self._feature_dict, highway_cfg.input
-        )
+        highway_feature, _ = self._input_layer(self._feature_dict, highway_cfg.input)
         self._highway_features[highway_cfg.input] = highway_feature
 
       self.input_features = []
       if self._model_config.HasField('input'):
-        input_feature, _ = self._input_layer(
-          self._feature_dict, self._model_config.input
-        )
+        input_feature, _ = self._input_layer(self._feature_dict, self._model_config.input)
         self.input_features.append(input_feature)
 
       self.dnn = copy_obj(self._model_config.dnn)
@@ -93,13 +88,13 @@ class CoMetricLearningI2I(EasyRecModel):
           self._highway_features[highway_cfg.input],
           training=self._is_training,
           trainable=True,
-          name='highway_%s_bn' % highway_cfg.input
+          name='highway_%s_bn' % highway_cfg.input,
         )
         highway_fea = highway(
           highway_fea,
           highway_cfg.emb_size,
           activation=gelu,
-          scope='highway_%s' % _id
+          scope='highway_%s' % _id,
         )
         print('highway_fea: ', highway_fea)
         self.input_features.append(highway_fea)
@@ -114,24 +109,18 @@ class CoMetricLearningI2I(EasyRecModel):
         inputs=net_output,
         units=last_hidden,
         kernel_regularizer=self._l2_reg,
-        name='dnn/dnn_%d' % (num_dnn_layer - 1)
+        name='dnn/dnn_%d' % (num_dnn_layer - 1),
       )
 
     if self._model_config.output_l2_normalized_emb:
       norm_emb = tf.nn.l2_normalize(tower_emb, axis=-1)
       self._prediction_dict['norm_emb'] = norm_emb
-      self._prediction_dict['norm_embedding'] = tf.reduce_join(
-        tf.as_string(norm_emb), axis=-1, separator=','
-      )
+      self._prediction_dict['norm_embedding'] = tf.reduce_join(tf.as_string(norm_emb), axis=-1, separator=',')
 
     self._prediction_dict['float_emb'] = tower_emb
-    self._prediction_dict['embedding'] = tf.reduce_join(
-      tf.as_string(tower_emb), axis=-1, separator=','
-    )
+    self._prediction_dict['embedding'] = tf.reduce_join(tf.as_string(tower_emb), axis=-1, separator=',')
     if self.sample_id is not None and self.sample_id in self._feature_dict:
-      self._prediction_dict['sample_id'] = tf.identity(
-        self._feature_dict[self.sample_id]
-      )
+      self._prediction_dict['sample_id'] = tf.identity(self._feature_dict[self.sample_id])
     return self._prediction_dict
 
   def build_loss_graph(self):
@@ -145,7 +134,7 @@ class CoMetricLearningI2I(EasyRecModel):
         self.session_ids,
         self.loss.margin,
         self.loss.gamma,
-        embed_normed=emb_normed
+        embed_normed=emb_normed,
       )
     elif self._loss_type == LossType.MULTI_SIMILARITY_LOSS:
       self._loss_dict['ms_loss'] = ms_loss(
@@ -156,12 +145,10 @@ class CoMetricLearningI2I(EasyRecModel):
         self.loss.beta,
         self.loss.lamb,
         self.loss.eps,
-        embed_normed=emb_normed
+        embed_normed=emb_normed,
       )
     else:
-      raise ValueError(
-        'invalid loss type: %s' % LossType.Name(self._loss_type)
-      )
+      raise ValueError('invalid loss type: %s' % LossType.Name(self._loss_type))
 
     return self._loss_dict
 
@@ -186,15 +173,7 @@ class CoMetricLearningI2I(EasyRecModel):
 
     emb = self._prediction_dict['float_emb']
     if len(recall_at_k) > 0:
-      metric_dict.update(
-        metric_learning_recall_at_k(
-          recall_at_k, emb, self.labels, self.session_ids
-        )
-      )
+      metric_dict.update(metric_learning_recall_at_k(recall_at_k, emb, self.labels, self.session_ids))
     if len(precision_at_k) > 0:
-      metric_dict.update(
-        metric_learning_average_precision_at_k(
-          precision_at_k, emb, self.labels, self.session_ids
-        )
-      )
+      metric_dict.update(metric_learning_average_precision_at_k(precision_at_k, emb, self.labels, self.session_ids))
     return metric_dict

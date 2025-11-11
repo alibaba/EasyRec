@@ -43,9 +43,7 @@ class SENet(Layer):
     for shape in input_shape:
       assert shape.ndims == 2, 'field embeddings must be rank 2 tensors'
       dim = int(shape[-1])
-      assert dim >= g and dim % g == 0, 'field embedding dimension %d must be divisible by %d' % (
-        dim, g
-      )
+      assert dim >= g and dim % g == 0, 'field embedding dimension %d must be divisible by %d' % (dim, g)
       emb_size += dim
 
     r = self.config.reduction_ratio
@@ -55,11 +53,9 @@ class SENet(Layer):
       units=reduction_size,
       activation='relu',
       kernel_initializer='he_normal',
-      name='W1'
+      name='W1',
     )
-    self.excite_layer = Dense(
-      units=emb_size, kernel_initializer='glorot_normal', name='W2'
-    )
+    self.excite_layer = Dense(units=emb_size, kernel_initializer='glorot_normal', name='W2')
     super(SENet, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs, **kwargs):
@@ -67,9 +63,7 @@ class SENet(Layer):
 
     # Squeeze
     # embedding dimension 必须能被 g 整除
-    group_embs = [
-      tf.reshape(emb, [-1, g, int(emb.shape[-1]) // g]) for emb in inputs
-    ]
+    group_embs = [tf.reshape(emb, [-1, g, int(emb.shape[-1]) // g]) for emb in inputs]
 
     squeezed = []
     for emb in group_embs:
@@ -97,9 +91,7 @@ class SENet(Layer):
 
 def _full_interaction(v_i, v_j):
   # [bs, 1, dim] x [bs, dim, 1] = [bs, 1]
-  interaction = tf.matmul(
-    tf.expand_dims(v_i, axis=1), tf.expand_dims(v_j, axis=-1)
-  )
+  interaction = tf.matmul(tf.expand_dims(v_i, axis=1), tf.expand_dims(v_j, axis=-1))
   return tf.squeeze(interaction, axis=1)
 
 
@@ -134,9 +126,7 @@ class BiLinear(Layer):
     self.output_size = params.num_output_units
     self.bilinear_type = params.get_or_default('type', 'interaction').lower()
     if self.bilinear_type not in ['all', 'each', 'interaction']:
-      raise NotImplementedError(
-        "bilinear_type only support: ['all', 'each', 'interaction']"
-      )
+      raise NotImplementedError("bilinear_type only support: ['all', 'each', 'interaction']")
     if bilinear_plus:
       self.func = _full_interaction
     else:
@@ -157,22 +147,17 @@ class BiLinear(Layer):
       if shape[-1] != _dim:
         equal_dim = False
     if not equal_dim and self.bilinear_type != 'interaction':
-      raise ValueError(
-        'all embedding dimensions must be same when not use bilinear type: interaction'
-      )
+      raise ValueError('all embedding dimensions must be same when not use bilinear type: interaction')
     dim = int(_dim)
 
     if self.bilinear_type == 'all':
       self.dot_layer = Dense(dim, name='all')
     elif self.bilinear_type == 'each':
-      self.dot_layers = [
-        Dense(dim, name='each_%d' % i) for i in range(field_num - 1)
-      ]
+      self.dot_layers = [Dense(dim, name='each_%d' % i) for i in range(field_num - 1)]
     else:  # interaction
       self.dot_layers = [
-        Dense(
-          units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j)
-        ) for i, j in itertools.combinations(range(field_num), 2)
+        Dense(units=int(input_shape[j][-1]), name='interaction_%d_%d' % (i, j))
+        for i, j in itertools.combinations(range(field_num), 2)
       ]
     super(BiLinear, self).build(input_shape)  # Be sure to call this somewhere!
 
@@ -187,23 +172,14 @@ class BiLinear(Layer):
     #   - where k_i is the embedding size of the ith field
     if self.bilinear_type == 'all':
       v_dot = [self.dot_layer(v_i) for v_i in embeddings[:-1]]
-      p = [
-        self.func(v_dot[i], embeddings[j])
-        for i, j in itertools.combinations(range(field_num), 2)
-      ]
+      p = [self.func(v_dot[i], embeddings[j]) for i, j in itertools.combinations(range(field_num), 2)]
     elif self.bilinear_type == 'each':
-      v_dot = [
-        self.dot_layers[i](v_i) for i, v_i in enumerate(embeddings[:-1])
-      ]
-      p = [
-        self.func(v_dot[i], embeddings[j])
-        for i, j in itertools.combinations(range(field_num), 2)
-      ]
+      v_dot = [self.dot_layers[i](v_i) for i, v_i in enumerate(embeddings[:-1])]
+      p = [self.func(v_dot[i], embeddings[j]) for i, j in itertools.combinations(range(field_num), 2)]
     else:  # interaction
       p = [
-        self.func(
-          self.dot_layers[i * field_num + j](embeddings[i]), embeddings[j]
-        ) for i, j in itertools.combinations(range(field_num), 2)
+        self.func(self.dot_layers[i * field_num + j](embeddings[i]), embeddings[j])
+        for i, j in itertools.combinations(range(field_num), 2)
       ]
 
     return self.output_layer(tf.concat(p, axis=-1))
@@ -223,15 +199,11 @@ class FiBiNet(Layer):
     self._config = params.get_pb_config()
 
     se_params = Parameter.make_from_pb(self._config.senet)
-    self.senet_layer = SENet(
-      se_params, name=self.name + '/senet', reuse=self.reuse
-    )
+    self.senet_layer = SENet(se_params, name=self.name + '/senet', reuse=self.reuse)
 
     if self._config.HasField('bilinear'):
       bi_params = Parameter.make_from_pb(self._config.bilinear)
-      self.bilinear_layer = BiLinear(
-        bi_params, name=self.name + '/bilinear', reuse=self.reuse
-      )
+      self.bilinear_layer = BiLinear(bi_params, name=self.name + '/bilinear', reuse=self.reuse)
 
     if self._config.HasField('mlp'):
       p = Parameter.make_from_pb(self._config.mlp)

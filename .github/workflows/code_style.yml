@@ -23,7 +23,7 @@ jobs:
           PULL_REQUEST_NUM: ${{ github.event.pull_request.number }}
         run: |
            source ~/.bashrc
-           source activate tf25_py3
+           conda activate py310
            pre-commit run -a
            if [ $? -eq 0 ]
            then

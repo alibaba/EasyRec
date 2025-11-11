@@ -101,10 +101,10 @@
   import tensorflow as tf
   import os, sys
 
-  ckpt_reader = tf.train.NewCheckpointReader('experiments/model.ckpt-0')
+  ckpt_reader = tf.train.NewCheckpointReader("experiments/model.ckpt-0")
   ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
   for key in ckpt_var2shape_map:
-    print(key)
+      print(key)
   ```
 
 - save_checkpoints_steps: 每隔多少步保存一次checkpoint, 默认是1000。当训练数据量很大的时候，这个值要设置大一些

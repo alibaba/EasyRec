@@ -79,8 +79,10 @@ process_lbl.py:
 
 ```python
 import numpy as np
+
+
 def remap_lbl(labels):
-    res = np.where(labels<5, 0, 1)
+    res = np.where(labels < 5, 0, 1)
     return res
 ```
 

@@ -20,55 +20,30 @@ if tf.__version__ >= '2.0':
 
 logging.basicConfig(
   format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-  level=logging.INFO
+  level=logging.INFO,
 )
-tf.app.flags.DEFINE_string(
-  'pipeline_config_path', None, 'Path to pipeline config '
-  'file.'
-)
+tf.app.flags.DEFINE_string('pipeline_config_path', None, 'Path to pipeline config ' 'file.')
 tf.app.flags.DEFINE_string('checkpoint_path', '', 'checkpoint to be exported')
-tf.app.flags.DEFINE_string(
-  'export_dir', None, 'directory where model should be exported to'
-)
+tf.app.flags.DEFINE_string('export_dir', None, 'directory where model should be exported to')
 
 tf.app.flags.DEFINE_string('redis_url', None, 'export to redis url, host:port')
 tf.app.flags.DEFINE_string('redis_passwd', None, 'export to redis passwd')
 tf.app.flags.DEFINE_integer('redis_threads', 0, 'export to redis threads')
-tf.app.flags.DEFINE_integer(
-  'redis_batch_size', 256, 'export to redis batch_size'
-)
-tf.app.flags.DEFINE_integer(
-  'redis_timeout', 600, 'export to redis time_out in seconds'
-)
-tf.app.flags.DEFINE_integer(
-  'redis_expire', 24, 'export to redis expire time in hour'
-)
-tf.app.flags.DEFINE_string(
-  'redis_embedding_version', '', 'redis embedding version'
-)
-tf.app.flags.DEFINE_integer(
-  'redis_write_kv', 1, 'whether to write embedding to redis'
-)
+tf.app.flags.DEFINE_integer('redis_batch_size', 256, 'export to redis batch_size')
+tf.app.flags.DEFINE_integer('redis_timeout', 600, 'export to redis time_out in seconds')
+tf.app.flags.DEFINE_integer('redis_expire', 24, 'export to redis expire time in hour')
+tf.app.flags.DEFINE_string('redis_embedding_version', '', 'redis embedding version')
+tf.app.flags.DEFINE_integer('redis_write_kv', 1, 'whether to write embedding to redis')
 
-tf.app.flags.DEFINE_string(
-  'oss_path', None, 'write embed objects to oss folder, oss://bucket/folder'
-)
+tf.app.flags.DEFINE_string('oss_path', None, 'write embed objects to oss folder, oss://bucket/folder')
 tf.app.flags.DEFINE_string('oss_endpoint', None, 'oss endpoint')
 tf.app.flags.DEFINE_string('oss_ak', None, 'oss ak')
 tf.app.flags.DEFINE_string('oss_sk', None, 'oss sk')
-tf.app.flags.DEFINE_integer(
-  'oss_threads', 10, '# threads access oss at the same time'
-)
-tf.app.flags.DEFINE_integer(
-  'oss_timeout', 10, 'connect to oss, time_out in seconds'
-)
+tf.app.flags.DEFINE_integer('oss_threads', 10, '# threads access oss at the same time')
+tf.app.flags.DEFINE_integer('oss_timeout', 10, 'connect to oss, time_out in seconds')
 tf.app.flags.DEFINE_integer('oss_expire', 24, 'oss expire time in hours')
-tf.app.flags.DEFINE_integer(
-  'oss_write_kv', 1, 'whether to write embedding to oss'
-)
-tf.app.flags.DEFINE_string(
-  'oss_embedding_version', '', 'oss embedding version'
-)
+tf.app.flags.DEFINE_integer('oss_write_kv', 1, 'whether to write embedding to oss')
+tf.app.flags.DEFINE_string('oss_embedding_version', '', 'oss embedding version')
 
 tf.app.flags.DEFINE_string('asset_files', '', 'more files to add to asset')
 tf.app.flags.DEFINE_bool('verbose', False, 'print more debug information')
@@ -77,9 +52,7 @@ tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
 tf.app.flags.mark_flag_as_required('export_dir')
 
 tf.app.flags.DEFINE_bool('clear_export', False, 'remove export_dir if exists')
-tf.app.flags.DEFINE_string(
-  'export_done_file', '', 'a flag file to signal that export model is done'
-)
+tf.app.flags.DEFINE_string('export_done_file', '', 'a flag file to signal that export model is done')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -131,16 +104,14 @@ def main(argv):
   if FLAGS.oss_embedding_version:
     extra_params['oss_embedding_version'] = FLAGS.oss_embedding_version
 
-  pipeline_config = config_util.get_configs_from_pipeline_file(
-    pipeline_config_path
-  )
+  pipeline_config = config_util.get_configs_from_pipeline_file(pipeline_config_path)
   if pipeline_config.train_config.train_distribute in [
     DistributionStrategy.HorovodStrategy,
   ]:
     estimator_utils.init_hvd()
   elif pipeline_config.train_config.train_distribute in [
     DistributionStrategy.EmbeddingParallelStrategy,
-    DistributionStrategy.SokStrategy
+    DistributionStrategy.SokStrategy,
   ]:
     estimator_utils.init_hvd()
     estimator_utils.init_sok()
@@ -151,8 +122,12 @@ def main(argv):
       gfile.DeleteRecursively(FLAGS.export_dir)
 
   export_out_dir = export(
-    FLAGS.export_dir, pipeline_config_path, FLAGS.checkpoint_path,
-    FLAGS.asset_files, FLAGS.verbose, **extra_params
+    FLAGS.export_dir,
+    pipeline_config_path,
+    FLAGS.checkpoint_path,
+    FLAGS.asset_files,
+    FLAGS.verbose,
+    **extra_params,
   )
 
   if FLAGS.export_done_file:

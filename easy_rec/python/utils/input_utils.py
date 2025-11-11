@@ -17,7 +17,7 @@ def get_type_defaults(field_type, default_val=''):
     DatasetConfig.STRING: '',
     DatasetConfig.BOOL: False,
     DatasetConfig.FLOAT: 0.0,
-    DatasetConfig.DOUBLE: 0.0
+    DatasetConfig.DOUBLE: 0.0,
   }
   assert field_type in type_defaults, 'invalid type: %s' % field_type
   if default_val == '':
@@ -49,28 +49,20 @@ def string_to_number(field, ftype, default_value, name=''):
   Returns: A name for the operation (optional).
   """
   default_vals = tf.tile(tf.constant([str(default_value)]), tf.shape(field))
-  field = tf.where(
-    tf.greater(tf.strings.length(field), 0), field, default_vals
-  )
+  field = tf.where(tf.greater(tf.strings.length(field), 0), field, default_vals)
 
   if ftype in [DatasetConfig.INT32, DatasetConfig.INT64]:
     # Int type is not supported in fg.
     # If you specify INT32, INT64 in DatasetConfig, you need to perform a cast at here.
-    tmp_field = tf.string_to_number(
-      field, tf.double, name='field_as_flt_%s' % name
-    )
+    tmp_field = tf.string_to_number(field, tf.double, name='field_as_flt_%s' % name)
     if ftype in [DatasetConfig.INT64]:
       tmp_field = tf.cast(tmp_field, tf.int64)
     else:
       tmp_field = tf.cast(tmp_field, tf.int32)
   elif ftype in [DatasetConfig.FLOAT]:
-    tmp_field = tf.string_to_number(
-      field, tf.float32, name='field_as_flt_%s' % name
-    )
+    tmp_field = tf.string_to_number(field, tf.float32, name='field_as_flt_%s' % name)
   elif ftype in [DatasetConfig.DOUBLE]:
-    tmp_field = tf.string_to_number(
-      field, tf.float64, name='field_as_flt_%s' % name
-    )
+    tmp_field = tf.string_to_number(field, tf.float64, name='field_as_flt_%s' % name)
   elif ftype in [DatasetConfig.BOOL]:
     tmp_field = tf.logical_or(tf.equal(field, 'True'), tf.equal(field, 'true'))
   elif ftype in [DatasetConfig.STRING]:
@@ -89,7 +81,7 @@ def np_to_tf_type(np_type):
     np.float: tf.float32,
     np.float32: tf.float32,
     float: tf.float32,
-    np.double: tf.float64
+    np.double: tf.float64,
   }
   if np_type in _types_map:
     return _types_map[np_type]

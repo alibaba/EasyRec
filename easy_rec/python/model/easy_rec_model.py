@@ -30,6 +30,7 @@ try:
   from tensorflow.python.framework.load_library import load_op_library
 
   import easy_rec
+
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
@@ -40,21 +41,11 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 _EASY_REC_MODEL_CLASS_MAP = {}
-_meta_type = get_register_class_meta(
-  _EASY_REC_MODEL_CLASS_MAP, have_abstract_class=True
-)
+_meta_type = get_register_class_meta(_EASY_REC_MODEL_CLASS_MAP, have_abstract_class=True)
 
 
 class EasyRecModel(six.with_metaclass(_meta_type, object)):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
     self._base_model_config = model_config
     self._model_config = model_config
     self._is_training = is_training
@@ -67,9 +58,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       self._global_ev_params = model_config.ev_params
 
     if self.embedding_regularization > 0:
-      self._emb_reg = regularizers.l2_regularizer(
-        self.embedding_regularization
-      )
+      self._emb_reg = regularizers.l2_regularizer(self.embedding_regularization)
     else:
       self._emb_reg = None
 
@@ -108,7 +97,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         self._base_model_config.backbone,
         self._feature_dict,
         input_layer=self._input_layer,
-        l2_reg=self._l2_reg
+        l2_reg=self._l2_reg,
       )
     return None
 
@@ -126,7 +115,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         'metric_dict': self._metric_dict,
         'prediction_dict': self._prediction_dict,
         'labels': self._labels,
-        constant.SAMPLE_WEIGHT: self._sample_weight
+        constant.SAMPLE_WEIGHT: self._sample_weight,
       }
       return self._backbone_net(self._is_training, **kwargs)
     return None
@@ -145,16 +134,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
 
   @property
   def l2_regularization(self):
-    model_config = getattr(
-      self._base_model_config, self._base_model_config.WhichOneof('model')
-    )
+    model_config = getattr(self._base_model_config, self._base_model_config.WhichOneof('model'))
     l2_regularization = 0.0
-    if hasattr(model_config, 'dense_regularization') and \
-       model_config.HasField('dense_regularization'):
+    if hasattr(model_config, 'dense_regularization') and model_config.HasField('dense_regularization'):
       # backward compatibility
-      logging.warn(
-        'dense_regularization is deprecated, please use l2_regularization'
-      )
+      logging.warn('dense_regularization is deprecated, please use l2_regularization')
       l2_regularization = model_config.dense_regularization
     elif hasattr(model_config, 'l2_regularization'):
       l2_regularization = model_config.l2_regularization
@@ -168,10 +152,11 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
       ev_params=self._global_ev_params,
       embedding_regularizer=self._emb_reg,
       kernel_regularizer=self._l2_reg,
-      variational_dropout_config=model_config.variational_dropout
-      if model_config.HasField('variational_dropout') else None,
+      variational_dropout_config=(
+        model_config.variational_dropout if model_config.HasField('variational_dropout') else None
+      ),
       is_training=self._is_training,
-      is_predicting=self._is_predicting
+      is_predicting=self._is_predicting,
     )
 
   @abstractmethod
@@ -194,10 +179,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     outputs = {}
     for name in self.get_outputs():
       if name not in self._prediction_dict:
-        raise KeyError(
-          'output node {} not in prediction_dict, can not be exported'.
-          format(name)
-        )
+        raise KeyError('output node {} not in prediction_dict, can not be exported'.format(name))
       outputs[name] = self._prediction_dict[name]
     return outputs
 
@@ -211,9 +193,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         sparse_values = feature_value.values
         if sparse_values.dtype != tf.string:
           sparse_values = tf.as_string(sparse_values)
-        feature_value = tf.sparse_to_dense(
-          feature_value.indices, feature_value.dense_shape, sparse_values, ''
-        )
+        feature_value = tf.sparse_to_dense(feature_value.indices, feature_value.dense_shape, sparse_values, '')
       elif feature_value.dtype != tf.string:
         feature_value = tf.as_string(feature_value)
       feature_value = tf.reduce_join(feature_value, axis=-1, separator=',')
@@ -229,7 +209,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     ckpt_path,
     include_global_step=False,
     ckpt_var_map_path='',
-    force_restore_shape_compatible=False
+    force_restore_shape_compatible=False,
   ):
     """Restore variables from ckpt_path.
 
@@ -276,20 +256,18 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             var_shape,
             variable[0].dtype,
             variable,
-            partitions=[len(variable)] + [1] * (len(var_shape) - 1)
+            partitions=[len(variable)] + [1] * (len(var_shape) - 1),
           )
         else:
           var_shape = variable.shape.as_list()
         if ckpt_var_shape == var_shape:
-          vars_in_ckpt[variable_name] = list(variable) if isinstance(
-            variable, variables.PartitionedVariable
-          ) else variable
+          vars_in_ckpt[variable_name] = (
+            list(variable) if isinstance(variable, variables.PartitionedVariable) else variable
+          )
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
-            dtype = variable[0].dtype if isinstance(
-              variable, list
-            ) else variable.dtype
+            dtype = variable[0].dtype if isinstance(variable, list) else variable.dtype
             with tf.variable_scope('incompatible_shape_restore'):
               tmp_var = tf.get_variable(
                 name=variable_name + '_T_E_M_P',
@@ -298,29 +276,27 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                 # add to a special collection for easy reference
                 # by tf.get_collection('T_E_M_P_RESTROE')
                 collections=['T_E_M_P_RESTROE'],
-                dtype=dtype
+                dtype=dtype,
               )
             vars_in_ckpt[variable_name] = tmp_var
             incompatible_shape_var_map[variable] = tmp_var
-            print(
-              'incompatible restore %s[%s, %s]' %
-              (variable_name, str(var_shape), str(ckpt_var_shape))
-            )
+            print('incompatible restore %s[%s, %s]' % (variable_name, str(var_shape), str(ckpt_var_shape)))
           else:
             logging.warning(
-              'Variable [%s] is available in checkpoint, but '
-              'incompatible shape with model variable.', variable_name
+              'Variable [%s] is available in checkpoint, but ' 'incompatible shape with model variable.',
+              variable_name,
             )
         else:
           logging.warning(
-            'Variable [%s] is available in checkpoint, but '
-            'incompatible shape dims with model variable.', variable_name
+            'Variable [%s] is available in checkpoint, but ' 'incompatible shape dims with model variable.',
+            variable_name,
           )
       elif 'EmbeddingVariable' in str(type(variable)):
         if '%s-keys' % variable_name not in ckpt_var2shape_map:
           continue
         print('restore embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
+
         names_to_saveables = saver.BaseSaverBuilder.OpListToDict([variable])
         saveable_objects = []
         for name, op in names_to_saveables.items():
@@ -328,13 +304,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             saveable_objects.append(s)
         init_op = saveable_objects[0].restore([ckpt_path], None)
         variable._initializer_op = init_op
-      elif type(variable) == list and 'EmbeddingVariable' in str(
-        type(variable[0])
-      ):
+      elif type(variable) == list and 'EmbeddingVariable' in str(type(variable[0])):
         if '%s/part_0-keys' % variable_name not in ckpt_var2shape_map:
           continue
         print('restore partitioned embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
+
         for part_var in variable:
           names_to_saveables = saver.BaseSaverBuilder.OpListToDict([part_var])
           saveable_objects = []
@@ -350,26 +325,20 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           task_num=hvd.size(),
           embed_dim=variable._dimension,
           var_name='embed-' + variable.name.replace('/', '__'),
-          ckpt_path=ckpt_path
+          ckpt_path=ckpt_path,
         )
         with ops.control_dependencies([variable._initializer_op]):
-          variable._initializer_op = dynamic_variable_ops.dummy_var_assign(
-            variable.handle, keys, vals
-          )
+          variable._initializer_op = dynamic_variable_ops.dummy_var_assign(variable.handle, keys, vals)
       else:
         fail_restore_vars.append(variable_name)
     for variable_name in fail_restore_vars:
       if 'Momentum' not in variable_name:
-        logging.warning(
-          'Variable [%s] is not available in checkpoint', variable_name
-        )
+        logging.warning('Variable [%s] is not available in checkpoint', variable_name)
 
     tf.train.init_from_checkpoint(ckpt_path, vars_in_ckpt)
 
     if force_restore_shape_compatible:
-      return estimator_utils.IncompatibleShapeRestoreHook(
-        incompatible_shape_var_map
-      )
+      return estimator_utils.IncompatibleShapeRestoreHook(incompatible_shape_var_map)
     else:
       return None
 
@@ -392,9 +361,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     name2var = {}
     for one_var in all_vars:
       var_name = re.sub(VAR_SUFIX_PATTERN, '', one_var.name)
-      if re.search(
-        PARTITION_PATTERN, var_name
-      ) and one_var._save_slice_info is not None:
+      if re.search(PARTITION_PATTERN, var_name) and one_var._save_slice_info is not None:
         var_name = re.sub(PARTITION_PATTERN, '', var_name)
         is_part = True
       else:
@@ -434,16 +401,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     else:
       var_filter, scope_update = self.get_restore_filter()
       if var_filter is not None:
-        name2var = {
-          var_name: name2var[var_name]
-          for var in name2var if var_filter.keep(var.name)
-        }
+        name2var = {var_name: name2var[var_name] for var in name2var if var_filter.keep(var.name)}
       # drop scope prefix if necessary
       if scope_update is not None:
-        name2var = {
-          scope_update(var_name): name2var[var_name]
-          for var_name in name2var
-        }
+        name2var = {scope_update(var_name): name2var[var_name] for var_name in name2var}
       return name2var
 
   def get_restore_filter(self):
@@ -459,14 +420,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     for x in self._base_model_config.restore_filters:
       logging.info('restore will filter out pattern %s' % x)
 
-    all_filters = [
-      restore_filter.KeywordFilter(x, True)
-      for x in self._base_model_config.restore_filters
-    ]
+    all_filters = [restore_filter.KeywordFilter(x, True) for x in self._base_model_config.restore_filters]
 
-    return restore_filter.CombineFilter(
-      all_filters, restore_filter.Logical.AND
-    ), None
+    return (
+      restore_filter.CombineFilter(all_filters, restore_filter.Logical.AND),
+      None,
+    )
 
   def get_grouped_vars(self, opt_num):
     """Group the vars into different optimization groups.
@@ -484,9 +443,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     embedding_vars = []
     deep_vars = []
     for tmp_var in variables.trainable_variables():
-      if tmp_var.name.startswith(
-        'input_layer'
-      ) or '/embedding_weights' in tmp_var.name:
+      if tmp_var.name.startswith('input_layer') or '/embedding_weights' in tmp_var.name:
         embedding_vars.append(tmp_var)
       else:
         deep_vars.append(tmp_var)

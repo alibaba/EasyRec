@@ -8,7 +8,6 @@ if tf.__version__ >= '2.0':
 
 
 class FM:
-
   def __init__(self, name='fm'):
     """Initializes a `FM` Layer.
 

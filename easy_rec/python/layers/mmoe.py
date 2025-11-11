@@ -11,7 +11,6 @@ if tf.__version__ >= '2.0':
 
 
 class MMOE:
-
   def __init__(
     self,
     expert_dnn_config,
@@ -19,7 +18,7 @@ class MMOE:
     num_task,
     num_expert=None,
     name='mmoe',
-    is_training=False
+    is_training=False,
   ):
     """Initializes a `DNN` Layer.
 
@@ -37,8 +36,9 @@ class MMOE:
       self._expert_dnn_configs = expert_dnn_config
       self._num_expert = len(expert_dnn_config)
     else:
-      assert num_expert is not None and num_expert > 0, \
-          'param `num_expert` must be large than zero, when expert_dnn_config is not a list'
+      assert (
+        num_expert is not None and num_expert > 0
+      ), 'param `num_expert` must be large than zero, when expert_dnn_config is not a list'
       self._expert_dnn_configs = [expert_dnn_config] * num_expert
       self._num_expert = num_expert
     logging.info('num_expert: {0}'.format(self._num_expert))
@@ -57,7 +57,7 @@ class MMOE:
       inputs=deep_fea,
       units=unit,
       kernel_regularizer=self._l2_reg,
-      name='%s/dnn' % name
+      name='%s/dnn' % name,
     )
     fea = tf.nn.softmax(fea, axis=1)
     return fea
@@ -70,7 +70,7 @@ class MMOE:
         expert_dnn_config,
         self._l2_reg,
         name='%s/expert_%d' % (self._name, expert_id),
-        is_training=self._is_training
+        is_training=self._is_training,
       )
       expert_fea = expert_dnn(deep_fea)
       expert_fea_list.append(expert_fea)
@@ -78,9 +78,7 @@ class MMOE:
 
     task_input_list = []
     for task_id in range(self._num_task):
-      gate = self.gate(
-        self._num_expert, deep_fea, name='%s/gate_%d' % (self._name, task_id)
-      )
+      gate = self.gate(self._num_expert, deep_fea, name='%s/gate_%d' % (self._name, task_id))
       gate = tf.expand_dims(gate, -1)
       task_input = tf.multiply(experts_fea, gate)
       task_input = tf.reduce_sum(task_input, axis=1)

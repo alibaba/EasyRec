@@ -13,15 +13,20 @@
 # limitations under the License.
 # ==============================================================================
 """Base class to make optimizers weight decay ready."""
+
 from __future__ import absolute_import, division, print_function
 
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import (  # NOQA
+  array_ops,
+  control_flow_ops,
+  resource_variable_ops,
+  state_ops,
+)
 from tensorflow.python.training import adam
 from tensorflow.python.training import momentum as momentum_opt
 from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
-
-from tensorflow.python.ops import array_ops, control_flow_ops, resource_variable_ops, state_ops  # NOQA
 
 
 class DecoupledWeightDecayExtension(object):
@@ -97,7 +102,7 @@ class DecoupledWeightDecayExtension(object):
     colocate_gradients_with_ops=False,
     name=None,
     grad_loss=None,
-    decay_var_list=None
+    decay_var_list=None,
   ):
     """Add operations to minimize `loss` by updating `var_list` with decay.
 
@@ -137,12 +142,10 @@ class DecoupledWeightDecayExtension(object):
       aggregation_method=aggregation_method,
       colocate_gradients_with_ops=colocate_gradients_with_ops,
       name=name,
-      grad_loss=grad_loss
+      grad_loss=grad_loss,
     )
 
-  def apply_gradients(
-    self, grads_and_vars, global_step=None, name=None, decay_var_list=None
-  ):
+  def apply_gradients(self, grads_and_vars, global_step=None, name=None, decay_var_list=None):
     """Apply gradients to variables and decay the variables.
 
     This function is the same as Optimizer.apply_gradients except that it
@@ -174,9 +177,7 @@ class DecoupledWeightDecayExtension(object):
     weight_decay = self._weight_decay
     if callable(weight_decay):
       weight_decay = weight_decay()
-    self._weight_decay_tensor = ops.convert_to_tensor(
-      weight_decay, name='weight_decay'
-    )
+    self._weight_decay_tensor = ops.convert_to_tensor(weight_decay, name='weight_decay')
     # Call the optimizers _prepare function.
     super(DecoupledWeightDecayExtension, self)._prepare()
 
@@ -199,30 +200,25 @@ class DecoupledWeightDecayExtension(object):
 
   def _resource_apply_dense(self, grad, var):
     with ops.control_dependencies([self._decay_weights_op(var)]):
-      return super(DecoupledWeightDecayExtension,
-                   self)._resource_apply_dense(grad, var)
+      return super(DecoupledWeightDecayExtension, self)._resource_apply_dense(grad, var)
 
   def _apply_sparse(self, grad, var):
     scatter_add = state_ops.scatter_add
     decay_op = self._decay_weights_sparse_op(var, grad.indices, scatter_add)
     with ops.control_dependencies([decay_op]):
-      return super(DecoupledWeightDecayExtension,
-                   self)._apply_sparse(grad, var)
+      return super(DecoupledWeightDecayExtension, self)._apply_sparse(grad, var)
 
   def _resource_scatter_add(self, x, i, v, _=None):
     # last argument allows for one overflow argument, to have the same function
     # signature as state_ops.scatter_add
-    with ops.control_dependencies(
-      [resource_variable_ops.resource_scatter_add(x.handle, i, v)]
-    ):
+    with ops.control_dependencies([resource_variable_ops.resource_scatter_add(x.handle, i, v)]):
       return x.value()
 
   def _resource_apply_sparse(self, grad, var, indices):
     scatter_add = self._resource_scatter_add
     decay_op = self._decay_weights_sparse_op(var, indices, scatter_add)
     with ops.control_dependencies([decay_op]):
-      return super(DecoupledWeightDecayExtension,
-                   self)._resource_apply_sparse(grad, var, indices)
+      return super(DecoupledWeightDecayExtension, self)._resource_apply_sparse(grad, var, indices)
 
 
 def extend_with_decoupled_weight_decay(base_optimizer):
@@ -263,9 +259,7 @@ def extend_with_decoupled_weight_decay(base_optimizer):
     and base_optimizer.
   """
 
-  class OptimizerWithDecoupledWeightDecay(
-    DecoupledWeightDecayExtension, base_optimizer
-  ):
+  class OptimizerWithDecoupledWeightDecay(DecoupledWeightDecayExtension, base_optimizer):
     """Base_optimizer with decoupled weight decay.
 
     This class computes the update step of `base_optimizer` and
@@ -282,17 +276,14 @@ def extend_with_decoupled_weight_decay(base_optimizer):
     def __init__(self, weight_decay, *args, **kwargs):
       # super delegation is necessary here
       # pylint: disable=useless-super-delegation
-      super(OptimizerWithDecoupledWeightDecay,
-            self).__init__(weight_decay, *args, **kwargs)
+      super(OptimizerWithDecoupledWeightDecay, self).__init__(weight_decay, *args, **kwargs)
       # pylint: enable=useless-super-delegation
 
   return OptimizerWithDecoupledWeightDecay
 
 
 @tf_export('contrib.opt.MomentumWOptimizer')
-class MomentumWOptimizer(
-  DecoupledWeightDecayExtension, momentum_opt.MomentumOptimizer
-):
+class MomentumWOptimizer(DecoupledWeightDecayExtension, momentum_opt.MomentumOptimizer):
   """Optimizer that implements the Momentum algorithm with weight_decay.
 
   This is an implementation of the SGDW optimizer described in "Fixing
@@ -321,7 +312,7 @@ class MomentumWOptimizer(
     momentum,
     use_locking=False,
     name='MomentumW',
-    use_nesterov=False
+    use_nesterov=False,
   ):
     """Construct a new MomentumW optimizer.
 
@@ -352,7 +343,7 @@ class MomentumWOptimizer(
       momentum=momentum,
       use_locking=use_locking,
       name=name,
-      use_nesterov=use_nesterov
+      use_nesterov=use_nesterov,
     )
 
 
@@ -388,7 +379,7 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
     beta2=0.999,
     epsilon=1e-8,
     use_locking=False,
-    name='AdamW'
+    name='AdamW',
   ):
     """Construct a new AdamW optimizer.
 
@@ -415,7 +406,7 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
       beta2=beta2,
       epsilon=epsilon,
       use_locking=use_locking,
-      name=name
+      name=name,
     )
 
 
@@ -454,7 +445,7 @@ try:
       beta2=0.999,
       epsilon=1e-8,
       use_locking=False,
-      name='AdamAsyncW'
+      name='AdamAsyncW',
     ):
       """Construct a new AdamW optimizer.
 
@@ -481,7 +472,8 @@ try:
         beta2=beta2,
         epsilon=epsilon,
         use_locking=use_locking,
-        name=name
+        name=name,
       )
+
 except ImportError:
   pass

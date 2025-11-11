@@ -25,11 +25,16 @@ class RTPInputV2(Input):
     task_index=0,
     task_num=1,
     check_mode=False,
-    pipeline_config=None
+    pipeline_config=None,
   ):
     super(RTPInputV2, self).__init__(
-      data_config, feature_config, input_path, task_index, task_num,
-      check_mode, pipeline_config
+      data_config,
+      feature_config,
+      input_path,
+      task_index,
+      task_num,
+      check_mode,
+      pipeline_config,
     )
 
   def _parse_rtp(self, lines):
@@ -43,21 +48,17 @@ class RTPInputV2(Input):
       keys = field_vals[:, 0]
       vals = field_vals[:, 1]
       temp_vals = [
-        str(
-          self.get_type_defaults(
-            self._input_field_types[i], self._input_field_defaults[i]
-          )
-        ) for i in range(len(self._input_fields))
+        str(self.get_type_defaults(self._input_field_types[i], self._input_field_defaults[i]))
+        for i in range(len(self._input_fields))
       ]
       for i, key in enumerate(self._input_fields):
         msk = tf.equal(key, keys)
         val = tf.boolean_mask(vals, msk)
-        def_val = self.get_type_defaults(
-          self._input_field_types[i], self._input_field_defaults[i]
-        )
+        def_val = self.get_type_defaults(self._input_field_types[i], self._input_field_defaults[i])
         temp_vals[i] = tf.cond(
-          tf.reduce_any(msk), lambda: tf.reduce_join(val, separator=','),
-          lambda: tf.constant(str(def_val))
+          tf.reduce_any(msk),
+          lambda: tf.reduce_join(val, separator=','),
+          lambda: tf.constant(str(def_val)),
         )
       return temp_vals
 
@@ -66,27 +67,20 @@ class RTPInputV2(Input):
       lines,
       tf_types,
       parallel_iterations=64,
-      name='parse_one_line_tf_map_fn'
+      name='parse_one_line_tf_map_fn',
     )
 
     def _convert(x, target_type, name):
       if target_type in [DatasetConfig.FLOAT, DatasetConfig.DOUBLE]:
-        return tf.string_to_number(
-          x, tf.float32, name='convert_input_flt32/%s' % name
-        )
+        return tf.string_to_number(x, tf.float32, name='convert_input_flt32/%s' % name)
       elif target_type == DatasetConfig.INT32:
-        return tf.string_to_number(
-          x, tf.int32, name='convert_input_int32/%s' % name
-        )
+        return tf.string_to_number(x, tf.int32, name='convert_input_int32/%s' % name)
       elif target_type == DatasetConfig.INT64:
-        return tf.string_to_number(
-          x, tf.int64, name='convert_input_int64/%s' % name
-        )
+        return tf.string_to_number(x, tf.int64, name='convert_input_int64/%s' % name)
       return x
 
     inputs = {
-      self._input_fields[x]:
-      _convert(fields[x], self._input_field_types[x], self._input_fields[x])
+      self._input_fields[x]: _convert(fields[x], self._input_field_types[x], self._input_fields[x])
       for x in self._effective_fids
     }
 
@@ -104,9 +98,7 @@ class RTPInputV2(Input):
 
     num_parallel_calls = self._data_config.num_parallel_calls
     if mode == tf.estimator.ModeKeys.TRAIN:
-      logging.info(
-        'train files[%d]: %s' % (len(file_paths), ','.join(file_paths))
-      )
+      logging.info('train files[%d]: %s' % (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
 
       if self._data_config.file_shard:
@@ -122,7 +114,7 @@ class RTPInputV2(Input):
       dataset = dataset.interleave(
         tf.data.TextLineDataset,
         cycle_length=parallel_num,
-        num_parallel_calls=parallel_num
+        num_parallel_calls=parallel_num,
       )
 
       if not self._data_config.file_shard:
@@ -132,31 +124,23 @@ class RTPInputV2(Input):
         dataset = dataset.shuffle(
           self._data_config.shuffle_buffer_size,
           seed=2020,
-          reshuffle_each_iteration=True
+          reshuffle_each_iteration=True,
         )
       dataset = dataset.repeat(self.num_epochs)
     else:
-      logging.info(
-        'eval files[%d]: %s' % (len(file_paths), ','.join(file_paths))
-      )
+      logging.info('eval files[%d]: %s' % (len(file_paths), ','.join(file_paths)))
       dataset = tf.data.TextLineDataset(file_paths)
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)
-    dataset = dataset.map(
-      self._parse_rtp, num_parallel_calls=num_parallel_calls
-    )
+    dataset = dataset.map(self._parse_rtp, num_parallel_calls=num_parallel_calls)
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
-    dataset = dataset.map(
-      map_func=self._preprocess, num_parallel_calls=num_parallel_calls
-    )
+    dataset = dataset.map(map_func=self._preprocess, num_parallel_calls=num_parallel_calls)
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
-      dataset = dataset.map(
-        lambda x: (self._get_features(x), self._get_labels(x))
-      )
+      dataset = dataset.map(lambda x: (self._get_features(x), self._get_labels(x)))
     else:
       dataset = dataset.map(lambda x: (self._get_features(x)))
     return dataset

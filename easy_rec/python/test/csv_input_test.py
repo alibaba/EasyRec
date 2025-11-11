@@ -23,7 +23,6 @@ if tf.__version__ >= '2.0':
 
 
 class CSVInputTest(tf.test.TestCase):
-
   def __init__(self, methodName='CSVInputTest'):
     super(CSVInputTest, self).__init__(methodName=methodName)
     self._input_path = 'data/test/test.csv'
@@ -71,9 +70,7 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(
-      dataset_config, feature_configs, self._input_path
-    ).create_input()
+    train_input_fn = CSVInput(dataset_config, feature_configs, self._input_path).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -83,7 +80,7 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
-      log_device_placement=False
+      log_device_placement=False,
     )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
@@ -136,9 +133,7 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(
-      dataset_config, feature_configs, self._input_path
-    ).create_input()
+    train_input_fn = CSVInput(dataset_config, feature_configs, self._input_path).create_input()
     try:
       dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)  # noqa: F841
       passed = True
@@ -194,9 +189,7 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(
-      dataset_config, feature_configs, self._input_path
-    ).create_input()
+    train_input_fn = CSVInput(dataset_config, feature_configs, self._input_path).create_input()
 
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
 
@@ -208,7 +201,7 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
-      log_device_placement=False
+      log_device_placement=False,
     )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
@@ -256,9 +249,7 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInputEx(
-      dataset_config, feature_configs, self._input_path_with_quote
-    ).create_input()
+    train_input_fn = CSVInputEx(dataset_config, feature_configs, self._input_path_with_quote).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -268,7 +259,7 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
-      log_device_placement=False
+      log_device_placement=False,
     )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
@@ -276,7 +267,7 @@ class CSVInputTest(tf.test.TestCase):
 
   @unittest.skipIf(
     'AVX_TEST' not in os.environ,
-    'Only execute when avx512 instructions are supported'
+    'Only execute when avx512 instructions are supported',
   )
   @RunAsSubprocess
   def test_csv_input_ex_avx(self):
@@ -327,9 +318,7 @@ class CSVInputTest(tf.test.TestCase):
         tmp_config.CopyFrom(empty_config)
         tmp_config.input_names.append(tmp_name)
         feature_configs.append(tmp_config)
-    train_input_fn = CSVInput(
-      dataset_config, feature_configs, self._input_path_with_quote
-    ).create_input()
+    train_input_fn = CSVInput(dataset_config, feature_configs, self._input_path_with_quote).create_input()
     dataset = train_input_fn(mode=tf.estimator.ModeKeys.TRAIN)
     iterator = dataset.make_initializable_iterator()
     tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS, iterator.initializer)
@@ -339,7 +328,7 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
       gpu_options=gpu_options,
       allow_soft_placement=True,
-      log_device_placement=False
+      log_device_placement=False,
     )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)

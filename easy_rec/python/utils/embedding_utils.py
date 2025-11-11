@@ -58,7 +58,6 @@ def set_embedding_parallel():
 
 
 def is_embedding_parallel():
-  global embedding_parallel
   return embedding_parallel
 
 

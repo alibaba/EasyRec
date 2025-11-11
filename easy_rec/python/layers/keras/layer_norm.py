@@ -1,4 +1,5 @@
 """Layer Normalization layer."""
+
 import tensorflow as tf
 from tensorflow.python.keras import constraints, initializers, regularizers
 from tensorflow.python.keras.layers import Layer
@@ -18,11 +19,7 @@ def validate_axis(axis, input_shape):
   input_shape = tf.TensorShape(input_shape)
   rank = input_shape.ndims
   if not rank:
-    raise ValueError(
-      'Input has undefined rank. Received: input_shape={input_shape}'.format(
-        input_shape=input_shape
-      )
-    )
+    raise ValueError('Input has undefined rank. Received: input_shape={input_shape}'.format(input_shape=input_shape))
 
   # Convert axis to list and resolve negatives
   if isinstance(axis, int):
@@ -39,9 +36,7 @@ def validate_axis(axis, input_shape):
       raise ValueError(
         'Invalid value for `axis` argument. '
         'Expected 0 <= axis < inputs.rank (with '
-        'inputs.rank={rank}). Received: axis={axis}'.format(
-          rank=rank, axis=tuple(axis)
-        )
+        'inputs.rank={rank}). Received: axis={axis}'.format(rank=rank, axis=tuple(axis))
       )
   if len(axis) != len(set(axis)):
     raise ValueError('Duplicate axis: {axis}'.format(axis=tuple(axis)))
@@ -183,7 +178,7 @@ class LayerNormalization(Layer):
     gamma_regularizer=None,
     beta_constraint=None,
     gamma_constraint=None,
-    **kwargs
+    **kwargs,
   ):
     super(LayerNormalization, self).__init__(**kwargs)
     if isinstance(axis, (list, tuple)):
@@ -191,10 +186,7 @@ class LayerNormalization(Layer):
     elif isinstance(axis, int):
       self.axis = axis
     else:
-      raise TypeError(
-        'Expected an int or a list/tuple of ints for the '
-        "argument 'axis', but received: %r" % axis
-      )
+      raise TypeError('Expected an int or a list/tuple of ints for the ' "argument 'axis', but received: %r" % axis)
 
     self.epsilon = epsilon
     self.center = center
@@ -266,8 +258,7 @@ class LayerNormalization(Layer):
       self.beta = None
 
     self._fused = self._fused_can_be_used(rank)
-    super(LayerNormalization,
-          self).build(input_shape)  # Be sure to call this somewhere!
+    super(LayerNormalization, self).build(input_shape)  # Be sure to call this somewhere!
 
   def call(self, inputs):
     # Compute the axes along which to reduce the mean / variance
@@ -281,15 +272,13 @@ class LayerNormalization(Layer):
       broadcast_shape[dim] = input_shape.dims[dim].value
 
     def _broadcast(v):
-      if (
-        v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]
-      ):
+      if v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]:
         return tf.reshape(v, broadcast_shape)
       return v
 
     if not self._fused:
       input_dtype = inputs.dtype
-      if (input_dtype in ('float16', 'bfloat16') and self.dtype == 'float32'):
+      if input_dtype in ('float16', 'bfloat16') and self.dtype == 'float32':
         # If mixed precision is used, cast inputs to float32 so that
         # this is at least as numerically stable as the fused version.
         inputs = tf.cast(inputs, 'float32')
@@ -315,8 +304,8 @@ class LayerNormalization(Layer):
 
       axis = sorted(self.axis)
       tensor_shape = tf.shape(inputs)
-      pre_dim = tf.reduce_prod(tensor_shape[:axis[0]])
-      in_dim = tf.reduce_prod(tensor_shape[axis[0]:])
+      pre_dim = tf.reduce_prod(tensor_shape[: axis[0]])
+      in_dim = tf.reduce_prod(tensor_shape[axis[0] :])
       squeezed_shape = [1, pre_dim, in_dim, 1]
       # This fused operation requires reshaped inputs to be NCHW.
       data_format = 'NCHW'

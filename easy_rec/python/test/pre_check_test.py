@@ -13,7 +13,6 @@ gfile = tf.gfile
 
 
 class CheckTest(tf.test.TestCase):
-
   def setUp(self):
     self._test_dir = test_utils.get_tmp_dir()
     self._success = True
@@ -29,7 +28,7 @@ class CheckTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
       'samples/model_config/dbmtl_on_taobao.config',
       self._test_dir,
-      check_mode=True
+      check_mode=True,
     )
     self.assertTrue(self._success)
 
@@ -40,15 +39,11 @@ class CheckTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_csv_input_with_pre_check(self):
-    self._success = test_utils.test_single_pre_check(
-      'samples/model_config/dbmtl_on_taobao.config', self._test_dir
-    )
+    self._success = test_utils.test_single_pre_check('samples/model_config/dbmtl_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
   def test_rtp_input_with_pre_check(self):
-    self._success = test_utils.test_single_pre_check(
-      'samples/model_config/dbmtl_on_taobao.config', self._test_dir
-    )
+    self._success = test_utils.test_single_pre_check('samples/model_config/dbmtl_on_taobao.config', self._test_dir)
     self.assertTrue(self._success)
 
 

@@ -6,8 +6,9 @@ import tensorflow as tf
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
 from easy_rec.python.utils.config_util import get_compatible_feature_configs
-
-from easy_rec.python.utils.convert_rtp_fg import load_input_field_and_feature_config  # NOQA
+from easy_rec.python.utils.convert_rtp_fg import (  # NOQA
+  load_input_field_and_feature_config,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -26,9 +27,7 @@ def load_fg_json_to_config(pipeline_config):
   with tf.gfile.GFile(fg_json_path, 'r') as fin:
     rtp_fg = json.load(fin)
 
-  fg_config = load_input_field_and_feature_config(
-    rtp_fg, label_fields=label_fields
-  )
+  fg_config = load_input_field_and_feature_config(rtp_fg, label_fields=label_fields)
 
   pipeline_config.data_config.ClearField('input_fields')
   pipeline_config.ClearField('feature_configs')

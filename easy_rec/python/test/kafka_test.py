@@ -28,7 +28,6 @@ except ImportError:
 
 
 class KafkaTest(tf.test.TestCase):
-
   def setUp(self):
     self._success = True
     self._test_dir = test_utils.get_tmp_dir()
@@ -37,10 +36,7 @@ class KafkaTest(tf.test.TestCase):
       self._zookeeper_proc = None
       return
 
-    logging.info(
-      'Testing %s.%s, test_dir=%s' %
-      (type(self).__name__, self._testMethodName, self._test_dir)
-    )
+    logging.info('Testing %s.%s, test_dir=%s' % (type(self).__name__, self._testMethodName, self._test_dir))
     self._log_dir = os.path.join(self._test_dir, 'logs')
     if not gfile.IsDirectory(self._log_dir):
       gfile.MakeDirs(self._log_dir)
@@ -61,7 +57,8 @@ class KafkaTest(tf.test.TestCase):
             else:
               fout.write(line_str)
       cmd = 'bash %s/bin/zookeeper-server-start.sh %s' % (
-        kafka_install_dir, zookeeper_config
+        kafka_install_dir,
+        zookeeper_config,
       )
       log_file = os.path.join(self._log_dir, 'zookeeper.log')
       self._zookeeper_proc = test_utils.run_cmd(cmd, log_file)
@@ -76,15 +73,15 @@ class KafkaTest(tf.test.TestCase):
             else:
               fout.write(line_str)
       cmd = 'bash %s/bin/kafka-server-start.sh %s' % (
-        kafka_install_dir, kafka_config
+        kafka_install_dir,
+        kafka_config,
       )
       log_file = os.path.join(self._log_dir, 'kafka_server.log')
       self._kafka_server_proc = test_utils.run_cmd(cmd, log_file)
 
       started = False
       while not started:
-        if self._kafka_server_proc.poll(
-        ) and self._kafka_server_proc.returncode:
+        if self._kafka_server_proc.poll() and self._kafka_server_proc.returncode:
           logging.warning('start kafka server failed, will retry.')
           os.system('cat %s' % log_file)
           self._kafka_server_proc = test_utils.run_cmd(cmd, log_file)
@@ -92,9 +89,7 @@ class KafkaTest(tf.test.TestCase):
         else:
           try:
             admin_clt = KafkaAdminClient(bootstrap_servers=self._kafka_servers)
-            logging.info(
-              'old topics: %s' % (','.join(admin_clt.list_topics()))
-            )
+            logging.info('old topics: %s' % (','.join(admin_clt.list_topics())))
             admin_clt.close()
             started = True
           except kafka.errors.NoBrokersAvailable:
@@ -114,7 +109,7 @@ class KafkaTest(tf.test.TestCase):
       NewTopic(
         name=self._test_topic,
         num_partitions=num_partitions,
-        replication_factor=1
+        replication_factor=1,
       )
     ]
 
@@ -152,18 +147,13 @@ class KafkaTest(tf.test.TestCase):
     if self._success:
       test_utils.clean_up(self._test_dir)
 
-  @unittest.skipIf(
-    'kafka_install_dir' not in os.environ,
-    'Only execute when kafka is available'
-  )
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_ops(self):
     try:
       test_utils.set_gpu_id(None)
 
       def _generate():
-        producer = KafkaProducer(
-          bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1)
-        )
+        producer = KafkaProducer(bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
         i = 0
         while not self._should_stop:
           msg = 'user_id_%d' % i
@@ -181,14 +171,12 @@ class KafkaTest(tf.test.TestCase):
         # control the maximal read of each partition
         config_global=['max.partition.fetch.bytes=1048576'],
         message_key=True,
-        message_offset=True
+        message_offset=True,
       )
 
       batch_dataset = k.batch(5)
 
-      iterator = iterator_ops.Iterator.from_structure(
-        batch_dataset.output_types
-      )
+      iterator = iterator_ops.Iterator.from_structure(batch_dataset.output_types)
       init_batch_op = iterator.make_initializer(batch_dataset)
       get_next = iterator.get_next()
 
@@ -217,10 +205,7 @@ class KafkaTest(tf.test.TestCase):
       self._success = False
       raise ex
 
-  @unittest.skipIf(
-    'kafka_install_dir' not in os.environ,
-    'Only execute when kafka is available'
-  )
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_train(self):
     try:
       # start produce thread
@@ -237,9 +222,7 @@ class KafkaTest(tf.test.TestCase):
       raise ex
 
   def _generate(self):
-    producer = KafkaProducer(
-      bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1)
-    )
+    producer = KafkaProducer(bootstrap_servers=self._kafka_servers, api_version=(0, 10, 1))
     while not self._should_stop:
       with open('data/test/dwd_avazu_ctr_deepmodel_10w.csv', 'r') as fin:
         for line_str in fin:
@@ -252,10 +235,7 @@ class KafkaTest(tf.test.TestCase):
     producer.close()
     logging.info('data generation thread done.')
 
-  @unittest.skipIf(
-    'kafka_install_dir' not in os.environ,
-    'Only execute when kafka is available'
-  )
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_train_chief_redundant(self):
     try:
       # start produce thread
@@ -266,17 +246,14 @@ class KafkaTest(tf.test.TestCase):
       self._success = test_utils.test_distributed_train_eval(
         'samples/model_config/deepfm_combo_avazu_kafka_chief_redundant.config',
         self._test_dir,
-        num_evaluator=1
+        num_evaluator=1,
       )
       self.assertTrue(self._success)
     except Exception as ex:
       self._success = False
       raise ex
 
-  @unittest.skipIf(
-    'kafka_install_dir' not in os.environ,
-    'Only execute when kafka is available'
-  )
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_train_v2(self):
     try:
       # start produce thread
@@ -286,7 +263,7 @@ class KafkaTest(tf.test.TestCase):
 
       self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_avazu_kafka_time_offset.config',
-        self._test_dir
+        self._test_dir,
       )
 
       self.assertTrue(self._success)
@@ -295,30 +272,30 @@ class KafkaTest(tf.test.TestCase):
       raise ex
 
   @unittest.skipIf(
-    'kafka_install_dir' not in os.environ or 'oss_path' not in os.environ
-    or 'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ
-    or 'oss_sk' not in os.environ, 'Only execute when kafka is available'
+    'kafka_install_dir' not in os.environ
+    or 'oss_path' not in os.environ
+    or 'oss_endpoint' not in os.environ
+    and 'oss_ak' not in os.environ
+    or 'oss_sk' not in os.environ,
+    'Only execute when kafka is available',
   )
   def test_kafka_processor(self):
-    self._test_kafka_processor(
-      'samples/model_config/taobao_fg_incr_save.config'
-    )
+    self._test_kafka_processor('samples/model_config/taobao_fg_incr_save.config')
 
   @unittest.skipIf(
-    'kafka_install_dir' not in os.environ or 'oss_path' not in os.environ
-    or 'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ
-    or 'oss_sk' not in os.environ, 'Only execute when kafka is available'
+    'kafka_install_dir' not in os.environ
+    or 'oss_path' not in os.environ
+    or 'oss_endpoint' not in os.environ
+    and 'oss_ak' not in os.environ
+    or 'oss_sk' not in os.environ,
+    'Only execute when kafka is available',
   )
   def test_kafka_processor_ev(self):
-    self._test_kafka_processor(
-      'samples/model_config/taobao_fg_incr_save_ev.config'
-    )
+    self._test_kafka_processor('samples/model_config/taobao_fg_incr_save_ev.config')
 
   def _test_kafka_processor(self, config_path):
     self._success = False
-    success = test_utils.test_distributed_train_eval(
-      config_path, self._test_dir, total_steps=500
-    )
+    success = test_utils.test_distributed_train_eval(config_path, self._test_dir, total_steps=500)
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config
@@ -326,13 +303,15 @@ class KafkaTest(tf.test.TestCase):
            --asset_files ./samples/rtp_fg/fg.json
            --checkpoint_path %s/train/model.ckpt-0
     """ % (
-      self._test_dir, self._test_dir, os.environ['oss_path'],
-      os.environ['oss_ak'], os.environ['oss_sk'], os.environ['oss_endpoint'],
-      self._test_dir
+      self._test_dir,
+      self._test_dir,
+      os.environ['oss_path'],
+      os.environ['oss_ak'],
+      os.environ['oss_sk'],
+      os.environ['oss_endpoint'],
+      self._test_dir,
     )
-    proc = test_utils.run_cmd(
-      export_cmd, '%s/log_export_sep.txt' % self._test_dir
-    )
+    proc = test_utils.run_cmd(export_cmd, '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     files = gfile.Glob(os.path.join(self._test_dir, 'export/sep/[1-9][0-9]*'))
@@ -342,12 +321,14 @@ class KafkaTest(tf.test.TestCase):
         python -m easy_rec.python.inference.processor.test --saved_model_dir %s
            --input_path data/test/rtp/taobao_test_feature.txt
            --output_path %s/processor.out  --test_dir %s
-     """ % (export_sep_dir, self._test_dir, self._test_dir)
+     """ % (
+      export_sep_dir,
+      self._test_dir,
+      self._test_dir,
+    )
     envs = dict(os.environ)
     envs['PROCESSOR_TEST'] = '1'
-    proc = test_utils.run_cmd(
-      predict_cmd, '%s/log_processor.txt' % self._test_dir, env=envs
-    )
+    proc = test_utils.run_cmd(predict_cmd, '%s/log_processor.txt' % self._test_dir, env=envs)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
 
@@ -369,9 +350,7 @@ class KafkaTest(tf.test.TestCase):
 
     with open('%s/predictor.out' % self._test_dir, 'w') as fout:
       for i in range(len(output_res)):
-        fout.write(
-          json.dumps(output_res[i], cls=numpy_utils.NumpyEncoder) + '\n'
-        )
+        fout.write(json.dumps(output_res[i], cls=numpy_utils.NumpyEncoder) + '\n')
 
     for i in range(len(output_res)):
       val0 = output_res[i]['probs']
@@ -380,10 +359,7 @@ class KafkaTest(tf.test.TestCase):
       assert diff < 1e-4, 'too much difference[%.6f] >= 1e-4' % diff
     self._success = True
 
-  @unittest.skipIf(
-    'kafka_install_dir' not in os.environ,
-    'Only execute when kafka is available'
-  )
+  @unittest.skipIf('kafka_install_dir' not in os.environ, 'Only execute when kafka is available')
   def test_kafka_train_v3(self):
     try:
       # start produce thread
@@ -393,7 +369,7 @@ class KafkaTest(tf.test.TestCase):
 
       self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_combo_avazu_kafka_time_offset2.config',
-        self._test_dir
+        self._test_dir,
       )
 
       self.assertTrue(self._success)

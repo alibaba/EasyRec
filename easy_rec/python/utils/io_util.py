@@ -4,6 +4,7 @@
 
 isort:skip_file
 """
+
 import logging
 from future import standard_library
 
@@ -18,6 +19,7 @@ import tensorflow as tf
 from six.moves import http_client
 from six.moves import urllib
 import json
+
 if six.PY2:
   from urllib import quote
 else:
@@ -79,14 +81,9 @@ def download(oss_or_url, dst_dir=''):
       response = urllib.request.urlopen(oss_or_url, timeout=HTTP_MAX_TIMEOUT)
       file_content = response.read()
     except Exception as e:
-      raise RuntimeError(
-        'Download %s failed: %s\n %s' %
-        (oss_or_url, str(e), traceback.format_exc())
-      )
+      raise RuntimeError('Download %s failed: %s\n %s' % (oss_or_url, str(e), traceback.format_exc()))
   else:
-    tf.logging.warning(
-      'skip downloading %s, seems to be a local file' % oss_or_url
-    )
+    tf.logging.warning('skip downloading %s, seems to be a local file' % oss_or_url)
     return oss_or_url
 
   if dst_dir != '' and not os.path.exists(dst_dir):
@@ -132,26 +129,19 @@ def download_and_uncompress_resource(resource_path, dst_dir=EASY_REC_RES_DIR):
   create_module_dir(dst_dir)
 
   _, basename = os.path.split(resource_path)
-  if not basename.endswith('.tar.gz') and not basename.endswith('.zip') and \
-     not basename.endswith('.py'):
-    raise ValueError(
-      'resource %s should be tar.gz or zip or py' % resource_path
-    )
+  if not basename.endswith('.tar.gz') and not basename.endswith('.zip') and not basename.endswith('.py'):
+    raise ValueError('resource %s should be tar.gz or zip or py' % resource_path)
 
   download(resource_path, dst_dir)
 
   stat = 0
   if basename.endswith('tar.gz'):
-    stat, output = getstatusoutput(
-      'cd %s && tar -zxf %s' % (dst_dir, basename)
-    )
+    stat, output = getstatusoutput('cd %s && tar -zxf %s' % (dst_dir, basename))
   elif basename.endswith('zip'):
     stat, output = getstatusoutput('cd %s && unzip %s' % (dst_dir, basename))
 
   if stat != 0:
-    raise ValueError(
-      'uncompress resoruce %s failed: %s' % resource_path, output
-    )
+    raise ValueError('uncompress resoruce %s failed: %s' % resource_path, output)
 
   return dst_dir
 
@@ -165,7 +155,6 @@ def oss_has_t_mode(target_file):
   try:
     with tf.gfile.GFile(test_file, 't') as ofile:
       ofile.write('a')
-      pass
     tf.gfile.Remove(test_file)
     return True
   except:  # noqa: E722
@@ -205,6 +194,7 @@ def convert_tf_flags_to_argparse(flags):
   """
   import argparse
   import ast
+
   parser = argparse.ArgumentParser()
 
   args = {}
@@ -217,8 +207,11 @@ def convert_tf_flags_to_argparse(flags):
     flag_type = type(default)
     help_str = flag.help or ''
     args[flag_name] = [
-      False, flag_type, default, help_str,
-      flag.choices if hasattr(flag, 'choices') else None
+      False,
+      flag_type,
+      default,
+      help_str,
+      flag.choices if hasattr(flag, 'choices') else None,
     ]
 
   def str2bool(v):
@@ -231,8 +224,7 @@ def convert_tf_flags_to_argparse(flags):
     else:
       raise argparse.ArgumentTypeError('Boolean value expected.')
 
-  for flag_name, (multi, flag_type, default, help_str,
-                  choices) in args.items():
+  for flag_name, (multi, flag_type, default, help_str, choices) in args.items():
     if flag_type == bool:
       parser.add_argument(
         '--' + flag_name,
@@ -240,7 +232,7 @@ def convert_tf_flags_to_argparse(flags):
         nargs='?',
         const=True,
         default=False,
-        help=help_str
+        help=help_str,
       )
     elif flag_type == str:
       if choices:
@@ -249,7 +241,7 @@ def convert_tf_flags_to_argparse(flags):
           type=str,
           choices=choices,
           default=default,
-          help=help_str
+          help=help_str,
         )
       elif multi:
         parser.add_argument(
@@ -257,27 +249,21 @@ def convert_tf_flags_to_argparse(flags):
           type=str,
           action='append',
           default=default,
-          help=help_str
+          help=help_str,
         )
       else:
-        parser.add_argument(
-          '--' + flag_name, type=str, default=default, help=help_str
-        )
+        parser.add_argument('--' + flag_name, type=str, default=default, help=help_str)
     elif flag_type in (list, dict):
       parser.add_argument(
         '--' + flag_name,
         type=lambda s: ast.literal_eval(s),
         default=default,
-        help=help_str
+        help=help_str,
       )
     elif flag_type in (int, float):
-      parser.add_argument(
-        '--' + flag_name, type=flag_type, default=default, help=help_str
-      )
+      parser.add_argument('--' + flag_name, type=flag_type, default=default, help=help_str)
     else:
-      parser.add_argument(
-        '--' + flag_name, type=str, default=default, help=help_str
-      )
+      parser.add_argument('--' + flag_name, type=str, default=default, help=help_str)
   return parser
 
 

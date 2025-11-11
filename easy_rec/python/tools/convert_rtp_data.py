@@ -9,6 +9,7 @@ more than one value, there will be multiple kvs, such as:
 In our new format:
   ...beautysmart...
 """
+
 import argparse
 import csv
 import json
@@ -19,7 +20,7 @@ import tensorflow as tf
 
 logging.basicConfig(
   format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-  level=logging.INFO
+  level=logging.INFO,
 )
 
 if tf.__version__ >= '2.0':
@@ -27,13 +28,9 @@ if tf.__version__ >= '2.0':
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-    '--rtp_fg', type=str, default='', help='rtp fg path(.json)'
-  )
+  parser.add_argument('--rtp_fg', type=str, default='', help='rtp fg path(.json)')
   parser.add_argument('--input_path', type=str, default='', help='input path')
-  parser.add_argument(
-    '--output_path', type=str, default='', help='output path'
-  )
+  parser.add_argument('--output_path', type=str, default='', help='output path')
   parser.add_argument('--label', type=str, default='', help='label for train')
   args = parser.parse_args()
 

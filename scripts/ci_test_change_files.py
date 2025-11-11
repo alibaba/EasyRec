@@ -11,18 +11,12 @@ except Exception as ex:
   logging.error(ex)
   sys.exit(2)
 
-logging.basicConfig(
-  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-    '--pull_request_num', type=int, default=None, help='pull request number'
-  )
-  parser.add_argument(
-    '--exclude_dirs', nargs='*', type=str, help='the directory to be ignored'
-  )
+  parser.add_argument('--pull_request_num', type=int, default=None, help='pull request number')
+  parser.add_argument('--exclude_dirs', nargs='*', type=str, help='the directory to be ignored')
 
   args = parser.parse_args()
 

@@ -27,8 +27,7 @@ def cache_ckpt(pipeline_config):
     # there is no need to cache if remote directories are mounted
     return
 
-  if estimator_utils.is_ps() or estimator_utils.is_chief(
-  ) or estimator_utils.is_master():
+  if estimator_utils.is_ps() or estimator_utils.is_chief() or estimator_utils.is_master():
     tmpdir = os.path.dirname(fine_tune_ckpt_path.replace('hdfs://', ''))
     tmpdir = os.path.join('/tmp/experiments', tmpdir)
     logging.info('will cache fine_tune_ckpt to local dir: %s' % tmpdir)
@@ -41,7 +40,7 @@ def cache_ckpt(pipeline_config):
     meta_files = [x for x in src_files if '.data-' not in x]
     if estimator_utils.is_ps():
       _, _, ps_id = estimator_utils.parse_tf_config()
-      ps_id = (ps_id % len(data_files))
+      ps_id = ps_id % len(data_files)
       data_files = data_files[ps_id:] + data_files[:ps_id]
       src_files = meta_files + data_files
     else:
@@ -51,9 +50,7 @@ def cache_ckpt(pipeline_config):
       dst_path = os.path.join(tmpdir, os.path.basename(src_path))
       logging.info('will copy %s to local path %s' % (src_path, dst_path))
       try:
-        output = subprocess.check_output(
-          'hadoop fs -get %s %s' % (src_path, dst_path), shell=True
-        )
+        output = subprocess.check_output('hadoop fs -get %s %s' % (src_path, dst_path), shell=True)
         logging.info('copy succeed: %s' % output)
       except Exception:
         logging.warning('exception: %s' % traceback.format_exc())

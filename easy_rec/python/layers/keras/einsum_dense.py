@@ -4,9 +4,13 @@ import re
 import string
 
 import tensorflow as tf
+from tensorflow.python.keras import (  # NOQA
+  activations,
+  constraints,
+  initializers,
+  regularizers,
+)
 from tensorflow.python.keras.layers import Layer
-
-from tensorflow.python.keras import activations, constraints, initializers, regularizers  # NOQA
 
 
 class EinsumDense(Layer):
@@ -116,12 +120,12 @@ class EinsumDense(Layer):
     kernel_constraint=None,
     bias_constraint=None,
     lora_rank=None,
-    **kwargs
+    **kwargs,
   ):
     super(EinsumDense, self).__init__(**kwargs)
     self.equation = equation
     if isinstance(output_shape, int):
-      self.partial_output_shape = (output_shape, )
+      self.partial_output_shape = (output_shape,)
     else:
       self.partial_output_shape = tuple(output_shape)
     self.bias_axes = bias_axes
@@ -184,9 +188,7 @@ class EinsumDense(Layer):
   @property
   def kernel(self):
     if not self.built:
-      raise AttributeError(
-        'You must build the layer before accessing `kernel`.'
-      )
+      raise AttributeError('You must build the layer before accessing `kernel`.')
     if self.lora_enabled:
       return self._kernel + tf.matmul(self.lora_kernel_a, self.lora_kernel_b)
     return self._kernel
@@ -202,9 +204,7 @@ class EinsumDense(Layer):
       x = self.activation(x)
     return x
 
-  def enable_lora(
-    self, rank, a_initializer='he_uniform', b_initializer='zeros'
-  ):
+  def enable_lora(self, rank, a_initializer='he_uniform', b_initializer='zeros'):
     if self.kernel_constraint:
       raise ValueError(
         'Lora is incompatible with kernel constraints. '
@@ -214,14 +214,11 @@ class EinsumDense(Layer):
     if not self.built:
       raise ValueError("Cannot enable lora on a layer that isn't yet built.")
     if self.lora_enabled:
-      raise ValueError(
-        'lora is already enabled. '
-        'This can only be done once per layer.'
-      )
+      raise ValueError('lora is already enabled. ' 'This can only be done once per layer.')
     self._tracker.unlock()
     self.lora_kernel_a = self.add_weight(
       name='lora_kernel_a',
-      shape=(self.kernel.shape[:-1] + (rank, )),
+      shape=(self.kernel.shape[:-1] + (rank,)),
       initializer=initializers.get(a_initializer),
       regularizer=self.kernel_regularizer,
     )
@@ -277,8 +274,7 @@ class EinsumDense(Layer):
       'bias_initializer': initializers.serialize(self.bias_initializer),
       'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
       'bias_regularizer': regularizers.serialize(self.bias_regularizer),
-      'activity_regularizer':
-      regularizers.serialize(self.activity_regularizer),
+      'activity_regularizer': regularizers.serialize(self.activity_regularizer),
       'kernel_constraint': constraints.serialize(self.kernel_constraint),
       'bias_constraint': constraints.serialize(self.bias_constraint),
     }
@@ -312,9 +308,7 @@ class EinsumDense(Layer):
           '`def get_build_config(self)`. '
           'The method `build_from_config()` is meant '
           'to create the state '
-          'of the layer (i.e. its variables) upon deserialization.'.format(
-            name=self.name, num_keys=len(store.keys())
-          )
+          'of the layer (i.e. its variables) upon deserialization.'.format(name=self.name, num_keys=len(store.keys()))
         )
       raise ValueError(
         "Layer '{name}' expected {num_var} variables, but received "
@@ -323,7 +317,7 @@ class EinsumDense(Layer):
           name=self.name,
           num_var=len(store.keys()),
           num_key=len(store.keys()),
-          names=[v.name for v in all_vars]
+          names=[v.name for v in all_vars],
         )
       )
 
@@ -338,43 +332,27 @@ def _analyze_einsum_string(equation, bias_axes, input_shape, output_shape):
   dot_replaced_string = re.sub(r'\.\.\.', '0', equation)
 
   # This is the case where no ellipses are present in the string.
-  split_string = re.match(
-    '([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]+)', dot_replaced_string
-  )
+  split_string = re.match('([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]+)', dot_replaced_string)
   if split_string:
-    return _analyze_split_string(
-      split_string, bias_axes, input_shape, output_shape
-    )
+    return _analyze_split_string(split_string, bias_axes, input_shape, output_shape)
 
   # This is the case where ellipses are present on the left.
-  split_string = re.match(
-    '0([a-zA-Z]+),([a-zA-Z]+)->0([a-zA-Z]+)', dot_replaced_string
-  )
+  split_string = re.match('0([a-zA-Z]+),([a-zA-Z]+)->0([a-zA-Z]+)', dot_replaced_string)
   if split_string:
-    return _analyze_split_string(
-      split_string, bias_axes, input_shape, output_shape, left_elided=True
-    )
+    return _analyze_split_string(split_string, bias_axes, input_shape, output_shape, left_elided=True)
 
   # This is the case where ellipses are present on the right.
-  split_string = re.match(
-    '([a-zA-Z]{2,})0,([a-zA-Z]+)->([a-zA-Z]+)0', dot_replaced_string
-  )
+  split_string = re.match('([a-zA-Z]{2,})0,([a-zA-Z]+)->([a-zA-Z]+)0', dot_replaced_string)
   if split_string:
-    return _analyze_split_string(
-      split_string, bias_axes, input_shape, output_shape
-    )
+    return _analyze_split_string(split_string, bias_axes, input_shape, output_shape)
 
   raise ValueError(
     "Invalid einsum equation '{equation}'. Equations must be in the form "
-    '[X],[Y]->[Z], ...[X],[Y]->...[Z], or [X]...,[Y]->[Z]....'.format(
-      equation=equation
-    )
+    '[X],[Y]->[Z], ...[X],[Y]->...[Z], or [X]...,[Y]->[Z]....'.format(equation=equation)
   )
 
 
-def _analyze_split_string(
-  split_string, bias_axes, input_shape, output_shape, left_elided=False
-):
+def _analyze_split_string(split_string, bias_axes, input_shape, output_shape, left_elided=False):
   """Analyze an pre-split einsum string to find the weight shape."""
   input_spec = split_string.group(1)
   weight_spec = split_string.group(2)
@@ -399,10 +377,7 @@ def _analyze_split_string(
   if left_elided:
     # If we have beginning dimensions elided, we need to use negative
     # indexing to determine where in the input dimension our values are.
-    input_dim_map = {
-      dim: (i + elided) - len(input_shape)
-      for i, dim in enumerate(input_spec)
-    }
+    input_dim_map = {dim: (i + elided) - len(input_shape) for i, dim in enumerate(input_spec)}
     # Because we've constructed the full output shape already, we don't need
     # to do negative indexing.
     output_dim_map = {dim: (i + elided) for i, dim in enumerate(output_spec)}
@@ -414,17 +389,14 @@ def _analyze_split_string(
     input_shape_at_dim = input_shape[input_dim_map[dim]]
     if dim in output_dim_map:
       output_shape_at_dim = output_shape[output_dim_map[dim]]
-      if (
-        output_shape_at_dim is not None
-        and output_shape_at_dim != input_shape_at_dim
-      ):
+      if output_shape_at_dim is not None and output_shape_at_dim != input_shape_at_dim:
         raise ValueError(
           'Input shape and output shape do not match at shared '
           "dimension '{dim}'. Input shape is {input_shape_at_dim}, "
           'and output shape is {output_shape}.'.format(
             dim=dim,
             input_shape_at_dim=input_shape_at_dim,
-            output_shape=output_shape[output_dim_map[dim]]
+            output_shape=output_shape[output_dim_map[dim]],
           )
         )
 
@@ -449,23 +421,17 @@ def _analyze_split_string(
         "Weight dimension '{dim}' did not have a match in either "
         "the input spec '{input_spec}' or the output "
         "spec '{output_spec}'. For this layer, the weight must "
-        'be fully specified.'.format(
-          dim=dim, input_spec=input_spec, output_spec=output_spec
-        )
+        'be fully specified.'.format(dim=dim, input_spec=input_spec, output_spec=output_spec)
       )
 
   if bias_axes is not None:
     num_left_elided = elided if left_elided else 0
-    idx_map = {
-      char: output_shape[i + num_left_elided]
-      for i, char in enumerate(output_spec)
-    }
+    idx_map = {char: output_shape[i + num_left_elided] for i, char in enumerate(output_spec)}
 
     for char in bias_axes:
       if char not in output_spec:
         raise ValueError(
-          "Bias dimension '{char}' was requested, but is not part "
-          "of the output spec '{output_spec}'".format(
+          "Bias dimension '{char}' was requested, but is not part " "of the output spec '{output_spec}'".format(
             char=char, output_spec=output_spec
           )
         )
@@ -473,9 +439,7 @@ def _analyze_split_string(
     first_bias_location = min([output_spec.find(char) for char in bias_axes])
     bias_output_spec = output_spec[first_bias_location:]
 
-    bias_shape = [
-      idx_map[char] if char in bias_axes else 1 for char in bias_output_spec
-    ]
+    bias_shape = [idx_map[char] if char in bias_axes else 1 for char in bias_output_spec]
 
     if not left_elided:
       for _ in range(elided):
@@ -487,15 +451,12 @@ def _analyze_split_string(
 
 
 def _analyze_quantization_info(equation, input_shape):
-
   def get_specs(equation, input_shape):
     possible_labels = string.ascii_letters
     dot_replaced_string = re.sub(r'\.\.\.', '0', equation)
 
     # This is the case where no ellipses are present in the string.
-    split_string = re.match(
-      '([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]+)', dot_replaced_string
-    )
+    split_string = re.match('([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]+)', dot_replaced_string)
     if split_string is not None:
       input_spec = split_string.group(1)
       weight_spec = split_string.group(2)
@@ -503,18 +464,13 @@ def _analyze_quantization_info(equation, input_shape):
       return input_spec, weight_spec, output_spec
 
     # This is the case where ellipses are present on the left.
-    split_string = re.match(
-      '0([a-zA-Z]+),([a-zA-Z]+)->0([a-zA-Z]+)', dot_replaced_string
-    )
+    split_string = re.match('0([a-zA-Z]+),([a-zA-Z]+)->0([a-zA-Z]+)', dot_replaced_string)
     if split_string is not None:
       input_spec = split_string.group(1)
       weight_spec = split_string.group(2)
       output_spec = split_string.group(3)
       elided = len(input_shape) - len(input_spec)
-      possible_labels = sorted(
-        set(possible_labels) - set(input_spec) - set(weight_spec) -
-        set(output_spec)
-      )
+      possible_labels = sorted(set(possible_labels) - set(input_spec) - set(weight_spec) - set(output_spec))
       # Pad labels on the left to `input_spec` and `output_spec`
       for i in range(elided):
         input_spec = possible_labels[i] + input_spec
@@ -522,18 +478,13 @@ def _analyze_quantization_info(equation, input_shape):
       return input_spec, weight_spec, output_spec
 
     # This is the case where ellipses are present on the right.
-    split_string = re.match(
-      '([a-zA-Z]{2,})0,([a-zA-Z]+)->([a-zA-Z]+)0', dot_replaced_string
-    )
+    split_string = re.match('([a-zA-Z]{2,})0,([a-zA-Z]+)->([a-zA-Z]+)0', dot_replaced_string)
     if split_string is not None:
       input_spec = split_string.group(1)
       weight_spec = split_string.group(2)
       output_spec = split_string.group(3)
       elided = len(input_shape) - len(input_spec)
-      possible_labels = sorted(
-        set(possible_labels) - set(input_spec) - set(weight_spec) -
-        set(output_spec)
-      )
+      possible_labels = sorted(set(possible_labels) - set(input_spec) - set(weight_spec) - set(output_spec))
       # Pad labels on the right to `input_spec` and `output_spec`
       for i in range(elided):
         input_spec = input_spec + possible_labels[i]
@@ -542,9 +493,7 @@ def _analyze_quantization_info(equation, input_shape):
 
     raise ValueError(
       "Invalid einsum equation '{equation}'. Equations must be in the "
-      'form [X],[Y]->[Z], ...[X],[Y]->...[Z], or [X]...,[Y]->[Z]....'.format(
-        equation=equation
-      )
+      'form [X],[Y]->[Z], ...[X],[Y]->...[Z], or [X]...,[Y]->[Z]....'.format(equation=equation)
     )
 
   input_spec, weight_spec, output_spec = get_specs(equation, input_shape)
@@ -603,10 +552,7 @@ def _analyze_quantization_info(equation, input_shape):
   custom_gradient_equation = '{output_spec},{weight_spec}->{input_spec}'.format(
     output_spec=output_spec, input_spec=input_spec, weight_spec=weight_spec
   )
-  weight_reverse_transpose_axes = [
-    i for (_,
-           i) in sorted((v, i) for (i, v) in enumerate(weight_transpose_axes))
-  ]
+  weight_reverse_transpose_axes = [i for (_, i) in sorted((v, i) for (i, v) in enumerate(weight_transpose_axes))]
   return (
     input_reduced_axes,
     weight_reduced_axes,

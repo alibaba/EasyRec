@@ -30,16 +30,15 @@ def item_crop(aug_data, length, crop_rate):
   max_length = tf.cast(max_len, dtype=tf.int32)
 
   num_left = tf.cast(tf.math.floor(length1 * crop_rate), dtype=tf.int32)
-  crop_begin = tf.random.uniform(
-    [], minval=0, maxval=length - num_left, dtype=tf.int32
-  )
+  crop_begin = tf.random.uniform([], minval=0, maxval=length - num_left, dtype=tf.int32)
   zeros = tf.zeros_like(aug_data)
-  x = aug_data[crop_begin:crop_begin + num_left]
-  y = zeros[:max_length - num_left]
+  x = aug_data[crop_begin : crop_begin + num_left]
+  y = zeros[: max_length - num_left]
   cropped = tf.concat([x, y], axis=0)
   cropped_item_seq = tf.where(
-    crop_begin + num_left < max_length, cropped,
-    tf.concat([aug_data[crop_begin:], zeros[:crop_begin]], axis=0)
+    crop_begin + num_left < max_length,
+    cropped,
+    tf.concat([aug_data[crop_begin:], zeros[:crop_begin]], axis=0),
   )
   return cropped_item_seq, num_left
 
@@ -47,18 +46,14 @@ def item_crop(aug_data, length, crop_rate):
 def item_reorder(aug_data, length, reorder_rate):
   length1 = tf.cast(length, dtype=tf.float32)
   num_reorder = tf.cast(tf.math.floor(length1 * reorder_rate), dtype=tf.int32)
-  reorder_begin = tf.random.uniform(
-    [], minval=0, maxval=length - num_reorder, dtype=tf.int32
-  )
+  reorder_begin = tf.random.uniform([], minval=0, maxval=length - num_reorder, dtype=tf.int32)
   shuffle_index = tf.range(reorder_begin, reorder_begin + num_reorder)
   shuffle_index = tf.random.shuffle(shuffle_index)
   x = tf.range(get_shape_list(aug_data)[0])
   left = tf.slice(x, [0], [reorder_begin])
   right = tf.slice(x, [reorder_begin + num_reorder], [-1])
   reordered_item_index = tf.concat([left, shuffle_index, right], axis=0)
-  reordered_item_seq = tf.scatter_nd(
-    tf.expand_dims(reordered_item_index, axis=1), aug_data, tf.shape(aug_data)
-  )
+  reordered_item_seq = tf.scatter_nd(tf.expand_dims(reordered_item_index, axis=1), aug_data, tf.shape(aug_data))
   return reordered_item_seq, length
 
 
@@ -94,8 +89,9 @@ def augment_fn(x, aug_param, mask):
     return tf.cond(tf.equal(method, 0), trans_fn[0], trans_fn[1])
 
   aug_seq, aug_len = tf.cond(
-    tf.equal(method, 0), crop_fn,
-    lambda: tf.cond(tf.equal(method, 1), mask_fn, reorder_fn)
+    tf.equal(method, 0),
+    crop_fn,
+    lambda: tf.cond(tf.equal(method, 1), mask_fn, reorder_fn),
   )
   return aug_seq, aug_len
 
@@ -105,7 +101,7 @@ def sequence_augment(seq_input, seq_len, mask, aug_param):
   aug_seq, aug_len = tf.map_fn(
     lambda elems: augment_fn(elems, aug_param, mask),
     elems=(seq_input, lengths),
-    dtype=(tf.float32, tf.int32)
+    dtype=(tf.float32, tf.int32),
   )
 
   aug_seq = tf.reshape(aug_seq, tf.shape(seq_input))
@@ -126,11 +122,7 @@ class SeqAugment(Layer):
 
     embedding_size = int(seq_input.shape[-1])
     with tf.variable_scope(self.name, reuse=self.reuse):
-      mask_emb = tf.get_variable(
-        'mask', [1, embedding_size], dtype=tf.float32, trainable=True
-      )
+      mask_emb = tf.get_variable('mask', [1, embedding_size], dtype=tf.float32, trainable=True)
 
-    aug_seq, aug_len = sequence_augment(
-      seq_input, seq_len, mask_emb, self.seq_aug_params
-    )
+    aug_seq, aug_len = sequence_augment(seq_input, seq_len, mask_emb, self.seq_aug_params)
     return aug_seq, aug_len

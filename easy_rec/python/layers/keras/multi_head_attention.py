@@ -89,9 +89,7 @@ class MultiHeadAttention(Layer):
           attention axes.
   """
 
-  def __init__(
-    self, params, name='multi_head_attention', reuse=None, **kwargs
-  ):
+  def __init__(self, params, name='multi_head_attention', reuse=None, **kwargs):
     super(MultiHeadAttention, self).__init__(name=name, **kwargs)
     self.supports_masking = True
     self._num_heads = params.num_heads
@@ -103,32 +101,16 @@ class MultiHeadAttention(Layer):
     self._dropout = params.get_or_default('dropout', 0.0)
     self._use_bias = params.get_or_default('use_bias', True)
     self._output_shape = params.get_or_default('output_shape', None)
-    self._kernel_initializer = initializers.get(
-      params.get_or_default('kernel_initializer', 'glorot_uniform')
-    )
-    self._bias_initializer = initializers.get(
-      params.get_or_default('bias_initializer', 'zeros')
-    )
-    self._kernel_regularizer = regularizers.get(
-      params.get_or_default('kernel_regularizer', None)
-    )
-    self._bias_regularizer = regularizers.get(
-      params.get_or_default('bias_regularizer', None)
-    )
-    self._activity_regularizer = regularizers.get(
-      params.get_or_default('activity_regularizer', None)
-    )
-    self._kernel_constraint = constraints.get(
-      params.get_or_default('kernel_constraint', None)
-    )
-    self._bias_constraint = constraints.get(
-      params.get_or_default('bias_constraint', None)
-    )
+    self._kernel_initializer = initializers.get(params.get_or_default('kernel_initializer', 'glorot_uniform'))
+    self._bias_initializer = initializers.get(params.get_or_default('bias_initializer', 'zeros'))
+    self._kernel_regularizer = regularizers.get(params.get_or_default('kernel_regularizer', None))
+    self._bias_regularizer = regularizers.get(params.get_or_default('bias_regularizer', None))
+    self._activity_regularizer = regularizers.get(params.get_or_default('activity_regularizer', None))
+    self._kernel_constraint = constraints.get(params.get_or_default('kernel_constraint', None))
+    self._bias_constraint = constraints.get(params.get_or_default('bias_constraint', None))
     self._attention_axes = params.get_or_default('attention_axes', None)
     self._use_causal_mask = params.get_or_default('use_causal_mask', False)
-    self._return_attention_scores = params.get_or_default(
-      'return_attention_scores', False
-    )
+    self._return_attention_scores = params.get_or_default('return_attention_scores', False)
 
   @property
   def num_heads(self):
@@ -172,8 +154,7 @@ class MultiHeadAttention(Layer):
       'bias_initializer': initializers.serialize(self._bias_initializer),
       'kernel_regularizer': regularizers.serialize(self._kernel_regularizer),
       'bias_regularizer': regularizers.serialize(self._bias_regularizer),
-      'activity_regularizer':
-      regularizers.serialize(self._activity_regularizer),
+      'activity_regularizer': regularizers.serialize(self._activity_regularizer),
       'kernel_constraint': constraints.serialize(self._kernel_constraint),
       'bias_constraint': constraints.serialize(self._bias_constraint),
     }
@@ -194,43 +175,31 @@ class MultiHeadAttention(Layer):
     query_rank = len(query_shape)
     value_rank = len(value_shape)
     key_rank = len(key_shape)
-    einsum_equation, bias_axes, output_rank = _build_proj_equation(
-      query_rank - 1, bound_dims=1, output_dims=2
-    )
+    einsum_equation, bias_axes, output_rank = _build_proj_equation(query_rank - 1, bound_dims=1, output_dims=2)
     self._query_dense = EinsumDense(
       einsum_equation,
-      output_shape=_get_output_shape(
-        output_rank - 1, [self._num_heads, self._key_dim]
-      ),
+      output_shape=_get_output_shape(output_rank - 1, [self._num_heads, self._key_dim]),
       bias_axes=bias_axes if self._use_bias else None,
       name='query',
-      **self._get_common_kwargs_for_sublayer()
+      **self._get_common_kwargs_for_sublayer(),
     )
     self._query_dense.build(query_shape)
-    einsum_equation, bias_axes, output_rank = _build_proj_equation(
-      key_rank - 1, bound_dims=1, output_dims=2
-    )
+    einsum_equation, bias_axes, output_rank = _build_proj_equation(key_rank - 1, bound_dims=1, output_dims=2)
     self._key_dense = EinsumDense(
       einsum_equation,
-      output_shape=_get_output_shape(
-        output_rank - 1, [self._num_heads, self._key_dim]
-      ),
+      output_shape=_get_output_shape(output_rank - 1, [self._num_heads, self._key_dim]),
       bias_axes=bias_axes if self._use_bias else None,
       name='key',
-      **self._get_common_kwargs_for_sublayer()
+      **self._get_common_kwargs_for_sublayer(),
     )
     self._key_dense.build(key_shape)
-    einsum_equation, bias_axes, output_rank = _build_proj_equation(
-      value_rank - 1, bound_dims=1, output_dims=2
-    )
+    einsum_equation, bias_axes, output_rank = _build_proj_equation(value_rank - 1, bound_dims=1, output_dims=2)
     self._value_dense = EinsumDense(
       einsum_equation,
-      output_shape=_get_output_shape(
-        output_rank - 1, [self._num_heads, self._value_dim]
-      ),
+      output_shape=_get_output_shape(output_rank - 1, [self._num_heads, self._value_dim]),
       bias_axes=bias_axes if self._use_bias else None,
       name='value',
-      **self._get_common_kwargs_for_sublayer()
+      **self._get_common_kwargs_for_sublayer(),
     )
     self._value_dense.build(value_shape)
     # Builds the attention computations for multi-head dot product
@@ -242,9 +211,7 @@ class MultiHeadAttention(Layer):
       self._get_common_kwargs_for_sublayer(),
       'attention_output',
     )
-    output_dense_input_shape = list(
-      self._query_dense.compute_output_shape(query_shape)
-    )
+    output_dense_input_shape = list(self._query_dense.compute_output_shape(query_shape))
     output_dense_input_shape[-1] = self._value_dim
     self._output_dense.build(tuple(output_dense_input_shape))
     self.built = True
@@ -278,12 +245,8 @@ class MultiHeadAttention(Layer):
     # Create new clone of kernel/bias initializer, so that we don't reuse
     # the initializer instance, which could lead to same init value since
     # initializer is stateless.
-    kernel_initializer = self._kernel_initializer.__class__.from_config(
-      self._kernel_initializer.get_config()
-    )
-    bias_initializer = self._bias_initializer.__class__.from_config(
-      self._bias_initializer.get_config()
-    )
+    kernel_initializer = self._kernel_initializer.__class__.from_config(self._kernel_initializer.get_config())
+    bias_initializer = self._bias_initializer.__class__.from_config(self._bias_initializer.get_config())
     common_kwargs['kernel_initializer'] = kernel_initializer
     common_kwargs['bias_initializer'] = bias_initializer
     return common_kwargs
@@ -315,7 +278,7 @@ class MultiHeadAttention(Layer):
       output_shape=_get_output_shape(output_rank - 1, output_shape),
       bias_axes=bias_axes if self._use_bias else None,
       name=name,
-      **common_kwargs
+      **common_kwargs,
     )
 
   def _build_attention(self, rank):
@@ -337,12 +300,8 @@ class MultiHeadAttention(Layer):
       self._combine_equation,
       attn_scores_rank,
     ) = _build_attention_equation(rank, attn_axes=self._attention_axes)
-    norm_axes = tuple(
-      range(attn_scores_rank - len(self._attention_axes), attn_scores_rank)
-    )
-    self._softmax = Softmax(
-      axis=norm_axes
-    ) if tf.__version__ >= '2.0' else MaskedSoftmax(axis=norm_axes)
+    norm_axes = tuple(range(attn_scores_rank - len(self._attention_axes), attn_scores_rank))
+    self._softmax = Softmax(axis=norm_axes) if tf.__version__ >= '2.0' else MaskedSoftmax(axis=norm_axes)
     self._dropout_layer = Dropout(rate=self._dropout)
     self._inverse_sqrt_key_dim = 1.0 / math.sqrt(float(self._key_dim))
 
@@ -355,14 +314,10 @@ class MultiHeadAttention(Layer):
       # key_attention_dims>)
       mask_expansion_axis = -len(self._attention_axes) * 2 - 1
       for _ in range(len(attention_scores.shape) - len(attention_mask.shape)):
-        attention_mask = tf.expand_dims(
-          attention_mask, axis=mask_expansion_axis
-        )
+        attention_mask = tf.expand_dims(attention_mask, axis=mask_expansion_axis)
     return self._softmax(attention_scores, mask=attention_mask)
 
-  def _compute_attention(
-    self, query, key, value, attention_mask=None, training=None
-  ):
+  def _compute_attention(self, query, key, value, attention_mask=None, training=None):
     """Applies Dot-product attention with query, key, value tensors.
 
     This function defines the computation inside `call` with projected
@@ -387,9 +342,7 @@ class MultiHeadAttention(Layer):
     # Note: Applying scalar multiply at the smaller end of einsum improves
     # XLA performance, but may introduce slight numeric differences in
     # the Transformer attention head.
-    query = tf.multiply(
-      query, tf.cast(self._inverse_sqrt_key_dim, query.dtype)
-    )
+    query = tf.multiply(query, tf.cast(self._inverse_sqrt_key_dim, query.dtype))
 
     # Take the dot product between "query" and "key" to get the raw
     # attention scores.
@@ -400,22 +353,16 @@ class MultiHeadAttention(Layer):
     # This is actually dropping out entire tokens to attend to, which might
     # seem a bit unusual, but is taken from the original Transformer paper.
     if self.dropout:
-      final_attn_scores = self._dropout_layer(
-        attention_scores, training=training
-      )
+      final_attn_scores = self._dropout_layer(attention_scores, training=training)
     else:
       final_attn_scores = attention_scores
 
     # `context_layer` = [B, T, N, H]
-    attention_output = tf.einsum(
-      self._combine_equation, final_attn_scores, value
-    )
+    attention_output = tf.einsum(self._combine_equation, final_attn_scores, value)
     return attention_output, attention_scores
 
   def call(self, inputs, mask=None, training=None, **kwargs):
-    assert isinstance(
-      inputs, (tuple, list)
-    ), 'inputs of MultiHeadAttention must be a list'
+    assert isinstance(inputs, (tuple, list)), 'inputs of MultiHeadAttention must be a list'
     query, value, key = (list(inputs) + [None] * 2)[:3]
     if key is None:
       key = value
@@ -448,9 +395,7 @@ class MultiHeadAttention(Layer):
 
     # `value` = [B, S, N, H]
     value = self._value_dense(value)
-    attention_output, attention_scores = self._compute_attention(
-      query, key, value, attention_mask, training
-    )
+    attention_output, attention_scores = self._compute_attention(query, key, value, attention_mask, training)
     attention_output = self._output_dense(attention_output)
     if self._return_attention_scores:
       return attention_output, attention_scores
@@ -516,10 +461,7 @@ class MultiHeadAttention(Layer):
       auto_mask = mask if auto_mask is None else auto_mask & mask
     if auto_mask is not None:
       # merge attention_mask & automatic mask, to shape [B, T, S]
-      attention_mask = (
-        auto_mask if attention_mask is None else
-        tf.cast(attention_mask, tf.bool) & auto_mask
-      )
+      attention_mask = auto_mask if attention_mask is None else tf.cast(attention_mask, tf.bool) & auto_mask
     return attention_mask
 
   def _compute_causal_mask(self, query, value=None):
@@ -566,12 +508,11 @@ class MultiHeadAttention(Layer):
       raise ValueError(
         'The last dimension of `query_shape` and `value_shape` '
         'must be equal, but are {query_last_dim}, {value_last_dim}. '
-        'Received: query_shape={query_shape}, value_shape={value_shape}'.
-        format(
+        'Received: query_shape={query_shape}, value_shape={value_shape}'.format(
           query_shape=query_shape,
           value_shape=value_shape,
           query_last_dim=query_shape[-1],
-          value_last_dim=value_shape[-1]
+          value_last_dim=value_shape[-1],
         )
       )
 
@@ -579,9 +520,7 @@ class MultiHeadAttention(Layer):
       raise ValueError(
         'All dimensions of `value` and `key`, except the last one, '
         'must be equal. Received: value_shape={value_shape} and '
-        'key_shape={key_shape}'.format(
-          key_shape=key_shape, value_shape=value_shape
-        )
+        'key_shape={key_shape}'.format(key_shape=key_shape, value_shape=value_shape)
       )
 
     if self._output_shape:
@@ -630,7 +569,7 @@ def _build_attention_equation(rank, attn_axes):
   for i in range(rank):
     target_notation += _index_to_einsum_variable(i)
   # `batch_dims` includes the head dim.
-  batch_dims = tuple(np.delete(range(rank), attn_axes + (rank - 1, )))
+  batch_dims = tuple(np.delete(range(rank), attn_axes + (rank - 1,)))
   letter_offset = rank
   source_notation = ''
   for i in range(rank):
@@ -641,9 +580,9 @@ def _build_attention_equation(rank, attn_axes):
       letter_offset += 1
 
   product_notation = ''.join(
-    [target_notation[i]
-     for i in batch_dims] + [target_notation[i] for i in attn_axes] +
-    [source_notation[i] for i in attn_axes]
+    [target_notation[i] for i in batch_dims]
+    + [target_notation[i] for i in attn_axes]
+    + [source_notation[i] for i in attn_axes]
   )
   dot_product_equation = '%s,%s->%s' % (
     source_notation,

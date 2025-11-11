@@ -12,9 +12,7 @@ curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
-logging.basicConfig(
-  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
@@ -25,6 +23,7 @@ if 'PROCESSOR_TEST' not in os.environ:
 
   def get_ops_dir():
     import tensorflow as tf
+
     if platform.system() == 'Linux':
       ops_dir = os.path.join(curr_dir, 'python/ops')
       if 'PAI' in tf.__version__:
@@ -49,7 +48,9 @@ if 'PROCESSOR_TEST' not in os.environ:
     logging.warning('ops_dir[%s] does not exist' % ops_dir)
     ops_dir = None
 
-  from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
+  from easy_rec.python.inference.predictor import (  # isort:skip  # noqa: E402
+    Predictor,
+  )
   from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import export  # isort:skip  # noqa: E402

@@ -8,9 +8,7 @@ import sys
 from kafka import KafkaConsumer
 from kafka.structs import TopicPartition
 
-logging.basicConfig(
-  level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -30,7 +28,7 @@ if __name__ == '__main__':
   consumer = KafkaConsumer(
     group_id=args.group,
     bootstrap_servers=servers,
-    consumer_timeout_ms=args.timeout * 1000
+    consumer_timeout_ms=args.timeout * 1000,
   )
 
   if args.partitions is not None:
@@ -39,18 +37,14 @@ if __name__ == '__main__':
     partitions = consumer.partitions_for_topic(args.topic)
   logging.info('partitions: %s' % partitions)
 
-  topics = [
-    TopicPartition(topic=args.topic, partition=part_id)
-    for part_id in partitions
-  ]
+  topics = [TopicPartition(topic=args.topic, partition=part_id) for part_id in partitions]
   consumer.assign(topics)
   consumer.seek_to_beginning()
 
   record_id = 0
   for x in consumer:
     logging.info(
-      '%d: key=%s\toffset=%d\ttimestamp=%d\tlen=%d' %
-      (record_id, x.key, x.offset, x.timestamp, len(x.value))
+      '%d: key=%s\toffset=%d\ttimestamp=%d\tlen=%d' % (record_id, x.key, x.offset, x.timestamp, len(x.value))
     )
     if args.save_dir is not None:
       save_path = os.path.join(args.save_dir, x.key)

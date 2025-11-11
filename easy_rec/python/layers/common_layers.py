@@ -19,7 +19,7 @@ def highway(
   scope='highway',
   dropout=0.0,
   init_gate_bias=-1.0,
-  reuse=None
+  reuse=None,
 ):
   if isinstance(activation, six.string_types):
     activation = get_activation(activation)
@@ -37,11 +37,9 @@ def highway(
         activation=tf.sigmoid,
         bias_initializer=initializer,
         name='gate_%d' % i,
-        reuse=reuse
+        reuse=reuse,
       )
-      H = tf.layers.dense(
-        x, size, activation=activation, name='activation_%d' % i, reuse=reuse
-      )
+      H = tf.layers.dense(x, size, activation=activation, name='activation_%d' % i, reuse=reuse)
       if dropout > 0.0:
         H = tf.nn.dropout(H, 1.0 - dropout)
       x = H * T + x * (1.0 - T)
@@ -53,7 +51,7 @@ def text_cnn(
   filter_sizes=(3, 4, 5),
   num_filters=(128, 64, 64),
   scope_name='textcnn',
-  reuse=False
+  reuse=False,
 ):
   # x: None * step_dim * embed_dim
   assert len(filter_sizes) == len(num_filters)
@@ -73,15 +71,11 @@ def text_cnn(
         name='conv_layer',
         reuse=reuse,
         kernel_initializer=initializer,
-        padding='same'
+        padding='same',
       )
-      pool = tf.reduce_max(
-        conv, axis=1
-      )  # max pooling, shape: (batch_size, num_filters)
+      pool = tf.reduce_max(conv, axis=1)  # max pooling, shape: (batch_size, num_filters)
     pooled_outputs.append(pool)
-  pool_flat = tf.concat(
-    pooled_outputs, 1
-  )  # shape: (batch_size, num_filters * len(filter_sizes))
+  pool_flat = tf.concat(pooled_outputs, 1)  # shape: (batch_size, num_filters * len(filter_sizes))
   return pool_flat
 
 
@@ -92,7 +86,7 @@ def layer_norm(input_tensor, name=None, reuse=None):
     begin_norm_axis=-1,
     begin_params_axis=-1,
     reuse=reuse,
-    scope=name
+    scope=name,
   )
 
 
@@ -115,18 +109,14 @@ class EnhancedInputLayer(object):
       return self.inputs
 
     if config.do_batch_norm and config.do_layer_norm:
-      raise ValueError(
-        'can not do batch norm and layer norm for input layer at the same time'
-      )
+      raise ValueError('can not do batch norm and layer norm for input layer at the same time')
     with tf.name_scope(self.name):
       return self.call(config, is_training)
 
   def build(self, config, training):
     self.built = True
     combine = not config.output_seq_and_normal_feature
-    self.inputs = self._input_layer(
-      self._feature_dict, self._group_name, is_combine=combine
-    )
+    self.inputs = self._input_layer(self._feature_dict, self._group_name, is_combine=combine)
     if config.output_seq_and_normal_feature:
       seq_feature_and_len, _, target_features = self.inputs
       seq_len = seq_feature_and_len[0][1]
@@ -136,9 +126,7 @@ class EnhancedInputLayer(object):
           target_features = tf.concat(target_features, axis=-1)
         else:
           target_features = None
-        assert len(
-          seq_features
-        ) > 0, '[%s] sequence feature is empty' % self.name
+        assert len(seq_features) > 0, '[%s] sequence feature is empty' % self.name
         seq_features = tf.concat(seq_features, axis=-1)
       self.inputs = seq_features, seq_len, target_features
     self.reset(config, training)
@@ -162,13 +150,9 @@ class EnhancedInputLayer(object):
       keep_prob = 1.0 - config.feature_dropout_rate
       mask = self.bern.sample(num_features)
     elif do_bn:
-      features = tf.layers.batch_normalization(
-        features, training=training, reuse=self._reuse
-      )
+      features = tf.layers.batch_normalization(features, training=training, reuse=self._reuse)
     elif do_ln:
-      features = layer_norm(
-        features, name=self._group_name + '_features', reuse=self._reuse
-      )
+      features = layer_norm(features, name=self._group_name + '_features', reuse=self._reuse)
 
     output_feature_list = config.output_2d_tensor_and_feature_list
     output_feature_list = output_feature_list or config.only_output_feature_list
@@ -179,9 +163,7 @@ class EnhancedInputLayer(object):
       for i in range(num_features):
         fea = feature_list[i]
         if do_bn:
-          fea = tf.layers.batch_normalization(
-            fea, training=training, reuse=self._reuse
-          )
+          fea = tf.layers.batch_normalization(fea, training=training, reuse=self._reuse)
         elif do_ln:
           ln_name = self._group_name + 'f_%d' % i
           fea = layer_norm(fea, name=ln_name, reuse=self._reuse)

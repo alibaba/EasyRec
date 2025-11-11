@@ -38,9 +38,7 @@ def sequence_length_from_sparse_tensor(sp_tensor, num_elements=1):
     # Example: orig tensor [[1, 2], [3]], col_ids = (0, 1, 1),
     # row_ids = (0, 0, 1), seq_length = [2, 1]. If num_elements = 2,
     # these will get grouped, and the final seq_length is [1, 1]
-    seq_length = math_ops.cast(
-      math_ops.ceil(seq_length / num_elements), dtypes.int64
-    )
+    seq_length = math_ops.cast(math_ops.ceil(seq_length / num_elements), dtypes.int64)
 
     # If the last n rows do not have ids, seq_length will have shape
     # [batch_size - n]. Pad the remaining values with zeros.
@@ -51,18 +49,12 @@ def sequence_length_from_sparse_tensor(sp_tensor, num_elements=1):
 
 def assert_string_or_int(dtype, prefix):
   if (dtype != dtypes.string) and (not dtype.is_integer):
-    raise ValueError(
-      '{} dtype must be string or integer. dtype: {}.'.format(prefix, dtype)
-    )
+    raise ValueError('{} dtype must be string or integer. dtype: {}.'.format(prefix, dtype))
 
 
 def assert_key_is_string(key):
   if not isinstance(key, six.string_types):
-    raise ValueError(
-      'key must be a string. Got: type {}. Given key: {}.'.format(
-        type(key), key
-      )
-    )
+    raise ValueError('key must be a string. Got: type {}. Given key: {}.'.format(type(key), key))
 
 
 def check_default_value(shape, default_value, dtype, key):
@@ -106,26 +98,22 @@ def check_default_value(shape, default_value, dtype, key):
   if nest.is_sequence(default_value):
     if not _is_shape_and_default_value_compatible(default_value, shape):
       raise ValueError(
-        'The shape of default_value must be equal to given shape. '
-        'default_value: {}, shape: {}, key: {}'.format(
+        'The shape of default_value must be equal to given shape. ' 'default_value: {}, shape: {}, key: {}'.format(
           default_value, shape, key
         )
       )
     # Check if the values in the list are all integers or are convertible to
     # floats.
-    is_list_all_int = all(
-      isinstance(v, int) for v in nest.flatten(default_value)
-    )
-    is_list_has_float = any(
-      isinstance(v, float) for v in nest.flatten(default_value)
-    )
+    is_list_all_int = all(isinstance(v, int) for v in nest.flatten(default_value))
+    is_list_has_float = any(isinstance(v, float) for v in nest.flatten(default_value))
     if is_list_all_int:
       return _as_tuple(default_value)
     if is_list_has_float and dtype.is_floating:
       return _as_tuple(default_value)
   raise TypeError(
-    'default_value must be compatible with dtype. '
-    'default_value: {}, dtype: {}, key: {}'.format(default_value, dtype, key)
+    'default_value must be compatible with dtype. ' 'default_value: {}, dtype: {}, key: {}'.format(
+      default_value, dtype, key
+    )
   )
 
 

@@ -11,20 +11,11 @@ if tf.__version__ >= '2.0':
 
 
 class PLE(MultiTaskModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(PLE, self).__init__(
-      model_config, feature_configs, features, labels, is_training
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(PLE, self).__init__(model_config, feature_configs, features, labels, is_training)
+    assert self._model_config.WhichOneof('model') == 'ple', 'invalid model config: %s' % self._model_config.WhichOneof(
+      'model'
     )
-    assert self._model_config.WhichOneof('model') == 'ple', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.ple
     assert isinstance(self._model_config, PLEConfig)
 
@@ -43,7 +34,7 @@ class PLE(MultiTaskModel):
       units=len(vec_feas),
       kernel_regularizer=self._l2_reg,
       activation=None,
-      name=name + '_gate/dnn'
+      name=name + '_gate/dnn',
     )
     gate = tf.nn.softmax(gate, axis=1)
     gate = tf.expand_dims(gate, -1)
@@ -58,20 +49,25 @@ class PLE(MultiTaskModel):
         experts_cfg,
         self._l2_reg,
         name=name + '_expert_%d/dnn' % expert_id,
-        is_training=self._is_training
+        is_training=self._is_training,
       )
       tower_output = tower_dnn(deep_fea)
       tower_outputs.append(tower_output)
     return tower_outputs
 
   def CGC_layer(
-    self, extraction_networks_cfg, extraction_network_fea, shared_expert_fea,
-    final_flag
+    self,
+    extraction_networks_cfg,
+    extraction_network_fea,
+    shared_expert_fea,
+    final_flag,
   ):
     layer_name = extraction_networks_cfg.network_name
     expert_shared_out = self.experts_layer(
-      shared_expert_fea, extraction_networks_cfg.share_num,
-      extraction_networks_cfg.share_expert_net, layer_name + '_share/dnn'
+      shared_expert_fea,
+      extraction_networks_cfg.share_num,
+      extraction_networks_cfg.share_expert_net,
+      layer_name + '_share/dnn',
     )
 
     experts_outs = []
@@ -81,11 +77,10 @@ class PLE(MultiTaskModel):
       experts_out = self.experts_layer(
         extraction_network_fea[task_idx],
         extraction_networks_cfg.expert_num_per_task,
-        extraction_networks_cfg.task_expert_net, name
+        extraction_networks_cfg.task_expert_net,
+        name,
       )
-      cgc_layer_out = self.gate(
-        extraction_network_fea[task_idx], experts_out + expert_shared_out, name
-      )
+      cgc_layer_out = self.gate(extraction_network_fea[task_idx], experts_out + expert_shared_out, name)
       experts_outs.extend(experts_out)
       cgc_layer_outs.append(cgc_layer_out)
 
@@ -93,8 +88,9 @@ class PLE(MultiTaskModel):
       shared_layer_out = None
     else:
       shared_layer_out = self.gate(
-        shared_expert_fea, experts_outs + expert_shared_out,
-        layer_name + '_share'
+        shared_expert_fea,
+        experts_outs + expert_shared_out,
+        layer_name + '_share',
       )
     return cgc_layer_outs, shared_layer_out
 
@@ -107,8 +103,10 @@ class PLE(MultiTaskModel):
       if idx == len(self._model_config.extraction_networks) - 1:
         final_flag = True
       extraction_network_fea, shared_expert_fea = self.CGC_layer(
-        extraction_network, extraction_network_fea, shared_expert_fea,
-        final_flag
+        extraction_network,
+        extraction_network_fea,
+        shared_expert_fea,
+        final_flag,
       )
 
     tower_outputs = {}
@@ -118,7 +116,7 @@ class PLE(MultiTaskModel):
         task_tower_cfg.dnn,
         self._l2_reg,
         name=tower_name,
-        is_training=self._is_training
+        is_training=self._is_training,
       )
       tower_output = tower_dnn(extraction_network_fea[i])
 
@@ -126,7 +124,7 @@ class PLE(MultiTaskModel):
         inputs=tower_output,
         units=task_tower_cfg.num_class,
         kernel_regularizer=self._l2_reg,
-        name='dnn_output_%d' % i
+        name='dnn_output_%d' % i,
       )
 
       tower_outputs[tower_name] = tower_output

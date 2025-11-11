@@ -5,6 +5,7 @@
 This file follows the terminology of https://arxiv.org/abs/1706.03762 Figure 2.
 Attention is formed by three tensors: Query, Key and Value.
 """
+
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 
@@ -81,9 +82,7 @@ class Attention(Layer):
     self.seed = params.get_or_default('seed', None)
     self.scale = None
     self.concat_score_weight = None
-    self._return_attention_scores = params.get_or_default(
-      'return_attention_scores', False
-    )
+    self._return_attention_scores = params.get_or_default('return_attention_scores', False)
     self.use_causal_mask = params.get_or_default('use_causal_mask', False)
 
   @property
@@ -108,8 +107,7 @@ class Attention(Layer):
         dtype=self.dtype,
         trainable=True,
       )
-    super(Attention,
-          self).build(input_shape)  # Be sure to call this somewhere!
+    super(Attention, self).build(input_shape)  # Be sure to call this somewhere!
 
   def _calculate_scores(self, query, key):
     """Calculates attention scores as a query-key dot product.
@@ -135,13 +133,9 @@ class Attention(Layer):
       # Reshape into [batch_size, 1, Tv, dim].
       k_reshaped = tf.expand_dims(key, axis=-3)
       if self.scale is not None:
-        scores = self.concat_score_weight * tf.reduce_sum(
-          tf.tanh(self.scale * (q_reshaped + k_reshaped)), axis=-1
-        )
+        scores = self.concat_score_weight * tf.reduce_sum(tf.tanh(self.scale * (q_reshaped + k_reshaped)), axis=-1)
       else:
-        scores = self.concat_score_weight * tf.reduce_sum(
-          tf.tanh(q_reshaped + k_reshaped), axis=-1
-        )
+        scores = self.concat_score_weight * tf.reduce_sum(tf.tanh(q_reshaped + k_reshaped), axis=-1)
     return scores
 
   def _apply_scores(self, scores, value, scores_mask=None, training=False):
@@ -217,12 +211,8 @@ class Attention(Layer):
     q_mask = mask[0] if mask else None
     v_mask = mask[1] if mask else None
     scores = self._calculate_scores(query=q, key=k)
-    scores_mask = self._calculate_score_mask(
-      scores, v_mask, self.use_causal_mask
-    )
-    result, attention_scores = self._apply_scores(
-      scores=scores, value=v, scores_mask=scores_mask, training=training
-    )
+    scores_mask = self._calculate_score_mask(scores, v_mask, self.use_causal_mask)
+    result, attention_scores = self._apply_scores(scores=scores, value=v, scores_mask=scores_mask, training=training)
     if q_mask is not None:
       # Mask of shape [batch_size, Tq, 1].
       q_mask = tf.expand_dims(q_mask, axis=-1)
@@ -248,9 +238,7 @@ class Attention(Layer):
       raise ValueError(
         '{class_name} layer must be called on a list of inputs, '
         'namely [query, value] or [query, value, key]. '
-        'Received: inputs={inputs}.'.format(
-          class_name=class_name, inputs=inputs
-        )
+        'Received: inputs={inputs}.'.format(class_name=class_name, inputs=inputs)
       )
     if len(inputs) < 2 or len(inputs) > 3:
       raise ValueError(
@@ -261,15 +249,13 @@ class Attention(Layer):
     if mask is not None:
       if not isinstance(mask, list):
         raise ValueError(
-          '{class_name} layer mask must be a list, '
-          'namely [query_mask, value_mask]. Received: mask={mask}.'.format(
+          '{class_name} layer mask must be a list, ' 'namely [query_mask, value_mask]. Received: mask={mask}.'.format(
             class_name=class_name, mask=mask
           )
         )
       if len(mask) < 2 or len(mask) > 3:
         raise ValueError(
-          '{class_name} layer accepts mask list of length 2 or 3. '
-          'Received: inputs={inputs}, mask={mask}.'.format(
+          '{class_name} layer accepts mask list of length 2 or 3. ' 'Received: inputs={inputs}, mask={mask}.'.format(
             class_name=class_name, inputs=inputs, mask=mask
           )
         )

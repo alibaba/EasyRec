@@ -21,21 +21,26 @@ import operator
 import os
 import threading
 import time
+from distutils.version import LooseVersion
 
 import tensorflow as tf
-from distutils.version import LooseVersion
 from tensorflow.python.framework import dtypes, ops
 from tensorflow.python.ops import init_ops, state_ops, variable_scope
 from tensorflow.python.platform import gfile, tf_logging
 from tensorflow.python.summary import summary_iterator
+from tensorflow.python.training import (  # NOQA
+  basic_session_run_hooks,
+  session_run_hook,
+  training_util,
+)
 
 from easy_rec.python.utils.config_util import parse_time
 from easy_rec.python.utils.load_class import load_by_path
 
-from tensorflow.python.training import basic_session_run_hooks, session_run_hook, training_util  # NOQA
-
 if LooseVersion(tf.__version__) >= LooseVersion('2.12.0'):
-  from tensorflow_estimator.python.estimator.estimator_export import estimator_export  # NOQA
+  from tensorflow_estimator.python.estimator.estimator_export import (  # NOQA
+    estimator_export,
+  )
 else:
   from tensorflow.python.util.tf_export import estimator_export
 
@@ -54,9 +59,7 @@ def find_early_stop_var(var_list):
 
 
 @estimator_export('estimator.experimental.make_early_stopping_hook')
-def make_early_stopping_hook(
-  estimator, should_stop_fn, run_every_secs=60, run_every_steps=None
-):
+def make_early_stopping_hook(estimator, should_stop_fn, run_every_secs=60, run_every_steps=None):
   """Creates early-stopping hook.
 
   Returns a `SessionRunHook` that stops training when `should_stop_fn` returns `True`. Usage example:
@@ -95,15 +98,10 @@ def make_early_stopping_hook(
     ValueError: If both `run_every_secs` and `run_every_steps` are set.
   """
   if run_every_secs is not None and run_every_steps is not None:
-    raise ValueError(
-      'Only one of `run_every_secs` and `run_every_steps` must '
-      'be set.'
-    )
+    raise ValueError('Only one of `run_every_secs` and `run_every_steps` must ' 'be set.')
 
   if estimator.config.is_chief:
-    return _StopOnPredicateHook(
-      should_stop_fn, run_every_secs, run_every_steps
-    )
+    return _StopOnPredicateHook(should_stop_fn, run_every_secs, run_every_steps)
   else:
     return _CheckForStoppingHook()
 
@@ -116,7 +114,7 @@ def stop_if_higher_hook(
   eval_dir=None,
   min_steps=0,
   run_every_secs=60,
-  run_every_steps=None
+  run_every_steps=None,
 ):
   """Creates hook to stop if the given metric is higher than the threshold.
 
@@ -164,7 +162,7 @@ def stop_if_higher_hook(
     eval_dir=eval_dir,
     min_steps=min_steps,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -176,7 +174,7 @@ def stop_if_lower_hook(
   eval_dir=None,
   min_steps=0,
   run_every_secs=60,
-  run_every_steps=None
+  run_every_steps=None,
 ):
   """Creates hook to stop if the given metric is lower than the threshold.
 
@@ -224,7 +222,7 @@ def stop_if_lower_hook(
     eval_dir=eval_dir,
     min_steps=min_steps,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -236,7 +234,7 @@ def stop_if_no_increase_hook(
   eval_dir=None,
   min_steps=0,
   run_every_secs=60,
-  run_every_steps=None
+  run_every_steps=None,
 ):
   """Creates hook to stop if metric does not increase within given max steps.
 
@@ -285,7 +283,7 @@ def stop_if_no_increase_hook(
     eval_dir=eval_dir,
     min_steps=min_steps,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -295,7 +293,7 @@ def custom_early_stop_hook(
   custom_stop_func,
   custom_stop_func_params,
   run_every_secs=60,
-  run_every_steps=None
+  run_every_steps=None,
 ):
   """Custom early stop hook for complex early stop conditions.
 
@@ -319,8 +317,7 @@ def custom_early_stop_hook(
   if eval_dir is None:
     eval_dir = estimator.eval_dir()
 
-  if isinstance(custom_stop_func,
-                str) or isinstance(custom_stop_func, type(u'')):
+  if isinstance(custom_stop_func, str) or isinstance(custom_stop_func, type('')):
     custom_stop_func = load_by_path(custom_stop_func)
 
   def _custom_stop_fn():
@@ -331,7 +328,7 @@ def custom_early_stop_hook(
     estimator=estimator,
     should_stop_fn=_custom_stop_fn,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -343,7 +340,7 @@ def stop_if_no_decrease_hook(
   eval_dir=None,
   min_steps=0,
   run_every_secs=60,
-  run_every_steps=None
+  run_every_steps=None,
 ):
   """Creates hook to stop if metric does not decrease within given max steps.
 
@@ -392,7 +389,7 @@ def stop_if_no_decrease_hook(
     eval_dir=eval_dir,
     min_steps=min_steps,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -415,14 +412,18 @@ def read_eval_metrics(eval_dir):
         metrics[value.tag] = value.simple_value
     if metrics:
       eval_metrics_dict[event.step].update(metrics)
-  return collections.OrderedDict(
-    sorted(eval_metrics_dict.items(), key=lambda t: t[0])
-  )
+  return collections.OrderedDict(sorted(eval_metrics_dict.items(), key=lambda t: t[0]))
 
 
 def _stop_if_threshold_crossed_hook(
-  estimator, metric_name, threshold, higher_is_better, eval_dir, min_steps,
-  run_every_secs, run_every_steps
+  estimator,
+  metric_name,
+  threshold,
+  higher_is_better,
+  eval_dir,
+  min_steps,
+  run_every_secs,
+  run_every_steps,
 ):
   """Creates early-stopping hook to stop training if threshold is crossed."""
   if eval_dir is None:
@@ -441,9 +442,12 @@ def _stop_if_threshold_crossed_hook(
       val = metrics[metric_name]
       if is_lhs_better(val, threshold):
         tf_logging.info(
-          'At step %s, metric "%s" has value %s which is %s the configured '
-          'threshold (%s) for early stopping.', step, metric_name, val,
-          greater_or_lesser, threshold
+          'At step %s, metric "%s" has value %s which is %s the configured ' 'threshold (%s) for early stopping.',
+          step,
+          metric_name,
+          val,
+          greater_or_lesser,
+          threshold,
         )
         return True
     return False
@@ -452,13 +456,19 @@ def _stop_if_threshold_crossed_hook(
     estimator=estimator,
     should_stop_fn=stop_if_threshold_crossed_fn,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
 def _stop_if_no_metric_improvement_hook(
-  estimator, metric_name, max_steps_without_improvement, higher_is_better,
-  eval_dir, min_steps, run_every_secs, run_every_steps
+  estimator,
+  metric_name,
+  max_steps_without_improvement,
+  higher_is_better,
+  eval_dir,
+  min_steps,
+  run_every_secs,
+  run_every_steps,
 ):
   """Returns hook to stop training if given metric shows no improvement."""
   if eval_dir is None:
@@ -484,8 +494,10 @@ def _stop_if_no_metric_improvement_hook(
         tf_logging.info(
           'No %s in metric "%s" for %s steps, which is greater than or equal '
           'to max steps (%s) configured for early stopping.',
-          increase_or_decrease, metric_name, step - best_val_step,
-          max_steps_without_improvement
+          increase_or_decrease,
+          metric_name,
+          step - best_val_step,
+          max_steps_without_improvement,
         )
         return True
     return False
@@ -494,7 +506,7 @@ def _stop_if_no_metric_improvement_hook(
     estimator=estimator,
     should_stop_fn=stop_if_no_metric_improvement_fn,
     run_every_secs=run_every_secs,
-    run_every_steps=run_every_steps
+    run_every_steps=run_every_steps,
   )
 
 
@@ -508,26 +520,20 @@ def _summaries(eval_dir):
     `tensorflow.Event` object read from the event files.
   """
   if gfile.Exists(eval_dir):
-    for event_file in gfile.Glob(
-      os.path.join(eval_dir, _EVENT_FILE_GLOB_PATTERN)
-    ):
+    for event_file in gfile.Glob(os.path.join(eval_dir, _EVENT_FILE_GLOB_PATTERN)):
       for event in summary_iterator.summary_iterator(event_file):
         yield event
 
 
 def _get_or_create_stop_var():
-  with variable_scope.variable_scope(
-    name_or_scope=EARLY_STOP_SIG_SCOPE,
-    values=[],
-    reuse=variable_scope.AUTO_REUSE
-  ):
+  with variable_scope.variable_scope(name_or_scope=EARLY_STOP_SIG_SCOPE, values=[], reuse=variable_scope.AUTO_REUSE):
     return variable_scope.get_variable(
       name=EARLY_STOP_SIG_NAME,
       shape=[],
       dtype=dtypes.bool,
       initializer=init_ops.constant_initializer(False),
       collections=[ops.GraphKeys.GLOBAL_VARIABLES],
-      trainable=False
+      trainable=False,
     )
 
 
@@ -539,9 +545,7 @@ class _StopOnPredicateHook(session_run_hook.SessionRunHook):
       raise TypeError('`should_stop_fn` must be callable.')
 
     self._should_stop_fn = should_stop_fn
-    self._timer = basic_session_run_hooks.SecondOrStepTimer(
-      every_secs=run_every_secs, every_steps=run_every_steps
-    )
+    self._timer = basic_session_run_hooks.SecondOrStepTimer(every_secs=run_every_secs, every_steps=run_every_steps)
     self._global_step_tensor = None
     self._stop_var = _get_or_create_stop_var()
     self._stop_op = None
@@ -559,9 +563,7 @@ class _StopOnPredicateHook(session_run_hook.SessionRunHook):
     if self._timer.should_trigger_for_step(global_step):
       self._timer.update_last_triggered_step(global_step)
       if self._should_stop_fn():
-        tf_logging.info(
-          'Requesting early stopping at global step %d', global_step
-        )
+        tf_logging.info('Requesting early stopping at global step %d', global_step)
         run_context.session.run(self._stop_op)
         run_context.request_stop()
 
@@ -587,14 +589,11 @@ class _CheckForStoppingHook(session_run_hook.SessionRunHook):
 
 
 class OssStopSignalHook(session_run_hook.SessionRunHook):
-
   def __init__(self, model_dir, run_every_secs=10, run_every_steps=None):
     self._stop_sig_file = os.path.join(model_dir, 'OSS_STOP_SIGNAL')
     self._stop = False
     self._check_run = True
-    self._timer = basic_session_run_hooks.SecondOrStepTimer(
-      every_secs=run_every_secs, every_steps=run_every_steps
-    )
+    self._timer = basic_session_run_hooks.SecondOrStepTimer(every_secs=run_every_secs, every_steps=run_every_steps)
     sleep_time = run_every_secs if run_every_secs is not None else 1
     self._curr_step = 0
 
@@ -604,9 +603,7 @@ class OssStopSignalHook(session_run_hook.SessionRunHook):
           self._timer.update_last_triggered_step(self._curr_step)
           if gfile.Exists(self._stop_sig_file):
             self._stop = True
-            logging.info(
-              'OssStopSignalHook: stop on signal %s' % self._stop_sig_file
-            )
+            logging.info('OssStopSignalHook: stop on signal %s' % self._stop_sig_file)
             break
         else:
           time.sleep(sleep_time)
@@ -645,14 +642,13 @@ def oss_stop_hook(estimator, run_every_secs=10, run_every_steps=None):
     return OssStopSignalHook(
       estimator.model_dir,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps
+      run_every_steps=run_every_steps,
     )
   else:
     return _CheckForStoppingHook()
 
 
 class DeadlineStopHook(session_run_hook.SessionRunHook):
-
   def __init__(self, deadline_ts):
     self._deadline_ts = deadline_ts
     self._stop_var = _get_or_create_stop_var()

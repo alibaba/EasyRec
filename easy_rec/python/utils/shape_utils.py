@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 """Utils used to manipulate tensor shapes."""
+
 from __future__ import absolute_import, division, print_function
 
 import six
@@ -61,9 +62,7 @@ def merge_shape(t, shape_list):
     the tensor t with shape updated
   """
   t_shape = t.get_shape().as_list()
-  assert len(shape_list) == len(
-    t_shape
-  ), 'input shape size should be the same of the tensor'
+  assert len(shape_list) == len(t_shape), 'input shape size should be the same of the tensor'
   for idx, size in enumerate(shape_list):
     if size is not None:
       t_shape[idx] = size
@@ -89,8 +88,9 @@ def pad_tensor(t, length):
   t_d0 = t_shape[0]
   pad_d0 = tf.expand_dims(length - t_d0, 0)
   pad_shape = tf.cond(
-    tf.greater(t_rank, 1), lambda: tf.concat([pad_d0, t_shape[1:]], 0),
-    lambda: tf.expand_dims(length - t_d0, 0)
+    tf.greater(t_rank, 1),
+    lambda: tf.concat([pad_d0, t_shape[1:]], 0),
+    lambda: tf.expand_dims(length - t_d0, 0),
   )
   padded_t = tf.concat([t, tf.zeros(pad_shape, dtype=t.dtype)], 0)
   if not _is_tensor(length):
@@ -146,18 +146,10 @@ def pad_nd(tensor, output_shape):
   """
   tensor_shape = tf.shape(tensor)
 
-  trailing_paddings = [
-    shape - tensor_shape[i] if shape is not None else 0
-    for i, shape in enumerate(output_shape)
-  ]
-  paddings = tf.stack(
-    [tf.zeros(len(trailing_paddings), dtype=tf.int32), trailing_paddings],
-    axis=1
-  )
+  trailing_paddings = [shape - tensor_shape[i] if shape is not None else 0 for i, shape in enumerate(output_shape)]
+  paddings = tf.stack([tf.zeros(len(trailing_paddings), dtype=tf.int32), trailing_paddings], axis=1)
   padded_tensor = tf.pad(tensor, paddings=paddings)
-  output_static_shape = [
-    dim if not isinstance(dim, tf.Tensor) else None for dim in output_shape
-  ]
+  output_static_shape = [dim if not isinstance(dim, tf.Tensor) else None for dim in output_shape]
   padded_tensor.set_shape(output_static_shape)
   return padded_tensor
 
@@ -175,12 +167,10 @@ def pad_or_clip_nd(tensor, output_shape):
   """
   tensor_shape = tf.shape(tensor)
   clip_size = [
-    tf.where(tensor_shape[i] - shape > 0, shape, -1)
-    if shape is not None else -1 for i, shape in enumerate(output_shape)
+    tf.where(tensor_shape[i] - shape > 0, shape, -1) if shape is not None else -1
+    for i, shape in enumerate(output_shape)
   ]
-  clipped_tensor = tf.slice(
-    tensor, begin=tf.zeros(len(clip_size), dtype=tf.int32), size=clip_size
-  )
+  clipped_tensor = tf.slice(tensor, begin=tf.zeros(len(clip_size), dtype=tf.int32), size=clip_size)
 
   # Pad tensor if the shape of clipped tensor is smaller than the expected
   # shape.
@@ -237,17 +227,16 @@ def check_min_image_dim(min_dim, image_tensor):
     shape_assert = tf.Assert(
       tf.logical_and(
         tf.greater_equal(tf.shape(image_tensor)[1], min_dim),
-        tf.greater_equal(tf.shape(image_tensor)[2], min_dim)
+        tf.greater_equal(tf.shape(image_tensor)[2], min_dim),
       ),
-      ['image size must be >= {} in both height and width.'.format(min_dim)]
+      ['image size must be >= {} in both height and width.'.format(min_dim)],
     )
     with tf.control_dependencies([shape_assert]):
       return tf.identity(image_tensor)
 
   if image_height < min_dim or image_width < min_dim:
     raise ValueError(
-      'image size must be >= %d in both height and width; image dim = %d,%d' %
-      (min_dim, image_height, image_width)
+      'image size must be >= %d in both height and width; image dim = %d,%d' % (min_dim, image_height, image_width)
     )
 
   return image_tensor
@@ -273,10 +262,7 @@ def assert_shape_equal(shape_a, shape_b):
   Raises:
     ValueError: When shapes are both static and unequal.
   """
-  if (
-    all(isinstance(dim, int) for dim in shape_a)
-    and all(isinstance(dim, int) for dim in shape_b)
-  ):
+  if all(isinstance(dim, int) for dim in shape_a) and all(isinstance(dim, int) for dim in shape_b):
     if shape_a != shape_b:
       raise ValueError('Unequal shapes {}, {}'.format(shape_a, shape_b))
     else:
@@ -307,9 +293,7 @@ def assert_shape_equal_along_first_dimension(shape_a, shape_b):
   """
   if isinstance(shape_a[0], int) and isinstance(shape_b[0], int):
     if shape_a[0] != shape_b[0]:
-      raise ValueError(
-        'Unequal first dimension {}, {}'.format(shape_a[0], shape_b[0])
-      )
+      raise ValueError('Unequal first dimension {}, {}'.format(shape_a[0], shape_b[0]))
     else:
       return tf.no_op()
   else:
@@ -335,8 +319,9 @@ def assert_box_normalized(boxes, maximum_normalized_coordinate=1.1):
   return tf.Assert(
     tf.logical_and(
       tf.less_equal(box_maximum, maximum_normalized_coordinate),
-      tf.greater_equal(box_minimum, 0)
-    ), [boxes]
+      tf.greater_equal(box_minimum, 0),
+    ),
+    [boxes],
   )
 
 
@@ -361,7 +346,7 @@ def get_shape_list(tensor, expected_rank=None, name=None):
     assert_rank(tensor, expected_rank, name)
   shape = tensor.shape.as_list()
   non_static_indexes = []
-  for (index, dim) in enumerate(shape):
+  for index, dim in enumerate(shape):
     if dim is None:
       non_static_indexes.append(index)
   if not non_static_indexes:
@@ -396,20 +381,18 @@ def assert_rank(tensor, expected_rank, name=None):
     scope_name = tf.get_variable_scope().name
     raise ValueError(
       'For the tensor `%s` in scope `%s`, the actual rank '
-      '`%d` (shape = %s) is not equal to the expected rank `%s`' %
-      (name, scope_name, actual_rank, str(tensor.shape), str(expected_rank))
+      '`%d` (shape = %s) is not equal to the expected rank `%s`'
+      % (name, scope_name, actual_rank, str(tensor.shape), str(expected_rank))
     )
 
 
 def truncate_sequence(seq_emb, seq_len, limited_len):
-
   def truncate(seq_embed, seq_length):
-    seq_embed = tf.slice(
-      seq_embed, [0, 0, 0], [shape[0], limited_len, shape[2]]
-    )
+    seq_embed = tf.slice(seq_embed, [0, 0, 0], [shape[0], limited_len, shape[2]])
     seq_length = tf.where(
       tf.greater(seq_length, limited_len),
-      tf.ones_like(seq_length) * limited_len, seq_length
+      tf.ones_like(seq_length) * limited_len,
+      seq_length,
     )
     return seq_embed, seq_length
 
@@ -420,8 +403,9 @@ def truncate_sequence(seq_emb, seq_len, limited_len):
   max_seq_len = shape[1]
 
   return tf.cond(
-    max_seq_len > limited_len, lambda: truncate(seq_emb, seq_len),
-    lambda: keep(seq_emb, seq_len)
+    max_seq_len > limited_len,
+    lambda: truncate(seq_emb, seq_len),
+    lambda: keep(seq_emb, seq_len),
   )
 
 
@@ -435,16 +419,10 @@ def pad_or_truncate_sequence(seq_emb, seq_len, fixed_len):
 
   def truncate():
     sliced = tf.slice(seq_emb, [0, 0, 0], [-1, fixed_len, -1])
-    length = tf.where(
-      seq_len < fixed_len, seq_len,
-      tf.ones_like(seq_len) * fixed_len
-    ) if seq_len is not None else None
+    length = tf.where(seq_len < fixed_len, seq_len, tf.ones_like(seq_len) * fixed_len) if seq_len is not None else None
     return sliced, length
 
   def keep():
     return seq_emb, seq_len
 
-  return tf.cond(
-    padding_length > 0, padding,
-    lambda: tf.cond(padding_length < 0, truncate, keep)
-  )
+  return tf.cond(padding_length > 0, padding, lambda: tf.cond(padding_length < 0, truncate, keep))

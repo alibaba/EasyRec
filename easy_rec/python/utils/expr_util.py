@@ -7,9 +7,9 @@ def _process_multi_expr(expr):
   idx = 0
   two_expr = ['>=', '<=', '==']
   expr_list = []
-  while (idx < size):
-    if idx + 2 <= size and expr[idx:idx + 2] in two_expr:
-      expr_list.append(expr[idx:idx + 2])
+  while idx < size:
+    if idx + 2 <= size and expr[idx : idx + 2] in two_expr:
+      expr_list.append(expr[idx : idx + 2])
       idx += 2
     else:
       expr_list.append(expr[idx])
@@ -25,9 +25,7 @@ def _process_enum(enum, input_names, prefix=''):
 
 
 def _get_expression_list(expression, input_names, prefix=''):
-  ops = [
-    '+', '-', '*', '/', '(', ')', '>', '>=', '<', '<=', '==', '=', '&', '|'
-  ]
+  ops = ['+', '-', '*', '/', '(', ')', '>', '>=', '<', '<=', '==', '=', '&', '|']
   expression_list = []
   eunm = ''
   pre_expr = ''
@@ -113,8 +111,6 @@ def _expression_eval(expr_list):
 
 
 def get_expression(expression, input_names, prefix=''):
-  expression_list = _get_expression_list(
-    expression, input_names, prefix=prefix
-  )
+  expression_list = _get_expression_list(expression, input_names, prefix=prefix)
   expression = _expression_eval(expression_list)
   return expression

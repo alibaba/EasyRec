@@ -25,11 +25,16 @@ class DummyInput(Input):
     task_num=1,
     check_mode=False,
     pipeline_config=None,
-    input_vals={}
+    input_vals={},
   ):
     super(DummyInput, self).__init__(
-      data_config, feature_config, input_path, task_index, task_num,
-      check_mode, pipeline_config
+      data_config,
+      feature_config,
+      input_path,
+      task_index,
+      task_num,
+      check_mode,
+      pipeline_config,
     )
     self._input_vals = input_vals
 
@@ -45,9 +50,7 @@ class DummyInput(Input):
       label tensor dict
     """
     features = {}
-    for field, field_type, def_val in zip(
-      self._input_fields, self._input_field_types, self._input_field_defaults
-    ):
+    for field, field_type, def_val in zip(self._input_fields, self._input_field_types, self._input_field_defaults):
       tf_type = get_tf_type(field_type)
       def_val = self.get_type_defaults(field_type, default_val=def_val)
 

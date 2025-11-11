@@ -21,7 +21,6 @@ if tf.__version__ >= '2.0':
 
 
 class VectorRetrieve(object):
-
   def __init__(
     self,
     query_table,
@@ -34,7 +33,7 @@ class VectorRetrieve(object):
     nlist=10,
     nprobe=2,
     distance=1,
-    m=8
+    m=8,
   ):
     """Retrieve top n neighbours by query vector.
 
@@ -73,16 +72,12 @@ class VectorRetrieve(object):
     g.node(
       self.doc_table,
       'doc',
-      decoder=gl.Decoder(
-        attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter
-      ),
-      option=self.knn_option
+      decoder=gl.Decoder(attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter),
+      option=self.knn_option,
     )
     g.init(task_index=task_index, task_count=task_count)
 
-    query_reader = common_io.table.TableReader(
-      self.query_table, slice_id=task_index, slice_count=task_count
-    )
+    query_reader = common_io.table.TableReader(self.query_table, slice_id=task_index, slice_count=task_count)
     num_records = query_reader.get_row_count()
     total_batch_num = num_records // self.batch_size + 1.0
     batch_num = 0
@@ -90,31 +85,19 @@ class VectorRetrieve(object):
     print('total_batch_num: {}'.format(total_batch_num))
     print('output_table: {}'.format(self.out_table))
 
-    output_table_writer = common_io.table.TableWriter(
-      self.out_table, task_index
-    )
+    output_table_writer = common_io.table.TableWriter(self.out_table, task_index)
     count = 0
     while True:
       try:
-        batch_query_nodes, batch_query_feats = zip(
-          *query_reader.read(self.batch_size, allow_smaller_final_batch=True)
-        )
+        batch_query_nodes, batch_query_feats = zip(*query_reader.read(self.batch_size, allow_smaller_final_batch=True))
         batch_num += 1.0
-        print(
-          '{} process: {:.2f}'.format(
-            datetime.now().time(), batch_num / total_batch_num
-          )
-        )
+        print('{} process: {:.2f}'.format(datetime.now().time(), batch_num / total_batch_num))
         feats = to_np_array(batch_query_feats, self.delimiter)
         rt_ids, rt_dists = g.search('doc', feats, gl.KnnOption(k=top_n))
 
-        for query_node, nodes, dists in zip(
-          batch_query_nodes, rt_ids, rt_dists
-        ):
+        for query_node, nodes, dists in zip(batch_query_nodes, rt_ids, rt_dists):
           query = np.array([query_node] * len(nodes), dtype='int64')
-          output_table_writer.write(
-            zip(query, nodes, dists), (0, 1, 2), allow_type_cast=False
-          )
+          output_table_writer.write(zip(query, nodes, dists), (0, 1, 2), allow_type_cast=False)
           count += 1
           if np.mod(count, 100) == 0:
             print('write ', count, ' query nodes totally')
@@ -131,5 +114,5 @@ class VectorRetrieve(object):
 def to_np_array(batch_query_feats, attr_delimiter):
   return np.array(
     [map(float, feat.split(attr_delimiter)) for feat in batch_query_feats],
-    dtype='float32'
+    dtype='float32',
   )

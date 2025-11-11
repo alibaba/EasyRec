@@ -11,37 +11,32 @@ if tf.__version__ >= '2.0':
 
 
 class DBMTL(MultiTaskModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(DBMTL, self).__init__(
-      model_config, feature_configs, features, labels, is_training
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(DBMTL, self).__init__(model_config, feature_configs, features, labels, is_training)
+    assert self._model_config.WhichOneof('model') == 'dbmtl', (
+      'invalid model config: %s' % self._model_config.WhichOneof('model')
     )
-    assert self._model_config.WhichOneof('model') == 'dbmtl', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.dbmtl
     assert isinstance(self._model_config, DBMTLConfig)
 
     if self._model_config.HasField('bottom_cmbf'):
       self._cmbf_layer = cmbf.CMBF(
-        model_config, feature_configs, features,
-        self._model_config.bottom_cmbf, self._input_layer
+        model_config,
+        feature_configs,
+        features,
+        self._model_config.bottom_cmbf,
+        self._input_layer,
       )
     elif self._model_config.HasField('bottom_uniter'):
       self._uniter_layer = uniter.Uniter(
-        model_config, feature_configs, features,
-        self._model_config.bottom_uniter, self._input_layer
+        model_config,
+        feature_configs,
+        features,
+        self._model_config.bottom_uniter,
+        self._input_layer,
       )
     elif not self.has_backbone:
-      self._features, self._feature_list = self._input_layer(
-        self._feature_dict, 'all'
-      )
+      self._features, self._feature_list = self._input_layer(self._feature_dict, 'all')
     else:
       assert False, 'invalid code branch'
     self._init_towers(self._model_config.task_towers)
@@ -58,7 +53,7 @@ class DBMTL(MultiTaskModel):
           self._model_config.bottom_dnn,
           self._l2_reg,
           name='bottom_dnn',
-          is_training=self._is_training
+          is_training=self._is_training,
         )
         bottom_fea = bottom_dnn(self._features)
       else:
@@ -70,7 +65,7 @@ class DBMTL(MultiTaskModel):
         self._model_config.expert_dnn,
         l2_reg=self._l2_reg,
         num_task=self._task_num,
-        num_expert=self._model_config.num_expert
+        num_expert=self._model_config.num_expert,
       )
       task_input_list = mmoe_layer(bottom_fea)
     else:
@@ -85,7 +80,7 @@ class DBMTL(MultiTaskModel):
           task_tower_cfg.dnn,
           self._l2_reg,
           name=tower_name + '/dnn',
-          is_training=self._is_training
+          is_training=self._is_training,
         )
         tower_fea = tower_dnn(task_input_list[i])
         tower_features[tower_name] = tower_fea
@@ -101,14 +96,12 @@ class DBMTL(MultiTaskModel):
         task_tower_cfg.relation_dnn,
         self._l2_reg,
         name=tower_name + '/relation_dnn',
-        is_training=self._is_training
+        is_training=self._is_training,
       )
       tower_inputs = [tower_features[tower_name]]
       for relation_tower_name in task_tower_cfg.relation_tower_names:
         tower_inputs.append(relation_features[relation_tower_name])
-      relation_input = tf.concat(
-        tower_inputs, axis=-1, name=tower_name + '/relation_input'
-      )
+      relation_input = tf.concat(tower_inputs, axis=-1, name=tower_name + '/relation_input')
       relation_fea = relation_dnn(relation_input)
       relation_features[tower_name] = relation_fea
 
@@ -116,7 +109,7 @@ class DBMTL(MultiTaskModel):
         relation_fea,
         task_tower_cfg.num_class,
         kernel_regularizer=self._l2_reg,
-        name=tower_name + '/output'
+        name=tower_name + '/output',
       )
       tower_outputs[tower_name] = output_logits
 

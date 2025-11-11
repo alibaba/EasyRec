@@ -14,20 +14,11 @@ metrics = tf.metrics
 
 
 class PDN(MatchModel):
-
-  def __init__(
-    self,
-    model_config,
-    feature_configs,
-    features,
-    labels=None,
-    is_training=False
-  ):
-    super(PDN, self).__init__(
-      model_config, feature_configs, features, labels, is_training
+  def __init__(self, model_config, feature_configs, features, labels=None, is_training=False):
+    super(PDN, self).__init__(model_config, feature_configs, features, labels, is_training)
+    assert self._model_config.WhichOneof('model') == 'pdn', 'invalid model config: %s' % self._model_config.WhichOneof(
+      'model'
     )
-    assert self._model_config.WhichOneof('model') == 'pdn', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
     self._model_config = self._model_config.pdn
 
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
@@ -47,10 +38,7 @@ class PDN(MatchModel):
     sim_out = self._build_similarity_net()
     logits = tf.multiply(sim_out, trigger_out)
 
-    seq_mask = tf.to_float(
-      tf.sequence_mask(self._seq_len,
-                       tf.shape(sim_out)[1])
-    )
+    seq_mask = tf.to_float(tf.sequence_mask(self._seq_len, tf.shape(sim_out)[1]))
     logits = tf.reduce_sum(logits * seq_mask[:, :, None], axis=1)
 
     direct_logits = self._build_direct_net()
@@ -65,9 +53,7 @@ class PDN(MatchModel):
     probs = 1 - tf.exp(-logits)  # map [0, inf) to [0, 1)
 
     self._prediction_dict['probs'] = probs
-    self._prediction_dict['logits'] = tf.log(
-      tf.clip_by_value(probs, 1e-8, 1 - 1e-8)
-    )
+    self._prediction_dict['logits'] = tf.log(tf.clip_by_value(probs, 1e-8, 1 - 1e-8))
     return self._prediction_dict
 
   def _get_seq_features(self, name):
@@ -77,15 +63,11 @@ class PDN(MatchModel):
     return seq, seq_len
 
   def _build_trigger_net(self):
-    user_dnn_layer = dnn.DNN(
-      self._model_config.user_dnn, self._l2_reg, 'user_dnn', self._is_training
-    )
+    user_dnn_layer = dnn.DNN(self._model_config.user_dnn, self._l2_reg, 'user_dnn', self._is_training)
     user_fea = user_dnn_layer(self._user_features)
 
     trigger_seq = tf.concat([self._u2i_seq, self._i_seq], axis=2)
-    u2i_dnn_layer = dnn.DNN(
-      self._model_config.u2i_dnn, self._l2_reg, 'u2i_dnn', self._is_training
-    )
+    u2i_dnn_layer = dnn.DNN(self._model_config.u2i_dnn, self._l2_reg, 'u2i_dnn', self._is_training)
     trigger_seq_fea = u2i_dnn_layer(trigger_seq)
 
     trigger_merge_fea = trigger_seq_fea + user_fea[:, None, :]
@@ -95,7 +77,7 @@ class PDN(MatchModel):
       'trigger_dnn',
       self._is_training,
       last_layer_no_activation=True,
-      last_layer_no_batch_norm=True
+      last_layer_no_batch_norm=True,
     )
 
     # output: N x seq_len x d, d is usually set to 1
@@ -107,40 +89,32 @@ class PDN(MatchModel):
       tf.reduce_join(
         tf.as_string(trigger_out, precision=4, shortest=True),
         axis=2,
-        separator=','
+        separator=',',
       ),
       axis=1,
-      separator=';'
+      separator=';',
     )
     return trigger_out
 
   def _build_similarity_net(self):
-    item_dnn_layer = dnn.DNN(
-      self._model_config.item_dnn, self._l2_reg, 'item_dnn', self._is_training
-    )
+    item_dnn_layer = dnn.DNN(self._model_config.item_dnn, self._l2_reg, 'item_dnn', self._is_training)
     item_fea = item_dnn_layer(self._item_features)
 
-    sim_side_dnn_layer = dnn.DNN(
-      self._model_config.i2i_dnn, self._l2_reg, 'i2i_dnn', self._is_training
-    )
+    sim_side_dnn_layer = dnn.DNN(self._model_config.i2i_dnn, self._l2_reg, 'i2i_dnn', self._is_training)
     sim_seq_fea = sim_side_dnn_layer(self._i_seq)
 
     sim_seq_cross = sim_seq_fea * item_fea[:, None, :]
 
-    item_fea_tile = tf.tile(
-      item_fea[:, None, :], [1, tf.shape(sim_seq_fea)[1], 1]
-    )
+    item_fea_tile = tf.tile(item_fea[:, None, :], [1, tf.shape(sim_seq_fea)[1], 1])
 
-    sim_seq_concat = tf.concat(
-      [sim_seq_cross, sim_seq_cross, self._i2i_seq, item_fea_tile], axis=2
-    )
+    sim_seq_concat = tf.concat([sim_seq_cross, sim_seq_cross, self._i2i_seq, item_fea_tile], axis=2)
     sim_dnn_layer = dnn.DNN(
       self._model_config.sim_dnn,
       self._l2_reg,
       'sim_dnn',
       self._is_training,
       last_layer_no_activation=True,
-      last_layer_no_batch_norm=True
+      last_layer_no_batch_norm=True,
     )
     # output: N x seq_len x 1
     sim_out = sim_dnn_layer(sim_seq_concat)
@@ -148,25 +122,20 @@ class PDN(MatchModel):
     sim_out = tf.exp(sim_out)
 
     self._prediction_dict['sim_out'] = tf.reduce_join(
-      tf.reduce_join(
-        tf.as_string(sim_out, precision=4, shortest=True),
-        axis=2,
-        separator=','
-      ),
+      tf.reduce_join(tf.as_string(sim_out, precision=4, shortest=True), axis=2, separator=','),
       axis=1,
-      separator=';'
+      separator=';',
     )
     return sim_out
 
   def _build_direct_net(self):
-    if self._model_config.HasField('direct_user_dnn') and \
-       self._model_config.HasField('direct_item_dnn'):
+    if self._model_config.HasField('direct_user_dnn') and self._model_config.HasField('direct_item_dnn'):
       direct_user_layer = dnn.DNN(
         self._model_config.direct_user_dnn,
         'direct_user_dnn',
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True
+        last_layer_no_batch_norm=True,
       )
       direct_user_out = direct_user_layer(self._user_features)
       direct_item_layer = dnn.DNN(
@@ -174,7 +143,7 @@ class PDN(MatchModel):
         'direct_item_dnn',
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True
+        last_layer_no_batch_norm=True,
       )
       direct_item_out = direct_item_layer(self._item_features)
 
@@ -191,13 +160,13 @@ class PDN(MatchModel):
           'direct_net/sim_w',
           dtype=tf.float32,
           shape=(1),
-          initializer=tf.ones_initializer()
+          initializer=tf.ones_initializer(),
         )
         sim_b = tf.get_variable(
           'direct_net/sim_b',
           dtype=tf.float32,
           shape=(1),
-          initializer=tf.zeros_initializer()
+          initializer=tf.zeros_initializer(),
         )
         direct_logits = direct_logits * tf.abs(sim_w) + sim_b
 
@@ -214,7 +183,7 @@ class PDN(MatchModel):
         'bias_dnn',
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True
+        last_layer_no_batch_norm=True,
       )
       bias_logits = bias_dnn_layer(self._bias_features)
       return tf.nn.softplus(bias_logits)

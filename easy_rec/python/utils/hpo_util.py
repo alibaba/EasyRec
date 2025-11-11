@@ -122,10 +122,7 @@ def kill_old_proc(tmp_dir, platform='pai'):
   if platform == 'emr':
     # clear easy_rec_hpo yarn jobs
     yarn_job_file = os.path.join(tmp_dir, 'yarn_job.txt')
-    os.system(
-      "yarn application -list | awk '{ if ($2 == \"easy_rec_hpo\") print $1 }' > %s"
-      % yarn_job_file
-    )
+    os.system('yarn application -list | awk \'{ if ($2 == "easy_rec_hpo") print $1 }\' > %s' % yarn_job_file)
     yarn_job_arr = []
     with open(yarn_job_file, 'r') as fin:
       for line_str in fin:
@@ -133,7 +130,5 @@ def kill_old_proc(tmp_dir, platform='pai'):
         yarn_job_arr.append(line_str)
     yarn_job_arr = list(set(yarn_job_arr))
     if len(yarn_job_arr) > 0:
-      logging.info(
-        'will kill the easy_rec_hpo yarn jobs: %s' % ','.join(yarn_job_arr)
-      )
+      logging.info('will kill the easy_rec_hpo yarn jobs: %s' % ','.join(yarn_job_arr))
       os.system('yarn application -kill %s' % ' '.join(yarn_job_arr))

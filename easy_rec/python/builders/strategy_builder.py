@@ -23,12 +23,13 @@ def build(train_config):
   # only works using pai-tf
   elif train_config.train_distribute == DistributionStrategy.ExascaleStrategy:
     import pai
+
     distribution = pai.distribute.ExascaleStrategy(
       max_splits=10,
       issorted=True,
       optimize_clip_by_global_norm=False,
       enable_sparse_allreduce=False,
-      enable_hierarchical_allreduce=True
+      enable_hierarchical_allreduce=True,
     )
   # the older version of MultiWorkerMirroredStrategy
   # works under tf1.12 to tf1.15

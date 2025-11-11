@@ -57,9 +57,7 @@ def get_configs_from_pipeline_file(pipeline_config_path, auto_expand=True):
   if isinstance(pipeline_config_path, pipeline_pb2.EasyRecConfig):
     return pipeline_config_path
 
-  assert tf.gfile.Exists(
-    pipeline_config_path
-  ), 'pipeline_config_path [%s] not exists' % pipeline_config_path
+  assert tf.gfile.Exists(pipeline_config_path), 'pipeline_config_path [%s] not exists' % pipeline_config_path
 
   pipeline_config = pipeline_pb2.EasyRecConfig()
   with tf.gfile.GFile(pipeline_config_path, 'r') as f:
@@ -157,9 +155,7 @@ def create_pipeline_proto_from_configs(configs):
   return pipeline_config
 
 
-def save_pipeline_config(
-  pipeline_config, directory, filename='pipeline.config'
-):
+def save_pipeline_config(pipeline_config, directory, filename='pipeline.config'):
   """Saves a pipeline config text file to disk.
 
   Args:
@@ -177,10 +173,26 @@ def save_pipeline_config(
 
 def _get_basic_types():
   dtypes = [
-    bool, int, str, float,
-    type(u''), np.float16, np.float32, np.float64, np.char, np.byte, np.uint8,
-    np.int8, np.int16, np.uint16, np.uint32, np.int32, np.uint64, np.int64,
-    bool, str
+    bool,
+    int,
+    str,
+    float,
+    type(''),
+    np.float16,
+    np.float32,
+    np.float64,
+    np.char,
+    np.byte,
+    np.uint8,
+    np.int8,
+    np.int16,
+    np.uint16,
+    np.uint32,
+    np.int32,
+    np.uint64,
+    np.int64,
+    bool,
+    str,
   ]
   if six.PY2:
     dtypes.append(long)  # noqa: F821
@@ -224,7 +236,7 @@ def edit_config(pipeline_config, edit_config_json):
       for obj in objs:
         if '[' in key:
           pos = key.find('[')
-          name, cond = key[:pos], key[pos + 1:]
+          name, cond = key[:pos], key[pos + 1 :]
           cond = cond[:-1]
           update_objs = getattr(obj, name)
           # select all update_objs
@@ -242,7 +254,7 @@ def edit_config(pipeline_config, edit_config_json):
               sid = 0
             else:
               sid = int(sid)
-            eid = cond[(colon_pos + 1):]
+            eid = cond[(colon_pos + 1) :]
             if len(eid) == 0:
               eid = len(update_objs)
             else:
@@ -268,7 +280,7 @@ def edit_config(pipeline_config, edit_config_json):
             '<=': lambda x, y: x <= y,
             '<': lambda x, y: x < y,
             '>': lambda x, y: x > y,
-            '=': lambda x, y: x == y
+            '=': lambda x, y: x == y,
           }
           cond_key = None
           cond_val = None
@@ -277,7 +289,7 @@ def edit_config(pipeline_config, edit_config_json):
             tmp_pos = cond.rfind(op)
             if tmp_pos != -1:
               cond_key = cond[:tmp_pos]
-              cond_val = cond[(tmp_pos + len(op)):]
+              cond_val = cond[(tmp_pos + len(op)) :]
               op_func = op_func_map[op]
               break
 
@@ -285,9 +297,7 @@ def edit_config(pipeline_config, edit_config_json):
           assert cond_val is not None, 'invalid cond: %s' % cond
 
           for tid, update_obj in enumerate(update_objs):
-            tmp, tmp_parent, _, _ = _get_attr(
-              update_obj, cond_key, only_last=True
-            )
+            tmp, tmp_parent, _, _ = _get_attr(update_obj, cond_key, only_last=True)
 
             cond_val = _type_convert(tmp, cond_val, tmp_parent)
 
@@ -381,9 +391,7 @@ def add_boundaries_to_config(pipeline_config, tables):
     if feature_name in feature_boundaries_info:
       if feature_config.feature_type != feature_config.SequenceFeature:
         logging.info(
-          'feature = {0}, type = {1}, will turn to RawFeature.'.format(
-            feature_name, feature_config.feature_type
-          )
+          'feature = {0}, type = {1}, will turn to RawFeature.'.format(feature_name, feature_config.feature_type)
         )
         feature_config.feature_type = feature_config.RawFeature
       feature_config.hash_bucket_size = 0
@@ -408,12 +416,9 @@ def parse_time(time_data):
   Return:
     timestamp: int
   """
-  if isinstance(time_data, str) or isinstance(time_data, type(u'')):
+  if isinstance(time_data, str) or isinstance(time_data, type('')):
     if len(time_data) == 17:
-      return int(
-        datetime.datetime.strptime(time_data,
-                                   '%Y%m%d %H:%M:%S').strftime('%s')
-      )
+      return int(datetime.datetime.strptime(time_data, '%Y%m%d %H:%M:%S').strftime('%s'))
     elif len(time_data) == 10:
       return int(time_data)
     else:
@@ -475,19 +480,12 @@ def get_model_dir_path(pipeline_config):
 def set_train_input_path(pipeline_config, train_input_path):
   if pipeline_config.WhichOneof('train_path') == 'hive_train_input':
     if isinstance(train_input_path, list):
-      assert len(
-        train_input_path
-      ) <= 1, 'only support one hive_train_input.table_name when hive input'
+      assert len(train_input_path) <= 1, 'only support one hive_train_input.table_name when hive input'
       pipeline_config.hive_train_input.table_name = train_input_path[0]
     else:
-      assert len(
-        train_input_path.split(',')
-      ) <= 1, 'only support one hive_train_input.table_name when hive input'
+      assert len(train_input_path.split(',')) <= 1, 'only support one hive_train_input.table_name when hive input'
       pipeline_config.hive_train_input.table_name = train_input_path
-    logging.info(
-      'update hive_train_input.table_name to %s' %
-      pipeline_config.hive_train_input.table_name
-    )
+    logging.info('update hive_train_input.table_name to %s' % pipeline_config.hive_train_input.table_name)
 
   elif pipeline_config.WhichOneof('train_path') == 'kafka_train_input':
     if isinstance(train_input_path, list):
@@ -504,28 +502,19 @@ def set_train_input_path(pipeline_config, train_input_path):
       pipeline_config.train_input_path = ','.join(train_input_path)
     else:
       pipeline_config.train_input_path = train_input_path
-    logging.info(
-      'update train_input_path to %s' % pipeline_config.train_input_path
-    )
+    logging.info('update train_input_path to %s' % pipeline_config.train_input_path)
   return pipeline_config
 
 
 def set_eval_input_path(pipeline_config, eval_input_path):
   if pipeline_config.WhichOneof('eval_path') == 'hive_eval_input':
     if isinstance(eval_input_path, list):
-      assert len(
-        eval_input_path
-      ) <= 1, 'only support one hive_eval_input.table_name when hive input'
+      assert len(eval_input_path) <= 1, 'only support one hive_eval_input.table_name when hive input'
       pipeline_config.hive_eval_input.table_name = eval_input_path[0]
     else:
-      assert len(
-        eval_input_path.split(',')
-      ) <= 1, 'only support one hive_eval_input.table_name when hive input'
+      assert len(eval_input_path.split(',')) <= 1, 'only support one hive_eval_input.table_name when hive input'
       pipeline_config.hive_eval_input.table_name = eval_input_path
-    logging.info(
-      'update hive_eval_input.table_name to %s' %
-      pipeline_config.hive_eval_input.table_name
-    )
+    logging.info('update hive_eval_input.table_name to %s' % pipeline_config.hive_eval_input.table_name)
   elif pipeline_config.WhichOneof('eval_path') == 'parquet_eval_input':
     if isinstance(eval_input_path, list):
       pipeline_config.parquet_eval_input = ','.join(eval_input_path)
@@ -541,9 +530,7 @@ def set_eval_input_path(pipeline_config, eval_input_path):
       pipeline_config.eval_input_path = ','.join(eval_input_path)
     else:
       pipeline_config.eval_input_path = eval_input_path
-    logging.info(
-      'update eval_input_path to %s' % pipeline_config.eval_input_path
-    )
+    logging.info('update eval_input_path to %s' % pipeline_config.eval_input_path)
   return pipeline_config
 
 
@@ -569,47 +556,39 @@ def process_neg_sampler_data_path(pipeline_config):
     return
   hive_util = HiveUtils(
     data_config=pipeline_config.data_config,
-    hive_config=pipeline_config.hive_train_input
+    hive_config=pipeline_config.hive_train_input,
   )
   sampler_type = pipeline_config.data_config.WhichOneof('sampler')
   sampler_config = getattr(pipeline_config.data_config, sampler_type)
   if hasattr(sampler_config, 'input_path'):
-    sampler_config.input_path = process_data_path(
-      sampler_config.input_path, hive_util
-    )
+    sampler_config.input_path = process_data_path(sampler_config.input_path, hive_util)
   if hasattr(sampler_config, 'user_input_path'):
-    sampler_config.user_input_path = process_data_path(
-      sampler_config.user_input_path, hive_util
-    )
+    sampler_config.user_input_path = process_data_path(sampler_config.user_input_path, hive_util)
   if hasattr(sampler_config, 'item_input_path'):
-    sampler_config.item_input_path = process_data_path(
-      sampler_config.item_input_path, hive_util
-    )
+    sampler_config.item_input_path = process_data_path(sampler_config.item_input_path, hive_util)
   if hasattr(sampler_config, 'pos_edge_input_path'):
-    sampler_config.pos_edge_input_path = process_data_path(
-      sampler_config.pos_edge_input_path, hive_util
-    )
+    sampler_config.pos_edge_input_path = process_data_path(sampler_config.pos_edge_input_path, hive_util)
   if hasattr(sampler_config, 'hard_neg_edge_input_path'):
-    sampler_config.hard_neg_edge_input_path = process_data_path(
-      sampler_config.hard_neg_edge_input_path, hive_util
-    )
+    sampler_config.hard_neg_edge_input_path = process_data_path(sampler_config.hard_neg_edge_input_path, hive_util)
 
 
 def parse_extra_config_param(extra_args, edit_config_json):
   arg_num = len(extra_args)
   arg_id = 0
   while arg_id < arg_num:
-    if extra_args[arg_id].startswith('--data_config.') or    \
-       extra_args[arg_id].startswith('--train_config.') or   \
-       extra_args[arg_id].startswith('--feature_config.') or \
-       extra_args[arg_id].startswith('--model_config.') or   \
-       extra_args[arg_id].startswith('--export_config.') or  \
-       extra_args[arg_id].startswith('--eval_config.'):
+    if (
+      extra_args[arg_id].startswith('--data_config.')
+      or extra_args[arg_id].startswith('--train_config.')
+      or extra_args[arg_id].startswith('--feature_config.')
+      or extra_args[arg_id].startswith('--model_config.')
+      or extra_args[arg_id].startswith('--export_config.')
+      or extra_args[arg_id].startswith('--eval_config.')
+    ):
       tmp_arg = extra_args[arg_id][2:]
       if '=' in tmp_arg:
         sep_pos = tmp_arg.find('=')
         k = tmp_arg[:sep_pos]
-        v = tmp_arg[(sep_pos + 1):]
+        v = tmp_arg[(sep_pos + 1) :]
         v = v.strip(' "\'')
         edit_config_json[k] = v
         arg_id += 1
@@ -625,12 +604,8 @@ def parse_extra_config_param(extra_args, edit_config_json):
 
 
 def process_multi_file_input_path(sampler_config_input_path):
-
   if '*' in sampler_config_input_path:
-    input_path = ','.join(
-      file_path
-      for file_path in tf.gfile.Glob(sampler_config_input_path.split(','))
-    )
+    input_path = ','.join(file_path for file_path in tf.gfile.Glob(sampler_config_input_path.split(',')))
   else:
     input_path = sampler_config_input_path
 

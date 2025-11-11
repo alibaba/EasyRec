@@ -16,13 +16,19 @@
 
 import tensorflow as tf
 from tensorflow.python.eager import context
+
 # from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 
-from easy_rec.python.compat.dynamic_variable import DynamicVariable
-
 # from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import array_ops, gradients, resource_variable_ops, state_ops  # NOQA
+from tensorflow.python.ops import (  # NOQA
+  array_ops,
+  gradients,
+  resource_variable_ops,
+  state_ops,
+)
+
+from easy_rec.python.compat.dynamic_variable import DynamicVariable
 
 
 def OptimizerWrapper(optimizer):
@@ -77,13 +83,10 @@ def OptimizerWrapper(optimizer):
 
 
 class OptimizerWrapperV1(object):
-
   def __init__(self, optimizer):
     self._optimizer = optimizer
     # slots
-    unused = tf.Variable(
-      [0.0], dtype=tf.float32, name='unused', trainable=False
-    )
+    unused = tf.Variable([0.0], dtype=tf.float32, name='unused', trainable=False)
     self._optimizer._create_slots([unused])
     names, slots = [], []
     for name in self._optimizer.get_slot_names():
@@ -104,7 +107,7 @@ class OptimizerWrapperV1(object):
     var_list=None,
     aggregation_method=None,
     colocate_gradients_with_ops=False,
-    grad_loss=None
+    grad_loss=None,
   ):
     self._loss = loss
     tmp_grads = gradients.gradients(loss, var_list)
@@ -139,7 +142,7 @@ class OptimizerWrapperV1(object):
               dimension=var.dimension,
               initializer=self._initial_vals[slot_name],
               name='DynamicSlot',
-              trainable=False
+              trainable=False,
             )
         else:
           tmp_config = var.config_dict
@@ -151,7 +154,7 @@ class OptimizerWrapperV1(object):
               var_type=var.backend_type,
               name='DynamicSlot',
               trainable=False,
-              **tmp_config
+              **tmp_config,
             )
 
         self._optimizer._slots[slot_name][key] = slot
@@ -169,12 +172,8 @@ class OptimizerWrapperV1(object):
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
     gradients = grads_and_vars
-    sparse_vars = [
-      x for x in gradients if 'DynamicVariable' in str(type(x[1]))
-    ]
-    dense_vars = [
-      x for x in gradients if 'DynamicVariable' not in str(type(x[1]))
-    ]
+    sparse_vars = [x for x in gradients if 'DynamicVariable' in str(type(x[1]))]
+    dense_vars = [x for x in gradients if 'DynamicVariable' not in str(type(x[1]))]
 
     def _dummy_finish(update_ops, name_scope):
       return update_ops
@@ -184,9 +183,7 @@ class OptimizerWrapperV1(object):
     with ops.control_dependencies([array_ops.identity(self._loss)]):
       sparse_grad_updates = self.apply_sparse_gradients(sparse_vars, name=name)
 
-    dense_grad_updates = self._optimizer.apply_gradients(
-      dense_vars, global_step=None, name=name
-    )
+    dense_grad_updates = self._optimizer.apply_gradients(dense_vars, global_step=None, name=name)
     if sparse_grad_updates is not None and dense_grad_updates is not None:
       grad_updates = sparse_grad_updates + dense_grad_updates
     elif sparse_grad_updates is not None:
@@ -203,7 +200,7 @@ class OptimizerWrapperV1(object):
           apply_updates = resource_variable_ops.assign_add_variable_op(
             global_step.handle,
             ops.convert_to_tensor(1, dtype=global_step.dtype),
-            name=name
+            name=name,
           )
         else:
           apply_updates = state_ops.assign_add(global_step, 1, name=name)
@@ -217,9 +214,7 @@ class OptimizerWrapperV1(object):
 
     return apply_updates
 
-  def apply_sparse_gradients(
-    self, grads_and_vars, global_step=None, name=None
-  ):
+  def apply_sparse_gradients(self, grads_and_vars, global_step=None, name=None):
     # 1. Create slots and do sparse_read
     to_static_ops = []
     grad_list, var_list = [], []
@@ -253,7 +248,7 @@ class OptimizerWrapperV1(object):
                   var_type=v.backend_type,
                   name=tmp_slot_var_name,
                   trainable=False,
-                  **tmp_config
+                  **tmp_config,
                 )
 
             self._optimizer._slots[slot_name][key] = slot
@@ -266,9 +261,7 @@ class OptimizerWrapperV1(object):
 
     # 3. Call tf-optimizer
     with ops.control_dependencies(to_static_ops):
-      train_op = self._optimizer.apply_gradients(
-        zip(grad_list, var_list), global_step=global_step, name=name
-      )
+      train_op = self._optimizer.apply_gradients(zip(grad_list, var_list), global_step=global_step, name=name)
 
     # 5. Write buffer back to dynamic variables
     to_dynamic_ops = []
@@ -286,14 +279,11 @@ class OptimizerWrapperV1(object):
 
 
 class OptimizerWrapperV2(object):
-
   def __init__(self, optimizer):
     self._optimizer = optimizer
     # slots
     if tf.__version__[0] == '1':
-      unused = tf.Variable(
-        [0.0], name='unused', trainable=False, use_resource=True
-      )
+      unused = tf.Variable([0.0], name='unused', trainable=False, use_resource=True)
     else:
       unused = tf.Variable([0.0], name='unused', trainable=False)
     self._optimizer._create_slots([unused])
@@ -342,7 +332,7 @@ class OptimizerWrapperV2(object):
             var_type=var.backend_type,
             name='DynamicSlot',
             trainable=False,
-            **tmp_config
+            **tmp_config,
           )
         self._optimizer._slots[key][slot_name] = slot
 
@@ -396,7 +386,7 @@ class OptimizerWrapperV2(object):
                 var_type=v.backend_type,
                 name='DynamicSlot',
                 trainable=False,
-                **tmp_config
+                **tmp_config,
               )
 
             self._optimizer._slots[key][slot_name] = slot
@@ -413,9 +403,7 @@ class OptimizerWrapperV2(object):
 
     # 3. Call tf-optimizer
     with tf.control_dependencies(to_static_ops):
-      train_op = self._optimizer.apply_gradients(
-        zip(grad_list, var_list), name=name
-      )
+      train_op = self._optimizer.apply_gradients(zip(grad_list, var_list), name=name)
 
     # 4. Switch iterations
     self._optimizer._iterations = iterations
@@ -433,7 +421,6 @@ class OptimizerWrapperV2(object):
 
 
 class SGD(object):
-
   def __init__(self, lr):
     self._lr = tf.Variable(lr)
 
@@ -445,8 +432,6 @@ class SGD(object):
     train_ops = []
     for g, v in grads_and_vars:
       if g is not None:
-        scaled_g = ops.IndexedSlices(
-          g.values * self._lr, g.indices, g.dense_shape
-        )
+        scaled_g = ops.IndexedSlices(g.values * self._lr, g.indices, g.dense_shape)
         train_ops.append(v.scatter_sub(scaled_g))
     return tf.group(train_ops)

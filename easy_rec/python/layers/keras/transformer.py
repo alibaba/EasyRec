@@ -27,9 +27,7 @@ class TransformerBlock(Layer):
     mha_cfg = seq_encoder_pb2.MultiHeadAttention()
     mha_cfg.num_heads = num_heads
     mha_cfg.key_dim = d_model // num_heads
-    mha_cfg.dropout = params.get_or_default(
-      'attention_probs_dropout_prob', 0.0
-    )
+    mha_cfg.dropout = params.get_or_default('attention_probs_dropout_prob', 0.0)
     mha_cfg.return_attention_scores = False
     args = Parameter.make_from_pb(mha_cfg)
     self.mha = MultiHeadAttention(args, 'multi_head_attn')
@@ -66,14 +64,11 @@ def positional_encoding(length, depth):
   depths = np.arange(depth)[np.newaxis, :] / depth  # (1, depth)
   angle_rates = 1 / (10000**depths)  # (1, depth)
   angle_rads = positions * angle_rates  # (pos, depth)
-  pos_encoding = np.concatenate(
-    [np.sin(angle_rads), np.cos(angle_rads)], axis=-1
-  )
+  pos_encoding = np.concatenate([np.sin(angle_rads), np.cos(angle_rads)], axis=-1)
   return tf.cast(pos_encoding, dtype=tf.float32)
 
 
 class PositionalEmbedding(Layer):
-
   def __init__(self, vocab_size, d_model, max_position, name='pos_embedding'):
     super(PositionalEmbedding, self).__init__(name=name)
     self.d_model = d_model
@@ -105,17 +100,11 @@ class TransformerEncoder(Layer):
     max_position = params.get_or_default('max_position_embeddings', 512)
     num_layers = params.get_or_default('num_hidden_layers', 1)
     vocab_size = params.vocab_size
-    logging.info(
-      'vocab size of TransformerEncoder(%s) is %d', name, vocab_size
-    )
-    self.output_all = params.get_or_default(
-      'output_all_token_embeddings', True
-    )
+    logging.info('vocab size of TransformerEncoder(%s) is %d', name, vocab_size)
+    self.output_all = params.get_or_default('output_all_token_embeddings', True)
     self.pos_encoding = PositionalEmbedding(vocab_size, d_model, max_position)
     self.dropout = Dropout(dropout_rate)
-    self.enc_layers = [
-      TransformerBlock(params, 'layer_%d' % i) for i in range(num_layers)
-    ]
+    self.enc_layers = [TransformerBlock(params, 'layer_%d' % i) for i in range(num_layers)]
     self._vocab_size = vocab_size
     self._max_position = max_position
 
@@ -139,7 +128,6 @@ class TransformerEncoder(Layer):
 
 
 class TextEncoder(Layer):
-
   def __init__(self, params, name='text_encoder', reuse=None, **kwargs):
     super(TextEncoder, self).__init__(name=name, **kwargs)
     self.separator = params.get_or_default('separator', ' ')
@@ -154,7 +142,7 @@ class TextEncoder(Layer):
       self.vocab = tf.feature_column.categorical_column_with_vocabulary_file(
         'tokens',
         vocabulary_file=vocab_file,
-        default_value=self.default_token_id
+        default_value=self.default_token_id,
       )
       logging.info('vocab file of TextEncoder(%s) is %s', name, vocab_file)
       trans_params.vocab_size = self.vocab.vocabulary_size
@@ -176,25 +164,23 @@ class TextEncoder(Layer):
     if self.vocab is not None:
       features = {'tokens': tokens}
       token_ids = self.vocab._transform_feature(features)
-      token_ids = tf.sparse.to_dense(
-        token_ids, default_value=self.default_token_id, name='token_ids'
-      )
+      token_ids = tf.sparse.to_dense(token_ids, default_value=self.default_token_id, name='token_ids')
       length = tf.shape(token_ids)[-1]
       token_ids = tf.cond(
-        tf.less_equal(length, self.encoder.max_position), lambda: token_ids,
-        lambda: tf.slice(token_ids, [0, 0], [-1, self.encoder.max_position])
+        tf.less_equal(length, self.encoder.max_position),
+        lambda: token_ids,
+        lambda: tf.slice(token_ids, [0, 0], [-1, self.encoder.max_position]),
       )
       mask = tf.not_equal(token_ids, self.default_token_id, name='mask')
     else:
       tokens = tf.sparse.to_dense(tokens, default_value='')
       length = tf.shape(tokens)[-1]
       tokens = tf.cond(
-        tf.less_equal(length, self.encoder.max_position), lambda: tokens,
-        lambda: tf.slice(tokens, [0, 0], [-1, self.encoder.max_position])
+        tf.less_equal(length, self.encoder.max_position),
+        lambda: tokens,
+        lambda: tf.slice(tokens, [0, 0], [-1, self.encoder.max_position]),
       )
-      token_ids = tf.string_to_hash_bucket_fast(
-        tokens, self.encoder.vocab_size, name='token_ids'
-      )
+      token_ids = tf.string_to_hash_bucket_fast(tokens, self.encoder.vocab_size, name='token_ids')
       mask = tf.not_equal(tokens, '', name='mask')
 
     encoding = self.encoder([token_ids, mask], training=training)

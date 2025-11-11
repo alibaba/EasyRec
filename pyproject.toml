@@ -1,0 +1,52 @@
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310']
+skip-string-normalization = false
+# 注意：Black 不支持 2 空格缩进！Black 强制使用 4 空格
+
+[tool.ruff]
+line-length = 120
+indent-width = 2  # 添加缩进配置
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "E203",  # whitespace before ':' (conflicts with black)
+    "E111",  # indentation is not a multiple of four
+    "E114",  # indentation is not a multiple of four (comment)
+    "E117",  # over-indented
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "E203",  # whitespace before ':' (conflicts with formatter)
+    "E111",  # indentation is not a multiple of four
+    "E114",  # indentation is not a multiple of four (comment)
+    "E117",  # over-indented
+]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+indent = 2  # isort 的缩进配置
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["easy_rec"]

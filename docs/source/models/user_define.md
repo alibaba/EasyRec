@@ -298,12 +298,11 @@ python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config
 增加测试用例到easy_rec/python/test/train_eval_test.py
 
 ```python
-  def test_custom_model(self):
+def test_custom_model(self):
     self._success = test_utils.test_single_train_eval(
-        'samples/model_config/custom_model.config',
-        self._test_dir)
+        "samples/model_config/custom_model.config", self._test_dir
+    )
     self.assertTrue(self._success)
-
 ```
 
 运行CustomModel测试用例

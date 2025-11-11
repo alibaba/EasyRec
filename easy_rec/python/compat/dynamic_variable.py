@@ -21,10 +21,13 @@ from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
 from sparse_operation_kit.experiment.communication import num_gpus
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
+
 # from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import resource_variable_ops
-
-from tensorflow.python.ops.resource_variable_ops import ResourceVariable, variable_accessed  # NOQA
+from tensorflow.python.ops.resource_variable_ops import (  # NOQA
+  ResourceVariable,
+  variable_accessed,
+)
 
 # from tensorflow.python.util import object_identity
 
@@ -97,19 +100,15 @@ class DynamicVariable(ResourceVariable):
     mode=None,
     variable_def=None,
     import_scope=None,
-    **kwargs
+    **kwargs,
   ):
     self._indices = None
     if variable_def is not None:
-      super(DynamicVariable, self)._init_from_proto(
-        variable_def, import_scope=import_scope, validate_shape=False
-      )
+      super(DynamicVariable, self)._init_from_proto(variable_def, import_scope=import_scope, validate_shape=False)
       g = ops.get_default_graph()
       handle = g.as_graph_element(
-        ops.prepend_name_scope(
-          variable_def.variable_name, import_scope=import_scope
-        ),
-        allow_operation=False
+        ops.prepend_name_scope(variable_def.variable_name, import_scope=import_scope),
+        allow_operation=False,
       )
       self._dimension = handle.op.get_attr('shape').dim[-1].size
       self._key_type = handle.op.get_attr('key_type')
@@ -138,9 +137,7 @@ class DynamicVariable(ResourceVariable):
     self._config = json.dumps(kwargs)
     self._config_dict = kwargs
     if var_type == 'hybrid' and self._key_type != tf.int64:
-      raise NotImplementedError(
-        'only key_type tf.int64 is supported in HKV backend'
-      )
+      raise NotImplementedError('only key_type tf.int64 is supported in HKV backend')
     if name is None:
       global dynamic_variable_count
       name = 'sok_dynamic_Variable_' + str(dynamic_variable_count)
@@ -209,21 +206,17 @@ class DynamicVariable(ResourceVariable):
           self._initializer_op = tf.group([self._initializer_op, init_op])
           # self._is_initialized_op = tf.group([self._is_initialized_op, is_initialized_op])
 
-      handle_data = (
-        resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult.
-        HandleData()
-      )
+      handle_data = resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult.HandleData()
       handle_data.is_set = True
       handle_data.shape_and_type.append(
-        resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult.
-        HandleShapeAndType(
+        resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult.HandleShapeAndType(
           shape=self.shape.as_proto(), dtype=self.dtype.as_datatype_enum
         )
       )
       resource_variable_ops._set_handle_shapes_and_types(
         self._handle,
         handle_data,
-        graph_mode=False if context.executing_eagerly() else True
+        graph_mode=False if context.executing_eagerly() else True,
       )
 
   def is_static(self):
@@ -263,9 +256,7 @@ class DynamicVariable(ResourceVariable):
 
   @property
   def size(self):
-    return dynamic_variable_ops.dummy_var_shape(
-      self._dummy_handle, key_type=self._key_type, dtype=self._handle_dtype
-    )
+    return dynamic_variable_ops.dummy_var_shape(self._dummy_handle, key_type=self._key_type, dtype=self._handle_dtype)
 
   @property
   def indices(self):
@@ -324,7 +315,7 @@ class DynamicVariable(ResourceVariable):
       self._dummy_handle,
       indices,
       dtype=self._handle_dtype,
-      lookup_only=lookup_only
+      lookup_only=lookup_only,
     )
 
   def scatter_sub(self, sparse_delta, use_locking=False, name=None):
@@ -377,9 +368,7 @@ class DynamicVariable(ResourceVariable):
   @staticmethod
   def from_proto(variable_def, import_scope=None):
     if '/DummyVarHandle' in variable_def.variable_name:
-      return DynamicVariable(
-        dimension=0, variable_def=variable_def, import_scope=import_scope
-      )
+      return DynamicVariable(dimension=0, variable_def=variable_def, import_scope=import_scope)
     else:
       return _resource_var_from_proto(variable_def, import_scope)
     # raise NotImplementedError("from_proto() is not supported.")
@@ -395,16 +384,12 @@ class DynamicVariable(ResourceVariable):
     return True
     if self.is_static():
       return self._base.is_initialized(name)
-    raise NotImplementedError(
-      'is_initialized() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('is_initialized() is not supported in dynamic mode.')
 
   def _read_variable_op(self):
     if self.is_static():
       return self._base._read_variable_op()
-    raise NotImplementedError(
-      '_read_variable_op() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('_read_variable_op() is not supported in dynamic mode.')
 
   def value(self):
     if self.is_static():
@@ -414,16 +399,12 @@ class DynamicVariable(ResourceVariable):
   def _dense_var_to_tensor(self, *args, **kwargs):
     if self.is_static():
       return self._base._dense_var_to_tensor(*args, **kwargs)
-    raise NotImplementedError(
-      '_dense_var_to_tensor() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('_dense_var_to_tensor() is not supported in dynamic mode.')
 
   def _gather_saveables_for_checkpoint(self):
     if self.is_static():
       return self._base._gather_saveables_for_checkpoint()
-    raise NotImplementedError(
-      '_gather_saveables_for_checkpoint() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('_gather_saveables_for_checkpoint() is not supported in dynamic mode.')
 
   def gather_nd(self, *args, **kwargs):
     if self.is_static():
@@ -443,58 +424,42 @@ class DynamicVariable(ResourceVariable):
   def scatter_max(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_max(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_max() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_max() is not supported in dynamic mode.')
 
   def scatter_min(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_min(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_min() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_min() is not supported in dynamic mode.')
 
   def scatter_mul(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_mul(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_mul() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_mul() is not supported in dynamic mode.')
 
   def scatter_dim(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_dim(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_dim() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_dim() is not supported in dynamic mode.')
 
   def batch_scatter_update(self, *args, **kwargs):
     if self.is_static():
       return self._base.batch_scatter_update(*args, **kwargs)
-    raise NotImplementedError(
-      'batch_scatter_update() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('batch_scatter_update() is not supported in dynamic mode.')
 
   def scatter_nd_sub(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_nd_sub(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_nd_sub() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_nd_sub() is not supported in dynamic mode.')
 
   def scatter_nd_update(self, *args, **kwargs):
     if self.is_static():
       return self._base.scatter_nd_update(*args, **kwargs)
-    raise NotImplementedError(
-      'scatter_nd_update() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('scatter_nd_update() is not supported in dynamic mode.')
 
   def _strided_slice_assign(self, *args, **kwargs):
     if self.is_static():
       return self._base._strided_slice_assign(*args, **kwargs)
-    raise NotImplementedError(
-      '_strided_slice_assign() is not supported in dynamic mode.'
-    )
+    raise NotImplementedError('_strided_slice_assign() is not supported in dynamic mode.')
 
   def __int__(self, *args, **kwargs):
     if self.is_static():
@@ -538,9 +503,7 @@ def export(var):
       the values of the given variable.
   """
   if isinstance(var, DynamicVariable):
-    indices, values = dynamic_variable_ops.dummy_var_export(
-      var.handle, key_type=var.key_type, dtype=var.handle_dtype
-    )
+    indices, values = dynamic_variable_ops.dummy_var_export(var.handle, key_type=var.key_type, dtype=var.handle_dtype)
     with tf.device('CPU'):
       indices = tf.identity(indices)
       values = tf.identity(values)

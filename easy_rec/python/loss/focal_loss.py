@@ -16,7 +16,7 @@ def sigmoid_focal_loss_with_logits(
   ohem_ratio=1.0,
   sample_weights=None,
   label_smoothing=0,
-  name=''
+  name='',
 ):
   """Implements the focal loss function.
 
@@ -81,16 +81,14 @@ def sigmoid_focal_loss_with_logits(
       weights *= sample_weights
 
   if ohem_ratio == 1.0:
-    return tf.losses.sigmoid_cross_entropy(
-      y_true, logits, weights=weights, label_smoothing=label_smoothing
-    )
+    return tf.losses.sigmoid_cross_entropy(y_true, logits, weights=weights, label_smoothing=label_smoothing)
 
   losses = tf.losses.sigmoid_cross_entropy(
     y_true,
     logits,
     weights=weights,
     label_smoothing=label_smoothing,
-    reduction=tf.losses.Reduction.NONE
+    reduction=tf.losses.Reduction.NONE,
   )
   k = tf.to_float(tf.size(losses)) * tf.convert_to_tensor(ohem_ratio)
   k = tf.to_int32(tf.math.rint(k))
