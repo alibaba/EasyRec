@@ -10,7 +10,9 @@ import numpy as np
 import tensorflow as tf
 
 from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.utils import config_util, hpo_util, test_utils
+from easy_rec.python.utils import config_util
+from easy_rec.python.utils import hpo_util
+from easy_rec.python.utils import test_utils
 
 if tf.__version__ >= '2.0':
   import tensorflow.io.gfile as gfile
@@ -26,6 +28,7 @@ else:
 
 
 class HPOTest(tf.test.TestCase):
+
   def __init__(self, methodName='HPOTest'):
     super(HPOTest, self).__init__(methodName=methodName)
     self._metric_data_path = 'data/test/hpo_test/eval_val/*.tfevents.*'
@@ -41,7 +44,8 @@ class HPOTest(tf.test.TestCase):
 
   def test_save_eval_metrics(self):
     test_dir = test_utils.get_tmp_dir()
-    tmp_file = os.path.join(test_dir, 'easy_rec_hpo_test_%d.metric' % time.time())
+    tmp_file = os.path.join(test_dir,
+                            'easy_rec_hpo_test_%d.metric' % time.time())
     hpo_util.save_eval_metrics('data/test/hpo_test/', tmp_file, False)
     test_utils.clean_up(test_dir)
 
@@ -113,8 +117,8 @@ class HPOTest(tf.test.TestCase):
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] >= 'site':
         assert tmp_fea.embedding_dim == 32, 'input_name = %s %d' % (
-          tmp_fea.input_names[0],
-          tmp_fea.embedding_dim,
+            tmp_fea.input_names[0],
+            tmp_fea.embedding_dim,
         )
       else:
         assert tmp_fea.embedding_dim == 16
@@ -126,7 +130,8 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] == 'c21':
-        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] - 10.0) < 1e-5
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       10.0) < 1e-5
 
   def test_edit_config_v71(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
@@ -135,7 +140,8 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] == 'c21':
-        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] - 10.0) < 1e-5
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       10.0) < 1e-5
 
   def test_edit_config_v8(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
@@ -144,7 +150,8 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] == 'c21':
-        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] - 4.0) < 1e-5
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       4.0) < 1e-5
         assert tmp_fea.embedding_dim == 32
 
   def test_edit_config_v81(self):
@@ -170,7 +177,8 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] == 'c21':
-        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] - 4.0) < 1e-5
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       4.0) < 1e-5
         assert tmp_fea.embedding_dim == 32
 
   def test_edit_config_v11(self):
@@ -180,7 +188,8 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] == 'c21':
-        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] - 10.0) < 1e-5
+        assert len(tmp_fea.boundaries) == 4 and np.abs(tmp_fea.boundaries[0] -
+                                                       10.0) < 1e-5
 
   def test_edit_config_v12(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'
@@ -218,7 +227,8 @@ class HPOTest(tf.test.TestCase):
                               }
                               """
     test_dir = test_utils.get_tmp_dir()
-    tmp_file = os.path.join(test_dir, 'easy_rec_hpo_test_%d.metric' % time.time())
+    tmp_file = os.path.join(test_dir,
+                            'easy_rec_hpo_test_%d.metric' % time.time())
     hpo_util.save_eval_metrics('data/test/hpo_test/', tmp_file, False)
     test_utils.clean_up(test_dir)
 

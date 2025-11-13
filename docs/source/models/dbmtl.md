@@ -342,7 +342,7 @@ model_config: {
     - text_multi_head_num: 文本单模态学习模块中的 head 数量，默认为1
     - image_head_size: 单模态学习模块中的图像tower，multi-headed self-attention的每个head的size
     - text_head_size: 单模态学习模块中的文本tower，multi-headed self-attention的每个head的size
-    - image_feature_patch_num: [可选，默认值为1] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
+    - image_feature_patch_num: \[可选，默认值为1\] 当只有一个image feature时生效，表示该图像特征是一个复合embedding，维度为`image_feature_patch_num * embedding_size`。
     - image_self_attention_layer_num: 单模态学习模块中的图像tower，multi-headed self-attention的层数
     - text_self_attention_layer_num: 单模态学习模块中的文本tower，multi-headed self-attention的层数
     - cross_modal_layer_num: 跨模态融合模块的层数，建议设在1到5之间，默认为1
@@ -354,7 +354,7 @@ model_config: {
     - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
     - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
     - text_seq_emb_dropout_prob: 文本序列embedding的dropout概率
-    - other_feature_dnn: [可选] 其他特征的MLP网络配置
+    - other_feature_dnn: \[可选\] 其他特征的MLP网络配置
   - 其余与dbmtl一致
 
 #### DBMTL+UNITER
@@ -461,7 +461,7 @@ model_config: {
     - hidden_dropout_prob: multi-headed attention模块中FC layer的dropout概率
     - use_position_embeddings: bool, default is true；是否为文本序列添加位置编码
     - max_position_embeddings: 文本序列的最大位置，当`use_position_embeddings`为true时，必须配置；并且必须大于或等于所有特征配置`max_seq_len`的最大值
-    - other_feature_dnn: [可选] 其他特征的MLP网络配置
+    - other_feature_dnn: \[可选\] 其他特征的MLP网络配置
 
   - 其余与dbmtl一致
 

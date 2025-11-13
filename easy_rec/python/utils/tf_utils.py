@@ -25,12 +25,12 @@ def get_ps_num_from_tf_config():
 
 def get_tf_type(field_type):
   type_map = {
-    DatasetConfig.INT32: tf.int32,
-    DatasetConfig.INT64: tf.int64,
-    DatasetConfig.STRING: tf.string,
-    DatasetConfig.BOOL: tf.bool,
-    DatasetConfig.FLOAT: tf.float32,
-    DatasetConfig.DOUBLE: tf.double,
+      DatasetConfig.INT32: tf.int32,
+      DatasetConfig.INT64: tf.int64,
+      DatasetConfig.STRING: tf.string,
+      DatasetConfig.BOOL: tf.bool,
+      DatasetConfig.FLOAT: tf.float32,
+      DatasetConfig.DOUBLE: tf.double,
   }
   assert field_type in type_map, 'invalid type: %s' % field_type
   return type_map[field_type]
@@ -38,12 +38,12 @@ def get_tf_type(field_type):
 
 def get_col_type(tf_type):
   type_map = {
-    tf.int32: 'BIGINT',
-    tf.int64: 'BIGINT',
-    tf.string: 'STRING',
-    tf.float32: 'FLOAT',
-    tf.double: 'DOUBLE',
-    tf.bool: 'BOOLEAN',
+      tf.int32: 'BIGINT',
+      tf.int64: 'BIGINT',
+      tf.string: 'STRING',
+      tf.float32: 'FLOAT',
+      tf.double: 'DOUBLE',
+      tf.bool: 'BOOLEAN',
   }
   assert tf_type in type_map, 'invalid type: %s' % tf_type
   return type_map[tf_type]

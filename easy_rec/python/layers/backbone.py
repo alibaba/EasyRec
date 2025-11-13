@@ -7,7 +7,8 @@ import tensorflow as tf
 from google.protobuf import struct_pb2
 
 from easy_rec.python.layers.common_layers import EnhancedInputLayer
-from easy_rec.python.layers.keras import MLP, EmbeddingLayer
+from easy_rec.python.layers.keras import MLP
+from easy_rec.python.layers.keras import EmbeddingLayer
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos import backbone_pb2
 from easy_rec.python.utils.dag import DAG
@@ -64,7 +65,9 @@ class Package(object):
         one_input = block.inputs[0]
         name = one_input.WhichOneof('name')
         if name != 'feature_group_name':
-          raise KeyError('`feature_group_name` should be set for input layer: ' + block.name)
+          raise KeyError(
+              '`feature_group_name` should be set for input layer: ' +
+              block.name)
         group = one_input.feature_group_name
         if not input_layer.has_group(group):
           raise KeyError('invalid feature group name: ' + group)
@@ -82,25 +85,27 @@ class Package(object):
             self._name_to_layer[block.name] = input_fn
         else:
           if layer == 'input_layer':
-            input_fn = EnhancedInputLayer(self._input_layer, self._features, group, reuse)
+            input_fn = EnhancedInputLayer(self._input_layer, self._features,
+                                          group, reuse)
             input_feature_groups[group] = input_fn
           elif layer == 'raw_input':
             input_fn = self._input_layer.get_raw_features(self._features, group)
             input_feature_groups[group] = input_fn
           else:  # embedding_layer
             (
-              inputs,
-              vocab,
-              weights,
-            ) = self._input_layer.get_bucketized_features(self._features, group)
+                inputs,
+                vocab,
+                weights,
+            ) = self._input_layer.get_bucketized_features(
+                self._features, group)
             block.embedding_layer.vocab_size = vocab
             params = Parameter.make_from_pb(block.embedding_layer)
             input_fn = EmbeddingLayer(params, block.name)
             input_feature_groups[group] = (inputs, vocab, weights)
             logging.info(
-              'add an embedding layer %s with vocab size %d',
-              block.name,
-              vocab,
+                'add an embedding layer %s with vocab size %d',
+                block.name,
+                vocab,
             )
           self._name_to_layer[block.name] = input_fn
       else:
@@ -170,21 +175,21 @@ class Package(object):
             num_pkg_input += 1
           else:
             raise KeyError(
-              'invalid input name `%s`, must be the name of either a feature group or an another block' % iname
-            )
+                'invalid input name `%s`, must be the name of either a feature group or an another block'
+                % iname)
     num_groups = len(input_feature_groups)
     assert num_pkg_input > 0 or num_groups > 0, 'there must be at least one input layer/feature group'
 
     if len(config.concat_blocks) == 0 and len(config.output_blocks) == 0:
       leaf = self._dag.all_leaves()
       logging.warning(
-        '%s has no `concat_blocks` or `output_blocks`, try to concat all leaf blocks: %s'
-        % (config.name, ','.join(leaf))
-      )
+          '%s has no `concat_blocks` or `output_blocks`, try to concat all leaf blocks: %s'
+          % (config.name, ','.join(leaf)))
       self._config.concat_blocks.extend(leaf)
 
     Package.__packages[self._config.name] = self
-    logging.info('%s layers: %s' % (config.name, ','.join(self._name_to_layer.keys())))
+    logging.info('%s layers: %s' %
+                 (config.name, ','.join(self._name_to_layer.keys())))
 
   def define_layers(self, layer, layer_cnf, name, reuse):
     if layer == 'keras_layer':
@@ -235,7 +240,8 @@ class Package(object):
             pkg_input = block_outputs[pkg_input_name]
           else:
             if pkg_input_name not in Package.__packages:
-              raise KeyError('package name `%s` does not exists' % pkg_input_name)
+              raise KeyError('package name `%s` does not exists' %
+                             pkg_input_name)
             inner_package = Package.__packages[pkg_input_name]
             pkg_input = inner_package(training)
           if input_node.HasField('package_input_fn'):
@@ -320,7 +326,8 @@ class Package(object):
         block_outputs[block] = input_fn([inputs, weights], is_training)
       else:
         with tf.name_scope(block + '_input'):
-          inputs = self.block_input(config, block_outputs, is_training, **kwargs)
+          inputs = self.block_input(config, block_outputs, is_training,
+                                    **kwargs)
         output = self.call_layer(inputs, config, block, is_training, **kwargs)
         block_outputs[block] = output
 
@@ -351,7 +358,8 @@ class Package(object):
   def load_keras_layer(self, layer_conf, name, reuse=None):
     layer_cls, customize = load_keras_layer(layer_conf.class_name)
     if layer_cls is None:
-      raise ValueError('Invalid keras layer class name: ' + layer_conf.class_name)
+      raise ValueError('Invalid keras layer class name: ' +
+                       layer_conf.class_name)
 
     param_type = layer_conf.WhichOneof('params')
     if customize:
@@ -388,12 +396,14 @@ class Package(object):
       assert param_type == 'st_params', 'internal keras layer only support st_params'
       try:
         kwargs = convert_to_dict(layer_conf.st_params)
-        logging.info('call %s layer with params %r' % (layer_conf.class_name, kwargs))
+        logging.info('call %s layer with params %r' %
+                     (layer_conf.class_name, kwargs))
         layer = layer_cls(name=name, **kwargs)
       except TypeError as e:
         logging.warning(e)
         args = map(format_value, layer_conf.st_params.values())
-        logging.info('try to call %s layer with params %r' % (layer_conf.class_name, args))
+        logging.info('try to call %s layer with params %r' %
+                     (layer_conf.class_name, args))
         layer = layer_cls(*args, name=name)
       return layer, customize
 
@@ -543,7 +553,8 @@ def merge_inputs(inputs, axis=-1, msg=''):
 
   if any(map(lambda x: type(x) == list, inputs)):
     logging.warning('%s: try to merge inputs into list' % msg)
-    return reduce(lambda x, y: x + y, [e if type(e) == list else [e] for e in inputs])
+    return reduce(lambda x, y: x + y,
+                  [e if type(e) == list else [e] for e in inputs])
 
   if axis != -1:
     logging.info('concat inputs %s axis=%d' % (msg, axis))

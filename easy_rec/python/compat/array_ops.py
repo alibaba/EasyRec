@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.framework import constant_op, ops, sparse_tensor
+from tensorflow.python.framework import constant_op
+from tensorflow.python.framework import ops
+from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops import gen_math_ops
 
 
@@ -10,7 +12,8 @@ def convert_to_int_tensor(tensor, name, dtype=tf.int32):
   if tensor.dtype.is_integer:
     tensor = gen_math_ops.cast(tensor, dtype)
   else:
-    raise TypeError('%s must be an integer tensor; dtype=%s' % (name, tensor.dtype))
+    raise TypeError('%s must be an integer tensor; dtype=%s' %
+                    (name, tensor.dtype))
   return tensor
 
 
@@ -55,7 +58,8 @@ def get_positive_axis(axis, ndims):
     elif -ndims <= axis < 0:
       return axis + ndims
     else:
-      raise ValueError('axis=%s out of bounds: expected %s<=axis<%s' % (axis, -ndims, ndims))
+      raise ValueError('axis=%s out of bounds: expected %s<=axis<%s' %
+                       (axis, -ndims, ndims))
   elif axis < 0:
     raise ValueError('axis may only be negative if ndims is statically known.')
   return axis
@@ -69,7 +73,8 @@ def tile_one_dimension(data, axis, multiple):
     multiples[axis] = multiple
   else:
     ones_value = tf.ones(tf.rank(data), tf.int32)
-    multiples = tf.concat([ones_value[:axis], [multiple], ones_value[axis + 1 :]], axis=0)
+    multiples = tf.concat(
+        [ones_value[:axis], [multiple], ones_value[axis + 1:]], axis=0)
   return tf.tile(data, multiples)
 
 
@@ -78,7 +83,8 @@ def _all_dimensions(x):
   # Fast path: avoid creating Rank and Range ops if ndims is known.
   if isinstance(x, ops.Tensor) and x.get_shape().ndims is not None:
     return constant_op.constant(np.arange(x.get_shape().ndims), dtype=tf.int32)
-  if isinstance(x, sparse_tensor.SparseTensor) and x.dense_shape.get_shape().is_fully_defined():
+  if isinstance(x, sparse_tensor.SparseTensor) and x.dense_shape.get_shape(
+  ).is_fully_defined():
     r = x.dense_shape.get_shape().dims[0].value  # sparse.dense_shape is 1-D.
     return constant_op.constant(np.arange(r), dtype=tf.int32)
 
@@ -141,21 +147,24 @@ def repeat_with_axis(data, repeats, axis, name=None):
     if repeats.shape.ndims == 0:
       expanded = tf.expand_dims(data, axis + 1)
       tiled = tile_one_dimension(expanded, axis + 1, repeats)
-      result_shape = tf.concat([data_shape[:axis], [-1], data_shape[axis + 1 :]], axis=0)
+      result_shape = tf.concat([data_shape[:axis], [-1], data_shape[axis + 1:]],
+                               axis=0)
       return tf.reshape(tiled, result_shape)
 
     # Broadcast the `repeats` tensor so rank(repeats) == axis + 1.
     if repeats.shape.ndims != axis + 1:
       repeats_shape = tf.shape(repeats)
       repeats_ndims = tf.rank(repeats)
-      broadcast_shape = tf.concat([data_shape[: axis + 1 - repeats_ndims], repeats_shape], axis=0)
+      broadcast_shape = tf.concat(
+          [data_shape[:axis + 1 - repeats_ndims], repeats_shape], axis=0)
       repeats = tf.broadcast_to(repeats, broadcast_shape)
       repeats.set_shape([None] * (axis + 1))
 
     # Create a "sequence mask" based on `repeats`, where slices across `axis`
     # contain one `True` value for each repetition.  E.g., if
     # `repeats = [3, 1, 2]`, then `mask = [[1, 1, 1], [1, 0, 0], [1, 1, 0]]`.
-    max_repeat = gen_math_ops.maximum(0, gen_math_ops._max(repeats, _all_dimensions(repeats)))
+    max_repeat = gen_math_ops.maximum(
+        0, gen_math_ops._max(repeats, _all_dimensions(repeats)))
     mask = tf.sequence_mask(repeats, max_repeat)
 
     # Add a new dimension around each value that needs to be repeated, and
@@ -171,13 +180,15 @@ def repeat_with_axis(data, repeats, axis, name=None):
     if axis == 0:
       result = masked
     else:
-      result_shape = tf.concat([data_shape[:axis], [-1], data_shape[axis + 1 :]], axis=0)
+      result_shape = tf.concat([data_shape[:axis], [-1], data_shape[axis + 1:]],
+                               axis=0)
       result = tf.reshape(masked, result_shape)
 
     # Preserve shape information.
     if data.shape.ndims is not None:
       new_axis_size = 0 if repeats.shape[0] == 0 else None
-      result.set_shape(data.shape[:axis].concatenate([new_axis_size]).concatenate(data.shape[axis + 1 :]))
+      result.set_shape(data.shape[:axis].concatenate(
+          [new_axis_size]).concatenate(data.shape[axis + 1:]))
 
     return result
 

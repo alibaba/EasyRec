@@ -34,7 +34,7 @@
     - is_multi: id_feature是否是多值属性
       - 默认是false, 转换成EasyRec的config时会转成IdFeature
       - 如果设成true, 转换成EasyRec的config时会转成TagFeature.
-      - 多值分隔符使用chr(29)[ctrl+v ctrl+].
+      - 多值分隔符使用chr(29)\[ctrl+v ctrl+\].
     - num_buckets: 当输入是unsigned int类型的时候，并且输入有界的时候，可以指定num_bucket为输入的最大值.
     - hash_bucket_size: 对应EasyRec feature_config.features的hash_bucket_size。hash_bucket方式是目前RTP唯一支持的embedding方式
     - embedding_dimension/embedding_dim: 对应EasyRec feature_config.features里面的embedding_dim.
@@ -102,13 +102,13 @@
   - [MatchFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/MatchFeature.pdf)
 
     - 双层查找, 根据category和item_id查找value.
-    - match Feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号[,]， 如:
+    - match Feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号\[,\]， 如:
 
     ```
       50011740^107287172:0.2^]36806676:0.3^]122572685:0.5|50006842^16788816:0.1^]10122:0.2^]29889:0.3^]30068:19
     ```
 
-    - needWeighting: 生成特征权重，即kv格式, kv之间用[ctrl+v ctrl+e]分割, 转换成TagFeature.
+    - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
   - [OverLapFeature](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/OverLapFeature.pdf)
 
@@ -120,7 +120,7 @@
     - combiner: 默认是mean, 也可以是sum.
       - 影响数据生成和 EasyRec feature_config 生成, 主要是多值Feature.
     - [多值类型说明](http://easyrec.oss-cn-beijing.aliyuncs.com/fg_docs/%E5%A4%9A%E5%80%BC%E7%B1%BB%E5%9E%8B.pdf)
-      - 多值feature使用chr(29)[ctrl+v ctrl+]\]作为分隔符.
+      - 多值feature使用chr(29)\[ctrl+v ctrl+\]\]作为分隔符.
 
 - 全局配置说明:
 

@@ -12,7 +12,8 @@ import pandas as pd
 import six
 from tensorflow.python.platform import gfile
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 
 def save_np_bin(labels, dense_arr, cate_arr, prefix):
@@ -37,7 +38,8 @@ def save_parquet(labels, dense_arr, cate_arr, prefix):
 
 
 def convert(input_path, prefix, part_record_num, save_format):
-  logging.info('start to convert %s, part_record_num=%d, save_format=%s' % (input_path, part_record_num, save_format))
+  logging.info('start to convert %s, part_record_num=%d, save_format=%s' %
+               (input_path, part_record_num, save_format))
   save_func = save_np_bin
   if save_format == 'parquet':
     save_func = save_parquet
@@ -74,10 +76,10 @@ def convert(input_path, prefix, part_record_num, save_format):
           sid = 0
     if sid > 0:
       save_func(
-        labels[:sid],
-        dense_arr[:sid],
-        cate_arr[:sid],
-        prefix + '_' + str(part_id),
+          labels[:sid],
+          dense_arr[:sid],
+          cate_arr[:sid],
+          prefix + '_' + str(part_id),
       )
       logging.info('\t%s write final part: %d' % (input_path, part_id))
       part_id += 1
@@ -86,7 +88,8 @@ def convert(input_path, prefix, part_record_num, save_format):
     logging.error('convert %s failed: %s' % (input_path, str(ex)))
     logging.error(traceback.format_exc())
     return
-  logging.info('done convert %s, total_line=%d, part_num=%d' % (input_path, total_line, part_id))
+  logging.info('done convert %s, total_line=%d, part_num=%d' %
+               (input_path, total_line, part_id))
 
 
 if __name__ == '__main__':
@@ -105,25 +108,30 @@ if __name__ == '__main__':
   """
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--input_dir', type=str, default=None, help='criteo 1t data dir')
-  parser.add_argument('--save_dir', type=str, default=None, help='criteo binary data output dir ')
   parser.add_argument(
-    '--save_format',
-    type=str,
-    default='npy',
-    help='save format, choices: npy|parquet',
+      '--input_dir', type=str, default=None, help='criteo 1t data dir')
+  parser.add_argument(
+      '--save_dir',
+      type=str,
+      default=None,
+      help='criteo binary data output dir ')
+  parser.add_argument(
+      '--save_format',
+      type=str,
+      default='npy',
+      help='save format, choices: npy|parquet',
   )
   parser.add_argument(
-    '--part_record_num',
-    type=int,
-    default=1024 * 1024 * 8,
-    help='the maximal number of samples in each binary file',
+      '--part_record_num',
+      type=int,
+      default=1024 * 1024 * 8,
+      help='the maximal number of samples in each binary file',
   )
   parser.add_argument(
-    '--dt',
-    nargs='*',
-    type=int,
-    help='select days to convert, default to select all: 0-23',
+      '--dt',
+      nargs='*',
+      type=int,
+      help='select days to convert, default to select all: 0-23',
   )
 
   args = parser.parse_args()
@@ -147,8 +155,8 @@ if __name__ == '__main__':
     input_path = os.path.join(args.input_dir, 'day_%d.gz' % d)
     prefix = os.path.join(args.save_dir, str(d))
     proc = multiprocessing.Process(
-      target=convert,
-      args=(input_path, prefix, args.part_record_num, args.save_format),
+        target=convert,
+        args=(input_path, prefix, args.part_record_num, args.save_format),
     )
     convert(input_path, prefix, args.part_record_num, args.save_format)
     proc.start()

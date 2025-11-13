@@ -3,8 +3,8 @@
 
 import codecs
 import os
-
-from setuptools import find_packages, setup
+from setuptools import find_packages
+from setuptools import setup
 
 
 def readme():
@@ -50,23 +50,23 @@ def parse_requirements(fname='requirements.txt'):
 
 
 setup(
-  name='easy-rec',
-  version=get_version(),
-  description='An easy-to-use framework for Recommendation',
-  doc=readme(),
-  author='EasyRec Team',
-  author_email='easy_rec@alibaba-inc.com',
-  url='https://github.com/alibaba/EasyRec',
-  packages=find_packages(),
-  include_package_data=True,
-  classifiers=[
-    'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 3',
-  ],
-  tests_require=parse_requirements('requirements/tests.txt'),
-  install_requires=parse_requirements('requirements/runtime.txt'),
-  extras_require={
-    'all': parse_requirements('requirements.txt'),
-    'tests': parse_requirements('requirements/tests.txt'),
-  },
+    name='easy-rec',
+    version=get_version(),
+    description='An easy-to-use framework for Recommendation',
+    doc=readme(),
+    author='EasyRec Team',
+    author_email='easy_rec@alibaba-inc.com',
+    url='https://github.com/alibaba/EasyRec',
+    packages=find_packages(),
+    include_package_data=True,
+    classifiers=[
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+    ],
+    tests_require=parse_requirements('requirements/tests.txt'),
+    install_requires=parse_requirements('requirements/runtime.txt'),
+    extras_require={
+        'all': parse_requirements('requirements.txt'),
+        'tests': parse_requirements('requirements/tests.txt'),
+    },
 )

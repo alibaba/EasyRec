@@ -20,31 +20,30 @@ class OdpsInputV3(Input):
   """Common IO based interface, could run at local or on data science."""
 
   def __init__(
-    self,
-    data_config,
-    feature_config,
-    input_path,
-    task_index=0,
-    task_num=1,
-    check_mode=False,
-    pipeline_config=None,
-  ):
-    super(OdpsInputV3, self).__init__(
+      self,
       data_config,
       feature_config,
       input_path,
-      task_index,
-      task_num,
-      check_mode,
-      pipeline_config,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(OdpsInputV3, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
     )
     self._num_epoch = 0
     if common_io is None:
-      logging.error(
-        """
+      logging.error("""
         please install common_io pip install
         https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0.4.2%2Btunnel-py2.py3-none-any.whl"""
-      )
+                    )
       sys.exit(1)
 
   def _parse_table(self, *fields):
@@ -59,30 +58,35 @@ class OdpsInputV3(Input):
     self._num_epoch += 1
     if type(self._input_path) != list:
       self._input_path = self._input_path.split(',')
-    assert len(self._input_path) > 0, 'match no files with %s' % self._input_path
+    assert len(
+        self._input_path) > 0, 'match no files with %s' % self._input_path
 
     # check data_config are consistent with odps tables
     odps_util.check_input_field_and_types(self._data_config)
 
     record_defaults = [
-      self.get_type_defaults(x, v) for x, v in zip(self._input_field_types, self._input_field_defaults)
+        self.get_type_defaults(x, v)
+        for x, v in zip(self._input_field_types, self._input_field_defaults)
     ]
 
     selected_cols = ','.join(self._input_fields)
     for table_path in self._input_path:
       reader = common_io.table.TableReader(
-        table_path,
-        selected_cols=selected_cols,
-        slice_id=self._task_index,
-        slice_count=self._task_num,
+          table_path,
+          selected_cols=selected_cols,
+          slice_id=self._task_index,
+          slice_count=self._task_num,
       )
       total_records_num = reader.get_row_count()
       batch_num = int(total_records_num / self._data_config.batch_size)
       res_num = total_records_num - batch_num * self._data_config.batch_size
-      batch_defaults = [[x] * self._data_config.batch_size for x in record_defaults]
+      batch_defaults = [
+          [x] * self._data_config.batch_size for x in record_defaults
+      ]
       for batch_id in range(batch_num):
         batch_data_np = [x.copy() for x in batch_defaults]
-        for row_id, one_data in enumerate(reader.read(self._data_config.batch_size)):
+        for row_id, one_data in enumerate(
+            reader.read(self._data_config.batch_size)):
           for col_id in range(len(record_defaults)):
             if one_data[col_id] not in ['', 'NULL', None]:
               batch_data_np[col_id][row_id] = one_data[col_id]
@@ -105,31 +109,35 @@ class OdpsInputV3(Input):
     list_shapes = tuple(list_shapes)
 
     # read odps tables
-    dataset = tf.data.Dataset.from_generator(self._odps_read, output_types=list_type, output_shapes=list_shapes)
+    dataset = tf.data.Dataset.from_generator(
+        self._odps_read, output_types=list_type, output_shapes=list_shapes)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       dataset = dataset.shuffle(
-        self._data_config.shuffle_buffer_size,
-        seed=2020,
-        reshuffle_each_iteration=True,
+          self._data_config.shuffle_buffer_size,
+          seed=2020,
+          reshuffle_each_iteration=True,
       )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
 
-    dataset = dataset.map(self._parse_table, num_parallel_calls=self._data_config.num_parallel_calls)
+    dataset = dataset.map(
+        self._parse_table,
+        num_parallel_calls=self._data_config.num_parallel_calls)
 
     # preprocess is necessary to transform data
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
-      map_func=self._preprocess,
-      num_parallel_calls=self._data_config.num_parallel_calls,
+        map_func=self._preprocess,
+        num_parallel_calls=self._data_config.num_parallel_calls,
     )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 
     if mode != tf.estimator.ModeKeys.PREDICT:
-      dataset = dataset.map(lambda x: (self._get_features(x), self._get_labels(x)))
+      dataset = dataset.map(lambda x:
+                            (self._get_features(x), self._get_labels(x)))
     else:
       dataset = dataset.map(lambda x: (self._get_features(x)))
     return dataset

@@ -5,7 +5,8 @@ import os
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
-from easy_rec.python.utils import constant, proto_util
+from easy_rec.python.utils import constant
+from easy_rec.python.utils import proto_util
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

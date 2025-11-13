@@ -2,7 +2,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define filters for restore."""
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
+from abc import abstractmethod
 from enum import Enum
 
 
@@ -31,6 +32,7 @@ class Filter:
 
 
 class KeywordFilter(Filter):
+
   def __init__(self, pattern, exclusive=False):
     """Init KeywordFilter.
 
@@ -50,6 +52,7 @@ class KeywordFilter(Filter):
 
 
 class CombineFilter(Filter):
+
   def __init__(self, filters, logical=Logical.AND):
     """Init CombineFilter.
 

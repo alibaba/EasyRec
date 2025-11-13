@@ -30,7 +30,7 @@ EasyRec implements state of the art machine learning models used in common recom
 ### Simple to config
 
 - Flexible feature config and simple model config
-- Efficient and robust feature generation[used in taobao]
+- Efficient and robust feature generation\[used in taobao\]
 - Nice web interface in development
 
 ### It is smart

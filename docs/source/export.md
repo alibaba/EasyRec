@@ -101,11 +101,11 @@ pai -name easy_rec_ext -project algo_public
   - --asset_files: 需要导出的asset文件路径, 可设置多个, 逗号分隔；
     - 如果需要导出到assets目录的子目录下，使用`${target_path}:${source_path}`的格式；（从版本0.8.7开始支持）
     - e.g. '--asset_files custom_fg_lib/fg.json:oss://${bucket}/path/to/fg.json'
-- 模型导出之后可以使用(EasyRecProcessor)[./predict/在线预测.md]部署到PAI-EAS平台
+- 模型导出之后可以使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS平台
 
 ### 双塔召回模型
 
-如果是双塔召回模型(如dssm, mind等), 模型导出之后, 一般还需要进行模型切分和索引构建, 才能使用(EasyRecProcessor)[./predict/在线预测.md]部署到PAI-EAS上.
+如果是双塔召回模型(如dssm, mind等), 模型导出之后, 一般还需要进行模型切分和索引构建, 才能使用(EasyRecProcessor)\[./predict/在线预测.md\]部署到PAI-EAS上.
 
 #### 模型切分
 

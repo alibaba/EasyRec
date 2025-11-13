@@ -55,21 +55,21 @@ FG模块在推荐系统架构中的位置如下图所示：
 
 FG支持的特征变换算子与EasyRec支持的特征（`Feature Column`）之间没有严格的对应关系，大致可以参加如下表格：
 
-| FG 算子               | EasyRec Feature Column                |
-| :-------------------- | :------------------------------------ |
-| id_feature            | IdFeature 或 TagFeature               |
-| raw_feature           | RawFeature                            |
-| expr_feature          | RawFeature                            |
-| combo_feature         | IdFeature 或 TagFeature               |
+| FG 算子                 | EasyRec Feature Column              |
+| :-------------------- | :---------------------------------- |
+| id_feature            | IdFeature 或 TagFeature              |
+| raw_feature           | RawFeature                          |
+| expr_feature          | RawFeature                          |
+| combo_feature         | IdFeature 或 TagFeature              |
 | lookup_feature        | RawFeature 或 IdFeature 或 TagFeature |
 | match_feature         | RawFeature 或 IdFeature 或 TagFeature |
-| overlap_feature       | RawFeature                            |
-| sequence_feature      | SequenceFeature 或 TagFeature         |
-| bm25_feature          | RawFeature                            |
-| kv_dot_product        | RawFeature                            |
-| tokenize_feature      | TagFeature                            |
-| text_normalizer       | IdFeature                             |
-| regex_replace_feature | IdFeature                             |
+| overlap_feature       | RawFeature                          |
+| sequence_feature      | SequenceFeature 或 TagFeature        |
+| bm25_feature          | RawFeature                          |
+| kv_dot_product        | RawFeature                          |
+| tokenize_feature      | TagFeature                          |
+| text_normalizer       | IdFeature                           |
+| regex_replace_feature | IdFeature                           |
 
 备注：**FG的执行结果输出给EasyRec模型，两种之间是串联的关系**。
 
@@ -111,7 +111,7 @@ pai -name easy_rec_ext
 
 - 参数说明: [请参考](../export.md#pai)
 - 注意事项:
-  - 请检查fg.config, 保证导出的模型是支持多个placeholder的输入[每个特征一个placeholder]
+  - 请检查fg.config, 保证导出的模型是支持多个placeholder的输入\[每个特征一个placeholder\]
 
     ```
     export_config {
@@ -123,7 +123,7 @@ pai -name easy_rec_ext
 
   - 如果有设置feature_config.features.max_partitions, 请加入下面的命令重置:
 
-    - -Dedit_config_json='{"feature_config.features[:].max_partitions":1}'进行修改, 可以获得更好的性能
+    - -Dedit_config_json='{"feature_config.features\[:\].max_partitions":1}'进行修改, 可以获得更好的性能
 
 #### 特征筛选
 
@@ -187,11 +187,11 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
   - tables: item特征存储在hologres表里面, 支持分多个表存储
     - key: 必填, itemId列的名字;
     - value: 可选，需要加载的列名, 多个列名之间用逗号(,)分割;
-    - condition: 可选，where子语句支持筛选item, 如itemId < 10000;
+    - condition: 可选，where子语句支持筛选item, 如itemId \< 10000;
     - timekey: 可选，用于item的增量更新，支持的格式: timestamp和int
     - static: 可选, 表示是静态特征，不用周期性更新
     - 支持多个item表, 如果多张表有重复的列, 后面的表覆盖前面的表
-      - "tables": [{"key":"table1", ...},{"key":"table2", ...}]
+      - "tables": \[{"key":"table1", ...},{"key":"table2", ...}\]
       - 如果多张表有重复的列，后面的表将覆盖前面的表
     - hologres表里面每一列存储一个item特征,示例:
       <table class="docutils" border=1>
@@ -202,7 +202,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
       </table>
   - remote_type: Item特征数据源, 目前支持：`hologres`, `none`
     - hologres：通过SQL接口进行数据读取和写入，适用于海量数据的存储和查询
-    - none: 不使用Item特征缓存，item特征通过请求传入，此时tables应设置为[]
+    - none: 不使用Item特征缓存，item特征通过请求传入，此时tables应设置为\[\]
 - storage: 将oss的模型目录mount到docker的指定目录下
   - mount_path: docker内部的挂载路径, 与示例保持一致即可
   - 配置了storage就不需要配置model_path了

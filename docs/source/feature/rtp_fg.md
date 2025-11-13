@@ -44,7 +44,7 @@
 
       - 如果设成false, 转换成EasyRec的config时会转成IdFeature, 可以减少字符串分割的开销
 
-      - 多值分隔符使用chr(29)[ctrl+v ctrl+], 即"\\u001D".
+      - 多值分隔符使用chr(29)\[ctrl+v ctrl+\], 即"\\u001D".
 
       - [多值类型说明](./fg_docs/mutiValues.md)
 
@@ -132,13 +132,13 @@
 
     - 双层查找, 根据category和item_id查找value.
 
-    - match feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号[,]， 如:
+    - match feature里面多值分隔符可以使用chr(29) (ctrl+v ctrl+\])或者逗号\[,\]， 如:
 
     ```
       50011740^107287172:0.2^]36806676:0.3^]122572685:0.5|50006842^16788816:0.1^]10122:0.2^]29889:0.3^]30068:19
     ```
 
-    - needWeighting: 生成特征权重，即kv格式, kv之间用[ctrl+v ctrl+e]分割, 转换成TagFeature.
+    - needWeighting: 生成特征权重，即kv格式, kv之间用\[ctrl+v ctrl+e\]分割, 转换成TagFeature.
 
   - [sequence_feature](./fg_docs/SequenceFeature.md)
 
@@ -293,7 +293,7 @@ tunnel download taobao_fg_test_out taobao_fg_test_out.txt -fd=';';
 | ----- | ------- | ------- | ------------------------------------------------------------------------------------------------------------- |
 | 0     | 336811  | 100002  | user_id_100002^Bcms_segid_5^Bcms_group_id_2^Bage_level_2^Bpvalue_level_1^Bshopping_level_3^Boccupation_1^B... |
 
-#### 从配置文件[fg.json]生成EasyRec的config
+#### 从配置文件\[fg.json\]生成EasyRec的config
 
 从Git克隆EasyRec
 
@@ -325,7 +325,7 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 - --separator: feature之间的分隔符, 默认是CTRL_B(u0002)
 
-- --selected_cols: 指定输入列，包括label、[sample_weight]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型), 最后一列必须是features, 如:
+- --selected_cols: 指定输入列，包括label、\[sample_weight\]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型), 最后一列必须是features, 如:
 
   ```
   label0,label1,sample_weight,features
@@ -392,7 +392,7 @@ pai -name easy_rec_ext
 
 - 参数说明: [请参考](../export.md#pai)
 - 注意事项:
-  - 请检查fg.config, 保证导出的模型是支持多个placeholder的输入[每个特征一个placeholder]
+  - 请检查fg.config, 保证导出的模型是支持多个placeholder的输入\[每个特征一个placeholder\]
 
     ```
     export_config {
@@ -404,7 +404,7 @@ pai -name easy_rec_ext
 
   - 如果有设置feature_config.features.max_partitions, 请加入下面的命令重置:
 
-    - -Dedit_config_json='{"feature_config.features[:].max_partitions":1}'进行修改, 可以获得更好的性能
+    - -Dedit_config_json='{"feature_config.features\[:\].max_partitions":1}'进行修改, 可以获得更好的性能
 
 #### 增加特征
 
@@ -499,7 +499,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
   - tables: item特征存储在hologres表里面, 支持分多个表存储
     - key: 必填, itemId列的名字;
     - value: 可选，需要加载的列名, 多个列名之间用逗号(,)分割;
-    - condition: 可选，where子语句支持筛选item, 如itemId < 10000;
+    - condition: 可选，where子语句支持筛选item, 如itemId \< 10000;
     - timekey: 可选，用于item的增量更新，支持的格式: timestamp和int
     - static: 可选, 表示是静态特征，不用周期性更新
     - 支持多个item表, 如果多张表有重复的列, 后面的表覆盖前面的表

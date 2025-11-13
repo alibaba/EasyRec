@@ -6,7 +6,10 @@ import logging
 
 import tensorflow as tf
 from tensorflow.python.keras.initializers import Constant
-from tensorflow.python.keras.layers import Dense, Dropout, Lambda, Layer
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Dropout
+from tensorflow.python.keras.layers import Lambda
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers.keras.activation import activation_layer
 from easy_rec.python.layers.utils import Parameter
@@ -43,21 +46,20 @@ class MLP(Layer):
     use_bn_after_act = params.get_or_default('use_bn_after_activation', False)
     units = list(params.hidden_units)
     logging.info(
-      'MLP(%s) units: %s, dropout: %r, activate=%s, use_bn=%r, final_bn=%r,'
-      ' final_activate=%s, bias=%r, initializer=%s, bn_after_activation=%r'
-      % (
-        name,
-        units,
-        dropout_rate,
-        activation,
-        use_bn,
-        use_final_bn,
-        final_activation,
-        use_bias,
-        initializer,
-        use_bn_after_act,
-      )
-    )
+        'MLP(%s) units: %s, dropout: %r, activate=%s, use_bn=%r, final_bn=%r,'
+        ' final_activate=%s, bias=%r, initializer=%s, bn_after_activation=%r' %
+        (
+            name,
+            units,
+            dropout_rate,
+            activation,
+            use_bn,
+            use_final_bn,
+            final_activation,
+            use_bias,
+            initializer,
+            use_bn_after_act,
+        ))
     assert len(units) > 0, 'MLP(%s) takes at least one hidden units' % name
     self.reuse = reuse
     self.add_to_outputs = params.get_or_default('add_to_outputs', False)
@@ -68,64 +70,65 @@ class MLP(Layer):
       name = 'layer_%d' % i
       drop_rate = dropout_rate[i] if i < num_dropout else 0.0
       self.add_rich_layer(
-        num_units,
-        use_bn,
-        drop_rate,
-        activation,
-        initializer,
-        use_bias,
-        use_bn_after_act,
-        name,
-        params.l2_regularizer,
+          num_units,
+          use_bn,
+          drop_rate,
+          activation,
+          initializer,
+          use_bias,
+          use_bn_after_act,
+          name,
+          params.l2_regularizer,
       )
 
     n = len(units) - 1
     drop_rate = dropout_rate[n] if num_dropout > n else 0.0
     name = 'layer_%d' % n
     self.add_rich_layer(
-      units[-1],
-      use_final_bn,
-      drop_rate,
-      final_activation,
-      initializer,
-      use_final_bias,
-      use_bn_after_act,
-      name,
-      params.l2_regularizer,
+        units[-1],
+        use_final_bn,
+        drop_rate,
+        final_activation,
+        initializer,
+        use_final_bias,
+        use_bn_after_act,
+        name,
+        params.l2_regularizer,
     )
 
   def add_rich_layer(
-    self,
-    num_units,
-    use_bn,
-    dropout_rate,
-    activation,
-    initializer,
-    use_bias,
-    use_bn_after_activation,
-    name,
-    l2_reg=None,
+      self,
+      num_units,
+      use_bn,
+      dropout_rate,
+      activation,
+      initializer,
+      use_bias,
+      use_bn_after_activation,
+      name,
+      l2_reg=None,
   ):
     act_layer = activation_layer(activation, name='%s/act' % name)
     if use_bn and not use_bn_after_activation:
       dense = Dense(
-        units=num_units,
-        use_bias=use_bias,
-        kernel_initializer=initializer,
-        kernel_regularizer=l2_reg,
-        name='%s/dense' % name,
+          units=num_units,
+          use_bias=use_bias,
+          kernel_initializer=initializer,
+          kernel_regularizer=l2_reg,
+          name='%s/dense' % name,
       )
       self._sub_layers.append(dense)
-      bn = tf.keras.layers.BatchNormalization(name='%s/bn' % name, trainable=True)
+      bn = tf.keras.layers.BatchNormalization(
+          name='%s/bn' % name, trainable=True)
       self._sub_layers.append(bn)
       self._sub_layers.append(act_layer)
     else:
       dense = Dense(
-        num_units,
-        use_bias=use_bias,
-        kernel_initializer=initializer,
-        kernel_regularizer=l2_reg,
-        name='%s/dense' % name,
+          num_units,
+          use_bias=use_bias,
+          kernel_initializer=initializer,
+          kernel_regularizer=l2_reg,
+          name='%s/dense' % name,
       )
       self._sub_layers.append(dense)
       self._sub_layers.append(act_layer)
@@ -157,6 +160,7 @@ class MLP(Layer):
 
 
 class Highway(Layer):
+
   def __init__(self, params, name='highway', reuse=None, **kwargs):
     super(Highway, self).__init__(name=name, **kwargs)
     self.emb_size = params.get_or_default('emb_size', None)
@@ -165,7 +169,8 @@ class Highway(Layer):
     self.dropout_rate = params.get_or_default('dropout_rate', 0.0)
     self.init_gate_bias = params.get_or_default('init_gate_bias', -3.0)
     self.act_layer = activation_layer(self.activation)
-    self.dropout_layer = Dropout(self.dropout_rate) if self.dropout_rate > 0.0 else None
+    self.dropout_layer = Dropout(
+        self.dropout_rate) if self.dropout_rate > 0.0 else None
     self.project_layer = None
     self.gate_bias_initializer = Constant(self.init_gate_bias)
     self.gates = []  # T
@@ -181,10 +186,10 @@ class Highway(Layer):
     self.carry_gate = Lambda(lambda x: 1.0 - x, output_shape=(dim,))
     for i in range(self.num_layers):
       gate = Dense(
-        units=dim,
-        bias_initializer=self.gate_bias_initializer,
-        activation='sigmoid',
-        name='gate_%d' % i,
+          units=dim,
+          bias_initializer=self.gate_bias_initializer,
+          activation='sigmoid',
+          name='gate_%d' % i,
       )
       self.gates.append(gate)
       self.transforms.append(Dense(units=dim))
@@ -218,7 +223,9 @@ class Gate(Layer):
       self.top_mlp = None
 
   def call(self, inputs, training=None, **kwargs):
-    assert len(inputs) > 1, 'input of Gate layer must be a list containing at least 2 elements'
+    assert len(
+        inputs
+    ) > 1, 'input of Gate layer must be a list containing at least 2 elements'
     weights = inputs[self.weight_index]
     j = 0
     for i, x in enumerate(inputs):
@@ -246,15 +253,17 @@ class TextCNN(Layer):
     self.config = params.get_pb_config()
     self.pad_seq_length = self.config.pad_sequence_length
     if self.pad_seq_length <= 0:
-      logging.warning('run text cnn with pad_sequence_length <= 0, the predict of model may be unstable')
+      logging.warning(
+          'run text cnn with pad_sequence_length <= 0, the predict of model may be unstable'
+      )
     self.conv_layers = []
     self.pool_layer = tf.keras.layers.GlobalMaxPool1D()
     self.concat_layer = tf.keras.layers.Concatenate(axis=-1)
     for size, filters in zip(self.config.filter_sizes, self.config.num_filters):
       conv = tf.keras.layers.Conv1D(
-        filters=int(filters),
-        kernel_size=int(size),
-        activation=self.config.activation,
+          filters=int(filters),
+          kernel_size=int(size),
+          activation=self.config.activation,
       )
       self.conv_layers.append(conv)
     if self.config.HasField('mlp'):
@@ -271,7 +280,8 @@ class TextCNN(Layer):
     seq_emb, seq_len = inputs[:2]
 
     if self.pad_seq_length > 0:
-      seq_emb, seq_len = pad_or_truncate_sequence(seq_emb, seq_len, self.pad_seq_length)
+      seq_emb, seq_len = pad_or_truncate_sequence(seq_emb, seq_len,
+                                                  self.pad_seq_length)
     pooled_outputs = []
     for layer in self.conv_layers:
       conv = layer(seq_emb)

@@ -16,34 +16,28 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile
 from tensorflow.python.saved_model import signature_constants
-from tensorflow.python.training import basic_session_run_hooks, saver
+from tensorflow.python.training import basic_session_run_hooks
+from tensorflow.python.training import saver
 
 from easy_rec.python.builders import optimizer_builder
-from easy_rec.python.compat import optimizers, sync_replicas_optimizer
-from easy_rec.python.compat.early_stopping import (  # NOQA
-  custom_early_stop_hook,
-  deadline_stop_hook,
-  find_early_stop_var,
-  oss_stop_hook,
-  stop_if_no_decrease_hook,
-  stop_if_no_increase_hook,
-)
-from easy_rec.python.compat.embedding_parallel_saver import (  # NOQA
-  EmbeddingParallelSaver,
-)
+from easy_rec.python.compat import optimizers
+from easy_rec.python.compat import sync_replicas_optimizer
 from easy_rec.python.compat.ops import GraphKeys
 from easy_rec.python.input.input import Input
 from easy_rec.python.layers.utils import _tensor_to_tensorinfo
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
-from easy_rec.python.utils import (  # NOQA
-  constant,
-  embedding_utils,
-  estimator_utils,
-  hvd_utils,
-  pai_util,
-)
 from easy_rec.python.utils.multi_optimizer import MultiOptimizer
+
+from easy_rec.python.compat.early_stopping import (  # NOQA
+    custom_early_stop_hook, deadline_stop_hook, find_early_stop_var,
+    oss_stop_hook, stop_if_no_decrease_hook, stop_if_no_increase_hook,
+)
+from easy_rec.python.compat.embedding_parallel_saver import (  # NOQA
+    EmbeddingParallelSaver,)
+from easy_rec.python.utils import (  # NOQA
+    constant, embedding_utils, estimator_utils, hvd_utils, pai_util,
+)
 
 try:
   import horovod.tensorflow as hvd
@@ -64,45 +58,59 @@ tf.estimator.Estimator._assert_members_are_not_overridden = lambda x: x
 
 
 class EasyRecEstimator(tf.estimator.Estimator):
+
   def __init__(self, pipeline_config, model_cls, run_config, params):
     self._pipeline_config = pipeline_config
     self._model_cls = model_cls
     assert isinstance(self._pipeline_config, EasyRecConfig)
 
     super(EasyRecEstimator, self).__init__(
-      model_fn=self._model_fn,
-      model_dir=pipeline_config.model_dir,
-      config=run_config,
-      params=params,
+        model_fn=self._model_fn,
+        model_dir=pipeline_config.model_dir,
+        config=run_config,
+        params=params,
     )
 
-  def evaluate(self, input_fn, steps=None, hooks=None, checkpoint_path=None, name=None):
+  def evaluate(self,
+               input_fn,
+               steps=None,
+               hooks=None,
+               checkpoint_path=None,
+               name=None):
     # support for datahub/kafka offset restore
     input_fn.input_creator.restore(checkpoint_path)
-    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks, checkpoint_path, name)
+    return super(EasyRecEstimator, self).evaluate(input_fn, steps, hooks,
+                                                  checkpoint_path, name)
 
-  def train(self, input_fn, hooks=None, steps=None, max_steps=None, saving_listeners=None):
+  def train(self,
+            input_fn,
+            hooks=None,
+            steps=None,
+            max_steps=None,
+            saving_listeners=None):
     # support for datahub/kafka offset restore
     checkpoint_path = estimator_utils.latest_checkpoint(self.model_dir)
     if checkpoint_path is not None:
       input_fn.input_creator.restore(checkpoint_path)
     elif self.train_config.HasField('fine_tune_checkpoint'):
       fine_tune_ckpt = self.train_config.fine_tune_checkpoint
-      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt + '/'):
+      if fine_tune_ckpt.endswith('/') or gfile.IsDirectory(fine_tune_ckpt +
+                                                           '/'):
         fine_tune_ckpt = estimator_utils.latest_checkpoint(fine_tune_ckpt)
         print(
-          'fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s'
-          % (self.train_config.fine_tune_checkpoint, fine_tune_ckpt)
-        )
+            'fine_tune_checkpoint[%s] is directory,  will use the latest checkpoint: %s'
+            % (self.train_config.fine_tune_checkpoint, fine_tune_ckpt))
         self.train_config.fine_tune_checkpoint = fine_tune_ckpt
         input_fn.input_creator.restore(fine_tune_ckpt)
-    return super(EasyRecEstimator, self).train(input_fn, hooks, steps, max_steps, saving_listeners)
+    return super(EasyRecEstimator, self).train(input_fn, hooks, steps,
+                                               max_steps, saving_listeners)
 
   @property
   def feature_configs(self):
     if len(self._pipeline_config.feature_configs) > 0:
       return self._pipeline_config.feature_configs
-    elif self._pipeline_config.feature_config and len(self._pipeline_config.feature_config.features) > 0:
+    elif self._pipeline_config.feature_config and len(
+        self._pipeline_config.feature_config.features) > 0:
       return self._pipeline_config.feature_config.features
     else:
       assert False, 'One of feature_configs and feature_config.features must be configured.'
@@ -121,7 +129,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
   @property
   def incr_save_config(self):
-    return self.train_config.incr_save_config if self.train_config.HasField('incr_save_config') else None
+    return self.train_config.incr_save_config if self.train_config.HasField(
+        'incr_save_config') else None
 
   @property
   def export_config(self):
@@ -130,8 +139,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
   @property
   def embedding_parallel(self):
     return self.train_config.train_distribute in (
-      DistributionStrategy.SokStrategy,
-      DistributionStrategy.EmbeddingParallelStrategy,
+        DistributionStrategy.SokStrategy,
+        DistributionStrategy.EmbeddingParallelStrategy,
     )
 
   @property
@@ -145,21 +154,30 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
   def _train_model_fn(self, features, labels, run_config):
     tf.keras.backend.set_learning_phase(1)
-    model = self._model_cls(self.model_config, self.feature_configs, features, labels, is_training=True)
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels,
+        is_training=True)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
 
-    regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    regularization_losses = tf.get_collection(
+        tf.GraphKeys.REGULARIZATION_LOSSES)
     if regularization_losses:
       regularization_losses = [
-        reg_loss.get() if hasattr(reg_loss, 'get') else reg_loss for reg_loss in regularization_losses
+          reg_loss.get() if hasattr(reg_loss, 'get') else reg_loss
+          for reg_loss in regularization_losses
       ]
-      regularization_losses = tf.add_n(regularization_losses, name='regularization_loss')
+      regularization_losses = tf.add_n(
+          regularization_losses, name='regularization_loss')
       loss_dict['regularization_loss'] = regularization_losses
 
     variational_dropout_loss = tf.get_collection('variational_dropout_loss')
     if variational_dropout_loss:
-      variational_dropout_loss = tf.add_n(variational_dropout_loss, name='variational_dropout_loss')
+      variational_dropout_loss = tf.add_n(
+          variational_dropout_loss, name='variational_dropout_loss')
       loss_dict['variational_dropout_loss'] = variational_dropout_loss
 
     loss = tf.add_n(list(loss_dict.values()))
@@ -170,13 +188,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if Input.DATA_OFFSET in features:
       task_index, task_num = estimator_utils.get_task_index_and_num()
       data_offset_var = tf.get_variable(
-        name=Input.DATA_OFFSET,
-        dtype=tf.string,
-        shape=[task_num],
-        collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
-        trainable=False,
+          name=Input.DATA_OFFSET,
+          dtype=tf.string,
+          shape=[task_num],
+          collections=[tf.GraphKeys.GLOBAL_VARIABLES, Input.DATA_OFFSET],
+          trainable=False,
       )
-      update_offset = tf.assign(data_offset_var[task_index], features[Input.DATA_OFFSET])
+      update_offset = tf.assign(data_offset_var[task_index],
+                                features[Input.DATA_OFFSET])
       ops.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_offset)
     else:
       data_offset_var = None
@@ -188,7 +207,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
       global_vars = {x.name: x for x in tf.global_variables()}
       for x in update_ops:
         if isinstance(x, ops.Operation) and x.inputs[0].name in global_vars:
-          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, global_vars[x.inputs[0].name])
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
+                                global_vars[x.inputs[0].name])
       update_op = tf.group(*update_ops, name='update_barrier')
       with tf.control_dependencies([update_op]):
         loss = tf.identity(loss, name='total_loss')
@@ -208,12 +228,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
         all_opts.append(opt)
       grouped_vars = model.get_grouped_vars(len(all_opts))
       assert len(grouped_vars) == len(optimizer_config), (
-        'the number of var group(%d) != the number of optimizers(%d)'
-        % (
-          len(grouped_vars),
-          len(optimizer_config),
-        )
-      )
+          'the number of var group(%d) != the number of optimizers(%d)' % (
+              len(grouped_vars),
+              len(optimizer_config),
+          ))
       optimizer = MultiOptimizer(all_opts, grouped_vars)
 
     if self.train_config.train_distribute == DistributionStrategy.SokStrategy:
@@ -227,56 +245,57 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     # for distributed and synced training
     if self.train_config.sync_replicas and run_config.num_worker_replicas > 1:
-      logging.info('sync_replicas: num_worker_replias = %d' % run_config.num_worker_replicas)
+      logging.info('sync_replicas: num_worker_replias = %d' %
+                   run_config.num_worker_replicas)
       if pai_util.is_on_pai():
         optimizer = tf.train.SyncReplicasOptimizer(
-          optimizer,
-          replicas_to_aggregate=run_config.num_worker_replicas,
-          total_num_replicas=run_config.num_worker_replicas,
-          sparse_accumulator_type=self.train_config.sparse_accumulator_type,
+            optimizer,
+            replicas_to_aggregate=run_config.num_worker_replicas,
+            total_num_replicas=run_config.num_worker_replicas,
+            sparse_accumulator_type=self.train_config.sparse_accumulator_type,
         )
       else:
         optimizer = sync_replicas_optimizer.SyncReplicasOptimizer(
-          optimizer,
-          replicas_to_aggregate=run_config.num_worker_replicas,
-          total_num_replicas=run_config.num_worker_replicas,
+            optimizer,
+            replicas_to_aggregate=run_config.num_worker_replicas,
+            total_num_replicas=run_config.num_worker_replicas,
         )
-      hooks.append(optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
+      hooks.append(
+          optimizer.make_session_run_hook(run_config.is_chief, num_tokens=0))
 
     # add barrier for no strategy case
     if run_config.num_worker_replicas > 1 and self.train_config.train_distribute == DistributionStrategy.NoStrategy:
-      hooks.append(estimator_utils.ExitBarrierHook(run_config.num_worker_replicas, run_config.is_chief, self.model_dir))
+      hooks.append(
+          estimator_utils.ExitBarrierHook(run_config.num_worker_replicas,
+                                          run_config.is_chief, self.model_dir))
 
     if self.export_config.enable_early_stop:
       eval_dir = os.path.join(self._model_dir, 'eval_val')
       logging.info('will use early stop, eval_events_dir=%s' % eval_dir)
       if self.export_config.HasField('early_stop_func'):
         hooks.append(
-          custom_early_stop_hook(
-            self,
-            eval_dir=eval_dir,
-            custom_stop_func=self.export_config.early_stop_func,
-            custom_stop_func_params=self.export_config.early_stop_params,
-          )
-        )
+            custom_early_stop_hook(
+                self,
+                eval_dir=eval_dir,
+                custom_stop_func=self.export_config.early_stop_func,
+                custom_stop_func_params=self.export_config.early_stop_params,
+            ))
       elif self.export_config.metric_bigger:
         hooks.append(
-          stop_if_no_increase_hook(
-            self,
-            self.export_config.best_exporter_metric,
-            self.export_config.max_check_steps,
-            eval_dir=eval_dir,
-          )
-        )
+            stop_if_no_increase_hook(
+                self,
+                self.export_config.best_exporter_metric,
+                self.export_config.max_check_steps,
+                eval_dir=eval_dir,
+            ))
       else:
         hooks.append(
-          stop_if_no_decrease_hook(
-            self,
-            self.export_config.best_exporter_metric,
-            self.export_config.max_check_steps,
-            eval_dir=eval_dir,
-          )
-        )
+            stop_if_no_decrease_hook(
+                self,
+                self.export_config.best_exporter_metric,
+                self.export_config.max_check_steps,
+                eval_dir=eval_dir,
+            ))
 
     if self.train_config.enable_oss_stop_signal:
       hooks.append(oss_stop_hook(self))
@@ -293,11 +312,14 @@ class EasyRecEstimator(tf.estimator.Estimator):
       gradient_clipping_by_norm = None
 
     gradient_multipliers = None
-    if self.train_config.optimizer_config[0].HasField('embedding_learning_rate_multiplier'):
+    if self.train_config.optimizer_config[0].HasField(
+        'embedding_learning_rate_multiplier'):
       gradient_multipliers = {
-        var: self.train_config.optimizer_config[0].embedding_learning_rate_multiplier
-        for var in tf.trainable_variables()
-        if 'embedding_weights:' in var.name or '/embedding_weights/part_' in var.name
+          var: self.train_config.optimizer_config[0]
+          .embedding_learning_rate_multiplier
+          for var in tf.trainable_variables()
+          if 'embedding_weights:' in var.name or
+          '/embedding_weights/part_' in var.name
       }
 
     # optimize loss
@@ -321,19 +343,20 @@ class EasyRecEstimator(tf.estimator.Estimator):
       logging.info('embedding_parallel is enabled')
 
     train_op = optimizers.optimize_loss(
-      loss=loss,
-      global_step=tf.train.get_global_step(),
-      learning_rate=None,
-      clip_gradients=gradient_clipping_by_norm,
-      optimizer=optimizer,
-      gradient_multipliers=gradient_multipliers,
-      variables=all_train_vars,
-      summaries=summaries,
-      colocate_gradients_with_ops=True,
-      not_apply_grad_after_first_step=run_config.is_chief and self._pipeline_config.data_config.chief_redundant,
-      name='',  # Preventing scope prefix on all variables.
-      incr_save=(self.incr_save_config is not None),
-      embedding_parallel=self.embedding_parallel,
+        loss=loss,
+        global_step=tf.train.get_global_step(),
+        learning_rate=None,
+        clip_gradients=gradient_clipping_by_norm,
+        optimizer=optimizer,
+        gradient_multipliers=gradient_multipliers,
+        variables=all_train_vars,
+        summaries=summaries,
+        colocate_gradients_with_ops=True,
+        not_apply_grad_after_first_step=run_config.is_chief and
+        self._pipeline_config.data_config.chief_redundant,
+        name='',  # Preventing scope prefix on all variables.
+        incr_save=(self.incr_save_config is not None),
+        embedding_parallel=self.embedding_parallel,
     )
 
     # online evaluation
@@ -347,7 +370,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
           tf.summary.scalar('%s/batch' % k, v[1])
       train_op = tf.group([train_op] + list(metric_update_op_dict.values()))
       if estimator_utils.is_chief():
-        hooks.append(estimator_utils.OnlineEvaluationHook(metric_dict=metric_dict, output_dir=self.model_dir))
+        hooks.append(
+            estimator_utils.OnlineEvaluationHook(
+                metric_dict=metric_dict, output_dir=self.model_dir))
 
     if self.train_config.HasField('fine_tune_checkpoint'):
       fine_tune_ckpt = self.train_config.fine_tune_checkpoint
@@ -355,10 +380,10 @@ class EasyRecEstimator(tf.estimator.Estimator):
       fine_tune_ckpt_var_map = self.train_config.fine_tune_ckpt_var_map
       force_restore = self.train_config.force_restore_shape_compatible
       restore_hook = model.restore(
-        fine_tune_ckpt,
-        include_global_step=False,
-        ckpt_var_map_path=fine_tune_ckpt_var_map,
-        force_restore_shape_compatible=force_restore,
+          fine_tune_ckpt,
+          include_global_step=False,
+          ckpt_var_map_path=fine_tune_ckpt_var_map,
+          force_restore_shape_compatible=force_restore,
       )
       if restore_hook is not None:
         hooks.append(restore_hook)
@@ -373,22 +398,24 @@ class EasyRecEstimator(tf.estimator.Estimator):
 
     log_step_count_steps = self.train_config.log_step_count_steps
     logging_hook = basic_session_run_hooks.LoggingTensorHook(
-      logging_dict,
-      every_n_iter=log_step_count_steps,
-      formatter=estimator_utils.tensor_log_format_func,
+        logging_dict,
+        every_n_iter=log_step_count_steps,
+        formatter=estimator_utils.tensor_log_format_func,
     )
     hooks.append(logging_hook)
 
     if self.train_config.train_distribute in [
-      DistributionStrategy.CollectiveAllReduceStrategy,
-      DistributionStrategy.MirroredStrategy,
-      DistributionStrategy.MultiWorkerMirroredStrategy,
+        DistributionStrategy.CollectiveAllReduceStrategy,
+        DistributionStrategy.MirroredStrategy,
+        DistributionStrategy.MultiWorkerMirroredStrategy,
     ]:
       # for multi worker strategy, we could not replace the
       # inner CheckpointSaverHook, so just use it.
       scaffold = tf.train.Scaffold()
     else:
-      var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) + tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS)
+      var_list = tf.get_collection(
+          tf.GraphKeys.GLOBAL_VARIABLES) + tf.get_collection(
+              tf.GraphKeys.SAVEABLE_OBJECTS)
 
       # exclude data_offset_var
       var_list = [x for x in var_list if x != data_offset_var]
@@ -397,7 +424,9 @@ class EasyRecEstimator(tf.estimator.Estimator):
       early_stop_var = find_early_stop_var(var_list)
       var_list = [x for x in var_list if x != early_stop_var]
 
-      initialize_var_list = [x for x in var_list if 'WorkQueue' not in str(type(x))]
+      initialize_var_list = [
+          x for x in var_list if 'WorkQueue' not in str(type(x))
+      ]
 
       # incompatiable shape restore will not be saved in checkpoint
       # but must be able to restore from checkpoint
@@ -409,53 +438,61 @@ class EasyRecEstimator(tf.estimator.Estimator):
       if early_stop_var is not None and estimator_utils.is_chief():
         local_init_ops.append(tf.initializers.variables([early_stop_var]))
       if len(incompatiable_shape_restore) > 0:
-        local_init_ops.append(tf.initializers.variables(incompatiable_shape_restore))
+        local_init_ops.append(
+            tf.initializers.variables(incompatiable_shape_restore))
 
       scaffold = tf.train.Scaffold(
-        saver=self.saver_cls(
-          var_list=var_list,
-          sharded=True,
-          max_to_keep=self.train_config.keep_checkpoint_max,
-          save_relative_paths=True,
-        ),
-        local_init_op=tf.group(local_init_ops),
-        ready_for_local_init_op=tf.report_uninitialized_variables(var_list=initialize_var_list),
+          saver=self.saver_cls(
+              var_list=var_list,
+              sharded=True,
+              max_to_keep=self.train_config.keep_checkpoint_max,
+              save_relative_paths=True,
+          ),
+          local_init_op=tf.group(local_init_ops),
+          ready_for_local_init_op=tf.report_uninitialized_variables(
+              var_list=initialize_var_list),
       )
       # saver hook
       saver_hook = estimator_utils.CheckpointSaverHook(
-        checkpoint_dir=self.model_dir,
-        save_secs=self._config.save_checkpoints_secs,
-        save_steps=self._config.save_checkpoints_steps,
-        scaffold=scaffold,
-        write_graph=self.train_config.write_graph,
-        data_offset_var=data_offset_var,
-        increment_save_config=self.incr_save_config,
+          checkpoint_dir=self.model_dir,
+          save_secs=self._config.save_checkpoints_secs,
+          save_steps=self._config.save_checkpoints_steps,
+          scaffold=scaffold,
+          write_graph=self.train_config.write_graph,
+          data_offset_var=data_offset_var,
+          increment_save_config=self.incr_save_config,
       )
       if estimator_utils.is_chief() or self.embedding_parallel:
         hooks.append(saver_hook)
       if estimator_utils.is_chief():
         hooks.append(
-          basic_session_run_hooks.StepCounterHook(every_n_steps=log_step_count_steps, output_dir=self.model_dir)
-        )
+            basic_session_run_hooks.StepCounterHook(
+                every_n_steps=log_step_count_steps, output_dir=self.model_dir))
 
     # profiling hook
     if self.train_config.is_profiling and estimator_utils.is_chief():
-      profile_hook = tf.train.ProfilerHook(save_steps=log_step_count_steps, output_dir=self.model_dir)
+      profile_hook = tf.train.ProfilerHook(
+          save_steps=log_step_count_steps, output_dir=self.model_dir)
       hooks.append(profile_hook)
 
     return tf.estimator.EstimatorSpec(
-      mode=tf.estimator.ModeKeys.TRAIN,
-      loss=loss,
-      predictions=predict_dict,
-      train_op=train_op,
-      scaffold=scaffold,
-      training_hooks=hooks,
+        mode=tf.estimator.ModeKeys.TRAIN,
+        loss=loss,
+        predictions=predict_dict,
+        train_op=train_op,
+        scaffold=scaffold,
+        training_hooks=hooks,
     )
 
   def _eval_model_fn(self, features, labels, run_config):
     tf.keras.backend.set_learning_phase(0)
     start = time.time()
-    model = self._model_cls(self.model_config, self.feature_configs, features, labels, is_training=False)
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels,
+        is_training=False)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
@@ -468,28 +505,36 @@ class EasyRecEstimator(tf.estimator.Estimator):
       metric_dict['loss/loss/' + loss_key] = tf.metrics.mean(loss_tensor)
     tf.logging.info('metric_dict keys: %s' % metric_dict.keys())
 
-    var_list = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) + ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS)
+    var_list = ops.get_collection(
+        ops.GraphKeys.GLOBAL_VARIABLES) + ops.get_collection(
+            ops.GraphKeys.SAVEABLE_OBJECTS)
 
     metric_variables = ops.get_collection(ops.GraphKeys.METRIC_VARIABLES)
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
     scaffold = tf.train.Scaffold(
-      saver=self.saver_cls(var_list=var_list, sharded=True, save_relative_paths=True),
-      ready_for_local_init_op=model_ready_for_local_init_op,
+        saver=self.saver_cls(
+            var_list=var_list, sharded=True, save_relative_paths=True),
+        ready_for_local_init_op=model_ready_for_local_init_op,
     )
     end = time.time()
     tf.logging.info('eval graph construct finished. Time %.3fs' % (end - start))
     return tf.estimator.EstimatorSpec(
-      mode=tf.estimator.ModeKeys.EVAL,
-      loss=loss,
-      scaffold=scaffold,
-      predictions=predict_dict,
-      eval_metric_ops=metric_dict,
+        mode=tf.estimator.ModeKeys.EVAL,
+        loss=loss,
+        scaffold=scaffold,
+        predictions=predict_dict,
+        eval_metric_ops=metric_dict,
     )
 
   def _distribute_eval_model_fn(self, features, labels, run_config):
     tf.keras.backend.set_learning_phase(0)
     start = time.time()
-    model = self._model_cls(self.model_config, self.feature_configs, features, labels, is_training=False)
+    model = self._model_cls(
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels,
+        is_training=False)
     predict_dict = model.build_predict_graph()
     loss_dict = model.build_loss_graph()
     loss = tf.add_n(list(loss_dict.values()))
@@ -522,25 +567,27 @@ class EasyRecEstimator(tf.estimator.Estimator):
     global_variables = tf.global_variables()
     metric_variables = tf.get_collection(tf.GraphKeys.METRIC_VARIABLES)
     model_ready_for_local_init_op = tf.variables_initializer(metric_variables)
-    remain_variables = list(set(global_variables).difference(set(metric_variables)))
+    remain_variables = list(
+        set(global_variables).difference(set(metric_variables)))
     cur_saver = tf.train.Saver(var_list=remain_variables, sharded=True)
-    scaffold = tf.train.Scaffold(saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
+    scaffold = tf.train.Scaffold(
+        saver=cur_saver, ready_for_local_init_op=model_ready_for_local_init_op)
     return tf.estimator.EstimatorSpec(
-      mode=tf.estimator.ModeKeys.EVAL,
-      loss=loss,
-      predictions=predict_dict,
-      eval_metric_ops=metric_dict,
-      scaffold=scaffold,
+        mode=tf.estimator.ModeKeys.EVAL,
+        loss=loss,
+        predictions=predict_dict,
+        eval_metric_ops=metric_dict,
+        scaffold=scaffold,
     )
 
   def _export_model_fn(self, features, labels, run_config, params):
     tf.keras.backend.set_learning_phase(0)
     model = self._model_cls(
-      self.model_config,
-      self.feature_configs,
-      features,
-      labels=None,
-      is_training=False,
+        self.model_config,
+        self.feature_configs,
+        features,
+        labels=None,
+        is_training=False,
     )
     model.build_predict_graph()
 
@@ -556,50 +603,60 @@ class EasyRecEstimator(tf.estimator.Estimator):
       outputs.update(model.build_rtp_output_dict())
 
     for out in outputs:
-      tf.logging.info('output %s shape: %s type: %s' % (out, outputs[out].get_shape().as_list(), outputs[out].dtype))
-    export_outputs = {signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput(outputs)}
+      tf.logging.info(
+          'output %s shape: %s type: %s' %
+          (out, outputs[out].get_shape().as_list(), outputs[out].dtype))
+    export_outputs = {
+        signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+            tf.estimator.export.PredictOutput(outputs)
+    }
 
     # save train pipeline.config for debug purpose
     pipeline_path = os.path.join(self._model_dir, 'pipeline.config')
     if gfile.Exists(pipeline_path):
       ops.add_to_collection(
-        tf.GraphKeys.ASSET_FILEPATHS,
-        tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'),
+          tf.GraphKeys.ASSET_FILEPATHS,
+          tf.constant(pipeline_path, dtype=tf.string, name='pipeline.config'),
       )
     else:
       print('train pipeline_path(%s) does not exist' % pipeline_path)
 
     # restore DENSE_UPDATE_VARIABLES collection
-    dense_train_var_path = os.path.join(self.model_dir, constant.DENSE_UPDATE_VARIABLES)
+    dense_train_var_path = os.path.join(self.model_dir,
+                                        constant.DENSE_UPDATE_VARIABLES)
     if gfile.Exists(dense_train_var_path):
       with gfile.GFile(dense_train_var_path, 'r') as fin:
         var_name_to_id_map = json.load(fin)
-        var_name_id_lst = [(x, var_name_to_id_map[x]) for x in var_name_to_id_map]
+        var_name_id_lst = [
+            (x, var_name_to_id_map[x]) for x in var_name_to_id_map
+        ]
         var_name_id_lst.sort(key=lambda x: x[1])
         all_vars = {x.op.name: x for x in tf.global_variables()}
         for var_name, var_id in var_name_id_lst:
           assert var_name in all_vars, 'dense_train_var[%s] is not found' % var_name
-          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES, all_vars[var_name])
+          ops.add_to_collection(constant.DENSE_UPDATE_VARIABLES,
+                                all_vars[var_name])
 
     # add more asset files
     if len(export_config.asset_files) > 0:
       for asset_file in export_config.asset_files:
         if asset_file.startswith('!'):
           asset_file = asset_file[1:]
-        if ':' not in asset_file or asset_file.startswith('oss:') or asset_file.startswith('hdfs:'):
+        if ':' not in asset_file or asset_file.startswith(
+            'oss:') or asset_file.startswith('hdfs:'):
           _, asset_name = os.path.split(asset_file)
         else:
           asset_name, asset_file = asset_file.split(':', 1)
         ops.add_to_collection(
-          ops.GraphKeys.ASSET_FILEPATHS,
-          tf.constant(asset_file, dtype=tf.string, name=asset_name),
+            ops.GraphKeys.ASSET_FILEPATHS,
+            tf.constant(asset_file, dtype=tf.string, name=asset_name),
         )
     elif 'asset_files' in params:
       for asset_name in params['asset_files']:
         asset_file = params['asset_files'][asset_name]
         ops.add_to_collection(
-          tf.GraphKeys.ASSET_FILEPATHS,
-          tf.constant(asset_file, dtype=tf.string, name=asset_name),
+            tf.GraphKeys.ASSET_FILEPATHS,
+            tf.constant(asset_file, dtype=tf.string, name=asset_name),
         )
 
     if self._pipeline_config.HasField('fg_json_path'):
@@ -607,20 +664,24 @@ class EasyRecEstimator(tf.estimator.Estimator):
       if fg_path[0] == '!':
         fg_path = fg_path[1:]
       ops.add_to_collection(
-        tf.GraphKeys.ASSET_FILEPATHS,
-        tf.constant(fg_path, dtype=tf.string, name='fg.json'),
+          tf.GraphKeys.ASSET_FILEPATHS,
+          tf.constant(fg_path, dtype=tf.string, name='fg.json'),
       )
 
-    var_list = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES) + ops.get_collection(ops.GraphKeys.SAVEABLE_OBJECTS)
+    var_list = ops.get_collection(
+        ops.GraphKeys.GLOBAL_VARIABLES) + ops.get_collection(
+            ops.GraphKeys.SAVEABLE_OBJECTS)
 
-    scaffold = tf.train.Scaffold(saver=self.saver_cls(var_list=var_list, sharded=True, save_relative_paths=True))
+    scaffold = tf.train.Scaffold(
+        saver=self.saver_cls(
+            var_list=var_list, sharded=True, save_relative_paths=True))
 
     return tf.estimator.EstimatorSpec(
-      mode=tf.estimator.ModeKeys.PREDICT,
-      loss=None,
-      scaffold=scaffold,
-      predictions=outputs,
-      export_outputs=export_outputs,
+        mode=tf.estimator.ModeKeys.PREDICT,
+        loss=None,
+        scaffold=scaffold,
+        predictions=outputs,
+        export_outputs=export_outputs,
     )
 
   def _model_fn(self, features, labels, mode, config, params):
@@ -629,7 +690,8 @@ class EasyRecEstimator(tf.estimator.Estimator):
     if self._pipeline_config.feature_config.embedding_on_cpu:
       os.environ['place_embedding_on_cpu'] = 'True'
     if self._pipeline_config.fg_json_path:
-      EasyRecEstimator._write_rtp_fg_config_to_col(fg_config_path=self._pipeline_config.fg_json_path)
+      EasyRecEstimator._write_rtp_fg_config_to_col(
+          fg_config_path=self._pipeline_config.fg_json_path)
       EasyRecEstimator._write_rtp_inputs_to_col(features)
 
     if self.embedding_parallel:
@@ -679,11 +741,11 @@ class EasyRecEstimator(tf.estimator.Estimator):
       col[0] = json.dumps(feature_info_map)
 
   def export_checkpoint(
-    self,
-    export_path=None,
-    serving_input_receiver_fn=None,
-    checkpoint_path=None,
-    mode=tf.estimator.ModeKeys.PREDICT,
+      self,
+      export_path=None,
+      serving_input_receiver_fn=None,
+      checkpoint_path=None,
+      mode=tf.estimator.ModeKeys.PREDICT,
   ):
     with context.graph_mode():
       if not checkpoint_path:
@@ -694,12 +756,13 @@ class EasyRecEstimator(tf.estimator.Estimator):
       with ops.Graph().as_default():
         input_receiver = serving_input_receiver_fn()
         estimator_spec = self._call_model_fn(
-          features=input_receiver.features,
-          labels=getattr(input_receiver, 'labels', None),
-          mode=mode,
-          config=self.config,
+            features=input_receiver.features,
+            labels=getattr(input_receiver, 'labels', None),
+            mode=mode,
+            config=self.config,
         )
         with tf_session.Session(config=self._session_config) as session:
-          graph_saver = estimator_spec.scaffold.saver or saver.Saver(sharded=True)
+          graph_saver = estimator_spec.scaffold.saver or saver.Saver(
+              sharded=True)
           graph_saver.restore(session, checkpoint_path)
           graph_saver.save(session, export_path)

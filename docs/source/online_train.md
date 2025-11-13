@@ -325,5 +325,5 @@ train_config {
 
 ## A/B实验
 
-- 推荐引擎: 在推荐引擎[如PAI-REC]里面配置一个新的实验，更新[PAI-EAS服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
+- 推荐引擎: 在推荐引擎\[如PAI-REC\]里面配置一个新的实验，更新[PAI-EAS服务配置](http://pai-vision-data-hz.oss-cn-zhangjiakou.aliyuncs.com/pairec/docs/pairec/html/config/algo.html)
 - 报表: 天级报表, 小时级报表

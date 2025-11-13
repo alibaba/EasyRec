@@ -6,9 +6,11 @@ import sys
 import traceback
 
 from easy_rec.python.inference.client.easyrec_request import EasyrecRequest
-from easy_rec.python.protos.predict_pb2 import PBFeature, PBRequest
+from easy_rec.python.protos.predict_pb2 import PBFeature
+from easy_rec.python.protos.predict_pb2 import PBRequest
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 try:
   from eas_prediction import PredictClient  # TFRequest
@@ -47,8 +49,8 @@ def build_request(table_cols, table_data, item_ids=None):
 def parse_table_schema(create_table_sql):
   create_table_sql = create_table_sql.lower()
   spos = create_table_sql.index('(')
-  epos = create_table_sql[spos + 1 :].index(')')
-  cols = create_table_sql[(spos + 1) : epos]
+  epos = create_table_sql[spos + 1:].index(')')
+  cols = create_table_sql[(spos + 1):epos]
   cols = [x.strip().lower() for x in cols.split(',')]
   col_info_arr = []
   for col in cols:
@@ -69,15 +71,25 @@ def send_request(req_pb, client, debug_level=0):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-    '--endpoint',
-    type=str,
-    default=None,
-    help='eas endpoint, such as 12345.cn-beijing.pai-eas.aliyuncs.com',
+      '--endpoint',
+      type=str,
+      default=None,
+      help='eas endpoint, such as 12345.cn-beijing.pai-eas.aliyuncs.com',
   )
-  parser.add_argument('--service_name', type=str, default=None, help='eas service name')
-  parser.add_argument('--token', type=str, default=None, help='eas service token')
-  parser.add_argument('--table_schema', type=str, default=None, help='user feature table schema path')
-  parser.add_argument('--table_data', type=str, default=None, help='user feature table data path')
+  parser.add_argument(
+      '--service_name', type=str, default=None, help='eas service name')
+  parser.add_argument(
+      '--token', type=str, default=None, help='eas service token')
+  parser.add_argument(
+      '--table_schema',
+      type=str,
+      default=None,
+      help='user feature table schema path')
+  parser.add_argument(
+      '--table_data',
+      type=str,
+      default=None,
+      help='user feature table data path')
   parser.add_argument('--item_lst', type=str, default=None, help='item list')
 
   args, _ = parser.parse_known_args()

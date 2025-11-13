@@ -11,58 +11,62 @@ import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 from easy_rec.python.inference.predictor import Predictor
-from easy_rec.python.utils import numpy_utils, test_utils
+from easy_rec.python.utils import numpy_utils
+from easy_rec.python.utils import test_utils
 
 
 class LocalIncrTest(tf.test.TestCase):
+
   def setUp(self):
     self._success = True
     self._test_dir = test_utils.get_tmp_dir()
 
-    logging.info('Testing %s.%s, test_dir=%s' % (type(self).__name__, self._testMethodName, self._test_dir))
+    logging.info('Testing %s.%s, test_dir=%s' %
+                 (type(self).__name__, self._testMethodName, self._test_dir))
     self._log_dir = os.path.join(self._test_dir, 'logs')
     if not gfile.IsDirectory(self._log_dir):
       gfile.MakeDirs(self._log_dir)
 
   @unittest.skipIf(
-    'oss_path' not in os.environ
-    or 'oss_endpoint' not in os.environ
-    and 'oss_ak' not in os.environ
-    or 'oss_sk' not in os.environ,
-    'Only execute when kafka is available',
+      'oss_path' not in os.environ or
+      'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
   )
   def test_incr_save(self):
-    self._test_incr_save('samples/model_config/taobao_fg_incr_save_local.config')
+    self._test_incr_save(
+        'samples/model_config/taobao_fg_incr_save_local.config')
 
   @unittest.skipIf(
-    'oss_path' not in os.environ
-    or 'oss_endpoint' not in os.environ
-    and 'oss_ak' not in os.environ
-    or 'oss_sk' not in os.environ,
-    'Only execute when kafka is available',
+      'oss_path' not in os.environ or
+      'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
   )
   def test_incr_save_ev(self):
-    self._test_incr_save('samples/model_config/taobao_fg_incr_save_ev_local.config')
+    self._test_incr_save(
+        'samples/model_config/taobao_fg_incr_save_ev_local.config')
 
   @unittest.skipIf(
-    'oss_path' not in os.environ
-    or 'oss_endpoint' not in os.environ
-    and 'oss_ak' not in os.environ
-    or 'oss_sk' not in os.environ,
-    'Only execute when kafka is available',
+      'oss_path' not in os.environ or
+      'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
   )
   def test_incr_save_share_ev(self):
-    self._test_incr_save('samples/model_config/taobao_fg_incr_save_share_ev_local.config')
+    self._test_incr_save(
+        'samples/model_config/taobao_fg_incr_save_share_ev_local.config')
 
   def _test_incr_save(self, config_path):
     self._success = False
     success = test_utils.test_distributed_train_eval(
-      config_path,
-      self._test_dir,
-      total_steps=100,
-      edit_config_json={
-        'train_config.incr_save_config.fs.mount_path': os.path.join(self._test_dir, 'train/incr_save/')
-      },
+        config_path,
+        self._test_dir,
+        total_steps=100,
+        edit_config_json={
+            'train_config.incr_save_config.fs.mount_path':
+                os.path.join(self._test_dir, 'train/incr_save/')
+        },
     )
     self.assertTrue(success)
     export_cmd = """
@@ -71,15 +75,16 @@ class LocalIncrTest(tf.test.TestCase):
            --asset_files ./samples/rtp_fg/fg.json
            --checkpoint_path %s/train/model.ckpt-0
     """ % (
-      self._test_dir,
-      self._test_dir,
-      os.environ['oss_path'],
-      os.environ['oss_ak'],
-      os.environ['oss_sk'],
-      os.environ['oss_endpoint'],
-      self._test_dir,
+        self._test_dir,
+        self._test_dir,
+        os.environ['oss_path'],
+        os.environ['oss_ak'],
+        os.environ['oss_sk'],
+        os.environ['oss_endpoint'],
+        self._test_dir,
     )
-    proc = test_utils.run_cmd(export_cmd, '%s/log_export_sep.txt' % self._test_dir)
+    proc = test_utils.run_cmd(export_cmd,
+                              '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
     files = gfile.Glob(os.path.join(self._test_dir, 'export/sep/[1-9][0-9]*'))
@@ -90,13 +95,14 @@ class LocalIncrTest(tf.test.TestCase):
            --input_path data/test/rtp/taobao_test_feature.txt
            --output_path %s/processor.out  --test_dir %s
      """ % (
-      export_sep_dir,
-      self._test_dir,
-      self._test_dir,
+        export_sep_dir,
+        self._test_dir,
+        self._test_dir,
     )
     envs = dict(os.environ)
     envs['PROCESSOR_TEST'] = '1'
-    proc = test_utils.run_cmd(predict_cmd, '%s/log_processor.txt' % self._test_dir, env=envs)
+    proc = test_utils.run_cmd(
+        predict_cmd, '%s/log_processor.txt' % self._test_dir, env=envs)
     proc.wait()
     self.assertTrue(proc.returncode == 0)
 
@@ -118,7 +124,8 @@ class LocalIncrTest(tf.test.TestCase):
 
     with open('%s/predictor.out' % self._test_dir, 'w') as fout:
       for i in range(len(output_res)):
-        fout.write(json.dumps(output_res[i], cls=numpy_utils.NumpyEncoder) + '\n')
+        fout.write(
+            json.dumps(output_res[i], cls=numpy_utils.NumpyEncoder) + '\n')
 
     for i in range(len(output_res)):
       val0 = output_res[i]['probs']

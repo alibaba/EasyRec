@@ -62,11 +62,11 @@
 - 测试结果
 
 | model           | global_step | ctr auc   | masked cvr auc | ctcvr auc | 训练时间 | config                                                                                                               |
-| --------------- | ----------- | --------- | -------------- | --------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| SimpleMultiTask | 4100        | 0.592606  |                | 0.6306802 | 1小时    | [simple_multi_task.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/simple_multi_task.config) |
-| MMoE            | 3100        | 0.5869702 |                | 0.6330008 | 1小时    | [mmoe.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/mmoe.config)                           |
-| ESMM            | 800         | 0.5974812 | 0.6841141      | 0.6362526 | 3小时    | [esmm.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/esmm.config)                           |
-| PLE             | 3200        | 0.5874    |                | 0.6159    | 2小时    | [ple.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/ple.config)                             |
+| --------------- | ----------- | --------- | -------------- | --------- | ---- | -------------------------------------------------------------------------------------------------------------------- |
+| SimpleMultiTask | 4100        | 0.592606  |                | 0.6306802 | 1小时  | [simple_multi_task.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/simple_multi_task.config) |
+| MMoE            | 3100        | 0.5869702 |                | 0.6330008 | 1小时  | [mmoe.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/mmoe.config)                           |
+| ESMM            | 800         | 0.5974812 | 0.6841141      | 0.6362526 | 3小时  | [esmm.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/esmm.config)                           |
+| PLE             | 3200        | 0.5874    |                | 0.6159    | 2小时  | [ple.config](http://easyrec.oss-cn-beijing.aliyuncs.com/benchmark/multi_task/ple.config)                             |
 
 ### CENSUS
 

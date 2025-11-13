@@ -14,6 +14,7 @@ if tf.__version__ >= '2.0':
 
 
 class MetricsTest(tf.test.TestCase, parameterized.TestCase):
+
   def setUp(self):
     logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
 
@@ -44,13 +45,11 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
       score = sess.run(value_op)
     self.assertAlmostEqual(score, 0.0)
 
-  @parameterized.named_parameters(
-    [
+  @parameterized.named_parameters([
       ['_reduction_mean', 'mean', 0.5833333],
       ['_reduction_mean_by_sample_num', 'mean_by_sample_num', 0.5925926],
       ['_reduction_mean_by_positive_num', 'mean_by_positive_num', 0.6],
-    ]
-  )
+  ])
   @RunAsSubprocess
   def test_gauc(self, reduction, expected):
     from easy_rec.python.core.metrics import gauc
@@ -61,31 +60,29 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
     value_op, update_op = gauc(labels, probs, uids, reduction=reduction)
     with tf.Session() as sess:
       sess.run(
-        update_op,
-        feed_dict={
-          labels: [1, 0, 1, 1, 0],
-          probs: [0.9, 0.8, 0.7, 0.6, 0.5],
-          uids: [1, 1, 1, 1, 1],
-        },
+          update_op,
+          feed_dict={
+              labels: [1, 0, 1, 1, 0],
+              probs: [0.9, 0.8, 0.7, 0.6, 0.5],
+              uids: [1, 1, 1, 1, 1],
+          },
       )
       sess.run(
-        update_op,
-        feed_dict={
-          labels: [1, 0, 0, 1],
-          probs: [0.9, 0.8, 0.7, 0.6],
-          uids: [2, 2, 2, 2],
-        },
+          update_op,
+          feed_dict={
+              labels: [1, 0, 0, 1],
+              probs: [0.9, 0.8, 0.7, 0.6],
+              uids: [2, 2, 2, 2],
+          },
       )
       score = sess.run(value_op)
     self.assertAlmostEqual(score, expected)
 
-  @parameterized.named_parameters(
-    [
+  @parameterized.named_parameters([
       ['_reduction_mean', 'mean', 0.5833333],
       ['_reduction_mean_by_sample_num', 'mean_by_sample_num', 0.5925926],
       ['_reduction_mean_by_positive_num', 'mean_by_positive_num', 0.6],
-    ]
-  )
+  ])
   @RunAsSubprocess
   def test_session_auc(self, reduction, expected):
     from easy_rec.python.core.metrics import session_auc
@@ -93,23 +90,24 @@ class MetricsTest(tf.test.TestCase, parameterized.TestCase):
     labels = tf.placeholder(dtype=tf.int32, shape=(None,))
     probs = tf.placeholder(dtype=tf.float32, shape=(None,))
     session_ids = tf.placeholder(dtype=tf.int32, shape=(None,))
-    value_op, update_op = session_auc(labels, probs, session_ids, reduction=reduction)
+    value_op, update_op = session_auc(
+        labels, probs, session_ids, reduction=reduction)
     with tf.Session() as sess:
       sess.run(
-        update_op,
-        feed_dict={
-          labels: [1, 0, 1, 1, 0],
-          probs: [0.9, 0.8, 0.7, 0.6, 0.5],
-          session_ids: [1, 1, 1, 1, 1],
-        },
+          update_op,
+          feed_dict={
+              labels: [1, 0, 1, 1, 0],
+              probs: [0.9, 0.8, 0.7, 0.6, 0.5],
+              session_ids: [1, 1, 1, 1, 1],
+          },
       )
       sess.run(
-        update_op,
-        feed_dict={
-          labels: [1, 0, 0, 1],
-          probs: [0.9, 0.8, 0.7, 0.6],
-          session_ids: [2, 2, 2, 2],
-        },
+          update_op,
+          feed_dict={
+              labels: [1, 0, 0, 1],
+              probs: [0.9, 0.8, 0.7, 0.6],
+              session_ids: [2, 2, 2, 2],
+          },
       )
       score = sess.run(value_op)
     self.assertAlmostEqual(score, expected)

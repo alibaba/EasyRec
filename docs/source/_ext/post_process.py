@@ -11,12 +11,14 @@ class PostFixLink(Transform):
     super(PostFixLink, self).__init__(document, startnode)
 
   def apply(self, **kwargs):
+
     def _visit(node):
       if not node.children:
         return
       for child in node.children:
         if isinstance(child, nodes.Element):
-          if 'refuri' in child.attributes and '.md#' in child.attributes['refuri']:
+          if 'refuri' in child.attributes and '.md#' in child.attributes[
+              'refuri']:
             src = child.attributes['refuri']
             dst = src.replace('.md#', '.html#')
             logging.info('[PostFixLink] replace %s to %s' % (src, dst))
@@ -30,7 +32,7 @@ def setup(app):
   app.add_post_transform(PostFixLink)
 
   return {
-    'version': '0.1',
-    'parallel_read_safe': True,
-    'parallel_write_safe': True,
+      'version': '0.1',
+      'parallel_read_safe': True,
+      'parallel_write_safe': True,
   }

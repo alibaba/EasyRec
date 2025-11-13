@@ -272,7 +272,7 @@ Original error:
 
 #### 输出user塔的embedding时，输出为空
 
-用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是[]，空的数组
+用tfResponse.getDoubleVals("user_emb")去打印结果出来的是否返回的是\[\]，空的数组
 
 需要使用 tfResponse.getStringVals("user_emb")
 

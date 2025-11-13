@@ -3,7 +3,8 @@
 import logging
 
 import tensorflow as tf
-from tensorflow.python.keras.layers import Dense, Layer
+from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.layers import Layer
 
 from easy_rec.python.layers.keras.attention import Attention
 from easy_rec.python.layers.keras.blocks import MLP
@@ -27,17 +28,20 @@ class MMoE(Layer):
       expert_params = Parameter.make_from_pb(params.expert_mlp)
       expert_params.l2_regularizer = params.l2_regularizer
       self._has_experts = True
-      self._experts = [MLP(expert_params, 'expert_%d' % i, reuse=reuse) for i in range(self._num_expert)]
+      self._experts = [
+          MLP(expert_params, 'expert_%d' % i, reuse=reuse)
+          for i in range(self._num_expert)
+      ]
     else:
       self._has_experts = False
 
     self._gates = []
     for task_id in range(self._num_task):
       dense = Dense(
-        self._num_expert,
-        activation='softmax',
-        name='gate_%d' % task_id,
-        kernel_regularizer=params.l2_regularizer,
+          self._num_expert,
+          activation='softmax',
+          name='gate_%d' % task_id,
+          kernel_regularizer=params.l2_regularizer,
       )
       self._gates.append(dense)
 
@@ -46,7 +50,9 @@ class MMoE(Layer):
       logging.warning('num_expert of MMoE layer `%s` is 0' % self.name)
       return inputs
     if self._has_experts:
-      expert_fea_list = [expert(inputs, training=training) for expert in self._experts]
+      expert_fea_list = [
+          expert(inputs, training=training) for expert in self._experts
+      ]
     else:
       expert_fea_list = inputs
     experts_fea = tf.stack(expert_fea_list, axis=1)

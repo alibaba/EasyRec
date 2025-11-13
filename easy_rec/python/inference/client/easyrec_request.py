@@ -2,7 +2,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from eas_prediction.request import Request
 
-from easy_rec.python.protos.predict_pb2 import PBRequest, PBResponse
+from easy_rec.python.protos.predict_pb2 import PBRequest
+from easy_rec.python.protos.predict_pb2 import PBResponse
 
 # from eas_prediction.request import Response
 

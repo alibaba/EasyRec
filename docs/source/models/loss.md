@@ -4,28 +4,28 @@ EasyRec支持两种损失函数配置方式：1）使用单个损失函数；2�
 
 ### 使用单个损失函数
 
-| 损失函数                                   | 说明                                                                         |
-| ------------------------------------------ | ---------------------------------------------------------------------------- |
-| CLASSIFICATION                             | 分类Loss，二分类为sigmoid_cross_entropy；多分类为softmax_cross_entropy       |
-| L2_LOSS                                    | 平方损失                                                                     |
-| SIGMOID_L2_LOSS                            | 对sigmoid函数的结果计算平方损失                                              |
-| CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                                          |
-| BINARY_CROSS_ENTROPY_LOSS                  | 仅用在知识蒸馏中的BCE损失                                                    |
-| KL_DIVERGENCE_LOSS                         | 仅用在知识蒸馏中的KL散度损失                                                 |
-| CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                                  |
-| MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                                  |
-| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                |
-| BINARY_FOCAL_LOSS                          | 支持困难样本挖掘和类别平衡的focal loss                                       |
-| PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                               |
-| PAIRWISE_FOCAL_LOSS                        | pair粒度的focal loss, 支持自定义pair分组                                     |
-| PAIRWISE_LOGISTIC_LOSS                     | pair粒度的logistic loss, 支持自定义pair分组                                  |
-| PAIRWISE_HINGE_LOSS                        | pair粒度的hinge loss, 支持自定义pair分组                                     |
-| JRC_LOSS                                   | 二分类 + listwise ranking loss                                               |
-| F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题 |
-| ORDER_CALIBRATE_LOSS                       | 使用目标依赖关系校正预测结果的辅助损失函数，详见[AITM](aitm.md)模型          |
-| LISTWISE_RANK_LOSS                         | listwise的排序损失                                                           |
-| LISTWISE_DISTILL_LOSS                      | 用来蒸馏给定list排序的损失函数，与listwise rank loss 比较类似                |
-| ZILN_LOSS                                  | LTV预测任务的损失函数（num_class必须设置为3）                                |
+| 损失函数                                       | 说明                                                         |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| CLASSIFICATION                             | 分类Loss，二分类为sigmoid_cross_entropy；多分类为softmax_cross_entropy |
+| L2_LOSS                                    | 平方损失                                                       |
+| SIGMOID_L2_LOSS                            | 对sigmoid函数的结果计算平方损失                                        |
+| CROSS_ENTROPY_LOSS                         | log loss 负对数损失                                             |
+| BINARY_CROSS_ENTROPY_LOSS                  | 仅用在知识蒸馏中的BCE损失                                             |
+| KL_DIVERGENCE_LOSS                         | 仅用在知识蒸馏中的KL散度损失                                            |
+| CIRCLE_LOSS                                | CoMetricLearningI2I模型专用                                    |
+| MULTI_SIMILARITY_LOSS                      | CoMetricLearningI2I模型专用                                    |
+| SOFTMAX_CROSS_ENTROPY_WITH_NEGATIVE_MINING | 自动负采样版本的多分类softmax_cross_entropy，用在二分类任务中                  |
+| BINARY_FOCAL_LOSS                          | 支持困难样本挖掘和类别平衡的focal loss                                   |
+| PAIR_WISE_LOSS                             | 以优化全局AUC为目标的rank loss                                      |
+| PAIRWISE_FOCAL_LOSS                        | pair粒度的focal loss, 支持自定义pair分组                             |
+| PAIRWISE_LOGISTIC_LOSS                     | pair粒度的logistic loss, 支持自定义pair分组                          |
+| PAIRWISE_HINGE_LOSS                        | pair粒度的hinge loss, 支持自定义pair分组                             |
+| JRC_LOSS                                   | 二分类 + listwise ranking loss                                |
+| F1_REWEIGHTED_LOSS                         | 可以调整二分类召回率和准确率相对权重的损失函数，可有效对抗正负样本不平衡问题                     |
+| ORDER_CALIBRATE_LOSS                       | 使用目标依赖关系校正预测结果的辅助损失函数，详见[AITM](aitm.md)模型                  |
+| LISTWISE_RANK_LOSS                         | listwise的排序损失                                              |
+| LISTWISE_DISTILL_LOSS                      | 用来蒸馏给定list排序的损失函数，与listwise rank loss 比较类似                 |
+| ZILN_LOSS                                  | LTV预测任务的损失函数（num_class必须设置为3）                              |
 
 - ZILN_LOSS：使用时模型有3个可选的输出（在多目标任务重，输出名有一个目标相关的后缀）
   - probs: 预估的转化概率

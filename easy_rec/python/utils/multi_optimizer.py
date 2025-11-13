@@ -6,6 +6,7 @@ from tensorflow.python.training import optimizer
 
 
 class MultiOptimizer(optimizer.Optimizer):
+
   def __init__(self, opts, grouped_vars, use_locking=False):
     """Combine multiple optimizers for optimization, such as WideAndDeep.
 
@@ -22,7 +23,8 @@ class MultiOptimizer(optimizer.Optimizer):
   def compute_gradients(self, loss, variables, **kwargs):
     grad_and_vars = []
     for gid, opt in enumerate(self._opts):
-      grad_and_vars.extend(opt.compute_gradients(loss, self._grouped_vars[gid], **kwargs))
+      grad_and_vars.extend(
+          opt.compute_gradients(loss, self._grouped_vars[gid], **kwargs))
     return grad_and_vars
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):

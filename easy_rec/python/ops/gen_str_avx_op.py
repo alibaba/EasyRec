@@ -21,8 +21,8 @@ except Exception as ex:
 def str_split_by_chr(input_str, sep, skip_empty):
   if constant.has_avx_str_split() and str_avx_op is not None:
     assert len(sep) == 1, 'invalid data_config.separator(%s) len(%d) != 1' % (
-      sep,
-      len(sep),
+        sep,
+        len(sep),
     )
     return str_avx_op.avx512_string_split(input_str, sep, skip_empty=skip_empty)
   else:

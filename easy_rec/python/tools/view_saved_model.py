@@ -8,14 +8,16 @@ from tensorflow.core.protobuf import saved_model_pb2
 from tensorflow.python.platform.gfile import GFile
 
 logging.basicConfig(
-  format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-  level=logging.INFO,
+    format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
+    level=logging.INFO,
 )
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--input', type=str, default=None, help='saved model path')
-  parser.add_argument('--output', type=str, default=None, help='saved model save path')
+  parser.add_argument(
+      '--input', type=str, default=None, help='saved model path')
+  parser.add_argument(
+      '--output', type=str, default=None, help='saved model save path')
   args = parser.parse_args()
 
   assert args.input is not None and args.output is not None

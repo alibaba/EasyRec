@@ -10,9 +10,9 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 def is_type_compatiable(odps_type, input_type):
   """Check that odps_type are compatiable with input_type."""
   type_map = {
-    'bigint': DatasetConfig.INT64,
-    'string': DatasetConfig.STRING,
-    'double': DatasetConfig.DOUBLE,
+      'bigint': DatasetConfig.INT64,
+      'string': DatasetConfig.STRING,
+      'double': DatasetConfig.DOUBLE,
   }
   tmp_type = type_map[odps_type]
   if tmp_type == input_type:
@@ -31,9 +31,9 @@ def is_type_compatiable(odps_type, input_type):
 def odps_type_to_input_type(odps_type):
   """Check that odps_type are compatiable with input_type."""
   odps_type_map = {
-    'bigint': DatasetConfig.INT64,
-    'string': DatasetConfig.STRING,
-    'double': DatasetConfig.DOUBLE,
+      'bigint': DatasetConfig.INT64,
+      'string': DatasetConfig.STRING,
+      'double': DatasetConfig.DOUBLE,
   }
   assert odps_type in odps_type_map, 'only support [bigint, string, double]'
   input_type = odps_type_map[odps_type]
@@ -65,13 +65,12 @@ def check_input_field_and_types(data_config):
     for x, y in zip(input_fields, input_field_types):
       tmp_type = type_map[x]
       assert is_type_compatiable(tmp_type, y), (
-        'feature[%s] type error: odps %s is not compatible with input_type %s'
-        % (
-          x,
-          tmp_type,
-          DatasetConfig.FieldType.Name(y),
-        )
-      )
+          'feature[%s] type error: odps %s is not compatible with input_type %s'
+          % (
+              x,
+              tmp_type,
+              DatasetConfig.FieldType.Name(y),
+          ))
 
 
 def odps_type_2_tf_type(odps_type):

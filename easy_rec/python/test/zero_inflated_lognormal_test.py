@@ -5,14 +5,14 @@ import tensorflow as tf
 from scipy import stats
 
 from easy_rec.python.loss.zero_inflated_lognormal import (  # NOQA
-  zero_inflated_lognormal_loss,
-)
+    zero_inflated_lognormal_loss,)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class ZeroInflatedLognormalLossTest(tf.test.TestCase):
+
   def setUp(self):
     super(ZeroInflatedLognormalLossTest, self).setUp()
     self.logits = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
@@ -42,10 +42,10 @@ class ZeroInflatedLognormalLossTest(tf.test.TestCase):
     if np.any(mask):
       # scipy 参数化：s=shape= sigma, scale=exp(mu), loc=0
       logprob[mask, 0] = stats.lognorm.logpdf(
-        x=labels[mask, 0].astype(np.float64),
-        s=sigma[mask, 0].astype(np.float64),
-        loc=0.0,
-        scale=np.exp(mu[mask, 0].astype(np.float64)),
+          x=labels[mask, 0].astype(np.float64),
+          s=sigma[mask, 0].astype(np.float64),
+          loc=0.0,
+          scale=np.exp(mu[mask, 0].astype(np.float64)),
       )
     num_pos = np.sum(positive) + 1e-8
     regression_loss = -(np.sum(positive * logprob) / num_pos)
@@ -56,7 +56,8 @@ class ZeroInflatedLognormalLossTest(tf.test.TestCase):
   def test_loss_value(self):
     expected_loss = self.zero_inflated_lognormal(self.labels, self.logits)
     expected_loss = np.average(expected_loss)
-    loss = zero_inflated_lognormal_loss(self.labels, self.logits, mu_reg=0, sigma_reg=0)
+    loss = zero_inflated_lognormal_loss(
+        self.labels, self.logits, mu_reg=0, sigma_reg=0)
     # Absolute error tolerance in asserting array near.
     _ERR_TOL = 1e-6
     self.assertNear(self.evaluate(loss), expected_loss, _ERR_TOL)

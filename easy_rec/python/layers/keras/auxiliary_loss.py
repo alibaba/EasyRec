@@ -15,7 +15,8 @@ class AuxiliaryLoss(tf.keras.layers.Layer):
     params.check_required('loss_type')
     self.loss_type = params.get_or_default('loss_type', None)
     self.loss_weight = params.get_or_default('loss_weight', 1.0)
-    logging.info('init layer `%s` with loss type: %s and weight: %f' % (self.name, self.loss_type, self.loss_weight))
+    logging.info('init layer `%s` with loss type: %s and weight: %f' %
+                 (self.name, self.loss_type, self.loss_weight))
     self.temperature = params.get_or_default('temperature', 0.1)
 
   def call(self, inputs, training=None, **kwargs):
@@ -33,7 +34,8 @@ class AuxiliaryLoss(tf.keras.layers.Layer):
       loss_dict['%s_l2_loss' % self.name] = loss_value
     elif self.loss_type == 'info_nce':
       query, positive = inputs
-      loss = contrastive_loss.info_nce_loss(query, positive, temperature=self.temperature)
+      loss = contrastive_loss.info_nce_loss(
+          query, positive, temperature=self.temperature)
       loss_value = loss if self.loss_weight == 1.0 else loss * self.loss_weight
       loss_dict['%s_info_nce_loss' % self.name] = loss_value
     elif self.loss_type == 'nce_loss':

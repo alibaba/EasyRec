@@ -6,47 +6,31 @@ import numpy as np
 import pandas as pd
 
 
-def start_data_proc(
-  task_index,
-  task_num,
-  num_proc,
-  file_que,
-  data_que,
-  proc_start_que,
-  proc_stop_que,
-  batch_size,
-  label_fields,
-  sparse_fea_names,
-  dense_fea_names,
-  dense_fea_cfgs,
-  reserve_fields,
-  drop_remainder,
-  need_pack=True,
-):
+def start_data_proc(task_index,
+                    task_num,
+                    num_proc,
+                    file_que,
+                    data_que,
+                    proc_start_que,
+                    proc_stop_que,
+                    batch_size,
+                    label_fields,
+                    sparse_fea_names,
+                    dense_fea_names,
+                    dense_fea_cfgs,
+                    reserve_fields,
+                    drop_remainder,
+                    need_pack=True):
   mp_ctxt = multiprocessing.get_context('spawn')
   proc_arr = []
   for proc_id in range(num_proc):
     proc = mp_ctxt.Process(
-      target=load_data_proc,
-      args=(
-        proc_id,
-        file_que,
-        data_que,
-        proc_start_que,
-        proc_stop_que,
-        batch_size,
-        label_fields,
-        sparse_fea_names,
-        dense_fea_names,
-        dense_fea_cfgs,
-        reserve_fields,
-        drop_remainder,
-        task_index,
-        task_num,
-        need_pack,
-      ),
-      name='task_%d_data_proc_%d' % (task_index, proc_id),
-    )
+        target=load_data_proc,
+        args=(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
+              batch_size, label_fields, sparse_fea_names, dense_fea_names,
+              dense_fea_cfgs, reserve_fields, drop_remainder, task_index,
+              task_num, need_pack),
+        name='task_%d_data_proc_%d' % (task_index, proc_id))
     proc.daemon = True
     proc.start()
     proc_arr.append(proc)
@@ -117,27 +101,22 @@ def _pack_dense_feas(data_dict, dense_fea_names, dense_fea_cfgs):
 
 def _reshape_dense_feas(data_dict, dense_fea_names, dense_fea_cfgs):
   for fea_name, fea_cfg in zip(dense_fea_names, dense_fea_cfgs):
-    data_dict[fea_name] = data_dict[fea_name].reshape([-1, fea_cfg.raw_input_dim])
+    data_dict[fea_name] = data_dict[fea_name].reshape(
+        [-1, fea_cfg.raw_input_dim])
 
 
 def _load_dense(input_data, field_names, sid, eid, dense_dict):
   for k in field_names:
     if isinstance(input_data[k][0], np.ndarray):
       np_dtype = type(input_data[k][sid][0])
-      dense_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]], dtype=np_dtype)
+      dense_dict[k] = np.array([x[0] for x in input_data[k][sid:eid]],
+                               dtype=np_dtype)
     else:
       dense_dict[k] = input_data[k][sid:eid].to_numpy()
 
 
-def _load_and_pad_dense(
-  input_data,
-  field_names,
-  sid,
-  dense_dict,
-  part_dense_dict,
-  part_dense_dict_n,
-  batch_size,
-):
+def _load_and_pad_dense(input_data, field_names, sid, dense_dict,
+                        part_dense_dict, part_dense_dict_n, batch_size):
   for k in field_names:
     if isinstance(input_data[k][0], np.ndarray):
       np_dtype = type(input_data[k][sid][0])
@@ -157,24 +136,12 @@ def _load_and_pad_dense(
       part_dense_dict_n[k] = tmp_lbls
 
 
-def load_data_proc(
-  proc_id,
-  file_que,
-  data_que,
-  proc_start_que,
-  proc_stop_que,
-  batch_size,
-  label_fields,
-  sparse_fea_names,
-  dense_fea_names,
-  dense_fea_cfgs,
-  reserve_fields,
-  drop_remainder,
-  task_index,
-  task_num,
-  need_pack,
-):
-  logging.info('data proc %d start, proc_start_que=%s' % (proc_id, proc_start_que.qsize()))
+def load_data_proc(proc_id, file_que, data_que, proc_start_que, proc_stop_que,
+                   batch_size, label_fields, sparse_fea_names, dense_fea_names,
+                   dense_fea_cfgs, reserve_fields, drop_remainder, task_index,
+                   task_num, need_pack):
+  logging.info('data proc %d start, proc_start_que=%s' %
+               (proc_id, proc_start_que.qsize()))
   proc_start_que.get()
   effective_fields = sparse_fea_names + dense_fea_names
   all_fields = effective_fields
@@ -184,7 +151,8 @@ def load_data_proc(
     for tmp in reserve_fields:
       if tmp not in all_fields:
         all_fields.append(tmp)
-  logging.info('data proc %d start, file_que.qsize=%d' % (proc_id, file_que.qsize()))
+  logging.info('data proc %d start, file_que.qsize=%d' %
+               (proc_id, file_que.qsize()))
   num_files = 0
   part_data_dict = {}
 
@@ -226,10 +194,9 @@ def load_data_proc(
           else:
             all_lens = np.ones([len(val)], dtype=np.int32)
             all_vals = val.to_numpy()
-          assert np.sum(all_lens) == len(all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
-            len(all_vals),
-            np.sum(all_lens),
-          )
+          assert np.sum(all_lens) == len(
+              all_vals), 'len(all_vals)=%d np.sum(all_lens)=%d' % (
+                  len(all_vals), np.sum(all_lens))
           data_dict[k] = (all_lens, all_vals)
 
       if len(dense_fea_names) > 0:
@@ -257,39 +224,19 @@ def load_data_proc(
       part_data_dict_n = {}
 
       if label_fields is not None and len(label_fields) > 0:
-        _load_and_pad_dense(
-          input_data,
-          label_fields,
-          sid,
-          data_dict,
-          part_data_dict,
-          part_data_dict_n,
-          batch_size,
-        )
+        _load_and_pad_dense(input_data, label_fields, sid, data_dict,
+                            part_data_dict, part_data_dict_n, batch_size)
 
       if reserve_fields is not None and len(reserve_fields) > 0:
         data_dict['reserve'] = {}
         part_data_dict_n['reserve'] = {}
-        _load_and_pad_dense(
-          input_data,
-          label_fields,
-          sid,
-          data_dict['reserve'],
-          part_data_dict['reserve'],
-          part_data_dict_n['reserve'],
-          batch_size,
-        )
+        _load_and_pad_dense(input_data, label_fields, sid, data_dict['reserve'],
+                            part_data_dict['reserve'],
+                            part_data_dict_n['reserve'], batch_size)
 
       if len(dense_fea_names) > 0:
-        _load_and_pad_dense(
-          input_data,
-          dense_fea_names,
-          sid,
-          data_dict,
-          part_data_dict,
-          part_data_dict_n,
-          batch_size,
-        )
+        _load_and_pad_dense(input_data, dense_fea_names, sid, data_dict,
+                            part_data_dict, part_data_dict_n, batch_size)
 
       if len(sparse_fea_names) > 0:
         for k in sparse_fea_names:
@@ -346,17 +293,18 @@ def load_data_proc(
       else:
         if len(dense_fea_names) > 0:
           _reshape_dense_feas(part_data_dict, dense_fea_names, dense_fea_cfgs)
-      logging.info('remainder batch: %s sample_num=%d' % (','.join(part_data_dict.keys()), batch_len))
+      logging.info('remainder batch: %s sample_num=%d' %
+                   (','.join(part_data_dict.keys()), batch_len))
       _add_to_que(part_data_dict, data_que, proc_stop_que)
       total_batch_cnt += 1
     else:
-      logging.warning('drop remain %d samples as drop_remainder is set' % batch_len)
+      logging.warning('drop remain %d samples as drop_remainder is set' %
+                      batch_len)
   if is_good:
     is_good = _add_to_que(None, data_que, proc_stop_que)
   logging.info(
-    'data_proc_id[%d]: is_good = %s, total_batch_cnt=%d, total_sample_cnt=%d'
-    % (proc_id, is_good, total_batch_cnt, total_sample_cnt)
-  )
+      'data_proc_id[%d]: is_good = %s, total_batch_cnt=%d, total_sample_cnt=%d'
+      % (proc_id, is_good, total_batch_cnt, total_sample_cnt))
   data_que.close(wait_send_finish=is_good)
 
   while not is_good:

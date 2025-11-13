@@ -92,7 +92,8 @@ class DotInteraction(tf.keras.layers.Layer):
       try:
         concat_features = tf.stack(inputs, axis=1)
       except (ValueError, tf.errors.InvalidArgumentError) as e:
-        raise ValueError('Input tensors` dimensions must be equal, original' 'error message: {}'.format(e))
+        raise ValueError('Input tensors` dimensions must be equal, original'
+                         'error message: {}'.format(e))
     else:
       assert inputs.shape.ndims == 3, 'input of dot func must be a 3D tensor or a list of 2D tensors'
       concat_features = inputs
@@ -117,9 +118,9 @@ class DotInteraction(tf.keras.layers.Layer):
     if self._skip_gather:
       # Setting upper triangle part of the interaction matrix to zeros.
       activations = tf.where(
-        condition=tf.cast(upper_tri_mask, tf.bool),
-        x=tf.zeros_like(xactions),
-        y=xactions,
+          condition=tf.cast(upper_tri_mask, tf.bool),
+          x=tf.zeros_like(xactions),
+          y=xactions,
       )
       out_dim = num_features * num_features
     else:
@@ -195,7 +196,8 @@ class Cross(tf.keras.layers.Layer):
     preactivation = params.get_or_default('preactivation', None)
     preact = get_activation(preactivation)
     self._preactivation = tf.keras.activations.get(preact)
-    kernel_initializer = params.get_or_default('kernel_initializer', 'truncated_normal')
+    kernel_initializer = params.get_or_default('kernel_initializer',
+                                               'truncated_normal')
     self._kernel_initializer = tf.keras.initializers.get(kernel_initializer)
     bias_initializer = params.get_or_default('bias_initializer', 'zeros')
     self._bias_initializer = tf.keras.initializers.get(bias_initializer)
@@ -207,39 +209,41 @@ class Cross(tf.keras.layers.Layer):
     self._supports_masking = True
 
     if self._diag_scale < 0:  # pytype: disable=unsupported-operands
-      raise ValueError('`diag_scale` should be non-negative. Got `diag_scale` = {}'.format(self._diag_scale))
+      raise ValueError(
+          '`diag_scale` should be non-negative. Got `diag_scale` = {}'.format(
+              self._diag_scale))
 
   def build(self, input_shape):
     last_dim = input_shape[0][-1]
 
     if self._projection_dim is None:
       self._dense = tf.keras.layers.Dense(
-        last_dim,
-        kernel_initializer=_clone_initializer(self._kernel_initializer),
-        bias_initializer=self._bias_initializer,
-        kernel_regularizer=self._kernel_regularizer,
-        bias_regularizer=self._bias_regularizer,
-        use_bias=self._use_bias,
-        dtype=self.dtype,
-        activation=self._preactivation,
+          last_dim,
+          kernel_initializer=_clone_initializer(self._kernel_initializer),
+          bias_initializer=self._bias_initializer,
+          kernel_regularizer=self._kernel_regularizer,
+          bias_regularizer=self._bias_regularizer,
+          use_bias=self._use_bias,
+          dtype=self.dtype,
+          activation=self._preactivation,
       )
     else:
       self._dense_u = tf.keras.layers.Dense(
-        self._projection_dim,
-        kernel_initializer=_clone_initializer(self._kernel_initializer),
-        kernel_regularizer=self._kernel_regularizer,
-        use_bias=False,
-        dtype=self.dtype,
+          self._projection_dim,
+          kernel_initializer=_clone_initializer(self._kernel_initializer),
+          kernel_regularizer=self._kernel_regularizer,
+          use_bias=False,
+          dtype=self.dtype,
       )
       self._dense_v = tf.keras.layers.Dense(
-        last_dim,
-        kernel_initializer=_clone_initializer(self._kernel_initializer),
-        bias_initializer=self._bias_initializer,
-        kernel_regularizer=self._kernel_regularizer,
-        bias_regularizer=self._bias_regularizer,
-        use_bias=self._use_bias,
-        dtype=self.dtype,
-        activation=self._preactivation,
+          last_dim,
+          kernel_initializer=_clone_initializer(self._kernel_initializer),
+          bias_initializer=self._bias_initializer,
+          kernel_regularizer=self._kernel_regularizer,
+          bias_regularizer=self._bias_regularizer,
+          use_bias=self._use_bias,
+          dtype=self.dtype,
+          activation=self._preactivation,
       )
     super(Cross, self).build(input_shape)  # Be sure to call this somewhere!
 
@@ -266,9 +270,9 @@ class Cross(tf.keras.layers.Layer):
 
     if x0.shape[-1] != x.shape[-1]:
       raise ValueError(
-        '`x0` and `x` dimension mismatch! Got `x0` dimension {}, and x '
-        'dimension {}. This case is not supported yet.'.format(x0.shape[-1], x.shape[-1])
-      )
+          '`x0` and `x` dimension mismatch! Got `x0` dimension {}, and x '
+          'dimension {}. This case is not supported yet.'.format(
+              x0.shape[-1], x.shape[-1]))
 
     if self._projection_dim is None:
       prod_output = self._dense(x)
@@ -284,14 +288,22 @@ class Cross(tf.keras.layers.Layer):
 
   def get_config(self):
     config = {
-      'projection_dim': self._projection_dim,
-      'diag_scale': self._diag_scale,
-      'use_bias': self._use_bias,
-      'preactivation': tf.keras.activations.serialize(self._preactivation),
-      'kernel_initializer': tf.keras.initializers.serialize(self._kernel_initializer),
-      'bias_initializer': tf.keras.initializers.serialize(self._bias_initializer),
-      'kernel_regularizer': tf.keras.regularizers.serialize(self._kernel_regularizer),
-      'bias_regularizer': tf.keras.regularizers.serialize(self._bias_regularizer),
+        'projection_dim':
+            self._projection_dim,
+        'diag_scale':
+            self._diag_scale,
+        'use_bias':
+            self._use_bias,
+        'preactivation':
+            tf.keras.activations.serialize(self._preactivation),
+        'kernel_initializer':
+            tf.keras.initializers.serialize(self._kernel_initializer),
+        'bias_initializer':
+            tf.keras.initializers.serialize(self._bias_initializer),
+        'kernel_regularizer':
+            tf.keras.regularizers.serialize(self._kernel_regularizer),
+        'bias_regularizer':
+            tf.keras.regularizers.serialize(self._bias_regularizer),
     }
     base_config = super(Cross, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
@@ -312,10 +324,12 @@ class CIN(tf.keras.layers.Layer):
   def __init__(self, params, name='cin', reuse=None, **kwargs):
     super(CIN, self).__init__(name=name, **kwargs)
     self._name = name
-    self._hidden_feature_sizes = list(params.get_or_default('hidden_feature_sizes', []))
+    self._hidden_feature_sizes = list(
+        params.get_or_default('hidden_feature_sizes', []))
 
     assert (
-      isinstance(self._hidden_feature_sizes, list) and len(self._hidden_feature_sizes) > 0
+        isinstance(self._hidden_feature_sizes, list) and
+        len(self._hidden_feature_sizes) > 0
     ), 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
 
     kernel_regularizer = params.get_or_default('kernel_regularizer', None)
@@ -325,34 +339,35 @@ class CIN(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     if len(input_shape) != 3:
-      raise ValueError('Unexpected inputs dimensions %d, expect to be 3 dimensions' % (len(input_shape)))
+      raise ValueError(
+          'Unexpected inputs dimensions %d, expect to be 3 dimensions' %
+          (len(input_shape)))
 
-    hidden_feature_sizes = [input_shape[1]] + [h for h in self._hidden_feature_sizes]
+    hidden_feature_sizes = [input_shape[1]
+                            ] + [h for h in self._hidden_feature_sizes]
     tfv1 = tf.compat.v1 if tf.__version__ >= '2.0' else tf
     with tfv1.variable_scope(self._name):
       self.kernel_list = [
-        tfv1.get_variable(
-          name='cin_kernel_%d' % i,
-          shape=[
-            hidden_feature_sizes[i + 1],
-            hidden_feature_sizes[i],
-            hidden_feature_sizes[0],
-          ],
-          initializer=tf.initializers.he_normal(),
-          regularizer=self._kernel_regularizer,
-          trainable=True,
-        )
-        for i in range(len(self._hidden_feature_sizes))
+          tfv1.get_variable(
+              name='cin_kernel_%d' % i,
+              shape=[
+                  hidden_feature_sizes[i + 1],
+                  hidden_feature_sizes[i],
+                  hidden_feature_sizes[0],
+              ],
+              initializer=tf.initializers.he_normal(),
+              regularizer=self._kernel_regularizer,
+              trainable=True,
+          ) for i in range(len(self._hidden_feature_sizes))
       ]
       self.bias_list = [
-        tfv1.get_variable(
-          name='cin_bias_%d' % i,
-          shape=[hidden_feature_sizes[i + 1]],
-          initializer=tf.keras.initializers.Zeros,
-          regularizer=self._bias_regularizer,
-          trainable=True,
-        )
-        for i in range(len(self._hidden_feature_sizes))
+          tfv1.get_variable(
+              name='cin_bias_%d' % i,
+              shape=[hidden_feature_sizes[i + 1]],
+              initializer=tf.keras.initializers.Zeros,
+              regularizer=self._bias_regularizer,
+              trainable=True,
+          ) for i in range(len(self._hidden_feature_sizes))
       ]
 
     super(CIN, self).build(input_shape)
@@ -379,23 +394,26 @@ class CIN(tf.keras.layers.Layer):
       intermediate_tensor = tf.multiply(x_0_expanded, x_i_expanded)
 
       intermediate_tensor_expanded = tf.expand_dims(intermediate_tensor, 1)
-      intermediate_tensor_expanded = tf.tile(intermediate_tensor_expanded, [1, hk, 1, 1, 1])
+      intermediate_tensor_expanded = tf.tile(intermediate_tensor_expanded,
+                                             [1, hk, 1, 1, 1])
 
       feature_map_elementwise = tf.multiply(
-        intermediate_tensor_expanded,
-        tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0),
+          intermediate_tensor_expanded,
+          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0),
       )
-      feature_map = tf.reduce_sum(tf.reduce_sum(feature_map_elementwise, axis=3), axis=2)
+      feature_map = tf.reduce_sum(
+          tf.reduce_sum(feature_map_elementwise, axis=3), axis=2)
 
       feature_map = tf.add(
-        feature_map,
-        tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0),
+          feature_map,
+          tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0),
       )
       feature_map = tf.nn.relu(feature_map)
 
       x_i = feature_map
       pooled_feature_map_list.append(tf.reduce_sum(feature_map, axis=-1))
-    return tf.concat(pooled_feature_map_list, axis=-1)  # shape = (b, h1 + ... + hk)
+    return tf.concat(
+        pooled_feature_map_list, axis=-1)  # shape = (b, h1 + ... + hk)
 
   def get_config(self):
     pass

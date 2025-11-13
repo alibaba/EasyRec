@@ -7,6 +7,7 @@ if tf.__version__ >= '2.0':
 
 
 class MultiHeadAttention:
+
   def __init__(self, head_num, head_size, l2_reg, use_res=False, name=''):
     """Initializes a `MultiHeadAttention` Layer.
 
@@ -36,11 +37,14 @@ class MultiHeadAttention:
       k: Key matrix of shape [bs, head_num, feature_num, head_size].
       v: Value matrix of shape [bs, head_num, feature_num, head_size].
     """
-    reshaped_q = tf.reshape(q, shape=[-1, q.shape[1], self._head_num, self._head_size])
+    reshaped_q = tf.reshape(
+        q, shape=[-1, q.shape[1], self._head_num, self._head_size])
     q = tf.transpose(reshaped_q, perm=[0, 2, 1, 3])
-    reshaped_k = tf.reshape(k, shape=[-1, k.shape[1], self._head_num, self._head_size])
+    reshaped_k = tf.reshape(
+        k, shape=[-1, k.shape[1], self._head_num, self._head_size])
     k = tf.transpose(reshaped_k, perm=[0, 2, 1, 3])
-    reshaped_v = tf.reshape(v, shape=[-1, v.shape[1], self._head_num, self._head_size])
+    reshaped_v = tf.reshape(
+        v, shape=[-1, v.shape[1], self._head_num, self._head_size])
     v = tf.transpose(reshaped_v, perm=[0, 2, 1, 3])
     return q, k, v
 
@@ -57,7 +61,9 @@ class MultiHeadAttention:
       k: Key matrix of shape [bs, head_num, feature_num, head_size].
       v: Value matrix of shape [bs, head_num, feature_num, head_size].
     """
-    product = tf.linalg.matmul(a=q, b=k, transpose_b=True) / (self._head_size**-0.5)
+    product = tf.linalg.matmul(
+        a=q, b=k, transpose_b=True) / (
+            self._head_size**-0.5)
     weights = tf.nn.softmax(product)
     out = tf.linalg.matmul(weights, v)
     return out
@@ -76,25 +82,25 @@ class MultiHeadAttention:
       v: Value matrix of shape [bs, feature_num, head_size * n_head].
     """
     q = tf.layers.dense(
-      q,
-      self._head_num * self._head_size,
-      use_bias=False,
-      kernel_regularizer=self._l2_reg,
-      name='%s/%s/dnn' % (self._name, 'query'),
+        q,
+        self._head_num * self._head_size,
+        use_bias=False,
+        kernel_regularizer=self._l2_reg,
+        name='%s/%s/dnn' % (self._name, 'query'),
     )
     k = tf.layers.dense(
-      k,
-      self._head_num * self._head_size,
-      use_bias=False,
-      kernel_regularizer=self._l2_reg,
-      name='%s/%s/dnn' % (self._name, 'key'),
+        k,
+        self._head_num * self._head_size,
+        use_bias=False,
+        kernel_regularizer=self._l2_reg,
+        name='%s/%s/dnn' % (self._name, 'key'),
     )
     v = tf.layers.dense(
-      v,
-      self._head_num * self._head_size,
-      use_bias=False,
-      kernel_regularizer=self._l2_reg,
-      name='%s/%s/dnn' % (self._name, 'value'),
+        v,
+        self._head_num * self._head_size,
+        use_bias=False,
+        kernel_regularizer=self._l2_reg,
+        name='%s/%s/dnn' % (self._name, 'value'),
     )
     return q, k, v
 
@@ -122,7 +128,7 @@ class MultiHeadAttention:
     """
     if isinstance(attention_input, list):
       assert (
-        len(attention_input) == 3 or len(attention_input) == 1
+          len(attention_input) == 3 or len(attention_input) == 1
       ), 'If the input of multi_head_attention is a list, the length must be 1 or 3.'
 
       if len(attention_input) == 3:
@@ -145,11 +151,11 @@ class MultiHeadAttention:
 
     if self._use_res:
       W_0_x = tf.layers.dense(
-        ori_v,
-        out.shape[2],
-        use_bias=False,
-        kernel_regularizer=self._l2_reg,
-        name='%s/dnn' % (self._name),
+          ori_v,
+          out.shape[2],
+          use_bias=False,
+          kernel_regularizer=self._l2_reg,
+          name='%s/dnn' % (self._name),
       )
       res_out = tf.nn.relu(out + W_0_x)
       return res_out

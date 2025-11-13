@@ -1,7 +1,8 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import tensorflow as tf
-from tensorflow.python.keras.layers import Activation, Layer
+from tensorflow.python.keras.layers import Activation
+from tensorflow.python.keras.layers import Layer
 
 import easy_rec.python.utils.activation
 
@@ -49,12 +50,13 @@ class Dice(Layer):
     super(Dice, self).__init__(**kwargs)
 
   def build(self, input_shape):
-    self.bn = BatchNormalization(axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
+    self.bn = BatchNormalization(
+        axis=self.axis, epsilon=self.epsilon, center=False, scale=False)
     self.alphas = self.add_weight(
-      shape=(input_shape[-1],),
-      initializer=Zeros(),
-      dtype=tf.float32,
-      name='dice_alpha',
+        shape=(input_shape[-1],),
+        initializer=Zeros(),
+        dtype=tf.float32,
+        name='dice_alpha',
     )  # name='alpha_'+self.name
     super(Dice, self).build(input_shape)  # Be sure to call this somewhere!
     self.uses_learning_phase = True
@@ -73,15 +75,14 @@ class Dice(Layer):
   def updates(self):
     return self.bn.updates
 
-  def get_config(
-    self,
-  ):
+  def get_config(self,):
     config = {'axis': self.axis, 'epsilon': self.epsilon}
     base_config = super(Dice, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
 
 class MaskedSoftmax(Layer):
+
   def __init__(self, axis=-1, **kwargs):
     super(MaskedSoftmax, self).__init__(**kwargs)
     self.axis = axis
@@ -108,5 +109,7 @@ def activation_layer(activation, name=None):
   elif issubclass(activation, Layer):
     act_layer = activation(name=name)
   else:
-    raise ValueError('Invalid activation,found %s.You should use a str or a Activation Layer Class.' % (activation))
+    raise ValueError(
+        'Invalid activation,found %s.You should use a str or a Activation Layer Class.'
+        % (activation))
   return act_layer

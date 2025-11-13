@@ -17,16 +17,16 @@ class LayerNormalization(tf.layers.Layer):
 
   def build(self, _):
     self.scale = tf.get_variable(
-      'layer_norm_scale',
-      [self.hidden_size],
-      initializer=tf.keras.initializers.Ones(),
-      dtype=tf.float32,
+        'layer_norm_scale',
+        [self.hidden_size],
+        initializer=tf.keras.initializers.Ones(),
+        dtype=tf.float32,
     )
     self.bias = tf.get_variable(
-      'layer_norm_bias',
-      [self.hidden_size],
-      initializer=tf.keras.initializers.Zeros(),
-      dtype=tf.float32,
+        'layer_norm_bias',
+        [self.hidden_size],
+        initializer=tf.keras.initializers.Zeros(),
+        dtype=tf.float32,
     )
     self.built = True
 

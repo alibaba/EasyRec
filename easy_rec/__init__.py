@@ -12,7 +12,8 @@ curr_dir, _ = os.path.split(__file__)
 parent_dir = os.path.dirname(curr_dir)
 sys.path.insert(0, parent_dir)
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
@@ -49,8 +50,7 @@ if 'PROCESSOR_TEST' not in os.environ:
     ops_dir = None
 
   from easy_rec.python.inference.predictor import (  # isort:skip  # noqa: E402
-    Predictor,
-  )
+      Predictor,)
   from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import export  # isort:skip  # noqa: E402
@@ -69,8 +69,7 @@ _global_config = {}
 
 
 def help():
-  print(
-    """
+  print("""
 1 Train
 1.1 Train 1gpu
   CUDA_VISIBLE_DEVICES=0 python -m easy_rec.python.train_eval
@@ -115,5 +114,4 @@ def help():
     for row in reader:
       inputs.append({ f : row[fid+1] for fid, f in enumerate(field_keys) })
     output_res = self._predictor.predict(inputs, batch_size=32)
-"""
-  )
+""")

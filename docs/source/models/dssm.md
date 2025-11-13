@@ -55,7 +55,7 @@ model_config:{
   - dnn: deep part的参数配置
     - hidden_units: dnn每一层的channel数目，即神经元的数目
   - id: 指定user_id/item_id列
-- simi_func: 向量相似度函数，包括[COSINE, INNER_PRODUCT, EUCLID]，默认COSINE，建议使用INNER_PRODUCT
+- simi_func: 向量相似度函数，包括\[COSINE, INNER_PRODUCT, EUCLID\]，默认COSINE，建议使用INNER_PRODUCT
 - embedding_regularization: 对embedding部分加regularization，防止overfit
 
 支持的metric_set包括:

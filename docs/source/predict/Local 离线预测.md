@@ -52,7 +52,7 @@ predictor = Predictor('model/export/')
 
 1. list 格式
 1. dict 格式
-   输出是list of dict，dict里面包含一个字段y，即score: 范围在[0, 1]之间
+   输出是list of dict，dict里面包含一个字段y，即score: 范围在\[0, 1\]之间
 
 ```
 # interface 1, input is a list of fields, the order of fields

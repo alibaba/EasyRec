@@ -299,7 +299,7 @@
      ```
      - ttl(miliseconds)的设置考虑两个因素:
        - odl_sample_with_lbl相对请求时间request_time的延迟
-         - ttl < 相对延迟, 就会有样本丢失
+         - ttl \< 相对延迟, 就会有样本丢失
          - 统计相对延迟:
            - 将odl_sample_with_lbl / odl_callback_log落到MaxCompute
            - 按request_id join 计算ts的差异

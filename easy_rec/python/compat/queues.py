@@ -16,8 +16,11 @@ import threading
 import time
 import weakref
 from multiprocessing import connection
-from multiprocessing.util import Finalize, is_exiting, register_after_fork
-from queue import Empty, Full
+from multiprocessing.util import Finalize
+from multiprocessing.util import is_exiting
+from multiprocessing.util import register_after_fork
+from queue import Empty
+from queue import Full
 
 import six
 
@@ -65,30 +68,30 @@ class Queue(object):
   def __getstate__(self):
     context.assert_spawning(self)
     return (
-      self._ignore_epipe,
-      self._maxsize,
-      self._reader,
-      self._writer,
-      self._rlock,
-      self._wlock,
-      self._sem,
-      self._opid,
-      self._name,
-      self._run,
+        self._ignore_epipe,
+        self._maxsize,
+        self._reader,
+        self._writer,
+        self._rlock,
+        self._wlock,
+        self._sem,
+        self._opid,
+        self._name,
+        self._run,
     )
 
   def __setstate__(self, state):
     (
-      self._ignore_epipe,
-      self._maxsize,
-      self._reader,
-      self._writer,
-      self._rlock,
-      self._wlock,
-      self._sem,
-      self._opid,
-      self._name,
-      self._run,
+        self._ignore_epipe,
+        self._maxsize,
+        self._reader,
+        self._writer,
+        self._rlock,
+        self._wlock,
+        self._sem,
+        self._opid,
+        self._name,
+        self._run,
     ) = state
     self._reset()
 
@@ -168,7 +171,8 @@ class Queue(object):
   def close(self, wait_send_finish=True):
     self._closed = True
     close = self._close
-    if not wait_send_finish and self._thread is not None and self._thread.is_alive():
+    if not wait_send_finish and self._thread is not None and self._thread.is_alive(
+    ):
       try:
         if self._reader is not None:
           self._reader.close()
@@ -205,19 +209,19 @@ class Queue(object):
     # Start thread which transfers data from buffer to pipe
     self._buffer.clear()
     self._thread = threading.Thread(
-      target=self._feed,
-      args=(
-        self._buffer,
-        self._notempty,
-        self._send_bytes,
-        self._wlock,
-        self._reader.close,
-        self._writer.close,
-        self._ignore_epipe,
-        self._on_queue_feeder_error,
-        self._sem,
-      ),
-      name='QueueFeederThread',
+        target=self._feed,
+        args=(
+            self._buffer,
+            self._notempty,
+            self._send_bytes,
+            self._wlock,
+            self._reader.close,
+            self._writer.close,
+            self._ignore_epipe,
+            self._on_queue_feeder_error,
+            self._sem,
+        ),
+        name='QueueFeederThread',
     )
     self._thread.daemon = True
 
@@ -227,14 +231,17 @@ class Queue(object):
 
     if not self._joincancelled:
       self._jointhread = Finalize(
-        self._thread,
-        Queue._finalize_join,
-        [weakref.ref(self._thread)],
-        exitpriority=-5,
+          self._thread,
+          Queue._finalize_join,
+          [weakref.ref(self._thread)],
+          exitpriority=-5,
       )
 
     # Send sentinel to the thread queue object when garbage collected
-    self._close = Finalize(self, Queue._finalize_close, [self._buffer, self._notempty], exitpriority=10)
+    self._close = Finalize(
+        self,
+        Queue._finalize_close, [self._buffer, self._notempty],
+        exitpriority=10)
 
   @staticmethod
   def _finalize_join(twr):
@@ -254,16 +261,16 @@ class Queue(object):
       notempty.notify()
 
   def _feed(
-    self,
-    buffer,
-    notempty,
-    send_bytes,
-    writelock,
-    reader_close,
-    writer_close,
-    ignore_epipe,
-    onerror,
-    queue_sem,
+      self,
+      buffer,
+      notempty,
+      send_bytes,
+      writelock,
+      reader_close,
+      writer_close,
+      ignore_epipe,
+      onerror,
+      queue_sem,
   ):
     logging.debug('starting thread to feed data to pipe')
     nacquire = notempty.acquire
@@ -309,16 +316,16 @@ class Queue(object):
           pass
       except Exception as e:
         if ignore_epipe and getattr(e, 'errno', 0) == errno.EPIPE:
-          logging.warning('Queue[' + name + '] exception: pid=' + str(pid) + ' run=' + str(self._run) + ' e=' + str(e))
+          logging.warning('Queue[' + name + '] exception: pid=' + str(pid) +
+                          ' run=' + str(self._run) + ' e=' + str(e))
           return
         # Since this runs in a daemon thread the resources it uses
         # may be become unusable while the process is cleaning up.
         # We ignore errors which happen after the process has
         # started to cleanup.
         if is_exiting():
-          logging.warning(
-            'Queue[' + name + '] thread error in exiting: pid=' + str(pid) + ' run=' + str(self._run) + ' e=' + str(e)
-          )
+          logging.warning('Queue[' + name + '] thread error in exiting: pid=' +
+                          str(pid) + ' run=' + str(self._run) + ' e=' + str(e))
           return
         else:
           # Since the object has not been sent in the queue, we need

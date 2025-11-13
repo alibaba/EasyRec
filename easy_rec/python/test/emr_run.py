@@ -11,14 +11,14 @@ import tensorflow as tf
 
 from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import prepare
-from easy_rec.python.test.odps_test_util import (  # NOQA
-  OdpsOSSConfig,
-  delete_oss_path,
-  get_oss_bucket,
-)
 from easy_rec.python.utils import test_utils
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
+from easy_rec.python.test.odps_test_util import (  # NOQA
+    OdpsOSSConfig, delete_oss_path, get_oss_bucket,
+)
+
+logging.basicConfig(
+    level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 odps_oss_config = OdpsOSSConfig(script_path='./samples/emr_script')
 
@@ -28,7 +28,8 @@ class TestPipelineOnEmr(tf.test.TestCase):
 
   def setUp(self):
     logging.info('Testing %s.%s' % (type(self).__name__, self._testMethodName))
-    self._test_hdfs_dir = test_utils.get_hdfs_tmp_dir('hdfs://emr-header-1:9000/user/easy_rec/emr_test')
+    self._test_hdfs_dir = test_utils.get_hdfs_tmp_dir(
+        'hdfs://emr-header-1:9000/user/easy_rec/emr_test')
     self._success = True
     logging.info('test hdfs dir: %s' % self._test_hdfs_dir)
 
@@ -39,30 +40,30 @@ class TestPipelineOnEmr(tf.test.TestCase):
 
   def test_deepfm_train_eval_export(self):
     start = [
-      'deep_fm/create_external_deepfm_table.sql',
-      'deep_fm/create_inner_deepfm_table.sql',
+        'deep_fm/create_external_deepfm_table.sql',
+        'deep_fm/create_inner_deepfm_table.sql',
     ]
     end = ['deep_fm/drop_table.sql']
     odps_cmd = OdpsCommand(odps_oss_config)
     odps_cmd.run_list(start)
     self._success = test_utils.test_hdfs_train_eval(
-      '%s/configs/deepfm.config' % odps_oss_config.temp_dir,
-      '%s/yaml_config/train.paitf.yaml' % odps_oss_config.temp_dir,
-      self._test_hdfs_dir,
+        '%s/configs/deepfm.config' % odps_oss_config.temp_dir,
+        '%s/yaml_config/train.paitf.yaml' % odps_oss_config.temp_dir,
+        self._test_hdfs_dir,
     )
     self.assertTrue(self._success)
 
     self._success = test_utils.test_hdfs_eval(
-      '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
-      '%s/yaml_config/eval.tf.yaml' % odps_oss_config.temp_dir,
-      self._test_hdfs_dir,
+        '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
+        '%s/yaml_config/eval.tf.yaml' % odps_oss_config.temp_dir,
+        self._test_hdfs_dir,
     )
     self.assertTrue(self._success)
 
     self._success = test_utils.test_hdfs_export(
-      '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
-      '%s/yaml_config/export.tf.yaml' % odps_oss_config.temp_dir,
-      self._test_hdfs_dir,
+        '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
+        '%s/yaml_config/export.tf.yaml' % odps_oss_config.temp_dir,
+        self._test_hdfs_dir,
     )
     self.assertTrue(self._success)
 
@@ -71,14 +72,24 @@ class TestPipelineOnEmr(tf.test.TestCase):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--odps_config', type=str, default=None, help='odps config path')
-  parser.add_argument('--oss_config', type=str, default=None, help='ossutilconfig path')
-  parser.add_argument('--bucket_name', type=str, default=None, help='test oss bucket name')
+  parser.add_argument(
+      '--odps_config', type=str, default=None, help='odps config path')
+  parser.add_argument(
+      '--oss_config', type=str, default=None, help='ossutilconfig path')
+  parser.add_argument(
+      '--bucket_name', type=str, default=None, help='test oss bucket name')
   parser.add_argument('--arn', type=str, default=None, help='oss rolearn')
-  parser.add_argument('--odpscmd', type=str, default='odpscmd', help='odpscmd path')
-  parser.add_argument('--algo_project', type=str, default=None, help='algo project name')
-  parser.add_argument('--algo_res_project', type=str, default=None, help='algo resource project name')
-  parser.add_argument('--algo_version', type=str, default=None, help='algo version')
+  parser.add_argument(
+      '--odpscmd', type=str, default='odpscmd', help='odpscmd path')
+  parser.add_argument(
+      '--algo_project', type=str, default=None, help='algo project name')
+  parser.add_argument(
+      '--algo_res_project',
+      type=str,
+      default=None,
+      help='algo resource project name')
+  parser.add_argument(
+      '--algo_version', type=str, default=None, help='algo version')
   args, unknown_args = parser.parse_known_args()
   sys.argv = [sys.argv[0]]
   for unk_arg in unknown_args:
@@ -106,10 +117,10 @@ if __name__ == '__main__':
   tf.test.main()
   # delete oss path
   bucket = get_oss_bucket(
-    odps_oss_config.oss_key,
-    odps_oss_config.oss_secret,
-    odps_oss_config.endpoint,
-    odps_oss_config.bucket_name,
+      odps_oss_config.oss_key,
+      odps_oss_config.oss_secret,
+      odps_oss_config.endpoint,
+      odps_oss_config.bucket_name,
   )
   delete_oss_path(bucket, odps_oss_config.exp_dir, odps_oss_config.bucket_name)
   # delete tmp

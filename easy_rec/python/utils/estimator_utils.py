@@ -1,6 +1,8 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import json
 import logging
@@ -14,18 +16,23 @@ import six
 import tensorflow as tf
 from tensorflow.core.framework.summary_pb2 import Summary
 from tensorflow.python.client import device_lib
-from tensorflow.python.framework import errors_impl, meta_graph, ops
+from tensorflow.python.framework import errors_impl
+from tensorflow.python.framework import meta_graph
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import gfile
-from tensorflow.python.training import basic_session_run_hooks, session_run_hook  # NOQA
-from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
+from easy_rec.python.utils import constant
+from easy_rec.python.utils import embedding_utils
+from easy_rec.python.utils import shape_utils
+
+from tensorflow.python.training import basic_session_run_hooks, session_run_hook  # NOQA
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer  # NOQA
+
 from easy_rec.python.ops.incr_record import (  # NOQA
-  get_sparse_indices,
-  kv_resource_incr_gather,
+    get_sparse_indices, kv_resource_incr_gather,
 )
-from easy_rec.python.utils import constant, embedding_utils, shape_utils
 
 try:
   import horovod.tensorflow as hvd
@@ -85,26 +92,28 @@ class ExitBarrierHook(SessionRunHook):
   def begin(self):
     """Count the number of workers and masters, and setup barrier queue."""
     tf.logging.info('number workers(including master) = %d' % self._num_worker)
-    with tf.device(tf.DeviceSpec(job='ps', task=0, device_type='CPU', device_index=0)):
+    with tf.device(
+        tf.DeviceSpec(job='ps', task=0, device_type='CPU', device_index=0)):
       self._queue = tf.FIFOQueue(
-        capacity=self._num_worker,
-        dtypes=[tf.float32],
-        shapes=[()],
-        name='exit_counter',
-        shared_name='exit_counter',
+          capacity=self._num_worker,
+          dtypes=[tf.float32],
+          shapes=[()],
+          name='exit_counter',
+          shared_name='exit_counter',
       )
       self._signal_que = tf.FIFOQueue(
-        capacity=self._num_worker,
-        dtypes=[tf.string],
-        shapes=[()],
-        name='exit_counter_signal',
-        shared_name='exit_counter_signal',
+          capacity=self._num_worker,
+          dtypes=[tf.string],
+          shapes=[()],
+          name='exit_counter_signal',
+          shared_name='exit_counter_signal',
       )
     self._enque = self._queue.enqueue(1.0)
     self._que_size = self._queue.size()
     self._deque = self._queue.dequeue()
     if self._is_chief:
-      self._flag_file = os.path.join(self._model_dir, 'atexit_sync_' + str(int(time.time())))
+      self._flag_file = os.path.join(self._model_dir,
+                                     'atexit_sync_' + str(int(time.time())))
       self._send = self._signal_que.enqueue([self._flag_file])
     else:
       self._recv = self._signal_que.dequeue()
@@ -130,7 +139,9 @@ class ExitBarrierHook(SessionRunHook):
     while que_size < self._num_worker:
       que_size = session.run(self._que_size)
       time.sleep(5)
-      tf.logging.info('waiting for other worker to exit, finished %d, total %d' % (que_size, self._num_worker))
+      tf.logging.info(
+          'waiting for other worker to exit, finished %d, total %d' %
+          (que_size, self._num_worker))
     # prepare on_exit synchronize base on self._flag_file
     if self._is_chief:
       for i in range(self._num_worker - 1):
@@ -139,7 +150,8 @@ class ExitBarrierHook(SessionRunHook):
       self._flag_file = session.run(self._recv)
 
     def _check_flag_file(is_chief, flag_file):
-      logging.info('_check_flag_file: is_chief = %d flag_file=%s' % (is_chief, flag_file))
+      logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
+                   (is_chief, flag_file))
       if is_chief:
         with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
@@ -149,7 +161,8 @@ class ExitBarrierHook(SessionRunHook):
 
     from atexit import register
 
-    register(_check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
+    register(
+        _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     logging.info('ExitBarrier passed')
 
 
@@ -178,26 +191,28 @@ class EvaluateExitBarrierHook(SessionRunHook):
   def begin(self):
     """Count the number of workers and masters, and setup barrier queue."""
     tf.logging.info('number workers(including master) = %d' % self._num_worker)
-    with tf.device(tf.DeviceSpec(job='ps', task=0, device_type='CPU', device_index=0)):
+    with tf.device(
+        tf.DeviceSpec(job='ps', task=0, device_type='CPU', device_index=0)):
       self._queue = tf.FIFOQueue(
-        capacity=self._num_worker,
-        dtypes=[tf.float32],
-        shapes=[()],
-        name='exit_counter',
-        shared_name='exit_counter',
+          capacity=self._num_worker,
+          dtypes=[tf.float32],
+          shapes=[()],
+          name='exit_counter',
+          shared_name='exit_counter',
       )
       self._signal_que = tf.FIFOQueue(
-        capacity=self._num_worker,
-        dtypes=[tf.string],
-        shapes=[()],
-        name='exit_counter_signal',
-        shared_name='exit_counter_signal',
+          capacity=self._num_worker,
+          dtypes=[tf.string],
+          shapes=[()],
+          name='exit_counter_signal',
+          shared_name='exit_counter_signal',
       )
     self._enque = self._queue.enqueue(1.0)
     self._que_size = self._queue.size()
     self._deque = self._queue.dequeue()
     if self._is_chief:
-      self._flag_file = os.path.join(self._model_dir, 'atexit_sync_' + str(int(time.time())))
+      self._flag_file = os.path.join(self._model_dir,
+                                     'atexit_sync_' + str(int(time.time())))
       self._send = self._signal_que.enqueue([self._flag_file])
     else:
       self._recv = self._signal_que.dequeue()
@@ -223,7 +238,9 @@ class EvaluateExitBarrierHook(SessionRunHook):
     while que_size < self._num_worker:
       que_size = session.run(self._que_size)
       time.sleep(5)
-      tf.logging.info('waiting for other worker to exit, finished %d, total %d' % (que_size, self._num_worker))
+      tf.logging.info(
+          'waiting for other worker to exit, finished %d, total %d' %
+          (que_size, self._num_worker))
     # prepare on_exit synchronize base on self._flag_file
     if self._is_chief:
       self.eval_result = session.run(self.metric_ops)
@@ -233,7 +250,8 @@ class EvaluateExitBarrierHook(SessionRunHook):
       self._flag_file = session.run(self._recv)
 
     def _check_flag_file(is_chief, flag_file):
-      logging.info('_check_flag_file: is_chief = %d flag_file=%s' % (is_chief, flag_file))
+      logging.info('_check_flag_file: is_chief = %d flag_file=%s' %
+                   (is_chief, flag_file))
       if is_chief:
         with gfile.GFile(flag_file, 'w') as fout:
           fout.write('atexit time: %d' % int(time.time()))
@@ -243,13 +261,15 @@ class EvaluateExitBarrierHook(SessionRunHook):
 
     from atexit import register
 
-    register(_check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
+    register(
+        _check_flag_file, is_chief=self._is_chief, flag_file=self._flag_file)
     session.run(self.metric_ops)
 
     logging.info('ExitBarrier passed')
 
 
 class ProgressHook(SessionRunHook):
+
   def __init__(self, num_steps, filename, is_chief):
     """Initializes a `ProgressHook`.
 
@@ -292,17 +312,17 @@ class CheckpointSaverHook(CheckpointSaverHook):
   """Saves checkpoints every N steps or seconds."""
 
   def __init__(
-    self,
-    checkpoint_dir,
-    save_secs=None,
-    save_steps=None,
-    saver=None,
-    checkpoint_basename='model.ckpt',
-    scaffold=None,
-    listeners=None,
-    write_graph=True,
-    data_offset_var=None,
-    increment_save_config=None,
+      self,
+      checkpoint_dir,
+      save_secs=None,
+      save_steps=None,
+      saver=None,
+      checkpoint_basename='model.ckpt',
+      scaffold=None,
+      listeners=None,
+      write_graph=True,
+      data_offset_var=None,
+      increment_save_config=None,
   ):
     """Initializes a `CheckpointSaverHook`.
 
@@ -325,13 +345,13 @@ class CheckpointSaverHook(CheckpointSaverHook):
       ValueError: At most one of saver or scaffold should be set.
     """
     super(CheckpointSaverHook, self).__init__(
-      checkpoint_dir,
-      save_secs=save_secs,
-      save_steps=save_steps,
-      saver=saver,
-      checkpoint_basename=checkpoint_basename,
-      scaffold=scaffold,
-      listeners=listeners,
+        checkpoint_dir,
+        save_secs=save_secs,
+        save_steps=save_steps,
+        saver=saver,
+        checkpoint_basename=checkpoint_basename,
+        scaffold=scaffold,
+        listeners=listeners,
     )
     self._cuda_profile_start = 0
     self._cuda_profile_stop = 0
@@ -344,28 +364,32 @@ class CheckpointSaverHook(CheckpointSaverHook):
     if increment_save_config is not None:
       self._kafka_timeout_ms = os.environ.get('KAFKA_TIMEOUT', 600) * 1000
       logging.info('KAFKA_TIMEOUT: %dms' % self._kafka_timeout_ms)
-      self._kafka_max_req_size = os.environ.get('KAFKA_MAX_REQ_SIZE', 1024 * 1024 * 64)
+      self._kafka_max_req_size = os.environ.get('KAFKA_MAX_REQ_SIZE',
+                                                1024 * 1024 * 64)
       logging.info('KAFKA_MAX_REQ_SIZE: %d' % self._kafka_max_req_size)
-      self._kafka_max_msg_size = os.environ.get('KAFKA_MAX_MSG_SIZE', 1024 * 1024 * 1024)
+      self._kafka_max_msg_size = os.environ.get('KAFKA_MAX_MSG_SIZE',
+                                                1024 * 1024 * 1024)
       logging.info('KAFKA_MAX_MSG_SIZE: %d' % self._kafka_max_msg_size)
 
       self._dense_name_to_ids = embedding_utils.get_dense_name_to_ids()
       self._sparse_name_to_ids = embedding_utils.get_sparse_name_to_ids()
 
-      with gfile.GFile(os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES), 'w') as fout:
+      with gfile.GFile(
+          os.path.join(checkpoint_dir, constant.DENSE_UPDATE_VARIABLES),
+          'w') as fout:
         json.dump(self._dense_name_to_ids, fout, indent=2)
 
       save_secs = increment_save_config.dense_save_secs
       save_steps = increment_save_config.dense_save_steps
       self._dense_timer = SecondOrStepTimer(
-        every_secs=save_secs if save_secs > 0 else None,
-        every_steps=save_steps if save_steps > 0 else None,
+          every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None,
       )
       save_secs = increment_save_config.sparse_save_secs
       save_steps = increment_save_config.sparse_save_steps
       self._sparse_timer = SecondOrStepTimer(
-        every_secs=save_secs if save_secs > 0 else None,
-        every_steps=save_steps if save_steps > 0 else None,
+          every_secs=save_secs if save_secs > 0 else None,
+          every_steps=save_steps if save_steps > 0 else None,
       )
 
       self._dense_timer.update_last_triggered_step(0)
@@ -377,20 +401,21 @@ class CheckpointSaverHook(CheckpointSaverHook):
       for sparse_var, indice_dtype in sparse_train_vars:
         with ops.control_dependencies([tf.train.get_global_step()]):
           with ops.colocate_with(sparse_var):
-            sparse_indice = get_sparse_indices(var_name=sparse_var.op.name, ktype=indice_dtype)
+            sparse_indice = get_sparse_indices(
+                var_name=sparse_var.op.name, ktype=indice_dtype)
           # sparse_indice = sparse_indice.global_indices
         self._sparse_indices.append(sparse_indice)
         if 'EmbeddingVariable' in str(type(sparse_var)):
           self._sparse_values.append(
-            kv_resource_incr_gather(
-              sparse_var._handle,
-              sparse_indice,
-              np.zeros(sparse_var.shape.as_list(), dtype=np.float32),
-            )
-          )
+              kv_resource_incr_gather(
+                  sparse_var._handle,
+                  sparse_indice,
+                  np.zeros(sparse_var.shape.as_list(), dtype=np.float32),
+              ))
           # sparse_var.sparse_read(sparse_indice))
         else:
-          self._sparse_values.append(array_ops.gather(sparse_var, sparse_indice))
+          self._sparse_values.append(
+              array_ops.gather(sparse_var, sparse_indice))
 
       self._kafka_producer = None
       self._incr_save_dir = None
@@ -399,31 +424,33 @@ class CheckpointSaverHook(CheckpointSaverHook):
         logging.info('increment save topic: %s' % self._topic)
 
         admin_clt = KafkaAdminClient(
-          bootstrap_servers=increment_save_config.kafka.server,
-          request_timeout_ms=self._kafka_timeout_ms,
-          api_version_auto_timeout_ms=self._kafka_timeout_ms,
+            bootstrap_servers=increment_save_config.kafka.server,
+            request_timeout_ms=self._kafka_timeout_ms,
+            api_version_auto_timeout_ms=self._kafka_timeout_ms,
         )
         if self._topic not in admin_clt.list_topics():
           admin_clt.create_topics(
-            new_topics=[
-              NewTopic(
-                name=self._topic,
-                num_partitions=1,
-                replication_factor=1,
-                topic_configs={'max.message.bytes': self._kafka_max_msg_size},
-              )
-            ],
-            validate_only=False,
+              new_topics=[
+                  NewTopic(
+                      name=self._topic,
+                      num_partitions=1,
+                      replication_factor=1,
+                      topic_configs={
+                          'max.message.bytes': self._kafka_max_msg_size
+                      },
+                  )
+              ],
+              validate_only=False,
           )
         logging.info('create increment save topic: %s' % self._topic)
         admin_clt.close()
 
         servers = increment_save_config.kafka.server.split(',')
         self._kafka_producer = KafkaProducer(
-          bootstrap_servers=servers,
-          max_request_size=self._kafka_max_req_size,
-          api_version_auto_timeout_ms=self._kafka_timeout_ms,
-          request_timeout_ms=self._kafka_timeout_ms,
+            bootstrap_servers=servers,
+            max_request_size=self._kafka_max_req_size,
+            api_version_auto_timeout_ms=self._kafka_timeout_ms,
+            request_timeout_ms=self._kafka_timeout_ms,
         )
       elif increment_save_config.HasField('fs'):
         fs = increment_save_config.fs
@@ -438,7 +465,8 @@ class CheckpointSaverHook(CheckpointSaverHook):
       elif increment_save_config.HasField('datahub'):
         raise NotImplementedError('datahub increment saving is in development.')
       else:
-        raise ValueError('incr_update not specified correctly, must be oneof: kafka,fs')
+        raise ValueError(
+            'incr_update not specified correctly, must be oneof: kafka,fs')
 
       self._debug_save_update = increment_save_config.debug_save_update
     else:
@@ -452,15 +480,14 @@ class CheckpointSaverHook(CheckpointSaverHook):
       # We cannot do this in begin, since we let other hooks to change graph and
       # add variables at begin. Graph is finalized after all begin calls.
       tf.train.write_graph(
-        tf.get_default_graph().as_graph_def(add_shapes=True),
-        self._checkpoint_dir,
-        'graph.pbtxt',
+          tf.get_default_graph().as_graph_def(add_shapes=True),
+          self._checkpoint_dir,
+          'graph.pbtxt',
       )
       saver_def = self._get_saver().saver_def if self._get_saver() else None
       graph = tf.get_default_graph()
       meta_graph_def = meta_graph.create_meta_graph_def(
-        graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def
-      )
+          graph_def=graph.as_graph_def(add_shapes=True), saver_def=saver_def)
       self._summary_writer.add_graph(graph)
       self._summary_writer.add_meta_graph(meta_graph_def)
 
@@ -493,11 +520,14 @@ class CheckpointSaverHook(CheckpointSaverHook):
 
     if self._kafka_producer is not None:
       msg_key = 'dense_update_%d' % global_step
-      send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
-      logging.info('kafka send dense: %d exception: %s' % (global_step, send_res.exception))
+      send_res = self._kafka_producer.send(
+          self._topic, bytes_buf, key=msg_key.encode('utf-8'))
+      logging.info('kafka send dense: %d exception: %s' %
+                   (global_step, send_res.exception))
 
     if self._incr_save_dir is not None:
-      save_path = os.path.join(self._incr_save_dir, 'dense_update_%d' % global_step)
+      save_path = os.path.join(self._incr_save_dir,
+                               'dense_update_%d' % global_step)
       with gfile.GFile(save_path, 'wb') as fout:
         fout.write(bytes_buf)
       save_flag = save_path + '.done'
@@ -513,7 +543,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
       with gfile.GFile(save_path, 'wb') as fout:
         fout.write(bytes_buf)
 
-    logging.info('global_step=%d, increment update dense variables, msg_num=%d' % (global_step, msg_num))
+    logging.info(
+        'global_step=%d, increment update dense variables, msg_num=%d' %
+        (global_step, msg_num))
 
   def _send_sparse(self, global_step, session):
     sparse_train_vars = ops.get_collection(constant.SPARSE_UPDATE_VARIABLES)
@@ -525,12 +557,15 @@ class CheckpointSaverHook(CheckpointSaverHook):
     sparse_val_res = [sparse_res[i + msg_num] for i in sel_ids]
     sparse_train_vars = [sparse_train_vars[i][0] for i in sel_ids]
 
-    sel_embed_ids = [self._sparse_name_to_ids[x.name] for x in sparse_train_vars]
+    sel_embed_ids = [
+        self._sparse_name_to_ids[x.name] for x in sparse_train_vars
+    ]
 
     msg_num = len(sel_ids)
 
     if msg_num == 0:
-      logging.warning('there are no sparse updates, will skip this send: %d' % global_step)
+      logging.warning('there are no sparse updates, will skip this send: %d' %
+                      global_step)
       return
 
     # build msg header
@@ -542,7 +577,9 @@ class CheckpointSaverHook(CheckpointSaverHook):
     bytes_buf = np.array(msg_header, dtype=np.int32).tobytes()
 
     # build msg body
-    for tmp_id, tmp_key, tmp_val, tmp_var in zip(sel_embed_ids, sparse_key_res, sparse_val_res, sparse_train_vars):
+    for tmp_id, tmp_key, tmp_val, tmp_var in zip(sel_embed_ids, sparse_key_res,
+                                                 sparse_val_res,
+                                                 sparse_train_vars):
       # for non kv embedding variables, add partition offset to tmp_key
       if 'EmbeddingVariable' not in str(type(tmp_var)):
         if tmp_var._save_slice_info is not None:
@@ -551,11 +588,14 @@ class CheckpointSaverHook(CheckpointSaverHook):
       bytes_buf += tmp_val.tobytes()
     if self._kafka_producer is not None:
       msg_key = 'sparse_update_%d' % global_step
-      send_res = self._kafka_producer.send(self._topic, bytes_buf, key=msg_key.encode('utf-8'))
-      logging.info('kafka send sparse: %d %s' % (global_step, send_res.exception))
+      send_res = self._kafka_producer.send(
+          self._topic, bytes_buf, key=msg_key.encode('utf-8'))
+      logging.info('kafka send sparse: %d %s' %
+                   (global_step, send_res.exception))
 
     if self._incr_save_dir is not None:
-      save_path = os.path.join(self._incr_save_dir, 'sparse_update_%d' % global_step)
+      save_path = os.path.join(self._incr_save_dir,
+                               'sparse_update_%d' % global_step)
       with gfile.GFile(save_path, 'wb') as fout:
         fout.write(bytes_buf)
       save_flag = save_path + '.done'
@@ -572,24 +612,21 @@ class CheckpointSaverHook(CheckpointSaverHook):
         fout.write(bytes_buf)
 
     logging.info(
-      'global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d'
-      % (global_step, msg_num, len(bytes_buf))
-    )
+        'global_step=%d, increment update sparse variables, msg_num=%d, msg_size=%d'
+        % (global_step, msg_num, len(bytes_buf)))
 
   def after_run(self, run_context, run_values):
     super(CheckpointSaverHook, self).after_run(run_context, run_values)
     stale_global_step = run_values.results
     global_step = -1
     if self._dense_timer is not None and self._dense_timer.should_trigger_for_step(
-      stale_global_step + self._steps_per_run
-    ):
+        stale_global_step + self._steps_per_run):
       global_step = run_context.session.run(self._global_step_tensor)
       self._dense_timer.update_last_triggered_step(global_step)
       self._send_dense(global_step, run_context.session)
 
     if self._sparse_timer is not None and self._sparse_timer.should_trigger_for_step(
-      stale_global_step + self._steps_per_run
-    ):
+        stale_global_step + self._steps_per_run):
       if global_step < 0:
         global_step = run_context.session.run(self._global_step_tensor)
 
@@ -609,36 +646,42 @@ class CheckpointSaverHook(CheckpointSaverHook):
       for x in save_data_offset:
         if x:
           data_offset_json.update(json.loads(x))
-      save_offset_path = os.path.join(self._checkpoint_dir, 'model.ckpt-%d.offset' % step)
+      save_offset_path = os.path.join(self._checkpoint_dir,
+                                      'model.ckpt-%d.offset' % step)
       with gfile.GFile(save_offset_path, 'w') as fout:
         json.dump(data_offset_json, fout)
 
     self._get_saver().save(
-      session,
-      self._save_path,
-      global_step=step,
-      write_meta_graph=self._write_graph,
+        session,
+        self._save_path,
+        global_step=step,
+        write_meta_graph=self._write_graph,
     )
 
     self._summary_writer.add_session_log(
-      tf.SessionLog(status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),
-      step,
+        tf.SessionLog(
+            status=tf.SessionLog.CHECKPOINT, checkpoint_path=self._save_path),
+        step,
     )
 
     should_stop = False
     for l in self._listeners:  # noqa: E741
       if l.after_save(session, step):
-        logging.info('A CheckpointSaverListener requested that training be stopped. ' 'listener: {}'.format(l))
+        logging.info(
+            'A CheckpointSaverListener requested that training be stopped. '
+            'listener: {}'.format(l))
         should_stop = True
     return should_stop
 
   def end(self, session):
     global_step = session.run(self._global_step_tensor)
     super(CheckpointSaverHook, self).end(session)
-    if self._dense_timer is not None and global_step != self._dense_timer.last_triggered_step():
+    if self._dense_timer is not None and global_step != self._dense_timer.last_triggered_step(
+    ):
       self._dense_timer.update_last_triggered_step(global_step)
       self._send_dense(global_step, session)
-    if self._sparse_timer is not None and global_step != self._sparse_timer.last_triggered_step():
+    if self._sparse_timer is not None and global_step != self._sparse_timer.last_triggered_step(
+    ):
       self._sparse_timer.update_last_triggered_step(global_step)
       self._send_sparse(global_step, session)
 
@@ -672,8 +715,8 @@ class NumpyCheckpointRestoreHook(SessionRunHook):
             assign_ops.append(var.assign(var_data))
           else:
             logging.error(
-              'variable [%s] shape not match %r vs %r' % (var.name.split(':')[0], var_shape, list(var_data.shape))
-            )
+                'variable [%s] shape not match %r vs %r' %
+                (var.name.split(':')[0], var_shape, list(var_data.shape)))
             has_shape_unmatch = True
         elif 'Momentum' not in var_name and 'global_step' not in var_name:
           logging.error('variable [%s] not found in ckpt' % var_name)
@@ -684,7 +727,8 @@ class NumpyCheckpointRestoreHook(SessionRunHook):
       for var_name in sorted(vars_not_inited.keys()):
         f.write('%s:%s\n' % (var_name, vars_not_inited[var_name]))
     assert not has_shape_unmatch, 'exist variable shape not match, restore failed'
-    assert len(vars_not_inited.keys()) == 0, 'exist variable shape not inited, restore failed'
+    assert len(vars_not_inited.keys()
+               ) == 0, 'exist variable shape not inited, restore failed'
 
   def after_create_session(self, session, coord):
     assert self._restore_op is not None
@@ -709,11 +753,13 @@ class IncompatibleShapeRestoreHook(SessionRunHook):
   def begin(self):
     assign_ops = []
     for var, var_tmp in six.iteritems(self._incompatible_shape_var_map):
-      assign_ops.append(var.assign(shape_utils.pad_or_clip_nd(var_tmp, var.get_shape().as_list())))
+      assign_ops.append(
+          var.assign(
+              shape_utils.pad_or_clip_nd(var_tmp,
+                                         var.get_shape().as_list())))
       logging.info(
-        'Assign variable[%s] from shape%s to shape%s'
-        % (var.name, var_tmp.get_shape().as_list(), var.get_shape().as_list())
-      )
+          'Assign variable[%s] from shape%s to shape%s' %
+          (var.name, var_tmp.get_shape().as_list(), var.get_shape().as_list()))
     self._restore_op = tf.group(assign_ops)
 
   def after_create_session(self, session, coord):
@@ -751,7 +797,9 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
         var_name = re.sub(':[0-9]$', '', var.name)
         if var_name in ckpt_var2shape_map:
           if restore_status[var_name]:
-            logging.warning('variable %s find in more than one checkpoint, skipped %s' % (var_name, ckpt_path))
+            logging.warning(
+                'variable %s find in more than one checkpoint, skipped %s' %
+                (var_name, ckpt_path))
             continue
           name2var[var_name] = var
           restore_status[var_name] = True
@@ -774,6 +822,7 @@ class MultipleCheckpointsRestoreHook(SessionRunHook):
 
 
 class OnlineEvaluationHook(SessionRunHook):
+
   def __init__(self, metric_dict, output_dir):
     self._metric_dict = metric_dict
     self._output_dir = output_dir
@@ -793,7 +842,8 @@ class OnlineEvaluationHook(SessionRunHook):
     self._summary_writer.add_summary(summary, global_step=global_step)
     self._summary_writer.flush()
 
-    eval_result_file = os.path.join(self._output_dir, 'online_eval_result.txt-%s' % global_step)
+    eval_result_file = os.path.join(self._output_dir,
+                                    'online_eval_result.txt-%s' % global_step)
     logging.info('Saving online eval result to file %s' % eval_result_file)
     with gfile.GFile(eval_result_file, 'w') as ofile:
       result_to_write = {}
@@ -852,7 +902,8 @@ def get_ckpt_version(ckpt_path):
   return int(toks[-1])
 
 
-def get_latest_checkpoint_from_checkpoint_path(checkpoint_path, ignore_ckpt_error):
+def get_latest_checkpoint_from_checkpoint_path(checkpoint_path,
+                                               ignore_ckpt_error):
   ckpt_path = None
   if checkpoint_path.endswith('/') or gfile.IsDirectory(checkpoint_path + '/'):
     checkpoint_dir = checkpoint_path
@@ -861,7 +912,9 @@ def get_latest_checkpoint_from_checkpoint_path(checkpoint_path, ignore_ckpt_erro
     if gfile.Exists(checkpoint_dir):
       ckpt_path = latest_checkpoint(checkpoint_dir)
       if ckpt_path:
-        logging.info('fine_tune_checkpoint is directory, will use the latest checkpoint: %s' % ckpt_path)
+        logging.info(
+            'fine_tune_checkpoint is directory, will use the latest checkpoint: %s'
+            % ckpt_path)
       else:
         assert ignore_ckpt_error, 'fine_tune_checkpoint(%s) is not exists.' % checkpoint_path
     else:
@@ -980,7 +1033,9 @@ def has_sok():
 
 def init_hvd():
   if hvd is None:
-    logging.error('horovod is not installed: HOROVOD_WITH_TENSORFLOW=1 pip install horovod')
+    logging.error(
+        'horovod is not installed: HOROVOD_WITH_TENSORFLOW=1 pip install horovod'
+    )
     sys.exit(1)
 
   hvd.init()

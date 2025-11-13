@@ -18,7 +18,7 @@ Data Science版本的EMR集群支持GPU调度，所以在Core节点，推荐用�
 
 参数说明：
 
-- -t APP_TYPE  提交的任务类型，支持三种类型的任务类型[tensorflow-ps, tensorflow-mpi, standalone]，三种类型要配合后面运行模式使用
+- -t APP_TYPE  提交的任务类型，支持三种类型的任务类型\[tensorflow-ps, tensorflow-mpi, standalone\]，三种类型要配合后面运行模式使用
 
 > tensorflow-ps使用的是原生TensorFlow ps 类型
 
@@ -27,7 +27,7 @@ Data Science版本的EMR集群支持GPU调度，所以在Core节点，推荐用�
 > tensorflow-worker多worker模式，适用于MultiWorkerMirroredStrategy
 
 - -a APP_NAME 提交的任务名称，用户可以根据需要起名
-- -m MODE 提交的运行时环境，目前支持四种类型运行时环境[local, virtual-env,docker]
+- -m MODE 提交的运行时环境，目前支持四种类型运行时环境\[local, virtual-env,docker\]
 
 > local 使用的是emr-worker上面的python运行环境，所以如果要使用一些第三方python包需要手动在所有机器上进行安装
 

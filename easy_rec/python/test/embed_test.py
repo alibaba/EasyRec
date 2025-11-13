@@ -11,13 +11,15 @@ from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.input.dummy_input import DummyInput
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig, WideOrDeep
+from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
+from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
 class EmbedTest(tf.test.TestCase):
+
   def test_raw_embed(self):
     # embedding variable is:
     #    [[1, 2 ],
@@ -61,7 +63,8 @@ class EmbedTest(tf.test.TestCase):
 
     feature_configs = [feature_config]
     features = {'field1': tf.constant(['0.1,0.2,0.3,0.4,0.5'])}
-    dummy_input = DummyInput(data_config, feature_configs, '', input_vals=features)
+    dummy_input = DummyInput(
+        data_config, feature_configs, '', input_vals=features)
     field_dict, _ = dummy_input._build(tf.estimator.ModeKeys.TRAIN, {})
 
     wide_and_deep_dict = {'field1': WideOrDeep.WIDE_AND_DEEP}
@@ -126,13 +129,15 @@ class EmbedTest(tf.test.TestCase):
 
     feature_configs = [feature_config]
     features = {'field1': tf.constant(['0112', '132430'])}
-    dummy_input = DummyInput(data_config, feature_configs, '', input_vals=features)
+    dummy_input = DummyInput(
+        data_config, feature_configs, '', input_vals=features)
     field_dict, _ = dummy_input._build(tf.estimator.ModeKeys.TRAIN, {})
 
     wide_and_deep_dict = {'field1': WideOrDeep.DEEP}
     fc_parser = FeatureColumnParser(feature_configs, wide_and_deep_dict)
     builder = feature_column._LazyBuilder(field_dict)
-    hist_embedding, hist_seq_len = fc_parser.sequence_columns['field1']._get_sequence_dense_tensor(builder)
+    hist_embedding, hist_seq_len = fc_parser.sequence_columns[
+        'field1']._get_sequence_dense_tensor(builder)
 
     init = tf.initialize_all_variables()
     with tf.Session() as sess:
