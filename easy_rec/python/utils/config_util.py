@@ -440,11 +440,15 @@ def get_input_name_from_fg_json(fg_json):
   input_names = []
   for fea in fg_json['features']:
     if 'feature_name' in fea:
+      if 'stub_type' in fea and fea['stub_type']:
+        continue
       input_names.append(fea['feature_name'])
     elif 'sequence_name' in fea:
       sequence_name = fea['sequence_name']
       for seq_fea in fea['features']:
         assert 'feature_name' in seq_fea
+        if 'stub_type' in seq_fea and seq_fea['stub_type']:
+          continue
         feature_name = seq_fea['feature_name']
         input_names.append(sequence_name + '__' + feature_name)
   return input_names
