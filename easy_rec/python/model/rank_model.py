@@ -147,8 +147,7 @@ class RankModel(EasyRecModel):
             output,
             loss_type=loss.loss_type,
             num_class=self._num_class,
-            **kwargs,
-        )
+            **kwargs)
         self._prediction_dict.update(prediction_dict)
 
   def build_rtp_output_dict(self):

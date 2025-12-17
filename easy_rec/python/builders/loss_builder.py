@@ -86,8 +86,7 @@ def build(loss_type,
         loss_weight_strategy=loss_param.loss_weight_strategy,
         sample_weights=loss_weight,
         same_label_loss=loss_param.same_label_loss,
-        name=loss_name,
-    )
+        name=loss_name)
   elif loss_type == LossType.PAIR_WISE_LOSS:
     session = kwargs.get('session_ids', None)
     margin = 0 if loss_param is None else loss_param.margin
@@ -99,8 +98,7 @@ def build(loss_type,
         margin=margin,
         temperature=temp,
         weights=loss_weight,
-        name=loss_name,
-    )
+        name=loss_name)
   elif loss_type == LossType.PAIRWISE_LOGISTIC_LOSS:
     session = kwargs.get('session_ids', None)
     temp = 1.0 if loss_param is None else loss_param.temperature
@@ -118,8 +116,7 @@ def build(loss_type,
         ohem_ratio=ohem_ratio,
         weights=loss_weight,
         use_label_margin=lbl_margin,
-        name=loss_name,
-    )
+        name=loss_name)
   elif loss_type == LossType.PAIRWISE_HINGE_LOSS:
     session = kwargs.get('session_ids', None)
     temp, ohem_ratio, margin = 1.0, 1.0, 1.0
@@ -142,8 +139,7 @@ def build(loss_type,
         label_is_logits=label_is_logits,
         use_label_margin=use_label_margin,
         use_exponent=use_exponent,
-        name=loss_name,
-    )
+        name=loss_name)
   elif loss_type == LossType.PAIRWISE_FOCAL_LOSS:
     session = kwargs.get('session_ids', None)
     if loss_param is None:
@@ -162,8 +158,7 @@ def build(loss_type,
         ohem_ratio=loss_param.ohem_ratio,
         temperature=loss_param.temperature,
         weights=loss_weight,
-        name=loss_name,
-    )
+        name=loss_name)
   elif loss_type == LossType.LISTWISE_RANK_LOSS:
     session = kwargs.get('session_ids', None)
     trans_fn, temp, label_is_logits, scale = None, 1.0, False, False
@@ -181,8 +176,7 @@ def build(loss_type,
         label_is_logits=label_is_logits,
         transform_fn=trans_fn,
         scale_logits=scale,
-        weights=loss_weight,
-    )
+        weights=loss_weight)
   elif loss_type == LossType.LISTWISE_DISTILL_LOSS:
     session = kwargs.get('session_ids', None)
     trans_fn, temp, label_clip_max_value, scale = None, 1.0, 512.0, False
@@ -200,8 +194,7 @@ def build(loss_type,
         label_clip_max_value=label_clip_max_value,
         transform_fn=trans_fn,
         scale_logits=scale,
-        weights=loss_weight,
-    )
+        weights=loss_weight)
   elif loss_type == LossType.F1_REWEIGHTED_LOSS:
     f1_beta_square = 1.0 if loss_param is None else loss_param.f1_beta_square
     label_smoothing = 0 if loss_param is None else loss_param.label_smoothing
@@ -210,8 +203,7 @@ def build(loss_type,
         pred,
         f1_beta_square,
         weights=loss_weight,
-        label_smoothing=label_smoothing,
-    )
+        label_smoothing=label_smoothing)
   elif loss_type == LossType.BINARY_FOCAL_LOSS:
     if loss_param is None:
       return sigmoid_focal_loss_with_logits(
@@ -228,8 +220,7 @@ def build(loss_type,
         ohem_ratio=loss_param.ohem_ratio,
         sample_weights=loss_weight,
         label_smoothing=loss_param.label_smoothing,
-        name=loss_name,
-    )
+        name=loss_name)
   else:
     raise ValueError('unsupported loss type: %s' % LossType.Name(loss_type))
 
@@ -250,8 +241,7 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
   for kd in kds:
     assert kd.pred_name in prediction_dict, 'invalid predict_name: %s available ones: %s' % (
         kd.pred_name,
-        ','.join(prediction_dict.keys()),
-    )
+        ','.join(prediction_dict.keys()))
 
     loss_name = kd.loss_name
     if not loss_name:
@@ -361,6 +351,5 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
           pred,
           loss_weight=loss_weight,
           loss_param=loss_param,
-          **kwargs,
-      )
+          **kwargs)
   return loss_dict
