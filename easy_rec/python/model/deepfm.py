@@ -41,11 +41,11 @@ class DeepFM(RankModel):
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
+    self._wide_output_dim = model_config.deepfm.wide_output_dim
     has_final = len(model_config.deepfm.final_dnn.hidden_units) > 0
     if not has_final:
-      assert model_config.deepfm.wide_output_dim == model_config.num_class
-    self._wide_output_dim = model_config.deepfm.wide_output_dim
-    if self._wide_output_dim != self._num_class:
+      assert self._wide_output_dim == model_config.num_class
+    elif self._wide_output_dim != model_config.num_class:
       logging.warning(
           'wide_output_dim not equal to 1, it is not a standard model')
     super(DeepFM, self).build_input_layer(model_config, feature_configs)

@@ -27,7 +27,7 @@ class RankModel(EasyRecModel):
     super(RankModel, self).__init__(model_config, feature_configs, features,
                                     labels, is_training)
     self._loss_type = self._model_config.loss_type
-    self._num_class = getattr(model_config, "num_class", 1)
+    self._num_class = self._model_config.num_class
     self._losses = self._model_config.losses
     if self._labels is not None:
       if model_config.HasField('label_name'):
