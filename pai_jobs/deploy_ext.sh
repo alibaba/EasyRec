@@ -60,7 +60,7 @@ then
 fi
 
 ODPSCMD=`which $ODPSCMD`
-if [ $? -ne 0 ] && [ $mode -ne 2 ]
+if [[ $? -ne 0 ]] && [[ $mode -ne 2 ]]
 then
    echo "$ODPSCMD is not in PATH"
    exit 1

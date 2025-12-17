@@ -130,6 +130,8 @@ RawFeature：连续值特征
     -DossHost=oss-cn-beijing-internal.aliyuncs.com
     -Dwith_evaluator=1;
 
+放置在`DEEP`类型的`feature_group`中时，按照下面的方式配置：
+
 .. code:: protobuf
 
   feature_config:{
@@ -150,6 +152,8 @@ RawFeature：连续值特征
       embedding_dim: 8
     }
   }
+
+备注：放置在`WIDE`类型的`feature_group`中时，必须要配置`embedding_dim: 1`。
 
 分箱组件使用方法见： `机器学习组件 <https://help.aliyun.com/document_detail/54352.html>`_
 也可以手动导入分箱信息。如下：

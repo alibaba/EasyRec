@@ -39,21 +39,23 @@ def dropout(input_tensor, dropout_prob):
   return output
 
 
-def attention_layer(from_tensor,
-                    to_tensor,
-                    size_per_head,
-                    num_attention_heads=1,
-                    attention_mask=None,
-                    query_act=None,
-                    key_act=None,
-                    value_act=None,
-                    attention_probs_dropout_prob=0.0,
-                    initializer_range=0.02,
-                    do_return_2d_tensor=False,
-                    batch_size=None,
-                    from_seq_length=None,
-                    to_seq_length=None,
-                    reuse=None):
+def attention_layer(
+    from_tensor,
+    to_tensor,
+    size_per_head,
+    num_attention_heads=1,
+    attention_mask=None,
+    query_act=None,
+    key_act=None,
+    value_act=None,
+    attention_probs_dropout_prob=0.0,
+    initializer_range=0.02,
+    do_return_2d_tensor=False,
+    batch_size=None,
+    from_seq_length=None,
+    to_seq_length=None,
+    reuse=None,
+):
   """Performs multi-headed attention from `from_tensor` to `to_tensor`.
 
   This is an implementation of multi-headed attention based on "Attention is all you Need".
@@ -128,7 +130,7 @@ def attention_layer(from_tensor,
     from_seq_length = from_shape[1]
     to_seq_length = to_shape[1]
   elif len(from_shape) == 2:
-    if (batch_size is None or from_seq_length is None or to_seq_length is None):
+    if batch_size is None or from_seq_length is None or to_seq_length is None:
       raise ValueError(
           'When passing in rank 2 tensors to attention_layer, the values '
           'for `batch_size`, `from_seq_length`, and `to_seq_length` '
@@ -151,7 +153,8 @@ def attention_layer(from_tensor,
       activation=query_act,
       name='query',
       kernel_initializer=create_initializer(initializer_range),
-      reuse=reuse)
+      reuse=reuse,
+  )
 
   # `key_layer` = [B*T, N*H]
   key_layer = tf.layers.dense(
@@ -160,7 +163,8 @@ def attention_layer(from_tensor,
       activation=key_act,
       name='key',
       kernel_initializer=create_initializer(initializer_range),
-      reuse=reuse)
+      reuse=reuse,
+  )
 
   # `value_layer` = [B*T, N*H]
   value_layer = tf.layers.dense(
@@ -169,7 +173,8 @@ def attention_layer(from_tensor,
       activation=value_act,
       name='value',
       kernel_initializer=create_initializer(initializer_range),
-      reuse=reuse)
+      reuse=reuse,
+  )
 
   # `query_layer` = [B, N, F, H]
   query_layer = transpose_for_scores(query_layer, batch_size,
@@ -226,28 +231,32 @@ def attention_layer(from_tensor,
     # `context_layer` = [B*F, N*H]
     context_layer = tf.reshape(
         context_layer,
-        [batch_size * from_seq_length, num_attention_heads * size_per_head])
+        [batch_size * from_seq_length, num_attention_heads * size_per_head],
+    )
   else:
     # `context_layer` = [B, F, N*H]
     context_layer = tf.reshape(
         context_layer,
-        [batch_size, from_seq_length, num_attention_heads * size_per_head])
+        [batch_size, from_seq_length, num_attention_heads * size_per_head],
+    )
 
   return context_layer
 
 
-def transformer_encoder(input_tensor,
-                        attention_mask=None,
-                        hidden_size=768,
-                        num_hidden_layers=12,
-                        num_attention_heads=12,
-                        intermediate_size=3072,
-                        intermediate_act_fn=gelu,
-                        hidden_dropout_prob=0.1,
-                        attention_probs_dropout_prob=0.1,
-                        initializer_range=0.02,
-                        reuse=None,
-                        name='transformer'):
+def transformer_encoder(
+    input_tensor,
+    attention_mask=None,
+    hidden_size=768,
+    num_hidden_layers=12,
+    num_attention_heads=12,
+    intermediate_size=3072,
+    intermediate_act_fn=gelu,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
+    initializer_range=0.02,
+    reuse=None,
+    name='transformer',
+):
   """Multi-headed, multi-layer Transformer from "Attention is All You Need".
 
   This is almost an exact implementation of the original Transformer encoder.
@@ -322,7 +331,8 @@ def transformer_encoder(input_tensor,
               batch_size=batch_size,
               from_seq_length=seq_length,
               to_seq_length=seq_length,
-              reuse=reuse)
+              reuse=reuse,
+          )
 
         # Run a linear projection of `hidden_size` then add a residual
         # with `layer_input`.
@@ -330,7 +340,8 @@ def transformer_encoder(input_tensor,
           attention_output = tf.layers.dense(
               attention_output,
               hidden_size,
-              kernel_initializer=create_initializer(initializer_range))
+              kernel_initializer=create_initializer(initializer_range),
+          )
           attention_output = dropout(attention_output, hidden_dropout_prob)
           attention_output = layer_norm(attention_output + layer_input)
 
@@ -340,14 +351,16 @@ def transformer_encoder(input_tensor,
             attention_output,
             intermediate_size,
             activation=intermediate_act_fn,
-            kernel_initializer=create_initializer(initializer_range))
+            kernel_initializer=create_initializer(initializer_range),
+        )
 
       # Down-project back to `hidden_size` then add the residual.
       with tf.variable_scope('output', reuse=reuse):
         layer_output = tf.layers.dense(
             intermediate_output,
             hidden_size,
-            kernel_initializer=create_initializer(initializer_range))
+            kernel_initializer=create_initializer(initializer_range),
+        )
         layer_output = dropout(layer_output, hidden_dropout_prob)
         layer_output = layer_norm(layer_output + attention_output)
         prev_output = layer_output
@@ -356,18 +369,20 @@ def transformer_encoder(input_tensor,
   return final_output
 
 
-def cross_attention_block(from_tensor,
-                          to_tensor,
-                          layer_idx,
-                          size_per_head,
-                          cross_attention_mask=None,
-                          self_attention_mask=None,
-                          num_attention_heads=1,
-                          intermediate_size=512,
-                          hidden_dropout_prob=0.1,
-                          attention_probs_dropout_prob=0.1,
-                          initializer_range=0.02,
-                          name=''):
+def cross_attention_block(
+    from_tensor,
+    to_tensor,
+    layer_idx,
+    size_per_head,
+    cross_attention_mask=None,
+    self_attention_mask=None,
+    num_attention_heads=1,
+    intermediate_size=512,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
+    initializer_range=0.02,
+    name='',
+):
   """Multi-headed cross attention block.
 
     Args:
@@ -421,7 +436,8 @@ def cross_attention_block(from_tensor,
             do_return_2d_tensor=True,
             batch_size=batch_size,
             from_seq_length=from_seq_length,
-            to_seq_length=to_seq_length)
+            to_seq_length=to_seq_length,
+        )
 
       with tf.variable_scope('self'):
         # [batch_size * from_seq_length, num_attention_heads * size_per_head]
@@ -436,7 +452,8 @@ def cross_attention_block(from_tensor,
             do_return_2d_tensor=True,
             batch_size=batch_size,
             from_seq_length=from_seq_length,
-            to_seq_length=from_seq_length)
+            to_seq_length=from_seq_length,
+        )
 
       with tf.variable_scope('output'):
         attention_output = dropout(self_attention_output, hidden_dropout_prob)
@@ -448,14 +465,16 @@ def cross_attention_block(from_tensor,
           attention_output,
           intermediate_size,
           activation=tf.nn.relu,
-          kernel_initializer=create_initializer(initializer_range))
+          kernel_initializer=create_initializer(initializer_range),
+      )
 
     # Down-project back to `hidden_size` then add the residual.
     with tf.variable_scope('output'):
       layer_output = tf.layers.dense(
           intermediate_output,
           num_attention_heads * size_per_head,
-          kernel_initializer=create_initializer(initializer_range))
+          kernel_initializer=create_initializer(initializer_range),
+      )
       layer_output = dropout(layer_output, hidden_dropout_prob)
       # [batch_size * from_seq_length, num_attention_heads * size_per_head]
       layer_output = layer_norm(layer_output + attention_output)
@@ -466,20 +485,22 @@ def cross_attention_block(from_tensor,
   return final_output  # [batch_size, from_seq_length, num_attention_heads * size_per_head]
 
 
-def cross_attention_tower(left_tensor,
-                          right_tensor,
-                          num_hidden_layers=1,
-                          num_attention_heads=12,
-                          left_size_per_head=64,
-                          right_size_per_head=64,
-                          left_intermediate_size=0,
-                          right_intermediate_size=0,
-                          left_input_mask=None,
-                          right_input_mask=None,
-                          hidden_dropout_prob=0.1,
-                          attention_probs_dropout_prob=0.1,
-                          initializer_range=0.02,
-                          name=''):
+def cross_attention_tower(
+    left_tensor,
+    right_tensor,
+    num_hidden_layers=1,
+    num_attention_heads=12,
+    left_size_per_head=64,
+    right_size_per_head=64,
+    left_intermediate_size=0,
+    right_intermediate_size=0,
+    left_input_mask=None,
+    right_input_mask=None,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
+    initializer_range=0.02,
+    name='',
+):
   """Multi-headed, multi layer cross attention block.
 
     Args:
@@ -553,7 +574,8 @@ def cross_attention_tower(left_tensor,
         self_attention_mask=left_attention_mask,
         attention_probs_dropout_prob=attention_probs_dropout_prob,
         initializer_range=initializer_range,
-        name='%sleft_to_right_' % name)
+        name='%sleft_to_right_' % name,
+    )
     right_output = cross_attention_block(
         prev_right_output,
         prev_left_output,
@@ -566,7 +588,8 @@ def cross_attention_tower(left_tensor,
         self_attention_mask=right_attention_mask,
         attention_probs_dropout_prob=attention_probs_dropout_prob,
         initializer_range=initializer_range,
-        name='%sright_to_left_' % name)
+        name='%sright_to_left_' % name,
+    )
     prev_left_output = left_output
     prev_right_output = right_output
   return prev_left_output, prev_right_output
@@ -639,18 +662,20 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   return mask
 
 
-def embedding_postprocessor(input_tensor,
-                            use_token_type=False,
-                            token_type_ids=None,
-                            token_type_vocab_size=16,
-                            token_type_embedding_name='token_type_embeddings',
-                            reuse_token_type=None,
-                            use_position_embeddings=True,
-                            position_embedding_name='position_embeddings',
-                            reuse_position_embedding=None,
-                            initializer_range=0.02,
-                            max_position_embeddings=512,
-                            dropout_prob=0.1):
+def embedding_postprocessor(
+    input_tensor,
+    use_token_type=False,
+    token_type_ids=None,
+    token_type_vocab_size=16,
+    token_type_embedding_name='token_type_embeddings',
+    reuse_token_type=None,
+    use_position_embeddings=True,
+    position_embedding_name='position_embeddings',
+    reuse_position_embedding=None,
+    initializer_range=0.02,
+    max_position_embeddings=512,
+    dropout_prob=0.0,
+):
   """Performs various post-processing on a word embedding tensor.
 
   Args:
@@ -695,7 +720,8 @@ def embedding_postprocessor(input_tensor,
       token_type_table = tf.get_variable(
           name=token_type_embedding_name,
           shape=[token_type_vocab_size, width],
-          initializer=create_initializer(initializer_range))
+          initializer=create_initializer(initializer_range),
+      )
     # This vocab will be small so we always do one-hot here, since it is always
     # faster for a small vocabulary.
     flat_token_type_ids = tf.reshape(token_type_ids, [-1])
@@ -713,7 +739,8 @@ def embedding_postprocessor(input_tensor,
         full_position_embeddings = tf.get_variable(
             name=position_embedding_name,
             shape=[max_position_embeddings, width],
-            initializer=create_initializer(initializer_range))
+            initializer=create_initializer(initializer_range),
+        )
       # Since the position embedding table is a learned variable, we create it
       # using a (long) sequence length `max_position_embeddings`. The actual
       # sequence length might be shorter than this, for faster training of

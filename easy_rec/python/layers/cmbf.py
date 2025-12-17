@@ -329,6 +329,7 @@ class CMBF(object):
     if not is_training:
       self._model_config.hidden_dropout_prob = 0.0
       self._model_config.attention_probs_dropout_prob = 0.0
+      self._model_config.text_seq_emb_dropout_prob = 0.0
 
     # shape: [batch_size, image_num/image_dim, hidden_size]
     img_attention_fea = self.image_self_attention_tower()
