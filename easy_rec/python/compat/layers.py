@@ -28,17 +28,19 @@ from tensorflow.python.ops import nn
 from tensorflow.python.ops import variable_scope
 
 
-def layer_norm(inputs,
-               center=True,
-               scale=True,
-               activation_fn=None,
-               reuse=None,
-               variables_collections=None,
-               outputs_collections=None,
-               trainable=True,
-               begin_norm_axis=1,
-               begin_params_axis=-1,
-               scope=None):
+def layer_norm(
+    inputs,
+    center=True,
+    scale=True,
+    activation_fn=None,
+    reuse=None,
+    variables_collections=None,
+    outputs_collections=None,
+    trainable=True,
+    begin_norm_axis=1,
+    begin_params_axis=-1,
+    scope=None,
+):
   """Adds a Layer Normalization layer.
 
   Based on the paper:
@@ -126,7 +128,8 @@ def layer_norm(inputs,
           dtype=dtype,
           initializer=init_ops.zeros_initializer(),
           collections=beta_collections,
-          trainable=trainable)
+          trainable=trainable,
+      )
     if scale:
       gamma_collections = get_variable_collections(variables_collections,
                                                    'gamma')
@@ -136,7 +139,8 @@ def layer_norm(inputs,
           dtype=dtype,
           initializer=init_ops.ones_initializer(),
           collections=gamma_collections,
-          trainable=trainable)
+          trainable=trainable,
+      )
     # Calculate the moments on the last axis (layer activations).
     norm_axes = list(range(begin_norm_axis, inputs_rank))
     mean, variance = nn.moments(inputs, norm_axes, keep_dims=True)
@@ -148,7 +152,8 @@ def layer_norm(inputs,
         variance,
         offset=beta,
         scale=gamma,
-        variance_epsilon=variance_epsilon)
+        variance_epsilon=variance_epsilon,
+    )
     outputs.set_shape(inputs_shape)
     if activation_fn is not None:
       outputs = activation_fn(outputs)
@@ -205,18 +210,20 @@ def append_tensor_alias(tensor, alias):
   return tensor
 
 
-def variable(name,
-             shape=None,
-             dtype=None,
-             initializer=None,
-             regularizer=None,
-             trainable=True,
-             collections=None,
-             caching_device=None,
-             device=None,
-             partitioner=None,
-             custom_getter=None,
-             use_resource=None):
+def variable(
+    name,
+    shape=None,
+    dtype=None,
+    initializer=None,
+    regularizer=None,
+    trainable=True,
+    collections=None,
+    caching_device=None,
+    device=None,
+    partitioner=None,
+    custom_getter=None,
+    use_resource=None,
+):
   """Gets an existing variable with these parameters or creates a new one.
 
   Args:
@@ -266,21 +273,24 @@ def variable(name,
         collections=collections,
         caching_device=caching_device,
         partitioner=partitioner,
-        use_resource=use_resource)
+        use_resource=use_resource,
+    )
 
 
-def model_variable(name,
-                   shape=None,
-                   dtype=dtypes.float32,
-                   initializer=None,
-                   regularizer=None,
-                   trainable=True,
-                   collections=None,
-                   caching_device=None,
-                   device=None,
-                   partitioner=None,
-                   custom_getter=None,
-                   use_resource=None):
+def model_variable(
+    name,
+    shape=None,
+    dtype=dtypes.float32,
+    initializer=None,
+    regularizer=None,
+    trainable=True,
+    collections=None,
+    caching_device=None,
+    device=None,
+    partitioner=None,
+    custom_getter=None,
+    use_resource=None,
+):
   """Gets an existing model variable with these parameters or creates a new one.
 
   Args:
@@ -325,5 +335,6 @@ def model_variable(name,
       device=device,
       partitioner=partitioner,
       custom_getter=custom_getter,
-      use_resource=use_resource)
+      use_resource=use_resource,
+  )
   return var

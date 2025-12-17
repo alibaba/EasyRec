@@ -8,9 +8,10 @@ from easy_rec.python.model.easy_rec_model import EasyRecModel
 from easy_rec.python.protos.loss_pb2 import LossType
 from easy_rec.python.utils.proto_util import copy_obj
 
+from easy_rec.python.loss.softmax_loss_with_negative_mining import (  # NOQA
+    softmax_loss_with_negative_mining,)
 from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
-from easy_rec.python.loss.softmax_loss_with_negative_mining import softmax_loss_with_negative_mining  # NOQA
-from easy_rec.python.protos.dropoutnet_pb2 import DropoutNet as DropoutNetConfig  # NOQA
+
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 losses = tf.losses
@@ -42,10 +43,8 @@ class DropoutNet(EasyRecModel):
     super(DropoutNet, self).__init__(model_config, feature_configs, features,
                                      labels, is_training)
     self._losses = self._model_config.losses
-    assert self._model_config.WhichOneof(
-        'model'
-    ) == 'dropoutnet', 'invalid model config: %s' % self._model_config.WhichOneof(
-        'model')
+    assert self._model_config.WhichOneof('model') == 'dropoutnet', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.dropoutnet
     assert isinstance(self._model_config, DropoutNetConfig)
 
@@ -86,16 +85,26 @@ class DropoutNet(EasyRecModel):
     with tf.name_scope('user_tower'):
       user_features = []
       if self.user_content_feature is not None:
-        user_content_dnn = dnn.DNN(self.user_content_layers, self._l2_reg,
-                                   'user_content', self._is_training)
+        user_content_dnn = dnn.DNN(
+            self.user_content_layers,
+            self._l2_reg,
+            'user_content',
+            self._is_training,
+        )
         content_feature = user_content_dnn(self.user_content_feature)
         user_features.append(content_feature)
       if self.user_preference_feature is not None:
         user_prefer_feature = bernoulli_dropout(
-            self.user_preference_feature, self._model_config.user_dropout_rate,
-            self._is_training)
-        user_prefer_dnn = dnn.DNN(self.user_preference_layers, self._l2_reg,
-                                  'user_preference', self._is_training)
+            self.user_preference_feature,
+            self._model_config.user_dropout_rate,
+            self._is_training,
+        )
+        user_prefer_dnn = dnn.DNN(
+            self.user_preference_layers,
+            self._l2_reg,
+            'user_preference',
+            self._is_training,
+        )
         prefer_feature = user_prefer_dnn(user_prefer_feature)
         user_features.append(prefer_feature)
 
@@ -108,22 +117,33 @@ class DropoutNet(EasyRecModel):
           inputs=user_hidden,
           units=last_user_hidden,
           kernel_regularizer=self._l2_reg,
-          name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
+          name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1),
+      )
 
     # --------------------------build item tower-----------------------------------
     with tf.name_scope('item_tower'):
       item_features = []
       if self.item_content_feature is not None:
-        item_content_dnn = dnn.DNN(self.item_content_layers, self._l2_reg,
-                                   'item_content', self._is_training)
+        item_content_dnn = dnn.DNN(
+            self.item_content_layers,
+            self._l2_reg,
+            'item_content',
+            self._is_training,
+        )
         content_feature = item_content_dnn(self.item_content_feature)
         item_features.append(content_feature)
       if self.item_preference_feature is not None:
         item_prefer_feature = bernoulli_dropout(
-            self.item_preference_feature, self._model_config.item_dropout_rate,
-            self._is_training)
-        item_prefer_dnn = dnn.DNN(self.item_preference_layers, self._l2_reg,
-                                  'item_preference', self._is_training)
+            self.item_preference_feature,
+            self._model_config.item_dropout_rate,
+            self._is_training,
+        )
+        item_prefer_dnn = dnn.DNN(
+            self.item_preference_layers,
+            self._l2_reg,
+            'item_preference',
+            self._is_training,
+        )
         prefer_feature = item_prefer_dnn(item_prefer_feature)
         item_features.append(prefer_feature)
 
@@ -136,7 +156,8 @@ class DropoutNet(EasyRecModel):
           inputs=item_hidden,
           units=last_item_hidden,
           kernel_regularizer=self._l2_reg,
-          name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
+          name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1),
+      )
 
     user_emb = tf.nn.l2_normalize(user_tower_emb, axis=-1)
     item_emb = tf.nn.l2_normalize(item_tower_emb, axis=-1)
@@ -168,7 +189,8 @@ class DropoutNet(EasyRecModel):
             weights=self._sample_weight,
             margin=self._model_config.softmax_loss.margin,
             gamma=self._model_config.softmax_loss.gamma,
-            t=self._model_config.softmax_loss.coefficient_of_support_vector)
+            t=self._model_config.softmax_loss.coefficient_of_support_vector,
+        )
         self._loss_dict['softmax_loss'] = loss_value * loss.weight
       elif loss.loss_type == LossType.PAIR_WISE_LOSS:
         loss_value = pairwise_loss(labels, logits)
@@ -181,6 +203,7 @@ class DropoutNet(EasyRecModel):
 
   def build_metric_graph(self, eval_config):
     from easy_rec.python.core.easyrec_metrics import metrics_tf as metrics
+
     metric_dict = {}
     labels = list(self._labels.values())[0]
     sim_score = self._prediction_dict['similarity']

@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-from easy_rec.python.core.metrics import metric_learning_average_precision_at_k
-from easy_rec.python.core.metrics import metric_learning_recall_at_k
 from easy_rec.python.layers import dnn
 from easy_rec.python.layers.common_layers import highway
 from easy_rec.python.loss.circle_loss import circle_loss
@@ -12,6 +10,10 @@ from easy_rec.python.utils.activation import gelu
 from easy_rec.python.utils.proto_util import copy_obj
 
 from easy_rec.python.protos.collaborative_metric_learning_pb2 import CoMetricLearningI2I as MetricLearningI2IConfig  # NOQA
+
+from easy_rec.python.core.metrics import (  # NOQA
+    metric_learning_average_precision_at_k, metric_learning_recall_at_k,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -25,7 +27,8 @@ class CoMetricLearningI2I(EasyRecModel):
       feature_configs,  # pipeline.feature_configs
       features,  # same as model_fn input
       labels=None,
-      is_training=False):
+      is_training=False,
+  ):
     super(CoMetricLearningI2I, self).__init__(model_config, feature_configs,
                                               features, labels, is_training)
     model = self._model_config.WhichOneof('model')
@@ -89,12 +92,14 @@ class CoMetricLearningI2I(EasyRecModel):
             self._highway_features[highway_cfg.input],
             training=self._is_training,
             trainable=True,
-            name='highway_%s_bn' % highway_cfg.input)
+            name='highway_%s_bn' % highway_cfg.input,
+        )
         highway_fea = highway(
             highway_fea,
             highway_cfg.emb_size,
             activation=gelu,
-            scope='highway_%s' % _id)
+            scope='highway_%s' % _id,
+        )
         print('highway_fea: ', highway_fea)
         self.input_features.append(highway_fea)
 
@@ -108,7 +113,8 @@ class CoMetricLearningI2I(EasyRecModel):
           inputs=net_output,
           units=last_hidden,
           kernel_regularizer=self._l2_reg,
-          name='dnn/dnn_%d' % (num_dnn_layer - 1))
+          name='dnn/dnn_%d' % (num_dnn_layer - 1),
+      )
 
     if self._model_config.output_l2_normalized_emb:
       norm_emb = tf.nn.l2_normalize(tower_emb, axis=-1)
@@ -135,7 +141,8 @@ class CoMetricLearningI2I(EasyRecModel):
           self.session_ids,
           self.loss.margin,
           self.loss.gamma,
-          embed_normed=emb_normed)
+          embed_normed=emb_normed,
+      )
     elif self._loss_type == LossType.MULTI_SIMILARITY_LOSS:
       self._loss_dict['ms_loss'] = ms_loss(
           norm_emb,
@@ -145,7 +152,8 @@ class CoMetricLearningI2I(EasyRecModel):
           self.loss.beta,
           self.loss.lamb,
           self.loss.eps,
-          embed_normed=emb_normed)
+          embed_normed=emb_normed,
+      )
     else:
       raise ValueError('invalid loss type: %s' % LossType.Name(self._loss_type))
 

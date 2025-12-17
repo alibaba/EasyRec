@@ -1,5 +1,8 @@
+#!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+"""Entry script of pai -name easyrec command."""
+
 from __future__ import print_function
 
 import logging
@@ -15,18 +18,18 @@ import easy_rec
 from easy_rec.python.inference.odps_predictor import ODPSPredictor
 from easy_rec.python.inference.vector_retrieve import VectorRetrieve
 from easy_rec.python.tools.pre_check import run_check
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import constant
-from easy_rec.python.utils import estimator_utils
-from easy_rec.python.utils import fg_util
-from easy_rec.python.utils import hpo_util
-from easy_rec.python.utils import pai_util
-from easy_rec.python.utils.distribution_utils import DistributionStrategyMap
-from easy_rec.python.utils.distribution_utils import set_distribution_config
+
+from easy_rec.python.main import _train_and_evaluate_impl as train_and_evaluate_impl  # NOQA
+
+from easy_rec.python.utils import (  # NOQA
+    config_util, constant, estimator_utils, fg_util, hpo_util, pai_util,
+)
+from easy_rec.python.utils.distribution_utils import (  # NOQA
+    DistributionStrategyMap, set_distribution_config,
+    set_tf_config_and_get_train_worker_num,
+)
 
 os.environ['IS_ON_PAI'] = '1'
-
-from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num  # NOQA
 os.environ['OENV_MultiWriteThreadsNum'] = '4'
 os.environ['OENV_MultiCopyThreadsNum'] = '4'
 
@@ -37,8 +40,6 @@ if not tf.__version__.startswith('1.12'):
   except Exception as ex:
     logging.error('failed to import tfio: %s' % str(ex))
   tf.disable_eager_execution()
-
-from easy_rec.python.main import _train_and_evaluate_impl as train_and_evaluate_impl  # NOQA
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -60,8 +61,11 @@ tf.app.flags.DEFINE_integer('num_gpus_per_worker', 1,
 tf.app.flags.DEFINE_boolean('with_evaluator', False,
                             'whether a evaluator is necessary')
 tf.app.flags.DEFINE_string(
-    'eval_method', 'none', 'default to none, choices are [none: not evaluate,' +
-    'master: evaluate on master, separate: evaluate on a separate task]')
+    'eval_method',
+    'none',
+    'default to none, choices are [none: not evaluate,' +
+    'master: evaluate on master, separate: evaluate on a separate task]',
+)
 
 tf.app.flags.DEFINE_string('distribute_strategy', '',
                            'training distribute strategy')
@@ -83,9 +87,11 @@ tf.app.flags.DEFINE_integer('knn_num_neighbours', None,
 tf.app.flags.DEFINE_integer('knn_feature_dims', None,
                             'number of feature dimensions')
 tf.app.flags.DEFINE_enum(
-    'knn_index_type', 'ivfflat',
+    'knn_index_type',
+    'ivfflat',
     ['flat', 'ivfflat', 'ivfpq', 'gpu_flat', 'gpu_ivfflat', 'gpu_ivfpg'],
-    'knn index type')
+    'knn index type',
+)
 tf.app.flags.DEFINE_string('knn_feature_delimiter', ',',
                            'delimiter for feature vectors')
 tf.app.flags.DEFINE_integer('knn_nlist', 5,
@@ -93,14 +99,19 @@ tf.app.flags.DEFINE_integer('knn_nlist', 5,
 tf.app.flags.DEFINE_integer('knn_nprobe', 2,
                             'number of probe part on each worker')
 tf.app.flags.DEFINE_integer(
-    'knn_compress_dim', 8,
-    'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`')
+    'knn_compress_dim',
+    8,
+    'number of dimensions after compress for `ivfpq` and `gpu_ivfpq`',
+)
 
 # flags used for evaluate & export
 tf.app.flags.DEFINE_string(
-    'checkpoint_path', '', 'checkpoint to be evaluated or exported '
+    'checkpoint_path',
+    '',
+    'checkpoint to be evaluated or exported '
     'if not specified, use the latest checkpoint '
-    'in train_config.model_dir')
+    'in train_config.model_dir',
+)
 # flags used for evaluate
 tf.app.flags.DEFINE_string('eval_result_path', 'eval_result.txt',
                            'eval result metric file')
@@ -125,8 +136,10 @@ tf.app.flags.DEFINE_string(
     'all_cols', '',
     'union of (selected_cols, reserved_cols), separated with , ')
 tf.app.flags.DEFINE_string(
-    'all_col_types', '',
-    'column data types, for build record defaults, separated with ,')
+    'all_col_types',
+    '',
+    'column data types, for build record defaults, separated with ,',
+)
 tf.app.flags.DEFINE_string(
     'selected_cols', '',
     'columns to keep from input table,  they are separated with ,')
@@ -134,8 +147,10 @@ tf.app.flags.DEFINE_string(
     'reserved_cols', '',
     'columns to keep from input table,  they are separated with ,')
 tf.app.flags.DEFINE_string(
-    'output_cols', None,
-    'output columns, such as: score float. multiple columns are separated by ,')
+    'output_cols',
+    None,
+    'output columns, such as: score float. multiple columns are separated by ,',
+)
 tf.app.flags.DEFINE_integer('batch_size', 1024, 'predict batch size')
 tf.app.flags.DEFINE_string(
     'profiling_file', None,
@@ -257,9 +272,11 @@ def main(argv):
   num_gpus_per_worker = FLAGS.num_gpus_per_worker
   worker_hosts = FLAGS.worker_hosts.split(',')
   num_worker = len(worker_hosts)
-  assert FLAGS.distribute_strategy in DistributionStrategyMap, \
+  assert FLAGS.distribute_strategy in DistributionStrategyMap, (
       'invalid distribute_strategy [%s], available ones are %s' % (
-          FLAGS.distribute_strategy, ','.join(DistributionStrategyMap.keys()))
+          FLAGS.distribute_strategy,
+          ','.join(DistributionStrategyMap.keys()),
+      ))
 
   if FLAGS.config:
     config = pai_util.process_config(FLAGS.config, FLAGS.task_index,
@@ -310,7 +327,9 @@ def main(argv):
       assert len(
           tables
       ) >= 2, 'at least 2 tables must be specified, but only[%d]: %s' % (
-          len(tables), FLAGS.tables)
+          len(tables),
+          FLAGS.tables,
+      )
 
     if FLAGS.train_tables:
       pipeline_config.train_input_path = FLAGS.train_tables
@@ -342,8 +361,12 @@ def main(argv):
 
     if FLAGS.train_tables or FLAGS.tables:
       # parse selected_cols
-      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                        FLAGS.all_col_types)
+      set_selected_cols(
+          pipeline_config,
+          FLAGS.selected_cols,
+          FLAGS.all_cols,
+          FLAGS.all_col_types,
+      )
     else:
       pipeline_config.data_config.selected_cols = ''
       pipeline_config.data_config.selected_col_types = ''
@@ -375,20 +398,23 @@ def main(argv):
         FLAGS.task_index,
         FLAGS.job_name,
         distribute_strategy=distribute_strategy,
-        eval_method=FLAGS.eval_method)
+        eval_method=FLAGS.eval_method,
+    )
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
     logging.info('run.py check_mode: %s .' % FLAGS.check_mode)
     train_and_evaluate_impl(
         pipeline_config,
         continue_train=FLAGS.continue_train,
-        check_mode=FLAGS.check_mode)
+        check_mode=FLAGS.check_mode,
+    )
 
     if FLAGS.hpo_metric_save_path:
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=FLAGS.hpo_metric_save_path,
-          has_evaluator=(FLAGS.eval_method == 'separate'))
+          has_evaluator=(FLAGS.eval_method == 'separate'),
+      )
 
   elif FLAGS.cmd == 'evaluate':
     check_param('config')
@@ -409,14 +435,19 @@ def main(argv):
         FLAGS.worker_hosts,
         FLAGS.task_index,
         FLAGS.job_name,
-        eval_method='none')
+        eval_method='none',
+    )
     set_distribution_config(pipeline_config, num_worker, num_gpus_per_worker,
                             distribute_strategy)
 
     if FLAGS.eval_tables or FLAGS.tables:
       # parse selected_cols
-      set_selected_cols(pipeline_config, FLAGS.selected_cols, FLAGS.all_cols,
-                        FLAGS.all_col_types)
+      set_selected_cols(
+          pipeline_config,
+          FLAGS.selected_cols,
+          FLAGS.all_cols,
+          FLAGS.all_col_types,
+      )
     else:
       pipeline_config.data_config.selected_cols = ''
       pipeline_config.data_config.selected_col_types = ''
@@ -483,9 +514,10 @@ def main(argv):
         FLAGS.worker_hosts,
         FLAGS.task_index,
         FLAGS.job_name,
-        eval_method='none')
+        eval_method='none',
+    )
 
-    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
+    assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 worker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
 
     export_dir = FLAGS.export_dir
@@ -497,9 +529,14 @@ def main(argv):
 
     extra_params = redis_params
     extra_params.update(oss_params)
-    export_out_dir = easy_rec.export(export_dir, pipeline_config,
-                                     FLAGS.checkpoint_path, FLAGS.asset_files,
-                                     FLAGS.verbose, **extra_params)
+    export_out_dir = easy_rec.export(
+        export_dir,
+        pipeline_config,
+        FLAGS.checkpoint_path,
+        FLAGS.asset_files,
+        FLAGS.verbose,
+        **extra_params,
+    )
     if FLAGS.export_done_file:
       flag_file = os.path.join(export_out_dir, FLAGS.export_done_file)
       logging.info('create export done file: %s' % flag_file)
@@ -521,7 +558,8 @@ def main(argv):
         fg_json_path=FLAGS.fg_json_path,
         profiling_file=profiling_file,
         all_cols=FLAGS.all_cols,
-        all_col_types=FLAGS.all_col_types)
+        all_col_types=FLAGS.all_col_types,
+    )
     input_table, output_table = FLAGS.tables, FLAGS.outputs
     logging.info('input_table = %s, output_table = %s' %
                  (input_table, output_table))
@@ -533,7 +571,8 @@ def main(argv):
         output_cols=FLAGS.output_cols,
         batch_size=FLAGS.batch_size,
         slice_id=FLAGS.task_index,
-        slice_num=worker_num)
+        slice_num=worker_num,
+    )
   elif FLAGS.cmd == 'export_checkpoint':
     check_param('export_dir')
     check_param('config')
@@ -542,7 +581,8 @@ def main(argv):
         FLAGS.worker_hosts,
         FLAGS.task_index,
         FLAGS.job_name,
-        eval_method='none')
+        eval_method='none',
+    )
     assert len(FLAGS.worker_hosts.split(',')) == 1, 'export only need 1 woker'
     config_util.auto_expand_share_feature_configs(pipeline_config)
     easy_rec.export_checkpoint(
@@ -550,19 +590,26 @@ def main(argv):
         export_path=FLAGS.export_dir + '/model',
         checkpoint_path=FLAGS.checkpoint_path,
         asset_files=FLAGS.asset_files,
-        verbose=FLAGS.verbose)
+        verbose=FLAGS.verbose,
+    )
   elif FLAGS.cmd == 'vector_retrieve':
     check_param('knn_distance')
     assert FLAGS.knn_feature_dims is not None, '`knn_feature_dims` should not be None'
     assert FLAGS.knn_num_neighbours is not None, '`knn_num_neighbours` should not be None'
 
-    query_table, doc_table, output_table = FLAGS.query_table, FLAGS.doc_table, FLAGS.outputs
+    query_table, doc_table, output_table = (
+        FLAGS.query_table,
+        FLAGS.doc_table,
+        FLAGS.outputs,
+    )
     if not query_table:
       tables = FLAGS.tables.split(',')
       assert len(
           tables
       ) >= 1, 'at least 1 tables must be specified, but only[%d]: %s' % (
-          len(tables), FLAGS.tables)
+          len(tables),
+          FLAGS.tables,
+      )
       query_table = tables[0]
       doc_table = tables[1] if len(tables) > 1 else query_table
 
@@ -577,7 +624,8 @@ def main(argv):
         index_type=FLAGS.knn_index_type,
         nlist=FLAGS.knn_nlist,
         nprobe=FLAGS.knn_nprobe,
-        m=FLAGS.knn_compress_dim)
+        m=FLAGS.knn_compress_dim,
+    )
     worker_hosts = FLAGS.worker_hosts.split(',')
     knn(FLAGS.knn_num_neighbours, FLAGS.task_index, len(worker_hosts))
   elif FLAGS.cmd == 'check':

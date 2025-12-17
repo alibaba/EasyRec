@@ -16,7 +16,8 @@ from easy_rec.python.utils.meta_graph_editor import MetaGraphEditor
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 if __name__ == '__main__':
   """Replace the default embedding_lookup ops with self defined embedding lookup ops.
@@ -65,7 +66,8 @@ if __name__ == '__main__':
       args.redis_passwd,
       args.time_out,
       meta_graph_def=None,
-      debug_dir=args.output_dir if args.verbose else '')
+      debug_dir=args.output_dir if args.verbose else '',
+  )
   meta_graph_editor.edit_graph()
 
   meta_graph_version = meta_graph_editor.meta_graph_version
@@ -88,7 +90,8 @@ if __name__ == '__main__':
   tf.add_to_collection(
       tf.GraphKeys.ASSET_FILEPATHS,
       tf.constant(
-          embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'))
+          embed_name_to_id_file, dtype=tf.string, name='embed_name_to_ids.txt'),
+  )
 
   graph = tf.get_default_graph()
   inputs = meta_graph_editor.signature_def.inputs

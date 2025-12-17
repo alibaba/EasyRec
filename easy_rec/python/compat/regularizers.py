@@ -30,8 +30,11 @@ from tensorflow.python.ops import standard_ops
 from tensorflow.python.platform import tf_logging as logging
 
 __all__ = [
-    'l1_regularizer', 'l2_regularizer', 'l1_l2_regularizer', 'sum_regularizer',
-    'apply_regularization'
+    'l1_regularizer',
+    'l2_regularizer',
+    'l1_l2_regularizer',
+    'sum_regularizer',
+    'apply_regularization',
 ]
 
 
@@ -53,10 +56,10 @@ def l1_regularizer(scale, scope=None):
   if isinstance(scale, numbers.Integral):
     raise ValueError('scale cannot be an integer: %s' % scale)
   if isinstance(scale, numbers.Real):
-    if scale < 0.:
+    if scale < 0.0:
       raise ValueError('Setting a scale less than 0 on a regularizer: %g' %
                        scale)
-    if scale == 0.:
+    if scale == 0.0:
       logging.info('Scale of 0 disables regularizer.')
       return lambda _: None
 
@@ -91,10 +94,10 @@ def l2_regularizer(scale, scope=None):
   if isinstance(scale, numbers.Integral):
     raise ValueError('scale cannot be an integer: %s' % (scale,))
   if isinstance(scale, numbers.Real):
-    if scale < 0.:
+    if scale < 0.0:
       raise ValueError('Setting a scale less than 0 on a regularizer: %g.' %
                        scale)
-    if scale == 0.:
+    if scale == 0.0:
       logging.info('Scale of 0 disables regularizer.')
       return lambda _: None
 
@@ -128,9 +131,9 @@ def l1_l2_regularizer(scale_l1=1.0, scale_l2=1.0, scope=None):
   if isinstance(scale_l2, numbers.Integral):
     raise ValueError('scale_l2 cannot be an integer: %s' % (scale_l2,))
   scope = scope or 'l1_l2_regularizer'
-  if scale_l1 == 0.:
+  if scale_l1 == 0.0:
     return l2_regularizer(scale_l2, scope)
-  if scale_l2 == 0.:
+  if scale_l2 == 0.0:
     return l1_regularizer(scale_l1, scope)
   return sum_regularizer([l1_regularizer(scale_l1),
                           l2_regularizer(scale_l2)],

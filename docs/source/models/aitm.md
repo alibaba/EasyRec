@@ -8,7 +8,7 @@
 
 1. (a) Expert-Bottom pattern。如 [MMoE](mmoe.md)
 1. (b) Probability-Transfer pattern。如 [ESMM](esmm.md)
-1. (c)  Adaptive Information Transfer Multi-task (AITM) framework.
+1. (c) Adaptive Information Transfer Multi-task (AITM) framework.
 
 两个特点：
 

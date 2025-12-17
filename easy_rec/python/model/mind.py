@@ -28,8 +28,10 @@ class MIND(MatchModel):
                is_training=False):
     super(MIND, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert self._model_config.WhichOneof('model') == 'mind', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'mind', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.mind
 
     self._hist_seq_features, _, _ = self._input_layer(
@@ -79,17 +81,21 @@ class MIND(MatchModel):
       # sum pooling over the features
       hist_embed_dims = [x.get_shape()[-1] for x in hist_seq_feas]
       for i in range(1, len(hist_embed_dims)):
-        assert hist_embed_dims[i] == hist_embed_dims[0], \
-            'all hist seq must have the same embedding shape, but: %s' \
-            % str(hist_embed_dims)
+        assert hist_embed_dims[i] == hist_embed_dims[0], (
+            'all hist seq must have the same embedding shape, but: %s' %
+            str(hist_embed_dims))
       hist_seq_feas = tf.add_n(hist_seq_feas) / len(hist_seq_feas)
     else:
       hist_seq_feas = tf.concat(hist_seq_feas, axis=2)
 
-    if self._model_config.HasField('pre_capsule_dnn') and \
-        len(self._model_config.pre_capsule_dnn.hidden_units) > 0:
-      pre_dnn_layer = dnn.DNN(self._model_config.pre_capsule_dnn, self._l2_reg,
-                              'pre_capsule_dnn', self._is_training)
+    if self._model_config.HasField('pre_capsule_dnn') and len(
+        self._model_config.pre_capsule_dnn.hidden_units) > 0:
+      pre_dnn_layer = dnn.DNN(
+          self._model_config.pre_capsule_dnn,
+          self._l2_reg,
+          'pre_capsule_dnn',
+          self._is_training,
+      )
       hist_seq_feas = pre_dnn_layer(hist_seq_feas)
 
     if time_id_fea is not None:
@@ -122,7 +128,8 @@ class MIND(MatchModel):
         self._user_features,
         training=self._is_training,
         trainable=True,
-        name='user_fea_bn')
+        name='user_fea_bn',
+    )
     user_dnn = dnn.DNN(self.user_dnn, self._l2_reg, 'user_dnn',
                        self._is_training)
     user_features = user_dnn(user_features)
@@ -144,7 +151,8 @@ class MIND(MatchModel):
         inputs=user_interests,
         units=last_hidden,
         kernel_regularizer=self._l2_reg,
-        name='concat_dnn/dnn_%d' % (num_concat_dnn_layer - 1))
+        name='concat_dnn/dnn_%d' % (num_concat_dnn_layer - 1),
+    )
 
     num_item_dnn_layer = len(self.item_dnn.hidden_units)
     last_item_hidden = self.item_dnn.hidden_units.pop()
@@ -155,10 +163,12 @@ class MIND(MatchModel):
         inputs=item_tower_emb,
         units=last_item_hidden,
         kernel_regularizer=self._l2_reg,
-        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
+        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1),
+    )
 
     assert self._model_config.simi_func in [
-        Similarity.COSINE, Similarity.INNER_PRODUCT
+        Similarity.COSINE,
+        Similarity.INNER_PRODUCT,
     ]
 
     if self._model_config.simi_func == Similarity.COSINE:
@@ -236,7 +246,8 @@ class MIND(MatchModel):
     self._prediction_dict['user_emb'] = tf.reduce_join(
         tf.reduce_join(tf.as_string(user_interests), axis=-1, separator=','),
         axis=-1,
-        separator='|')
+        separator='|',
+    )
     self._prediction_dict['user_emb_num'] = num_high_capsules
     self._prediction_dict['item_emb'] = tf.reduce_join(
         tf.as_string(item_tower_emb), axis=-1, separator=',')
@@ -300,11 +311,12 @@ class MIND(MatchModel):
 
   def build_metric_graph(self, eval_config):
     from easy_rec.python.core.easyrec_metrics import metrics_tf as metrics
+
     # build interest metric
     interest_simi, capsule_simi = self._build_interest_simi()
     metric_dict = {
         'interest_similarity': metrics.mean(interest_simi),
-        'capsule_similarity': metrics.mean(capsule_simi)
+        'capsule_similarity': metrics.mean(capsule_simi),
     }
     if self._is_point_wise:
       metric_dict.update(self._build_point_wise_metric_graph(eval_config))
@@ -314,7 +326,8 @@ class MIND(MatchModel):
     for metric in eval_config.metrics_set:
       if metric.WhichOneof('metric') == 'recall_at_topk':
         assert self._loss_type in [
-            LossType.CLASSIFICATION, LossType.SOFTMAX_CROSS_ENTROPY
+            LossType.CLASSIFICATION,
+            LossType.SOFTMAX_CROSS_ENTROPY,
         ]
         if metric.recall_at_topk.topk not in recall_at_topks:
           recall_at_topks.append(metric.recall_at_topk.topk)
@@ -360,12 +373,14 @@ class MIND(MatchModel):
           labels=simple_lbls,
           predictions=simple_item_sim,
           k=topk,
-          name='interests_recall_at_%d' % topk)
+          name='interests_recall_at_%d' % topk,
+      )
       metric_dict['interests_neg_sam_recall@%d' % topk] = metrics.recall_at_k(
           labels=simple_lbls_v2,
           predictions=simple_item_sim_v2,
           k=topk,
-          name='interests_recall_neg_sam_at_%d' % topk)
+          name='interests_recall_neg_sam_at_%d' % topk,
+      )
 
     logits = self._prediction_dict['logits']
     pos_item_logits = tf.gather_nd(logits[:batch_size, :batch_size],
@@ -379,24 +394,32 @@ class MIND(MatchModel):
           labels=simple_lbls,
           predictions=logits,
           k=topk,
-          name='recall_at_%d' % topk)
+          name='recall_at_%d' % topk,
+      )
       metric_dict['recall_neg_sam@%d' % topk] = metrics.recall_at_k(
           labels=labels_v2,
           predictions=logits_v2,
           k=topk,
-          name='recall_neg_sam_at_%d' % topk)
+          name='recall_neg_sam_at_%d' % topk,
+      )
       eval_logits = logits[:, :batch_size]
       eval_logits = tf.cond(
-          batch_size < topk, lambda: tf.pad(
-              eval_logits, [[0, 0], [0, topk - batch_size]],
+          batch_size < topk,
+          lambda: tf.pad(
+              eval_logits,
+              [[0, 0], [0, topk - batch_size]],
               mode='CONSTANT',
               constant_values=-1e32,
-              name='pad_eval_logits'), lambda: eval_logits)
+              name='pad_eval_logits',
+          ),
+          lambda: eval_logits,
+      )
       metric_dict['recall_in_batch@%d' % topk] = metrics.recall_at_k(
           labels=simple_lbls,
           predictions=eval_logits,
           k=topk,
-          name='recall_in_batch_at_%d' % topk)
+          name='recall_in_batch_at_%d' % topk,
+      )
 
     # batch_size num_interest
     if hard_neg_indices is not None:
@@ -409,7 +432,8 @@ class MIND(MatchModel):
       hard_neg_mask = tf.scatter_nd(
           hard_neg_indices,
           tf.ones_like(hard_neg_sim, dtype=tf.float32),
-          shape=hard_neg_shape)
+          shape=hard_neg_shape,
+      )
       hard_neg_sim = tf.scatter_nd(hard_neg_indices, hard_neg_sim,
                                    hard_neg_shape)
       hard_neg_sim = hard_neg_sim - (1 - hard_neg_mask) * 1e32
@@ -424,8 +448,13 @@ class MIND(MatchModel):
   def get_outputs(self):
     if self._loss_type == LossType.CLASSIFICATION:
       return [
-          'logits', 'probs', 'user_emb', 'item_emb', 'user_emb_num',
-          'user_interests', 'item_tower_emb'
+          'logits',
+          'probs',
+          'user_emb',
+          'item_emb',
+          'user_emb_num',
+          'user_interests',
+          'item_tower_emb',
       ]
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       self._prediction_dict['logits'] = tf.squeeze(
@@ -433,13 +462,22 @@ class MIND(MatchModel):
       self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
       return [
-          'logits', 'probs', 'user_emb', 'item_emb', 'user_emb_num',
-          'user_interests', 'item_tower_emb'
+          'logits',
+          'probs',
+          'user_emb',
+          'item_emb',
+          'user_emb_num',
+          'user_interests',
+          'item_tower_emb',
       ]
     elif self._loss_type == LossType.L2_LOSS:
       return [
-          'y', 'user_emb', 'item_emb', 'user_emb_num', 'user_interests',
-          'item_tower_emb'
+          'y',
+          'user_emb',
+          'item_emb',
+          'user_emb_num',
+          'user_interests',
+          'item_tower_emb',
       ]
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))

@@ -52,7 +52,7 @@ model_config:{
 
   需要两个feature_group: wide group和deep group, **group name不能变**
 
-- wide_and_deep:  wide_and_deep 相关的参数
+- wide_and_deep: wide_and_deep 相关的参数
 
 - dnn: deep part的参数配置
 

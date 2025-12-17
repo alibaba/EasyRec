@@ -22,11 +22,11 @@ except Exception:
   common_io = None
 
 try:
+  import urllib3
   from datahub import DataHub
   from datahub.exceptions import DatahubException
-  from datahub.models import RecordType
-  from datahub.models import CursorType
-  import urllib3
+  from datahub.models import CursorType, RecordType
+
   urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
   logging.getLogger('datahub.account').setLevel(logging.INFO)
 except Exception:
@@ -39,20 +39,30 @@ except Exception:
 class DataHubInput(Input):
   """DataHubInput is used for online train."""
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               datahub_config,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(DataHubInput,
-          self).__init__(data_config, feature_config, '', task_index, task_num,
-                         check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      datahub_config,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(DataHubInput, self).__init__(
+        data_config,
+        feature_config,
+        '',
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     if DataHub is None:
-      logging.error('please install datahub: ',
-                    'pip install pydatahub ;Python 3.6 recommended')
+      logging.error(
+          'please install datahub: ',
+          'pip install pydatahub ;Python 3.6 recommended',
+      )
     try:
       self._num_epoch = 0
       self._datahub_config = datahub_config
@@ -69,7 +79,6 @@ class DataHubInput(Input):
         self._datahub = None
     except Exception as ex:
       logging.info('exception in init datahub: %s' % str(ex))
-      pass
     self._offset_dict = {}
     if datahub_config:
       shard_result = self._datahub.list_shard(self._datahub_config.project,
@@ -86,10 +95,13 @@ class DataHubInput(Input):
         ts = parse_time(datahub_config.offset_time) * 1000
         for x in self._all_shards:
           ks = str(x.shard_id)
-          cursor_result = self._datahub.get_cursor(self._datahub_config.project,
-                                                   self._datahub_config.topic,
-                                                   ks, CursorType.SYSTEM_TIME,
-                                                   ts)
+          cursor_result = self._datahub.get_cursor(
+              self._datahub_config.project,
+              self._datahub_config.topic,
+              ks,
+              CursorType.SYSTEM_TIME,
+              ts,
+          )
           logging.info('shard[%s] cursor = %s' % (ks, cursor_result))
           self._offset_dict[ks] = cursor_result.cursor
       elif offset_type == 'offset_info':
@@ -101,7 +113,8 @@ class DataHubInput(Input):
       self._dh_field_types = []
       topic_info = self._datahub.get_topic(
           project_name=self._datahub_config.project,
-          topic_name=self._datahub_config.topic)
+          topic_name=self._datahub_config.topic,
+      )
       for field in topic_info.record_schema.field_list:
         self._dh_field_names.append(field.name)
         self._dh_field_types.append(field.type.value)
@@ -127,9 +140,9 @@ class DataHubInput(Input):
       self._read_cnt = 32
 
       if len(self._dh_fea_ids) > 1:
-        self._filter_fea_func = lambda record: ''.join(
-            [record.values[x]
-             for x in self._dh_fea_ids]).split(chr(2))[1] == '-1024'
+        self._filter_fea_func = (
+            lambda record: ''.join([record.values[x] for x in self._dh_fea_ids]
+                                   ).split(chr(2))[1] == '-1024')
       else:
         dh_fea_id = self._dh_fea_ids[0]
         self._filter_fea_func = lambda record: record.values[dh_fea_id].split(
@@ -244,16 +257,24 @@ class DataHubInput(Input):
           tid = 0
 
         if shard_id not in self._offset_dict:
-          cursor_result = self._datahub.get_cursor(self._datahub_config.project,
-                                                   self._datahub_config.topic,
-                                                   shard_id, CursorType.OLDEST)
+          cursor_result = self._datahub.get_cursor(
+              self._datahub_config.project,
+              self._datahub_config.topic,
+              shard_id,
+              CursorType.OLDEST,
+          )
           cursor = cursor_result.cursor
         else:
           cursor = self._offset_dict[shard_id]
 
         get_result = self._datahub.get_tuple_records(
-            self._datahub_config.project, self._datahub_config.topic, shard_id,
-            record_schema, cursor, self._read_cnt)
+            self._datahub_config.project,
+            self._datahub_config.topic,
+            shard_id,
+            record_schema,
+            cursor,
+            self._read_cnt,
+        )
         count = get_result.record_count
         if count == 0:
           continue
@@ -299,7 +320,8 @@ class DataHubInput(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
 
     dataset = dataset.batch(self._data_config.batch_size)
 
@@ -310,7 +332,8 @@ class DataHubInput(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
     if mode != tf.estimator.ModeKeys.PREDICT:
       dataset = dataset.map(lambda x:

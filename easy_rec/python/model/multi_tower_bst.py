@@ -31,9 +31,10 @@ class MultiTowerBST(RankModel):
         feature_configs,
         model_config.seq_att_groups,
         embedding_regularizer=self._emb_reg,
-        ev_params=self._global_ev_params)
-    assert self._model_config.WhichOneof('model') == 'multi_tower', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+        ev_params=self._global_ev_params,
+    )
+    assert self._model_config.WhichOneof('model') == 'multi_tower', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.multi_tower
     assert isinstance(self._model_config, MultiTowerConfig)
 
@@ -69,7 +70,8 @@ class MultiTowerBST(RankModel):
               net,
               units=units,
               activation=tf.nn.relu,
-              name='%s_%d' % (name, idx))
+              name='%s_%d' % (name, idx),
+          )
         else:
           net = tf.layers.dense(
               net, units=units, activation=None, name='%s_%d' % (name, idx))
@@ -89,7 +91,7 @@ class MultiTowerBST(RankModel):
     mask = tf.concat([hist_mask, cur_id_mask], axis=1)  # [B, seq_size]
     masks = tf.reshape(tf.tile(mask, [1, seq_size]),
                        (-1, seq_size, seq_size))  # [B, seq_size, seq_size]
-    padding = tf.ones_like(scores) * (-2**32 + 1)
+    padding = tf.ones_like(scores) * (-(2**32) + 1)
     scores = tf.where(masks, scores, padding)  # [B, seq_size, seq_size]
 
     # Scale
@@ -110,7 +112,8 @@ class MultiTowerBST(RankModel):
           part_cols_emd_dim,
           seq_len,
           seq_size,
-          name='multi_head_%d' % start_idx)
+          name='multi_head_%d' % start_idx,
+      )
       multi_head_attention_res.append(part_attention_net)
     multi_head_attention_res_net = tf.concat(multi_head_attention_res, axis=2)
     multi_head_attention_res_net = self.dnn_net(
@@ -125,16 +128,23 @@ class MultiTowerBST(RankModel):
     return net
 
   def bst(self, bst_fea, seq_size, head_count, name):
-    cur_id, hist_id_col, seq_len = bst_fea['key'], bst_fea[
-        'hist_seq_emb'], bst_fea['hist_seq_len']
+    cur_id, hist_id_col, seq_len = (
+        bst_fea['key'],
+        bst_fea['hist_seq_emb'],
+        bst_fea['hist_seq_len'],
+    )
 
     cur_batch_max_seq_len = tf.shape(hist_id_col)[1]
 
     hist_id_col = tf.cond(
-        tf.constant(seq_size) > cur_batch_max_seq_len, lambda: tf.pad(
-            hist_id_col, [[0, 0], [0, seq_size - cur_batch_max_seq_len - 1],
-                          [0, 0]], 'CONSTANT'),
-        lambda: tf.slice(hist_id_col, [0, 0, 0], [-1, seq_size - 1, -1]))
+        tf.constant(seq_size) > cur_batch_max_seq_len,
+        lambda: tf.pad(
+            hist_id_col,
+            [[0, 0], [0, seq_size - cur_batch_max_seq_len - 1], [0, 0]],
+            'CONSTANT',
+        ),
+        lambda: tf.slice(hist_id_col, [0, 0, 0], [-1, seq_size - 1, -1]),
+    )
     all_ids = tf.concat([hist_id_col, tf.expand_dims(cur_id, 1)],
                         axis=1)  # b, seq_size, emb_dim
 
@@ -160,7 +170,8 @@ class MultiTowerBST(RankModel):
           tower_fea,
           training=self._is_training,
           trainable=True,
-          name='%s_fea_bn' % tower_name)
+          name='%s_fea_bn' % tower_name,
+      )
       tower_dnn = dnn.DNN(tower.dnn, self._l2_reg, '%s_dnn' % tower_name,
                           self._is_training)
       tower_fea = tower_dnn(tower_fea)
@@ -176,7 +187,8 @@ class MultiTowerBST(RankModel):
           tower_fea,
           seq_size=tower_seq_len,
           head_count=tower_multi_head_size,
-          name=tower_name)
+          name=tower_name,
+      )
       tower_fea_arr.append(tower_fea)
 
     all_fea = tf.concat(tower_fea_arr, axis=1)

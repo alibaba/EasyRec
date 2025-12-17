@@ -1102,10 +1102,12 @@ MovieLens-1M数据集效果：
 定义一个继承[`tf.keras.layers.Layer`](https://keras.io/api/layers/base_layer/)的组件类，至少实现两个方法：`__init__`、`call`。
 
 ```python
-def __init__(self, params, name='xxx', reuse=None, **kwargs):
-  pass
+def __init__(self, params, name="xxx", reuse=None, **kwargs):
+    pass
+
+
 def call(self, inputs, training=None, **kwargs):
-  pass
+    pass
 ```
 
 `__init__`方法的第一个参数`params`接受框架传递给当前组件的参数。支持两种参数配置的方式：`google.protobuf.Struct`、自定义的protobuf message对象。params对象封装了对这两种格式的参数的统一读取接口，如下：
@@ -1143,43 +1145,45 @@ FM layer的代码示例：
 
 ```python
 class FM(tf.keras.layers.Layer):
-  """Factorization Machine models pairwise (order-2) feature interactions without linear term and bias.
+    """Factorization Machine models pairwise (order-2) feature interactions without linear term and bias.
 
-  References
-    - [Factorization Machines](https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf)
-  Input shape.
-    - List of 2D tensor with shape: ``(batch_size,embedding_size)``.
-    - Or a 3D tensor with shape: ``(batch_size,field_size,embedding_size)``
-  Output shape
-    - 2D tensor with shape: ``(batch_size, 1)``.
-  """
+    References
+      - [Factorization Machines](https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf)
+    Input shape.
+      - List of 2D tensor with shape: ``(batch_size,embedding_size)``.
+      - Or a 3D tensor with shape: ``(batch_size,field_size,embedding_size)``
+    Output shape
+      - 2D tensor with shape: ``(batch_size, 1)``.
+    """
 
-  def __init__(self, params, name='fm', reuse=None, **kwargs):
-    super(FM, self).__init__(name, **kwargs)
-    self.reuse = reuse
-    self.use_variant = params.get_or_default('use_variant', False)
+    def __init__(self, params, name="fm", reuse=None, **kwargs):
+        super(FM, self).__init__(name, **kwargs)
+        self.reuse = reuse
+        self.use_variant = params.get_or_default("use_variant", False)
 
-  def call(self, inputs, **kwargs):
-    if type(inputs) == list:
-      emb_dims = set(map(lambda x: int(x.shape[-1]), inputs))
-      if len(emb_dims) != 1:
-        dims = ','.join([str(d) for d in emb_dims])
-        raise ValueError('all embedding dim must be equal in FM layer:' + dims)
-      with tf.name_scope(self.name):
-        fea = tf.stack(inputs, axis=1)
-    else:
-      assert inputs.shape.ndims == 3, 'input of FM layer must be a 3D tensor or a list of 2D tensors'
-      fea = inputs
+    def call(self, inputs, **kwargs):
+        if type(inputs) == list:
+            emb_dims = set(map(lambda x: int(x.shape[-1]), inputs))
+            if len(emb_dims) != 1:
+                dims = ",".join([str(d) for d in emb_dims])
+                raise ValueError("all embedding dim must be equal in FM layer:" + dims)
+            with tf.name_scope(self.name):
+                fea = tf.stack(inputs, axis=1)
+        else:
+            assert (
+                inputs.shape.ndims == 3
+            ), "input of FM layer must be a 3D tensor or a list of 2D tensors"
+            fea = inputs
 
-    with tf.name_scope(self.name):
-      square_of_sum = tf.square(tf.reduce_sum(fea, axis=1))
-      sum_of_square = tf.reduce_sum(tf.square(fea), axis=1)
-      cross_term = tf.subtract(square_of_sum, sum_of_square)
-      if self.use_variant:
-        cross_term = 0.5 * cross_term
-      else:
-        cross_term = 0.5 * tf.reduce_sum(cross_term, axis=-1, keepdims=True)
-    return cross_term
+        with tf.name_scope(self.name):
+            square_of_sum = tf.square(tf.reduce_sum(fea, axis=1))
+            sum_of_square = tf.reduce_sum(tf.square(fea), axis=1)
+            cross_term = tf.subtract(square_of_sum, sum_of_square)
+            if self.use_variant:
+                cross_term = 0.5 * cross_term
+            else:
+                cross_term = 0.5 * tf.reduce_sum(cross_term, axis=-1, keepdims=True)
+        return cross_term
 ```
 
 # 如何搭建模型

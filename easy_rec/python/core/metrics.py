@@ -8,15 +8,15 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics as sklearn_metrics
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import state_ops
-from tensorflow.python.ops import variable_scope
 
 from easy_rec.python.utils.estimator_utils import get_task_index_and_num
-from easy_rec.python.utils.io_util import read_data_from_json_path
-from easy_rec.python.utils.io_util import save_data_to_json_path
 from easy_rec.python.utils.shape_utils import get_shape_list
+
+from tensorflow.python.ops import array_ops, math_ops, state_ops, variable_scope  # NOQA
+
+from easy_rec.python.utils.io_util import (  # NOQA
+    read_data_from_json_path, save_data_to_json_path,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -30,6 +30,7 @@ def max_f1(label, predictions):
     predictions: Estimated targets as returned by a model.
   """
   from easy_rec.python.core.easyrec_metrics import metrics_tf
+
   num_thresholds = 200
   kepsilon = 1e-7
   thresholds = [
@@ -41,7 +42,7 @@ def max_f1(label, predictions):
   precision_update_ops = []
   recall_update_ops = []
   for threshold in thresholds:
-    pred = (predictions > threshold)
+    pred = predictions > threshold
     precision, precision_update_op = metrics_tf.precision(
         labels=label, predictions=pred, name='precision_%s' % threshold)
     recall, recall_update_op = metrics_tf.recall(
@@ -70,8 +71,11 @@ def _separated_auc_impl(labels, predictions, keys, reduction='mean'):
       * "mean_by_sample_num": weighted mean with sample num of different keys
       * "mean_by_positive_num": weighted mean with positive sample num of different keys
   """
-  assert reduction in ['mean', 'mean_by_sample_num', 'mean_by_positive_num'], \
-      'reduction method must in mean | mean_by_sample_num | mean_by_positive_num'
+  assert reduction in [
+      'mean',
+      'mean_by_sample_num',
+      'mean_by_positive_num',
+  ], 'reduction method must in mean | mean_by_sample_num | mean_by_positive_num'
   separated_label = defaultdict(list)
   separated_prediction = defaultdict(list)
   separated_weights = defaultdict(int)
@@ -132,21 +136,25 @@ def fast_auc(labels, predictions, name, num_thresholds=1e5):
         trainable=False,
         collections=[tf.GraphKeys.METRIC_VARIABLES],
         initializer=tf.zeros_initializer(),
-        dtype=tf.int64)
+        dtype=tf.int64,
+    )
     total_var = variable_scope.get_variable(
         name='total_cnt',
         shape=[2],
         trainable=False,
         collections=[tf.GraphKeys.METRIC_VARIABLES],
         initializer=tf.zeros_initializer(),
-        dtype=tf.int64)
+        dtype=tf.int64,
+    )
     pred_bins = math_ops.cast(predictions * num_thresholds, dtype=tf.int32)
     labels = math_ops.cast(labels, dtype=tf.int32)
     labels = array_ops.reshape(labels, [-1, 1])
     pred_bins = array_ops.reshape(pred_bins, [-1, 1])
     update_op0 = state_ops.scatter_nd_add(
-        neg_pos_var, tf.concat([labels, pred_bins], axis=1),
-        array_ops.ones(tf.shape(labels)[0], dtype=tf.int64))
+        neg_pos_var,
+        tf.concat([labels, pred_bins], axis=1),
+        array_ops.ones(tf.shape(labels)[0], dtype=tf.int64),
+    )
     total_pos = math_ops.reduce_sum(labels)
     total_neg = array_ops.shape(labels)[0] - total_pos
     total_add = math_ops.cast(tf.stack([total_neg, total_pos]), dtype=tf.int64)
@@ -174,8 +182,11 @@ def _distribute_separated_auc_impl(labels,
       * "mean_by_sample_num": weighted mean with sample num of different keys
       * "mean_by_positive_num": weighted mean with positive sample num of different keys
   """
-  assert reduction in ['mean', 'mean_by_sample_num', 'mean_by_positive_num'], \
-      'reduction method must in mean | mean_by_sample_num | mean_by_positive_num'
+  assert reduction in [
+      'mean',
+      'mean_by_sample_num',
+      'mean_by_positive_num',
+  ], 'reduction method must in mean | mean_by_sample_num | mean_by_positive_num'
   separated_label = defaultdict(list)
   separated_prediction = defaultdict(list)
   separated_weights = defaultdict(int)
@@ -200,7 +211,8 @@ def _distribute_separated_auc_impl(labels,
         separated_weights[key] += label.item()
     for name, data in zip(
         ['separated_label', 'separated_prediction', 'separated_weights'],
-        [separated_label, separated_prediction, separated_weights]):
+        [separated_label, separated_prediction, separated_weights],
+    ):
       cur_json_name = metric_name + '__' + cur_work_device + '__' + name + '.json'
       cur_json_path = os.path.join(eval_tmp_results_dir, cur_json_name)
       save_data_to_json_path(cur_json_path, data)
@@ -209,24 +221,26 @@ def _distribute_separated_auc_impl(labels,
     for task_i in range(1, task_num):
       work_device_i = 'job_worker__task_' + str(task_i)
       for name in [
-          'separated_label', 'separated_prediction', 'separated_weights'
+          'separated_label',
+          'separated_prediction',
+          'separated_weights',
       ]:
         json_name_i = metric_name + '__' + work_device_i + '__' + name + '.json'
         json_path_i = os.path.join(eval_tmp_results_dir, json_name_i)
         data_i = read_data_from_json_path(json_path_i)
-        if (name == 'separated_label'):
+        if name == 'separated_label':
           separated_label.update({
               key: separated_label.get(key, []) + data_i.get(key, [])
               for key in set(
                   list(separated_label.keys()) + list(data_i.keys()))
           })
-        elif (name == 'separated_prediction'):
+        elif name == 'separated_prediction':
           separated_prediction.update({
               key: separated_prediction.get(key, []) + data_i.get(key, [])
               for key in set(
                   list(separated_prediction.keys()) + list(data_i.keys()))
           })
-        elif (name == 'separated_weights'):
+        elif name == 'separated_weights':
           if reduction == 'mean':
             separated_weights.update(data_i)
           else:
@@ -312,6 +326,7 @@ def metric_learning_recall_at_k(k,
     embed_normed: indicator of whether the input embeddings are l2_normalized
   """
   from easy_rec.python.core.easyrec_metrics import metrics_tf
+
   # make sure embedding should be l2-normalized
   if not embed_normed:
     embeddings = tf.nn.l2_normalize(embeddings, axis=1)
@@ -353,6 +368,7 @@ def metric_learning_average_precision_at_k(k,
                                            session_ids=None,
                                            embed_normed=False):
   from easy_rec.python.core.easyrec_metrics import metrics_tf
+
   # make sure embedding should be l2-normalized
   if not embed_normed:
     embeddings = tf.nn.l2_normalize(embeddings, axis=1)

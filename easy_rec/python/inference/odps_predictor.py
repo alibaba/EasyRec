@@ -11,12 +11,14 @@ from easy_rec.python.inference.predictor import Predictor
 
 class ODPSPredictor(Predictor):
 
-  def __init__(self,
-               model_path,
-               fg_json_path=None,
-               profiling_file=None,
-               all_cols='',
-               all_col_types=''):
+  def __init__(
+      self,
+      model_path,
+      fg_json_path=None,
+      profiling_file=None,
+      all_cols='',
+      all_col_types='',
+  ):
     super(ODPSPredictor, self).__init__(model_path, profiling_file,
                                         fg_json_path)
     self._all_cols = [x.strip() for x in all_cols.split(',') if x != '']
@@ -45,13 +47,15 @@ class ODPSPredictor(Predictor):
         record_defaults=self._record_defaults,
         slice_id=slice_id,
         slice_count=slice_num,
-        selected_cols=','.join(self._all_cols))
+        selected_cols=','.join(self._all_cols),
+    )
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size=64)
     return dataset
 
   def _get_writer(self, output_path, slice_id):
     import common_io
+
     table_writer = common_io.table.TableWriter(output_path, slice_id=slice_id)
     return table_writer
 
@@ -65,6 +69,6 @@ class ODPSPredictor(Predictor):
     return (tf.python_io.OutOfRangeException, tf.errors.OutOfRangeError)
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
-    reserve_vals = [all_vals[k] for k in reserved_cols] + \
-                   [outputs[x] for x in output_cols]
+    reserve_vals = [all_vals[k] for k in reserved_cols
+                    ] + [outputs[x] for x in output_cols]
     return reserve_vals

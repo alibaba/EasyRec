@@ -9,11 +9,12 @@ import tensorflow as tf
 from google.protobuf import text_format
 
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureConfig
-from easy_rec.python.protos.feature_config_pb2 import FeatureGroupConfig
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.protos.pipeline_pb2 import EasyRecConfig
 from easy_rec.python.utils import config_util
+
+from easy_rec.python.protos.feature_config_pb2 import (  # NOQA
+    FeatureConfig, FeatureGroupConfig, WideOrDeep,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -77,13 +78,15 @@ def _set_hash_bucket(feature, feature_config, input_field):
     assert False, 'one of hash_bucket_size,vocab_file,vocab_list,num_buckets must be set'
 
 
-def process_features(feature_type,
-                     feature_name,
-                     feature,
-                     pipeline_config,
-                     embedding_dim,
-                     incol_separator,
-                     is_sequence=False):
+def process_features(
+    feature_type,
+    feature_name,
+    feature,
+    pipeline_config,
+    embedding_dim,
+    incol_separator,
+    is_sequence=False,
+):
   feature_config = FeatureConfig()
   feature_config.input_names.append(feature_name)
   feature_config.separator = incol_separator
@@ -237,9 +240,14 @@ def load_input_field_and_feature_config(rtp_fg,
       if 'feature_name' in feature:
         feature_type = feature['feature_type']
         feature_name = feature['feature_name']
-        pipeline_config = process_features(feature_type, feature_name, feature,
-                                           pipeline_config, embedding_dim,
-                                           incol_separator)
+        pipeline_config = process_features(
+            feature_type,
+            feature_name,
+            feature,
+            pipeline_config,
+            embedding_dim,
+            incol_separator,
+        )
       elif 'sequence_name' in feature:
         logging.info('Set sequence_features group later.')
         sequence_name = feature['sequence_name']
@@ -254,7 +262,8 @@ def load_input_field_and_feature_config(rtp_fg,
               pipeline_config,
               embedding_dim,
               incol_separator,
-              is_sequence=True)
+              is_sequence=True,
+          )
     except Exception:
       logging.info('convert feature[%s] exception[%s]' %
                    (str(feature), traceback.format_exc()))
@@ -262,19 +271,21 @@ def load_input_field_and_feature_config(rtp_fg,
   return pipeline_config
 
 
-def convert_rtp_fg(rtp_fg,
-                   embedding_dim=16,
-                   batch_size=1024,
-                   label_fields=[],
-                   num_steps=10,
-                   model_type='',
-                   separator='\002',
-                   incol_separator='\003',
-                   train_input_path=None,
-                   eval_input_path=None,
-                   selected_cols='',
-                   input_type='OdpsRTPInput',
-                   is_async=False):
+def convert_rtp_fg(
+    rtp_fg,
+    embedding_dim=16,
+    batch_size=1024,
+    label_fields=[],
+    num_steps=10,
+    model_type='',
+    separator='\002',
+    incol_separator='\003',
+    train_input_path=None,
+    eval_input_path=None,
+    selected_cols='',
+    input_type='OdpsRTPInput',
+    is_async=False,
+):
   with tf.gfile.GFile(rtp_fg, 'r') as fin:
     rtp_fg = json.load(fin)
 
@@ -336,8 +347,10 @@ def convert_rtp_fg(rtp_fg,
 
       sync_replicas: %s
     }
-    """ % ('adam_optimizer' if not is_async else 'adam_async_optimizer',
-           'true' if not is_async else 'false')
+    """ % (
+        'adam_optimizer' if not is_async else 'adam_async_optimizer',
+        'true' if not is_async else 'false',
+    )
     text_format.Merge(train_config_str, pipeline_config)
 
   pipeline_config.train_config.num_steps = num_steps
@@ -414,7 +427,7 @@ def convert_rtp_fg(rtp_fg,
         'i': 'item',
         'ctx': 'combo',
         'q': 'combo',
-        'comb': 'combo'
+        'comb': 'combo',
     }
     for feature in rtp_features:
       feature_name = feature['feature_name'].strip()
@@ -447,22 +460,23 @@ def convert_rtp_fg(rtp_fg,
 
     multi_tower_config_str = '  multi_tower {\n'
     for group_name in feature_groups:
-      multi_tower_config_str += """
+      multi_tower_config_str += ("""
       towers {
         input: "%s"
         dnn {
           hidden_units: [256, 192, 128]
         }
       }
-      """ % group_name
+      """ % group_name)
 
-    multi_tower_config_str = multi_tower_config_str + """
+    multi_tower_config_str = (
+        multi_tower_config_str + """
       final_dnn {
         hidden_units: [192, 128, 64]
       }
       l2_regularization: 1e-4
     }
-    """
+    """)
     text_format.Merge(multi_tower_config_str, pipeline_config.model_config)
     pipeline_config.model_config.embedding_regularization = 1e-5
 
@@ -489,13 +503,13 @@ def convert_rtp_fg(rtp_fg,
 
     esmm_config_str = '  esmm {\n'
     for group_name in feature_groups:
-      esmm_config_str += """
+      esmm_config_str += ("""
         groups {
           input: "%s"
           dnn {
             hidden_units: [256, 128, 96, 64]
           }
-        }""" % group_name
+        }""" % group_name)
 
     esmm_config_str += """
         ctr_tower {
@@ -525,7 +539,10 @@ def convert_rtp_fg(rtp_fg,
           }
         }
         l2_regularization: 1e-6
-      }""" % (label_fields[0], label_fields[1])
+      }""" % (
+        label_fields[0],
+        label_fields[1],
+    )
     text_format.Merge(esmm_config_str, pipeline_config.model_config)
     pipeline_config.model_config.embedding_regularization = 5e-5
   elif model_type == 'dbmtl':
@@ -591,22 +608,30 @@ def convert_rtp_fg(rtp_fg,
         }
         l2_regularization: 1e-6
       }
-    """ % (label_fields[0], label_fields[1])
+    """ % (
+        label_fields[0],
+        label_fields[1],
+    )
     text_format.Merge(dbmtl_config_str, pipeline_config.model_config)
     pipeline_config.model_config.embedding_regularization = 5e-6
 
   if model_type in ['wide_and_deep', 'deepfm', 'multi_tower']:
-    text_format.Merge("""
+    text_format.Merge(
+        """
       metrics_set {
         auc {}
       }
-      """, pipeline_config.eval_config)
+      """,
+        pipeline_config.eval_config,
+    )
 
   text_format.Merge(
       """ export_config {
           multi_placeholder: false
         }
-    """, pipeline_config)
+    """,
+      pipeline_config,
+  )
 
   if edit_config_json:
     for edit_obj in edit_config_json:

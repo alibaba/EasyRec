@@ -74,7 +74,8 @@ if __name__ == '__main__':
       '--endpoint',
       type=str,
       default=None,
-      help='eas endpoint, such as 12345.cn-beijing.pai-eas.aliyuncs.com')
+      help='eas endpoint, such as 12345.cn-beijing.pai-eas.aliyuncs.com',
+  )
   parser.add_argument(
       '--service_name', type=str, default=None, help='eas service name')
   parser.add_argument(

@@ -17,13 +17,13 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 
 ### 参数说明
 
-- --config_path  easyrec训练配置文件
-- --exp_dir  调优实验目录
-- --debug  保留本地临时目录
+- --config_path easyrec训练配置文件
+- --exp_dir 调优实验目录
+- --debug 保留本地临时目录
 - --metric_name  调优的指标，默认是auc，其它可选指标\[参考../eval.md)
 - --max_parallel   同一时刻可以并行跑的实验数目，默认4
 - --total_trial_num  总共跑多少组实验，默认6
-- --el_submit_params  el_submit指定PS/Worker资源的一些参数，包括-t x -m x \[-pn x -pc x -pm x\] -wn x -wc x -wm x -wg x 默认值
+- --el_submit_params el_submit指定PS/Worker资源的一些参数，包括-t x -m x \[-pn x -pc x -pm x\] -wn x -wc x -wm x -wg x 默认值
 
 ```bash
 -t standalone -m local -wn 1 -wc 6 -wm 20000 -wg 1
@@ -43,7 +43,7 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 ]
 ```
 
-- name:  easy_rec pipeline_config里面的参数名称，注意要用全路径
+- name: easy_rec pipeline_config里面的参数名称，注意要用全路径
 
   feature_config.features\[**input_names\[0\]=field_name1**\].embedding_dim
 
@@ -101,7 +101,7 @@ python -m easy_rec.python.hpo.emr_hpo --hyperparams hyperparams.json  --config_p
 ![image.png](../../images/automl/emr_log.png)
 一共做了5组实验，可以看到embedding_dim越小越好。
 
-- 实验目录信息(exp_dir):  hdfs:///user/easy_rec_test/experiment/hpo_test_v8
+- 实验目录信息(exp_dir): hdfs:///user/easy_rec_test/experiment/hpo_test_v8
 
 ![image.png](../../images/automl/emr_exp.png)
 

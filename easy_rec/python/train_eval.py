@@ -9,28 +9,29 @@ import tensorflow as tf
 
 from easy_rec.python.main import _train_and_evaluate_impl
 from easy_rec.python.protos.train_pb2 import DistributionStrategy
-from easy_rec.python.utils import config_util
-from easy_rec.python.utils import ds_util
-from easy_rec.python.utils import estimator_utils
-from easy_rec.python.utils import fg_util
-from easy_rec.python.utils import hpo_util
-from easy_rec.python.utils.config_util import process_neg_sampler_data_path
-from easy_rec.python.utils.config_util import set_eval_input_path
-from easy_rec.python.utils.config_util import set_train_input_path
+
+from easy_rec.python.utils import (  # NOQA
+    config_util, ds_util, estimator_utils, fg_util, hpo_util,
+)
+from easy_rec.python.utils.config_util import (  # NOQA
+    process_neg_sampler_data_path, set_eval_input_path, set_train_input_path,
+)
 
 if tf.__version__.startswith('1.'):
   from tensorflow.python.platform import gfile
 else:
   import tensorflow.io.gfile as gfile
 
-from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
+from easy_rec.python.utils.distribution_utils import (  # NOQA
+    set_tf_config_and_get_train_worker_num_on_ds,)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -38,12 +39,14 @@ if __name__ == '__main__':
       '--pipeline_config_path',
       type=str,
       default=None,
-      help='Path to pipeline config file.')
+      help='Path to pipeline config file.',
+  )
   parser.add_argument(
       '--continue_train',
       action='store_true',
       default=False,
-      help='continue train using existing model_dir')
+      help='continue train using existing model_dir',
+  )
   parser.add_argument(
       '--hpo_param_path',
       type=str,
@@ -53,29 +56,34 @@ if __name__ == '__main__':
       '--hpo_metric_save_path',
       type=str,
       default=None,
-      help='hyperparameter save metric path')
+      help='hyperparameter save metric path',
+  )
   parser.add_argument(
       '--model_dir',
       type=str,
       default=None,
-      help='will update the model_dir in pipeline_config')
+      help='will update the model_dir in pipeline_config',
+  )
   parser.add_argument(
       '--train_input_path',
       type=str,
       nargs='*',
       default=None,
-      help='train data input path')
+      help='train data input path',
+  )
   parser.add_argument(
       '--eval_input_path',
       type=str,
       nargs='*',
       default=None,
-      help='eval data input path')
+      help='eval data input path',
+  )
   parser.add_argument(
       '--fit_on_eval',
       action='store_true',
       default=False,
-      help='Fit evaluation data after fitting and evaluating train data')
+      help='Fit evaluation data after fitting and evaluating train data',
+  )
   parser.add_argument(
       '--fit_on_eval_steps',
       type=int,
@@ -85,19 +93,20 @@ if __name__ == '__main__':
       '--fine_tune_checkpoint',
       type=str,
       default=None,
-      help='will update the train_config.fine_tune_checkpoint in pipeline_config'
+      help='will update the train_config.fine_tune_checkpoint in pipeline_config',
   )
   parser.add_argument(
       '--edit_config_json',
       type=str,
       default=None,
       help='edit pipeline config str, example: {"model_dir":"experiments/",'
-      '"feature_config.feature[0].boundaries":[4,5,6,7]}')
+      '"feature_config.feature[0].boundaries":[4,5,6,7]}',
+  )
   parser.add_argument(
       '--ignore_finetune_ckpt_error',
       action='store_true',
       default=False,
-      help='During incremental training, ignore the problem of missing fine_tune_checkpoint files'
+      help='During incremental training, ignore the problem of missing fine_tune_checkpoint files',
   )
   parser.add_argument(
       '--odps_config', type=str, default=None, help='odps config path')
@@ -172,7 +181,7 @@ if __name__ == '__main__':
       estimator_utils.init_hvd()
     elif pipeline_config.train_config.train_distribute in [
         DistributionStrategy.EmbeddingParallelStrategy,
-        DistributionStrategy.SokStrategy
+        DistributionStrategy.SokStrategy,
     ]:
       estimator_utils.init_hvd()
       estimator_utils.init_sok()
@@ -188,7 +197,8 @@ if __name__ == '__main__':
       hpo_util.save_eval_metrics(
           pipeline_config.model_dir,
           metric_save_path=args.hpo_metric_save_path,
-          has_evaluator=False)
+          has_evaluator=False,
+      )
     else:
       config_util.auto_expand_share_feature_configs(pipeline_config)
       _train_and_evaluate_impl(
@@ -196,6 +206,7 @@ if __name__ == '__main__':
           args.continue_train,
           args.check_mode,
           fit_on_eval=args.fit_on_eval,
-          fit_on_eval_steps=args.fit_on_eval_steps)
+          fit_on_eval_steps=args.fit_on_eval_steps,
+      )
   else:
     raise ValueError('pipeline_config_path should not be empty when training!')

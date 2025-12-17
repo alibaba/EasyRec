@@ -4,11 +4,11 @@ import re
 import string
 
 import tensorflow as tf
-from tensorflow.python.keras import activations
-from tensorflow.python.keras import constraints
-from tensorflow.python.keras import initializers
-from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.layers import Layer
+
+from tensorflow.python.keras import (  # NOQA
+    activations, constraints, initializers, regularizers,
+)
 
 
 class EinsumDense(Layer):
@@ -105,19 +105,21 @@ class EinsumDense(Layer):
   (None, 32, 64)
   """
 
-  def __init__(self,
-               equation,
-               output_shape,
-               activation=None,
-               bias_axes=None,
-               kernel_initializer='glorot_uniform',
-               bias_initializer='zeros',
-               kernel_regularizer=None,
-               bias_regularizer=None,
-               kernel_constraint=None,
-               bias_constraint=None,
-               lora_rank=None,
-               **kwargs):
+  def __init__(
+      self,
+      equation,
+      output_shape,
+      activation=None,
+      bias_axes=None,
+      kernel_initializer='glorot_uniform',
+      bias_initializer='zeros',
+      kernel_regularizer=None,
+      bias_regularizer=None,
+      kernel_constraint=None,
+      bias_constraint=None,
+      lora_rank=None,
+      **kwargs,
+  ):
     super(EinsumDense, self).__init__(**kwargs)
     self.equation = equation
     if isinstance(output_shape, int):
@@ -327,7 +329,8 @@ class EinsumDense(Layer):
               name=self.name,
               num_var=len(store.keys()),
               num_key=len(store.keys()),
-              names=[v.name for v in all_vars]))
+              names=[v.name for v in all_vars],
+          ))
 
   def _get_kernel_with_merged_lora(self):
     kernel_value = self.kernel
@@ -409,15 +412,15 @@ def _analyze_split_string(split_string,
     input_shape_at_dim = input_shape[input_dim_map[dim]]
     if dim in output_dim_map:
       output_shape_at_dim = output_shape[output_dim_map[dim]]
-      if (output_shape_at_dim is not None and
-          output_shape_at_dim != input_shape_at_dim):
+      if output_shape_at_dim is not None and output_shape_at_dim != input_shape_at_dim:
         raise ValueError(
             'Input shape and output shape do not match at shared '
             "dimension '{dim}'. Input shape is {input_shape_at_dim}, "
             'and output shape is {output_shape}.'.format(
                 dim=dim,
                 input_shape_at_dim=input_shape_at_dim,
-                output_shape=output_shape[output_dim_map[dim]]))
+                output_shape=output_shape[output_dim_map[dim]],
+            ))
 
   for dim in output_spec:
     if dim not in input_spec and dim not in weight_spec:

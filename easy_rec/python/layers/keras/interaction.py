@@ -120,7 +120,8 @@ class DotInteraction(tf.keras.layers.Layer):
       activations = tf.where(
           condition=tf.cast(upper_tri_mask, tf.bool),
           x=tf.zeros_like(xactions),
-          y=xactions)
+          y=xactions,
+      )
       out_dim = num_features * num_features
     else:
       activations = tf.boolean_mask(xactions, lower_tri_mask)
@@ -326,9 +327,10 @@ class CIN(tf.keras.layers.Layer):
     self._hidden_feature_sizes = list(
         params.get_or_default('hidden_feature_sizes', []))
 
-    assert isinstance(self._hidden_feature_sizes, list) and len(
-        self._hidden_feature_sizes
-    ) > 0, 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
+    assert (
+        isinstance(self._hidden_feature_sizes, list) and
+        len(self._hidden_feature_sizes) > 0
+    ), 'parameter hidden_feature_sizes must be a list of int with length greater than 0'
 
     kernel_regularizer = params.get_or_default('kernel_regularizer', None)
     self._kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
@@ -349,12 +351,14 @@ class CIN(tf.keras.layers.Layer):
           tfv1.get_variable(
               name='cin_kernel_%d' % i,
               shape=[
-                  hidden_feature_sizes[i + 1], hidden_feature_sizes[i],
-                  hidden_feature_sizes[0]
+                  hidden_feature_sizes[i + 1],
+                  hidden_feature_sizes[i],
+                  hidden_feature_sizes[0],
               ],
               initializer=tf.initializers.he_normal(),
               regularizer=self._kernel_regularizer,
-              trainable=True) for i in range(len(self._hidden_feature_sizes))
+              trainable=True,
+          ) for i in range(len(self._hidden_feature_sizes))
       ]
       self.bias_list = [
           tfv1.get_variable(
@@ -362,7 +366,8 @@ class CIN(tf.keras.layers.Layer):
               shape=[hidden_feature_sizes[i + 1]],
               initializer=tf.keras.initializers.Zeros,
               regularizer=self._bias_regularizer,
-              trainable=True) for i in range(len(self._hidden_feature_sizes))
+              trainable=True,
+          ) for i in range(len(self._hidden_feature_sizes))
       ]
 
     super(CIN, self).build(input_shape)
@@ -394,13 +399,15 @@ class CIN(tf.keras.layers.Layer):
 
       feature_map_elementwise = tf.multiply(
           intermediate_tensor_expanded,
-          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0))
+          tf.expand_dims(tf.expand_dims(self.kernel_list[i], -1), 0),
+      )
       feature_map = tf.reduce_sum(
           tf.reduce_sum(feature_map_elementwise, axis=3), axis=2)
 
       feature_map = tf.add(
           feature_map,
-          tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0))
+          tf.expand_dims(tf.expand_dims(self.bias_list[i], axis=-1), axis=0),
+      )
       feature_map = tf.nn.relu(feature_map)
 
       x_i = feature_map

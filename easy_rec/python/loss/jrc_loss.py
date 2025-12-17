@@ -9,14 +9,16 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def jrc_loss(labels,
-             logits,
-             session_ids,
-             alpha=0.5,
-             loss_weight_strategy='fixed',
-             sample_weights=1.0,
-             same_label_loss=True,
-             name=''):
+def jrc_loss(
+    labels,
+    logits,
+    session_ids,
+    alpha=0.5,
+    loss_weight_strategy='fixed',
+    sample_weights=1.0,
+    same_label_loss=True,
+    name='',
+):
   """Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model.
 
      https://arxiv.org/abs/2208.06164
@@ -105,8 +107,10 @@ def jrc_loss(labels,
     bern = tf.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
     weights = bern.sample(2)
     loss_weight = tf.cond(
-        tf.equal(tf.reduce_sum(weights), 1), lambda: weights,
-        lambda: tf.convert_to_tensor([0.5, 0.5]))
+        tf.equal(tf.reduce_sum(weights), 1),
+        lambda: weights,
+        lambda: tf.convert_to_tensor([0.5, 0.5]),
+    )
     loss = loss_weight[0] * ce_loss + loss_weight[1] * ge_loss
     tf.summary.scalar('loss/%s_ce_weight' % loss_name, loss_weight[0])
     tf.summary.scalar('loss/%s_ge_weight' % loss_name, loss_weight[1])

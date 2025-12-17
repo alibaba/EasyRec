@@ -23,8 +23,10 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 # from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import resource_variable_ops
-from tensorflow.python.ops.resource_variable_ops import ResourceVariable
-from tensorflow.python.ops.resource_variable_ops import variable_accessed
+
+from tensorflow.python.ops.resource_variable_ops import (  # NOQA
+    ResourceVariable, variable_accessed,
+)
 
 # from tensorflow.python.util import object_identity
 
@@ -84,19 +86,21 @@ class DynamicVariable(ResourceVariable):
       print("v.size:", v.size)
   """
 
-  def __init__(self,
-               dimension,
-               initializer=None,
-               var_type=None,
-               name=None,
-               constraint=None,
-               trainable=True,
-               key_type=None,
-               dtype=None,
-               mode=None,
-               variable_def=None,
-               import_scope=None,
-               **kwargs):
+  def __init__(
+      self,
+      dimension,
+      initializer=None,
+      var_type=None,
+      name=None,
+      constraint=None,
+      trainable=True,
+      key_type=None,
+      dtype=None,
+      mode=None,
+      variable_def=None,
+      import_scope=None,
+      **kwargs,
+  ):
     self._indices = None
     if variable_def is not None:
       super(DynamicVariable, self)._init_from_proto(
@@ -105,7 +109,8 @@ class DynamicVariable(ResourceVariable):
       handle = g.as_graph_element(
           ops.prepend_name_scope(
               variable_def.variable_name, import_scope=import_scope),
-          allow_operation=False)
+          allow_operation=False,
+      )
       self._dimension = handle.op.get_attr('shape').dim[-1].size
       self._key_type = handle.op.get_attr('key_type')
       self._handle_type = handle.op.get_attr('dtype')
@@ -203,9 +208,8 @@ class DynamicVariable(ResourceVariable):
           self._initializer_op = tf.group([self._initializer_op, init_op])
           # self._is_initialized_op = tf.group([self._is_initialized_op, is_initialized_op])
 
-      handle_data = (
-          resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult
-          .HandleData())
+      handle_data = resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult.HandleData(
+      )
       handle_data.is_set = True
       handle_data.shape_and_type.append(
           resource_variable_ops.cpp_shape_inference_pb2.CppShapeInferenceResult
@@ -214,7 +218,8 @@ class DynamicVariable(ResourceVariable):
       resource_variable_ops._set_handle_shapes_and_types(
           self._handle,
           handle_data,
-          graph_mode=False if context.executing_eagerly() else True)
+          graph_mode=False if context.executing_eagerly() else True,
+      )
 
   def is_static(self):
     return self._handle is self._tf_handle
@@ -313,7 +318,8 @@ class DynamicVariable(ResourceVariable):
         self._dummy_handle,
         indices,
         dtype=self._handle_dtype,
-        lookup_only=lookup_only)
+        lookup_only=lookup_only,
+    )
 
   def scatter_sub(self, sparse_delta, use_locking=False, name=None):
     if self.is_static():

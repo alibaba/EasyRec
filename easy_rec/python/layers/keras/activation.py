@@ -56,7 +56,8 @@ class Dice(Layer):
         shape=(input_shape[-1],),
         initializer=Zeros(),
         dtype=tf.float32,
-        name='dice_alpha')  # name='alpha_'+self.name
+        name='dice_alpha',
+    )  # name='alpha_'+self.name
     super(Dice, self).build(input_shape)  # Be sure to call this somewhere!
     self.uses_learning_phase = True
 

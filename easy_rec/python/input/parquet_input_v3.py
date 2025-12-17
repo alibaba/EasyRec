@@ -8,15 +8,15 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils.input_utils import get_type_defaults
 
 try:
-  from tensorflow.python.data.experimental.ops import parquet_dataset_ops
-  from tensorflow.python.data.experimental.ops import parquet_pybind
-  from tensorflow.python.data.experimental.ops import dataframe
+  from tensorflow.python.data.experimental.ops import (  # NOQA
+      dataframe, parquet_dataset_ops, parquet_pybind,
+  )
   from tensorflow.python.ops import gen_ragged_conversion_ops
   from tensorflow.python.ops.work_queue import WorkQueue
+
   _has_deep_rec = True
 except Exception:
   _has_deep_rec = False
-  pass
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -24,20 +24,28 @@ if tf.__version__ >= '2.0':
 
 class ParquetInputV3(Input):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None,
-               **kwargs):
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+      **kwargs,
+  ):
     if not _has_deep_rec:
       raise RuntimeError('You should install DeepRec first.')
-    super(ParquetInputV3,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+    super(ParquetInputV3, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
     self._ignore_val_dict = {}
     for f in data_config.input_fields:
@@ -74,13 +82,16 @@ class ParquetInputV3(Input):
         indices = tf.where(tf.equal(value.values, ignore_value))
         value = tf.SparseTensor(
             tf.gather_nd(value.indices, indices),
-            tf.gather_nd(value.values, indices), value.dense_shape)
+            tf.gather_nd(value.values, indices),
+            value.dense_shape,
+        )
       elif isinstance(value, tf.Tensor):
         indices = tf.where(tf.not_equal(value, ignore_value), name='indices')
         value = tf.SparseTensor(
             indices=indices,
             values=tf.gather_nd(value, indices),
-            dense_shape=tf.shape(value, out_type=tf.int64))
+            dense_shape=tf.shape(value, out_type=tf.int64),
+        )
     dtype = self._true_type_dict.get(name, None)
     if dtype:
       value = tf.cast(value, dtype)
@@ -92,9 +103,11 @@ class ParquetInputV3(Input):
     value.values.set_shape([None])
     sparse_value = gen_ragged_conversion_ops.ragged_tensor_to_sparse(
         value.nested_row_splits, value.values)
-    return tf.SparseTensor(sparse_value.sparse_indices,
-                           sparse_value.sparse_values,
-                           sparse_value.sparse_dense_shape)
+    return tf.SparseTensor(
+        sparse_value.sparse_indices,
+        sparse_value.sparse_values,
+        sparse_value.sparse_dense_shape,
+    )
 
   def _parse_dataframe(self, df):
     inputs = {}
@@ -127,12 +140,12 @@ class ParquetInputV3(Input):
       task_index = max(self._task_index - 1, 0)
       task_num = max(self._task_num - 1, 1)
 
-    if self._data_config.pai_worker_queue and \
-        mode == tf.estimator.ModeKeys.TRAIN:
+    if self._data_config.pai_worker_queue and mode == tf.estimator.ModeKeys.TRAIN:
       work_queue = WorkQueue(
           input_files,
           num_epochs=self.num_epochs,
-          shuffle=self._data_config.shuffle)
+          shuffle=self._data_config.shuffle,
+      )
       my_files = work_queue.input_dataset()
     else:
       my_files = []
@@ -164,7 +177,8 @@ class ParquetInputV3(Input):
         batch_size=self._batch_size,
         fields=selected_fields,
         drop_remainder=self._data_config.drop_remainder,
-        num_parallel_reads=num_parallel_reads)
+        num_parallel_reads=num_parallel_reads,
+    )
     # partition_count=task_num,
     # partition_index=task_index)
 
@@ -173,20 +187,23 @@ class ParquetInputV3(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
 
     dataset = dataset.map(
         self._parse_dataframe,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     # preprocess is necessary to transform data
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

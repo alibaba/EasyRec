@@ -16,7 +16,8 @@ if tf.__version__ >= '2.0':
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 tf.app.flags.DEFINE_string('template_config_path', None,
                            'Path to template pipeline config '
                            'file.')
@@ -40,7 +41,8 @@ def main(argv):
         data_config=pipeline_config.data_config,
         hive_config=pipeline_config.hive_train_input,
         selected_cols=sels,
-        record_defaults=['', '', ''])
+        record_defaults=['', '', ''],
+    )
     reader = hive_util.hive_read_line(FLAGS.config_table)
     for record in reader:
       feature_name = record[0][0]
@@ -50,6 +52,7 @@ def main(argv):
 
   else:
     import common_io
+
     reader = common_io.table.TableReader(FLAGS.config_table, selected_cols=sels)
     while True:
       try:

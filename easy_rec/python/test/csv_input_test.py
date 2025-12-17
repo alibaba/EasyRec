@@ -83,7 +83,8 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
         gpu_options=gpu_options,
         allow_soft_placement=True,
-        log_device_placement=False)
+        log_device_placement=False,
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -205,7 +206,8 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
         gpu_options=gpu_options,
         allow_soft_placement=True,
-        log_device_placement=False)
+        log_device_placement=False,
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -263,13 +265,16 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
         gpu_options=gpu_options,
         allow_soft_placement=True,
-        log_device_placement=False)
+        log_device_placement=False,
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
 
-  @unittest.skipIf('AVX_TEST' not in os.environ,
-                   'Only execute when avx512 instructions are supported')
+  @unittest.skipIf(
+      'AVX_TEST' not in os.environ,
+      'Only execute when avx512 instructions are supported',
+  )
   @RunAsSubprocess
   def test_csv_input_ex_avx(self):
     constant.enable_avx_str_split()
@@ -330,7 +335,8 @@ class CSVInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
         gpu_options=gpu_options,
         allow_soft_placement=True,
-        log_device_placement=False)
+        log_device_placement=False,
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])

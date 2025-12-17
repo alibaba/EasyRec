@@ -29,7 +29,8 @@ if __name__ == '__main__':
   consumer = KafkaConsumer(
       group_id=args.group,
       bootstrap_servers=servers,
-      consumer_timeout_ms=args.timeout * 1000)
+      consumer_timeout_ms=args.timeout * 1000,
+  )
 
   if args.partitions is not None:
     partitions = [int(x) for x in args.partitions.split(',')]

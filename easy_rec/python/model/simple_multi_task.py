@@ -22,8 +22,8 @@ class SimpleMultiTask(MultiTaskModel):
     super(SimpleMultiTask, self).__init__(model_config, feature_configs,
                                           features, labels, is_training)
 
-    assert self._model_config.WhichOneof('model') == 'simple_multi_task', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'simple_multi_task', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.simple_multi_task
     assert isinstance(self._model_config, SimpleMultiTaskConfig)
 
@@ -41,13 +41,15 @@ class SimpleMultiTask(MultiTaskModel):
           task_tower_cfg.dnn,
           self._l2_reg,
           name=tower_name,
-          is_training=self._is_training)
+          is_training=self._is_training,
+      )
       task_fea = task_dnn(self._features)
       task_output = tf.layers.dense(
           inputs=task_fea,
           units=task_tower_cfg.num_class,
           kernel_regularizer=self._l2_reg,
-          name='dnn_output_%d' % i)
+          name='dnn_output_%d' % i,
+      )
       tower_outputs[tower_name] = task_output
 
     self._add_to_prediction_dict(tower_outputs)

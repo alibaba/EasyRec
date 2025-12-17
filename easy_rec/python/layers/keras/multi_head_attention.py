@@ -209,7 +209,8 @@ class MultiHeadAttention(Layer):
                                        [self._num_heads, self._key_dim]),
         bias_axes=bias_axes if self._use_bias else None,
         name='query',
-        **self._get_common_kwargs_for_sublayer())
+        **self._get_common_kwargs_for_sublayer(),
+    )
     self._query_dense.build(query_shape)
     einsum_equation, bias_axes, output_rank = _build_proj_equation(
         key_rank - 1, bound_dims=1, output_dims=2)
@@ -219,7 +220,8 @@ class MultiHeadAttention(Layer):
                                        [self._num_heads, self._key_dim]),
         bias_axes=bias_axes if self._use_bias else None,
         name='key',
-        **self._get_common_kwargs_for_sublayer())
+        **self._get_common_kwargs_for_sublayer(),
+    )
     self._key_dense.build(key_shape)
     einsum_equation, bias_axes, output_rank = _build_proj_equation(
         value_rank - 1, bound_dims=1, output_dims=2)
@@ -229,7 +231,8 @@ class MultiHeadAttention(Layer):
                                        [self._num_heads, self._value_dim]),
         bias_axes=bias_axes if self._use_bias else None,
         name='value',
-        **self._get_common_kwargs_for_sublayer())
+        **self._get_common_kwargs_for_sublayer(),
+    )
     self._value_dense.build(value_shape)
     # Builds the attention computations for multi-head dot product
     # attention.  These computations could be wrapped into the keras
@@ -309,7 +312,8 @@ class MultiHeadAttention(Layer):
         output_shape=_get_output_shape(output_rank - 1, output_shape),
         bias_axes=bias_axes if self._use_bias else None,
         name=name,
-        **common_kwargs)
+        **common_kwargs,
+    )
 
   def _build_attention(self, rank):
     """Builds multi-head dot-product attention computations.
@@ -505,9 +509,8 @@ class MultiHeadAttention(Layer):
       auto_mask = mask if auto_mask is None else auto_mask & mask
     if auto_mask is not None:
       # merge attention_mask & automatic mask, to shape [B, T, S]
-      attention_mask = (
-          auto_mask if attention_mask is None else
-          tf.cast(attention_mask, tf.bool) & auto_mask)
+      attention_mask = auto_mask if attention_mask is None else tf.cast(
+          attention_mask, tf.bool) & auto_mask
     return attention_mask
 
   def _compute_causal_mask(self, query, value=None):
@@ -559,7 +562,8 @@ class MultiHeadAttention(Layer):
               query_shape=query_shape,
               value_shape=value_shape,
               query_last_dim=query_shape[-1],
-              value_last_dim=value_shape[-1]))
+              value_last_dim=value_shape[-1],
+          ))
 
     if value_shape[1:-1] != key_shape[1:-1]:
       raise ValueError(

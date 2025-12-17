@@ -41,7 +41,7 @@ def cache_ckpt(pipeline_config):
     meta_files = [x for x in src_files if '.data-' not in x]
     if estimator_utils.is_ps():
       _, _, ps_id = estimator_utils.parse_tf_config()
-      ps_id = (ps_id % len(data_files))
+      ps_id = ps_id % len(data_files)
       data_files = data_files[ps_id:] + data_files[:ps_id]
       src_files = meta_files + data_files
     else:

@@ -17,7 +17,7 @@ def get_type_defaults(field_type, default_val=''):
       DatasetConfig.STRING: '',
       DatasetConfig.BOOL: False,
       DatasetConfig.FLOAT: 0.0,
-      DatasetConfig.DOUBLE: 0.0
+      DatasetConfig.DOUBLE: 0.0,
   }
   assert field_type in type_defaults, 'invalid type: %s' % field_type
   if default_val == '':
@@ -84,7 +84,7 @@ def np_to_tf_type(np_type):
       np.float: tf.float32,
       np.float32: tf.float32,
       float: tf.float32,
-      np.double: tf.float64
+      np.double: tf.float64,
   }
   if np_type in _types_map:
     return _types_map[np_type]

@@ -13,15 +13,17 @@ from easy_rec.python.compat import regularizers
 from easy_rec.python.compat.feature_column import feature_column
 from easy_rec.python.feature_column.feature_column import FeatureColumnParser
 from easy_rec.python.feature_column.feature_group import FeatureGroup
-from easy_rec.python.layers import sequence_feature_layer
-from easy_rec.python.layers import variational_dropout_layer
 from easy_rec.python.layers.keras import TextCNN
 from easy_rec.python.layers.utils import Parameter
 from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import shape_utils
 
-from easy_rec.python.compat.feature_column.feature_column_v2 import is_embedding_column  # NOQA
+from easy_rec.python.compat.feature_column.feature_column_v2 import (  # NOQA
+    is_embedding_column,)
+from easy_rec.python.layers import (  # NOQA
+    sequence_feature_layer, variational_dropout_layer,
+)
 
 
 class InputLayer(object):
@@ -30,22 +32,30 @@ class InputLayer(object):
   This class apply feature_columns to input tensors to generate wide features and deep features.
   """
 
-  def __init__(self,
-               feature_configs,
-               feature_groups_config,
-               variational_dropout_config=None,
-               wide_output_dim=-1,
-               ev_params=None,
-               embedding_regularizer=None,
-               kernel_regularizer=None,
-               is_training=False,
-               is_predicting=False):
+  def __init__(
+      self,
+      feature_configs,
+      feature_groups_config,
+      variational_dropout_config=None,
+      wide_output_dim=-1,
+      ev_params=None,
+      embedding_regularizer=None,
+      kernel_regularizer=None,
+      is_training=False,
+      is_predicting=False,
+  ):
     self._feature_groups = {
         x.group_name: FeatureGroup(x) for x in feature_groups_config
     }
     self.sequence_feature_layer = sequence_feature_layer.SequenceFeatureLayer(
-        feature_configs, feature_groups_config, ev_params,
-        embedding_regularizer, kernel_regularizer, is_training, is_predicting)
+        feature_configs,
+        feature_groups_config,
+        ev_params,
+        embedding_regularizer,
+        kernel_regularizer,
+        is_training,
+        is_predicting,
+    )
     self._seq_feature_groups_config = []
     for x in feature_groups_config:
       for y in x.sequence_features:
@@ -102,7 +112,8 @@ class InputLayer(object):
           group_seq_arr,
           feature_name_to_output_tensors,
           negative_sampler=negative_sampler,
-          scope_name=group_name)
+          scope_name=group_name,
+      )
       group_features.extend(all_seq_fea)
       for col, fea in zip(group_seq_arr, all_seq_fea):
         feature_name_to_output_tensors['seq_fea/' + col.group_name] = fea
@@ -126,7 +137,9 @@ class InputLayer(object):
       group_features: list of features
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
 
     feature_group = self._feature_groups[group_name]
     group_columns, _ = feature_group.select_columns(self._fc_parser)
@@ -138,7 +151,8 @@ class InputLayer(object):
         features,
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
-        is_training=self._is_training)
+        is_training=self._is_training,
+    )
     group_features = [cols_to_output_tensors[x] for x in group_columns]
 
     embedding_reg_lst = []
@@ -164,7 +178,9 @@ class InputLayer(object):
           1d sequence length tensor.
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
 
     if self._variational_dropout_config is not None:
       raise ValueError(
@@ -202,7 +218,9 @@ class InputLayer(object):
       features: all raw features in list
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
     feature_group = self._feature_groups[group_name]
     return [features[x] for x in feature_group.feature_names]
 
@@ -217,7 +235,9 @@ class InputLayer(object):
       features: all raw features in list, added feature offset
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
     feature_group = self._feature_groups[group_name]
     offset = 0
     values = []
@@ -263,7 +283,9 @@ class InputLayer(object):
           1 dimension sequence length tensor.
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
     if is_combine:
       return self.get_combined_feature(features, group_name, is_dict)
 
@@ -294,7 +316,9 @@ class InputLayer(object):
       group_features: list of features
     """
     assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % (
-        group_name, ','.join([x for x in self._feature_groups]))
+        group_name,
+        ','.join([x for x in self._feature_groups]),
+    )
     feature_group = self._feature_groups[group_name]
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
@@ -304,7 +328,8 @@ class InputLayer(object):
         group_columns,
         cols_to_output_tensors=cols_to_output_tensors,
         feature_name_to_output_tensors=feature_name_to_output_tensors,
-        is_training=self._is_training)
+        is_training=self._is_training,
+    )
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)
@@ -327,9 +352,10 @@ class InputLayer(object):
               kernel_regularizer=self._kernel_regularizer,
               use_bias=False,
               activation=None,
-              name='attention')
+              name='attention',
+          )
           attn_logits = tf.squeeze(attn_logits, axis=-1)
-          attn_logits_padding = tf.ones_like(attn_logits) * (-2**32 + 1)
+          attn_logits_padding = tf.ones_like(attn_logits) * (-(2**32) + 1)
           seq_mask = tf.sequence_mask(seq_len)
           attn_score = tf.nn.softmax(
               tf.where(seq_mask, attn_logits, attn_logits_padding))
@@ -356,15 +382,17 @@ class InputLayer(object):
           self._variational_dropout_config,
           features_dimension,
           self._is_training,
-          name=group_name)
+          name=group_name,
+      )
       concat_features = variational_dropout(concat_features)
       group_features = tf.split(
           concat_features, list(features_dimension.values()), axis=-1)
     else:
       concat_features = array_ops.concat(
           [output_features] + seq_features, axis=-1)
-      group_features = [cols_to_output_tensors[x] for x in group_columns] + \
-                       [cols_to_output_tensors[x] for x in group_seq_columns]
+      group_features = [cols_to_output_tensors[x] for x in group_columns] + [
+          cols_to_output_tensors[x] for x in group_seq_columns
+      ]
 
     if self._embedding_regularizer is not None:
       for fc, val in cols_to_output_tensors.items():

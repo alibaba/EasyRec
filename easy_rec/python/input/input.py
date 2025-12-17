@@ -18,13 +18,16 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import conditional
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import constant
-from easy_rec.python.utils.check_utils import check_split
-from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.expr_util import get_expression
 from easy_rec.python.utils.input_utils import get_type_defaults
-from easy_rec.python.utils.load_class import get_register_class_meta
-from easy_rec.python.utils.load_class import load_by_path
 from easy_rec.python.utils.tf_utils import get_tf_type
+
+from easy_rec.python.utils.check_utils import (  # NOQA
+    check_split, check_string_to_number,
+)
+from easy_rec.python.utils.load_class import (  # NOQA
+    get_register_class_meta, load_by_path,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -34,18 +37,19 @@ _meta_type = get_register_class_meta(_INPUT_CLASS_MAP, have_abstract_class=True)
 
 
 class Input(six.with_metaclass(_meta_type, object)):
-
   DATA_OFFSET = 'DATA_OFFSET'
 
-  def __init__(self,
-               data_config,
-               feature_configs,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None,
-               **kwargs):
+  def __init__(
+      self,
+      data_config,
+      feature_configs,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+      **kwargs,
+  ):
     self._pipeline_config = pipeline_config
     self._data_config = data_config
     self._check_mode = check_mode
@@ -282,8 +286,10 @@ class Input(six.with_metaclass(_meta_type, object)):
       else:
         placeholder_name = 'input_%d' % fid
       if input_name in export_fields_name:
-        tf_type = self._multi_value_types[input_name] if input_name in self._multi_value_types \
-            else get_tf_type(self._input_field_types[fid])
+        tf_type = (
+            self._multi_value_types[input_name]
+            if input_name in self._multi_value_types else get_tf_type(
+                self._input_field_types[fid]))
         logging.info('multi value input_name: %s, dtype: %s' %
                      (input_name, tf_type))
         finput = array_ops.placeholder(
@@ -334,7 +340,8 @@ class Input(six.with_metaclass(_meta_type, object)):
         features[input_name] = tf.string_to_number(
             input_vals[:, tmp_id],
             tf_type,
-            name='input_str_to_%s' % tf_type.name)
+            name='input_str_to_%s' % tf_type.name,
+        )
       else:
         if ftype not in [DatasetConfig.STRING]:
           logging.warning('unexpected field type: ftype=%s tf_type=%s' %
@@ -348,10 +355,11 @@ class Input(six.with_metaclass(_meta_type, object)):
 
   def _get_labels(self, fields):
     labels = fields['label']
-    return OrderedDict([
-        (x, tf.squeeze(labels[x], axis=1) if len(labels[x].get_shape()) == 2 and
-         labels[x].get_shape()[1] == 1 else labels[x]) for x in labels
-    ])
+    return OrderedDict([(
+        x,
+        (tf.squeeze(labels[x], axis=1) if len(labels[x].get_shape()) == 2 and
+         labels[x].get_shape()[1] == 1 else labels[x]),
+    ) for x in labels])
 
   def _as_string(self, field, fc):
     if field.dtype == tf.string:
@@ -359,11 +367,12 @@ class Input(six.with_metaclass(_meta_type, object)):
     if field.dtype in [tf.float32, tf.double]:
       feature_name = fc.feature_name if fc.HasField(
           'feature_name') else fc.input_names[0]
-      assert fc.precision > 0, 'fc.precision not set for feature[%s], it is dangerous to convert ' \
-                               'float or double to string due to precision problem, it is suggested ' \
-                               ' to convert them into string format before using EasyRec; ' \
-                               'if you really need to do so, please set precision (the number of ' \
-                               'decimal digits) carefully.' % feature_name
+      assert fc.precision > 0, (
+          'fc.precision not set for feature[%s], it is dangerous to convert '
+          'float or double to string due to precision problem, it is suggested '
+          ' to convert them into string format before using EasyRec; '
+          'if you really need to do so, please set precision (the number of '
+          'decimal digits) carefully.' % feature_name)
     precision = None
     if field.dtype in [tf.float32, tf.double]:
       if fc.precision > 0:
@@ -381,9 +390,12 @@ class Input(six.with_metaclass(_meta_type, object)):
         'feature_name') else fc.input_names[0]
 
     if len(fc.combo_input_seps) > 0:
-      assert len(fc.combo_input_seps) == len(fc.input_names), \
-          'len(combo_separator)[%d] != len(fc.input_names)[%d]' % (
-          len(fc.combo_input_seps), len(fc.input_names))
+      assert len(fc.combo_input_seps) == len(
+          fc.input_names
+      ), 'len(combo_separator)[%d] != len(fc.input_names)[%d]' % (
+          len(fc.combo_input_seps),
+          len(fc.input_names),
+      )
 
     def _get_input_sep(input_id):
       if input_id < len(fc.combo_input_seps):
@@ -399,9 +411,11 @@ class Input(six.with_metaclass(_meta_type, object)):
           key = feature_name
         input_sep = _get_input_sep(input_id)
         if input_sep != '':
-          assert field_dict[
-              input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
-                  input_name, field_dict[input_name].dtype)
+          assert field_dict[input_name].dtype == tf.string, (
+              'could not apply string_split to input-name[%s] dtype=%s' % (
+                  input_name,
+                  field_dict[input_name].dtype,
+              ))
           parsed_dict[key] = tf.string_split(field_dict[input_name], input_sep)
         else:
           parsed_dict[key] = self._as_string(field_dict[input_name], fc)
@@ -411,9 +425,11 @@ class Input(six.with_metaclass(_meta_type, object)):
         for input_id, input_name in enumerate(fc.input_names):
           input_sep = fc.combo_input_seps[input_id]
           if len(input_sep) > 0:
-            assert field_dict[
-                input_name].dtype == tf.string, 'could not apply string_split to input-name[%s] dtype=%s' % (
-                    input_name, field_dict[input_name].dtype)
+            assert field_dict[input_name].dtype == tf.string, (
+                'could not apply string_split to input-name[%s] dtype=%s' % (
+                    input_name,
+                    field_dict[input_name].dtype,
+                ))
             split_inputs.append(
                 tf.string_split(field_dict[input_name],
                                 fc.combo_input_seps[input_id]))
@@ -441,8 +457,10 @@ class Input(six.with_metaclass(_meta_type, object)):
       elif len(field.get_shape()) == 2:
         field = tf.squeeze(field, axis=-1)
       if fc.HasField('kv_separator') and len(fc.input_names) > 1:
-        assert False, 'Tag Feature Error, ' \
-                      'Cannot set kv_separator and multi input_names in one feature config. Feature: %s.' % input_0
+        assert False, (
+            'Tag Feature Error, '
+            'Cannot set kv_separator and multi input_names in one feature config. Feature: %s.'
+            % input_0)
       parsed_dict[feature_name] = tf.string_split(field, fc.separator)
       if fc.HasField('kv_separator'):
         indices = parsed_dict[feature_name].indices
@@ -462,38 +480,46 @@ class Input(six.with_metaclass(_meta_type, object)):
         parsed_dict[feature_name + '_w'] = tf.sparse.SparseTensor(
             indices, tmp_vs, parsed_dict[feature_name].dense_shape)
       if not fc.HasField('hash_bucket_size') and fc.num_buckets > 0:
-        check_list = [
+        check_list = ([
             tf.py_func(
                 check_string_to_number,
                 [parsed_dict[feature_name].values, input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           vals = tf.string_to_number(
               parsed_dict[feature_name].values,
               tf.int32,
-              name='tag_fea_%s' % input_0)
+              name='tag_fea_%s' % input_0,
+          )
         parsed_dict[feature_name] = tf.sparse.SparseTensor(
-            parsed_dict[feature_name].indices, vals,
-            parsed_dict[feature_name].dense_shape)
+            parsed_dict[feature_name].indices,
+            vals,
+            parsed_dict[feature_name].dense_shape,
+        )
       if len(fc.input_names) > 1:
         input_1 = fc.input_names[1]
         field = field_dict[input_1]
         if len(field.get_shape()) == 0:
           field = tf.expand_dims(field, axis=0)
         field = tf.string_split(field, fc.separator)
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [field.values, input_1], Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [field.values, input_1],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           field_vals = tf.string_to_number(
               field.values, tf.float32, name='tag_wgt_str_2_flt_%s' % input_1)
         assert_op = tf.assert_equal(
             tf.shape(field_vals)[0],
             tf.shape(parsed_dict[feature_name].values)[0],
-            message='TagFeature Error: The size of %s not equal to the size of %s. Please check input: %s and %s.'
-            % (input_0, input_1, input_0, input_1))
+            message='TagFeature Error: The size of %s not equal to %s. Please check input: %s and %s.'
+            % (input_0, input_1, input_0, input_1),
+        )
         with tf.control_dependencies([assert_op]):
           field = tf.sparse.SparseTensor(field.indices, tf.identity(field_vals),
                                          field.dense_shape)
@@ -510,18 +536,24 @@ class Input(six.with_metaclass(_meta_type, object)):
     for input_name in fc.input_names:
       new_input_name = prefix + input_name
       if field_dict[input_name].dtype == tf.string:
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [field_dict[input_name], input_name],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [field_dict[input_name], input_name],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           parsed_dict[new_input_name] = tf.string_to_number(
               field_dict[input_name],
               tf.float64,
-              name='%s_str_2_int_for_expr' % new_input_name)
+              name='%s_str_2_int_for_expr' % new_input_name,
+          )
       elif field_dict[input_name].dtype in [
-          tf.int32, tf.int64, tf.double, tf.float32
+          tf.int32,
+          tf.int64,
+          tf.double,
+          tf.float32,
       ]:
         parsed_dict[new_input_name] = tf.cast(field_dict[input_name],
                                               tf.float64)
@@ -543,16 +575,19 @@ class Input(six.with_metaclass(_meta_type, object)):
         parsed_dict[feature_name] = self._as_string(field_dict[input_0], fc)
     elif fc.num_buckets > 0:
       if parsed_dict[feature_name].dtype == tf.string:
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [parsed_dict[feature_name], input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [parsed_dict[feature_name], input_0],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           parsed_dict[feature_name] = tf.string_to_number(
               parsed_dict[feature_name],
               tf.int32,
-              name='%s_str_2_int' % input_0)
+              name='%s_str_2_int' % input_0,
+          )
 
   def _parse_raw_feature(self, fc, parsed_dict, field_dict):
     input_0 = fc.input_names[0]
@@ -566,22 +601,28 @@ class Input(six.with_metaclass(_meta_type, object)):
         vals = field_dict[input_0]
         segment_ids = tf.range(0, tf.shape(vals)[0])
       if fc.raw_input_dim > 1:
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_split, [vals, fc.separator, fc.raw_input_dim, input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                check_split,
+                [vals, fc.separator, fc.raw_input_dim, input_0],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           tmp_fea = tf.string_split(vals, fc.separator)
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [tmp_fea.values, input_0], Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [tmp_fea.values, input_0],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           tmp_vals = tf.string_to_number(
               tmp_fea.values,
               tf.float32,
-              name='multi_raw_fea_to_flt_%s' % input_0)
+              name='multi_raw_fea_to_flt_%s' % input_0,
+          )
         if fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
           emb = tf.reshape(tmp_vals, [-1, fc.raw_input_dim])
           if fc.combiner == 'max':
@@ -600,7 +641,8 @@ class Input(six.with_metaclass(_meta_type, object)):
               tmp_fea.indices,
               [tf.shape(field_dict[input_0])[0], fc.raw_input_dim],
               tmp_vals,
-              default_value=0)
+              default_value=0,
+          )
       elif fc.HasField('seq_multi_sep') and fc.HasField('combiner'):
         check_list = [
             tf.py_func(check_string_to_number, [vals, input_0], Tout=tf.bool)
@@ -620,11 +662,13 @@ class Input(six.with_metaclass(_meta_type, object)):
           assert False, 'unsupported combine operator: ' + fc.combiner
         parsed_dict[feature_name] = emb
       else:
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [field_dict[input_0], input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [field_dict[input_0], input_0],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           parsed_dict[feature_name] = tf.string_to_number(
               field_dict[input_0], tf.float32)
@@ -645,9 +689,8 @@ class Input(six.with_metaclass(_meta_type, object)):
       parsed_dict[feature_name] = self._normalizer_fn[feature_name](
           parsed_dict[feature_name])
 
-    if not fc.boundaries and fc.num_buckets <= 1 and \
-        fc.embedding_dim > 0 and \
-        self._data_config.sample_weight != input_0:
+    if (not fc.boundaries and fc.num_buckets <= 1 and fc.embedding_dim > 0 and
+        self._data_config.sample_weight != input_0):
       # may need by wide model and deep model to project
       # raw values to a vector, it maybe better implemented
       # by a ProjectionColumn later
@@ -666,11 +709,13 @@ class Input(six.with_metaclass(_meta_type, object)):
       parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
-          dense_shape=[sample_num, fc.raw_input_dim])
+          dense_shape=[sample_num, fc.raw_input_dim],
+      )
       parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(tmp_parsed, [-1]),
-          dense_shape=[sample_num, fc.raw_input_dim])
+          dense_shape=[sample_num, fc.raw_input_dim],
+      )
       # self._appended_fields.append(input_0 + '_raw_proj_id')
       # self._appended_fields.append(input_0 + '_raw_proj_val')
 
@@ -693,58 +738,67 @@ class Input(six.with_metaclass(_meta_type, object)):
         # 3 dimensional sparse tensor
         out_shape = tf.concat(
             [parsed_dict[feature_name].dense_shape, multi_vals.dense_shape[1:]],
-            axis=0)
+            axis=0,
+        )
         parsed_dict[feature_name] = tf.sparse.SparseTensor(
             out_indices, multi_vals.values, out_shape)
-      if (fc.num_buckets > 1 and fc.max_val == fc.min_val):
-        check_list = [
+      if fc.num_buckets > 1 and fc.max_val == fc.min_val:
+        check_list = ([
             tf.py_func(
                 check_string_to_number,
                 [parsed_dict[feature_name].values, input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           parsed_dict[feature_name] = tf.sparse.SparseTensor(
               parsed_dict[feature_name].indices,
               tf.string_to_number(
                   parsed_dict[feature_name].values,
                   tf.int64,
-                  name='sequence_str_2_int_%s' % input_0),
-              parsed_dict[feature_name].dense_shape)
+                  name='sequence_str_2_int_%s' % input_0,
+              ),
+              parsed_dict[feature_name].dense_shape,
+          )
       elif sub_feature_type == fc.RawFeature:
-        check_list = [
+        check_list = ([
             tf.py_func(
                 check_string_to_number,
                 [parsed_dict[feature_name].values, input_0],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           parsed_dict[feature_name] = tf.sparse.SparseTensor(
               parsed_dict[feature_name].indices,
               tf.string_to_number(
                   parsed_dict[feature_name].values,
                   tf.float32,
-                  name='sequence_str_2_float_%s' % input_0),
-              parsed_dict[feature_name].dense_shape)
+                  name='sequence_str_2_float_%s' % input_0,
+              ),
+              parsed_dict[feature_name].dense_shape,
+          )
       if fc.num_buckets > 1 and fc.max_val > fc.min_val:
         normalized_values = (parsed_dict[feature_name].values - fc.min_val) / (
             fc.max_val - fc.min_val)
         parsed_dict[feature_name] = tf.sparse.SparseTensor(
-            parsed_dict[feature_name].indices, normalized_values,
-            parsed_dict[feature_name].dense_shape)
+            parsed_dict[feature_name].indices,
+            normalized_values,
+            parsed_dict[feature_name].dense_shape,
+        )
     else:
       parsed_dict[feature_name] = field
-    if not fc.boundaries and fc.num_buckets <= 1 and\
-       self._data_config.sample_weight != input_0 and\
-       sub_feature_type == fc.RawFeature and\
-       fc.raw_input_dim == 1:
-      logging.info(
-          'Not set boundaries or num_buckets or hash_bucket_size, %s will process as two dimension sequence raw feature'
-          % feature_name)
+    if (not fc.boundaries and fc.num_buckets <= 1 and
+        self._data_config.sample_weight != input_0 and
+        sub_feature_type == fc.RawFeature and fc.raw_input_dim == 1):
+      logging.info(('Not set boundaries or num_buckets or hash_bucket_size, '
+                    '%s will process as two dimension sequence raw feature') %
+                   feature_name)
       parsed_dict[feature_name] = tf.sparse_to_dense(
           parsed_dict[feature_name].indices,
           [tf.shape(parsed_dict[feature_name])[0], fc.sequence_length],
-          parsed_dict[feature_name].values)
+          parsed_dict[feature_name].values,
+      )
       sample_num = tf.to_int64(tf.shape(parsed_dict[feature_name])[0])
       indices_0 = tf.range(sample_num, dtype=tf.int64)
       indices_1 = tf.range(fc.sequence_length, dtype=tf.int64)
@@ -759,11 +813,13 @@ class Input(six.with_metaclass(_meta_type, object)):
       parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
-          dense_shape=[sample_num, fc.sequence_length])
+          dense_shape=[sample_num, fc.sequence_length],
+      )
       parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(tmp_parsed, [-1]),
-          dense_shape=[sample_num, fc.sequence_length])
+          dense_shape=[sample_num, fc.sequence_length],
+      )
     elif (not fc.boundaries and fc.num_buckets <= 1 and
           self._data_config.sample_weight != input_0 and
           sub_feature_type == fc.RawFeature and fc.raw_input_dim > 1):
@@ -772,10 +828,14 @@ class Input(six.with_metaclass(_meta_type, object)):
                    ' %s will process as three dimension sequence raw feature' %
                    feature_name)
       parsed_dict[feature_name] = tf.sparse_to_dense(
-          parsed_dict[feature_name].indices, [
-              tf.shape(parsed_dict[feature_name])[0], fc.sequence_length,
-              fc.raw_input_dim
-          ], parsed_dict[feature_name].values)
+          parsed_dict[feature_name].indices,
+          [
+              tf.shape(parsed_dict[feature_name])[0],
+              fc.sequence_length,
+              fc.raw_input_dim,
+          ],
+          parsed_dict[feature_name].values,
+      )
       sample_num = tf.to_int64(tf.shape(parsed_dict[feature_name])[0])
       indices_0 = tf.range(sample_num, dtype=tf.int64)
       indices_1 = tf.range(fc.sequence_length, dtype=tf.int64)
@@ -795,11 +855,13 @@ class Input(six.with_metaclass(_meta_type, object)):
       parsed_dict[feature_name + '_raw_proj_id'] = tf.SparseTensor(
           indices=indices,
           values=indices_1[:, 0],
-          dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim])
+          dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim],
+      )
       parsed_dict[feature_name + '_raw_proj_val'] = tf.SparseTensor(
           indices=indices,
           values=tf.reshape(parsed_dict[feature_name], [-1]),
-          dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim])
+          dense_shape=[sample_num, fc.sequence_length, fc.raw_input_dim],
+      )
       # self._appended_fields.append(input_0 + '_raw_proj_id')
       # self._appended_fields.append(input_0 + '_raw_proj_val')
 
@@ -892,14 +954,18 @@ class Input(six.with_metaclass(_meta_type, object)):
       if field_dict[input_name].dtype == tf.string:
         if self._label_dim[input_id] > 1:
           logging.info('will split labels[%d]=%s' % (input_id, input_name))
-          check_list = [
+          check_list = ([
               tf.py_func(
-                  check_split, [
-                      field_dict[input_name], self._label_sep[input_id],
-                      self._label_dim[input_id], input_name
+                  check_split,
+                  [
+                      field_dict[input_name],
+                      self._label_sep[input_id],
+                      self._label_dim[input_id],
+                      input_name,
                   ],
-                  Tout=tf.bool)
-          ] if self._check_mode else []
+                  Tout=tf.bool,
+              )
+          ] if self._check_mode else [])
           with tf.control_dependencies(check_list):
             label_dict[input_name] = tf.string_split(
                 field_dict[input_name], self._label_sep[input_id]).values
@@ -907,17 +973,22 @@ class Input(six.with_metaclass(_meta_type, object)):
                                                 [-1, self._label_dim[input_id]])
         else:
           label_dict[input_name] = field_dict[input_name]
-        check_list = [
+        check_list = ([
             tf.py_func(
-                check_string_to_number, [label_dict[input_name], input_name],
-                Tout=tf.bool)
-        ] if self._check_mode else []
+                check_string_to_number,
+                [label_dict[input_name], input_name],
+                Tout=tf.bool,
+            )
+        ] if self._check_mode else [])
         with tf.control_dependencies(check_list):
           label_dict[input_name] = tf.string_to_number(
               label_dict[input_name], tf.float32, name=input_name)
       else:
         assert field_dict[input_name].dtype in [
-            tf.float32, tf.double, tf.int32, tf.int64
+            tf.float32,
+            tf.double,
+            tf.int32,
+            tf.int64,
         ], 'invalid label dtype: %s' % str(field_dict[input_name].dtype)
         label_dict[input_name] = field_dict[input_name]
 
@@ -981,7 +1052,7 @@ class Input(six.with_metaclass(_meta_type, object)):
       indices_1 = tf.range(0, n, dtype=tf.int64)
       indices = [
           tf.expand_dims(indices_0, axis=1),
-          tf.expand_dims(indices_1, axis=1)
+          tf.expand_dims(indices_1, axis=1),
       ]
       indices = tf.concat(indices, axis=1)
       return tf.sparse.SparseTensor(indices, vals, [1, n])
@@ -998,7 +1069,8 @@ class Input(six.with_metaclass(_meta_type, object)):
     indices = tf.concat(
         [tf.expand_dims(indices_0, axis=1),
          tf.expand_dims(indices_1, axis=1)],
-        axis=1)
+        axis=1,
+    )
     shapes = tf.stack([batch_size, tf.reduce_max(indices_1) + 1])
     return tf.sparse.SparseTensor(indices, vals, shapes)
 
@@ -1040,8 +1112,11 @@ class Input(six.with_metaclass(_meta_type, object)):
             tf.estimator.export.ServingInputReceiver instance
       """
       self._pre_build(mode, params)
-      if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
-                  tf.estimator.ModeKeys.PREDICT):
+      if mode in (
+          tf.estimator.ModeKeys.TRAIN,
+          tf.estimator.ModeKeys.EVAL,
+          tf.estimator.ModeKeys.PREDICT,
+      ):
         # build dataset from self._config.input_path
         self._mode = mode
         dataset = self._build(mode, params)

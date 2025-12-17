@@ -23,8 +23,10 @@ class WideAndDeep(RankModel):
                is_training=False):
     super(WideAndDeep, self).__init__(model_config, feature_configs, features,
                                       labels, is_training)
-    assert model_config.WhichOneof('model') == 'wide_and_deep', \
-        'invalid model config: %s' % model_config.WhichOneof('model')
+    assert model_config.WhichOneof(
+        'model'
+    ) == 'wide_and_deep', 'invalid model config: %s' % model_config.WhichOneof(
+        'model')
     self._model_config = model_config.wide_and_deep
     assert isinstance(self._model_config, WideAndDeepConfig)
     assert self._input_layer.has_group('wide')
@@ -59,8 +61,12 @@ class WideAndDeep(RankModel):
     print('wide_deep has_final_dnn layers = %d' % has_final)
     if has_final:
       all_fea = tf.concat([wide_fea, deep_fea], axis=1)
-      final_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg,
-                            'final_dnn', self._is_training)
+      final_layer = dnn.DNN(
+          self._model_config.final_dnn,
+          self._l2_reg,
+          'final_dnn',
+          self._is_training,
+      )
       all_fea = final_layer(all_fea)
       output = tf.layers.dense(
           all_fea,
@@ -72,7 +78,8 @@ class WideAndDeep(RankModel):
           deep_fea,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='deep_out')
+          name='deep_out',
+      )
       output = deep_out + wide_fea
 
     self._add_to_prediction_dict(output)
@@ -90,17 +97,18 @@ class WideAndDeep(RankModel):
     Return:
       list of list of variables.
     """
-    assert opt_num <= 3, 'could only support 2 or 3 optimizers, ' + \
-        'if opt_num = 2, one for the wide , and one for the others, ' + \
-        'if opt_num = 3, one for the wide, second for the deep embeddings, ' + \
-        'and third for the other layers.'
+    assert opt_num <= 3, (
+        'could only support 2 or 3 optimizers, ' +
+        'if opt_num = 2, one for the wide , and one for the others, ' +
+        'if opt_num = 3, one for the wide, second for the deep embeddings, ' +
+        'and third for the other layers.')
 
     if opt_num == 2:
       wide_vars = []
       deep_vars = []
       for tmp_var in tf.trainable_variables():
-        if tmp_var.name.startswith('input_layer') and \
-            (not tmp_var.name.startswith('input_layer_1')):
+        if tmp_var.name.startswith('input_layer') and (
+            not tmp_var.name.startswith('input_layer_1')):
           wide_vars.append(tmp_var)
         else:
           deep_vars.append(tmp_var)
@@ -110,8 +118,8 @@ class WideAndDeep(RankModel):
       embedding_vars = []
       deep_vars = []
       for tmp_var in tf.trainable_variables():
-        if tmp_var.name.startswith('input_layer') and \
-            (not tmp_var.name.startswith('input_layer_1')):
+        if tmp_var.name.startswith('input_layer') and (
+            not tmp_var.name.startswith('input_layer_1')):
           wide_vars.append(tmp_var)
         elif tmp_var.name.startswith(
             'input_layer') or '/embedding_weights' in tmp_var.name:

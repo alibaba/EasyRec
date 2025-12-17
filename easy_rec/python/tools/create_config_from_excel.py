@@ -15,8 +15,17 @@ logging.basicConfig(
 
 class ModelConfigConverter:
 
-  def __init__(self, excel_path, output_path, model_type, column_separator,
-               incol_separator, train_input_path, eval_input_path, model_dir):
+  def __init__(
+      self,
+      excel_path,
+      output_path,
+      model_type,
+      column_separator,
+      incol_separator,
+      train_input_path,
+      eval_input_path,
+      model_dir,
+  ):
     self._excel_path = excel_path
     self._output_path = output_path
     self._model_type = model_type
@@ -40,7 +49,7 @@ class ModelConfigConverter:
         'double': 'DOUBLE',
         'float': 'FLOAT',
         'string': 'STRING',
-        'bool': 'BOOL'
+        'bool': 'BOOL',
     }
     return type_dict[input_name]
 
@@ -50,7 +59,7 @@ class ModelConfigConverter:
         'double': '0.0',
         'float': '0.0',
         'string': '',
-        'bool': 'false'
+        'bool': 'false',
     }
     return type_dict[input_name]
 
@@ -139,8 +148,13 @@ class ModelConfigConverter:
         field['embedding_name'] = field['global']
 
       for t in [
-          'type', 'global', 'hash_bucket_size', 'embedding_dim',
-          'default_value', 'weights', 'boundaries'
+          'type',
+          'global',
+          'hash_bucket_size',
+          'embedding_dim',
+          'default_value',
+          'weights',
+          'boundaries',
       ]:
         if t not in row:
           continue
@@ -370,7 +384,7 @@ class ModelConfigConverter:
         self._write_multi_tower_config(fout)
       else:
         logging.warning(
-            'the model_config could not be generated automatically, you have to write the model_config manually.'
+            'the model_config could not be generated automatically, you have to write the model_config manually'
         )
     # reformat the config
     pipeline_config = config_util.get_configs_from_pipeline_file(
@@ -388,19 +402,22 @@ if __name__ == '__main__':
       '--model_type',
       type=str,
       choices=model_types,
-      help='model type, currently support: %s' % ','.join(model_types))
+      help='model type, currently support: %s' % ','.join(model_types),
+  )
   parser.add_argument('--excel_path', type=str, help='excel config path')
   parser.add_argument('--output_path', type=str, help='generated config path')
   parser.add_argument(
       '--column_separator',
       type=str,
       default=',',
-      help='column separator, separator betwen features')
+      help='column separator, separator between features',
+  )
   parser.add_argument(
       '--incol_separator',
       type=str,
       default='|',
-      help='separator within features, such as tag features')
+      help='separator within features, such as tag features',
+  )
   parser.add_argument(
       '--train_input_path', type=str, default='', help='train input path')
   parser.add_argument(
@@ -415,10 +432,16 @@ if __name__ == '__main__':
   logging.info('column_separator = %s in_column_separator = %s' %
                (args.column_separator, args.incol_separator))
 
-  converter = ModelConfigConverter(args.excel_path, args.output_path,
-                                   args.model_type, args.column_separator,
-                                   args.incol_separator, args.train_input_path,
-                                   args.eval_input_path, args.model_dir)
+  converter = ModelConfigConverter(
+      args.excel_path,
+      args.output_path,
+      args.model_type,
+      args.column_separator,
+      args.incol_separator,
+      args.train_input_path,
+      args.eval_input_path,
+      args.model_dir,
+  )
   converter.convert()
   logging.info('Conversion done')
   logging.info('Tips:')

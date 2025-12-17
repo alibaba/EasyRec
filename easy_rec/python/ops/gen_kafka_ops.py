@@ -33,16 +33,18 @@ if easy_rec.ops_dir is not None:
 
 
 @tf_export('io_kafka_dataset_v2')
-def io_kafka_dataset_v2(topics,
-                        servers,
-                        group,
-                        eof,
-                        timeout,
-                        config_global,
-                        config_topic,
-                        message_key,
-                        message_offset,
-                        name=None):
+def io_kafka_dataset_v2(
+    topics,
+    servers,
+    group,
+    eof,
+    timeout,
+    config_global,
+    config_topic,
+    message_key,
+    message_offset,
+    name=None,
+):
   """Creates a dataset that emits the messages of one or more Kafka topics.
 
   Args:
@@ -82,20 +84,23 @@ def io_kafka_dataset_v2(topics,
       config_topic=config_topic,
       message_key=message_key,
       message_offset=message_offset,
-      name=name)
+      name=name,
+  )
 
 
-def io_kafka_dataset_eager_fallback(topics,
-                                    servers,
-                                    group,
-                                    eof,
-                                    timeout,
-                                    config_global,
-                                    config_topic,
-                                    message_key,
-                                    message_offset,
-                                    name=None,
-                                    ctx=None):
+def io_kafka_dataset_eager_fallback(
+    topics,
+    servers,
+    group,
+    eof,
+    timeout,
+    config_global,
+    config_topic,
+    message_key,
+    message_offset,
+    name=None,
+    ctx=None,
+):
   """This is the slowpath function for Eager mode.
 
   This is for function io_kafka_dataset
@@ -111,8 +116,15 @@ def io_kafka_dataset_eager_fallback(topics,
   message_key = _ops.convert_to_tensor(message_key, _dtypes.bool)
   message_offset = _ops.convert_to_tensor(message_offset, _dtypes.bool)
   _inputs_flat = [
-      topics, servers, group, eof, timeout, config_global, config_topic,
-      message_key, message_offset
+      topics,
+      servers,
+      group,
+      eof,
+      timeout,
+      config_global,
+      config_topic,
+      message_key,
+      message_offset,
   ]
   _attrs = None
   _result = _execute.execute(
@@ -124,7 +136,7 @@ def io_kafka_dataset_eager_fallback(topics,
       name=name)
   _execute.record_gradient('IOKafkaDataset', _inputs_flat, _attrs, _result,
                            name)
-  _result, = _result
+  (_result,) = _result
   return _result
 
 
@@ -150,14 +162,21 @@ def io_write_kafka_v2(message, topic, servers, name=None):
     _attrs = None
     _execute.record_gradient('IOWriteKafka', _inputs_flat, _attrs, _result,
                              name)
-    _result, = _result
+    (_result,) = _result
     return _result
 
   else:
     try:
       _result = _pywrap_tensorflow.TFE_Py_FastPathExecute(
-          _ctx._context_handle, _ctx._eager_context.device_name, 'IOWriteKafka',
-          name, _ctx._post_execution_callbacks, message, topic, servers)
+          _ctx._context_handle,
+          _ctx._eager_context.device_name,
+          'IOWriteKafka',
+          name,
+          _ctx._post_execution_callbacks,
+          message,
+          topic,
+          servers,
+      )
       return _result
     except _core._FallbackException:
       return io_write_kafka_eager_fallback(
@@ -189,5 +208,5 @@ def io_write_kafka_eager_fallback(message, topic, servers, name=None, ctx=None):
       ctx=_ctx,
       name=name)
   _execute.record_gradient('IOWriteKafka', _inputs_flat, _attrs, _result, name)
-  _result, = _result
+  (_result,) = _result
   return _result

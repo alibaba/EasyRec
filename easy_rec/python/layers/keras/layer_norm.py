@@ -1,4 +1,5 @@
 """Layer Normalization layer."""
+
 import tensorflow as tf
 from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
@@ -168,18 +169,20 @@ class LayerNormalization(Layer):
     - [Lei Ba et al., 2016](https://arxiv.org/abs/1607.06450).
   """
 
-  def __init__(self,
-               axis=-1,
-               epsilon=1e-3,
-               center=True,
-               scale=True,
-               beta_initializer='zeros',
-               gamma_initializer='ones',
-               beta_regularizer=None,
-               gamma_regularizer=None,
-               beta_constraint=None,
-               gamma_constraint=None,
-               **kwargs):
+  def __init__(
+      self,
+      axis=-1,
+      epsilon=1e-3,
+      center=True,
+      scale=True,
+      beta_initializer='zeros',
+      gamma_initializer='ones',
+      beta_regularizer=None,
+      gamma_regularizer=None,
+      beta_constraint=None,
+      gamma_constraint=None,
+      **kwargs,
+  ):
     super(LayerNormalization, self).__init__(**kwargs)
     if isinstance(axis, (list, tuple)):
       self.axis = list(axis)
@@ -274,13 +277,13 @@ class LayerNormalization(Layer):
       broadcast_shape[dim] = input_shape.dims[dim].value
 
     def _broadcast(v):
-      if (v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]):
+      if v is not None and len(v.shape) != ndims and self.axis != [ndims - 1]:
         return tf.reshape(v, broadcast_shape)
       return v
 
     if not self._fused:
       input_dtype = inputs.dtype
-      if (input_dtype in ('float16', 'bfloat16') and self.dtype == 'float32'):
+      if input_dtype in ('float16', 'bfloat16') and self.dtype == 'float32':
         # If mixed precision is used, cast inputs to float32 so that
         # this is at least as numerically stable as the fused version.
         inputs = tf.cast(inputs, 'float32')

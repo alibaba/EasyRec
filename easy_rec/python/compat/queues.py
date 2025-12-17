@@ -28,7 +28,6 @@ try:
   from multiprocessing import context
 except ImportError:
   context = None
-  pass
 
 if context is not None:
   _ForkingPickler = context.reduction.ForkingPickler
@@ -41,7 +40,6 @@ else:
 
 
 class Queue(object):
-
   _sentinel = object()
 
   def __init__(self, ctx, maxsize=0, name=''):
@@ -69,13 +67,32 @@ class Queue(object):
 
   def __getstate__(self):
     context.assert_spawning(self)
-    return (self._ignore_epipe, self._maxsize, self._reader, self._writer,
-            self._rlock, self._wlock, self._sem, self._opid, self._name,
-            self._run)
+    return (
+        self._ignore_epipe,
+        self._maxsize,
+        self._reader,
+        self._writer,
+        self._rlock,
+        self._wlock,
+        self._sem,
+        self._opid,
+        self._name,
+        self._run,
+    )
 
   def __setstate__(self, state):
-    (self._ignore_epipe, self._maxsize, self._reader, self._writer, self._rlock,
-     self._wlock, self._sem, self._opid, self._name, self._run) = state
+    (
+        self._ignore_epipe,
+        self._maxsize,
+        self._reader,
+        self._writer,
+        self._rlock,
+        self._wlock,
+        self._sem,
+        self._opid,
+        self._name,
+        self._run,
+    ) = state
     self._reset()
 
   def _after_fork(self):
@@ -193,10 +210,19 @@ class Queue(object):
     self._buffer.clear()
     self._thread = threading.Thread(
         target=self._feed,
-        args=(self._buffer, self._notempty, self._send_bytes, self._wlock,
-              self._reader.close, self._writer.close, self._ignore_epipe,
-              self._on_queue_feeder_error, self._sem),
-        name='QueueFeederThread')
+        args=(
+            self._buffer,
+            self._notempty,
+            self._send_bytes,
+            self._wlock,
+            self._reader.close,
+            self._writer.close,
+            self._ignore_epipe,
+            self._on_queue_feeder_error,
+            self._sem,
+        ),
+        name='QueueFeederThread',
+    )
     self._thread.daemon = True
 
     logging.debug('doing self._thread.start()')
@@ -206,8 +232,10 @@ class Queue(object):
     if not self._joincancelled:
       self._jointhread = Finalize(
           self._thread,
-          Queue._finalize_join, [weakref.ref(self._thread)],
-          exitpriority=-5)
+          Queue._finalize_join,
+          [weakref.ref(self._thread)],
+          exitpriority=-5,
+      )
 
     # Send sentinel to the thread queue object when garbage collected
     self._close = Finalize(
@@ -232,8 +260,18 @@ class Queue(object):
       buffer.append(Queue._sentinel)
       notempty.notify()
 
-  def _feed(self, buffer, notempty, send_bytes, writelock, reader_close,
-            writer_close, ignore_epipe, onerror, queue_sem):
+  def _feed(
+      self,
+      buffer,
+      notempty,
+      send_bytes,
+      writelock,
+      reader_close,
+      writer_close,
+      ignore_epipe,
+      onerror,
+      queue_sem,
+  ):
     logging.debug('starting thread to feed data to pipe')
     nacquire = notempty.acquire
     nrelease = notempty.release
@@ -260,7 +298,6 @@ class Queue(object):
           while self._run:
             obj = bpopleft()
             if obj is sentinel:
-              # logging.info('Queue[' + self._name + '] feeder thread got sentinel -- exiting: ' + str(self._run))
               reader_close()
               writer_close()
               return
@@ -308,4 +345,5 @@ class Queue(object):
     For overriding by concurrent.futures.
     """
     import traceback
+
     traceback.print_exc()

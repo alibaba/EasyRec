@@ -5,11 +5,6 @@ from .blocks import Gate
 from .blocks import Highway
 from .blocks import TextCNN
 from .bst import BST
-from .custom_ops import EditDistance
-from .custom_ops import MappedDotProduct
-from .custom_ops import OverlapFeature
-from .custom_ops import SeqAugmentOps
-from .custom_ops import TextNormalize
 from .data_augment import SeqAugment
 from .din import DIN
 from .embedding import EmbeddingLayer
@@ -25,10 +20,15 @@ from .mask_net import MaskNet
 from .multi_head_attention import MultiHeadAttention
 from .multi_task import AITMTower
 from .multi_task import MMoE
-from .numerical_embedding import AutoDisEmbedding
-from .numerical_embedding import NaryDisEmbedding
-from .numerical_embedding import PeriodicEmbedding
 from .ppnet import PPNet
 from .transformer import TextEncoder
 from .transformer import TransformerBlock
 from .transformer import TransformerEncoder
+
+from .custom_ops import (  # NOQA
+    EditDistance, MappedDotProduct, OverlapFeature, SeqAugmentOps,
+    TextNormalize,
+)
+from .numerical_embedding import (  # NOQA
+    AutoDisEmbedding, NaryDisEmbedding, PeriodicEmbedding,
+)

@@ -6,10 +6,12 @@ import tensorflow as tf
 
 from easy_rec.python.input.input import Input
 from easy_rec.python.ops.gen_str_avx_op import str_split_by_chr
-from easy_rec.python.utils.check_utils import check_split
-from easy_rec.python.utils.check_utils import check_string_to_number
 from easy_rec.python.utils.input_utils import string_to_number
 from easy_rec.python.utils.tf_utils import get_tf_type
+
+from easy_rec.python.utils.check_utils import (  # NOQA
+    check_split, check_string_to_number,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -30,17 +32,25 @@ class RTPInput(Input):
      columns are labels
   """
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(RTPInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(RTPInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
     self._rtp_separator = self._data_config.rtp_separator
@@ -58,18 +68,21 @@ class RTPInput(Input):
 
     # the actual features are in one single column
     record_defaults[self._feature_col_id] = self._data_config.separator.join([
-        str(self.get_type_defaults(t, v))
-        for x, t, v in zip(self._input_fields, self._input_field_types,
-                           self._input_field_defaults)
-        if x not in self._label_fields
+        str(self.get_type_defaults(t, v)) for x, t, v in zip(
+            self._input_fields,
+            self._input_field_types,
+            self._input_field_defaults,
+        ) if x not in self._label_fields
     ])
 
-    check_list = [
+    check_list = ([
         tf.py_func(
-            check_split, [line, self._rtp_separator,
-                          len(record_defaults)],
-            Tout=tf.bool)
-    ] if self._check_mode else []
+            check_split,
+            [line, self._rtp_separator,
+             len(record_defaults)],
+            Tout=tf.bool,
+        )
+    ] if self._check_mode else [])
     with tf.control_dependencies(check_list):
       fields = tf.string_split(line, self._rtp_separator, skip_empty=False)
 
@@ -97,13 +110,14 @@ class RTPInput(Input):
     # assume that the last field is the generated feature column
     print('field_delim = %s' % self._data_config.separator)
     feature_str = fields[:, self._feature_col_id]
-    check_list = [
+    check_list = ([
         tf.py_func(
             check_split,
             [feature_str, self._data_config.separator,
              len(record_types)],
-            Tout=tf.bool)
-    ] if self._check_mode else []
+            Tout=tf.bool,
+        )
+    ] if self._check_mode else [])
     with tf.control_dependencies(check_list):
       fields = str_split_by_chr(
           feature_str, self._data_config.separator, skip_empty=False)
@@ -142,9 +156,10 @@ class RTPInput(Input):
       for line_str in fin:
         line_tok = line_str.strip().split(self._rtp_separator)
         if self._num_cols != -1:
-          assert self._num_cols == len(line_tok), \
-              'num selected cols is %d, not equal to %d, current line is: %s, please check rtp_separator and data.' % \
-              (self._num_cols, len(line_tok), line_str)
+          assert self._num_cols == len(line_tok), (
+              'num selected cols is %d, not equal to %d, current line is: %s,'
+              ' please check rtp_separator and data.') % (
+                  self._num_cols, len(line_tok), line_str)
         self._num_cols = len(line_tok)
         num_lines += 1
         if num_lines > 10:
@@ -161,10 +176,11 @@ class RTPInput(Input):
     # the features are in one single column
     record_defaults.append(
         self._data_config.separator.join([
-            str(self.get_type_defaults(t, v))
-            for x, t, v in zip(self._input_fields, self._input_field_types,
-                               self._input_field_defaults)
-            if x not in self._label_fields
+            str(self.get_type_defaults(t, v)) for x, t, v in zip(
+                self._input_fields,
+                self._input_field_types,
+                self._input_field_defaults,
+            ) if x not in self._label_fields
         ]))
 
     num_parallel_calls = self._data_config.num_parallel_calls
@@ -186,7 +202,8 @@ class RTPInput(Input):
       dataset = dataset.interleave(
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
 
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
@@ -195,7 +212,8 @@ class RTPInput(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       logging.info('eval files[%d]: %s' %
@@ -213,7 +231,8 @@ class RTPInput(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

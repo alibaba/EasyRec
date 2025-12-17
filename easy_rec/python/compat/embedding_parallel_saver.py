@@ -7,20 +7,21 @@ import numpy as np
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-# from tensorflow.python.ops import math_ops
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import script_ops
-from tensorflow.python.ops import state_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.training import saver
 
 from easy_rec.python.utils import constant
 
+# from tensorflow.python.ops import math_ops
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import (  # NOQA
+    array_ops, control_flow_ops, script_ops, state_ops,
+)
+
 try:
   import horovod.tensorflow as hvd
   from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
+
   from easy_rec.python.compat import dynamic_variable
 except Exception:
   dynamic_variable_ops = None
@@ -28,7 +29,9 @@ except Exception:
 
 try:
   from tensorflow.python.framework.load_library import load_op_library
+
   import easy_rec
+
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
@@ -45,22 +48,24 @@ def _get_embed_part_id(embed_file):
 
 class EmbeddingParallelSaver(saver.Saver):
 
-  def __init__(self,
-               var_list=None,
-               reshape=False,
-               sharded=False,
-               max_to_keep=5,
-               keep_checkpoint_every_n_hours=10000.0,
-               name=None,
-               restore_sequentially=False,
-               saver_def=None,
-               builder=None,
-               defer_build=False,
-               allow_empty=False,
-               write_version=saver_pb2.SaverDef.V2,
-               pad_step_number=False,
-               save_relative_paths=False,
-               filename=None):
+  def __init__(
+      self,
+      var_list=None,
+      reshape=False,
+      sharded=False,
+      max_to_keep=5,
+      keep_checkpoint_every_n_hours=10000.0,
+      name=None,
+      restore_sequentially=False,
+      saver_def=None,
+      builder=None,
+      defer_build=False,
+      allow_empty=False,
+      write_version=saver_pb2.SaverDef.V2,
+      pad_step_number=False,
+      save_relative_paths=False,
+      filename=None,
+  ):
     self._kv_vars = []
     self._embed_vars = []
     tf_vars = []
@@ -90,7 +95,8 @@ class EmbeddingParallelSaver(saver.Saver):
         write_version=write_version,
         pad_step_number=pad_step_number,
         save_relative_paths=save_relative_paths,
-        filename=filename)
+        filename=filename,
+    )
     self._is_build = False
 
   def _has_embed_vars(self):
@@ -157,8 +163,10 @@ class EmbeddingParallelSaver(saver.Saver):
           embed_ids_o = np.arange(len(embed_val))
           embed_ids_o = part_id_o + embed_ids_o * len(embed_files)
           sel_ids = np.where(
-              np.logical_and((embed_ids_o % part_num) == part_id,
-                             embed_ids_o < embed_part_size * part_num))[0]
+              np.logical_and(
+                  (embed_ids_o % part_num) == part_id,
+                  embed_ids_o < embed_part_size * part_num,
+              ))[0]
           part_update_cnt += len(sel_ids)
           embed_ids = embed_ids_o[sel_ids]
           embed_ids_n = np.array(embed_ids / part_num, dtype=np.int64)
@@ -174,13 +182,22 @@ class EmbeddingParallelSaver(saver.Saver):
             embed_dim=embed_dim,
             embed_part_size=embed_part_size,
             var_name='embed-' + embed_var.name.replace('/', '__'),
-            ckpt_path=file_name)
+            ckpt_path=file_name,
+        )
       else:
-        embed_val = script_ops.py_func(_load_embed, [
-            embed_var, embed_dim, embed_part_size,
-            hvd.rank(),
-            hvd.size(), file_name, embed_var.name
-        ], dtypes.float32)
+        embed_val = script_ops.py_func(
+            _load_embed,
+            [
+                embed_var,
+                embed_dim,
+                embed_part_size,
+                hvd.rank(),
+                hvd.size(),
+                file_name,
+                embed_var.name,
+            ],
+            dtypes.float32,
+        )
       embed_val.set_shape(embed_var.get_shape())
       return state_ops.assign(embed_var, embed_val)
 
@@ -243,16 +260,22 @@ class EmbeddingParallelSaver(saver.Saver):
           if len(tmp_ids) == 0:
             break
           all_keys.append(tmp_keys.take(tmp_ids, axis=0))
-          logging.info('part_keys.shape=%s %s %s' % (str(
-              tmp_keys.shape), str(tmp_ids.shape), str(all_keys[-1].shape)))
+          logging.info('part_keys.shape=%s %s %s' % (
+              str(tmp_keys.shape),
+              str(tmp_ids.shape),
+              str(all_keys[-1].shape),
+          ))
 
         val_file = key_file[:-4] + 'vals'
         with gfile.GFile(val_file, 'rb') as fin:
           tmp_vals = np.frombuffer(
               fin.read(), dtype=np.float32).reshape([-1, sok_var._dimension])
           all_vals.append(tmp_vals.take(tmp_ids, axis=0))
-          logging.info('part_vals.shape=%s %s %s' % (str(
-              tmp_vals.shape), str(tmp_ids.shape), str(all_vals[-1].shape)))
+          logging.info('part_vals.shape=%s %s %s' % (
+              str(tmp_vals.shape),
+              str(tmp_ids.shape),
+              str(all_vals[-1].shape),
+          ))
 
       all_keys = np.concatenate(all_keys, axis=0)
       all_vals = np.concatenate(all_vals, axis=0)
@@ -271,11 +294,15 @@ class EmbeddingParallelSaver(saver.Saver):
           task_num=hvd.size(),
           embed_dim=sok_var._dimension,
           var_name='embed-' + sok_var.name.replace('/', '__'),
-          ckpt_path=file_name)
+          ckpt_path=file_name,
+      )
     else:
       logging.warning('libload_embed.so not loaded, will use python script_ops')
-      keys, vals = script_ops.py_func(_load_key_vals, [file_name, sok_var.name],
-                                      (dtypes.int64, dtypes.float32))
+      keys, vals = script_ops.py_func(
+          _load_key_vals,
+          [file_name, sok_var.name],
+          (dtypes.int64, dtypes.float32),
+      )
     with ops.control_dependencies([sok_var._initializer_op]):
       return dynamic_variable_ops.dummy_var_assign(sok_var.handle, keys, vals)
 

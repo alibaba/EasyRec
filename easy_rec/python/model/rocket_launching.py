@@ -24,8 +24,8 @@ class RocketLaunching(RankModel):
                is_training=False):
     super(RocketLaunching, self).__init__(model_config, feature_configs,
                                           features, labels, is_training)
-    assert self._model_config.WhichOneof('model') == 'rocket_launching', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'rocket_launching', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.rocket_launching
     assert isinstance(self._model_config, RocketLaunchingConfig)
     if self._labels is not None:
@@ -61,11 +61,19 @@ class RocketLaunching(RankModel):
   def build_predict_graph(self):
     self.hidden_layer_feature_output = self._model_config.feature_based_distillation
     if self._model_config.HasField('share_dnn'):
-      share_dnn_layer = dnn.DNN(self._model_config.share_dnn, self._l2_reg,
-                                'share_dnn', self._is_training)
+      share_dnn_layer = dnn.DNN(
+          self._model_config.share_dnn,
+          self._l2_reg,
+          'share_dnn',
+          self._is_training,
+      )
       share_feature = share_dnn_layer(self._features)
-    booster_dnn_layer = dnn.DNN(self._model_config.booster_dnn, self._l2_reg,
-                                'booster_dnn', self._is_training)
+    booster_dnn_layer = dnn.DNN(
+        self._model_config.booster_dnn,
+        self._l2_reg,
+        'booster_dnn',
+        self._is_training,
+    )
     light_dnn_layer = dnn.DNN(self._model_config.light_dnn, self._l2_reg,
                               'light_dnn', self._is_training)
     if self._model_config.HasField('share_dnn'):
@@ -86,32 +94,37 @@ class RocketLaunching(RankModel):
           self.booster_feature['hidden_layer_end'],
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='booster_output')
+          name='booster_output',
+      )
 
       light_out = tf.layers.dense(
           self.light_feature['hidden_layer_end'],
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='light_output')
+          name='light_output',
+      )
     else:
       booster_out = tf.layers.dense(
           self.booster_feature,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='booster_output')
+          name='booster_output',
+      )
 
       light_out = tf.layers.dense(
           self.light_feature,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='light_output')
+          name='light_output',
+      )
 
     self._prediction_dict.update(
         self._output_to_prediction_impl(
             booster_out,
             self._loss_type,
             num_class=self._num_class,
-            suffix='_booster'))
+            suffix='_booster',
+        ))
     self._prediction_dict.update(
         self._output_to_prediction_impl(
             light_out,
@@ -147,7 +160,8 @@ class RocketLaunching(RankModel):
             label_name=self._label_name,
             loss_weight=self._sample_weight,
             num_class=self._num_class,
-            suffix='_booster'))
+            suffix='_booster',
+        ))
 
     self._loss_dict.update(
         self._build_loss_impl(
@@ -155,7 +169,8 @@ class RocketLaunching(RankModel):
             label_name=self._label_name,
             loss_weight=self._sample_weight,
             num_class=self._num_class,
-            suffix='_light'))
+            suffix='_light',
+        ))
 
     booster_logits_no_grad = tf.stop_gradient(logits_booster)
 
@@ -163,7 +178,8 @@ class RocketLaunching(RankModel):
         LossType.L2_LOSS,
         label=booster_logits_no_grad,
         pred=logits_light,
-        loss_weight=self._sample_weight)
+        loss_weight=self._sample_weight,
+    )
 
     if self._model_config.feature_based_distillation:
       for key, value in self._prediction_dict.items():
@@ -182,14 +198,16 @@ class RocketLaunching(RankModel):
               loss_type=LossType.CLASSIFICATION,
               label_name=self._label_name,
               num_class=self._num_class,
-              suffix='_light'))
+              suffix='_light',
+          ))
       metric_dict.update(
           self._build_metric_impl(
               metric,
               loss_type=LossType.CLASSIFICATION,
               label_name=self._label_name,
               num_class=self._num_class,
-              suffix='_booster'))
+              suffix='_booster',
+          ))
     return metric_dict
 
   def get_outputs(self):

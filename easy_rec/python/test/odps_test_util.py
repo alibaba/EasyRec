@@ -10,16 +10,15 @@ import oss2
 
 try:
   from datahub import DataHub
-  from datahub.exceptions import InvalidOperationException
-  from datahub.exceptions import ResourceExistException
+  from datahub.exceptions import (  # NOQA
+      InvalidOperationException, ResourceExistException,
+  )
+
   # from datahub.exceptions import LimitExceededException
   # from datahub.exceptions import ResourceNotFoundException
   # from datahub.models import BlobRecord
   # from datahub.models import CursorType
-  from datahub.models import FieldType
-  from datahub.models import RecordSchema
-  from datahub.models import RecordType
-  from datahub.models import TupleRecord
+  from datahub.models import FieldType, RecordSchema, RecordType, TupleRecord
 except Exception:
   logging.error(
       'DataHub is not installed, please installed it by: pip install pydatahub')
@@ -145,7 +144,7 @@ class OdpsOSSConfig:
         'STRING': FieldType.STRING,
         'BOOLEAN': FieldType.BOOLEAN,
         'FLOAT32': FieldType.DOUBLE,
-        'FLOAT64': FieldType.DOUBLE
+        'FLOAT64': FieldType.DOUBLE,
     }
 
     return DhDict.get(input_type)
@@ -175,7 +174,8 @@ class OdpsOSSConfig:
           7,
           3,
           record_schema,
-          comment='EasyRecTest')
+          comment='EasyRecTest',
+      )
       logging.info('create tuple topic %s success!' % self.dh_topic)
     except ResourceExistException:
       logging.info('topic %s already exist!' % self.dh_topic)

@@ -61,8 +61,8 @@ class BinaryDataset:
   def _compute_global_start_pos(self, total_sample_num, batch_size, global_rank,
                                 global_size, drop_last):
     # ensure all workers have the same number of samples
-    avg_sample_num = (total_sample_num // global_size)
-    res_num = (total_sample_num % global_size)
+    avg_sample_num = total_sample_num // global_size
+    res_num = total_sample_num % global_size
     self._num_samples = avg_sample_num
     if res_num > 0:
       self._num_samples += 1
@@ -174,15 +174,21 @@ class BinaryDataset:
           label_raw_data, dtype=np.int32).reshape([tmp_read_num, 1])
       label_read_arr.append(tmp_lbl_np)
 
-      dense_raw_data = os.pread(self._dense_file_arr[curr_file_id],
-                                52 * tmp_read_num, start_read_pos * 52)
+      dense_raw_data = os.pread(
+          self._dense_file_arr[curr_file_id],
+          52 * tmp_read_num,
+          start_read_pos * 52,
+      )
       part_dense_np = np.frombuffer(
           dense_raw_data, dtype=np.float32).reshape([tmp_read_num, 13])
       # part_dense_np = np.log(part_dense_np + 3, dtype=np.float32)
       dense_read_arr.append(part_dense_np)
 
-      category_raw_data = os.pread(self._category_file_arr[curr_file_id],
-                                   104 * tmp_read_num, start_read_pos * 104)
+      category_raw_data = os.pread(
+          self._category_file_arr[curr_file_id],
+          104 * tmp_read_num,
+          start_read_pos * 104,
+      )
       part_cate_np = np.frombuffer(
           category_raw_data, dtype=np.uint32).reshape([tmp_read_num, 26])
       cate_read_arr.append(part_cate_np)

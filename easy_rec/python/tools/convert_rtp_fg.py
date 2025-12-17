@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convert rtp fg feature config to easy_rec data_config and feature_config."""
+
 import argparse
 import logging
 import sys
@@ -12,7 +13,8 @@ from easy_rec.python.utils.convert_rtp_fg import convert_rtp_fg
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -25,7 +27,8 @@ if __name__ == '__main__':
       type=str,
       choices=model_types,
       default='',
-      help='model type, currently support: %s' % ','.join(model_types))
+      help='model type, currently support: %s' % ','.join(model_types),
+  )
   parser.add_argument('--rtp_fg', type=str, help='rtp fg path')
   parser.add_argument(
       '--embedding_dim', type=int, default=16, help='embedding_dimension')
@@ -42,19 +45,21 @@ if __name__ == '__main__':
       '--num_steps',
       type=int,
       default=1000,
-      help='number of train steps = num_samples * num_epochs / batch_size / num_workers'
+      help='number of train steps = num_samples * num_epochs / batch_size / num_workers',
   )
   parser.add_argument('--output_path', type=str, help='generated config path')
   parser.add_argument(
       '--incol_separator',
       type=str,
       default='\003',
-      help='separator for multi_value features')
+      help='separator for multi_value features',
+  )
   parser.add_argument(
       '--separator',
       type=str,
       default='\002',
-      help='separator between different features')
+      help='separator between different features',
+  )
   parser.add_argument(
       '--train_input_path', type=str, default=None, help='train data path')
   parser.add_argument(
@@ -64,7 +69,7 @@ if __name__ == '__main__':
       type=str,
       default=None,
       help='selected cols, for csv input, it is in the format of: label_col_id0,...,lable_cold_idn,feature_col_id '
-      'for odps table input, it is in the format of: label_col_name0,...,label_col_namen,feature_col_name '
+      'for odps table input, it is in the format of: label_col_name0,...,label_col_namen,feature_col_name ',
   )
   parser.add_argument(
       '--rtp_separator', type=str, default=';', help='separator')
@@ -72,7 +77,8 @@ if __name__ == '__main__':
       '--input_type',
       type=str,
       default='OdpsRTPInput',
-      help='default to OdpsRTPInput, if test local, change it to RTPInput')
+      help='default to OdpsRTPInput, if test local, change it to RTPInput',
+  )
   parser.add_argument(
       '--is_async', action='store_true', help='async mode, debug to false')
 
@@ -86,12 +92,21 @@ if __name__ == '__main__':
     logging.error('output_path is not set')
     sys.exit(1)
 
-  pipeline_config = convert_rtp_fg(args.rtp_fg, args.embedding_dim,
-                                   args.batch_size, args.label, args.num_steps,
-                                   args.model_type, args.separator,
-                                   args.incol_separator, args.train_input_path,
-                                   args.eval_input_path, args.selected_cols,
-                                   args.input_type, args.is_async)
+  pipeline_config = convert_rtp_fg(
+      args.rtp_fg,
+      args.embedding_dim,
+      args.batch_size,
+      args.label,
+      args.num_steps,
+      args.model_type,
+      args.separator,
+      args.incol_separator,
+      args.train_input_path,
+      args.eval_input_path,
+      args.selected_cols,
+      args.input_type,
+      args.is_async,
+  )
   save_message(pipeline_config, args.output_path)
   logging.info('Conversion done.')
   logging.info('Tips:')

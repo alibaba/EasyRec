@@ -8,15 +8,17 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def ms_loss(embeddings,
-            labels,
-            session_ids=None,
-            alpha=2.0,
-            beta=50.0,
-            lamb=1.0,
-            eps=0.1,
-            ms_mining=False,
-            embed_normed=False):
+def ms_loss(
+    embeddings,
+    labels,
+    session_ids=None,
+    alpha=2.0,
+    beta=50.0,
+    lamb=1.0,
+    eps=0.1,
+    ms_mining=False,
+    embed_normed=False,
+):
   """Refer paper: Multi-Similarity Loss with General Pair Weighting for Deep Metric Learning.
 
   ref: http://openaccess.thecvf.com/content_CVPR_2019/papers/

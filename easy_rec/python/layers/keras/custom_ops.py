@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Convenience blocks for using custom ops."""
+
 import logging
 import os
 
@@ -59,10 +60,14 @@ class SeqAugmentOps(Layer):
           'mask', (embedding_dim,), dtype=tf.float32, trainable=True)
     seq_len = tf.to_int32(seq_len)
     with ops.device('/CPU:0'):
-      aug_seq, aug_len = self.seq_augment(seq_input, seq_len, mask_emb,
-                                          self.seq_aug_params.crop_rate,
-                                          self.seq_aug_params.reorder_rate,
-                                          self.seq_aug_params.mask_rate)
+      aug_seq, aug_len = self.seq_augment(
+          seq_input,
+          seq_len,
+          mask_emb,
+          self.seq_aug_params.crop_rate,
+          self.seq_aug_params.reorder_rate,
+          self.seq_aug_params.mask_rate,
+      )
     return aug_seq, aug_len
 
 
@@ -107,7 +112,8 @@ class MappedDotProduct(Layer):
         self.embedding_table = tf.get_variable(
             name='dot_product_emb_table',
             shape=[vocab_size, self.emb_dim],
-            dtype=tf.float32)
+            dtype=tf.float32,
+        )
 
   def call(self, inputs, training=None, **kwargs):
     query, doc = inputs[:2]
@@ -117,26 +123,31 @@ class MappedDotProduct(Layer):
           document=doc,
           feature_name=self.name,
           separator=self.separator,
-          default_value=self.default_value)
+          default_value=self.default_value,
+      )
       tf.summary.scalar(self.name, tf.reduce_mean(feature))
       if self.print_first_n:
         encode_q = tf.regex_replace(query, self.separator, ' ')
         encode_t = tf.regex_replace(query, self.separator, ' ')
         feature = tf.Print(
-            feature, [encode_q, encode_t, feature],
+            feature,
+            [encode_q, encode_t, feature],
             message=self.name,
             first_n=self.print_first_n,
-            summarize=self.summarize)
+            summarize=self.summarize,
+        )
       if self.norm_fn is not None:
         fn = eval(self.norm_fn)
         feature = fn(feature)
         tf.summary.scalar('normalized_%s' % self.name, tf.reduce_mean(feature))
         if self.print_first_n:
           feature = tf.Print(
-              feature, [feature],
+              feature,
+              [feature],
               message='normalized %s' % self.name,
               first_n=self.print_first_n,
-              summarize=self.summarize)
+              summarize=self.summarize,
+          )
       if self.boundaries:
         feature = self.bucketize(feature, boundaries=self.boundaries)
         tf.summary.histogram('bucketized_%s' % self.name, feature)
@@ -169,7 +180,8 @@ class OverlapFeature(Layer):
         self.embedding_table = tf.get_variable(
             name='overlap_emb_table',
             shape=[vocab_size, self.emb_dim],
-            dtype=tf.float32)
+            dtype=tf.float32,
+        )
 
   def call(self, inputs, training=None, **kwargs):
     query, title = inputs[:2]
@@ -182,7 +194,8 @@ class OverlapFeature(Layer):
           default_value=self.default_value,
           boundaries=self.boundaries,
           methods=self.methods,
-          dtype=tf.int32 if self.boundaries else tf.float32)
+          dtype=tf.int32 if self.boundaries else tf.float32,
+      )
 
     for i, method in enumerate(self.methods):
       # warning: feature[:, i] may be not the result of method
@@ -194,10 +207,12 @@ class OverlapFeature(Layer):
       encode_q = tf.regex_replace(query, self.separator, ' ')
       encode_t = tf.regex_replace(query, self.separator, ' ')
       feature = tf.Print(
-          feature, [encode_q, encode_t, feature],
+          feature,
+          [encode_q, encode_t, feature],
           message=self.name,
           first_n=self.print_first_n,
-          summarize=self.summarize)
+          summarize=self.summarize,
+      )
     if self.norm_fn is not None:
       fn = eval(self.norm_fn)
       feature = fn(feature)
@@ -244,7 +259,8 @@ class EditDistance(Layer):
           input2,
           normalize=False,
           dtype=tf.int32,
-          encoding=self.txt_encoding)
+          encoding=self.txt_encoding,
+      )
     ids = tf.clip_by_value(dist, 0, self.emb_size - 1)
     embed = tf.nn.embedding_lookup(self.embedding_table, ids)
     return embed

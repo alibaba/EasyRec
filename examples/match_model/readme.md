@@ -4,7 +4,7 @@
 
 # Amazon Books 数据集
 
-在此数据集中, 提供了2个模型及其负采样版的demo示例 [DSSM](dssm.md) /  [DSSM-Negative-Sample](dssm_negative_sample.md) / [MIND](mind.md) / [MIND-Negative-Sample](mind_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
+在此数据集中, 提供了2个模型及其负采样版的demo示例 [DSSM](dssm.md) / [DSSM-Negative-Sample](dssm_negative_sample.md) / [MIND](mind.md) / [MIND-Negative-Sample](mind_negative_sample.md)。更多模型可参考[models](../../docs/source/models/)。
 
 - DSSM
 

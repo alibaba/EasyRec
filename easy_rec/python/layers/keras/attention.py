@@ -5,6 +5,7 @@
 This file follows the terminology of https://arxiv.org/abs/1706.03762 Figure 2.
 Attention is formed by three tensors: Query, Key and Value.
 """
+
 import tensorflow as tf
 from tensorflow.python.keras.layers import Layer
 

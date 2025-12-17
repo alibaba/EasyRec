@@ -9,6 +9,7 @@ more than one value, there will be multiple kvs, such as:
 In our new format:
   ...beautysmart...
 """
+
 import argparse
 import csv
 import json
@@ -19,7 +20,8 @@ import tensorflow as tf
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1

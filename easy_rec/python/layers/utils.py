@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 """Common util functions used by layers."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -37,7 +38,7 @@ def _tensor_to_map(tensor):
   return {
       'node_path': tensor.name,
       'shape': tensor.shape.as_list() if tensor.shape else None,
-      'dtype': tensor.dtype.name
+      'dtype': tensor.dtype.name,
   }
 
 
@@ -141,8 +142,8 @@ def gen_embedding_attrs(column=None,
       attrs['is_embedding_var'] = True
       attrs['embedding_var_keys'] = variable._shared_name + '-keys'
       attrs['embedding_var_values'] = variable._shared_name + '-values'
-    elif (isinstance(variable, variables.PartitionedVariable)) and \
-        (isinstance(variable._get_variable_list()[0], kv_variable_ops.EmbeddingVariable)):
+    elif (isinstance(variable, variables.PartitionedVariable)) and (isinstance(
+        variable._get_variable_list()[0], kv_variable_ops.EmbeddingVariable)):
       attrs['embedding_var_keys'] = [v._shared_name + '-keys' for v in variable]
       attrs['embedding_var_values'] = [
           v._shared_name + '-values' for v in variable
@@ -155,11 +156,13 @@ def gen_embedding_attrs(column=None,
 
 
 def mark_input_src(name, src_desc):
-  ops.add_to_collection(ops.GraphKeys.RANK_SERVICE_INPUT_SRC,
-                        json.dumps({
-                            'name': name,
-                            'src': src_desc
-                        }))
+  ops.add_to_collection(
+      ops.GraphKeys.RANK_SERVICE_INPUT_SRC,
+      json.dumps({
+          'name': name,
+          'src': src_desc
+      }),
+  )
 
 
 def is_proto_message(pb_obj, field):

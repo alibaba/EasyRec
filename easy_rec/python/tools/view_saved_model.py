@@ -9,7 +9,8 @@ from tensorflow.python.platform.gfile import GFile
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()

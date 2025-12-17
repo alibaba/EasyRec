@@ -32,15 +32,17 @@ from tensorflow.python.ops import variable_scope
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import tf_logging
 from tensorflow.python.summary import summary_iterator
-from tensorflow.python.training import basic_session_run_hooks
-from tensorflow.python.training import session_run_hook
-from tensorflow.python.training import training_util
 
 from easy_rec.python.utils.config_util import parse_time
 from easy_rec.python.utils.load_class import load_by_path
 
+from tensorflow.python.training import (  # NOQA
+    basic_session_run_hooks, session_run_hook, training_util,
+)
+
 if LooseVersion(tf.__version__) >= LooseVersion('2.12.0'):
-  from tensorflow_estimator.python.estimator.estimator_export import estimator_export
+  from tensorflow_estimator.python.estimator.estimator_export import (  # NOQA
+      estimator_export,)
 else:
   from tensorflow.python.util.tf_export import estimator_export
 
@@ -111,13 +113,15 @@ def make_early_stopping_hook(estimator,
 
 
 @estimator_export('estimator.experimental.stop_if_higher_hook')
-def stop_if_higher_hook(estimator,
-                        metric_name,
-                        threshold,
-                        eval_dir=None,
-                        min_steps=0,
-                        run_every_secs=60,
-                        run_every_steps=None):
+def stop_if_higher_hook(
+    estimator,
+    metric_name,
+    threshold,
+    eval_dir=None,
+    min_steps=0,
+    run_every_secs=60,
+    run_every_steps=None,
+):
   """Creates hook to stop if the given metric is higher than the threshold.
 
   Usage example:
@@ -164,17 +168,20 @@ def stop_if_higher_hook(estimator,
       eval_dir=eval_dir,
       min_steps=min_steps,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
 @estimator_export('estimator.experimental.stop_if_lower_hook')
-def stop_if_lower_hook(estimator,
-                       metric_name,
-                       threshold,
-                       eval_dir=None,
-                       min_steps=0,
-                       run_every_secs=60,
-                       run_every_steps=None):
+def stop_if_lower_hook(
+    estimator,
+    metric_name,
+    threshold,
+    eval_dir=None,
+    min_steps=0,
+    run_every_secs=60,
+    run_every_steps=None,
+):
   """Creates hook to stop if the given metric is lower than the threshold.
 
   Usage example:
@@ -221,17 +228,20 @@ def stop_if_lower_hook(estimator,
       eval_dir=eval_dir,
       min_steps=min_steps,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
 @estimator_export('estimator.experimental.stop_if_no_increase_hook')
-def stop_if_no_increase_hook(estimator,
-                             metric_name,
-                             max_steps_without_increase,
-                             eval_dir=None,
-                             min_steps=0,
-                             run_every_secs=60,
-                             run_every_steps=None):
+def stop_if_no_increase_hook(
+    estimator,
+    metric_name,
+    max_steps_without_increase,
+    eval_dir=None,
+    min_steps=0,
+    run_every_secs=60,
+    run_every_steps=None,
+):
   """Creates hook to stop if metric does not increase within given max steps.
 
   Usage example:
@@ -279,15 +289,18 @@ def stop_if_no_increase_hook(estimator,
       eval_dir=eval_dir,
       min_steps=min_steps,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
-def custom_early_stop_hook(estimator,
-                           eval_dir,
-                           custom_stop_func,
-                           custom_stop_func_params,
-                           run_every_secs=60,
-                           run_every_steps=None):
+def custom_early_stop_hook(
+    estimator,
+    eval_dir,
+    custom_stop_func,
+    custom_stop_func_params,
+    run_every_secs=60,
+    run_every_steps=None,
+):
   """Custom early stop hook for complex early stop conditions.
 
   Args:
@@ -311,7 +324,7 @@ def custom_early_stop_hook(estimator,
     eval_dir = estimator.eval_dir()
 
   if isinstance(custom_stop_func, str) or isinstance(custom_stop_func,
-                                                     type(u'')):
+                                                     type('')):
     custom_stop_func = load_by_path(custom_stop_func)
 
   def _custom_stop_fn():
@@ -322,17 +335,20 @@ def custom_early_stop_hook(estimator,
       estimator=estimator,
       should_stop_fn=_custom_stop_fn,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
 @estimator_export('estimator.experimental.stop_if_no_decrease_hook')
-def stop_if_no_decrease_hook(estimator,
-                             metric_name,
-                             max_steps_without_decrease,
-                             eval_dir=None,
-                             min_steps=0,
-                             run_every_secs=60,
-                             run_every_steps=None):
+def stop_if_no_decrease_hook(
+    estimator,
+    metric_name,
+    max_steps_without_decrease,
+    eval_dir=None,
+    min_steps=0,
+    run_every_secs=60,
+    run_every_steps=None,
+):
   """Creates hook to stop if metric does not decrease within given max steps.
 
   Usage example:
@@ -380,7 +396,8 @@ def stop_if_no_decrease_hook(estimator,
       eval_dir=eval_dir,
       min_steps=min_steps,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
 def read_eval_metrics(eval_dir):
@@ -406,9 +423,16 @@ def read_eval_metrics(eval_dir):
       sorted(eval_metrics_dict.items(), key=lambda t: t[0]))
 
 
-def _stop_if_threshold_crossed_hook(estimator, metric_name, threshold,
-                                    higher_is_better, eval_dir, min_steps,
-                                    run_every_secs, run_every_steps):
+def _stop_if_threshold_crossed_hook(
+    estimator,
+    metric_name,
+    threshold,
+    higher_is_better,
+    eval_dir,
+    min_steps,
+    run_every_secs,
+    run_every_steps,
+):
   """Creates early-stopping hook to stop training if threshold is crossed."""
   if eval_dir is None:
     eval_dir = estimator.eval_dir()
@@ -427,8 +451,13 @@ def _stop_if_threshold_crossed_hook(estimator, metric_name, threshold,
       if is_lhs_better(val, threshold):
         tf_logging.info(
             'At step %s, metric "%s" has value %s which is %s the configured '
-            'threshold (%s) for early stopping.', step, metric_name, val,
-            greater_or_lesser, threshold)
+            'threshold (%s) for early stopping.',
+            step,
+            metric_name,
+            val,
+            greater_or_lesser,
+            threshold,
+        )
         return True
     return False
 
@@ -436,13 +465,20 @@ def _stop_if_threshold_crossed_hook(estimator, metric_name, threshold,
       estimator=estimator,
       should_stop_fn=stop_if_threshold_crossed_fn,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
-def _stop_if_no_metric_improvement_hook(estimator, metric_name,
-                                        max_steps_without_improvement,
-                                        higher_is_better, eval_dir, min_steps,
-                                        run_every_secs, run_every_steps):
+def _stop_if_no_metric_improvement_hook(
+    estimator,
+    metric_name,
+    max_steps_without_improvement,
+    higher_is_better,
+    eval_dir,
+    min_steps,
+    run_every_secs,
+    run_every_steps,
+):
   """Returns hook to stop training if given metric shows no improvement."""
   if eval_dir is None:
     eval_dir = estimator.eval_dir()
@@ -467,8 +503,11 @@ def _stop_if_no_metric_improvement_hook(estimator, metric_name,
         tf_logging.info(
             'No %s in metric "%s" for %s steps, which is greater than or equal '
             'to max steps (%s) configured for early stopping.',
-            increase_or_decrease, metric_name, step - best_val_step,
-            max_steps_without_improvement)
+            increase_or_decrease,
+            metric_name,
+            step - best_val_step,
+            max_steps_without_improvement,
+        )
         return True
     return False
 
@@ -476,7 +515,8 @@ def _stop_if_no_metric_improvement_hook(estimator, metric_name,
       estimator=estimator,
       should_stop_fn=stop_if_no_metric_improvement_fn,
       run_every_secs=run_every_secs,
-      run_every_steps=run_every_steps)
+      run_every_steps=run_every_steps,
+  )
 
 
 def _summaries(eval_dir):
@@ -506,7 +546,8 @@ def _get_or_create_stop_var():
         dtype=dtypes.bool,
         initializer=init_ops.constant_initializer(False),
         collections=[ops.GraphKeys.GLOBAL_VARIABLES],
-        trainable=False)
+        trainable=False,
+    )
 
 
 class _StopOnPredicateHook(session_run_hook.SessionRunHook):
@@ -619,7 +660,8 @@ def oss_stop_hook(estimator, run_every_secs=10, run_every_steps=None):
     return OssStopSignalHook(
         estimator.model_dir,
         run_every_secs=run_every_secs,
-        run_every_steps=run_every_steps)
+        run_every_steps=run_every_steps,
+    )
   else:
     return _CheckForStoppingHook()
 

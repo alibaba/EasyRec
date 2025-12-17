@@ -28,12 +28,18 @@ class CMBF(RankModel):
                is_training=False):
     super(CMBF, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert self._model_config.WhichOneof('model') == 'cmbf', (
-        'invalid model config: %s' % self._model_config.WhichOneof('model'))
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'cmbf', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
 
-    self._cmbf_layer = cmbf.CMBF(model_config, feature_configs, features,
-                                 self._model_config.cmbf.config,
-                                 self._input_layer)
+    self._cmbf_layer = cmbf.CMBF(
+        model_config,
+        feature_configs,
+        features,
+        self._model_config.cmbf.config,
+        self._input_layer,
+    )
     self._model_config = self._model_config.cmbf
 
   def build_predict_graph(self):

@@ -84,7 +84,7 @@ datahub_eval_input{
 
 - akSecret: datahub access_secret
 
-- region:  endpoint
+- region: endpoint
 
   - 注意必须是http的，不能是https，vpc里面只通80端口，不通443端口
 
@@ -140,7 +140,7 @@ train_config {
 }
 ```
 
-- dense_save_steps:  dense参数发送的频率
+- dense_save_steps: dense参数发送的频率
 - sparse_save_steps: sparse参数发送的频率
 - incr_update: 保存增量更新，可以选fs和kafka:
   - fs:

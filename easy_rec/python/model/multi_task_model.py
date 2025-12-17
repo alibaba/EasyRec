@@ -61,7 +61,8 @@ class MultiTaskModel(RankModel):
               task_tower_cfg.dnn,
               self._l2_reg,
               name=tower_name,
-              is_training=self._is_training)
+              is_training=self._is_training,
+          )
           tower_output = tower_dnn(task_input_list[i])
         else:
           tower_output = task_input_list[i]
@@ -78,7 +79,8 @@ class MultiTaskModel(RankModel):
               task_tower_cfg.relation_dnn,
               self._l2_reg,
               name=tower_name + '/relation_dnn',
-              is_training=self._is_training)
+              is_training=self._is_training,
+          )
           tower_inputs = [tower_features[tower_name]]
           for relation_tower_name in task_tower_cfg.relation_tower_names:
             tower_inputs.append(relation_features[relation_tower_name])
@@ -93,7 +95,8 @@ class MultiTaskModel(RankModel):
             relation_fea,
             task_tower_cfg.num_class,
             kernel_regularizer=self._l2_reg,
-            name=tower_name + '/output')
+            name=tower_name + '/output',
+        )
       tower_outputs[tower_name] = output_logits
 
     self._add_to_prediction_dict(tower_outputs)
@@ -104,9 +107,9 @@ class MultiTaskModel(RankModel):
     self._task_towers = task_tower_configs
     self._task_num = len(task_tower_configs)
     for i, task_tower_config in enumerate(task_tower_configs):
-      assert isinstance(task_tower_config, tower_pb2.TaskTower) or \
-          isinstance(task_tower_config, tower_pb2.BayesTaskTower), \
-          'task_tower_config must be a instance of tower_pb2.TaskTower or tower_pb2.BayesTaskTower'
+      assert isinstance(task_tower_config, tower_pb2.TaskTower) or isinstance(
+          task_tower_config, tower_pb2.BayesTaskTower
+      ), 'task_tower_config must be a instance of tower_pb2.TaskTower or tower_pb2.BayesTaskTower'
       tower_name = task_tower_config.tower_name
 
       # For label backward compatibility with list
@@ -130,7 +133,8 @@ class MultiTaskModel(RankModel):
                 output[tower_name],
                 loss_type=task_tower_cfg.loss_type,
                 num_class=task_tower_cfg.num_class,
-                suffix='_%s' % tower_name))
+                suffix='_%s' % tower_name,
+            ))
       else:
         for loss in task_tower_cfg.losses:
           self._prediction_dict.update(
@@ -138,7 +142,8 @@ class MultiTaskModel(RankModel):
                   output[tower_name],
                   loss_type=loss.loss_type,
                   num_class=task_tower_cfg.num_class,
-                  suffix='_%s' % tower_name))
+                  suffix='_%s' % tower_name,
+              ))
 
   def build_metric_graph(self, eval_config):
     """Build metric graph for multi task model."""
@@ -154,7 +159,8 @@ class MultiTaskModel(RankModel):
                 loss_type=loss_types,
                 label_name=self._label_name_dict[tower_name],
                 num_class=task_tower_cfg.num_class,
-                suffix='_%s' % tower_name))
+                suffix='_%s' % tower_name,
+            ))
     return self._metric_dict
 
   def build_loss_weight(self):
@@ -207,20 +213,22 @@ class MultiTaskModel(RankModel):
       if task_tower_cfg.use_sample_weight:
         loss_weight *= self._sample_weight
 
-      if hasattr(task_tower_cfg, 'task_space_indicator_label') and \
-          task_tower_cfg.HasField('task_space_indicator_label'):
+      if hasattr(task_tower_cfg, 'task_space_indicator_label'
+                 ) and task_tower_cfg.HasField('task_space_indicator_label'):
         in_task_space = tf.to_float(
             self._labels[task_tower_cfg.task_space_indicator_label] > 0)
         loss_weight = loss_weight * (
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))
 
-      if task_tower_cfg.HasField('task_space_indicator_name') and \
-          task_tower_cfg.HasField('task_space_indicator_value'):
+      if task_tower_cfg.HasField(
+          'task_space_indicator_name') and task_tower_cfg.HasField(
+              'task_space_indicator_value'):
         in_task_space = tf.to_float(
             tf.equal(
                 self._feature_dict[task_tower_cfg.task_space_indicator_name],
-                task_tower_cfg.task_space_indicator_value))
+                task_tower_cfg.task_space_indicator_value,
+            ))
         loss_weight = loss_weight * (
             task_tower_cfg.in_task_space_weight * in_task_space +
             task_tower_cfg.out_task_space_weight * (1 - in_task_space))
@@ -234,7 +242,8 @@ class MultiTaskModel(RankModel):
             label_name=self._label_name_dict[tower_name],
             loss_weight=loss_weight,
             num_class=task_tower_cfg.num_class,
-            suffix='_%s' % tower_name)
+            suffix='_%s' % tower_name,
+        )
         for loss_name in loss_dict.keys():
           loss_dict[loss_name] = loss_dict[loss_name] * task_loss_weight[0]
       else:
@@ -259,7 +268,8 @@ class MultiTaskModel(RankModel):
               num_class=task_tower_cfg.num_class,
               suffix='_%s' % tower_name,
               loss_name=loss.loss_name,
-              loss_param=loss_param)
+              loss_param=loss_param,
+          )
           for i, loss_name in enumerate(loss_ops):
             loss_value = loss_ops[loss_name]
             if loss.learn_loss_weight:
@@ -290,7 +300,8 @@ class MultiTaskModel(RankModel):
             self._get_outputs_impl(
                 task_tower_cfg.loss_type,
                 task_tower_cfg.num_class,
-                suffix='_%s' % tower_name))
+                suffix='_%s' % tower_name,
+            ))
       else:
         for loss in task_tower_cfg.losses:
           if loss.loss_type == LossType.ORDER_CALIBRATE_LOSS:
@@ -299,5 +310,6 @@ class MultiTaskModel(RankModel):
               self._get_outputs_impl(
                   loss.loss_type,
                   task_tower_cfg.num_class,
-                  suffix='_%s' % tower_name))
+                  suffix='_%s' % tower_name,
+              ))
     return list(set(outputs))

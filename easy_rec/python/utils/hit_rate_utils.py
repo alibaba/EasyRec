@@ -30,7 +30,8 @@ def load_graph(i_emb_table, emb_dim, knn_metric, timeout, knn_strict):
       i_emb_table,
       node_type='i',
       decoder=gl.Decoder(attr_types=['float'] * emb_dim, attr_delimiter=','),
-      option=option)
+      option=option,
+  )
   return g
 
 
@@ -116,7 +117,8 @@ def reduce_hitrate(cluster, hits, count, task_index):
           'worker_count',
           shape=(),
           dtype=tf.int32,
-          initializer=tf.zeros_initializer())
+          initializer=tf.zeros_initializer(),
+      )
       var_hits = tf.get_variable(
           'hits',
           shape=(),
@@ -126,12 +128,14 @@ def reduce_hitrate(cluster, hits, count, task_index):
           'gt_count',
           shape=(),
           dtype=tf.float32,
-          initializer=tf.zeros_initializer())
+          initializer=tf.zeros_initializer(),
+      )
       var_total_hitrate = tf.get_variable(
           'total_hitate',
           shape=(),
           dtype=tf.float32,
-          initializer=tf.zeros_initializer())
+          initializer=tf.zeros_initializer(),
+      )
 
       var_hits = tf.assign_add(var_hits, hits, use_locking=True)
       var_gt_count = tf.assign_add(var_gt_count, count, use_locking=True)
@@ -180,7 +184,10 @@ def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
     else:
       arr = [_to_float_attrs(sub_x) for sub_x in x.split('|')]
     assert len(arr) == num_interests, 'invalid arr len=%d, x=%s, userid=%s' % (
-        len(arr), x, userid)
+        len(arr),
+        x,
+        userid,
+    )
     return arr
 
   src_ids = np.array([src_items[0] for src_items in gt_record])
@@ -217,4 +224,13 @@ def compute_hitrate_batch(g, gt_record, emb_dim, num_interests, top_k):
       [-1, num_interests, recall_distances.shape[-1]])
   hitrates, bad_cases, bad_dists, hits, gt_count = batch_hitrate(
       src_ids, recall_ids, recall_distances, gt_items, num_interests, mask)
-  return hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists
+  return (
+      hits,
+      gt_count,
+      src_ids,
+      recall_ids,
+      recall_distances,
+      hitrates,
+      bad_cases,
+      bad_dists,
+  )

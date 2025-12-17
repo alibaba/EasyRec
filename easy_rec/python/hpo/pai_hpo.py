@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Hyperparameter search demo for easy_rec on pai."""
+
 import json
 import logging
 import os
@@ -66,13 +67,26 @@ def get_tuner(data, max_parallel, max_trial_num):
       max_parallel=max_parallel,
       max_trial_num=max_trial_num,
       mode='local',
-      user_id='your_cloud_id')
+      user_id='your_cloud_id',
+  )
   return tuner
 
 
-def hpo_config(config_path, hyperparams, environment, exp_dir, tables,
-               train_tables, eval_tables, cluster, algo_proj_name,
-               algo_res_proj, algo_version, metric_name, odps_config_path):
+def hpo_config(
+    config_path,
+    hyperparams,
+    environment,
+    exp_dir,
+    tables,
+    train_tables,
+    eval_tables,
+    cluster,
+    algo_proj_name,
+    algo_res_proj,
+    algo_version,
+    metric_name,
+    odps_config_path,
+):
   earlystop = {'type': 'large_is_better', 'max_runtime': 3600 * 12}
   algorithm = {
       'type': 'gp',
@@ -118,14 +132,29 @@ def hpo_config(config_path, hyperparams, environment, exp_dir, tables,
 
   sql_path = '%s/train_ext_hpo_{{ trial.id }}.sql' % tmp_dir
   cmd_args = [
-      'python', '-m', 'easy_rec.python.hpo.generate_hpo_sql', '--sql_path',
-      sql_path, '--config_path', config_path, '--cluster', cluster, '--bucket',
-      bucket, '--hpo_param_path',
-      os.path.join(bucket, param_path), '--hpo_metric_save_path',
-      os.path.join(bucket, metric_path), '--model_dir',
-      os.path.join(bucket,
-                   model_path), '--oss_host', environment['oss_endpoint'],
-      '--role_arn', environment['role_arn'], '--algo_proj_name', algo_proj_name
+      'python',
+      '-m',
+      'easy_rec.python.hpo.generate_hpo_sql',
+      '--sql_path',
+      sql_path,
+      '--config_path',
+      config_path,
+      '--cluster',
+      cluster,
+      '--bucket',
+      bucket,
+      '--hpo_param_path',
+      os.path.join(bucket, param_path),
+      '--hpo_metric_save_path',
+      os.path.join(bucket, metric_path),
+      '--model_dir',
+      os.path.join(bucket, model_path),
+      '--oss_host',
+      environment['oss_endpoint'],
+      '--role_arn',
+      environment['role_arn'],
+      '--algo_proj_name',
+      algo_proj_name,
   ]
 
   if tables:
@@ -147,8 +176,8 @@ def hpo_config(config_path, hyperparams, environment, exp_dir, tables,
       'metric_reader': {
           'type': 'oss_reader',
           'location': metric_path,
-          'parser_pattern': '.*"%s": (\\d.\\d+).*' % metric_name
-      }
+          'parser_pattern': '.*"%s": (\\d.\\d+).*' % metric_name,
+      },
   }
 
   tasks = [adapter_task, prepare_sql_task, train_task]
@@ -157,7 +186,7 @@ def hpo_config(config_path, hyperparams, environment, exp_dir, tables,
       'algorithm': algorithm,
       'hyperparams': hyperparams,
       'tasks': tasks,
-      'environment': environment
+      'environment': environment,
   }
   return data, tmp_dir
 
@@ -188,7 +217,7 @@ if __name__ == '__main__':
       '--cluster',
       type=str,
       help='cluster spec',
-      default='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}'
+      default='{"ps":{"count":1, "cpu":1000}, "worker" : {"count":3, "cpu":1000, "gpu":100, "memory":40000}}',
   )
   parser.add_argument(
       '--algo_proj_name',
@@ -205,7 +234,8 @@ if __name__ == '__main__':
       '--max_parallel',
       type=int,
       help='max number of trials run at the same time',
-      default=4)
+      default=4,
+  )
   parser.add_argument(
       '--total_trial_num',
       type=int,
@@ -214,7 +244,8 @@ if __name__ == '__main__':
   parser.add_argument(
       '--debug',
       action='store_true',
-      help='debug mode, will keep the temporary folder')
+      help='debug mode, will keep the temporary folder',
+  )
 
   args = parser.parse_args()
 
@@ -267,7 +298,7 @@ if __name__ == '__main__':
       'biz_id': '147331^paistudio^xxxxxxx^2020-03-18',
       'role_arn': args.role_arn,
       'bucket': args.bucket,
-      'oss_endpoint': oss_config['endpoint']
+      'oss_endpoint': oss_config['endpoint'],
   }
 
   assert args.hyperparams is not None
@@ -279,12 +310,21 @@ if __name__ == '__main__':
   assert args.tables is not None or (args.train_tables is not None and
                                      args.eval_tables is not None)
 
-  data, tmp_dir = hpo_config(args.config_path, hyperparams, environment,
-                             args.exp_dir, args.tables, args.train_tables,
-                             args.eval_tables, args.cluster,
-                             args.algo_proj_name, args.algo_res_proj,
-                             args.algo_version, args.metric_name,
-                             args.odps_config)
+  data, tmp_dir = hpo_config(
+      args.config_path,
+      hyperparams,
+      environment,
+      args.exp_dir,
+      args.tables,
+      args.train_tables,
+      args.eval_tables,
+      args.cluster,
+      args.algo_proj_name,
+      args.algo_res_proj,
+      args.algo_version,
+      args.metric_name,
+      args.odps_config,
+  )
   hpo_util.kill_old_proc(tmp_dir, platform='pai')
 
   data_json = json.dumps(data)

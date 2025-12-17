@@ -11,7 +11,8 @@ train = pd.read_table(
     header=None,
     names=title,
     engine='python',
-    encoding='ISO-8859-1')
+    encoding='ISO-8859-1',
+)
 print('Reading test data...')
 test = pd.read_table(
     'AmazonBooksData/book_test.txt',
@@ -19,7 +20,8 @@ test = pd.read_table(
     header=None,
     names=title,
     engine='python',
-    encoding='ISO-8859-1')
+    encoding='ISO-8859-1',
+)
 
 print('Start processing train data...')
 train_set = []

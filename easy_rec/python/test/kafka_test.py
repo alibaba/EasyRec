@@ -22,7 +22,7 @@ from easy_rec.python.utils import test_utils
 
 try:
   import kafka
-  from kafka import KafkaProducer, KafkaAdminClient
+  from kafka import KafkaAdminClient, KafkaProducer
   from kafka.admin import NewTopic
 except ImportError:
   logging.warning('kafka-python is not installed: %s' % traceback.format_exc())
@@ -59,8 +59,10 @@ class KafkaTest(tf.test.TestCase):
               fout.write('dataDir=%s/zookeeper\n' % self._test_dir)
             else:
               fout.write(line_str)
-      cmd = 'bash %s/bin/zookeeper-server-start.sh %s' % (kafka_install_dir,
-                                                          zookeeper_config)
+      cmd = 'bash %s/bin/zookeeper-server-start.sh %s' % (
+          kafka_install_dir,
+          zookeeper_config,
+      )
       log_file = os.path.join(self._log_dir, 'zookeeper.log')
       self._zookeeper_proc = test_utils.run_cmd(cmd, log_file)
 
@@ -73,8 +75,10 @@ class KafkaTest(tf.test.TestCase):
               fout.write('log.dirs=%s/kafka\n' % self._test_dir)
             else:
               fout.write(line_str)
-      cmd = 'bash %s/bin/kafka-server-start.sh %s' % (kafka_install_dir,
-                                                      kafka_config)
+      cmd = 'bash %s/bin/kafka-server-start.sh %s' % (
+          kafka_install_dir,
+          kafka_config,
+      )
       log_file = os.path.join(self._log_dir, 'kafka_server.log')
       self._kafka_server_proc = test_utils.run_cmd(cmd, log_file)
 
@@ -109,7 +113,8 @@ class KafkaTest(tf.test.TestCase):
         NewTopic(
             name=self._test_topic,
             num_partitions=num_partitions,
-            replication_factor=1)
+            replication_factor=1,
+        )
     ]
 
     admin_clt.create_topics(new_topics=topic_list, validate_only=False)
@@ -172,7 +177,8 @@ class KafkaTest(tf.test.TestCase):
           # control the maximal read of each partition
           config_global=['max.partition.fetch.bytes=1048576'],
           message_key=True,
-          message_offset=True)
+          message_offset=True,
+      )
 
       batch_dataset = k.batch(5)
 
@@ -250,7 +256,8 @@ class KafkaTest(tf.test.TestCase):
       self._success = test_utils.test_distributed_train_eval(
           'samples/model_config/deepfm_combo_avazu_kafka_chief_redundant.config',
           self._test_dir,
-          num_evaluator=1)
+          num_evaluator=1,
+      )
       self.assertTrue(self._success)
     except Exception as ex:
       self._success = False
@@ -267,7 +274,8 @@ class KafkaTest(tf.test.TestCase):
 
       self._success = test_utils.test_single_train_eval(
           'samples/model_config/deepfm_combo_avazu_kafka_time_offset.config',
-          self._test_dir)
+          self._test_dir,
+      )
 
       self.assertTrue(self._success)
     except Exception as ex:
@@ -277,7 +285,9 @@ class KafkaTest(tf.test.TestCase):
   @unittest.skipIf(
       'kafka_install_dir' not in os.environ or 'oss_path' not in os.environ or
       'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
-      'oss_sk' not in os.environ, 'Only execute when kafka is available')
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
+  )
   def test_kafka_processor(self):
     self._test_kafka_processor(
         'samples/model_config/taobao_fg_incr_save.config')
@@ -285,7 +295,9 @@ class KafkaTest(tf.test.TestCase):
   @unittest.skipIf(
       'kafka_install_dir' not in os.environ or 'oss_path' not in os.environ or
       'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
-      'oss_sk' not in os.environ, 'Only execute when kafka is available')
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
+  )
   def test_kafka_processor_ev(self):
     self._test_kafka_processor(
         'samples/model_config/taobao_fg_incr_save_ev.config')
@@ -300,9 +312,15 @@ class KafkaTest(tf.test.TestCase):
            --export_dir %s/export/sep/ --oss_path=%s --oss_ak=%s --oss_sk=%s --oss_endpoint=%s
            --asset_files ./samples/rtp_fg/fg.json
            --checkpoint_path %s/train/model.ckpt-0
-    """ % (self._test_dir, self._test_dir, os.environ['oss_path'],
-           os.environ['oss_ak'], os.environ['oss_sk'],
-           os.environ['oss_endpoint'], self._test_dir)
+    """ % (
+        self._test_dir,
+        self._test_dir,
+        os.environ['oss_path'],
+        os.environ['oss_ak'],
+        os.environ['oss_sk'],
+        os.environ['oss_endpoint'],
+        self._test_dir,
+    )
     proc = test_utils.run_cmd(export_cmd,
                               '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
@@ -314,7 +332,11 @@ class KafkaTest(tf.test.TestCase):
         python -m easy_rec.python.inference.processor.test --saved_model_dir %s
            --input_path data/test/rtp/taobao_test_feature.txt
            --output_path %s/processor.out  --test_dir %s
-     """ % (export_sep_dir, self._test_dir, self._test_dir)
+     """ % (
+        export_sep_dir,
+        self._test_dir,
+        self._test_dir,
+    )
     envs = dict(os.environ)
     envs['PROCESSOR_TEST'] = '1'
     proc = test_utils.run_cmd(
@@ -361,7 +383,8 @@ class KafkaTest(tf.test.TestCase):
 
       self._success = test_utils.test_single_train_eval(
           'samples/model_config/deepfm_combo_avazu_kafka_time_offset2.config',
-          self._test_dir)
+          self._test_dir,
+      )
 
       self.assertTrue(self._success)
     except Exception as ex:

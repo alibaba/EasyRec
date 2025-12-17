@@ -22,14 +22,16 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def exponential_decay_with_burnin(global_step,
-                                  learning_rate_base,
-                                  learning_rate_decay_steps,
-                                  learning_rate_decay_factor,
-                                  burnin_learning_rate=0.0,
-                                  burnin_steps=0,
-                                  min_learning_rate=0.0,
-                                  staircase=True):
+def exponential_decay_with_burnin(
+    global_step,
+    learning_rate_base,
+    learning_rate_decay_steps,
+    learning_rate_decay_factor,
+    burnin_learning_rate=0.0,
+    burnin_steps=0,
+    min_learning_rate=0.0,
+    staircase=True,
+):
   """Exponential decay schedule with burn-in period.
 
   In this schedule, learning rate is fixed at burnin_learning_rate
@@ -64,21 +66,27 @@ def exponential_decay_with_burnin(global_step,
       global_step - burnin_steps,
       learning_rate_decay_steps,
       learning_rate_decay_factor,
-      staircase=staircase)
+      staircase=staircase,
+  )
   return tf.maximum(
       tf.where(
           tf.less(tf.cast(global_step, tf.int32), tf.constant(burnin_steps)),
-          burnin_rate, post_burnin_learning_rate),
+          burnin_rate,
+          post_burnin_learning_rate,
+      ),
       min_learning_rate,
-      name='learning_rate')
+      name='learning_rate',
+  )
 
 
-def cosine_decay_with_warmup(global_step,
-                             learning_rate_base,
-                             total_steps,
-                             warmup_learning_rate=0.0,
-                             warmup_steps=0,
-                             hold_base_rate_steps=0):
+def cosine_decay_with_warmup(
+    global_step,
+    learning_rate_base,
+    total_steps,
+    warmup_learning_rate=0.0,
+    warmup_steps=0,
+    hold_base_rate_steps=0,
+):
   """Cosine decay schedule with warm up period.
 
   Cosine annealing learning rate as described in:
@@ -109,13 +117,16 @@ def cosine_decay_with_warmup(global_step,
                      'or equal to warmup_learning_rate.')
   if total_steps < warmup_steps:
     raise ValueError('total_steps must be larger or equal to ' 'warmup_steps.')
-  learning_rate = 0.5 * learning_rate_base * (1 + tf.cos(
+  learning_rate = (0.5 * learning_rate_base * (1 + tf.cos(
       np.pi *
       (tf.cast(global_step, tf.float32) - warmup_steps - hold_base_rate_steps) /
-      float(total_steps - warmup_steps - hold_base_rate_steps)))
+      float(total_steps - warmup_steps - hold_base_rate_steps))))
   if hold_base_rate_steps > 0:
-    learning_rate = tf.where(global_step > warmup_steps + hold_base_rate_steps,
-                             learning_rate, learning_rate_base)
+    learning_rate = tf.where(
+        global_step > warmup_steps + hold_base_rate_steps,
+        learning_rate,
+        learning_rate_base,
+    )
   if warmup_steps > 0:
     slope = (learning_rate_base - warmup_learning_rate) / warmup_steps
     warmup_rate = slope * tf.cast(global_step,
@@ -180,20 +191,24 @@ def manual_stepping(global_step, boundaries, rates, warmup=False):
   rate_index = tf.reduce_max(
       tf.where(
           tf.greater_equal(global_step, boundaries),
-          list(range(num_boundaries)), [0] * num_boundaries))
+          list(range(num_boundaries)),
+          [0] * num_boundaries,
+      ))
   return tf.reduce_sum(
       rates * tf.one_hot(rate_index, depth=num_boundaries),
       name='learning_rate')
 
 
-def transformer_policy(global_step,
-                       learning_rate,
-                       d_model,
-                       warmup_steps,
-                       step_scaling_rate=1.0,
-                       max_lr=None,
-                       coefficient=1.0,
-                       dtype=tf.float32):
+def transformer_policy(
+    global_step,
+    learning_rate,
+    d_model,
+    warmup_steps,
+    step_scaling_rate=1.0,
+    max_lr=None,
+    coefficient=1.0,
+    dtype=tf.float32,
+):
   """Transformer's learning rate schedule.
 
   Transformer's learning rate policy from

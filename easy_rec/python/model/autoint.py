@@ -23,8 +23,8 @@ class AutoInt(RankModel):
                is_training=False):
     super(AutoInt, self).__init__(model_config, feature_configs, features,
                                   labels, is_training)
-    assert self._model_config.WhichOneof('model') == 'autoint', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'autoint', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._features, _ = self._input_layer(self._feature_dict, 'all')
     self._feature_num = len(self._model_config.feature_groups[0].feature_names)
     self._seq_key_num = 0
@@ -39,8 +39,10 @@ class AutoInt(RankModel):
     fea_emb_dim_list = []
     for feature_config in feature_configs:
       fea_emb_dim_list.append(feature_config.embedding_dim)
-    assert len(set(fea_emb_dim_list)) == 1 and len(fea_emb_dim_list) == self._feature_num, \
-        'AutoInt requires that all feature dimensions must be consistent.'
+    assert (
+        len(set(fea_emb_dim_list)) == 1 and
+        len(fea_emb_dim_list) == self._feature_num
+    ), 'AutoInt requires that all feature dimensions must be consistent.'
 
     self._d_model = fea_emb_dim_list[0]
     self._head_num = self._model_config.multi_head_num
@@ -51,7 +53,8 @@ class AutoInt(RankModel):
 
     attention_fea = tf.reshape(
         self._features,
-        shape=[-1, self._feature_num + self._seq_key_num, self._d_model])
+        shape=[-1, self._feature_num + self._seq_key_num, self._d_model],
+    )
 
     for i in range(self._model_config.interacting_layer_num):
       attention_layer = multihead_attention.MultiHeadAttention(
@@ -59,7 +62,8 @@ class AutoInt(RankModel):
           head_size=self._head_size,
           l2_reg=self._l2_reg,
           use_res=True,
-          name='multi_head_self_attention_layer_%d' % i)
+          name='multi_head_self_attention_layer_%d' % i,
+      )
       attention_fea = attention_layer(attention_fea)
 
     attention_fea = tf.reshape(

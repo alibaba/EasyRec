@@ -43,16 +43,19 @@ if __name__ == '__main__':
                 name=args.topic,
                 num_partitions=1,
                 replication_factor=1,
-                topic_configs={'max.message.bytes': 1024 * 1024 * 1024})
+                topic_configs={'max.message.bytes': 1024 * 1024 * 1024},
+            )
         ],
-        validate_only=False)
+        validate_only=False,
+    )
     logging.info('create increment save topic: %s' % args.topic)
   admin_clt.close()
 
   producer = KafkaProducer(
       bootstrap_servers=servers,
       request_timeout_ms=args.timeout * 1000,
-      api_version=(0, 10, 1))
+      api_version=(0, 10, 1),
+  )
 
   i = 1
   with open(args.input_path, 'r') as fin:

@@ -142,6 +142,7 @@ def import_pkg(pkg_info, prefix_to_remove=None):
         __import__(module_path)
       except Exception as e:
         import traceback
+
         logging.error(traceback.format_exc())
         raise ValueError('import module %s failed: %s' % (module_path, str(e)))
 
@@ -168,9 +169,10 @@ def auto_import(user_path=None):
   # to make class name starts with easy_rec
   if parent_dir != '':
     for idx in range(len(pre_defined_dirs)):
-      pre_defined_dirs[idx] = (os.path.join(parent_dir,
-                                            pre_defined_dirs[idx][0]),
-                               pre_defined_dirs[idx][1])
+      pre_defined_dirs[idx] = (
+          os.path.join(parent_dir, pre_defined_dirs[idx][0]),
+          pre_defined_dirs[idx][1],
+      )
     prefix_to_remove = parent_dir + '/'
 
   if user_path is not None:
@@ -193,9 +195,12 @@ def auto_import(user_path=None):
 
 
 def register_class(class_map, class_name, cls):
-  assert class_name not in class_map or class_map[class_name] == cls, \
+  assert class_name not in class_map or class_map[class_name] == cls, (
       'confilict class %s , %s is already register to be %s' % (
-          cls, class_name, str(class_map[class_name]))
+          cls,
+          class_name,
+          str(class_map[class_name]),
+      ))
   logging.debug('register class %s' % class_name)
   class_map[class_name] = cls
 

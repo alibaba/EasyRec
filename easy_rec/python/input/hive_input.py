@@ -11,17 +11,25 @@ from easy_rec.python.utils.hive_utils import HiveUtils
 class HiveInput(Input):
   """Common IO based interface, could run at local or on data science."""
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(HiveInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(HiveInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     if input_path is None:
       return
     self._data_config = data_config
@@ -32,8 +40,10 @@ class HiveInput(Input):
         data_config=self._data_config, hive_config=self._hive_config)
     self._input_hdfs_path = hive_util.get_table_location(
         self._hive_config.table_name)
-    self._input_table_col_names, self._input_table_col_types = hive_util.get_all_cols(
-        self._hive_config.table_name)
+    (
+        self._input_table_col_names,
+        self._input_table_col_types,
+    ) = hive_util.get_all_cols(self._hive_config.table_name)
 
   def _parse_csv(self, line):
     record_defaults = []
@@ -50,12 +60,15 @@ class HiveInput(Input):
         line,
         field_delim=self._data_config.separator,
         record_defaults=record_defaults,
-        name='decode_csv')
+        name='decode_csv',
+    )
 
     fields = []
     for x in self._input_fields:
       assert x in self._input_table_col_names, 'Column %s not in Table %s.' % (
-          x, self._hive_config.table_name)
+          x,
+          self._hive_config.table_name,
+      )
       fields.append(tmp_fields[self._input_table_col_names.index(x)])
 
     # filter only valid fields
@@ -88,7 +101,8 @@ class HiveInput(Input):
       dataset = dataset.interleave(
           lambda x: tf.data.TextLineDataset(x),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
 
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
@@ -97,7 +111,8 @@ class HiveInput(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       logging.info('eval files[%d]: %s' %

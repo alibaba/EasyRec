@@ -57,4 +57,4 @@ pai -name easy_rec_ext -project algo_public
 ```
 
 - bizdate在dataworks里面是业务日期，一般是运行日期的前一天。
-- fine_tune_checkpoint:  fine_tune_checkpoint的路径，可以指定具体的checkpoint，也可以指定一个目录，将自动定位目录里面最新的checkpoint。
+- fine_tune_checkpoint: fine_tune_checkpoint的路径，可以指定具体的checkpoint，也可以指定一个目录，将自动定位目录里面最新的checkpoint。

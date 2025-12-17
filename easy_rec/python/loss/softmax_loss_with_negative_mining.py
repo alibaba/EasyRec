@@ -30,16 +30,18 @@ def support_vector_guided_softmax_loss(pos_score,
   return loss
 
 
-def softmax_loss_with_negative_mining(user_emb,
-                                      item_emb,
-                                      labels,
-                                      num_negative_samples=4,
-                                      embed_normed=False,
-                                      weights=1.0,
-                                      gamma=1.0,
-                                      margin=0,
-                                      t=1,
-                                      seed=None):
+def softmax_loss_with_negative_mining(
+    user_emb,
+    item_emb,
+    labels,
+    num_negative_samples=4,
+    embed_normed=False,
+    weights=1.0,
+    gamma=1.0,
+    margin=0,
+    t=1,
+    seed=None,
+):
   """Compute the softmax loss based on the cosine distance explained below.
 
   Given mini batches for `user_emb` and `item_emb`, this function computes for each element in `user_emb`
@@ -74,7 +76,8 @@ def softmax_loss_with_negative_mining(user_emb,
   is_valid = tf.assert_less(
       num_negative_samples,
       batch_size,
-      message='`num_negative_samples` should be less than batch_size')
+      message='`num_negative_samples` should be less than batch_size',
+  )
   with tf.control_dependencies([is_valid]):
     if not embed_normed:
       user_emb = tf.nn.l2_normalize(user_emb, axis=-1)

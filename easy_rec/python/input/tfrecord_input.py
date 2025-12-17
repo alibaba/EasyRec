@@ -13,17 +13,25 @@ if tf.__version__ >= '2.0':
 
 class TFRecordInput(Input):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(TFRecordInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(TFRecordInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
     self.feature_desc = {}
     for x, t, d in zip(self._input_fields, self._input_field_types,
@@ -64,13 +72,15 @@ class TFRecordInput(Input):
           lambda x: tf.data.TFRecordDataset(
               x, compression_type=data_compression_type),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
       dataset = dataset.shard(self._task_num, self._task_index)
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       logging.info('eval files[%d]: %s' %

@@ -13,19 +13,19 @@
 # limitations under the License.
 # ==============================================================================
 """Adam for TensorFlow."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import resource_variable_ops
-from tensorflow.python.ops import state_ops
 from tensorflow.python.training import optimizer
 from tensorflow.python.training import training_ops
+
+from tensorflow.python.ops import (  # NOQA
+    array_ops, control_flow_ops, math_ops, resource_variable_ops, state_ops,
+)
 
 
 class AdamOptimizerS(optimizer.Optimizer):
@@ -37,13 +37,15 @@ class AdamOptimizerS(optimizer.Optimizer):
       ([pdf](https://arxiv.org/pdf/1412.6980.pdf))
   """
 
-  def __init__(self,
-               learning_rate=0.001,
-               beta1=0.9,
-               beta2=0.999,
-               epsilon=1e-8,
-               use_locking=False,
-               name='Adam'):
+  def __init__(
+      self,
+      learning_rate=0.001,
+      beta1=0.9,
+      beta2=0.999,
+      epsilon=1e-8,
+      use_locking=False,
+      name='Adam',
+  ):
     r"""Construct a new Adam optimizer.
 
     Initialization:
@@ -118,8 +120,10 @@ class AdamOptimizerS(optimizer.Optimizer):
         graph = None
       else:
         graph = ops.get_default_graph()
-      return (self._get_non_slot_variable('beta1_power', graph=graph),
-              self._get_non_slot_variable('beta2_power', graph=graph))
+      return (
+          self._get_non_slot_variable('beta1_power', graph=graph),
+          self._get_non_slot_variable('beta2_power', graph=graph),
+      )
 
   def _create_slots(self, var_list):
     # Create the beta1 and beta2 accumulators on the same device as the first
@@ -163,7 +167,8 @@ class AdamOptimizerS(optimizer.Optimizer):
         math_ops.cast(self._beta2_t, var.dtype.base_dtype),
         math_ops.cast(self._epsilon_t, var.dtype.base_dtype),
         grad,
-        use_locking=self._use_locking).op
+        use_locking=self._use_locking,
+    ).op
 
   def _resource_apply_dense(self, grad, var):
     m = self.get_slot(var, 'm')
@@ -180,7 +185,8 @@ class AdamOptimizerS(optimizer.Optimizer):
         math_ops.cast(self._beta2_t, grad.dtype.base_dtype),
         math_ops.cast(self._epsilon_t, grad.dtype.base_dtype),
         grad,
-        use_locking=self._use_locking)
+        use_locking=self._use_locking,
+    )
 
   def _apply_sparse_shared(self, grad, var, indices, scatter_add):
     beta1_power, beta2_power = self._get_beta_accumulators()
@@ -190,7 +196,7 @@ class AdamOptimizerS(optimizer.Optimizer):
     beta1_t = math_ops.cast(self._beta1_t, var.dtype.base_dtype)
     beta2_t = math_ops.cast(self._beta2_t, var.dtype.base_dtype)
     epsilon_t = math_ops.cast(self._epsilon_t, var.dtype.base_dtype)
-    lr = (lr_t * math_ops.sqrt(1 - beta2_power) / (1 - beta1_power))
+    lr = lr_t * math_ops.sqrt(1 - beta2_power) / (1 - beta1_power)
     # m_t = beta1 * m + (1 - beta1) * g_t
     m = self.get_slot(var, 'm')
     m_scaled_g_values = grad * (1 - beta1_t)
@@ -221,7 +227,8 @@ class AdamOptimizerS(optimizer.Optimizer):
             x,
             i,
             v,
-            use_locking=self._use_locking))
+            use_locking=self._use_locking),
+    )
 
   def _resource_scatter_add(self, x, i, v):
     with ops.control_dependencies(

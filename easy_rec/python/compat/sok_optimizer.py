@@ -18,13 +18,13 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 # from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-# from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import gradients
-from tensorflow.python.ops import resource_variable_ops
-from tensorflow.python.ops import state_ops
 
 from easy_rec.python.compat.dynamic_variable import DynamicVariable
+
+# from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import (  # NOQA
+    array_ops, gradients, resource_variable_ops, state_ops,
+)
 
 
 def OptimizerWrapper(optimizer):
@@ -101,12 +101,14 @@ class OptimizerWrapperV1(object):
       self._initial_vals[name] = slots[i]
     # self._optimizer._prepare()
 
-  def compute_gradients(self,
-                        loss,
-                        var_list=None,
-                        aggregation_method=None,
-                        colocate_gradients_with_ops=False,
-                        grad_loss=None):
+  def compute_gradients(
+      self,
+      loss,
+      var_list=None,
+      aggregation_method=None,
+      colocate_gradients_with_ops=False,
+      grad_loss=None,
+  ):
     self._loss = loss
     tmp_grads = gradients.gradients(loss, var_list)
     return list(zip(tmp_grads, var_list))
@@ -140,7 +142,8 @@ class OptimizerWrapperV1(object):
                 dimension=var.dimension,
                 initializer=self._initial_vals[slot_name],
                 name='DynamicSlot',
-                trainable=False)
+                trainable=False,
+            )
         else:
           tmp_config = var.config_dict
           # tmp_initializer = var.initializer_str
@@ -151,7 +154,8 @@ class OptimizerWrapperV1(object):
                 var_type=var.backend_type,
                 name='DynamicSlot',
                 trainable=False,
-                **tmp_config)
+                **tmp_config,
+            )
 
         self._optimizer._slots[slot_name][key] = slot
 
@@ -199,7 +203,8 @@ class OptimizerWrapperV1(object):
           apply_updates = resource_variable_ops.assign_add_variable_op(
               global_step.handle,
               ops.convert_to_tensor(1, dtype=global_step.dtype),
-              name=name)
+              name=name,
+          )
         else:
           apply_updates = state_ops.assign_add(global_step, 1, name=name)
 
@@ -246,7 +251,8 @@ class OptimizerWrapperV1(object):
                     var_type=v.backend_type,
                     name=tmp_slot_var_name,
                     trainable=False,
-                    **tmp_config)
+                    **tmp_config,
+                )
 
             self._optimizer._slots[slot_name][key] = slot
           else:
@@ -334,7 +340,8 @@ class OptimizerWrapperV2(object):
               var_type=var.backend_type,
               name='DynamicSlot',
               trainable=False,
-              **tmp_config)
+              **tmp_config,
+          )
         self._optimizer._slots[key][slot_name] = slot
 
   def _var_key(self, var):
@@ -387,7 +394,8 @@ class OptimizerWrapperV2(object):
                   var_type=v.backend_type,
                   name='DynamicSlot',
                   trainable=False,
-                  **tmp_config)
+                  **tmp_config,
+              )
 
             self._optimizer._slots[key][slot_name] = slot
           else:

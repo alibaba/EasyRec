@@ -24,8 +24,9 @@ class DLRM(RankModel):
                is_training=False):
     super(DLRM, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert model_config.WhichOneof('model') == 'dlrm', \
-        'invalid model config: %s' % model_config.WhichOneof('model')
+    assert model_config.WhichOneof(
+        'model'
+    ) == 'dlrm', 'invalid model config: %s' % model_config.WhichOneof('model')
     self._model_config = model_config.dlrm
     assert isinstance(self._model_config, DLRMConfig)
     assert self._input_layer.has_group(
@@ -43,9 +44,11 @@ class DLRM(RankModel):
     if self._model_config.arch_interaction_op == 'cat':
       all_fea = tf.concat([dense_fea] + self._sparse_features, axis=1)
     elif self._model_config.arch_interaction_op == 'dot':
-      assert dense_fea.get_shape()[1] == self._sparse_features[0].get_shape()[1], \
-          'bot_dnn last hidden[%d] != sparse feature embedding_dim[%d]' % (
-          dense_fea.get_shape()[1], self._sparse_features[0].get_shape()[1])
+      assert dense_fea.get_shape()[1] == self._sparse_features[0].get_shape(
+      )[1], ('bot_dnn last hidden[%d] != sparse feature embedding_dim[%d]' % (
+          dense_fea.get_shape()[1],
+          self._sparse_features[0].get_shape()[1],
+      ))
 
       all_feas = [dense_fea] + self._sparse_features
       all_feas = [x[:, None, :] for x in all_feas]

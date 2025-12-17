@@ -75,8 +75,12 @@ def convert(input_path, prefix, part_record_num, save_format):
           total_line += sid
           sid = 0
     if sid > 0:
-      save_func(labels[:sid], dense_arr[:sid], cate_arr[:sid],
-                prefix + '_' + str(part_id))
+      save_func(
+          labels[:sid],
+          dense_arr[:sid],
+          cate_arr[:sid],
+          prefix + '_' + str(part_id),
+      )
       logging.info('\t%s write final part: %d' % (input_path, part_id))
       part_id += 1
       total_line += sid
@@ -115,17 +119,20 @@ if __name__ == '__main__':
       '--save_format',
       type=str,
       default='npy',
-      help='save format, choices: npy|parquet')
+      help='save format, choices: npy|parquet',
+  )
   parser.add_argument(
       '--part_record_num',
       type=int,
       default=1024 * 1024 * 8,
-      help='the maximal number of samples in each binary file')
+      help='the maximal number of samples in each binary file',
+  )
   parser.add_argument(
       '--dt',
       nargs='*',
       type=int,
-      help='select days to convert, default to select all: 0-23')
+      help='select days to convert, default to select all: 0-23',
+  )
 
   args = parser.parse_args()
 
@@ -149,7 +156,8 @@ if __name__ == '__main__':
     prefix = os.path.join(args.save_dir, str(d))
     proc = multiprocessing.Process(
         target=convert,
-        args=(input_path, prefix, args.part_record_num, args.save_format))
+        args=(input_path, prefix, args.part_record_num, args.save_format),
+    )
     convert(input_path, prefix, args.part_record_num, args.save_format)
     proc.start()
     proc_arr.append(proc)

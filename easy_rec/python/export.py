@@ -21,7 +21,8 @@ if tf.__version__ >= '2.0':
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'Path to pipeline config '
                            'file.')
@@ -125,7 +126,7 @@ def main(argv):
     estimator_utils.init_hvd()
   elif pipeline_config.train_config.train_distribute in [
       DistributionStrategy.EmbeddingParallelStrategy,
-      DistributionStrategy.SokStrategy
+      DistributionStrategy.SokStrategy,
   ]:
     estimator_utils.init_hvd()
     estimator_utils.init_sok()
@@ -135,9 +136,14 @@ def main(argv):
     if gfile.IsDirectory(FLAGS.export_dir):
       gfile.DeleteRecursively(FLAGS.export_dir)
 
-  export_out_dir = export(FLAGS.export_dir, pipeline_config_path,
-                          FLAGS.checkpoint_path, FLAGS.asset_files,
-                          FLAGS.verbose, **extra_params)
+  export_out_dir = export(
+      FLAGS.export_dir,
+      pipeline_config_path,
+      FLAGS.checkpoint_path,
+      FLAGS.asset_files,
+      FLAGS.verbose,
+      **extra_params,
+  )
 
   if FLAGS.export_done_file:
     flag_file = os.path.join(export_out_dir, FLAGS.export_done_file)

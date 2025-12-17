@@ -49,9 +49,12 @@ class UtilTest(tf.test.TestCase):
 
     result = get_expression(
         '(age_level>item_age_level) & (age_level<item_age_level*3)',
-        ['age_level', 'item_age_level'])
-    assert result == "tf.greater(parsed_dict['age_level'], parsed_dict['item_age_level']) &" \
-                     " tf.less(parsed_dict['age_level'], parsed_dict['item_age_level']*3)"
+        ['age_level', 'item_age_level'],
+    )
+    assert (
+        result ==
+        "tf.greater(parsed_dict['age_level'], parsed_dict['item_age_level']) &"
+        " tf.less(parsed_dict['age_level'], parsed_dict['item_age_level']*3)")
 
   def test_get_expression_or(self):
     result = get_expression('(age_level>3)|(item_age_level<1)',

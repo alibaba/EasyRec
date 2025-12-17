@@ -7,7 +7,7 @@ def _process_multi_expr(expr):
   idx = 0
   two_expr = ['>=', '<=', '==']
   expr_list = []
-  while (idx < size):
+  while idx < size:
     if idx + 2 <= size and expr[idx:idx + 2] in two_expr:
       expr_list.append(expr[idx:idx + 2])
       idx += 2

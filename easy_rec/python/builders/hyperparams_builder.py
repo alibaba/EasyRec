@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 """Builder function to construct tf-slim arg_scope for convolution, fc ops."""
+
 import tensorflow as tf
 
 from easy_rec.python.compat import regularizers
@@ -44,7 +45,8 @@ def build_regularizer(regularizer):
   if regularizer_oneof == 'l1_l2_regularizer':
     return regularizers.l1_l2_regularizer(
         scale_l1=float(regularizer.l1_l2_regularizer.scale_l1),
-        scale_l2=float(regularizer.l1_l2_regularizer.scale_l2))
+        scale_l2=float(regularizer.l1_l2_regularizer.scale_l2),
+    )
 
   raise ValueError('Unknown regularizer function: {}'.format(regularizer_oneof))
 
@@ -65,11 +67,13 @@ def build_initializer(initializer):
   if initializer_oneof == 'truncated_normal_initializer':
     return tf.truncated_normal_initializer(
         mean=initializer.truncated_normal_initializer.mean,
-        stddev=initializer.truncated_normal_initializer.stddev)
+        stddev=initializer.truncated_normal_initializer.stddev,
+    )
   if initializer_oneof == 'random_normal_initializer':
     return tf.random_normal_initializer(
         mean=initializer.random_normal_initializer.mean,
-        stddev=initializer.random_normal_initializer.stddev)
+        stddev=initializer.random_normal_initializer.stddev,
+    )
   if initializer_oneof == 'glorot_normal_initializer':
     return tf.glorot_normal_initializer()
   if initializer_oneof == 'constant_initializer':

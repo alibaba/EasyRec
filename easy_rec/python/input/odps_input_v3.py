@@ -19,22 +19,30 @@ except Exception:
 class OdpsInputV3(Input):
   """Common IO based interface, could run at local or on data science."""
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(OdpsInputV3,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(OdpsInputV3, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     self._num_epoch = 0
     if common_io is None:
-      logging.error('''
+      logging.error("""
         please install common_io pip install
-        https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0.4.2%2Btunnel-py2.py3-none-any.whl'''
+        https://easyrec.oss-cn-beijing.aliyuncs.com/3rdparty/common_io-0.4.2%2Btunnel-py2.py3-none-any.whl"""
                     )
       sys.exit(1)
 
@@ -67,7 +75,8 @@ class OdpsInputV3(Input):
           table_path,
           selected_cols=selected_cols,
           slice_id=self._task_index,
-          slice_count=self._task_num)
+          slice_count=self._task_num,
+      )
       total_records_num = reader.get_row_count()
       batch_num = int(total_records_num / self._data_config.batch_size)
       res_num = total_records_num - batch_num * self._data_config.batch_size
@@ -107,7 +116,8 @@ class OdpsInputV3(Input):
       dataset = dataset.shuffle(
           self._data_config.shuffle_buffer_size,
           seed=2020,
-          reshuffle_each_iteration=True)
+          reshuffle_each_iteration=True,
+      )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
@@ -120,7 +130,8 @@ class OdpsInputV3(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

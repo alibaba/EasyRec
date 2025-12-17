@@ -178,10 +178,26 @@ def save_pipeline_config(pipeline_config,
 
 def _get_basic_types():
   dtypes = [
-      bool, int, str, float,
-      type(u''), np.float16, np.float32, np.float64, np.char, np.byte, np.uint8,
-      np.int8, np.int16, np.uint16, np.uint32, np.int32, np.uint64, np.int64,
-      bool, str
+      bool,
+      int,
+      str,
+      float,
+      type(''),
+      np.float16,
+      np.float32,
+      np.float64,
+      np.char,
+      np.byte,
+      np.uint8,
+      np.int8,
+      np.int16,
+      np.uint16,
+      np.uint32,
+      np.int32,
+      np.uint64,
+      np.int64,
+      bool,
+      str,
   ]
   if six.PY2:
     dtypes.append(long)  # noqa: F821
@@ -269,7 +285,7 @@ def edit_config(pipeline_config, edit_config_json):
               '<=': lambda x, y: x <= y,
               '<': lambda x, y: x < y,
               '>': lambda x, y: x > y,
-              '=': lambda x, y: x == y
+              '=': lambda x, y: x == y,
           }
           cond_key = None
           cond_val = None
@@ -406,7 +422,7 @@ def parse_time(time_data):
   Return:
     timestamp: int
   """
-  if isinstance(time_data, str) or isinstance(time_data, type(u'')):
+  if isinstance(time_data, str) or isinstance(time_data, type('')):
     if len(time_data) == 17:
       return int(
           datetime.datetime.strptime(time_data,
@@ -560,7 +576,8 @@ def process_neg_sampler_data_path(pipeline_config):
     return
   hive_util = HiveUtils(
       data_config=pipeline_config.data_config,
-      hive_config=pipeline_config.hive_train_input)
+      hive_config=pipeline_config.hive_train_input,
+  )
   sampler_type = pipeline_config.data_config.WhichOneof('sampler')
   sampler_config = getattr(pipeline_config.data_config, sampler_type)
   if hasattr(sampler_config, 'input_path'):
@@ -584,12 +601,12 @@ def parse_extra_config_param(extra_args, edit_config_json):
   arg_num = len(extra_args)
   arg_id = 0
   while arg_id < arg_num:
-    if extra_args[arg_id].startswith('--data_config.') or    \
-       extra_args[arg_id].startswith('--train_config.') or   \
-       extra_args[arg_id].startswith('--feature_config.') or \
-       extra_args[arg_id].startswith('--model_config.') or   \
-       extra_args[arg_id].startswith('--export_config.') or  \
-       extra_args[arg_id].startswith('--eval_config.'):
+    if (extra_args[arg_id].startswith('--data_config.') or
+        extra_args[arg_id].startswith('--train_config.') or
+        extra_args[arg_id].startswith('--feature_config.') or
+        extra_args[arg_id].startswith('--model_config.') or
+        extra_args[arg_id].startswith('--export_config.') or
+        extra_args[arg_id].startswith('--eval_config.')):
       tmp_arg = extra_args[arg_id][2:]
       if '=' in tmp_arg:
         sep_pos = tmp_arg.find('=')
@@ -610,7 +627,6 @@ def parse_extra_config_param(extra_args, edit_config_json):
 
 
 def process_multi_file_input_path(sampler_config_input_path):
-
   if '*' in sampler_config_input_path:
     input_path = ','.join(
         file_path

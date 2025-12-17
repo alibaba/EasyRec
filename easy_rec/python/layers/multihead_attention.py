@@ -86,19 +86,22 @@ class MultiHeadAttention:
         self._head_num * self._head_size,
         use_bias=False,
         kernel_regularizer=self._l2_reg,
-        name='%s/%s/dnn' % (self._name, 'query'))
+        name='%s/%s/dnn' % (self._name, 'query'),
+    )
     k = tf.layers.dense(
         k,
         self._head_num * self._head_size,
         use_bias=False,
         kernel_regularizer=self._l2_reg,
-        name='%s/%s/dnn' % (self._name, 'key'))
+        name='%s/%s/dnn' % (self._name, 'key'),
+    )
     v = tf.layers.dense(
         v,
         self._head_num * self._head_size,
         use_bias=False,
         kernel_regularizer=self._l2_reg,
-        name='%s/%s/dnn' % (self._name, 'value'))
+        name='%s/%s/dnn' % (self._name, 'value'),
+    )
     return q, k, v
 
   def _combine_heads(self, multi_head_tensor):
@@ -124,8 +127,9 @@ class MultiHeadAttention:
       out: The output of multi head attention layer, has a shape of [bs, feature_num, head_num * head_size].
     """
     if isinstance(attention_input, list):
-      assert len(attention_input) == 3 or len(attention_input) == 1, \
-          'If the input of multi_head_attention is a list, the length must be 1 or 3.'
+      assert (
+          len(attention_input) == 3 or len(attention_input) == 1
+      ), 'If the input of multi_head_attention is a list, the length must be 1 or 3.'
 
       if len(attention_input) == 3:
         ori_q = attention_input[0]
@@ -151,7 +155,8 @@ class MultiHeadAttention:
           out.shape[2],
           use_bias=False,
           kernel_regularizer=self._l2_reg,
-          name='%s/dnn' % (self._name))
+          name='%s/dnn' % (self._name),
+      )
       res_out = tf.nn.relu(out + W_0_x)
       return res_out
     else:

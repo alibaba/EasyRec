@@ -44,7 +44,8 @@ class MultiTower(RankModel):
           tower_fea,
           training=self._is_training,
           trainable=True,
-          name='%s_fea_bn' % tower_name)
+          name='%s_fea_bn' % tower_name,
+      )
 
       tower_dnn_layer = dnn.DNN(tower.dnn, self._l2_reg, '%s_dnn' % tower_name,
                                 self._is_training)

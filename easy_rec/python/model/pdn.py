@@ -23,8 +23,10 @@ class PDN(MatchModel):
                is_training=False):
     super(PDN, self).__init__(model_config, feature_configs, features, labels,
                               is_training)
-    assert self._model_config.WhichOneof('model') == 'pdn', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'pdn', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.pdn
 
     self._user_features, _ = self._input_layer(self._feature_dict, 'user')
@@ -88,7 +90,8 @@ class PDN(MatchModel):
         'trigger_dnn',
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True)
+        last_layer_no_batch_norm=True,
+    )
 
     # output: N x seq_len x d, d is usually set to 1
     trigger_out = trigger_dnn_layer(trigger_merge_fea)
@@ -99,9 +102,11 @@ class PDN(MatchModel):
         tf.reduce_join(
             tf.as_string(trigger_out, precision=4, shortest=True),
             axis=2,
-            separator=','),
+            separator=',',
+        ),
         axis=1,
-        separator=';')
+        separator=';',
+    )
     return trigger_out
 
   def _build_similarity_net(self):
@@ -126,7 +131,8 @@ class PDN(MatchModel):
         'sim_dnn',
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True)
+        last_layer_no_batch_norm=True,
+    )
     # output: N x seq_len x 1
     sim_out = sim_dnn_layer(sim_seq_concat)
     # exp(x): map (-inf, inf) to (0, inf)
@@ -138,25 +144,28 @@ class PDN(MatchModel):
             axis=2,
             separator=','),
         axis=1,
-        separator=';')
+        separator=';',
+    )
     return sim_out
 
   def _build_direct_net(self):
-    if self._model_config.HasField('direct_user_dnn') and \
-       self._model_config.HasField('direct_item_dnn'):
+    if self._model_config.HasField(
+        'direct_user_dnn') and self._model_config.HasField('direct_item_dnn'):
       direct_user_layer = dnn.DNN(
           self._model_config.direct_user_dnn,
           'direct_user_dnn',
           self._is_training,
           last_layer_no_activation=True,
-          last_layer_no_batch_norm=True)
+          last_layer_no_batch_norm=True,
+      )
       direct_user_out = direct_user_layer(self._user_features)
       direct_item_layer = dnn.DNN(
           self._model_config.direct_item_dnn,
           'direct_item_dnn',
           self._is_training,
           last_layer_no_activation=True,
-          last_layer_no_batch_norm=True)
+          last_layer_no_batch_norm=True,
+      )
       direct_item_out = direct_item_layer(self._item_features)
 
       if self._model_config.simi_func == Similarity.COSINE:
@@ -172,12 +181,14 @@ class PDN(MatchModel):
             'direct_net/sim_w',
             dtype=tf.float32,
             shape=(1),
-            initializer=tf.ones_initializer())
+            initializer=tf.ones_initializer(),
+        )
         sim_b = tf.get_variable(
             'direct_net/sim_b',
             dtype=tf.float32,
             shape=(1),
-            initializer=tf.zeros_initializer())
+            initializer=tf.zeros_initializer(),
+        )
         direct_logits = direct_logits * tf.abs(sim_w) + sim_b
 
       return tf.nn.softplus(direct_logits)
@@ -193,7 +204,8 @@ class PDN(MatchModel):
           'bias_dnn',
           self._is_training,
           last_layer_no_activation=True,
-          last_layer_no_batch_norm=True)
+          last_layer_no_batch_norm=True,
+      )
       bias_logits = bias_dnn_layer(self._bias_features)
       return tf.nn.softplus(bias_logits)
     else:

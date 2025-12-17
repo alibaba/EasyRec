@@ -4,7 +4,9 @@
 
 isort:skip_file
 """
+
 from future import standard_library
+
 standard_library.install_aliases()
 import yaml
 import glob
@@ -187,12 +189,14 @@ def _load_config_for_distribute_eval(pipeline_config_path, test_dir):
   return pipeline_config
 
 
-def test_datahub_train_eval(pipeline_config_path,
-                            odps_oss_config,
-                            test_dir,
-                            process_pipeline_func=None,
-                            total_steps=50,
-                            post_check_func=None):
+def test_datahub_train_eval(
+    pipeline_config_path,
+    odps_oss_config,
+    test_dir,
+    process_pipeline_func=None,
+    total_steps=50,
+    post_check_func=None,
+):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -231,8 +235,7 @@ def test_datahub_train_eval(pipeline_config_path,
     pipeline_config = process_pipeline_func(pipeline_config)
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
-  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % \
-      test_pipeline_config_path
+  train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s' % test_pipeline_config_path
   proc = run_cmd(train_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
@@ -251,16 +254,18 @@ def _Load_config_for_test_eval(pipeline_config_path):
   return pipeline_config
 
 
-def test_single_train_eval(pipeline_config_path,
-                           test_dir,
-                           process_pipeline_func=None,
-                           hyperparam_str='',
-                           total_steps=50,
-                           post_check_func=None,
-                           check_mode=False,
-                           fine_tune_checkpoint=None,
-                           extra_cmd_args=None,
-                           timeout=-1):
+def test_single_train_eval(
+    pipeline_config_path,
+    test_dir,
+    process_pipeline_func=None,
+    hyperparam_str='',
+    total_steps=50,
+    post_check_func=None,
+    check_mode=False,
+    fine_tune_checkpoint=None,
+    extra_cmd_args=None,
+    timeout=-1,
+):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -288,7 +293,7 @@ def test_single_train_eval(pipeline_config_path,
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
   train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path=' + test_pipeline_config_path
   if hyperparam_str:
-    train_cmd += ' --edit_config_json=\'%s\'' % hyperparam_str
+    train_cmd += " --edit_config_json='%s'" % hyperparam_str
   if fine_tune_checkpoint:
     train_cmd += ' --fine_tune_checkpoint %s' % fine_tune_checkpoint
   if check_mode:
@@ -348,7 +353,10 @@ def test_single_predict(test_dir, input_path, output_path, saved_model_dir):
     set_gpu_id(None)
 
   predict_cmd = 'python -m easy_rec.python.predict --input_path %s --output_path %s --saved_model_dir %s' % (
-      input_path, output_path, saved_model_dir)
+      input_path,
+      output_path,
+      saved_model_dir,
+  )
 
   proc = run_cmd(predict_cmd, '%s/log_%s.txt' % (test_dir, 'master'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
@@ -362,8 +370,9 @@ def test_feature_selection(pipeline_config):
   model_dir = pipeline_config.model_dir
   pipeline_config_path = os.path.join(model_dir, 'pipeline.config')
   output_dir = os.path.join(model_dir, 'feature_selection')
-  cmd = 'python -m easy_rec.python.tools.feature_selection --config_path %s ' \
-        '--output_dir %s --topk 5 --visualize true' % (pipeline_config_path, output_dir)
+  cmd = ('python -m easy_rec.python.tools.feature_selection --config_path %s '
+         '--output_dir %s --topk 5 --visualize true' %
+         (pipeline_config_path, output_dir))
   proc = run_cmd(cmd, os.path.join(model_dir, 'log_feature_selection.txt'))
   proc_wait(proc, timeout=TEST_TIME_OUT)
   if proc.returncode != 0:
@@ -372,10 +381,12 @@ def test_feature_selection(pipeline_config):
   return True
 
 
-def yaml_replace(train_yaml_path,
-                 pipline_config_path,
-                 test_pipeline_config_path,
-                 test_export_dir=None):
+def yaml_replace(
+    train_yaml_path,
+    pipline_config_path,
+    test_pipeline_config_path,
+    test_export_dir=None,
+):
   with open(train_yaml_path, 'r', encoding='utf-8') as _file:
     sample = _file.read()
     x = yaml.load(sample)
@@ -393,13 +404,14 @@ def yaml_replace(train_yaml_path,
     yaml.dump(x, _file)
 
 
-def test_hdfs_train_eval(pipeline_config_path,
-                         train_yaml_path,
-                         test_dir,
-                         process_pipeline_func=None,
-                         hyperparam_str='',
-                         total_steps=2000):
-
+def test_hdfs_train_eval(
+    pipeline_config_path,
+    train_yaml_path,
+    test_dir,
+    process_pipeline_func=None,
+    hyperparam_str='',
+    total_steps=2000,
+):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -431,12 +443,13 @@ def test_hdfs_train_eval(pipeline_config_path,
   return proc.returncode == 0
 
 
-def test_hdfs_eval(pipeline_config_path,
-                   eval_yaml_path,
-                   test_dir,
-                   process_pipeline_func=None,
-                   hyperparam_str=''):
-
+def test_hdfs_eval(
+    pipeline_config_path,
+    eval_yaml_path,
+    test_dir,
+    process_pipeline_func=None,
+    hyperparam_str='',
+):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -463,12 +476,13 @@ def test_hdfs_eval(pipeline_config_path,
   return proc.returncode == 0
 
 
-def test_hdfs_export(pipeline_config_path,
-                     export_yaml_path,
-                     test_dir,
-                     process_pipeline_func=None,
-                     hyperparam_str=''):
-
+def test_hdfs_export(
+    pipeline_config_path,
+    export_yaml_path,
+    test_dir,
+    process_pipeline_func=None,
+    hyperparam_str='',
+):
   gpus = get_available_gpus()
   if len(gpus) > 0:
     set_gpu_id(gpus[0])
@@ -485,8 +499,12 @@ def test_hdfs_export(pipeline_config_path,
   config_util.save_pipeline_config(pipeline_config, test_dir)
   test_pipeline_config_path = os.path.join(test_dir, 'pipeline.config')
   test_export_path = os.path.join(test_dir, 'export_dir')
-  yaml_replace(export_yaml_path, pipeline_config_path,
-               test_pipeline_config_path, test_export_path)
+  yaml_replace(
+      export_yaml_path,
+      pipeline_config_path,
+      test_pipeline_config_path,
+      test_export_path,
+  )
   logging.info('test_pipeline_config_path is %s' % test_pipeline_config_path)
   eval_cmd = 'el_submit -yaml %s' % export_yaml_path
   proc = subprocess.Popen(eval_cmd.split(), stderr=subprocess.STDOUT)
@@ -523,19 +541,23 @@ def _get_ports(num_worker):
   if 'ports' in os.environ:
     ports = os.environ['ports']
     port_arr = [int(x) for x in ports.split(',')]
-    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d'\
-        % (ports, num_worker)
+    assert len(port_arr) >= num_worker, 'not enough ports: %s, required: %d' % (
+        ports,
+        num_worker,
+    )
     return port_arr[:num_worker]
   else:
     return get_ports_base(num_worker)
 
 
-def _ps_worker_train(pipeline_config_path,
-                     test_dir,
-                     num_worker,
-                     num_evaluator=0,
-                     fit_on_eval=False,
-                     fit_on_eval_steps=None):
+def _ps_worker_train(
+    pipeline_config_path,
+    test_dir,
+    num_worker,
+    num_evaluator=0,
+    fit_on_eval=False,
+    fit_on_eval_steps=None,
+):
   gpus = get_available_gpus()
   # not enough gpus, run on cpu only
   if len(gpus) < num_worker:
@@ -545,7 +567,7 @@ def _ps_worker_train(pipeline_config_path,
   cluster = {
       chief_or_master: ['localhost:%d' % ports[0]],
       'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
-      'ps': ['localhost:%d' % ports[-1]]
+      'ps': ['localhost:%d' % ports[-1]],
   }
   tf_config = {'cluster': cluster}
   procs = {}
@@ -595,7 +617,7 @@ def _ps_worker_distribute_eval(pipeline_config_path,
   cluster = {
       chief_or_master: ['localhost:%d' % ports[0]],
       'worker': ['localhost:%d' % ports[i] for i in range(1, num_worker)],
-      'ps': ['localhost:%d' % ports[-1]]
+      'ps': ['localhost:%d' % ports[-1]],
   }
   tf_config = {'cluster': cluster}
   procs = {}
@@ -665,20 +687,25 @@ def _multi_worker_hvd_train(pipeline_config_path, test_dir, num_worker):
   ports = _get_ports(num_worker)
   hosts = ','.join(['localhost:%d' % ports[i] for i in range(num_worker)])
   train_cmd = 'horovodrun -np %d --hosts %s python -m easy_rec.python.train_eval --pipeline_config_path %s' % (
-      num_worker, hosts, pipeline_config_path)
+      num_worker,
+      hosts,
+      pipeline_config_path,
+  )
   proc = run_cmd(train_cmd, '%s/log_hvd.txt' % test_dir)
   proc_wait(proc, timeout=1200)
   return proc.returncode == 0
 
 
-def test_distributed_train_eval(pipeline_config_path,
-                                test_dir,
-                                total_steps=50,
-                                num_evaluator=0,
-                                edit_config_json=None,
-                                use_hvd=False,
-                                fit_on_eval=False,
-                                num_epoch=0):
+def test_distributed_train_eval(
+    pipeline_config_path,
+    test_dir,
+    total_steps=50,
+    num_evaluator=0,
+    edit_config_json=None,
+    use_hvd=False,
+    fit_on_eval=False,
+    num_epoch=0,
+):
   logging.info('testing pipeline config %s' % pipeline_config_path)
   pipeline_config = _load_config_for_test(pipeline_config_path, test_dir,
                                           total_steps, num_epoch)
@@ -689,10 +716,9 @@ def test_distributed_train_eval(pipeline_config_path,
     pipeline_config.train_config.sync_replicas = False
     if pipeline_config.train_config.train_distribute not in [
         DistributionStrategy.EmbeddingParallelStrategy,
-        DistributionStrategy.SokStrategy
+        DistributionStrategy.SokStrategy,
     ]:
-      pipeline_config.train_config.train_distribute =\
-          DistributionStrategy.HorovodStrategy
+      pipeline_config.train_config.train_distribute = DistributionStrategy.HorovodStrategy
 
   train_config = pipeline_config.train_config
   config_util.save_pipeline_config(pipeline_config, test_dir)
@@ -711,7 +737,8 @@ def test_distributed_train_eval(pipeline_config_path,
           num_worker,
           num_evaluator,
           fit_on_eval,
-          fit_on_eval_steps=int(total_steps // 2))
+          fit_on_eval_steps=int(total_steps // 2),
+      )
     elif train_config.train_distribute == DistributionStrategy.MultiWorkerMirroredStrategy:
       num_worker = 2
       procs = _multi_worker_mirror_train(test_pipeline_config_path, test_dir,
@@ -784,7 +811,7 @@ def test_distribute_eval_test(cur_eval_path, test_dir):
   }
   difference_num = 0.00001
   for k in single_ret.keys():
-    if (abs(single_ret[k] - distribute_ret[k]) > difference_num):
+    if abs(single_ret[k] - distribute_ret[k]) > difference_num:
       logging.error(
           'distribute_eval difference[%.8f] large than threshold[%.8f]' %
           (abs(single_ret[k] - distribute_ret[k]), difference_num))
@@ -810,9 +837,13 @@ def test_distributed_eval(pipeline_config_path,
   try:
     if train_config.train_distribute == DistributionStrategy.NoStrategy:
       num_worker = 2
-      procs = _ps_worker_distribute_eval(test_pipeline_config_path,
-                                         checkpoint_path, test_dir, num_worker,
-                                         num_evaluator)
+      procs = _ps_worker_distribute_eval(
+          test_pipeline_config_path,
+          checkpoint_path,
+          test_dir,
+          num_worker,
+          num_evaluator,
+      )
     else:
       raise NotImplementedError
 

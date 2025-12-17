@@ -29,19 +29,22 @@ from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import io_util
 from easy_rec.python.utils.config_util import process_multi_file_input_path
-from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
-from easy_rec.python.utils.hit_rate_utils import load_graph
-from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
 from easy_rec.python.utils.hive_utils import HiveUtils
+
+from easy_rec.python.utils.hit_rate_utils import (  # NOQA
+    compute_hitrate_batch, load_graph, reduce_hitrate,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
-from easy_rec.python.utils.distribution_utils import set_tf_config_and_get_train_worker_num_on_ds  # NOQA
+from easy_rec.python.utils.distribution_utils import (  # NOQA
+    set_tf_config_and_get_train_worker_num_on_ds,)
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 tf.app.flags.DEFINE_string('item_emb_table', '', 'item embedding table name')
 tf.app.flags.DEFINE_string('gt_table', '', 'ground truth table name')
@@ -85,8 +88,17 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
   for gt_record in gt_all:
     gt_record = list(gt_record)
-    hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists = \
-        compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests, FLAGS.top_k)
+    (
+        hits,
+        gt_count,
+        src_ids,
+        recall_ids,
+        recall_distances,
+        hitrates,
+        bad_cases,
+        bad_dists,
+    ) = compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests,
+                              FLAGS.top_k)
     total_hits += hits
     total_gt_count += gt_count
 
@@ -103,8 +115,14 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
     bad_dists = [','.join(str(x) for x in dist) for dist in bad_dists]
 
     hitrate_writer.write('\n'.join([
-        '\t'.join(line) for line in zip(src_ids, topk_recalls, topk_dists,
-                                        hitrates, bad_cases, bad_dists)
+        '\t'.join(line) for line in zip(
+            src_ids,
+            topk_recalls,
+            topk_dists,
+            hitrates,
+            bad_cases,
+            bad_dists,
+        )
     ]))
   print('total_hits: ', total_hits)
   print('total_gt_count: ', total_gt_count)
@@ -112,7 +130,6 @@ def compute_hitrate(g, gt_all, hitrate_writer, gt_table=None):
 
 
 def gt_hdfs(gt_table, batch_size, gt_file_sep):
-
   if '*' in gt_table or ',' in gt_table:
     file_paths = tf.gfile.Glob(gt_table.split(','))
   elif tf.gfile.IsDirectory(gt_table):
@@ -158,7 +175,8 @@ def main():
   else:
     hive_utils = HiveUtils(
         data_config=pipeline_config.data_config,
-        hive_config=pipeline_config.hive_train_input)
+        hive_config=pipeline_config.hive_train_input,
+    )
     i_emb_table = hive_utils.get_table_location(i_emb_table)
 
   g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout,
@@ -189,7 +207,8 @@ def main():
       gt_reader = HiveUtils(
           data_config=pipeline_config.data_config,
           hive_config=pipeline_config.hive_train_input,
-          selected_cols='*')
+          selected_cols='*',
+      )
       gt_all = gt_reader.hive_read_lines(gt_table, FLAGS.batch_size)
     if not tf.gfile.IsDirectory(hitrate_details_result):
       tf.gfile.MakeDirs(hitrate_details_result)

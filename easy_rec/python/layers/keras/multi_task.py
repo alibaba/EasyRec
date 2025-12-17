@@ -41,7 +41,8 @@ class MMoE(Layer):
           self._num_expert,
           activation='softmax',
           name='gate_%d' % task_id,
-          kernel_regularizer=params.l2_regularizer)
+          kernel_regularizer=params.l2_regularizer,
+      )
       self._gates.append(dense)
 
   def call(self, inputs, training=None, **kwargs):

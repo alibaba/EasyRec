@@ -24,8 +24,10 @@ class DSSM(MatchModel):
                is_training=False):
     super(DSSM, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert self._model_config.WhichOneof('model') == 'dssm', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'dssm', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.dssm
     assert isinstance(self._model_config, DSSMConfig)
 
@@ -48,7 +50,8 @@ class DSSM(MatchModel):
         inputs=user_tower_emb,
         units=last_user_hidden,
         kernel_regularizer=self._l2_reg,
-        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
+        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1),
+    )
 
     num_item_dnn_layer = len(self.item_tower.dnn.hidden_units)
     last_item_hidden = self.item_tower.dnn.hidden_units.pop()
@@ -59,7 +62,8 @@ class DSSM(MatchModel):
         inputs=item_tower_emb,
         units=last_item_hidden,
         kernel_regularizer=self._l2_reg,
-        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
+        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1),
+    )
 
     if self._model_config.simi_func == Similarity.COSINE:
       user_tower_emb = self.norm(user_tower_emb)
@@ -108,8 +112,12 @@ class DSSM(MatchModel):
   def get_outputs(self):
     if self._loss_type == LossType.CLASSIFICATION:
       return [
-          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
-          'item_tower_emb'
+          'logits',
+          'probs',
+          'user_emb',
+          'item_emb',
+          'user_tower_emb',
+          'item_tower_emb',
       ]
     elif self._loss_type == LossType.SOFTMAX_CROSS_ENTROPY:
       self._prediction_dict['logits'] = tf.squeeze(
@@ -117,8 +125,12 @@ class DSSM(MatchModel):
       self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
       return [
-          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
-          'item_tower_emb'
+          'logits',
+          'probs',
+          'user_emb',
+          'item_emb',
+          'user_tower_emb',
+          'item_tower_emb',
       ]
     elif self._loss_type == LossType.L2_LOSS:
       return ['y', 'user_emb', 'item_emb', 'user_tower_emb', 'item_tower_emb']

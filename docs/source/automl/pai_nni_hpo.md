@@ -106,8 +106,8 @@ nnictl create --config exp.yml
 ```
 
 - 启动入口为exp.yml
-- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini  连接用户的具体的启动任务。
-- 通过字段searchSpaceFile: search_space.json    连接 search_space.json;
+- 通过trialCommand: python3 -m hpo_tools.core.utils.run --config=./trial.ini 连接用户的具体的启动任务。
+- 通过字段searchSpaceFile: search_space.json 连接 search_space.json;
 
 配置案例均可以在安装目录examples/search目录下，细节请参考[HPO配置介绍](./hpo_config.md)
 

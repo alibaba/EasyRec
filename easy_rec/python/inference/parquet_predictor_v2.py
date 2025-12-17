@@ -20,7 +20,9 @@ from easy_rec.python.utils import input_utils
 
 try:
   from tensorflow.python.framework.load_library import load_op_library
+
   import easy_rec
+
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
@@ -29,15 +31,17 @@ except Exception as ex:
 
 class ParquetPredictorV2(Predictor):
 
-  def __init__(self,
-               model_path,
-               data_config,
-               ds_vector_recall=False,
-               fg_json_path=None,
-               profiling_file=None,
-               selected_cols=None,
-               output_sep=chr(1),
-               pipeline_config=None):
+  def __init__(
+      self,
+      model_path,
+      data_config,
+      ds_vector_recall=False,
+      fg_json_path=None,
+      profiling_file=None,
+      selected_cols=None,
+      output_sep=chr(1),
+      pipeline_config=None,
+  ):
     super(ParquetPredictorV2, self).__init__(model_path, profiling_file,
                                              fg_json_path)
     self._output_sep = output_sep
@@ -98,9 +102,10 @@ class ParquetPredictorV2(Predictor):
         parquet_file = gfile.Glob(input_path.split(',')[0])[0]
         kwargs['reserve_types'] = input_utils.get_tf_type_from_parquet_file(
             self._reserved_cols, parquet_file)
-      logging.info('reserve_fields=%s reserve_types=%s' %
-                   (','.join(self._reserved_cols), ','.join(
-                       [str(x) for x in kwargs['reserve_types']])))
+      logging.info('reserve_fields=%s reserve_types=%s' % (
+          ','.join(self._reserved_cols),
+          ','.join([str(x) for x in kwargs['reserve_types']]),
+      ))
     else:
       self._reserved_cols = []
     self.pipeline_config.data_config.batch_size = batch_size
@@ -113,7 +118,8 @@ class ParquetPredictorV2(Predictor):
         task_index=slice_id,
         task_num=slice_num,
         pipeline_config=self.pipeline_config,
-        **kwargs)
+        **kwargs,
+    )
     return parquet_input._build(tf.estimator.ModeKeys.PREDICT, {})
 
   def _get_writer(self, output_path, slice_id):
@@ -144,4 +150,4 @@ class ParquetPredictorV2(Predictor):
 
   @property
   def out_of_range_exception(self):
-    return (tf.errors.OutOfRangeError)
+    return tf.errors.OutOfRangeError

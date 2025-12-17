@@ -5,15 +5,15 @@ import os
 
 import tensorflow as tf
 from tensorflow.python.estimator import run_config as run_config_lib
-from tensorflow.python.estimator.training import _assert_eval_spec
-from tensorflow.python.estimator.training import _ContinuousEvalListener
-from tensorflow.python.estimator.training import _TrainingExecutor
 from tensorflow.python.util import compat
 
 from easy_rec.python.compat.exporter import FinalExporter
 from easy_rec.python.utils import estimator_utils
 
 from tensorflow.python.distribute import estimator_training as distribute_coordinator_training  # NOQA
+from tensorflow.python.estimator.training import (  # NOQA
+    _assert_eval_spec, _ContinuousEvalListener, _TrainingExecutor,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -63,7 +63,8 @@ def train_and_evaluate(estimator, train_spec, eval_spec):
       estimator=estimator,
       train_spec=train_spec,
       eval_spec=eval_spec,
-      continuous_eval_listener=train_done_listener)
+      continuous_eval_listener=train_done_listener,
+  )
   config = estimator.config
 
   # If `distribute_coordinator_mode` is set and running in distributed
@@ -75,8 +76,7 @@ def train_and_evaluate(estimator, train_spec, eval_spec):
                                                        _TrainingExecutor)
     return
 
-  if (config.task_type == run_config_lib.TaskType.EVALUATOR and
-      config.task_id > 0):
+  if config.task_type == run_config_lib.TaskType.EVALUATOR and config.task_id > 0:
     raise ValueError(
         'For distributed training, there can only be one `evaluator` task '
         '(with task id 0).  Given task id {}'.format(config.task_id))
@@ -102,7 +102,8 @@ def train_and_evaluate(estimator, train_spec, eval_spec):
             checkpoint_path=estimator_utils.latest_checkpoint(
                 estimator.model_dir),
             eval_result=None,
-            is_the_final_export=True)
+            is_the_final_export=True,
+        )
 
   if estimator_utils.is_chief():
     with gfile.GFile(train_done_listener.train_done_file, 'w') as fout:

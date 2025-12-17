@@ -21,14 +21,14 @@ class ExcelConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'avazu_deepfm_excel.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.create_config_from_excel
         --excel_path samples/excel_config/dwd_avazu_ctr_deepfm.xls
         --model_type deepfm
         --output_path  %s
         --train_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
         --eval_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()
@@ -42,14 +42,14 @@ class ExcelConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'avazu_deepfm_excel.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.create_config_from_excel
         --excel_path samples/excel_config/dwd_avazu_ctr_deepfm.xls
         --model_type multi_tower
         --output_path  %s
         --train_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
         --eval_input_path data/test/dwd_avazu_ctr_deepmodel_10w.csv
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()

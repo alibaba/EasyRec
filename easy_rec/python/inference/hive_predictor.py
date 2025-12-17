@@ -21,15 +21,17 @@ if tf.__version__ >= '2.0':
 
 class HivePredictor(Predictor):
 
-  def __init__(self,
-               model_path,
-               data_config,
-               hive_config,
-               fg_json_path=None,
-               profiling_file=None,
-               output_sep=chr(1),
-               all_cols=None,
-               all_col_types=None):
+  def __init__(
+      self,
+      model_path,
+      data_config,
+      hive_config,
+      fg_json_path=None,
+      profiling_file=None,
+      output_sep=chr(1),
+      all_cols=None,
+      all_col_types=None,
+  ):
     super(HivePredictor, self).__init__(model_path, profiling_file,
                                         fg_json_path)
 
@@ -61,7 +63,8 @@ class HivePredictor(Predictor):
         line,
         field_delim=field_delim,
         record_defaults=self._record_defaults,
-        name='decode_csv')
+        name='decode_csv',
+    )
     inputs = {self._all_cols[x]: fields[x] for x in range(len(fields))}
     return inputs
 
@@ -78,7 +81,8 @@ class HivePredictor(Predictor):
     dataset = dataset.interleave(
         tf.data.TextLineDataset,
         cycle_length=parallel_num,
-        num_parallel_calls=parallel_num)
+        num_parallel_calls=parallel_num,
+    )
     dataset = dataset.shard(slice_num, slice_id)
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size=64)
@@ -101,7 +105,9 @@ class HivePredictor(Predictor):
 
     output_path = output_path.replace('.', '/')
     self._hdfs_path = 'hdfs://%s:9000/user/easy_rec/%s_tmp' % (
-        self._hive_config.host, output_path)
+        self._hive_config.host,
+        output_path,
+    )
     if not gfile.Exists(self._hdfs_path):
       gfile.MakeDirs(self._hdfs_path)
     res_path = os.path.join(self._hdfs_path, 'part-%d.csv' % slice_id)
@@ -114,8 +120,8 @@ class HivePredictor(Predictor):
     table_writer.write(outputs + '\n')
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
-    reserve_vals = [outputs[x] for x in output_cols] + \
-                   [all_vals[k] for k in reserved_cols]
+    reserve_vals = [outputs[x] for x in output_cols
+                    ] + [all_vals[k] for k in reserved_cols]
     return reserve_vals
 
   def load_to_table(self, output_path, slice_num, slice_id):
@@ -147,20 +153,28 @@ class HivePredictor(Predictor):
     schema = schema.rstrip(',')
 
     if partition_name and partition_val:
-      sql = 'create table if not exists %s (%s) PARTITIONED BY (%s string)' % \
-            (table_name, schema, partition_name)
+      sql = 'create table if not exists %s (%s) PARTITIONED BY (%s string)' % (
+          table_name,
+          schema,
+          partition_name,
+      )
       self._hive_util.run_sql(sql)
-      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s PARTITION (%s=%s)" % \
-            (self._hdfs_path, table_name, partition_name, partition_val)
+      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s PARTITION (%s=%s)" % (
+          self._hdfs_path,
+          table_name,
+          partition_name,
+          partition_val,
+      )
       self._hive_util.run_sql(sql)
     else:
-      sql = 'create table if not exists %s (%s)' % \
-            (table_name, schema)
+      sql = 'create table if not exists %s (%s)' % (table_name, schema)
       self._hive_util.run_sql(sql)
-      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s" % \
-            (self._hdfs_path, table_name)
+      sql = "LOAD DATA INPATH '%s/*' INTO TABLE %s" % (
+          self._hdfs_path,
+          table_name,
+      )
       self._hive_util.run_sql(sql)
 
   @property
   def out_of_range_exception(self):
-    return (tf.errors.OutOfRangeError)
+    return tf.errors.OutOfRangeError

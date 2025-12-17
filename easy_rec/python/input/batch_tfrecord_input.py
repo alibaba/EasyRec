@@ -19,23 +19,35 @@ class BatchTFRecordInput(Input):
   batch_size needs to be a multiple of n.
   """
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(BatchTFRecordInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(BatchTFRecordInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     assert data_config.HasField(
         'n_data_batch_tfrecord'), 'Need to set n_data_batch_tfrecord in config.'
     self._input_shapes = [x.input_shape for x in data_config.input_fields]
     self.feature_desc = {}
-    for x, t, d, s in zip(self._input_fields, self._input_field_types,
-                          self._input_field_defaults, self._input_shapes):
+    for x, t, d, s in zip(
+        self._input_fields,
+        self._input_field_types,
+        self._input_field_defaults,
+        self._input_shapes,
+    ):
       d = self.get_type_defaults(t, d)
       t = get_tf_type(t)
       self.feature_desc[x] = tf.io.FixedLenSequenceFeature(
@@ -49,12 +61,15 @@ class BatchTFRecordInput(Input):
       _, features, _ = tf.io.parse_sequence_example(
           example, sequence_features=self.feature_desc)
     # Below code will reduce one dimension when the data dimension > 2.
-    features = dict(
-        (key,
-         tf.reshape(value, [
-             -1,
-         ] + [x for i, x in enumerate(value.shape) if i not in (0, 1)])) for (
-             key, value) in features.items())
+    features = dict((
+        key,
+        tf.reshape(
+            value,
+            [
+                -1,
+            ] + [x for i, x in enumerate(value.shape) if i not in (0, 1)],
+        ),
+    ) for (key, value) in features.items())
     return features
 
   def _build(self, mode, params):
@@ -81,13 +96,15 @@ class BatchTFRecordInput(Input):
           lambda x: tf.data.TFRecordDataset(
               x, compression_type=data_compression_type),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
       dataset = dataset.shard(self._task_num, self._task_index)
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       logging.info('eval files[%d]: %s' %

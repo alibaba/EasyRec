@@ -161,13 +161,15 @@ class PeriodicEmbedding(Layer):
         'coefficients',
         shape=[1, self.num_features, emb_dim],
         partitioner=partitioner,
-        initializer=self.initializer)
+        initializer=self.initializer,
+    )
     if self.add_linear_layer:
       self.linear = NLinear(
           self.num_features,
           self.embedding_dim,
           self.embedding_dim,
-          name='nd_linear')
+          name='nd_linear',
+      )
     super(PeriodicEmbedding, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
@@ -218,15 +220,18 @@ class AutoDisEmbedding(Layer):
     self.meta_emb = self.add_weight(
         'meta_embedding',
         shape=[self.num_features, self.num_bins, self.emb_dim],
-        partitioner=partitioner)
+        partitioner=partitioner,
+    )
     self.proj_w = self.add_weight(
         'project_w',
         shape=[1, self.num_features, self.num_bins],
-        partitioner=partitioner)
+        partitioner=partitioner,
+    )
     self.proj_mat = self.add_weight(
         'project_mat',
         shape=[self.num_features, self.num_bins, self.num_bins],
-        partitioner=partitioner)
+        partitioner=partitioner,
+    )
     super(AutoDisEmbedding, self).build(input_shape)
 
   def call(self, inputs, **kwargs):
@@ -277,9 +282,15 @@ class NaryDisEmbedding(Layer):
     self.output_tensor_list = params.get_or_default('output_tensor_list', False)
     logging.info(
         '{} carries: {}, lengths: {}, vocab_size: {}, intra_ary: {}, replicas: {}, multiplier: {}'
-        .format(self.name, ','.join(map(str, self.carries)),
-                ','.join(map(str, self.lengths)), self.vocab_size,
-                self.intra_ary_pooling, self.num_replicas, self.multiplier))
+        .format(
+            self.name,
+            ','.join(map(str, self.carries)),
+            ','.join(map(str, self.lengths)),
+            self.vocab_size,
+            self.intra_ary_pooling,
+            self.num_replicas,
+            self.multiplier,
+        ))
 
   @staticmethod
   def max_length(carry):

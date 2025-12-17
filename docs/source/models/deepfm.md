@@ -49,7 +49,7 @@ model_config:{
 - model_class: 'DeepFM', 不需要修改
 - feature_groups:
   需要两个feature_group: wide group和deep group, **group name不能变**
-- deepfm:  deepfm相关的参数
+- deepfm: deepfm相关的参数
 - dnn: deep part的参数配置
   - hidden_units: dnn每一层的channel数目，即神经元的数目
 - wide_output_dim: wide部分输出的大小

@@ -26,14 +26,6 @@ import tensorflow as tf
 # from tensorflow.contrib import framework as contrib_framework
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
-# from tensorflow.python.ops import logging_ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import clip_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import gen_nn_ops
-from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
 from tensorflow.python.summary import summary
@@ -44,6 +36,12 @@ from tensorflow.python.training import training as train
 from easy_rec.python.ops.incr_record import set_sparse_indices
 from easy_rec.python.utils import constant
 from easy_rec.python.utils import estimator_utils
+
+# from tensorflow.python.ops import logging_ops
+from tensorflow.python.ops import (  # NOQA
+    array_ops, clip_ops, control_flow_ops, gen_nn_ops, init_ops, math_ops,
+    random_ops,
+)
 
 try:
   from tensorflow.python.framework import indexed_slices
@@ -57,6 +55,7 @@ except Exception:
 
 try:
   from sparse_operation_kit import experiment as sok
+
   from easy_rec.python.compat import sok_optimizer
 except Exception:
   sok = None
@@ -70,7 +69,7 @@ OPTIMIZER_CLS_NAMES = {
         train.FtrlOptimizer,
     'Momentum':
         lambda learning_rate: train.MomentumOptimizer(
-            learning_rate, momentum=0.9),  # pylint: disable=line-too-long
+            learning_rate, momentum=0.9),
     'RMSProp':
         train.RMSPropOptimizer,
     'SGD':
@@ -86,23 +85,25 @@ OPTIMIZER_SUMMARIES = [
 ]
 
 
-def optimize_loss(loss,
-                  global_step,
-                  learning_rate,
-                  optimizer,
-                  gradient_noise_scale=None,
-                  gradient_multipliers=None,
-                  clip_gradients=None,
-                  learning_rate_decay_fn=None,
-                  update_ops=None,
-                  variables=None,
-                  name=None,
-                  summaries=None,
-                  colocate_gradients_with_ops=False,
-                  not_apply_grad_after_first_step=False,
-                  increment_global_step=True,
-                  incr_save=False,
-                  embedding_parallel=False):
+def optimize_loss(
+    loss,
+    global_step,
+    learning_rate,
+    optimizer,
+    gradient_noise_scale=None,
+    gradient_multipliers=None,
+    clip_gradients=None,
+    learning_rate_decay_fn=None,
+    update_ops=None,
+    variables=None,
+    name=None,
+    summaries=None,
+    colocate_gradients_with_ops=False,
+    not_apply_grad_after_first_step=False,
+    increment_global_step=True,
+    incr_save=False,
+    embedding_parallel=False,
+):
   """Given loss and parameters for optimizer, returns a training op.
 
   Various ways of passing optimizers include:
@@ -208,16 +209,18 @@ def optimize_loss(loss,
     # Learning rate variable, with possible decay.
     lr = None
     if learning_rate is not None:
-      if (isinstance(learning_rate, ops.Tensor) and
-          learning_rate.get_shape().ndims == 0):
+      if isinstance(learning_rate,
+                    ops.Tensor) and learning_rate.get_shape().ndims == 0:
         lr = learning_rate
       elif isinstance(learning_rate, float):
         if learning_rate < 0.0:
           raise ValueError('Invalid learning_rate %s.', learning_rate)
         lr = vs.get_variable(
-            'learning_rate', [],
+            'learning_rate',
+            [],
             trainable=False,
-            initializer=init_ops.constant_initializer(learning_rate))
+            initializer=init_ops.constant_initializer(learning_rate),
+        )
       else:
         raise ValueError('Learning rate should be 0d Tensor or float. '
                          'Got %s of type %s' %
@@ -246,8 +249,8 @@ def optimize_loss(loss,
             'Optimizer name should be one of [%s], you provided %s.' %
             (', '.join(OPTIMIZER_CLS_NAMES), optimizer))
       opt = OPTIMIZER_CLS_NAMES[optimizer](learning_rate=lr)
-    elif (isinstance(optimizer, type) and
-          issubclass(optimizer, optimizer_.Optimizer)):
+    elif isinstance(optimizer, type) and issubclass(optimizer,
+                                                    optimizer_.Optimizer):
       if lr is None:
         raise ValueError('Learning rate is None, but should be specified if '
                          'optimizer is class (%s).' % optimizer)
@@ -262,8 +265,8 @@ def optimize_loss(loss,
       if not isinstance(opt, optimizer_.Optimizer):
         raise ValueError('Unrecognized optimizer: function should return '
                          'subclass of Optimizer. Got %s.' % str(opt))
-    elif isinstance(optimizer, sok_optimizer.OptimizerWrapperV1) or \
-        isinstance(optimizer, sok_optimizer.OptimizerWrapperV2):
+    elif isinstance(optimizer, sok_optimizer.OptimizerWrapperV1) or isinstance(
+        optimizer, sok_optimizer.OptimizerWrapperV2):
       opt = optimizer
     else:
       raise ValueError('Unrecognized optimizer: should be string, '
@@ -287,9 +290,14 @@ def optimize_loss(loss,
         # embedding parameters not partitioned
         reduced_grads = []
         for g, v in gradients:
-          reduced_grads.append((hvd.allreduce(
-              g, op=hvd.Average,
-              compression=hvd.compression.NoneCompressor), v))
+          reduced_grads.append((
+              hvd.allreduce(
+                  g,
+                  op=hvd.Average,
+                  compression=hvd.compression.NoneCompressor,
+              ),
+              v,
+          ))
         gradients = reduced_grads
       else:
         # embedding parameters partitioned:
@@ -312,8 +320,11 @@ def optimize_loss(loss,
               part_grads.append(g)
               part_vars.append(v)
           else:
-            reduced_grads.append((indexed_slices.IndexedSlices(
-                indices=g.indices, values=g.values / hvd.size()), v))
+            reduced_grads.append((
+                indexed_slices.IndexedSlices(
+                    indices=g.indices, values=g.values / hvd.size()),
+                v,
+            ))
 
         group_allreduce = False
         if len(part_grads) > 0:
@@ -321,26 +332,34 @@ def optimize_loss(loss,
             reduced_part_grads = hvd.grouped_allreduce(
                 part_grads,
                 op=hvd.Average,
-                compression=hvd.compression.NoneCompressor)
+                compression=hvd.compression.NoneCompressor,
+            )
             for g, v in zip(reduced_part_grads, part_vars):
               reduced_grads.append((g, v))
           else:
             for g, v in zip(part_grads, part_vars):
               g = hvd.allreduce(
-                  g, op=hvd.Average, compression=hvd.compression.NoneCompressor)
+                  g,
+                  op=hvd.Average,
+                  compression=hvd.compression.NoneCompressor,
+              )
               reduced_grads.append((g, v))
         if len(part_sparse_grads) > 0:
           if group_allreduce:
             reduced_part_grads = hvd.grouped_allreduce(
                 part_sparse_grads,
                 op=hvd.Average,
-                compression=hvd.compression.NoneCompressor)
+                compression=hvd.compression.NoneCompressor,
+            )
             for g, v in zip(reduced_part_grads, part_sparse_vars):
               reduced_grads.append((g, v))
           else:
             for g, v in zip(part_sparse_grads, part_sparse_vars):
               g = hvd.allreduce(
-                  g, op=hvd.Average, compression=hvd.compression.NoneCompressor)
+                  g,
+                  op=hvd.Average,
+                  compression=hvd.compression.NoneCompressor,
+              )
               reduced_grads.append((g, v))
         gradients = reduced_grads
 
@@ -397,8 +416,10 @@ def optimize_loss(loss,
           if 'gradients' in summaries:
             summary.histogram('gradients/%s' % var_name, grad_values)
           if 'gradient_norm' in summaries:
-            summary.scalar('gradient_norm/%s' % var_name,
-                           clip_ops.global_norm([grad_values]))
+            summary.scalar(
+                'gradient_norm/%s' % var_name,
+                clip_ops.global_norm([grad_values]),
+            )
 
     if clip_gradients is not None and ('global_gradient_norm' in summaries or
                                        'gradient_norm' in summaries):
@@ -413,7 +434,8 @@ def optimize_loss(loss,
       grad_updates = opt.apply_gradients(
           gradients,
           global_step=global_step if increment_global_step else None,
-          name='train')
+          name='train',
+      )
 
       embed_para_vars = ops.get_collection(constant.EmbeddingParallel)
       slot_names = opt.get_slot_names()
@@ -464,16 +486,20 @@ def _get_grad_norm(grads_and_vars, embedding_parallel=False):
       sparse_norms.append(gen_nn_ops.l2_loss(grad.values))
     else:
       dense_norms.append(gen_nn_ops.l2_loss(grad))
-  reduced_norms = hvd.grouped_allreduce(
-      part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor)
-  sparse_norms = sparse_norms + reduced_norms
-  all_norms = reduced_norms + dense_norms
-  sparse_norm = math_ops.sqrt(
-      math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0))
-  dense_norm = math_ops.sqrt(
-      math_ops.reduce_sum(array_ops.stack(dense_norms) * 2.0))
+  if hvd is not None and part_norms:
+    reduced_norms = hvd.grouped_allreduce(
+        part_norms, op=hvd.Sum, compression=hvd.compression.NoneCompressor)
+    sparse_norms = sparse_norms + reduced_norms
+  all_norms = sparse_norms + dense_norms
+  sparse_norm = (
+      math_ops.sqrt(math_ops.reduce_sum(array_ops.stack(sparse_norms) * 2.0))
+      if sparse_norms else tf.constant(0.0))
+  dense_norm = (
+      math_ops.sqrt(math_ops.reduce_sum(array_ops.stack(dense_norms) * 2.0))
+      if dense_norms else tf.constant(0.0))
   grad_norm = math_ops.sqrt(
-      math_ops.reduce_sum(array_ops.stack(all_norms)) * 2.0)
+      math_ops.reduce_sum(array_ops.stack(all_norms)) *
+      2.0) if all_norms else tf.constant(0.0)
   return sparse_norm, dense_norm, grad_norm
 
 
@@ -496,14 +522,15 @@ def _adaptive_max_norm(norm, std_factor, decay, global_step, epsilon, name):
           shape=value.get_shape(),
           dtype=value.dtype,
           initializer=init_ops.zeros_initializer(),
-          trainable=False)
+          trainable=False,
+      )
       return moving_averages.assign_moving_average(
           moving_average_variable, value, decay, zero_debias=False)
 
     # quicker adaptation at the beginning
     if global_step is not None:
       n = math_ops.cast(global_step, dtypes.float32)
-      decay = math_ops.minimum(decay, n / (n + 1.))
+      decay = math_ops.minimum(decay, n / (n + 1.0))
 
     # update averages
     mean = moving_average('mean', log_norm, decay)
@@ -515,13 +542,15 @@ def _adaptive_max_norm(norm, std_factor, decay, global_step, epsilon, name):
     return max_norms, mean
 
 
-def adaptive_clipping_fn(std_factor=2.,
-                         decay=0.95,
-                         static_max_norm=None,
-                         global_step=None,
-                         report_summary=False,
-                         epsilon=1e-8,
-                         name=None):
+def adaptive_clipping_fn(
+    std_factor=2.0,
+    decay=0.95,
+    static_max_norm=None,
+    global_step=None,
+    report_summary=False,
+    epsilon=1e-8,
+    name=None,
+):
   """Adapt the clipping value using statistics on the norms.
 
   Implement adaptive gradient as presented in section 3.2.1 of
@@ -605,8 +634,8 @@ def _multiply_gradients(grads_and_vars, gradient_multipliers):
   """Multiply specified gradients."""
   multiplied_grads_and_vars = []
   for grad, var in grads_and_vars:
-    if (grad is not None and
-        (var in gradient_multipliers or var.name in gradient_multipliers)):
+    if grad is not None and (var in gradient_multipliers or
+                             var.name in gradient_multipliers):
       key = var if var in gradient_multipliers else var.name
       multiplier = gradient_multipliers[key]
       if isinstance(grad, indexed_slices.IndexedSlices):

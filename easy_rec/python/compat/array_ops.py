@@ -83,8 +83,8 @@ def _all_dimensions(x):
   # Fast path: avoid creating Rank and Range ops if ndims is known.
   if isinstance(x, ops.Tensor) and x.get_shape().ndims is not None:
     return constant_op.constant(np.arange(x.get_shape().ndims), dtype=tf.int32)
-  if (isinstance(x, sparse_tensor.SparseTensor) and
-      x.dense_shape.get_shape().is_fully_defined()):
+  if isinstance(x, sparse_tensor.SparseTensor) and x.dense_shape.get_shape(
+  ).is_fully_defined():
     r = x.dense_shape.get_shape().dims[0].value  # sparse.dense_shape is 1-D.
     return constant_op.constant(np.arange(r), dtype=tf.int32)
 

@@ -24,18 +24,20 @@ if tf.__version__ >= '2.0':
 
 class VectorRetrieve(object):
 
-  def __init__(self,
-               query_table,
-               doc_table,
-               out_table,
-               ndim,
-               delimiter=',',
-               batch_size=4,
-               index_type='ivfflat',
-               nlist=10,
-               nprobe=2,
-               distance=1,
-               m=8):
+  def __init__(
+      self,
+      query_table,
+      doc_table,
+      out_table,
+      ndim,
+      delimiter=',',
+      batch_size=4,
+      index_type='ivfflat',
+      nlist=10,
+      nprobe=2,
+      distance=1,
+      m=8,
+  ):
     """Retrieve top n neighbours by query vector.
 
     Args:
@@ -75,7 +77,8 @@ class VectorRetrieve(object):
         'doc',
         decoder=gl.Decoder(
             attr_types=['float'] * self.ndim, attr_delimiter=self.delimiter),
-        option=self.knn_option)
+        option=self.knn_option,
+    )
     g.init(task_index=task_index, task_count=task_count)
 
     query_reader = common_io.table.TableReader(
@@ -121,4 +124,5 @@ class VectorRetrieve(object):
 def to_np_array(batch_query_feats, attr_delimiter):
   return np.array(
       [map(float, feat.split(attr_delimiter)) for feat in batch_query_feats],
-      dtype='float32')
+      dtype='float32',
+  )

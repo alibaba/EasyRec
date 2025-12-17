@@ -23,15 +23,17 @@ from easy_rec.python.utils.load_class import get_register_class_meta
 
 try:
   import horovod.tensorflow as hvd
-  from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
   from sparse_operation_kit import experiment as sok
+  from sparse_operation_kit.experiment import raw_ops as dynamic_variable_ops
 except Exception:
   dynamic_variable_ops = None
   sok = None
 
 try:
   from tensorflow.python.framework.load_library import load_op_library
+
   import easy_rec
+
   load_embed_lib_path = os.path.join(easy_rec.ops_dir, 'libload_embed.so')
   load_embed_lib = load_op_library(load_embed_lib_path)
 except Exception as ex:
@@ -105,7 +107,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           self._base_model_config.backbone,
           self._feature_dict,
           input_layer=self._input_layer,
-          l2_reg=self._l2_reg)
+          l2_reg=self._l2_reg,
+      )
     return None
 
   @property
@@ -122,7 +125,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           'metric_dict': self._metric_dict,
           'prediction_dict': self._prediction_dict,
           'labels': self._labels,
-          constant.SAMPLE_WEIGHT: self._sample_weight
+          constant.SAMPLE_WEIGHT: self._sample_weight,
       }
       return self._backbone_net(self._is_training, **kwargs)
     return None
@@ -144,8 +147,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     model_config = getattr(self._base_model_config,
                            self._base_model_config.WhichOneof('model'))
     l2_regularization = 0.0
-    if hasattr(model_config, 'dense_regularization') and \
-       model_config.HasField('dense_regularization'):
+    if hasattr(model_config, 'dense_regularization') and model_config.HasField(
+        'dense_regularization'):
       # backward compatibility
       logging.warn(
           'dense_regularization is deprecated, please use l2_regularization')
@@ -162,10 +165,12 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         ev_params=self._global_ev_params,
         embedding_regularizer=self._emb_reg,
         kernel_regularizer=self._l2_reg,
-        variational_dropout_config=model_config.variational_dropout
-        if model_config.HasField('variational_dropout') else None,
+        variational_dropout_config=(model_config.variational_dropout if
+                                    model_config.HasField('variational_dropout')
+                                    else None),
         is_training=self._is_training,
-        is_predicting=self._is_predicting)
+        is_predicting=self._is_predicting,
+    )
 
   @abstractmethod
   def build_predict_graph(self):
@@ -216,11 +221,13 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
     """For exporting: get output nodes for RTP infering."""
     return {}
 
-  def restore(self,
-              ckpt_path,
-              include_global_step=False,
-              ckpt_var_map_path='',
-              force_restore_shape_compatible=False):
+  def restore(
+      self,
+      ckpt_path,
+      include_global_step=False,
+      ckpt_var_map_path='',
+      force_restore_shape_compatible=False,
+  ):
     """Restore variables from ckpt_path.
 
     steps:
@@ -266,12 +273,14 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
               var_shape,
               variable[0].dtype,
               variable,
-              partitions=[len(variable)] + [1] * (len(var_shape) - 1))
+              partitions=[len(variable)] + [1] * (len(var_shape) - 1),
+          )
         else:
           var_shape = variable.shape.as_list()
         if ckpt_var_shape == var_shape:
-          vars_in_ckpt[variable_name] = list(variable) if isinstance(
-              variable, variables.PartitionedVariable) else variable
+          vars_in_ckpt[variable_name] = (
+              list(variable) if isinstance(
+                  variable, variables.PartitionedVariable) else variable)
         elif len(ckpt_var_shape) == len(var_shape):
           if force_restore_shape_compatible:
             # create a variable compatible with checkpoint to restore
@@ -285,7 +294,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
                   # add to a special collection for easy reference
                   # by tf.get_collection('T_E_M_P_RESTROE')
                   collections=['T_E_M_P_RESTROE'],
-                  dtype=dtype)
+                  dtype=dtype,
+              )
             vars_in_ckpt[variable_name] = tmp_var
             incompatible_shape_var_map[variable] = tmp_var
             print('incompatible restore %s[%s, %s]' %
@@ -293,16 +303,21 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           else:
             logging.warning(
                 'Variable [%s] is available in checkpoint, but '
-                'incompatible shape with model variable.', variable_name)
+                'incompatible shape with model variable.',
+                variable_name,
+            )
         else:
           logging.warning(
               'Variable [%s] is available in checkpoint, but '
-              'incompatible shape dims with model variable.', variable_name)
+              'incompatible shape dims with model variable.',
+              variable_name,
+          )
       elif 'EmbeddingVariable' in str(type(variable)):
         if '%s-keys' % variable_name not in ckpt_var2shape_map:
           continue
         print('restore embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
+
         names_to_saveables = saver.BaseSaverBuilder.OpListToDict([variable])
         saveable_objects = []
         for name, op in names_to_saveables.items():
@@ -316,6 +331,7 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
           continue
         print('restore partitioned embedding_variable %s' % variable_name)
         from tensorflow.python.training import saver
+
         for part_var in variable:
           names_to_saveables = saver.BaseSaverBuilder.OpListToDict([part_var])
           saveable_objects = []
@@ -331,7 +347,8 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
             task_num=hvd.size(),
             embed_dim=variable._dimension,
             var_name='embed-' + variable.name.replace('/', '__'),
-            ckpt_path=ckpt_path)
+            ckpt_path=ckpt_path,
+        )
         with ops.control_dependencies([variable._initializer_op]):
           variable._initializer_op = dynamic_variable_ops.dummy_var_assign(
               variable.handle, keys, vals)
@@ -440,8 +457,10 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
         for x in self._base_model_config.restore_filters
     ]
 
-    return restore_filter.CombineFilter(all_filters,
-                                        restore_filter.Logical.AND), None
+    return (
+        restore_filter.CombineFilter(all_filters, restore_filter.Logical.AND),
+        None,
+    )
 
   def get_grouped_vars(self, opt_num):
     """Group the vars into different optimization groups.

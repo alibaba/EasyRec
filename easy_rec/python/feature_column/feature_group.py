@@ -2,8 +2,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import re
 
-from easy_rec.python.protos.feature_config_pb2 import FeatureGroupConfig
-from easy_rec.python.protos.feature_config_pb2 import WideOrDeep
+from easy_rec.python.protos.feature_config_pb2 import (  # NOQA
+    FeatureGroupConfig, WideOrDeep,
+)
 
 
 class FeatureGroup(object):

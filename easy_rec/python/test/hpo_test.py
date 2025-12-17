@@ -22,6 +22,7 @@ if tf.__version__ >= '2.0':
   GPUOptions = config_pb2.GPUOptions
 else:
   from tensorflow.python.platform import gfile
+
   GPUOptions = tf.GPUOptions
   ConfigProto = tf.ConfigProto
 
@@ -116,7 +117,9 @@ class HPOTest(tf.test.TestCase):
     for i, tmp_fea in enumerate(tmp_config.feature_configs):
       if tmp_fea.input_names[0] >= 'site':
         assert tmp_fea.embedding_dim == 32, 'input_name = %s %d' % (
-            tmp_fea.input_names[0], tmp_fea.embedding_dim)
+            tmp_fea.input_names[0],
+            tmp_fea.embedding_dim,
+        )
       else:
         assert tmp_fea.embedding_dim == 16
 
@@ -165,8 +168,7 @@ class HPOTest(tf.test.TestCase):
     tmp_config = config_util.get_configs_from_pipeline_file(tmp_file)
     tmp_file = 'samples/hpo/hpo_param_v9.json'
     tmp_config = config_util.edit_config(tmp_config, self.load_config(tmp_file))
-    assert tmp_config.train_config.fine_tune_checkpoint == \
-           'oss://easy-rec/test/experiment/ctr_v93/model.ckpt-1000'
+    assert tmp_config.train_config.fine_tune_checkpoint == 'oss://easy-rec/test/experiment/ctr_v93/model.ckpt-1000'
 
   def test_edit_config_v10(self):
     tmp_file = 'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config'

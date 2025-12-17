@@ -92,14 +92,16 @@ class BestExporter(Exporter):
   existing model.
   """
 
-  def __init__(self,
-               name='best_exporter',
-               serving_input_receiver_fn=None,
-               event_file_pattern='eval_val/*.tfevents.*',
-               compare_fn=_loss_smaller,
-               assets_extra=None,
-               as_text=False,
-               exports_to_keep=5):
+  def __init__(
+      self,
+      name='best_exporter',
+      serving_input_receiver_fn=None,
+      event_file_pattern='eval_val/*.tfevents.*',
+      compare_fn=_loss_smaller,
+      assets_extra=None,
+      as_text=False,
+      exports_to_keep=5,
+  ):
     """Create an `Exporter` to use with `tf.estimator.EvalSpec`.
 
     Example of creating a BestExporter for training and evaluation:
@@ -217,10 +219,13 @@ class BestExporter(Exporter):
         current_eval_result=eval_result):
       tf_logging.info('Performing best model export.')
       self._best_eval_result = eval_result
-      export_result = self._saved_model_exporter.export(estimator, export_path,
-                                                        checkpoint_path,
-                                                        eval_result,
-                                                        is_the_final_export)
+      export_result = self._saved_model_exporter.export(
+          estimator,
+          export_path,
+          checkpoint_path,
+          eval_result,
+          is_the_final_export,
+      )
       self._garbage_collect_exports(export_path)
       # cp best checkpoints to best folder
       model_dir, _ = os.path.split(checkpoint_path)
@@ -390,12 +395,14 @@ class LatestExporter(Exporter):
   In addition to exporting, this class also garbage collects stale exports.
   """
 
-  def __init__(self,
-               name,
-               serving_input_receiver_fn,
-               assets_extra=None,
-               as_text=False,
-               exports_to_keep=5):
+  def __init__(
+      self,
+      name,
+      serving_input_receiver_fn,
+      assets_extra=None,
+      as_text=False,
+      exports_to_keep=5,
+  ):
     """Create an `Exporter` to use with `tf.estimator.EvalSpec`.
 
     Args:

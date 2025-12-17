@@ -31,16 +31,18 @@ except ImportError:
 class KafkaDataset(dataset_ops.Dataset):
   """A Kafka Dataset that consumes the message."""
 
-  def __init__(self,
-               topics,
-               servers='localhost',
-               group='',
-               eof=False,
-               timeout=1000,
-               config_global=None,
-               config_topic=None,
-               message_key=False,
-               message_offset=False):
+  def __init__(
+      self,
+      topics,
+      servers='localhost',
+      group='',
+      eof=False,
+      timeout=1000,
+      config_global=None,
+      config_topic=None,
+      message_key=False,
+      message_offset=False,
+  ):
     """Create a KafkaReader.
 
     Args:
@@ -107,24 +109,27 @@ class KafkaDataset(dataset_ops.Dataset):
       return (ops.Tensor, ops.Tensor)
     elif self._message_key and self._message_offset:
       return (ops.Tensor, ops.Tensor, ops.Tensor)
-    return (ops.Tensor)
+    return ops.Tensor
 
   @property
   def output_shapes(self):
     if self._message_key ^ self._message_offset:
-      return ((tensor_shape.TensorShape([]), tensor_shape.TensorShape([])))
+      return (tensor_shape.TensorShape([]), tensor_shape.TensorShape([]))
     elif self._message_key and self._message_offset:
-      return ((tensor_shape.TensorShape([]), tensor_shape.TensorShape([]),
-               tensor_shape.TensorShape([])))
-    return ((tensor_shape.TensorShape([])))
+      return (
+          tensor_shape.TensorShape([]),
+          tensor_shape.TensorShape([]),
+          tensor_shape.TensorShape([]),
+      )
+    return tensor_shape.TensorShape([])
 
   @property
   def output_types(self):
     if self._message_key ^ self._message_offset:
-      return ((dtypes.string, dtypes.string))
+      return (dtypes.string, dtypes.string)
     elif self._message_key and self._message_offset:
-      return ((dtypes.string, dtypes.string, dtypes.string))
-    return ((dtypes.string))
+      return (dtypes.string, dtypes.string, dtypes.string)
+    return dtypes.string
 
 
 def write_kafka_v2(message, topic, servers='localhost', name=None):

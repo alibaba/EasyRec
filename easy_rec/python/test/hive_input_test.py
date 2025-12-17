@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 """Define cv_input, the base class for cv tasks."""
+
 import logging
 import os
 import unittest
@@ -59,12 +60,13 @@ class HiveInputTest(tf.test.TestCase):
   def __init__(self, methodName='HiveInputTest'):
     super(HiveInputTest, self).__init__(methodName=methodName)
 
-  @unittest.skipIf('hive_host' not in os.environ or
-                   'hive_username' not in os.environ or
-                   'hive_table_name' not in os.environ or
-                   'hive_hash_fields' not in os.environ,
-                   """Only execute hive_config var are specified,hive_host、
-       hive_username、hive_table_name、hive_hash_fields is available.""")
+  @unittest.skipIf(
+      'hive_host' not in os.environ or 'hive_username' not in os.environ or
+      'hive_table_name' not in os.environ or
+      'hive_hash_fields' not in os.environ,
+      """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available.""",
+  )
   def test_hive_input(self):
     self._init_config()
     data_config_str = """
@@ -242,7 +244,8 @@ class HiveInputTest(tf.test.TestCase):
     session_config = tf.ConfigProto(
         gpu_options=gpu_options,
         allow_soft_placement=True,
-        log_device_placement=False)
+        log_device_placement=False,
+    )
     with self.test_session(config=session_config) as sess:
       sess.run(init_op)
       feature_dict, label_dict = sess.run([features, labels])
@@ -253,12 +256,13 @@ class HiveInputTest(tf.test.TestCase):
         print(key, label_dict[key][:5])
     return 0
 
-  @unittest.skipIf('hive_host' not in os.environ or
-                   'hive_username' not in os.environ or
-                   'hive_table_name' not in os.environ or
-                   'hive_hash_fields' not in os.environ,
-                   """Only execute hive_config var are specified,hive_host、
-       hive_username、hive_table_name、hive_hash_fields is available.""")
+  @unittest.skipIf(
+      'hive_host' not in os.environ or 'hive_username' not in os.environ or
+      'hive_table_name' not in os.environ or
+      'hive_hash_fields' not in os.environ,
+      """Only execute hive_config var are specified,hive_host、
+       hive_username、hive_table_name、hive_hash_fields is available.""",
+  )
   def test_mmoe(self):
     pipeline_config_path = 'samples/emr_script/mmoe/mmoe_census_income.config'
     gpus = test_utils.get_available_gpus()
@@ -286,7 +290,9 @@ class HiveInputTest(tf.test.TestCase):
     test_pipeline_config_path = os.path.join(self._test_dir, 'pipeline.config')
     hyperparam_str = ''
     train_cmd = 'python -m easy_rec.python.train_eval --pipeline_config_path %s %s' % (
-        test_pipeline_config_path, hyperparam_str)
+        test_pipeline_config_path,
+        hyperparam_str,
+    )
     proc = test_utils.run_cmd(train_cmd,
                               '%s/log_%s.txt' % (self._test_dir, 'master'))
     proc.wait()

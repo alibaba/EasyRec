@@ -80,7 +80,7 @@ assessor:
 
 - cmd = cmd.replace('${params}', params)->支持参数标识路径，例如lr0.001_batchsize64 注意其中可能含有浮点数，请确定是否支持用来标识数据/数据表
 
-- cmd = cmd.replace(p, str(v))  将搜索的参数替换为搜索的值，搜索参数可以使用${batch_size}、${lr}来标记，需要和search_space.json中的key匹配使用
+- cmd = cmd.replace(p, str(v)) 将搜索的参数替换为搜索的值，搜索参数可以使用${batch_size}、${lr}来标记，需要和search_space.json中的key匹配使用
 
 ### jinja渲染
 
@@ -224,14 +224,14 @@ metric_source=cmd1
 
 ## odps_config
 
-| odps_config   | 描述           | 值                                                                                      |
-| ------------- | ------------ | -------------------------------------------------------------------------------------- |
-| access_id     | ak           | ak                                                                                     |
-| access_key    | sk           | ak                                                                                     |
-| project_name  | project_name | xxx                                                                                    |
-| end_point     | end_point    | 弹外: http://service.odps.aliyun.com/api  弹内：http://service-corp.odps.aliyun-inc.com/api |
-| log_view_host | logview host | 弹外：http://logview.odps.aliyun.com 弹内：http://logview.alibaba-inc.com                    |
-| role_arn      | role_arn     | acs:ram::xxx:role/aliyunserviceroleforpaiautoml                                        |
+| odps_config   | 描述           | 值                                                                                     |
+| ------------- | ------------ | ------------------------------------------------------------------------------------- |
+| access_id     | ak           | ak                                                                                    |
+| access_key    | sk           | ak                                                                                    |
+| project_name  | project_name | xxx                                                                                   |
+| end_point     | end_point    | 弹外: http://service.odps.aliyun.com/api 弹内：http://service-corp.odps.aliyun-inc.com/api |
+| log_view_host | logview host | 弹外：http://logview.odps.aliyun.com 弹内：http://logview.alibaba-inc.com                   |
+| role_arn      | role_arn     | acs:ram::xxx:role/aliyunserviceroleforpaiautoml                                       |
 
 ## dlc_config
 

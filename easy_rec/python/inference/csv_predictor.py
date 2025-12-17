@@ -10,10 +10,12 @@ import os
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
-from easy_rec.python.inference.predictor import SINGLE_PLACEHOLDER_FEATURE_KEY
-from easy_rec.python.inference.predictor import Predictor
 from easy_rec.python.protos.dataset_pb2 import DatasetConfig
 from easy_rec.python.utils.check_utils import check_split
+
+from easy_rec.python.inference.predictor import (  # NOQA
+    SINGLE_PLACEHOLDER_FEATURE_KEY, Predictor,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -21,15 +23,17 @@ if tf.__version__ >= '2.0':
 
 class CSVPredictor(Predictor):
 
-  def __init__(self,
-               model_path,
-               data_config,
-               with_header=False,
-               ds_vector_recall=False,
-               fg_json_path=None,
-               profiling_file=None,
-               selected_cols=None,
-               output_sep=chr(1)):
+  def __init__(
+      self,
+      model_path,
+      data_config,
+      with_header=False,
+      ds_vector_recall=False,
+      fg_json_path=None,
+      profiling_file=None,
+      selected_cols=None,
+      output_sep=chr(1),
+  ):
     super(CSVPredictor, self).__init__(model_path, profiling_file, fg_json_path)
     self._output_sep = output_sep
     self._ds_vector_recall = ds_vector_recall
@@ -74,16 +78,19 @@ class CSVPredictor(Predictor):
   def _parse_line(self, line):
     check_list = [
         tf.py_func(
-            check_split, [line, self._input_sep,
-                          len(self._record_defaults)],
-            Tout=tf.bool)
+            check_split,
+            [line, self._input_sep,
+             len(self._record_defaults)],
+            Tout=tf.bool,
+        )
     ]
     with tf.control_dependencies(check_list):
       fields = tf.decode_csv(
           line,
           field_delim=self._input_sep,
           record_defaults=self._record_defaults,
-          name='decode_csv')
+          name='decode_csv',
+      )
     if self._is_rtp:
       if self._with_header:
         inputs = dict(zip(self._all_fields, fields))
@@ -110,7 +117,7 @@ class CSVPredictor(Predictor):
         line_tok = line_str.strip().split(self._input_sep)
         if num_cols != -1:
           assert num_cols == len(line_tok), (
-              'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data.'
+              'num selected cols is %d, not equal to %d, current line is: %s, please check input_sep and data'
               % (num_cols, len(line_tok), line_str))
         num_cols = len(line_tok)
         num_lines += 1
@@ -159,7 +166,8 @@ class CSVPredictor(Predictor):
     dataset = dataset.interleave(
         lambda x: tf.data.TextLineDataset(x).skip(int(self._with_header)),
         cycle_length=parallel_num,
-        num_parallel_calls=parallel_num)
+        num_parallel_calls=parallel_num,
+    )
     dataset = dataset.shard(slice_num, slice_id)
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size=64)
@@ -180,10 +188,10 @@ class CSVPredictor(Predictor):
     table_writer.write(outputs + '\n')
 
   def _get_reserve_vals(self, reserved_cols, output_cols, all_vals, outputs):
-    reserve_vals = [outputs[x] for x in output_cols] + \
-                   [all_vals[k] for k in reserved_cols]
+    reserve_vals = [outputs[x] for x in output_cols
+                    ] + [all_vals[k] for k in reserved_cols]
     return reserve_vals
 
   @property
   def out_of_range_exception(self):
-    return (tf.errors.OutOfRangeError)
+    return tf.errors.OutOfRangeError

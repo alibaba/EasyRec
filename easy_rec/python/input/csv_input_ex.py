@@ -12,17 +12,25 @@ if tf.__version__ >= '2.0':
 
 class CSVInputEx(CSVInput):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(CSVInputEx,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(CSVInputEx, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
   def _parse_csv(self, line):
     record_defaults = [
@@ -35,9 +43,13 @@ class CSVInputEx(CSVInput):
       if type(sep) != type(str):
         sep = sep.encode('utf-8')
       field_num = len(line[0].split(sep))
-      assert field_num == len(record_defaults), \
-          'sep[%s] maybe invalid: field_num=%d, required_num=%d' % \
-          (sep, field_num, len(record_defaults))
+      assert field_num == len(
+          record_defaults
+      ), 'sep[%s] maybe invalid: field_num=%d, required_num=%d' % (
+          sep,
+          field_num,
+          len(record_defaults),
+      )
       return True
 
     fields = str_split_by_chr(
@@ -53,13 +65,14 @@ class CSVInputEx(CSVInput):
         fields.append(
             tf.string_to_number(
                 tmp_fields[:, i], tf.float32, name='field_as_flt_%d' % i))
-      elif type(record_defaults[i]) in [str, type(u''), bytes]:
+      elif type(record_defaults[i]) in [str, type(''), bytes]:
         fields.append(tmp_fields[:, i])
       elif type(record_defaults[i]) == bool:
         fields.append(
             tf.logical_or(
                 tf.equal(tmp_fields[:, i], 'True'),
-                tf.equal(tmp_fields[:, i], 'true')))
+                tf.equal(tmp_fields[:, i], 'true'),
+            ))
       else:
         assert 'invalid types: %s' % str(type(record_defaults[i]))
 

@@ -17,17 +17,25 @@ class RTPInputV2(Input):
   the original rtp format, it is not efficient for training, the performance have to be tuned.
   """
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(RTPInputV2,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(RTPInputV2, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
   def _parse_rtp(self, lines):
     tf_types = [tf.string for x in self._input_field_types]
@@ -51,8 +59,10 @@ class RTPInputV2(Input):
         def_val = self.get_type_defaults(self._input_field_types[i],
                                          self._input_field_defaults[i])
         temp_vals[i] = tf.cond(
-            tf.reduce_any(msk), lambda: tf.reduce_join(val, separator=','),
-            lambda: tf.constant(str(def_val)))
+            tf.reduce_any(msk),
+            lambda: tf.reduce_join(val, separator=','),
+            lambda: tf.constant(str(def_val)),
+        )
       return temp_vals
 
     fields = tf.map_fn(
@@ -60,7 +70,8 @@ class RTPInputV2(Input):
         lines,
         tf_types,
         parallel_iterations=64,
-        name='parse_one_line_tf_map_fn')
+        name='parse_one_line_tf_map_fn',
+    )
 
     def _convert(x, target_type, name):
       if target_type in [DatasetConfig.FLOAT, DatasetConfig.DOUBLE]:
@@ -111,7 +122,8 @@ class RTPInputV2(Input):
       dataset = dataset.interleave(
           tf.data.TextLineDataset,
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
 
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
@@ -120,7 +132,8 @@ class RTPInputV2(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       logging.info('eval files[%d]: %s' %

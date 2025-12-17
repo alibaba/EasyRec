@@ -33,9 +33,13 @@ class SharedEmbedding(object):
     self.sequence_combiner = sequence_combiner
 
 
-EVParams = collections.namedtuple('EVParams', [
-    'filter_freq', 'steps_to_live', 'use_cache', 'init_capacity', 'max_capacity'
-])
+EVParams = collections.namedtuple(
+    'EVParams',
+    [
+        'filter_freq', 'steps_to_live', 'use_cache', 'init_capacity',
+        'max_capacity'
+    ],
+)
 
 
 class FeatureColumnParser(object):
@@ -75,9 +79,10 @@ class FeatureColumnParser(object):
       self._global_ev_params = self._build_ev_params(ev_params)
 
     def _cmp_embed_config(a, b):
-      return a.embedding_dim == b.embedding_dim and a.combiner == b.combiner and\
-          a.initializer == b.initializer and a.max_partitions == b.max_partitions and\
-          a.embedding_name == b.embedding_name
+      return (a.embedding_dim == b.embedding_dim and
+              a.combiner == b.combiner and a.initializer == b.initializer and
+              a.max_partitions == b.max_partitions and
+              a.embedding_name == b.embedding_name)
 
     for config in self._feature_configs:
       if not config.HasField('embedding_name'):
@@ -85,9 +90,12 @@ class FeatureColumnParser(object):
       embed_name = config.embedding_name
 
       if embed_name in self._share_embed_names:
-        assert _cmp_embed_config(config, self._share_embed_infos[embed_name]),\
+        assert _cmp_embed_config(config, self._share_embed_infos[embed_name]), (
             'shared embed info of [%s] is not matched [%s] vs [%s]' % (
-                embed_name, config, self._share_embed_infos[embed_name])
+                embed_name,
+                config,
+                self._share_embed_infos[embed_name],
+            ))
         self._share_embed_names[embed_name] += 1
         if config.feature_type == FeatureConfig.FeatureType.SequenceFeature:
           self._share_embed_infos[embed_name] = copy_obj(config)
@@ -105,9 +113,11 @@ class FeatureColumnParser(object):
 
     logging.info('shared embeddings[num=%d]' % len(self._share_embed_names))
     for embed_name in self._share_embed_names:
-      logging.info('\t%s: share_num[%d], share_info[%s]' %
-                   (embed_name, self._share_embed_names[embed_name],
-                    self._share_embed_infos[embed_name]))
+      logging.info('\t%s: share_num[%d], share_info[%s]' % (
+          embed_name,
+          self._share_embed_names[embed_name],
+          self._share_embed_infos[embed_name],
+      ))
     self._deep_share_embed_columns = {
         embed_name: [] for embed_name in self._share_embed_names
     }
@@ -161,7 +171,8 @@ class FeatureColumnParser(object):
             shared_embedding_collection_name=embed_name,
             combiner=self._share_embed_infos[embed_name].combiner,
             partitioner=partitioner,
-            ev_params=ev_params)
+            ev_params=ev_params,
+        )
         config = self._share_embed_infos[embed_name]
         max_seq_len = config.max_seq_len if config.HasField(
             'max_seq_len') else -1
@@ -178,7 +189,8 @@ class FeatureColumnParser(object):
             shared_embedding_collection_name=embed_name + '_wide',
             combiner='sum',
             partitioner=partitioner,
-            ev_params=ev_params)
+            ev_params=ev_params,
+        )
         config = self._share_embed_infos[embed_name]
         max_seq_len = config.max_seq_len if config.HasField(
             'max_seq_len') else -1
@@ -222,7 +234,8 @@ class FeatureColumnParser(object):
     if feature_name not in self._wide_deep_dict:
       raise FeatureKeyError(feature_name)
     return self._wide_deep_dict[feature_name] in [
-        WideOrDeep.WIDE, WideOrDeep.WIDE_AND_DEEP
+        WideOrDeep.WIDE,
+        WideOrDeep.WIDE_AND_DEEP,
     ]
 
   def is_deep(self, config):
@@ -234,7 +247,8 @@ class FeatureColumnParser(object):
     if feature_name not in self._wide_deep_dict:
       raise FeatureKeyError(feature_name)
     return self._wide_deep_dict[feature_name] in [
-        WideOrDeep.DEEP, WideOrDeep.WIDE_AND_DEEP
+        WideOrDeep.DEEP,
+        WideOrDeep.WIDE_AND_DEEP,
     ]
 
   def get_feature_vocab_size(self, feature):
@@ -266,27 +280,30 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     hash_bucket_size = self._get_hash_bucket_size(config)
     if hash_bucket_size > 0:
       fc = feature_column.categorical_column_with_hash_bucket(
           feature_name,
           hash_bucket_size=hash_bucket_size,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     elif config.vocab_list:
       fc = feature_column.categorical_column_with_vocabulary_list(
           feature_name,
           default_value=0,
           vocabulary_list=config.vocab_list,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     elif config.vocab_file:
       fc = feature_column.categorical_column_with_vocabulary_file(
           feature_name,
           default_value=0,
           vocabulary_file=config.vocab_file,
           vocabulary_size=self._get_vocab_size(config.vocab_file),
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     else:
       use_ev = self._global_ev_params or config.HasField('ev_params')
       num_buckets = sys.maxsize if use_ev else config.num_buckets
@@ -308,28 +325,31 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     hash_bucket_size = self._get_hash_bucket_size(config)
     if hash_bucket_size > 0:
       tag_fc = feature_column.categorical_column_with_hash_bucket(
           feature_name,
           hash_bucket_size,
           dtype=tf.string,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     elif config.vocab_list:
       tag_fc = feature_column.categorical_column_with_vocabulary_list(
           feature_name,
           default_value=0,
           vocabulary_list=config.vocab_list,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     elif config.vocab_file:
       tag_fc = feature_column.categorical_column_with_vocabulary_file(
           feature_name,
           default_value=0,
           vocabulary_file=config.vocab_file,
           vocabulary_size=self._get_vocab_size(config.vocab_file),
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     else:
       use_ev = self._global_ev_params or config.HasField('ev_params')
       num_buckets = sys.maxsize if use_ev else config.num_buckets
@@ -356,8 +376,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     fc = feature_column.numeric_column(
         key=feature_name,
         shape=(config.raw_input_dim,),
@@ -391,11 +411,13 @@ class FeatureColumnParser(object):
           feature_name + '_raw_proj_id',
           config.raw_input_dim,
           default_value=0,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
       wgt_fc = feature_column.weighted_categorical_column(
           tmp_id_col,
           weight_feature_key=feature_name + '_raw_proj_val',
-          dtype=tf.float32)
+          dtype=tf.float32,
+      )
       if self.is_wide(config):
         self._add_wide_embedding_column(wgt_fc, config)
       if self.is_deep(config):
@@ -412,8 +434,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     fc = feature_column.numeric_column(
         feature_name, shape=(1,), feature_name=feature_name)
     if self.is_wide(config):
@@ -427,8 +449,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else None
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else None
     assert len(config.input_names) >= 2
 
     if len(config.combo_join_sep) == 0:
@@ -442,12 +464,14 @@ class FeatureColumnParser(object):
           input_names,
           self._get_hash_bucket_size(config),
           hash_key=None,
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
     else:
       fc = feature_column.categorical_column_with_hash_bucket(
           feature_name,
           hash_bucket_size=self._get_hash_bucket_size(config),
-          feature_name=feature_name)
+          feature_name=feature_name,
+      )
 
     if self.is_wide(config):
       self._add_wide_embedding_column(fc, config)
@@ -460,8 +484,8 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     assert config.HasField('hash_bucket_size')
     hash_bucket_size = self._get_hash_bucket_size(config)
     fc = feature_column.categorical_column_with_hash_bucket(
@@ -481,11 +505,13 @@ class FeatureColumnParser(object):
     Args:
       config: instance of easy_rec.python.protos.feature_config_pb2.FeatureConfig
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     sub_feature_type = config.sub_feature_type
-    assert sub_feature_type in [config.IdFeature, config.RawFeature], \
-        'Current sub_feature_type only support IdFeature and RawFeature.'
+    assert sub_feature_type in [
+        config.IdFeature,
+        config.RawFeature,
+    ], 'Current sub_feature_type only support IdFeature and RawFeature.'
     if sub_feature_type == config.IdFeature:
       if config.HasField('hash_bucket_size'):
         hash_bucket_size = self._get_hash_bucket_size(config)
@@ -493,20 +519,23 @@ class FeatureColumnParser(object):
             feature_name,
             hash_bucket_size,
             dtype=tf.string,
-            feature_name=feature_name)
+            feature_name=feature_name,
+        )
       elif config.vocab_list:
         fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_list(
             feature_name,
             default_value=0,
             vocabulary_list=config.vocab_list,
-            feature_name=feature_name)
+            feature_name=feature_name,
+        )
       elif config.vocab_file:
         fc = sequence_feature_column.sequence_categorical_column_with_vocabulary_file(
             feature_name,
             default_value=0,
             vocabulary_file=config.vocab_file,
             vocabulary_size=self._get_vocab_size(config.vocab_file),
-            feature_name=feature_name)
+            feature_name=feature_name,
+        )
       else:
         use_ev = self._global_ev_params or config.HasField('ev_params')
         num_buckets = sys.maxsize if use_ev else config.num_buckets
@@ -514,15 +543,17 @@ class FeatureColumnParser(object):
             feature_name,
             num_buckets,
             default_value=0,
-            feature_name=feature_name)
+            feature_name=feature_name,
+        )
     else:  # raw feature
       bounds = None
       fc = sequence_feature_column.sequence_numeric_column(
           feature_name, shape=(1,), feature_name=feature_name)
       if config.hash_bucket_size > 0:
         hash_bucket_size = self._get_hash_bucket_size(config)
-        assert sub_feature_type == config.IdFeature, \
-            'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
+        assert (
+            sub_feature_type == config.IdFeature
+        ), 'You should set sub_feature_type to IdFeature to use hash_bucket_size.'
       elif config.boundaries:
         bounds = list(config.boundaries)
         bounds.sort()
@@ -548,11 +579,13 @@ class FeatureColumnParser(object):
               feature_name + '_raw_proj_id',
               config.raw_input_dim,
               default_value=0,
-              feature_name=feature_name)
+              feature_name=feature_name,
+          )
           wgt_fc = sequence_feature_column.sequence_weighted_categorical_column(
               tmp_id_col,
               weight_feature_key=feature_name + '_raw_proj_val',
-              dtype=tf.float32)
+              dtype=tf.float32,
+          )
           fc = wgt_fc
         else:
           fc = sequence_feature_column.sequence_numeric_column_with_raw_column(
@@ -599,8 +632,8 @@ class FeatureColumnParser(object):
     We use embedding to simulate wide column, which is more efficient than indicator column for
     sparse features
     """
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     assert self._wide_output_dim > 0, 'wide_output_dim is not set'
     if config.embedding_name in self._wide_share_embed_columns:
       wide_fc = self._add_shared_embedding_column(
@@ -619,13 +652,14 @@ class FeatureColumnParser(object):
           combiner='sum',
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          ev_params=ev_params)
+          ev_params=ev_params,
+      )
     self._wide_columns[feature_name] = wide_fc
 
   def _add_deep_embedding_column(self, fc, config):
     """Generate deep feature columns."""
-    feature_name = config.feature_name if config.HasField('feature_name') \
-        else config.input_names[0]
+    feature_name = config.feature_name if config.HasField(
+        'feature_name') else config.input_names[0]
     assert config.embedding_dim > 0, 'embedding_dim is not set for %s' % feature_name
     self._feature_vocab_size[feature_name] = fc.num_buckets
     if config.embedding_name in self._deep_share_embed_columns:
@@ -644,7 +678,8 @@ class FeatureColumnParser(object):
           combiner=config.combiner,
           initializer=initializer,
           partitioner=self._build_partitioner(config),
-          ev_params=ev_params)
+          ev_params=ev_params,
+      )
       fc.max_seq_length = config.max_seq_len if config.HasField(
           'max_seq_len') else -1
 
@@ -660,5 +695,8 @@ class FeatureColumnParser(object):
     ev_params = EVParams(
         ev_params.filter_freq,
         ev_params.steps_to_live if ev_params.steps_to_live > 0 else None,
-        ev_params.use_cache, ev_params.init_capacity, ev_params.max_capacity)
+        ev_params.use_cache,
+        ev_params.init_capacity,
+        ev_params.max_capacity,
+    )
     return ev_params

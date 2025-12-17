@@ -16,17 +16,25 @@ else:
 
 class CSVInput(Input):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(CSVInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(CSVInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     self._with_header = data_config.with_header
     self._field_names = None
 
@@ -43,25 +51,32 @@ class CSVInput(Input):
         if field_name in self._input_fields:
           tid = self._input_fields.index(field_name)
           record_defaults.append(
-              self.get_type_defaults(self._input_field_types[tid],
-                                     self._input_field_defaults[tid]))
+              self.get_type_defaults(
+                  self._input_field_types[tid],
+                  self._input_field_defaults[tid],
+              ))
         else:
           record_defaults.append('')
 
-    check_list = [
+    check_list = ([
         tf.py_func(
-            check_split, [
-                line, self._data_config.separator,
-                len(record_defaults), self._check_mode
+            check_split,
+            [
+                line,
+                self._data_config.separator,
+                len(record_defaults),
+                self._check_mode,
             ],
-            Tout=tf.bool)
-    ] if self._check_mode else []
+            Tout=tf.bool,
+        )
+    ] if self._check_mode else [])
     with tf.control_dependencies(check_list):
       fields = tf.decode_csv(
           line,
           field_delim=self._data_config.separator,
           record_defaults=record_defaults,
-          name='decode_csv')
+          name='decode_csv',
+      )
       if self._field_names is not None:
         fields = [
             fields[self._field_names.index(x)] for x in self._input_fields
@@ -121,7 +136,8 @@ class CSVInput(Input):
               x, compression_type=compression_type).skip(
                   int(self._with_header)),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
 
       if not self._data_config.file_shard:
         dataset = self._safe_shard(dataset)
@@ -130,7 +146,8 @@ class CSVInput(Input):
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     elif self._task_num > 1:  # For distribute evaluate
       dataset = tf.data.Dataset.from_tensor_slices(file_paths)
@@ -140,7 +157,8 @@ class CSVInput(Input):
               x, compression_type=compression_type).skip(
                   int(self._with_header)),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
       dataset = self._safe_shard(dataset)
       dataset = dataset.repeat(1)
     else:
@@ -153,7 +171,8 @@ class CSVInput(Input):
               x, compression_type=compression_type).skip(
                   int(self._with_header)),
           cycle_length=parallel_num,
-          num_parallel_calls=parallel_num)
+          num_parallel_calls=parallel_num,
+      )
       dataset = dataset.repeat(1)
 
     dataset = dataset.batch(self._data_config.batch_size)

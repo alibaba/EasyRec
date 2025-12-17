@@ -71,7 +71,6 @@ class DAG(object):
     if not graph:
       graph = self.graph
     for node, edges in graph.items():
-
       if node == old_task_name:
         graph[new_task_name] = copy(edges)
         del graph[old_task_name]

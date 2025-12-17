@@ -11,14 +11,16 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 
-def highway(x,
-            size=None,
-            activation=None,
-            num_layers=1,
-            scope='highway',
-            dropout=0.0,
-            init_gate_bias=-1.0,
-            reuse=None):
+def highway(
+    x,
+    size=None,
+    activation=None,
+    num_layers=1,
+    scope='highway',
+    dropout=0.0,
+    init_gate_bias=-1.0,
+    reuse=None,
+):
   if isinstance(activation, six.string_types):
     activation = get_activation(activation)
   with tf.variable_scope(scope, reuse):
@@ -35,7 +37,8 @@ def highway(x,
           activation=tf.sigmoid,
           bias_initializer=initializer,
           name='gate_%d' % i,
-          reuse=reuse)
+          reuse=reuse,
+      )
       H = tf.layers.dense(
           x, size, activation=activation, name='activation_%d' % i, reuse=reuse)
       if dropout > 0.0:
@@ -44,11 +47,13 @@ def highway(x,
     return x
 
 
-def text_cnn(x,
-             filter_sizes=(3, 4, 5),
-             num_filters=(128, 64, 64),
-             scope_name='textcnn',
-             reuse=False):
+def text_cnn(
+    x,
+    filter_sizes=(3, 4, 5),
+    num_filters=(128, 64, 64),
+    scope_name='textcnn',
+    reuse=False,
+):
   # x: None * step_dim * embed_dim
   assert len(filter_sizes) == len(num_filters)
   initializer = tf.variance_scaling_initializer()
@@ -67,7 +72,8 @@ def text_cnn(x,
           name='conv_layer',
           reuse=reuse,
           kernel_initializer=initializer,
-          padding='same')
+          padding='same',
+      )
       pool = tf.reduce_max(
           conv, axis=1)  # max pooling, shape: (batch_size, num_filters)
     pooled_outputs.append(pool)
@@ -83,7 +89,8 @@ def layer_norm(input_tensor, name=None, reuse=None):
       begin_norm_axis=-1,
       begin_params_axis=-1,
       reuse=reuse,
-      scope=name)
+      scope=name,
+  )
 
 
 class EnhancedInputLayer(object):

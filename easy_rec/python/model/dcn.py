@@ -22,8 +22,10 @@ class DCN(RankModel):
                is_training=False):
     super(DCN, self).__init__(model_config, feature_configs, features, labels,
                               is_training)
-    assert self._model_config.WhichOneof('model') == 'dcn', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'dcn', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.dcn
     assert isinstance(self._model_config, DCNConfig)
 

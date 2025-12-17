@@ -27,15 +27,14 @@ import collections
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import check_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import parsing_ops
-from tensorflow.python.ops import sparse_ops
 
 from easy_rec.python.compat.feature_column import feature_column as fc_v1
 from easy_rec.python.compat.feature_column import feature_column_v2 as fc
 from easy_rec.python.compat.feature_column import utils as fc_utils
+
+from tensorflow.python.ops import (  # NOQA
+    array_ops, check_ops, math_ops, parsing_ops, sparse_ops,
+)
 
 # pylint: disable=protected-access
 
@@ -96,7 +95,8 @@ class SequenceFeatures(fc._BaseFeaturesLayer):
         trainable=trainable,
         name=name,
         expected_column_type=fc.SequenceDenseColumn,
-        **kwargs)
+        **kwargs,
+    )
 
   def _target_shape(self, input_shape, total_elements):
     return (input_shape[0], input_shape[1], total_elements)
@@ -166,28 +166,33 @@ def concatenate_context_input(context_input, sequence_input):
       sequence_input,
       3,
       message='sequence_input must have rank 3',
-      data=[array_ops.shape(sequence_input)])
+      data=[array_ops.shape(sequence_input)],
+  )
   seq_type_check = check_ops.assert_type(
       sequence_input,
       dtypes.float32,
       message='sequence_input must have dtype float32; got {}.'.format(
-          sequence_input.dtype))
+          sequence_input.dtype),
+  )
   ctx_rank_check = check_ops.assert_rank(
       context_input,
       2,
       message='context_input must have rank 2',
-      data=[array_ops.shape(context_input)])
+      data=[array_ops.shape(context_input)],
+  )
   ctx_type_check = check_ops.assert_type(
       context_input,
       dtypes.float32,
       message='context_input must have dtype float32; got {}.'.format(
-          context_input.dtype))
+          context_input.dtype),
+  )
   with ops.control_dependencies(
       [seq_rank_check, seq_type_check, ctx_rank_check, ctx_type_check]):
     padded_length = array_ops.shape(sequence_input)[1]
     tiled_context_input = array_ops.tile(
         array_ops.expand_dims(context_input, 1),
-        array_ops.concat([[1], [padded_length], [1]], 0))
+        array_ops.concat([[1], [padded_length], [1]], 0),
+    )
   return array_ops.concat([sequence_input, tiled_context_input], 2)
 
 
@@ -239,7 +244,8 @@ def sequence_categorical_column_with_identity(key,
           feature_name=feature_name,
           key=key,
           num_buckets=num_buckets,
-          default_value=default_value))
+          default_value=default_value,
+      ))
 
 
 def sequence_numeric_column_with_bucketized_column(source_column, boundaries):
@@ -280,7 +286,8 @@ def sequence_weighted_categorical_column(categorical_column,
   return fc.SequenceWeightedCategoricalColumn(
       categorical_column=categorical_column,
       weight_feature_key=weight_feature_key,
-      dtype=dtype)
+      dtype=dtype,
+  )
 
 
 def sequence_categorical_column_with_hash_bucket(key,
@@ -328,16 +335,19 @@ def sequence_categorical_column_with_hash_bucket(key,
           feature_name=feature_name,
           key=key,
           hash_bucket_size=hash_bucket_size,
-          dtype=dtype))
+          dtype=dtype,
+      ))
 
 
-def sequence_categorical_column_with_vocabulary_file(key,
-                                                     vocabulary_file,
-                                                     vocabulary_size=None,
-                                                     num_oov_buckets=0,
-                                                     default_value=None,
-                                                     dtype=dtypes.string,
-                                                     feature_name=None):
+def sequence_categorical_column_with_vocabulary_file(
+    key,
+    vocabulary_file,
+    vocabulary_size=None,
+    num_oov_buckets=0,
+    default_value=None,
+    dtype=dtypes.string,
+    feature_name=None,
+):
   """A sequence of categorical terms where ids use a vocabulary file.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -397,15 +407,18 @@ def sequence_categorical_column_with_vocabulary_file(key,
           vocabulary_size=vocabulary_size,
           num_oov_buckets=num_oov_buckets,
           default_value=default_value,
-          dtype=dtype))
+          dtype=dtype,
+      ))
 
 
-def sequence_categorical_column_with_vocabulary_list(key,
-                                                     vocabulary_list,
-                                                     dtype=None,
-                                                     default_value=-1,
-                                                     num_oov_buckets=0,
-                                                     feature_name=None):
+def sequence_categorical_column_with_vocabulary_list(
+    key,
+    vocabulary_list,
+    dtype=None,
+    default_value=-1,
+    num_oov_buckets=0,
+    feature_name=None,
+):
   """A sequence of categorical terms where ids use an in-memory list.
 
   Pass this to `embedding_column` or `indicator_column` to convert sequence
@@ -463,15 +476,18 @@ def sequence_categorical_column_with_vocabulary_list(key,
           vocabulary_list=vocabulary_list,
           dtype=dtype,
           default_value=default_value,
-          num_oov_buckets=num_oov_buckets))
+          num_oov_buckets=num_oov_buckets,
+      ))
 
 
-def sequence_numeric_column(key,
-                            shape=(1,),
-                            default_value=0.,
-                            dtype=dtypes.float32,
-                            normalizer_fn=None,
-                            feature_name=None):
+def sequence_numeric_column(
+    key,
+    shape=(1,),
+    default_value=0.0,
+    dtype=dtypes.float32,
+    normalizer_fn=None,
+    feature_name=None,
+):
   """Returns a feature column that represents sequences of numeric data.
 
   Example:
@@ -526,7 +542,8 @@ def sequence_numeric_column(key,
       shape=shape,
       default_value=default_value,
       dtype=dtype,
-      normalizer_fn=normalizer_fn)
+      normalizer_fn=normalizer_fn,
+  )
 
 
 def _assert_all_equal_and_return(tensors, name=None):
@@ -542,10 +559,14 @@ def _assert_all_equal_and_return(tensors, name=None):
 
 
 class SequenceNumericColumn(
-    fc.SequenceDenseColumn, fc_v1._FeatureColumn,
-    collections.namedtuple('SequenceNumericColumn',
-                           ('feature_name', 'key', 'shape', 'default_value',
-                            'dtype', 'normalizer_fn'))):
+    fc.SequenceDenseColumn,
+    fc_v1._FeatureColumn,
+    collections.namedtuple(
+        'SequenceNumericColumn',
+        ('feature_name', 'key', 'shape', 'default_value', 'dtype',
+         'normalizer_fn'),
+    ),
+):
   """Represents sequences of numeric data."""
 
   @property

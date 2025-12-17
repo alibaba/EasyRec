@@ -21,18 +21,27 @@ from easy_rec.python.utils import conditional
 
 class ParquetInputV2(ParquetInput):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None,
-               **kwargs):
-    super(ParquetInputV2,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config, **kwargs)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+      **kwargs,
+  ):
+    super(ParquetInputV2, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+        **kwargs,
+    )
     self._need_pack = False
 
   def _predictor_preprocess(self, input_dict):
@@ -116,7 +125,10 @@ class ParquetInputV2(ParquetInput):
           else:
             if fc.raw_input_dim > 1:
               input_vals = array_ops.placeholder(
-                  dtypes.float32, [None, fc.raw_input_dim], name=input_name0)
+                  dtypes.float32,
+                  [None, fc.raw_input_dim],
+                  name=input_name0,
+              )
             else:
               input_vals = array_ops.placeholder(
                   dtypes.float32, [None], name=input_name0)
@@ -163,8 +175,11 @@ class ParquetInputV2(ParquetInput):
         else, return:
             tf.estimator.export.ServingInputReceiver instance
       """
-      if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
-                  tf.estimator.ModeKeys.PREDICT):
+      if mode in (
+          tf.estimator.ModeKeys.TRAIN,
+          tf.estimator.ModeKeys.EVAL,
+          tf.estimator.ModeKeys.PREDICT,
+      ):
         # build dataset from self._config.input_path
         self._mode = mode
         dataset = self._build(mode, params)

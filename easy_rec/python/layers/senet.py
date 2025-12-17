@@ -58,13 +58,15 @@ class SENet:
         units=reduction_size,
         kernel_regularizer=self._l2_reg,
         activation='relu',
-        name='%s/reduce' % self._name)
+        name='%s/reduce' % self._name,
+    )
 
     excited_weights = tf.layers.dense(
         inputs=reduced,
         units=emb_size,
         kernel_initializer='glorot_normal',
-        name='%s/excite' % self._name)
+        name='%s/excite' % self._name,
+    )
 
     # Re-weight
     inputs = tf.concat(inputs, axis=-1)

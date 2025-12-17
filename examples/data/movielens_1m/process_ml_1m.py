@@ -16,7 +16,8 @@ def process_data():
       header=None,
       names=users_title,
       engine='python',
-      encoding='ISO-8859-1')
+      encoding='ISO-8859-1',
+  )
   users = users.filter(regex='UserID|Gender|Age|JobID|ZipCode')
   # process the gender and age of user
   gender_map = {'F': 0, 'M': 1}
@@ -34,7 +35,8 @@ def process_data():
       header=None,
       names=movies_title,
       engine='python',
-      encoding='ISO-8859-1')
+      encoding='ISO-8859-1',
+  )
 
   # split the title and year in Feature:'Title'
   pattern = re.compile(r'^(.*)\((\d+)\)$')
@@ -59,7 +61,8 @@ def process_data():
       header=None,
       names=ratings_title,
       engine='python',
-      encoding='ISO-8859-1')
+      encoding='ISO-8859-1',
+  )
   ratings = ratings.filter(regex='UserID|MovieID|ratings')
   # ratings of 4 and 5 are viewed as positive samples [label:1]
   # ratings of 0, 1 and 2 are viewed as negative samples [label:0]

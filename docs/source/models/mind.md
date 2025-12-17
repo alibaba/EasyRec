@@ -129,7 +129,7 @@ model_config:{
 
 - time_id取值的方式可参考:
 
-  - 训练数据:  Math.round((2 * Math.log1p((labelTime - itemTime) / 60.) / Math.log(2.))) + 1
+  - 训练数据: Math.round((2 * Math.log1p((labelTime - itemTime) / 60.) / Math.log(2.))) + 1
   - inference: Math.round((2 * Math.log1p((currentTime - itemTime) / 60.) / Math.log(2.))) + 1
   - 此处的时间(labelTime, itemTime, currentTime) 为seconds
 

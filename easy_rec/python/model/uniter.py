@@ -30,9 +30,13 @@ class Uniter(RankModel):
     assert self._model_config.WhichOneof('model') == 'uniter', (
         'invalid model config: %s' % self._model_config.WhichOneof('model'))
 
-    self._uniter_layer = uniter.Uniter(model_config, feature_configs, features,
-                                       self._model_config.uniter.config,
-                                       self._input_layer)
+    self._uniter_layer = uniter.Uniter(
+        model_config,
+        feature_configs,
+        features,
+        self._model_config.uniter.config,
+        self._input_layer,
+    )
     self._model_config = self._model_config.uniter
 
   def build_predict_graph(self):

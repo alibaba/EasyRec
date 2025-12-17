@@ -55,7 +55,8 @@ class SENet(Layer):
         units=reduction_size,
         activation='relu',
         kernel_initializer='he_normal',
-        name='W1')
+        name='W1',
+    )
     self.excite_layer = Dense(
         units=emb_size, kernel_initializer='glorot_normal', name='W2')
     super(SENet, self).build(input_shape)  # Be sure to call this somewhere!

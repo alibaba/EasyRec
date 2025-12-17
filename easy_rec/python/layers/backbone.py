@@ -21,6 +21,7 @@ if tf.__version__ >= '2.0':
 
 class Package(object):
   """A sub DAG of tf ops for reuse."""
+
   __packages = {}
 
   @staticmethod
@@ -91,14 +92,21 @@ class Package(object):
             input_fn = self._input_layer.get_raw_features(self._features, group)
             input_feature_groups[group] = input_fn
           else:  # embedding_layer
-            inputs, vocab, weights = self._input_layer.get_bucketized_features(
+            (
+                inputs,
+                vocab,
+                weights,
+            ) = self._input_layer.get_bucketized_features(
                 self._features, group)
             block.embedding_layer.vocab_size = vocab
             params = Parameter.make_from_pb(block.embedding_layer)
             input_fn = EmbeddingLayer(params, block.name)
             input_feature_groups[group] = (inputs, vocab, weights)
-            logging.info('add an embedding layer %s with vocab size %d',
-                         block.name, vocab)
+            logging.info(
+                'add an embedding layer %s with vocab size %d',
+                block.name,
+                vocab,
+            )
           self._name_to_layer[block.name] = input_fn
       else:
         self.define_layers(layer, block, block.name, reuse)
@@ -364,11 +372,13 @@ class Package(object):
       has_reuse = True
       try:
         from funcsigs import signature
+
         sig = signature(layer_cls.__init__)
         has_reuse = 'reuse' in sig.parameters.keys()
       except ImportError:
         try:
           from sklearn.externals.funcsigs import signature
+
           sig = signature(layer_cls.__init__)
           has_reuse = 'reuse' in sig.parameters.keys()
         except ImportError:
@@ -536,6 +546,7 @@ def merge_inputs(inputs, axis=-1, msg=''):
     return inputs[0]
 
   from functools import reduce
+
   if all(map(lambda x: type(x) == list, inputs)):
     # merge multiple lists into a list
     return reduce(lambda x, y: x + y, inputs)

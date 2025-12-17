@@ -12,7 +12,7 @@
 
 #### 编写配置 [fg.json](https://easyrec.oss-cn-beijing.aliyuncs.com/rtp_fg/fg.json)
 
-- 包含了features配置和全局配置两个部分,  示例:
+- 包含了features配置和全局配置两个部分, 示例:
 
 ```json
 {
@@ -325,7 +325,7 @@ python -m easy_rec.python.tools.convert_rtp_fg  --label is_product_detail is_pur
 
 - --separator: feature之间的分隔符, 默认是CTRL_B(u0002)
 
-- --selected_cols: 指定输入列，包括label、\[sample_weight\]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型),  最后一列必须是features, 如:
+- --selected_cols: 指定输入列，包括label、\[sample_weight\]和features，其中label可以指定多列，表示要使用多个label(一般是多任务模型), 最后一列必须是features, 如:
 
   ```
   label0,label1,sample_weight,features

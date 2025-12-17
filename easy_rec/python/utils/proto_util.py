@@ -37,8 +37,8 @@ def get_norm_embed_name(name, verbose=False):
       if verbose:
         logging.info('norm %s to %s' % (name, tmp_name))
       return tmp_name, 0
-    if i > 1 and name_toks[i + 1].startswith('part_') and \
-       name_toks[i] == 'embedding_weights':
+    if i > 1 and name_toks[i + 1].startswith(
+        'part_') and name_toks[i] == 'embedding_weights':
       tmp_name = '/'.join(name_toks[:i])
       part_id = name_toks[i + 1].replace('part_', '')
       part_toks = part_id.split(':')
@@ -51,8 +51,8 @@ def get_norm_embed_name(name, verbose=False):
   # input_layer/app_category_embedding/app_category_embedding_weights/SparseReshape
   # => input_layer/app_category_embedding
   for i in range(0, len(name_toks) - 1):
-    if name_toks[i + 1].endswith('_embedding_weights') or \
-       '_embedding_weights_' in name_toks[i + 1]:
+    if name_toks[i + 1].endswith(
+        '_embedding_weights') or '_embedding_weights_' in name_toks[i + 1]:
       tmp_name = '/'.join(name_toks[:i + 1])
       if verbose:
         logging.info('norm %s to %s' % (name, tmp_name))

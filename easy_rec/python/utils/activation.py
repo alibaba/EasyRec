@@ -30,14 +30,16 @@ def dice(_x, axis=-1, epsilon=1e-9, name='dice', training=True):
       'alpha_' + name,
       _x.get_shape()[-1],
       initializer=tf.constant_initializer(0.0),
-      dtype=tf.float32)
+      dtype=tf.float32,
+  )
   inputs_normed = tf.layers.batch_normalization(
       inputs=_x,
       axis=axis,
       epsilon=epsilon,
       center=False,
       scale=False,
-      training=training)
+      training=training,
+  )
   x_p = tf.sigmoid(inputs_normed)
   return alphas * (1.0 - x_p) * _x + x_p * _x
 

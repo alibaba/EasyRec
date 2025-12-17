@@ -61,11 +61,12 @@ setup(
     include_package_data=True,
     classifiers=[
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 3'
+        'Programming Language :: Python :: 3',
     ],
     tests_require=parse_requirements('requirements/tests.txt'),
     install_requires=parse_requirements('requirements/runtime.txt'),
     extras_require={
         'all': parse_requirements('requirements.txt'),
         'tests': parse_requirements('requirements/tests.txt'),
-    })
+    },
+)

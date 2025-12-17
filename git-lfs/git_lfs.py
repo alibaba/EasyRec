@@ -13,7 +13,8 @@ blank_split = re.compile('[\t ]')
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s[%(lineno)d] : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 try:
   import oss2
@@ -49,11 +50,12 @@ def load_git_url():
       for line_str in fin:
         line_str = line_str.strip()
         line_json = json.loads(line_str)
-        git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
-                                                   line_json['remote_path'])
+        git_bin_url_map[line_json['leaf_path']] = (
+            line_json['sig'],
+            line_json['remote_path'],
+        )
   except Exception as ex:
     logging.warning('exception: %s' % str(ex))
-    pass
   return git_bin_url_map
 
 
@@ -64,7 +66,10 @@ def save_git_url(git_bin_url_map):
     for key in keys:
       val = git_bin_url_map[key]
       tmp_str = '{"leaf_path": "%s", "sig": "%s", "remote_path": "%s"}' % (
-          key, val[0], val[1])
+          key,
+          val[0],
+          val[1],
+      )
       fout.write('%s\n' % tmp_str)
 
 
@@ -118,7 +123,9 @@ def save_git_bin(git_arr):
       leaf_files.sort()
       # make sure that leaf_name is in front of leaf_file
       tmp_str = '{"leaf_name": "%s", "leaf_file": %s}' % (
-          leaf_path, json.dumps(leaf_files))
+          leaf_path,
+          json.dumps(leaf_files),
+      )
       fout.write('%s\n' % tmp_str)
 
 
@@ -424,7 +431,6 @@ if __name__ == '__main__':
       bin_file_map = load_git_bin()
     except Exception as ex:
       logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
-      pass
     leaf_dirs = list_leafs(add_path)
     any_new = False
     for leaf_path, leaf_files in leaf_dirs:
@@ -453,7 +459,6 @@ if __name__ == '__main__':
       bin_file_map = load_git_bin()
     except Exception as ex:
       logging.warning('load_git_bin exception: %s' % traceback.format_exc(ex))
-      pass
     leaf_dirs = list_leafs(del_path)
     any_update = False
     for leaf_path, leaf_files in leaf_dirs:
@@ -520,8 +525,10 @@ if __name__ == '__main__':
         elif merge_start in [0, 1, 2]:
           line_json = json.loads(line_str)
           if line_json['leaf_path'] in git_objs:
-            git_bin_url_map[line_json['leaf_path']] = (line_json['sig'],
-                                                       line_json['remote_path'])
+            git_bin_url_map[line_json['leaf_path']] = (
+                line_json['sig'],
+                line_json['remote_path'],
+            )
         else:
           logging.warning('invalid state: merge_start = %d, line_str = %s' %
                           (merge_start, line_str))

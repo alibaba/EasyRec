@@ -123,7 +123,7 @@ def kill_old_proc(tmp_dir, platform='pai'):
     # clear easy_rec_hpo yarn jobs
     yarn_job_file = os.path.join(tmp_dir, 'yarn_job.txt')
     os.system(
-        "yarn application -list | awk '{ if ($2 == \"easy_rec_hpo\") print $1 }' > %s"
+        'yarn application -list | awk \'{ if ($2 == "easy_rec_hpo") print $1 }\' > %s'
         % yarn_job_file)
     yarn_job_arr = []
     with open(yarn_job_file, 'r') as fin:

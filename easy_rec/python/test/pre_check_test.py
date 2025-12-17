@@ -29,7 +29,8 @@ class CheckTest(tf.test.TestCase):
     self._success = test_utils.test_single_train_eval(
         'samples/model_config/dbmtl_on_taobao.config',
         self._test_dir,
-        check_mode=True)
+        check_mode=True,
+    )
     self.assertTrue(self._success)
 
   def test_rtp_input_train_with_check(self):

@@ -11,32 +11,33 @@ from tensorflow.python.platform.gfile import GFile
 from tensorflow.python.saved_model import signature_constants
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
-from easy_rec.python.utils import conditional
-from easy_rec.python.utils import constant
-from easy_rec.python.utils import embedding_utils
-from easy_rec.python.utils import proto_util
+from easy_rec.python.utils import (  # NOQA
+    conditional, constant, embedding_utils, proto_util,
+)
 
 EMBEDDING_INITIALIZERS = 'embedding_initializers'
 
 
 class MetaGraphEditor:
 
-  def __init__(self,
-               lookup_lib_path,
-               saved_model_dir,
-               redis_url=None,
-               redis_passwd=None,
-               redis_timeout=0,
-               redis_cache_names=[],
-               oss_path=None,
-               oss_endpoint=None,
-               oss_ak=None,
-               oss_sk=None,
-               oss_timeout=0,
-               meta_graph_def=None,
-               norm_name_to_ids=None,
-               incr_update_params=None,
-               debug_dir=''):
+  def __init__(
+      self,
+      lookup_lib_path,
+      saved_model_dir,
+      redis_url=None,
+      redis_passwd=None,
+      redis_timeout=0,
+      redis_cache_names=[],
+      oss_path=None,
+      oss_endpoint=None,
+      oss_ak=None,
+      oss_sk=None,
+      oss_timeout=0,
+      meta_graph_def=None,
+      norm_name_to_ids=None,
+      incr_update_params=None,
+      debug_dir='',
+  ):
     self._lookup_op = tf.load_op_library(lookup_lib_path)
     self._debug_dir = debug_dir
     self._verbose = debug_dir != ''
@@ -49,6 +50,7 @@ class MetaGraphEditor:
       assert meta_graph_def, 'either saved_model_dir or meta_graph_def must be set'
       tf.reset_default_graph()
       from tensorflow.python.framework import meta_graph
+
       meta_graph.import_scoped_meta_graph_with_return_elements(
           meta_graph_def, clear_devices=True)
       # tf.train.import_meta_graph(meta_graph_def)
@@ -163,10 +165,14 @@ class MetaGraphEditor:
       embed_name_sub = '/'.join(tmp_toks)
       if tmp_name == embed_name_sub:
         assert not sel_embed_name, 'confusions encountered: %s %s' % (
-            x, ','.join(embed_names))
+            x,
+            ','.join(embed_names),
+        )
         sel_embed_name = embed_name
     assert sel_embed_name, '%s not find in shared_embeddings: %s' % (
-        tmp_name, ','.join(embed_names))
+        tmp_name,
+        ','.join(embed_names),
+    )
     return sel_embed_name
 
   def _find_embed_combiners(self, norm_embed_names):
@@ -182,7 +188,7 @@ class MetaGraphEditor:
     combiner_map = {
         'SparseSegmentSum': 'sum',
         'SparseSegmentMean': 'mean',
-        'SparseSegmentSqrtN': 'sqrtn'
+        'SparseSegmentSqrtN': 'sqrtn',
     }
     for node in self._meta_graph_def.graph_def.node:
       if node.op in combiner_map:
@@ -275,15 +281,15 @@ class MetaGraphEditor:
     embed_is_kv = {}
     for node in self._meta_graph_def.graph_def.node:
       if 'embedding_weights' in node.name and node.op in [
-          'VariableV2', 'KvVarHandleOp'
+          'VariableV2',
+          'KvVarHandleOp',
       ]:
         tmp = node.attr['shape'].shape.dim[-1].size
         tmp2 = 1
         for x in node.attr['shape'].shape.dim[:-1]:
           tmp2 = tmp2 * x.size
         embed_name, _ = proto_util.get_norm_embed_name(node.name, self._verbose)
-        assert embed_name is not None,\
-            'fail to get_norm_embed_name(%s)' % node.name
+        assert embed_name is not None, 'fail to get_norm_embed_name(%s)' % node.name
         embed_dims[embed_name] = tmp
         embed_sizes[embed_name] = tmp2
         embed_is_kv[embed_name] = 1 if node.op == 'KvVarHandleOp' else 0
@@ -345,8 +351,12 @@ class MetaGraphEditor:
     self._embed_combiners = self._find_embed_combiners(values.keys())
 
     # get embedding dimensions
-    self._embed_names, self._embed_dims, self._embed_sizes, self._embed_is_kv\
-        = self._find_embed_names_and_dims(values.keys())
+    (
+        self._embed_names,
+        self._embed_dims,
+        self._embed_sizes,
+        self._embed_is_kv,
+    ) = self._find_embed_names_and_dims(values.keys())
 
     if not self._embed_name_to_ids:
       embed_name_uniq = list(set(self._embed_names))
@@ -365,11 +375,20 @@ class MetaGraphEditor:
     # normalized feature names
     self._feature_names = list(values.keys())
 
-    return lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights
+    return (
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+    )
 
-  def add_lookup_op(self, lookup_input_indices, lookup_input_values,
-                    lookup_input_shapes, lookup_input_weights):
+  def add_lookup_op(
+      self,
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
+  ):
     logging.info('add custom lookup operation to lookup embeddings from redis')
     self._lookup_outs = [None for i in range(len(lookup_input_values))]
     for i in range(len(lookup_input_values)):
@@ -389,7 +408,8 @@ class MetaGraphEditor:
           embedding_dims=self._embed_dims[i:i_1],
           embedding_names=self._embed_ids[i:i_1],
           cache=self._is_cache_from_redis,
-          version=self._meta_graph_version)[0]
+          version=self._meta_graph_version,
+      )[0]
 
     meta_graph_def = tf.train.export_meta_graph()
 
@@ -401,8 +421,13 @@ class MetaGraphEditor:
                 self._meta_graph_def.graph_def, as_utf8=True))
     return meta_graph_def
 
-  def add_oss_lookup_op(self, lookup_input_indices, lookup_input_values,
-                        lookup_input_shapes, lookup_input_weights):
+  def add_oss_lookup_op(
+      self,
+      lookup_input_indices,
+      lookup_input_values,
+      lookup_input_shapes,
+      lookup_input_weights,
+  ):
     logging.info('add custom lookup operation to lookup embeddings from oss')
     place_on_cpu = os.getenv('place_embedding_on_cpu')
     place_on_cpu = eval(place_on_cpu) if place_on_cpu else False
@@ -445,7 +470,8 @@ class MetaGraphEditor:
         embedding_ids=self._embed_ids,
         embedding_is_kv=self._embed_is_kv,
         shared_name='embedding_lookup_res',
-        name='embedding_lookup_fused/lookup')
+        name='embedding_lookup_fused/lookup',
+    )
 
     N = np.max([int(x) for x in self._embed_ids]) + 1
     uniq_embed_ids = [x for x in range(N)]
@@ -470,7 +496,8 @@ class MetaGraphEditor:
         embedding_is_kv=uniq_embed_is_kvs,
         N=N,
         shared_name='embedding_lookup_res',
-        name='embedding_lookup_fused/init')
+        name='embedding_lookup_fused/init',
+    )
 
     ops.add_to_collection(EMBEDDING_INITIALIZERS, lookup_init_op)
 
@@ -480,7 +507,8 @@ class MetaGraphEditor:
       embedding_update = self._lookup_op.embedding_update(
           message=message_ph,
           shared_name='embedding_lookup_res',
-          name='embedding_lookup_fused/embedding_update')
+          name='embedding_lookup_fused/embedding_update',
+      )
       self._embedding_update_inputs['incr_update/sparse/message'] = message_ph
       self._embedding_update_outputs[
           'incr_update/sparse/embedding_update'] = embedding_update
@@ -539,8 +567,12 @@ class MetaGraphEditor:
     kept_ops = [
         x for x in meta_graph_def.meta_info_def.stripped_op_list.op
         if x.name not in [
-            'InitializeKvVariableOp', 'KvResourceGather', 'KvResourceImportV2',
-            'KvVarHandleOp', 'KvVarIsInitializedOp', 'ReadKvVariableOp'
+            'InitializeKvVariableOp',
+            'KvResourceGather',
+            'KvResourceImportV2',
+            'KvVarHandleOp',
+            'KvVarIsInitializedOp',
+            'ReadKvVariableOp',
         ]
     ]
     meta_graph_def.meta_info_def.stripped_op_list.ClearField('op')
@@ -667,8 +699,8 @@ class MetaGraphEditor:
     for tid, node in enumerate(self._all_graph_nodes):
       if not self._all_graph_node_flags[tid]:
         continue
-      if node.op == 'Assign' and 'save/Assign' in node.name and \
-         'embedding_weights' in node.input[0]:
+      if node.op == 'Assign' and 'save/Assign' in node.name and 'embedding_weights' in node.input[
+          0]:
         drop_save_assigns.append('^' + node.name)
         self._all_graph_node_flags[tid] = False
       elif 'embedding_weights/ConcatPartitions/concat' in node.name:
@@ -838,14 +870,20 @@ class MetaGraphEditor:
 
   def edit_graph(self):
     # the main entrance
-    lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights = self.find_lookup_inputs()
+    (
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+    ) = self.find_lookup_inputs()
 
     # add lookup op to the graph
-    self._meta_graph_def = self.add_lookup_op(lookup_input_indices,
-                                              lookup_input_values,
-                                              lookup_input_shapes,
-                                              lookup_input_weights)
+    self._meta_graph_def = self.add_lookup_op(
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+    )
 
     self.clear_meta_graph_embeding(self._meta_graph_def)
 
@@ -890,14 +928,20 @@ class MetaGraphEditor:
 
   def edit_graph_for_oss(self):
     # the main entrance
-    lookup_input_indices, lookup_input_values, lookup_input_shapes,\
-        lookup_input_weights = self.find_lookup_inputs()
+    (
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+    ) = self.find_lookup_inputs()
 
     # add lookup op to the graph
-    self._meta_graph_def = self.add_oss_lookup_op(lookup_input_indices,
-                                                  lookup_input_values,
-                                                  lookup_input_shapes,
-                                                  lookup_input_weights)
+    self._meta_graph_def = self.add_oss_lookup_op(
+        lookup_input_indices,
+        lookup_input_values,
+        lookup_input_shapes,
+        lookup_input_weights,
+    )
 
     self.clear_meta_graph_embeding(self._meta_graph_def)
 

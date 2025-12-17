@@ -20,7 +20,8 @@ if __name__ == '__main__':
       '--cluster',
       type=str,
       help='specify tensorflow train jobs cluster parameter',
-      default=None)
+      default=None,
+  )
   parser.add_argument('--bucket', type=str, help='oss bucket', default=None)
   parser.add_argument(
       '--hpo_param_path', type=str, help='hpo param path', default=None)
@@ -36,7 +37,8 @@ if __name__ == '__main__':
       '--algo_proj_name',
       type=str,
       help='algorithm project name',
-      default='algo_public')
+      default='algo_public',
+  )
   parser.add_argument(
       '--algo_res_proj', type=str, help='algo resource project', default=None)
   parser.add_argument(
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     else:
       fout.write('  -Dtrain_tables=%s\n' % args.train_tables)
       fout.write('  -Deval_tables=%s\n' % args.eval_tables)
-    fout.write('  -Dcluster=\'%s\'\n' % args.cluster)
+    fout.write("  -Dcluster='%s'\n" % args.cluster)
     fout.write('  -Darn=%s\n' % args.role_arn)
     fout.write('  -Dbuckets=%s\n' % args.bucket)
     fout.write('  -Dhpo_param_path=%s\n' % args.hpo_param_path)

@@ -15,8 +15,8 @@ class EmbedInputLayer(object):
     self._dump_dir = dump_dir
 
   def __call__(self, features, group_name):
-    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % \
-                                               ','.join([x for x in self._feature_groups])
+    assert group_name in self._feature_groups, 'invalid group_name[%s], list: %s' % ','.join(
+        [x for x in self._feature_groups])
     feature_group = self._feature_groups[group_name]
     group_features = []
     for feature_name in feature_group.feature_names:

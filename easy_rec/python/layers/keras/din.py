@@ -32,7 +32,11 @@ class DIN(Layer):
     if query_emb_size != seq_emb_size:
       logging.info(
           '<din> the embedding size of sequence [%d] and target item [%d] is not equal'
-          ' in feature group: %s', seq_emb_size, query_emb_size, self.name)
+          ' in feature group: %s',
+          seq_emb_size,
+          query_emb_size,
+          self.name,
+      )
       if query_emb_size < seq_emb_size:
         query = tf.pad(query, [[0, 0], [0, seq_emb_size - query_emb_size]])
       else:
@@ -47,7 +51,7 @@ class DIN(Layer):
 
     seq_mask = tf.sequence_mask(seq_len, max_seq_len, dtype=tf.bool)
     seq_mask = tf.expand_dims(seq_mask, 1)
-    paddings = tf.ones_like(scores) * (-2**32 + 1)
+    paddings = tf.ones_like(scores) * (-(2**32) + 1)
     scores = tf.where(seq_mask, scores, paddings)  # [B, 1, L]
     if self.config.attention_normalizer == 'softmax':
       scores = tf.nn.softmax(scores)  # (B, 1, L)

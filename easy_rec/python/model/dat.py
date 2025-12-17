@@ -23,8 +23,10 @@ class DAT(MatchModel):
                is_training=False):
     super(DAT, self).__init__(model_config, feature_configs, features, labels,
                               is_training)
-    assert self._model_config.WhichOneof('model') == 'dat', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'dat', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
 
     feature_group_names = [
         fg.group_name for fg in self._model_config.feature_groups
@@ -63,7 +65,8 @@ class DAT(MatchModel):
         inputs=user_tower_emb,
         units=last_user_hidden,
         kernel_regularizer=self._l2_reg,
-        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1))
+        name='user_dnn/dnn_%d' % (num_user_dnn_layer - 1),
+    )
 
     num_item_dnn_layer = len(self.item_tower.dnn.hidden_units)
     last_item_hidden = self.item_tower.dnn.hidden_units.pop()
@@ -77,7 +80,8 @@ class DAT(MatchModel):
         inputs=item_tower_emb,
         units=last_item_hidden,
         kernel_regularizer=self._l2_reg,
-        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1))
+        name='item_dnn/dnn_%d' % (num_item_dnn_layer - 1),
+    )
 
     user_tower_emb = self.norm(user_tower_emb)
     item_tower_emb = self.norm(item_tower_emb)
@@ -126,9 +130,16 @@ class DAT(MatchModel):
       self._prediction_dict['probs'] = tf.nn.sigmoid(
           self._prediction_dict['logits'])
       return [
-          'logits', 'probs', 'user_emb', 'item_emb', 'user_tower_emb',
-          'item_tower_emb', 'augmented_p_u', 'augmented_p_i', 'augmented_a_u',
-          'augmented_a_i'
+          'logits',
+          'probs',
+          'user_emb',
+          'item_emb',
+          'user_tower_emb',
+          'item_tower_emb',
+          'augmented_p_u',
+          'augmented_p_i',
+          'augmented_a_u',
+          'augmented_a_i',
       ]
     else:
       raise ValueError('invalid loss type: %s' % str(self._loss_type))

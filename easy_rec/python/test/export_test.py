@@ -28,13 +28,15 @@ class ExportTest(tf.test.TestCase):
     test_utils.set_gpu_id(None)
 
   @RunAsSubprocess
-  def _predict_and_check(self,
-                         data_path,
-                         saved_model_dir,
-                         cmp_result,
-                         keys=['probs'],
-                         separator=',',
-                         tol=1e-4):
+  def _predict_and_check(
+      self,
+      data_path,
+      saved_model_dir,
+      cmp_result,
+      keys=['probs'],
+      separator=',',
+      tol=1e-4,
+  ):
     predictor = Predictor(saved_model_dir)
     with open(data_path, 'r') as fin:
       inputs = []
@@ -51,9 +53,11 @@ class ExportTest(tf.test.TestCase):
         val0 = output_res[i][key]
         val1 = cmp_result[i][key]
         diff = np.max(np.abs(val0 - val1))
-        assert diff < tol, \
-            'too much difference: %.6f for %s, tol=%.6f' \
-            % (diff, key, tol)
+        assert diff < tol, 'too much difference: %.6f for %s, tol=%.6f' % (
+            diff,
+            key,
+            tol,
+        )
 
   def _extract_data(self, input_path, output_path, offset=1, separator=','):
     with open(input_path, 'r') as fin:
@@ -85,20 +89,23 @@ class ExportTest(tf.test.TestCase):
     self._export_test(
         'samples/model_config/mmoe_on_taobao.config',
         functools.partial(self._extract_data, offset=2),
-        keys=['probs_ctr', 'probs_cvr'])
+        keys=['probs_ctr', 'probs_cvr'],
+    )
 
   def test_fg(self):
     self._export_test(
         'samples/model_config/taobao_fg.config',
         self._extract_rtp_data,
-        separator='')
+        separator='',
+    )
 
   def test_fg_export(self):
     self._export_test(
         'samples/model_config/taobao_fg_export.config',
         self._extract_rtp_data,
         separator='',
-        test_multi=False)
+        test_multi=False,
+    )
 
   def test_export_with_asset(self):
     pipeline_config_path = 'samples/model_config/taobao_fg.config'
@@ -144,7 +151,11 @@ class ExportTest(tf.test.TestCase):
           --pipeline_config_path %s
           --checkpoint_path %s
           --export_dir %s
-      """ % (pipeline_config_path, ckpt_path, export_dir)
+      """ % (
+          pipeline_config_path,
+          ckpt_path,
+          export_dir,
+      )
       proc = test_utils.run_cmd(export_cmd,
                                 '%s/log_%s.txt' % (test_dir, 'export'))
       proc.wait()
@@ -155,20 +166,24 @@ class ExportTest(tf.test.TestCase):
         test_utils.test_single_train_eval(
             pipeline_config_path,
             test_dir=test_dir,
-            post_check_func=_post_check_func))
+            post_check_func=_post_check_func,
+        ))
 
   def test_multi_class_predict(self):
     self._export_test(
         'samples/model_config/deepfm_multi_cls_on_avazu_ctr.config',
         extract_data_func=self._extract_data,
-        keys=['probs', 'logits', 'probs_y', 'logits_y', 'y'])
+        keys=['probs', 'logits', 'probs_y', 'logits_y', 'y'],
+    )
 
-  def _export_test(self,
-                   pipeline_config_path,
-                   extract_data_func=None,
-                   separator=',',
-                   keys=['probs'],
-                   test_multi=True):
+  def _export_test(
+      self,
+      pipeline_config_path,
+      extract_data_func=None,
+      separator=',',
+      keys=['probs'],
+      test_multi=True,
+  ):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
 
@@ -184,9 +199,11 @@ class ExportTest(tf.test.TestCase):
     pipeline_config = config_util.get_configs_from_pipeline_file(
         config_path_single)
     if pipeline_config.export_config.multi_placeholder:
-      config_path_single, config_path_multi = config_path_multi, config_path_single
-    pipeline_config.export_config.multi_placeholder =\
-        not pipeline_config.export_config.multi_placeholder
+      config_path_single, config_path_multi = (
+          config_path_multi,
+          config_path_single,
+      )
+    pipeline_config.export_config.multi_placeholder = not pipeline_config.export_config.multi_placeholder
     config_util.save_pipeline_config(pipeline_config, test_dir,
                                      'pipeline_v2.config')
 
@@ -197,7 +214,10 @@ class ExportTest(tf.test.TestCase):
       python -m easy_rec.python.export
         --pipeline_config_path %s
         --export_dir %s
-    """ % (config_path_multi, export_dir_multi)
+    """ % (
+        config_path_multi,
+        export_dir_multi,
+    )
     proc = test_utils.run_cmd(export_cmd,
                               '%s/log_%s.txt' % (test_dir, 'export'))
     proc.wait()
@@ -209,7 +229,10 @@ class ExportTest(tf.test.TestCase):
       python -m easy_rec.python.predict
         --pipeline_config_path %s
         --output_path %s
-    """ % (config_path_single, result_path)
+    """ % (
+        config_path_single,
+        result_path,
+    )
     proc = test_utils.run_cmd(predict_cmd % (),
                               '%s/log_%s.txt' % (test_dir, 'predict'))
     proc.wait()
@@ -230,21 +253,25 @@ class ExportTest(tf.test.TestCase):
         export_dir_single,
         cmp_result,
         keys=keys,
-        separator=separator)
+        separator=separator,
+    )
     if test_multi:
       self._predict_and_check(
           test_data_path,
           export_dir_multi,
           cmp_result,
           keys=keys,
-          separator=separator)
+          separator=separator,
+      )
     test_utils.clean_up(test_dir)
 
-  def _test_big_model_export(self,
-                             pipeline_config_path,
-                             test_data_path,
-                             extract_data_func=None,
-                             total_steps=50):
+  def _test_big_model_export(
+      self,
+      pipeline_config_path,
+      test_data_path,
+      extract_data_func=None,
+      total_steps=50,
+  ):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
 
@@ -270,8 +297,13 @@ class ExportTest(tf.test.TestCase):
         --redis_threads 1
         --redis_write_kv 1
         --verbose 1
-    """ % (config_path, export_dir, test_data_path, os.environ['redis_url'],
-           os.environ['redis_passwd'])
+    """ % (
+        config_path,
+        export_dir,
+        test_data_path,
+        os.environ['redis_url'],
+        os.environ['redis_passwd'],
+    )
     proc = test_utils.run_cmd(export_cmd,
                               '%s/log_%s.txt' % (test_dir, 'export'))
     proc.wait()
@@ -288,7 +320,11 @@ class ExportTest(tf.test.TestCase):
         --pipeline_config_path %s
         --input_path %s
         --output_path %s
-    """ % (config_path, test_data_path, result_path)
+    """ % (
+        config_path,
+        test_data_path,
+        result_path,
+    )
     proc = test_utils.run_cmd(predict_cmd % (),
                               '%s/log_%s.txt' % (test_dir, 'predict'))
     proc.wait()
@@ -307,7 +343,8 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'redis_url' not in os.environ,
-      'Only execute when redis is available: redis_url, redis_passwd')
+      'Only execute when redis is available: redis_url, redis_passwd',
+  )
   def test_big_model_export(self):
     pipeline_config_path = 'samples/model_config/multi_tower_export.config'
     test_data_path = 'data/test/export/data.csv'
@@ -318,7 +355,8 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'redis_url' not in os.environ,
-      'Only execute when redis is available: redis_url, redis_passwd')
+      'Only execute when redis is available: redis_url, redis_passwd',
+  )
   def test_big_model_deepfm_export(self):
     pipeline_config_path = 'samples/model_config/deepfm_combo_on_avazu_ctr.config'
     test_data_path = 'data/test/dwd_avazu_ctr_deepmodel_10w.csv'
@@ -329,29 +367,33 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'redis_url' not in os.environ,
-      'Only execute when redis is available: redis_url, redis_passwd')
+      'Only execute when redis is available: redis_url, redis_passwd',
+  )
   def test_big_model_din_export(self):
     pipeline_config_path = 'samples/model_config/din_on_taobao.config'
     test_data_path = 'data/test/tb_data/taobao_test_data'
     self._test_big_model_export(
         pipeline_config_path,
         test_data_path,
-        extract_data_func=functools.partial(self._extract_data, offset=2))
+        extract_data_func=functools.partial(self._extract_data, offset=2),
+    )
 
   @unittest.skipIf(
       'redis_url' not in os.environ,
-      'Only execute when redis is available: redis_url, redis_passwd')
+      'Only execute when redis is available: redis_url, redis_passwd',
+  )
   def test_big_model_wide_and_deep_export(self):
     pipeline_config_path = 'samples/model_config/wide_and_deep_two_opti.config'
     test_data_path = 'data/test/dwd_avazu_ctr_deepmodel_10w.csv'
     self._test_big_model_export(
         pipeline_config_path,
         test_data_path,
-        extract_data_func=functools.partial(self._extract_data))
+        extract_data_func=functools.partial(self._extract_data),
+    )
 
   @unittest.skipIf(
       'redis_url' not in os.environ or '-PAI' not in tf.__version__,
-      'Only execute when pai-tf and redis is available: redis_url, redis_passwd'
+      'Only execute when pai-tf and redis is available: redis_url, redis_passwd',
   )
   def test_big_model_embedding_variable_export(self):
     pipeline_config_path = 'samples/model_config/taobao_fg_ev.config'
@@ -360,14 +402,16 @@ class ExportTest(tf.test.TestCase):
         pipeline_config_path,
         test_data_path,
         self._extract_rtp_data,
-        total_steps=1000)
+        total_steps=1000,
+    )
 
   @unittest.skipIf(
       'oss_endpoint' not in os.environ or 'oss_ak' not in os.environ or
       'oss_sk' not in os.environ or 'oss_path' not in os.environ or
       '-PAI' not in tf.__version__,
       'Only execute oss params(oss_endpoint,oss_ak,oss_sk) are specified,'
-      'and pai-tf is available.')
+      'and pai-tf is available.',
+  )
   def test_big_model_embedding_variable_oss_export(self):
     pipeline_config_path = 'samples/model_config/taobao_fg_ev.config'
     test_data_path = 'data/test/rtp/taobao_valid_feature.txt'
@@ -375,14 +419,16 @@ class ExportTest(tf.test.TestCase):
         pipeline_config_path,
         test_data_path,
         self._extract_rtp_data,
-        total_steps=100)
+        total_steps=100,
+    )
 
   @unittest.skipIf(
       'oss_endpoint' not in os.environ or 'oss_ak' not in os.environ or
       'oss_sk' not in os.environ or 'oss_path' not in os.environ or
       '-PAI' not in tf.__version__,
       'Only execute oss params(oss_endpoint,oss_ak,oss_sk) are specified,'
-      'and pai-tf is available.')
+      'and pai-tf is available.',
+  )
   def test_big_model_embedding_variable_v2_oss_export(self):
     pipeline_config_path = 'samples/model_config/taobao_fg_ev_v2.config'
     test_data_path = 'data/test/rtp/taobao_valid_feature.txt'
@@ -390,13 +436,16 @@ class ExportTest(tf.test.TestCase):
         pipeline_config_path,
         test_data_path,
         self._extract_rtp_data,
-        total_steps=100)
+        total_steps=100,
+    )
 
-  def _test_big_model_export_to_oss(self,
-                                    pipeline_config_path,
-                                    test_data_path,
-                                    extract_data_func=None,
-                                    total_steps=50):
+  def _test_big_model_export_to_oss(
+      self,
+      pipeline_config_path,
+      test_data_path,
+      extract_data_func=None,
+      total_steps=50,
+  ):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
 
@@ -424,9 +473,15 @@ class ExportTest(tf.test.TestCase):
         --oss_timeout 10
         --oss_write_kv 1
         --verbose 1
-    """ % (config_path, export_dir, test_data_path, os.environ['oss_path'],
-           os.environ['oss_endpoint'], os.environ['oss_ak'],
-           os.environ['oss_sk'])
+    """ % (
+        config_path,
+        export_dir,
+        test_data_path,
+        os.environ['oss_path'],
+        os.environ['oss_endpoint'],
+        os.environ['oss_ak'],
+        os.environ['oss_sk'],
+    )
     proc = test_utils.run_cmd(export_cmd,
                               '%s/log_%s.txt' % (test_dir, 'export'))
     proc.wait()
@@ -443,7 +498,11 @@ class ExportTest(tf.test.TestCase):
         --pipeline_config_path %s
         --input_path %s
         --output_path %s
-    """ % (config_path, test_data_path, result_path)
+    """ % (
+        config_path,
+        test_data_path,
+        result_path,
+    )
     proc = test_utils.run_cmd(predict_cmd,
                               '%s/log_%s.txt' % (test_dir, 'predict'))
     proc.wait()
@@ -462,7 +521,7 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'oss_path' not in os.environ,
-      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk'
+      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk',
   )
   def test_big_model_export_to_oss(self):
     pipeline_config_path = 'samples/model_config/multi_tower_export.config'
@@ -474,7 +533,7 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'oss_path' not in os.environ,
-      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk'
+      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk',
   )
   def test_big_model_deepfm_export_to_oss(self):
     pipeline_config_path = 'samples/model_config/deepfm_combo_on_avazu_ctr.config'
@@ -486,7 +545,7 @@ class ExportTest(tf.test.TestCase):
 
   @unittest.skipIf(
       'oss_path' not in os.environ,
-      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk'
+      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk',
   )
   def test_big_model_din_export_to_oss(self):
     pipeline_config_path = 'samples/model_config/din_on_taobao.config'
@@ -494,11 +553,12 @@ class ExportTest(tf.test.TestCase):
     self._test_big_model_export_to_oss(
         pipeline_config_path,
         test_data_path,
-        extract_data_func=functools.partial(self._extract_data, offset=2))
+        extract_data_func=functools.partial(self._extract_data, offset=2),
+    )
 
   @unittest.skipIf(
       'oss_path' not in os.environ,
-      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk'
+      'Only execute when oss is available: oss_path, oss_endpoint, oss_ak, oss_sk',
   )
   def test_big_model_wide_and_deep_export_to_oss(self):
     pipeline_config_path = 'samples/model_config/wide_and_deep_two_opti.config'
@@ -506,7 +566,8 @@ class ExportTest(tf.test.TestCase):
     self._test_big_model_export_to_oss(
         pipeline_config_path,
         test_data_path,
-        extract_data_func=functools.partial(self._extract_data))
+        extract_data_func=functools.partial(self._extract_data),
+    )
 
 
 if __name__ == '__main__':

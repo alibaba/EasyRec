@@ -24,8 +24,10 @@ class ESMM(MultiTaskModel):
                is_training=False):
     super(ESMM, self).__init__(model_config, feature_configs, features, labels,
                                is_training)
-    assert self._model_config.WhichOneof('model') == 'esmm', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'esmm', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.esmm
     assert isinstance(self._model_config, ESMMConfig)
 
@@ -50,8 +52,7 @@ class ESMM(MultiTaskModel):
     self._ctr_tower_cfg = self._model_config.ctr_tower
     self._init_towers([self._cvr_tower_cfg, self._ctr_tower_cfg])
 
-    assert self._model_config.ctr_tower.loss_type == LossType.CLASSIFICATION, \
-        'ctr tower must be binary classification.'
+    assert self._model_config.ctr_tower.loss_type == LossType.CLASSIFICATION, 'ctr tower must be binary classification.'
     for task_tower_cfg in self._task_towers:
       assert task_tower_cfg.num_class == 1, 'Does not support multiclass classification problem'
 
@@ -84,7 +85,8 @@ class ESMM(MultiTaskModel):
       cvr_loss = tf.losses.mean_squared_error(
           labels=ctcvr_label,
           predictions=self._prediction_dict['y_ctcvr'],
-          weights=self._sample_weight)
+          weights=self._sample_weight,
+      )
       self._loss_dict['weighted_l2_loss_%s' %
                       cvr_tower_name] = self._cvr_tower_cfg.weight * cvr_loss
     _labels = tf.cast(self._labels[ctr_label_name], tf.float32)
@@ -123,7 +125,8 @@ class ESMM(MultiTaskModel):
               loss_type=self._cvr_tower_cfg.loss_type,
               label_name=ctcvr_label_name,
               num_class=self._cvr_tower_cfg.num_class,
-              suffix='_ctcvr'))
+              suffix='_ctcvr',
+          ))
 
       # CVR metric
       cvr_label_masked_name = cvr_label_name + '_masked'
@@ -140,7 +143,8 @@ class ESMM(MultiTaskModel):
               loss_type=self._cvr_tower_cfg.loss_type,
               label_name=cvr_label_masked_name,
               num_class=self._cvr_tower_cfg.num_class,
-              suffix='_%s_masked' % cvr_tower_name))
+              suffix='_%s_masked' % cvr_tower_name,
+          ))
 
     for metric in self._ctr_tower_cfg.metrics_set:
       # CTR metric
@@ -150,7 +154,8 @@ class ESMM(MultiTaskModel):
               loss_type=self._ctr_tower_cfg.loss_type,
               label_name=ctr_label_name,
               num_class=self._ctr_tower_cfg.num_class,
-              suffix='_%s' % ctr_tower_name))
+              suffix='_%s' % ctr_tower_name,
+          ))
     return metric_dict
 
   def _add_to_prediction_dict(self, output):
@@ -158,14 +163,16 @@ class ESMM(MultiTaskModel):
     if self._cvr_tower_cfg.loss_type == LossType.CLASSIFICATION:
       prob = tf.multiply(
           self._prediction_dict['probs_%s' % self._cvr_tower_cfg.tower_name],
-          self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name])
+          self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name],
+      )
       # pctcvr = pctr * pcvr
       self._prediction_dict['probs_ctcvr'] = prob
 
     else:
       prob = tf.multiply(
           self._prediction_dict['y_%s' % self._cvr_tower_cfg.tower_name],
-          self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name])
+          self._prediction_dict['probs_%s' % self._ctr_tower_cfg.tower_name],
+      )
       # pctcvr = pctr * pcvr
       self._prediction_dict['y_ctcvr'] = prob
 
@@ -197,30 +204,34 @@ class ESMM(MultiTaskModel):
         self._cvr_tower_cfg.dnn,
         self._l2_reg,
         name=cvr_tower_name,
-        is_training=self._is_training)
+        is_training=self._is_training,
+    )
     cvr_tower_output = dnn_model(all_fea)
     cvr_tower_output = tf.layers.dense(
         inputs=cvr_tower_output,
         units=1,
         kernel_regularizer=self._l2_reg,
-        name='%s/dnn_output' % cvr_tower_name)
+        name='%s/dnn_output' % cvr_tower_name,
+    )
 
     ctr_tower_name = self._ctr_tower_cfg.tower_name
     dnn_model = dnn.DNN(
         self._ctr_tower_cfg.dnn,
         self._l2_reg,
         name=ctr_tower_name,
-        is_training=self._is_training)
+        is_training=self._is_training,
+    )
     ctr_tower_output = dnn_model(all_fea)
     ctr_tower_output = tf.layers.dense(
         inputs=ctr_tower_output,
         units=1,
         kernel_regularizer=self._l2_reg,
-        name='%s/dnn_output' % ctr_tower_name)
+        name='%s/dnn_output' % ctr_tower_name,
+    )
 
     tower_outputs = {
         cvr_tower_name: cvr_tower_output,
-        ctr_tower_name: ctr_tower_output
+        ctr_tower_name: ctr_tower_output,
     }
     self._add_to_prediction_dict(tower_outputs)
     return self._prediction_dict

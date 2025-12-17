@@ -29,9 +29,10 @@ class MultiTowerDIN(RankModel):
         feature_configs,
         model_config.seq_att_groups,
         embedding_regularizer=self._emb_reg,
-        ev_params=self._global_ev_params)
-    assert self._model_config.WhichOneof('model') == 'multi_tower', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+        ev_params=self._global_ev_params,
+    )
+    assert self._model_config.WhichOneof('model') == 'multi_tower', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.multi_tower
     assert isinstance(self._model_config, MultiTowerConfig)
 
@@ -60,8 +61,11 @@ class MultiTowerDIN(RankModel):
       self._din_tower_features.append(tower_feature)
 
   def din(self, dnn_config, deep_fea, name):
-    cur_id, hist_id_col, seq_len = deep_fea['key'], deep_fea[
-        'hist_seq_emb'], deep_fea['hist_seq_len']
+    cur_id, hist_id_col, seq_len = (
+        deep_fea['key'],
+        deep_fea['hist_seq_emb'],
+        deep_fea['hist_seq_len'],
+    )
 
     seq_max_len = tf.shape(hist_id_col)[1]
     emb_dim = hist_id_col.shape[2]
@@ -72,7 +76,8 @@ class MultiTowerDIN(RankModel):
 
     din_net = tf.concat(
         [cur_ids, hist_id_col, cur_ids - hist_id_col, cur_ids * hist_id_col],
-        axis=-1)  # (B, seq_max_len, emb_dim*4)
+        axis=-1,
+    )  # (B, seq_max_len, emb_dim*4)
 
     din_layer = dnn.DNN(
         dnn_config,
@@ -80,13 +85,14 @@ class MultiTowerDIN(RankModel):
         name,
         self._is_training,
         last_layer_no_activation=True,
-        last_layer_no_batch_norm=True)
+        last_layer_no_batch_norm=True,
+    )
     din_net = din_layer(din_net)
     scores = tf.reshape(din_net, [-1, 1, seq_max_len])  # (B, 1, ?)
 
     seq_len = tf.expand_dims(seq_len, 1)
     mask = tf.sequence_mask(seq_len)
-    padding = tf.ones_like(scores) * (-2**32 + 1)
+    padding = tf.ones_like(scores) * (-(2**32) + 1)
     scores = tf.where(mask, scores, padding)  # [B, 1, seq_max_len]
 
     # Scale
@@ -106,7 +112,8 @@ class MultiTowerDIN(RankModel):
           tower_fea,
           training=self._is_training,
           trainable=True,
-          name='%s_fea_bn' % tower_name)
+          name='%s_fea_bn' % tower_name,
+      )
       dnn_layer = dnn.DNN(tower.dnn, self._l2_reg, '%s_dnn' % tower_name,
                           self._is_training)
       tower_fea = dnn_layer(tower_fea)

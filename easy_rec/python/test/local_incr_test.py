@@ -30,7 +30,9 @@ class LocalIncrTest(tf.test.TestCase):
   @unittest.skipIf(
       'oss_path' not in os.environ or
       'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
-      'oss_sk' not in os.environ, 'Only execute when kafka is available')
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
+  )
   def test_incr_save(self):
     self._test_incr_save(
         'samples/model_config/taobao_fg_incr_save_local.config')
@@ -38,7 +40,9 @@ class LocalIncrTest(tf.test.TestCase):
   @unittest.skipIf(
       'oss_path' not in os.environ or
       'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
-      'oss_sk' not in os.environ, 'Only execute when kafka is available')
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
+  )
   def test_incr_save_ev(self):
     self._test_incr_save(
         'samples/model_config/taobao_fg_incr_save_ev_local.config')
@@ -46,7 +50,9 @@ class LocalIncrTest(tf.test.TestCase):
   @unittest.skipIf(
       'oss_path' not in os.environ or
       'oss_endpoint' not in os.environ and 'oss_ak' not in os.environ or
-      'oss_sk' not in os.environ, 'Only execute when kafka is available')
+      'oss_sk' not in os.environ,
+      'Only execute when kafka is available',
+  )
   def test_incr_save_share_ev(self):
     self._test_incr_save(
         'samples/model_config/taobao_fg_incr_save_share_ev_local.config')
@@ -60,16 +66,23 @@ class LocalIncrTest(tf.test.TestCase):
         edit_config_json={
             'train_config.incr_save_config.fs.mount_path':
                 os.path.join(self._test_dir, 'train/incr_save/')
-        })
+        },
+    )
     self.assertTrue(success)
     export_cmd = """
        python -m easy_rec.python.export --pipeline_config_path %s/pipeline.config
            --export_dir %s/export/sep/ --oss_path=%s --oss_ak=%s --oss_sk=%s --oss_endpoint=%s
            --asset_files ./samples/rtp_fg/fg.json
            --checkpoint_path %s/train/model.ckpt-0
-    """ % (self._test_dir, self._test_dir, os.environ['oss_path'],
-           os.environ['oss_ak'], os.environ['oss_sk'],
-           os.environ['oss_endpoint'], self._test_dir)
+    """ % (
+        self._test_dir,
+        self._test_dir,
+        os.environ['oss_path'],
+        os.environ['oss_ak'],
+        os.environ['oss_sk'],
+        os.environ['oss_endpoint'],
+        self._test_dir,
+    )
     proc = test_utils.run_cmd(export_cmd,
                               '%s/log_export_sep.txt' % self._test_dir)
     proc.wait()
@@ -81,7 +94,11 @@ class LocalIncrTest(tf.test.TestCase):
         python -m easy_rec.python.inference.processor.test --saved_model_dir %s
            --input_path data/test/rtp/taobao_test_feature.txt
            --output_path %s/processor.out  --test_dir %s
-     """ % (export_sep_dir, self._test_dir, self._test_dir)
+     """ % (
+        export_sep_dir,
+        self._test_dir,
+        self._test_dir,
+    )
     envs = dict(os.environ)
     envs['PROCESSOR_TEST'] = '1'
     proc = test_utils.run_cmd(

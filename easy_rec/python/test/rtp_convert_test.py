@@ -22,7 +22,7 @@ class RTPConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'fg_multi_tower.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.convert_rtp_fg
         --rtp_fg samples/rtp_fg/fg.json
         --label clk
@@ -32,7 +32,7 @@ class RTPConvertTest(tf.test.TestCase):
         --train_input_path data/test/rtp/taobao_train_feature.txt
         --eval_input_path data/test/rtp/taobao_test_feature.txt
         --selected_cols 0,3 --num_steps 400
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()
@@ -46,7 +46,7 @@ class RTPConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'fg_multi_tower.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.convert_rtp_fg
         --rtp_fg samples/rtp_fg/fg_bucketize.json
         --label clk
@@ -56,7 +56,7 @@ class RTPConvertTest(tf.test.TestCase):
         --train_input_path data/test/rtp/taobao_train_bucketize_feature.txt
         --eval_input_path data/test/rtp/taobao_test_bucketize_feature.txt
         --selected_cols 0,3 --num_steps 400
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()
@@ -70,7 +70,7 @@ class RTPConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'fg_multi_tower.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.convert_rtp_fg
         --rtp_fg samples/rtp_fg/fg_bucketize_v2.json
         --label clk
@@ -80,7 +80,7 @@ class RTPConvertTest(tf.test.TestCase):
         --train_input_path data/test/rtp/taobao_train_feature.txt
         --eval_input_path data/test/rtp/taobao_test_feature.txt
         --selected_cols 0,3 --num_steps 400
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()
@@ -101,7 +101,7 @@ class RTPConvertTest(tf.test.TestCase):
     test_dir = test_utils.get_tmp_dir()
     logging.info('test dir: %s' % test_dir)
     pipeline_config_path = os.path.join(test_dir, 'fg_wide_and_deep.config')
-    convert_cmd = """
+    convert_cmd = ("""
       python -m easy_rec.python.tools.convert_rtp_fg
         --rtp_fg samples/rtp_fg/fg_bucketize_model_config.json
         --label clk
@@ -110,7 +110,7 @@ class RTPConvertTest(tf.test.TestCase):
         --train_input_path data/test/rtp/taobao_train_feature.txt
         --eval_input_path data/test/rtp/taobao_test_feature.txt
         --selected_cols 0,3 --num_steps 400
-    """ % pipeline_config_path
+    """ % pipeline_config_path)
     proc = test_utils.run_cmd(convert_cmd,
                               '%s/log_%s.txt' % (test_dir, 'convert'))
     proc.wait()

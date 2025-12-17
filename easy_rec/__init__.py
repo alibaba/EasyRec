@@ -18,11 +18,13 @@ logging.basicConfig(
 # Avoid import tensorflow which conflicts with the version used in EasyRecProcessor
 if 'PROCESSOR_TEST' not in os.environ:
   from tensorflow.python.platform import tf_logging
+
   # In DeepRec, logger.propagate of tf_logging is False, should be True
   tf_logging._logger.propagate = True
 
   def get_ops_dir():
     import tensorflow as tf
+
     if platform.system() == 'Linux':
       ops_dir = os.path.join(curr_dir, 'python/ops')
       if 'PAI' in tf.__version__:
@@ -47,7 +49,8 @@ if 'PROCESSOR_TEST' not in os.environ:
     logging.warning('ops_dir[%s] does not exist' % ops_dir)
     ops_dir = None
 
-  from easy_rec.python.inference.predictor import Predictor  # isort:skip  # noqa: E402
+  from easy_rec.python.inference.predictor import (  # isort:skip  # noqa: E402
+      Predictor,)
   from easy_rec.python.main import evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import distribute_evaluate  # isort:skip  # noqa: E402
   from easy_rec.python.main import export  # isort:skip  # noqa: E402

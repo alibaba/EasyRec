@@ -13,6 +13,7 @@
 # limitations under the License.
 # =============================================================================
 """Evaluation of Top k hitrate."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -22,9 +23,10 @@ import sys
 import tensorflow as tf
 
 from easy_rec.python.utils import io_util
-from easy_rec.python.utils.hit_rate_utils import compute_hitrate_batch
-from easy_rec.python.utils.hit_rate_utils import load_graph
-from easy_rec.python.utils.hit_rate_utils import reduce_hitrate
+
+from easy_rec.python.utils.hit_rate_utils import (  # NOQA
+    compute_hitrate_batch, load_graph, reduce_hitrate,
+)
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -62,8 +64,17 @@ def compute_hitrate(g, gt_reader, hitrate_writer):
   while True:
     try:
       gt_record = gt_reader.read(FLAGS.batch_size)
-      hits, gt_count, src_ids, recall_ids, recall_distances, hitrates, bad_cases, bad_dists = \
-          compute_hitrate_batch(g, gt_record, FLAGS.emb_dim, FLAGS.num_interests, FLAGS.top_k)
+      (
+          hits,
+          gt_count,
+          src_ids,
+          recall_ids,
+          recall_distances,
+          hitrates,
+          bad_cases,
+          bad_dists,
+      ) = compute_hitrate_batch(g, gt_record, FLAGS.emb_dim,
+                                FLAGS.num_interests, FLAGS.top_k)
       total_hits += hits
       total_gt_count += gt_count
       topk_recalls = [','.join(str(x) for x in ids) for ids in recall_ids]
@@ -75,9 +86,16 @@ def compute_hitrate(g, gt_reader, hitrate_writer):
 
       hitrate_writer.write(
           list(
-              zip(src_ids, topk_recalls, topk_dists, hitrates, bad_cases,
-                  bad_dists)),
-          indices=[0, 1, 2, 3, 4, 5])
+              zip(
+                  src_ids,
+                  topk_recalls,
+                  topk_dists,
+                  hitrates,
+                  bad_cases,
+                  bad_dists,
+              )),
+          indices=[0, 1, 2, 3, 4, 5],
+      )
     except tf.python_io.OutOfRangeException:
       break
   return total_hits, total_gt_count
@@ -88,12 +106,22 @@ def main():
   input_tables = FLAGS.tables.split(',')
   if FLAGS.recall_type == 'u2i':
     i_emb_table, gt_table = input_tables
-    g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout,
-                   FLAGS.knn_strict)
+    g = load_graph(
+        i_emb_table,
+        FLAGS.emb_dim,
+        FLAGS.knn_metric,
+        FLAGS.timeout,
+        FLAGS.knn_strict,
+    )
   else:
     i_emb_table, gt_table = input_tables[-2], input_tables[-1]
-    g = load_graph(i_emb_table, FLAGS.emb_dim, FLAGS.knn_metric, FLAGS.timeout,
-                   FLAGS.knn_strict)
+    g = load_graph(
+        i_emb_table,
+        FLAGS.emb_dim,
+        FLAGS.knn_metric,
+        FLAGS.timeout,
+        FLAGS.knn_strict,
+    )
   hitrate_details_table, total_hitrate_table = FLAGS.outputs.split(',')
 
   cluster = tf.train.ClusterSpec({

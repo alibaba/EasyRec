@@ -18,14 +18,16 @@ from easy_rec.python.utils import config_util
 from easy_rec.python.utils import numpy_utils
 from easy_rec.python.utils.hive_utils import HiveUtils
 
-from easy_rec.python.inference.hive_parquet_predictor import HiveParquetPredictor  # NOQA
+from easy_rec.python.inference.hive_parquet_predictor import (  # NOQA
+    HiveParquetPredictor,)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 
 tf.app.flags.DEFINE_string('input_path', None, 'predict data path')
 tf.app.flags.DEFINE_string('output_path', None, 'path to save predict result')
@@ -37,19 +39,26 @@ tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'Path to pipeline config '
                            'file.')
 tf.app.flags.DEFINE_string(
-    'checkpoint_path', None, 'checkpoint to be evaled '
+    'checkpoint_path',
+    None,
+    'checkpoint to be evaled '
     ' if not specified, use the latest checkpoint in '
-    'train_config.model_dir')
+    'train_config.model_dir',
+)
 tf.app.flags.DEFINE_string('model_dir', None, help='will update the model_dir')
 
 # predict by saved_model
 tf.app.flags.DEFINE_string('saved_model_dir', None, help='save model dir')
 tf.app.flags.DEFINE_string(
-    'reserved_cols', 'ALL_COLUMNS',
-    'columns to keep from input table,  they are separated with ,')
+    'reserved_cols',
+    'ALL_COLUMNS',
+    'columns to keep from input table,  they are separated with ,',
+)
 tf.app.flags.DEFINE_string(
-    'output_cols', 'ALL_COLUMNS',
-    'output columns, such as: score float. multiple columns are separated by ,')
+    'output_cols',
+    'ALL_COLUMNS',
+    'output columns, such as: score float. multiple columns are separated by ,',
+)
 tf.app.flags.DEFINE_string('output_sep', chr(1),
                            'separator of predict result file')
 tf.app.flags.DEFINE_string('selected_cols', None, '')
@@ -69,7 +78,6 @@ def get_input_type(input_type, data_config):
 
 
 def main(argv):
-
   if FLAGS.saved_model_dir:
     logging.info('Predict by saved_model.')
     if FLAGS.pipeline_config_path:
@@ -84,8 +92,8 @@ def main(argv):
     if input_type in [data_config.HiveParquetInput, data_config.HiveInput]:
       all_cols, all_col_types = HiveUtils(
           data_config=pipeline_config.data_config,
-          hive_config=pipeline_config.hive_train_input).get_all_cols(
-              FLAGS.input_path)
+          hive_config=pipeline_config.hive_train_input,
+      ).get_all_cols(FLAGS.input_path)
       if input_type == DatasetConfig.HiveParquetInput:
         predictor = HiveParquetPredictor(
             FLAGS.saved_model_dir,
@@ -94,7 +102,8 @@ def main(argv):
             hive_config=pipeline_config.hive_train_input,
             output_sep=FLAGS.output_sep,
             all_cols=all_cols,
-            all_col_types=all_col_types)
+            all_col_types=all_col_types,
+        )
       else:
         predictor = HivePredictor(
             FLAGS.saved_model_dir,
@@ -103,7 +112,8 @@ def main(argv):
             hive_config=pipeline_config.hive_train_input,
             output_sep=FLAGS.output_sep,
             all_cols=all_cols,
-            all_col_types=all_col_types)
+            all_col_types=all_col_types,
+        )
     elif input_type in [data_config.ParquetInput, data_config.ParquetInputV2]:
       predictor_cls = ParquetPredictor
       if input_type == data_config.ParquetInputV2:
@@ -115,7 +125,8 @@ def main(argv):
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
           output_sep=FLAGS.output_sep,
-          pipeline_config=pipeline_config)
+          pipeline_config=pipeline_config,
+      )
     elif input_type == data_config.CSVInput:
       predictor = CSVPredictor(
           FLAGS.saved_model_dir,
@@ -124,7 +135,8 @@ def main(argv):
           ds_vector_recall=FLAGS.ds_vector_recall,
           fg_json_path=FLAGS.fg_json_path,
           selected_cols=FLAGS.selected_cols,
-          output_sep=FLAGS.output_sep)
+          output_sep=FLAGS.output_sep,
+      )
     else:
       assert False, 'invalid input type: %s' % input_class_map_r[input_type]
 
@@ -144,7 +156,8 @@ def main(argv):
         output_cols=FLAGS.output_cols,
         batch_size=FLAGS.batch_size,
         slice_id=task_index,
-        slice_num=worker_num)
+        slice_num=worker_num,
+    )
   else:
     logging.info('Predict by checkpoint_path.')
     assert FLAGS.model_dir or FLAGS.pipeline_config_path, 'At least one of model_dir and pipeline_config_path exists.'

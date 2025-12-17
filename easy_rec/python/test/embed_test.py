@@ -28,7 +28,7 @@ class EmbedTest(tf.test.TestCase):
     #     [7, 8 ],
     #     [9, 10]
     #    ]
-    feature_config_str = '''
+    feature_config_str = """
       input_names: 'field1'
       feature_type: RawFeature
       initializer {
@@ -40,11 +40,11 @@ class EmbedTest(tf.test.TestCase):
       raw_input_dim: 5
       embedding_dim: 2
       combiner: 'sum'
-    '''
+    """
     feature_config = FeatureConfig()
     text_format.Merge(feature_config_str, feature_config)
 
-    data_config_str = '''
+    data_config_str = """
         input_fields {
            input_name: 'clk'
            input_type: INT32
@@ -57,7 +57,7 @@ class EmbedTest(tf.test.TestCase):
         }
         label_fields: 'clk'
         batch_size: 1
-    '''
+    """
     data_config = DatasetConfig()
     text_format.Merge(data_config_str, data_config)
 
@@ -93,7 +93,7 @@ class EmbedTest(tf.test.TestCase):
     #     [7, 8 ],
     #     [9, 10]
     #    ]
-    feature_config_str = '''
+    feature_config_str = """
       input_names: 'field1'
       feature_type: SequenceFeature
       initializer {
@@ -106,11 +106,11 @@ class EmbedTest(tf.test.TestCase):
       embedding_dim: 2
       num_buckets: 5
       combiner: 'mean'
-    '''
+    """
     feature_config = FeatureConfig()
     text_format.Merge(feature_config_str, feature_config)
 
-    data_config_str = '''
+    data_config_str = """
         input_fields {
            input_name: 'clk'
            input_type: INT32
@@ -123,7 +123,7 @@ class EmbedTest(tf.test.TestCase):
         }
         label_fields: 'clk'
         batch_size: 1
-    '''
+    """
     data_config = DatasetConfig()
     text_format.Merge(data_config_str, data_config)
 
@@ -136,8 +136,8 @@ class EmbedTest(tf.test.TestCase):
     wide_and_deep_dict = {'field1': WideOrDeep.DEEP}
     fc_parser = FeatureColumnParser(feature_configs, wide_and_deep_dict)
     builder = feature_column._LazyBuilder(field_dict)
-    hist_embedding, hist_seq_len = \
-        fc_parser.sequence_columns['field1']._get_sequence_dense_tensor(builder)
+    hist_embedding, hist_seq_len = fc_parser.sequence_columns[
+        'field1']._get_sequence_dense_tensor(builder)
 
     init = tf.initialize_all_variables()
     with tf.Session() as sess:

@@ -35,8 +35,9 @@ class CapsuleLayer:
     """Squash inputs over the last dimension."""
     input_norm = tf.reduce_sum(tf.square(inputs), keep_dims=True, axis=-1)
     input_norm_eps = tf.maximum(input_norm, 1e-8)
-    scale_factor = tf.pow(input_norm_eps / (1 + input_norm_eps), self._squash_pow) * \
-        self._scale_ratio / tf.sqrt(input_norm_eps)
+    scale_factor = (
+        tf.pow(input_norm_eps / (1 + input_norm_eps), self._squash_pow) *
+        self._scale_ratio / tf.sqrt(input_norm_eps))
     tf.summary.histogram('capsule/squash_scale_factor', scale_factor)
     return scale_factor * inputs
 
@@ -53,8 +54,8 @@ class CapsuleLayer:
     simi = tf.reduce_sum(simi, axis=1) / div
 
     is_multi = tf.to_float(capsule_num > 1)
-    avg_simi = tf.reduce_sum((simi + 1) * is_multi) / \
-        (2.0 * tf.reduce_sum(is_multi))
+    avg_simi = tf.reduce_sum(
+        (simi + 1) * is_multi) / (2.0 * tf.reduce_sum(is_multi))
     return avg_simi
 
   def __call__(self, seq_feas, seq_lens):
@@ -70,11 +71,17 @@ class CapsuleLayer:
     # pad or clip to max_seq_len
     seq_feas = tf.cond(
         tf.greater(tf.shape(seq_feas)[1], self._max_seq_len),
-        lambda: seq_feas[:, :self._max_seq_len, :], lambda: tf.cond(
-            tf.less(tf.shape(seq_feas)[1], self._max_seq_len), lambda: tf.pad(
-                seq_feas, [[0, 0], [
-                    0, self._max_seq_len - tf.shape(seq_feas)[1]
-                ], [0, 0]]), lambda: seq_feas))
+        lambda: seq_feas[:, :self._max_seq_len, :],
+        lambda: tf.cond(
+            tf.less(tf.shape(seq_feas)[1], self._max_seq_len),
+            lambda: tf.pad(
+                seq_feas,
+                [[0, 0], [0, self._max_seq_len - tf.shape(seq_feas)[1]], [0, 0]
+                 ],
+            ),
+            lambda: seq_feas,
+        ),
+    )
     seq_lens = tf.minimum(seq_lens, self._max_seq_len)
 
     batch_size = tf.shape(seq_lens)[0]
@@ -82,14 +89,17 @@ class CapsuleLayer:
     if self._is_training:
       routing_logits = tf.truncated_normal(
           [batch_size, self._max_seq_len, self._max_k],
-          stddev=self._routing_logits_stddev)
+          stddev=self._routing_logits_stddev,
+      )
     else:
       np.random.seed(28)
       routing_logits = tf.constant(
           np.random.uniform(
               high=self._routing_logits_stddev,
-              size=[self._max_seq_len, self._max_k]),
-          dtype=tf.float32)
+              size=[self._max_seq_len, self._max_k],
+          ),
+          dtype=tf.float32,
+      )
       routing_logits = tf.tile(routing_logits[None, :, :], [batch_size, 1, 1])
     routing_logits = tf.stop_gradient(routing_logits)
     # batch_size x max_seq_len x max_k(bsh)
@@ -139,17 +149,24 @@ class CapsuleLayer:
 
       # batch_size x max_k x high_dim(bse,bsh->bhe)
       high_capsules = tf.einsum(
-          'bse, bsh->bhe', seq_feas_high_stop
-          if iter_id + 1 < self._num_iters else seq_feas_high, routing_logits)
+          'bse, bsh->bhe',
+          seq_feas_high_stop
+          if iter_id + 1 < self._num_iters else seq_feas_high,
+          routing_logits,
+      )
       if iter_id + 1 == self._num_iters:
         capsule_simi = self._build_capsule_simi(high_capsules,
                                                 num_high_capsules)
         tf.summary.scalar('caspule/simi_%d' % iter_id, capsule_simi)
-        tf.summary.scalar('capsule/before_squash',
-                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
+        tf.summary.scalar(
+            'capsule/before_squash',
+            tf.reduce_mean(tf.norm(high_capsules, axis=-1)),
+        )
         high_capsules = self.squash(high_capsules)
-        tf.summary.scalar('capsule/after_squash',
-                          tf.reduce_mean(tf.norm(high_capsules, axis=-1)))
+        tf.summary.scalar(
+            'capsule/after_squash',
+            tf.reduce_mean(tf.norm(high_capsules, axis=-1)),
+        )
         capsule_simi_final = self._build_capsule_simi(high_capsules,
                                                       num_high_capsules)
         tf.summary.scalar('caspule/simi_final', capsule_simi_final)

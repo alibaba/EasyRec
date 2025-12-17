@@ -2,9 +2,9 @@
 
 ## train_config
 
-- log_step_count_steps: 200    # 每200步打印一行log
+- log_step_count_steps: 200 # 每200步打印一行log
 
-- optimizer_config     # 优化器相关的参数
+- optimizer_config # 优化器相关的参数
 
   ```protobuf
   {
@@ -55,12 +55,12 @@
       - 设置两个optimizer时, 第一个optimizer仅用于wide参数;
       - 如果要给deep embedding单独设置optimizer, 需要设置3个optimizer.
 
-- sync_replicas: true  # 是否同步训练，默认是false
+- sync_replicas: true # 是否同步训练，默认是false
 
   - 使用SyncReplicasOptimizer进行分布式训练(同步模式)
   - 仅在train_distribute为NoStrategy时可以设置成true，其它情况应该设置为false
   - PS异步训练也设置为false
-  - 注意在设置为 true 时，总共的训练步数为：min(total_sample_num \* num_epochs / batch_size, num_steps) / num_workers
+  - 注意在设置为 true 时，总共的训练步数为：min(total_sample_num * num_epochs / batch_size, num_steps) / num_workers
 
 - train_distribute: 默认不开启Strategy(NoStrategy), strategy确定分布式执行的方式, 可以分成两种模式: PS-Worker模式 和 All-Reduce模式
 
@@ -101,10 +101,10 @@
   import tensorflow as tf
   import os, sys
 
-  ckpt_reader = tf.train.NewCheckpointReader('experiments/model.ckpt-0')
+  ckpt_reader = tf.train.NewCheckpointReader("experiments/model.ckpt-0")
   ckpt_var2shape_map = ckpt_reader.get_variable_to_shape_map()
   for key in ckpt_var2shape_map:
-    print(key)
+      print(key)
   ```
 
 - save_checkpoints_steps: 每隔多少步保存一次checkpoint, 默认是1000。当训练数据量很大的时候，这个值要设置大一些

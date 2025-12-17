@@ -107,7 +107,10 @@ def change_files(odps_oss_config, file_path):
         # tmp_e = tmp_e.replace('.aliyuncs.com', '.oss-internal.aliyun-inc.com')
         if '-Dbuckets=' in line:
           line = '-Dbuckets=oss://%s/?role_arn=%s&host=%s\n' % (
-              odps_oss_config.bucket_name, odps_oss_config.arn, tmp_e)
+              odps_oss_config.bucket_name,
+              odps_oss_config.arn,
+              tmp_e,
+          )
         elif '-Darn=' in line or '-DossHost' in line:
           continue
         line = line.replace('{OSS_BUCKET_NAME}', odps_oss_config.bucket_name)
@@ -136,10 +139,12 @@ def put_data_to_bucket(odps_oss_config):
   Args:
     odps_oss_config: odps oss config obj
   """
-  test_bucket = get_oss_bucket(odps_oss_config.oss_key,
-                               odps_oss_config.oss_secret,
-                               odps_oss_config.endpoint,
-                               odps_oss_config.bucket_name)
+  test_bucket = get_oss_bucket(
+      odps_oss_config.oss_key,
+      odps_oss_config.oss_secret,
+      odps_oss_config.endpoint,
+      odps_oss_config.bucket_name,
+  )
   for sub_dir in ['configs']:
     for root, dirs, files in os.walk(
         os.path.join(odps_oss_config.temp_dir, sub_dir)):
@@ -154,10 +159,12 @@ def put_data_to_bucket(odps_oss_config):
 
 def prepare(odps_oss_config):
   logging.info('temp_dir = %s' % odps_oss_config.temp_dir)
-  ali_bucket = get_oss_bucket(odps_oss_config.ali_oss_key,
-                              odps_oss_config.ali_oss_secret,
-                              odps_oss_config.ali_bucket_endpoint,
-                              odps_oss_config.ali_bucket_name)
+  ali_bucket = get_oss_bucket(
+      odps_oss_config.ali_oss_key,
+      odps_oss_config.ali_oss_secret,
+      odps_oss_config.ali_bucket_endpoint,
+      odps_oss_config.ali_bucket_name,
+  )
   shutil.copytree(odps_oss_config.script_path, odps_oss_config.temp_dir)
   logging.info('start down data')
   download_data(ali_bucket, odps_oss_config.temp_dir)

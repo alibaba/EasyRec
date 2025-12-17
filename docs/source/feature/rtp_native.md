@@ -6,7 +6,7 @@
 
 #### 编写RTP特征配置 [fg.json](https://easyrec.oss-cn-beijing.aliyuncs.com/rtp_fg/fg.json)
 
-- 包含了features配置和全局配置两个部分,  示例:
+- 包含了features配置和全局配置两个部分, 示例:
 
 ```json
 {

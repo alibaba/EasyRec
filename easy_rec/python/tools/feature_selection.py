@@ -18,6 +18,7 @@ if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 import matplotlib  # NOQA
+
 matplotlib.use('Agg')  # NOQA
 import matplotlib.pyplot as plt  # NOQA
 
@@ -39,13 +40,15 @@ FLAGS = tf.app.flags.FLAGS
 
 class VariationalDropoutFS:
 
-  def __init__(self,
-               config_path,
-               output_dir,
-               topk,
-               checkpoint_path=None,
-               fg_path=None,
-               visualize=False):
+  def __init__(
+      self,
+      config_path,
+      output_dir,
+      topk,
+      checkpoint_path=None,
+      fg_path=None,
+      visualize=False,
+  ):
     self._config_path = config_path
     self._output_dir = output_dir
     self._topk = topk
@@ -57,8 +60,10 @@ class VariationalDropoutFS:
 
   def process(self):
     tf.logging.info('Loading logit_p of VariationalDropout layer ...')
-    feature_dim_dropout_p_map, embedding_wise_variational_dropout = self._feature_dim_dropout_ratio(
-    )
+    (
+        feature_dim_dropout_p_map,
+        embedding_wise_variational_dropout,
+    ) = self._feature_dim_dropout_ratio()
 
     feature_importance_map = {}
     for group_name, feature_dim_dropout_p in feature_dim_dropout_p_map.items():
@@ -179,8 +184,9 @@ class VariationalDropoutFS:
 
     feature_configs = []
     for feature_config in config_util.get_compatible_feature_configs(config):
-      feature_name = feature_config.feature_name if feature_config.HasField('feature_name') \
-          else feature_config.input_names[0]
+      feature_name = (
+          feature_config.feature_name if feature_config.HasField('feature_name')
+          else feature_config.input_names[0])
       if feature_name not in excluded_features:
         feature_configs.append(feature_config)
 
@@ -222,10 +228,13 @@ class VariationalDropoutFS:
     """Dump feature importance data to a csv file."""
     with tf.gfile.Open(
         os.path.join(self._output_dir,
-                     'feature_dropout_ratio_%s.csv' % group_name), 'w') as f:
+                     'feature_dropout_ratio_%s.csv' % group_name),
+        'w',
+    ) as f:
       df = pd.DataFrame(
           columns=['feature_name', 'mean_drop_p'],
-          data=[list(kv) for kv in feature_importance.items()])
+          data=[list(kv) for kv in feature_importance.items()],
+      )
       df.to_csv(f, encoding='gbk')
 
   def _visualize_embedding_dim_importance(self, feature_dim_dropout_p):
@@ -251,7 +260,8 @@ class VariationalDropoutFS:
           align='center',
           alpha=0.4,
           label='dropout_rate',
-          lw=1)
+          lw=1,
+      )
       for rect in b:
         w = rect.get_width()
         ax.text(
@@ -259,7 +269,8 @@ class VariationalDropoutFS:
             rect.get_y() + rect.get_height() / 2,
             '%.4f' % w,
             ha='left',
-            va='center')
+            va='center',
+        )
       plt.yticks(y_pos, embedding_dims)
       plt.xlabel(feature_name)
       plt.title('Dropout ratio')
@@ -271,7 +282,8 @@ class VariationalDropoutFS:
     """Draw feature importance histogram."""
     df = pd.DataFrame(
         columns=['feature_name', 'mean_drop_p'],
-        data=[list(kv) for kv in feature_importance.items()])
+        data=[list(kv) for kv in feature_importance.items()],
+    )
     df['color'] = ['red' if x < 0.5 else 'green' for x in df['mean_drop_p']]
     df.sort_values('mean_drop_p', inplace=True, ascending=False)
     df.reset_index(inplace=True)
@@ -288,7 +300,8 @@ class VariationalDropoutFS:
           fontdict={
               'color': 'red' if x < 0 else 'green',
               'size': 14
-          })
+          },
+      )
     # Decorations
     plt.yticks(df.index, df.feature_name, fontsize=20)
     plt.title('Dropout Ratio', fontdict={'size': 30})
@@ -296,7 +309,9 @@ class VariationalDropoutFS:
     plt.xlim(0, 1)
     with tf.gfile.GFile(
         os.path.join(self._output_dir,
-                     'feature_dropout_pic_%s.png' % group_name), 'wb') as f:
+                     'feature_dropout_pic_%s.png' % group_name),
+        'wb',
+    ) as f:
       plt.savefig(f, format='png')
 
 
@@ -309,7 +324,8 @@ if __name__ == '__main__':
         FLAGS.topk,
         checkpoint_path=FLAGS.checkpoint_path,
         fg_path=FLAGS.fg_path,
-        visualize=FLAGS.visualize)
+        visualize=FLAGS.visualize,
+    )
     fs.process()
   else:
     raise ValueError('Unknown feature selection model type %s' %

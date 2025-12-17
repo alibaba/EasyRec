@@ -16,7 +16,8 @@ if tf.__version__ >= '2.0':
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 tf.app.flags.DEFINE_string('template_config_path', None,
                            'Path to template pipeline config '
                            'file.')

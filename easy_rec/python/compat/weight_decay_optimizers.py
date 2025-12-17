@@ -13,19 +13,20 @@
 # limitations under the License.
 # ==============================================================================
 """Base class to make optimizers weight decay ready."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import resource_variable_ops
-from tensorflow.python.ops import state_ops
 from tensorflow.python.training import adam
 from tensorflow.python.training import momentum as momentum_opt
 from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
+
+from tensorflow.python.ops import (  # NOQA
+    array_ops, control_flow_ops, resource_variable_ops, state_ops,
+)
 
 
 class DecoupledWeightDecayExtension(object):
@@ -91,16 +92,18 @@ class DecoupledWeightDecayExtension(object):
     self._weight_decay_tensor = None
     super(DecoupledWeightDecayExtension, self).__init__(**kwargs)
 
-  def minimize(self,
-               loss,
-               global_step=None,
-               var_list=None,
-               gate_gradients=optimizer.Optimizer.GATE_OP,
-               aggregation_method=None,
-               colocate_gradients_with_ops=False,
-               name=None,
-               grad_loss=None,
-               decay_var_list=None):
+  def minimize(
+      self,
+      loss,
+      global_step=None,
+      var_list=None,
+      gate_gradients=optimizer.Optimizer.GATE_OP,
+      aggregation_method=None,
+      colocate_gradients_with_ops=False,
+      name=None,
+      grad_loss=None,
+      decay_var_list=None,
+  ):
     """Add operations to minimize `loss` by updating `var_list` with decay.
 
     This function is the same as Optimizer.minimize except that it allows to
@@ -139,7 +142,8 @@ class DecoupledWeightDecayExtension(object):
         aggregation_method=aggregation_method,
         colocate_gradients_with_ops=colocate_gradients_with_ops,
         name=name,
-        grad_loss=grad_loss)
+        grad_loss=grad_loss,
+    )
 
   def apply_gradients(self,
                       grads_and_vars,
@@ -311,13 +315,15 @@ class MomentumWOptimizer(DecoupledWeightDecayExtension,
   ```
   """
 
-  def __init__(self,
-               weight_decay,
-               learning_rate,
-               momentum,
-               use_locking=False,
-               name='MomentumW',
-               use_nesterov=False):
+  def __init__(
+      self,
+      weight_decay,
+      learning_rate,
+      momentum,
+      use_locking=False,
+      name='MomentumW',
+      use_nesterov=False,
+  ):
     """Construct a new MomentumW optimizer.
 
     For further information see the documentation of the Momentum Optimizer.
@@ -347,7 +353,8 @@ class MomentumWOptimizer(DecoupledWeightDecayExtension,
         momentum=momentum,
         use_locking=use_locking,
         name=name,
-        use_nesterov=use_nesterov)
+        use_nesterov=use_nesterov,
+    )
 
 
 @tf_export('contrib.opt.AdamWOptimizer')
@@ -374,14 +381,16 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
   ```
   """
 
-  def __init__(self,
-               weight_decay,
-               learning_rate=0.001,
-               beta1=0.9,
-               beta2=0.999,
-               epsilon=1e-8,
-               use_locking=False,
-               name='AdamW'):
+  def __init__(
+      self,
+      weight_decay,
+      learning_rate=0.001,
+      beta1=0.9,
+      beta2=0.999,
+      epsilon=1e-8,
+      use_locking=False,
+      name='AdamW',
+  ):
     """Construct a new AdamW optimizer.
 
     For further information see the documentation of the Adam Optimizer.
@@ -407,7 +416,8 @@ class AdamWOptimizer(DecoupledWeightDecayExtension, adam.AdamOptimizer):
         beta2=beta2,
         epsilon=epsilon,
         use_locking=use_locking,
-        name=name)
+        name=name,
+    )
 
 
 try:
@@ -437,14 +447,16 @@ try:
     ```
     """
 
-    def __init__(self,
-                 weight_decay,
-                 learning_rate=0.001,
-                 beta1=0.9,
-                 beta2=0.999,
-                 epsilon=1e-8,
-                 use_locking=False,
-                 name='AdamAsyncW'):
+    def __init__(
+        self,
+        weight_decay,
+        learning_rate=0.001,
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-8,
+        use_locking=False,
+        name='AdamAsyncW',
+    ):
       """Construct a new AdamW optimizer.
 
       For further information see the documentation of the Adam Optimizer.
@@ -470,6 +482,8 @@ try:
           beta2=beta2,
           epsilon=epsilon,
           use_locking=use_locking,
-          name=name)
+          name=name,
+      )
+
 except ImportError:
   pass

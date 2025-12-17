@@ -14,17 +14,25 @@ from easy_rec.python.utils.tf_utils import get_tf_type
 class HiveParquetInput(Input):
   """Common IO based interface, could run at local or on data science."""
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(HiveParquetInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(HiveParquetInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     if input_path is None:
       return
     self._data_config = data_config
@@ -34,13 +42,17 @@ class HiveParquetInput(Input):
     hive_util = HiveUtils(
         data_config=self._data_config, hive_config=self._hive_config)
     input_hdfs_path = hive_util.get_table_location(self._hive_config.table_name)
-    self._input_table_col_names, self._input_table_col_types = hive_util.get_all_cols(
-        self._hive_config.table_name)
+    (
+        self._input_table_col_names,
+        self._input_table_col_types,
+    ) = hive_util.get_all_cols(self._hive_config.table_name)
     self._all_hdfs_path = tf.gfile.Glob(os.path.join(input_hdfs_path, '*'))
 
     for x in self._input_fields:
       assert x in self._input_table_col_names, 'Column %s not in Table %s.' % (
-          x, self._hive_config.table_name)
+          x,
+          self._hive_config.table_name,
+      )
 
     self._record_defaults = [
         self.get_type_defaults(t, v)
@@ -115,7 +127,8 @@ class HiveParquetInput(Input):
       dataset = dataset.shuffle(
           self._data_config.shuffle_buffer_size,
           seed=2020,
-          reshuffle_each_iteration=True)
+          reshuffle_each_iteration=True,
+      )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
@@ -128,7 +141,8 @@ class HiveParquetInput(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

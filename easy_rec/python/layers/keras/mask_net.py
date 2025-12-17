@@ -54,7 +54,8 @@ class MaskBlock(Layer):
         activation='relu',
         kernel_initializer='he_uniform',
         kernel_regularizer=self.l2_reg,
-        name='aggregation')
+        name='aggregation',
+    )
     self.weight_layer = Dense(input_dim, name='weights')
     if self._projection_dim is not None:
       logging.info('%s project dim is %d', self.name, self._projection_dim)
@@ -62,7 +63,8 @@ class MaskBlock(Layer):
           self._projection_dim,
           kernel_regularizer=self.l2_reg,
           use_bias=False,
-          name='project')
+          name='project',
+      )
     if self.config.input_layer_norm:
       # 推荐在调用MaskBlock之前做好 layer norm，否则每一次调用都需要对input做ln
       if tf.__version__ >= '2.0':

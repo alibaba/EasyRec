@@ -150,9 +150,11 @@ def load_meta_graph_def(model_dir):
         input_tensor = signatures[sig_name].inputs[input_name]
         for dim in input_tensor.tensor_shape.dim:
           input_tensor_shape.append(int(dim.size))
-        tf.logging.info('"%s": %s; %s' %
-                        (input_name, _TYPE_TO_STRING[input_tensor.dtype],
-                         input_tensor_shape))
+        tf.logging.info('"%s": %s; %s' % (
+            input_name,
+            _TYPE_TO_STRING[input_tensor.dtype],
+            input_tensor_shape,
+        ))
         input_tensor_names[input_name] = input_tensor.name
       tf.logging.info('[Signature] outputs:')
       for output_name in signatures[sig_name].outputs:
@@ -160,16 +162,25 @@ def load_meta_graph_def(model_dir):
         output_tensor = signatures[sig_name].outputs[output_name]
         for dim in output_tensor.tensor_shape.dim:
           output_tensor_shape.append(int(dim.size))
-        tf.logging.info('"%s": %s; %s' %
-                        (output_name, _TYPE_TO_STRING[output_tensor.dtype],
-                         output_tensor_shape))
+        tf.logging.info('"%s": %s; %s' % (
+            output_name,
+            _TYPE_TO_STRING[output_tensor.dtype],
+            output_tensor_shape,
+        ))
         output_tensor_names[output_name] = output_tensor.name
 
   return meta_graph_def, variable_protos, input_tensor_names, output_tensor_names
 
 
-def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
-           output_tensor_names, part_name, part_dir):
+def export(
+    model_dir,
+    meta_graph_def,
+    variable_protos,
+    input_tensor_names,
+    output_tensor_names,
+    part_name,
+    part_dir,
+):
   """Export subpart saved model.
 
   Args:
@@ -220,19 +231,20 @@ def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
             graph.get_tensor_by_name(output_tensor_names[output_name]))
         signature_outputs[output_name] = tensor_info
 
-      prediction_signature = (
-          tf.saved_model.signature_def_utils.build_signature_def(
-              inputs=signature_inputs,
-              outputs=signature_outputs,
-              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
-          ))
+      prediction_signature = tf.saved_model.signature_def_utils.build_signature_def(
+          inputs=signature_inputs,
+          outputs=signature_outputs,
+          method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME,
+      )
 
       builder.add_meta_graph_and_variables(
-          sess, [tf.saved_model.tag_constants.SERVING],
+          sess,
+          [tf.saved_model.tag_constants.SERVING],
           signature_def_map={
               signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                   prediction_signature,
-          })
+          },
+      )
       builder.save()
   config_path = os.path.join(model_dir, 'assets/pipeline.config')
   assert tf.gfile.Exists(config_path)
@@ -245,8 +257,12 @@ def export(model_dir, meta_graph_def, variable_protos, input_tensor_names,
 def main(argv):
   model_dir = search_pb(FLAGS.model_dir)
   tf.logging.info('Loading meta graph...')
-  meta_graph_def, variable_protos, input_tensor_names, output_tensor_names = load_meta_graph_def(
-      model_dir)
+  (
+      meta_graph_def,
+      variable_protos,
+      input_tensor_names,
+      output_tensor_names,
+  ) = load_meta_graph_def(model_dir)
   tf.logging.info('Exporting trigger part model...')
   export(
       model_dir,
@@ -255,7 +271,8 @@ def main(argv):
       input_tensor_names,
       output_tensor_names,
       part_name='trigger_out',
-      part_dir=FLAGS.trigger_model_dir)
+      part_dir=FLAGS.trigger_model_dir,
+  )
   tf.logging.info('Exporting sim part model...')
   export(
       model_dir,
@@ -264,7 +281,8 @@ def main(argv):
       input_tensor_names,
       output_tensor_names,
       part_name='sim_out',
-      part_dir=FLAGS.sim_model_dir)
+      part_dir=FLAGS.sim_model_dir,
+  )
 
 
 if __name__ == '__main__':

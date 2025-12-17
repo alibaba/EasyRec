@@ -39,8 +39,10 @@ def item_crop(aug_data, length, crop_rate):
   y = zeros[:max_length - num_left]
   cropped = tf.concat([x, y], axis=0)
   cropped_item_seq = tf.where(
-      crop_begin + num_left < max_length, cropped,
-      tf.concat([aug_data[crop_begin:], zeros[:crop_begin]], axis=0))
+      crop_begin + num_left < max_length,
+      cropped,
+      tf.concat([aug_data[crop_begin:], zeros[:crop_begin]], axis=0),
+  )
   return cropped_item_seq, num_left
 
 
@@ -95,8 +97,10 @@ def augment_fn(x, aug_param, mask):
     return tf.cond(tf.equal(method, 0), trans_fn[0], trans_fn[1])
 
   aug_seq, aug_len = tf.cond(
-      tf.equal(method, 0), crop_fn,
-      lambda: tf.cond(tf.equal(method, 1), mask_fn, reorder_fn))
+      tf.equal(method, 0),
+      crop_fn,
+      lambda: tf.cond(tf.equal(method, 1), mask_fn, reorder_fn),
+  )
   return aug_seq, aug_len
 
 
@@ -105,7 +109,8 @@ def sequence_augment(seq_input, seq_len, mask, aug_param):
   aug_seq, aug_len = tf.map_fn(
       lambda elems: augment_fn(elems, aug_param, mask),
       elems=(seq_input, lengths),
-      dtype=(tf.float32, tf.int32))
+      dtype=(tf.float32, tf.int32),
+  )
 
   aug_seq = tf.reshape(aug_seq, tf.shape(seq_input))
   return aug_seq, aug_len

@@ -11,15 +11,18 @@ from easy_rec.python.input.input import Input
 from easy_rec.python.utils import config_util
 from easy_rec.python.utils import fg_util
 from easy_rec.python.utils import io_util
-from easy_rec.python.utils.check_utils import check_env_and_input_path
-from easy_rec.python.utils.check_utils import check_sequence
+
+from easy_rec.python.utils.check_utils import (  # NOQA
+    check_env_and_input_path, check_sequence,
+)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
 
 logging.basicConfig(
     format='[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d : %(message)s',
-    level=logging.INFO)
+    level=logging.INFO,
+)
 tf.app.flags.DEFINE_string('pipeline_config_path', None,
                            'Path to pipeline config '
                            'file.')
@@ -63,7 +66,8 @@ def _get_input_fn(data_config,
       data_path,
       task_index=task_index,
       task_num=worker_num,
-      check_mode=True)
+      check_mode=True,
+  )
   input_fn = input_obj.create_input(export_config)
   return input_fn
 
@@ -93,7 +97,7 @@ def run_check(pipeline_config, input_path):
       mode=tf.estimator.ModeKeys.EVAL).make_one_shot_iterator()
   with tf.Session() as sess:
     try:
-      while (True):
+      while True:
         input_feas, input_lbls = input_iter.get_next()
         features = sess.run(input_feas)
         check_sequence(pipeline_config, features)
@@ -108,8 +112,8 @@ def main(argv):
   if FLAGS.data_input_path:
     input_path = ','.join(FLAGS.data_input_path)
   else:
-    assert pipeline_config.train_input_path or pipeline_config.eval_input_path, \
-        'input_path should not be empty when checking!'
+    assert (pipeline_config.train_input_path or pipeline_config.eval_input_path
+            ), 'input_path should not be empty when checking!'
     input_path = pipeline_config.train_input_path + ',' + pipeline_config.eval_input_path
 
   run_check(pipeline_config, input_path)

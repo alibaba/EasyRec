@@ -79,8 +79,8 @@ if __name__ == '__main__':
 
   assert os.path.exists(args.libc_path), '%s does not exist' % args.libc_path
   assert args.saved_model_dir is not None and os.path.isdir(
-      args.saved_model_dir
-  ), '%s is not a valid directory' % args.saved_model_dir
+      args.saved_model_dir), ('%s is not a valid directory' %
+                              args.saved_model_dir)
   assert args.input_path is not None and os.path.exists(
       args.input_path), '%s does not exist' % args.input_path
   assert args.output_path is not None, 'output_path is not set'
@@ -108,9 +108,11 @@ if __name__ == '__main__':
   req = tf_predict_pb2.PredictRequest()
   req.signature_name = 'serving_default'
   for i in range(len(input_fields)):
-    build_array_proto(req.inputs[data_config.input_fields[i + 1].input_name],
-                      input_fields[i],
-                      data_config.input_fields[i + 1].input_type)
+    build_array_proto(
+        req.inputs[data_config.input_fields[i + 1].input_name],
+        input_fields[i],
+        data_config.input_fields[i + 1].input_type,
+    )
 
   tf_predictor = ctypes.cdll.LoadLibrary(PROCESSOR_ENTRY_LIB)
   tf_predictor.saved_model_init.restype = ctypes.c_void_p
@@ -152,8 +154,11 @@ if __name__ == '__main__':
   tf_predictor.saved_model_predict.restype = ctypes.c_void_p
   out_len = ctypes.c_int(0)
   res_p = tf_predictor.saved_model_predict(
-      ctypes.c_void_p(handle), data_bin, ctypes.c_int32(len(data_bin)),
-      ctypes.byref(out_len))
+      ctypes.c_void_p(handle),
+      data_bin,
+      ctypes.c_int32(len(data_bin)),
+      ctypes.byref(out_len),
+  )
   res_bytes = bytearray(ctypes.string_at(res_p, out_len))
   res = tf_predict_pb2.PredictResponse()
   res.ParseFromString(res_bytes)

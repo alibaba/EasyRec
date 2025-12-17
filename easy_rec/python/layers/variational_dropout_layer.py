@@ -5,8 +5,10 @@ import json
 import numpy as np
 import tensorflow as tf
 
-from easy_rec.python.compat.feature_column.feature_column import _SharedEmbeddingColumn  # NOQA
-from easy_rec.python.compat.feature_column.feature_column_v2 import EmbeddingColumn  # NOQA
+from easy_rec.python.compat.feature_column.feature_column import (  # NOQA
+    _SharedEmbeddingColumn,)
+from easy_rec.python.compat.feature_column.feature_column_v2 import (  # NOQA
+    EmbeddingColumn,)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -42,10 +44,12 @@ class VariationalDropoutLayer(object):
         name=logit_p_name,
         shape=self.drop_param_shape,
         dtype=tf.float32,
-        initializer=None)
+        initializer=None,
+    )
     tf.add_to_collection(
         'variational_dropout',
-        json.dumps([name, list(self.features_dimension.items())]))
+        json.dumps([name, list(self.features_dimension.items())]),
+    )
 
   def get_lambda(self):
     return self._config.regularization_lambda
@@ -110,8 +114,8 @@ class VariationalDropoutLayer(object):
         tf.shape(dropout_p), dtype=tf.float32, seed=None, name='unif_noise')
 
     approx = (
-        tf.log(dropout_p + EPSILON) - tf.log(1. - dropout_p + EPSILON) +
-        tf.log(unif_noise + EPSILON) - tf.log(1. - unif_noise + EPSILON))
+        tf.log(dropout_p + EPSILON) - tf.log(1.0 - dropout_p + EPSILON) +
+        tf.log(unif_noise + EPSILON) - tf.log(1.0 - unif_noise + EPSILON))
 
     approx_output = tf.sigmoid(approx / temp)
     return 1 - approx_output
@@ -120,7 +124,7 @@ class VariationalDropoutLayer(object):
     batch_size = tf.shape(output_features)[0]
     noisy_input = self.sample_noisy_input(output_features)
     dropout_p = tf.sigmoid(self.logit_p)
-    variational_dropout_penalty = 1. - dropout_p
+    variational_dropout_penalty = 1.0 - dropout_p
     variational_dropout_penalty_lambda = self.get_lambda() / tf.cast(
         batch_size, dtype=tf.float32)
     variational_dropout_loss_sum = variational_dropout_penalty_lambda * tf.reduce_sum(

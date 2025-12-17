@@ -22,8 +22,10 @@ class FM(RankModel):
                is_training=False):
     super(FM, self).__init__(model_config, feature_configs, features, labels,
                              is_training)
-    assert self._model_config.WhichOneof('model') == 'fm', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof(
+        'model'
+    ) == 'fm', 'invalid model config: %s' % self._model_config.WhichOneof(
+        'model')
     self._model_config = self._model_config.fm
     assert isinstance(self._model_config, FMConfig)
 
@@ -47,14 +49,17 @@ class FM(RankModel):
           fm_fea,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='fm_logits')
+          name='fm_logits',
+      )
     else:
       fm_fea = tf.reduce_sum(fm_fea, 1, keepdims=True)
 
     bias = tf.get_variable(
-        'fm_bias', [self._num_class],
+        'fm_bias',
+        [self._num_class],
         initializer=tf.zeros_initializer(),
-        trainable=True)
+        trainable=True,
+    )
 
     output = wide_fea + fm_fea
     output = tf.nn.bias_add(output, bias)

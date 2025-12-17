@@ -11,10 +11,11 @@ import tensorflow as tf
 
 from easy_rec.python.test.odps_command import OdpsCommand
 from easy_rec.python.test.odps_test_prepare import prepare
-from easy_rec.python.test.odps_test_util import OdpsOSSConfig
-from easy_rec.python.test.odps_test_util import delete_oss_path
-from easy_rec.python.test.odps_test_util import get_oss_bucket
 from easy_rec.python.utils import test_utils
+
+from easy_rec.python.test.odps_test_util import (  # NOQA
+    OdpsOSSConfig, delete_oss_path, get_oss_bucket,
+)
 
 logging.basicConfig(
     level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
@@ -40,7 +41,7 @@ class TestPipelineOnEmr(tf.test.TestCase):
   def test_deepfm_train_eval_export(self):
     start = [
         'deep_fm/create_external_deepfm_table.sql',
-        'deep_fm/create_inner_deepfm_table.sql'
+        'deep_fm/create_inner_deepfm_table.sql',
     ]
     end = ['deep_fm/drop_table.sql']
     odps_cmd = OdpsCommand(odps_oss_config)
@@ -48,19 +49,22 @@ class TestPipelineOnEmr(tf.test.TestCase):
     self._success = test_utils.test_hdfs_train_eval(
         '%s/configs/deepfm.config' % odps_oss_config.temp_dir,
         '%s/yaml_config/train.paitf.yaml' % odps_oss_config.temp_dir,
-        self._test_hdfs_dir)
+        self._test_hdfs_dir,
+    )
     self.assertTrue(self._success)
 
     self._success = test_utils.test_hdfs_eval(
         '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
         '%s/yaml_config/eval.tf.yaml' % odps_oss_config.temp_dir,
-        self._test_hdfs_dir)
+        self._test_hdfs_dir,
+    )
     self.assertTrue(self._success)
 
     self._success = test_utils.test_hdfs_export(
         '%s/configs/deepfm_eval_pipeline.config' % odps_oss_config.temp_dir,
         '%s/yaml_config/export.tf.yaml' % odps_oss_config.temp_dir,
-        self._test_hdfs_dir)
+        self._test_hdfs_dir,
+    )
     self.assertTrue(self._success)
 
     odps_cmd.run_list(end)
@@ -112,8 +116,12 @@ if __name__ == '__main__':
   prepare(odps_oss_config)
   tf.test.main()
   # delete oss path
-  bucket = get_oss_bucket(odps_oss_config.oss_key, odps_oss_config.oss_secret,
-                          odps_oss_config.endpoint, odps_oss_config.bucket_name)
+  bucket = get_oss_bucket(
+      odps_oss_config.oss_key,
+      odps_oss_config.oss_secret,
+      odps_oss_config.endpoint,
+      odps_oss_config.bucket_name,
+  )
   delete_oss_path(bucket, odps_oss_config.exp_dir, odps_oss_config.bucket_name)
   # delete tmp
   shutil.rmtree(odps_oss_config.temp_dir)

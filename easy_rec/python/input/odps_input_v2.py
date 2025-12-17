@@ -15,17 +15,25 @@ except Exception:
 
 class OdpsInputV2(Input):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(OdpsInputV2,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(OdpsInputV2, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
   def _parse_table(self, *fields):
     fields = list(fields)
@@ -48,42 +56,44 @@ class OdpsInputV2(Input):
         for x, v in zip(self._input_field_types, self._input_field_defaults)
     ]
 
-    if self._data_config.pai_worker_queue and \
-        mode == tf.estimator.ModeKeys.TRAIN:
+    if self._data_config.pai_worker_queue and mode == tf.estimator.ModeKeys.TRAIN:
       logging.info('pai_worker_slice_num = %d' %
                    self._data_config.pai_worker_slice_num)
       work_queue = pai.data.WorkQueue(
           self._input_path,
           num_epochs=self.num_epochs,
           shuffle=self._data_config.shuffle,
-          num_slices=self._data_config.pai_worker_slice_num * self._task_num)
+          num_slices=self._data_config.pai_worker_slice_num * self._task_num,
+      )
       que_paths = work_queue.input_dataset()
       dataset = tf.data.TableRecordDataset(
           que_paths,
           record_defaults=record_defaults,
           selected_cols=selected_cols)
-    elif self._data_config.chief_redundant and \
-        mode == tf.estimator.ModeKeys.TRAIN:
+    elif self._data_config.chief_redundant and mode == tf.estimator.ModeKeys.TRAIN:
       dataset = tf.data.TableRecordDataset(
           self._input_path,
           record_defaults=record_defaults,
           selected_cols=selected_cols,
           slice_id=max(self._task_index - 1, 0),
-          slice_count=max(self._task_num - 1, 1))
+          slice_count=max(self._task_num - 1, 1),
+      )
     else:
       dataset = tf.data.TableRecordDataset(
           self._input_path,
           record_defaults=record_defaults,
           selected_cols=selected_cols,
           slice_id=self._task_index,
-          slice_count=self._task_num)
+          slice_count=self._task_num,
+      )
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
@@ -98,7 +108,8 @@ class OdpsInputV2(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

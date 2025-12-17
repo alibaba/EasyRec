@@ -38,14 +38,15 @@ class TableInfo(object):
 class HiveUtils(object):
   """Common IO based interface, could run at local or on data science."""
 
-  def __init__(self,
-               data_config,
-               hive_config,
-               selected_cols='',
-               record_defaults=[],
-               task_index=0,
-               task_num=1):
-
+  def __init__(
+      self,
+      data_config,
+      hive_config,
+      selected_cols='',
+      record_defaults=[],
+      task_index=0,
+      task_num=1,
+  ):
     self._data_config = data_config
     self._hive_config = hive_config
 
@@ -74,7 +75,8 @@ class HiveUtils(object):
         host=self._hive_config.host,
         port=self._hive_config.port,
         username=self._hive_config.username,
-        database=self._hive_config.database)
+        database=self._hive_config.database,
+    )
     return conn
 
   def hive_read_line(self, input_path, limit_num=None):
@@ -124,8 +126,11 @@ class HiveUtils(object):
                                   partition_name=None,
                                   partition_val=None):
     if partition_name and partition_val:
-      sql = 'show partitions %s partition(%s=%s)' % (table_name, partition_name,
-                                                     partition_val)
+      sql = 'show partitions %s partition(%s=%s)' % (
+          table_name,
+          partition_name,
+          partition_val,
+      )
       try:
         res = self.run_sql(sql)
         if not res:

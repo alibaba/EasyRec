@@ -29,17 +29,25 @@ class OdpsRTPInput(Input):
      selected columns are labels
   """
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(OdpsRTPInput,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(OdpsRTPInput, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
     logging.info('input_fields: %s label_fields: %s' %
                  (','.join(self._input_fields), ','.join(self._label_fields)))
 
@@ -47,8 +55,7 @@ class OdpsRTPInput(Input):
     fields = list(fields)
     labels = fields[:-1]
 
-    selected_cols = self._data_config.selected_cols \
-        if self._data_config.selected_cols else None
+    selected_cols = self._data_config.selected_cols if self._data_config.selected_cols else None
     non_feature_cols = self._label_fields
     if selected_cols:
       cols = [c.strip() for c in selected_cols.split(',')]
@@ -72,13 +79,14 @@ class OdpsRTPInput(Input):
     logging.info('field_delim = %s, input_field_name = %d' %
                  (self._data_config.separator, len(record_types)))
 
-    check_list = [
+    check_list = ([
         tf.py_func(
             check_split,
             [fields[-1], self._data_config.separator,
              len(record_types)],
-            Tout=tf.bool)
-    ] if self._check_mode else []
+            Tout=tf.bool,
+        )
+    ] if self._check_mode else [])
     with tf.control_dependencies(check_list):
       fields = str_split_by_chr(
           fields[-1], self._data_config.separator, skip_empty=False)
@@ -105,43 +113,45 @@ class OdpsRTPInput(Input):
     assert len(
         self._input_path) > 0, 'match no files with %s' % self._input_path
 
-    selected_cols = self._data_config.selected_cols \
-        if self._data_config.selected_cols else None
+    selected_cols = self._data_config.selected_cols if self._data_config.selected_cols else None
     if selected_cols:
       cols = [c.strip() for c in selected_cols.split(',')]
       record_defaults = [
-          self.get_type_defaults(t, v)
-          for x, t, v in zip(self._input_fields, self._input_field_types,
-                             self._input_field_defaults)
-          if x in cols[:-1]
+          self.get_type_defaults(t, v) for x, t, v in zip(
+              self._input_fields,
+              self._input_field_types,
+              self._input_field_defaults,
+          ) if x in cols[:-1]
       ]
       print('selected_cols: %s; defaults num: %d' %
             (','.join(cols), len(record_defaults)))
     else:
       record_defaults = [
-          self.get_type_defaults(t, v)
-          for x, t, v in zip(self._input_fields, self._input_field_types,
-                             self._input_field_defaults)
-          if x in self._label_fields
+          self.get_type_defaults(t, v) for x, t, v in zip(
+              self._input_fields,
+              self._input_field_types,
+              self._input_field_defaults,
+          ) if x in self._label_fields
       ]
     # the actual features are in one single column
     record_defaults.append(
         self._data_config.separator.join([
-            str(self.get_type_defaults(t, v))
-            for x, t, v in zip(self._input_fields, self._input_field_types,
-                               self._input_field_defaults)
-            if x not in self._label_fields
+            str(self.get_type_defaults(t, v)) for x, t, v in zip(
+                self._input_fields,
+                self._input_field_types,
+                self._input_field_defaults,
+            ) if x not in self._label_fields
         ]))
 
-    if self._data_config.pai_worker_queue and \
-        mode == tf.estimator.ModeKeys.TRAIN:
+    if self._data_config.pai_worker_queue and mode == tf.estimator.ModeKeys.TRAIN:
       logging.info('pai_worker_slice_num = %d' %
                    self._data_config.pai_worker_slice_num)
       work_queue = pai.data.WorkQueue(
           self._input_path,
           num_epochs=self.num_epochs,
           shuffle=self._data_config.shuffle,
-          num_slices=self._data_config.pai_worker_slice_num * self._task_num)
+          num_slices=self._data_config.pai_worker_slice_num * self._task_num,
+      )
       que_paths = work_queue.input_dataset()
       dataset = tf.data.TableRecordDataset(
           que_paths,
@@ -153,14 +163,16 @@ class OdpsRTPInput(Input):
           record_defaults=record_defaults,
           selected_cols=selected_cols,
           slice_id=self._task_index,
-          slice_count=self._task_num)
+          slice_count=self._task_num,
+      )
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.shuffle:
         dataset = dataset.shuffle(
             self._data_config.shuffle_buffer_size,
             seed=2020,
-            reshuffle_each_iteration=True)
+            reshuffle_each_iteration=True,
+        )
       dataset = dataset.repeat(self.num_epochs)
     else:
       dataset = dataset.repeat(1)
@@ -175,7 +187,8 @@ class OdpsRTPInput(Input):
     # so that they could be feed into FeatureColumns
     dataset = dataset.map(
         map_func=self._preprocess,
-        num_parallel_calls=self._data_config.num_parallel_calls)
+        num_parallel_calls=self._data_config.num_parallel_calls,
+    )
 
     dataset = dataset.prefetch(buffer_size=self._prefetch_size)
 

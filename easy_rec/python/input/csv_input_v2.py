@@ -7,17 +7,25 @@ from easy_rec.python.input.input import Input
 
 class CSVInputV2(Input):
 
-  def __init__(self,
-               data_config,
-               feature_config,
-               input_path,
-               task_index=0,
-               task_num=1,
-               check_mode=False,
-               pipeline_config=None):
-    super(CSVInputV2,
-          self).__init__(data_config, feature_config, input_path, task_index,
-                         task_num, check_mode, pipeline_config)
+  def __init__(
+      self,
+      data_config,
+      feature_config,
+      input_path,
+      task_index=0,
+      task_num=1,
+      check_mode=False,
+      pipeline_config=None,
+  ):
+    super(CSVInputV2, self).__init__(
+        data_config,
+        feature_config,
+        input_path,
+        task_index,
+        task_num,
+        check_mode,
+        pipeline_config,
+    )
 
   def _build(self, mode, params):
     if type(self._input_path) != list:
@@ -30,7 +38,7 @@ class CSVInputV2(Input):
       dataset = tf.data.TextLineDataset(self._input_path)
     else:
       num_epochs = self.num_epochs if mode == tf.estimator.ModeKeys.TRAIN else 1
-      is_train = (mode == tf.estimator.ModeKeys.TRAIN)
+      is_train = mode == tf.estimator.ModeKeys.TRAIN
       record_defaults = [
           self.get_type_defaults(x, v)
           for x, v in zip(self._input_field_types, self._input_field_defaults)
@@ -45,7 +53,8 @@ class CSVInputV2(Input):
           num_epochs=num_epochs,
           shuffle=is_train and self._data_config.shuffle,
           num_parallel_reads=8,
-          sloppy=is_train)
+          sloppy=is_train,
+      )
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       if self._data_config.chief_redundant:

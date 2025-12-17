@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 """Utils used to manipulate tensor shapes."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -90,8 +91,10 @@ def pad_tensor(t, length):
   t_d0 = t_shape[0]
   pad_d0 = tf.expand_dims(length - t_d0, 0)
   pad_shape = tf.cond(
-      tf.greater(t_rank, 1), lambda: tf.concat([pad_d0, t_shape[1:]], 0),
-      lambda: tf.expand_dims(length - t_d0, 0))
+      tf.greater(t_rank, 1),
+      lambda: tf.concat([pad_d0, t_shape[1:]], 0),
+      lambda: tf.expand_dims(length - t_d0, 0),
+  )
   padded_t = tf.concat([t, tf.zeros(pad_shape, dtype=t.dtype)], 0)
   if not _is_tensor(length):
     padded_t = _set_dim_0(padded_t, length)
@@ -235,8 +238,10 @@ def check_min_image_dim(min_dim, image_tensor):
     shape_assert = tf.Assert(
         tf.logical_and(
             tf.greater_equal(tf.shape(image_tensor)[1], min_dim),
-            tf.greater_equal(tf.shape(image_tensor)[2], min_dim)),
-        ['image size must be >= {} in both height and width.'.format(min_dim)])
+            tf.greater_equal(tf.shape(image_tensor)[2], min_dim),
+        ),
+        ['image size must be >= {} in both height and width.'.format(min_dim)],
+    )
     with tf.control_dependencies([shape_assert]):
       return tf.identity(image_tensor)
 
@@ -268,8 +273,8 @@ def assert_shape_equal(shape_a, shape_b):
   Raises:
     ValueError: When shapes are both static and unequal.
   """
-  if (all(isinstance(dim, int) for dim in shape_a) and
-      all(isinstance(dim, int) for dim in shape_b)):
+  if all(isinstance(dim, int) for dim in shape_a) and all(
+      isinstance(dim, int) for dim in shape_b):
     if shape_a != shape_b:
       raise ValueError('Unequal shapes {}, {}'.format(shape_a, shape_b))
     else:
@@ -327,7 +332,10 @@ def assert_box_normalized(boxes, maximum_normalized_coordinate=1.1):
   return tf.Assert(
       tf.logical_and(
           tf.less_equal(box_maximum, maximum_normalized_coordinate),
-          tf.greater_equal(box_minimum, 0)), [boxes])
+          tf.greater_equal(box_minimum, 0),
+      ),
+      [boxes],
+  )
 
 
 def get_shape_list(tensor, expected_rank=None, name=None):
@@ -351,7 +359,7 @@ def get_shape_list(tensor, expected_rank=None, name=None):
     assert_rank(tensor, expected_rank, name)
   shape = tensor.shape.as_list()
   non_static_indexes = []
-  for (index, dim) in enumerate(shape):
+  for index, dim in enumerate(shape):
     if dim is None:
       non_static_indexes.append(index)
   if not non_static_indexes:
@@ -397,7 +405,9 @@ def truncate_sequence(seq_emb, seq_len, limited_len):
                          [shape[0], limited_len, shape[2]])
     seq_length = tf.where(
         tf.greater(seq_length, limited_len),
-        tf.ones_like(seq_length) * limited_len, seq_length)
+        tf.ones_like(seq_length) * limited_len,
+        seq_length,
+    )
     return seq_embed, seq_length
 
   def keep(seq_embed, seq_length):
@@ -406,8 +416,11 @@ def truncate_sequence(seq_emb, seq_len, limited_len):
   shape = get_shape_list(seq_emb)
   max_seq_len = shape[1]
 
-  return tf.cond(max_seq_len > limited_len, lambda: truncate(seq_emb, seq_len),
-                 lambda: keep(seq_emb, seq_len))
+  return tf.cond(
+      max_seq_len > limited_len,
+      lambda: truncate(seq_emb, seq_len),
+      lambda: keep(seq_emb, seq_len),
+  )
 
 
 def pad_or_truncate_sequence(seq_emb, seq_len, fixed_len):

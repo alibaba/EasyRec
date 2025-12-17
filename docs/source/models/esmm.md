@@ -94,7 +94,7 @@ model_config: {
 - feature_groups: 支持多组feature_group
 - esmm: esmm相关的参数
   - groups
-    - input  tower的input必须和feature_groups的group_name对应
+    - input tower的input必须和feature_groups的group_name对应
     - dnn deep part的参数配置
       - hidden_units: dnn每一层的channel数目，即神经元的数目
   - cvr_tower
@@ -114,7 +114,7 @@ model_config: {
 ESMM模型输出的值有以下几项：
 
 - "logits\_" / "probs\_" + ctr_tower的tower_name
-- "logits\_" / "probs\_" /  "y\_" + cvr_tower的tower_name
+- "logits\_" / "probs\_" / "y\_" + cvr_tower的tower_name
 - "probs_ctcvr" / "y_ctcvr"
 
 ESMM模型的指标有以下几项：
