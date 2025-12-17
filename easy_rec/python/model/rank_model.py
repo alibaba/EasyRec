@@ -265,8 +265,7 @@ class RankModel(EasyRecModel):
         loss_weight,
         num_class,
         loss_param=loss_param,
-        **kwargs,
-    )
+        **kwargs)
     return loss_dict
 
   def build_loss_graph(self):
