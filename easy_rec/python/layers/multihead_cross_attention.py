@@ -251,8 +251,8 @@ def transformer_encoder(
     num_attention_heads=12,
     intermediate_size=3072,
     intermediate_act_fn=gelu,
-    hidden_dropout_prob=0.1,
-    attention_probs_dropout_prob=0.1,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
     initializer_range=0.02,
     reuse=None,
     name='transformer',
@@ -378,8 +378,8 @@ def cross_attention_block(
     self_attention_mask=None,
     num_attention_heads=1,
     intermediate_size=512,
-    hidden_dropout_prob=0.1,
-    attention_probs_dropout_prob=0.1,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
     initializer_range=0.02,
     name='',
 ):
@@ -496,8 +496,8 @@ def cross_attention_tower(
     right_intermediate_size=0,
     left_input_mask=None,
     right_input_mask=None,
-    hidden_dropout_prob=0.1,
-    attention_probs_dropout_prob=0.1,
+    hidden_dropout_prob=0.0,
+    attention_probs_dropout_prob=0.0,
     initializer_range=0.02,
     name='',
 ):
@@ -674,7 +674,7 @@ def embedding_postprocessor(
     reuse_position_embedding=None,
     initializer_range=0.02,
     max_position_embeddings=512,
-    dropout_prob=0.1,
+    dropout_prob=0.0,
 ):
   """Performs various post-processing on a word embedding tensor.
 

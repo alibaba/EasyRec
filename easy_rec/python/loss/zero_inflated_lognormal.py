@@ -118,8 +118,8 @@ def zero_inflated_lognormal_loss(
   # add regular terms
   loc_penalty = mu_reg * tf.reduce_mean(tf.square(mu))
   scale_penalty = sigma_reg * tf.reduce_mean(tf.square(logits[..., 2:]))
-  tf.summary.scalar('loss/%s_loc_penalty' % loss_name, loc_penalty)
-  tf.summary.scalar('loss/%s_scale_penalty' % loss_name, scale_penalty)
+  tf.summary.scalar('loss/%s_mu_penalty' % loss_name, loc_penalty)
+  tf.summary.scalar('loss/%s_sigma_penalty' % loss_name, scale_penalty)
 
   total_loss = class_weight * classification_loss + reg_weight * regression_loss
   return total_loss + loc_penalty + scale_penalty
