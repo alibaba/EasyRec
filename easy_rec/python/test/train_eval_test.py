@@ -851,7 +851,7 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_deepfm_embed_input(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_with_embed.config', self._test_dir)
     self.assertTrue(self._success)
 
@@ -861,7 +861,7 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertTrue(self._success)
 
   def test_tfrecord_input(self):
-    self._success = test_utils.test_distributed_train_eval(
+    self._success = test_utils.test_single_train_eval(
         'samples/model_config/deepfm_on_criteo_tfrecord.config', self._test_dir)
     self.assertTrue(self._success)
 
