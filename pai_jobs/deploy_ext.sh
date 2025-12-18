@@ -165,7 +165,7 @@ rm -rf tensorflow_probability/examples
 rm -rf tensorflow_probability/g3doc
 rm -rf probability-${tfp_version}.tar.gz
 
-tar -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss tensorflow_probability run.py
+tar --no-xattrs --no-acls -cvzhf $RES_PATH easy_rec datahub lz4 cprotobuf kafka faiss tensorflow_probability run.py
 
 # 2 means generate only
 if [ $mode -ne 2 ]
@@ -204,7 +204,7 @@ then
   sed -i -e "s/tensorflow1120_ext/tensorflow1120_py3_ext/g" easy_rec_ext.xml
 fi
 
-tar -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
+tar --no-xattrs --no-acls -cvzf easy_rec_flow_ex.tar.gz easy_rec_ext.lua  easy_rec_ext.xml
 
 git checkout ./easy_rec_ext.xml
 
