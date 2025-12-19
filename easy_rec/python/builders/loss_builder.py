@@ -7,17 +7,19 @@ import tensorflow as tf
 
 from easy_rec.python.loss.focal_loss import sigmoid_focal_loss_with_logits
 from easy_rec.python.loss.jrc_loss import jrc_loss
-from easy_rec.python.loss.listwise_loss import listwise_distill_loss
-from easy_rec.python.loss.listwise_loss import listwise_rank_loss
-from easy_rec.python.loss.pairwise_loss import pairwise_focal_loss
-from easy_rec.python.loss.pairwise_loss import pairwise_hinge_loss
-from easy_rec.python.loss.pairwise_loss import pairwise_logistic_loss
-from easy_rec.python.loss.pairwise_loss import pairwise_loss
 from easy_rec.python.protos.loss_pb2 import LossType
 
-from easy_rec.python.loss.zero_inflated_lognormal import zero_inflated_lognormal_loss  # NOQA
-
-from easy_rec.python.loss.f1_reweight_loss import f1_reweight_sigmoid_cross_entropy  # NOQA
+from easy_rec.python.loss.f1_reweight_loss import (  # NOQA
+    f1_reweight_sigmoid_cross_entropy,)
+from easy_rec.python.loss.listwise_loss import (  # NOQA
+    listwise_distill_loss, listwise_rank_loss,
+)
+from easy_rec.python.loss.pairwise_loss import (  # NOQA
+    pairwise_focal_loss, pairwise_hinge_loss, pairwise_logistic_loss,
+    pairwise_loss,
+)
+from easy_rec.python.loss.zero_inflated_lognormal import (  # NOQA
+    zero_inflated_lognormal_loss,)
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -36,8 +38,10 @@ def build(loss_type,
       return tf.losses.sigmoid_cross_entropy(
           label, logits=pred, weights=loss_weight, **kwargs)
     else:
-      assert label.dtype in [tf.int32, tf.int64], \
-          'label.dtype must in [tf.int32, tf.int64] when use sparse_softmax_cross_entropy.'
+      assert label.dtype in [
+          tf.int32,
+          tf.int64,
+      ], 'label.dtype must in [tf.int32, tf.int64] when use sparse_softmax_cross_entropy.'
       return tf.losses.sparse_softmax_cross_entropy(
           labels=label, logits=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.CROSS_ENTROPY_LOSS:
@@ -50,7 +54,23 @@ def build(loss_type,
     return tf.losses.mean_squared_error(
         labels=label, predictions=pred, weights=loss_weight, **kwargs)
   elif loss_type == LossType.ZILN_LOSS:
-    loss = zero_inflated_lognormal_loss(label, pred)
+    if loss_param is None:
+      loss = zero_inflated_lognormal_loss(label, pred)
+    else:
+      mu_reg = loss_param.mu_regularization
+      sigma_reg = loss_param.sigma_regularization
+      max_sigma = loss_param.max_sigma
+      class_weight = loss_param.classification_weight
+      reg_weight = loss_param.regression_weight
+      loss = zero_inflated_lognormal_loss(
+          label,
+          pred,
+          max_sigma=max_sigma,
+          mu_reg=mu_reg,
+          sigma_reg=sigma_reg,
+          class_weight=class_weight,
+          reg_weight=reg_weight,
+      )
     if np.isscalar(loss_weight) and loss_weight != 1.0:
       return loss * loss_weight
     return loss
@@ -219,9 +239,9 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
   """
   loss_dict = {}
   for kd in kds:
-    assert kd.pred_name in prediction_dict, \
-        'invalid predict_name: %s available ones: %s' % (
-            kd.pred_name, ','.join(prediction_dict.keys()))
+    assert kd.pred_name in prediction_dict, 'invalid predict_name: %s available ones: %s' % (
+        kd.pred_name,
+        ','.join(prediction_dict.keys()))
 
     loss_name = kd.loss_name
     if not loss_name:
@@ -232,8 +252,10 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
     if kd.HasField('task_space_indicator_name') and kd.HasField(
         'task_space_indicator_value'):
       in_task_space = tf.to_float(
-          tf.equal(feature_dict[kd.task_space_indicator_name],
-                   kd.task_space_indicator_value))
+          tf.equal(
+              feature_dict[kd.task_space_indicator_name],
+              kd.task_space_indicator_value,
+          ))
       loss_weight = loss_weight * (
           kd.in_task_space_weight * in_task_space + kd.out_task_space_weight *
           (1 - in_task_space))

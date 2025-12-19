@@ -1,5 +1,7 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import logging
+
 import tensorflow as tf
 
 from easy_rec.python.layers import dnn
@@ -21,8 +23,8 @@ class DeepFM(RankModel):
                is_training=False):
     super(DeepFM, self).__init__(model_config, feature_configs, features,
                                  labels, is_training)
-    assert self._model_config.WhichOneof('model') == 'deepfm', \
-        'invalid model config: %s' % self._model_config.WhichOneof('model')
+    assert self._model_config.WhichOneof('model') == 'deepfm', (
+        'invalid model config: %s' % self._model_config.WhichOneof('model'))
     self._model_config = self._model_config.deepfm
     assert isinstance(self._model_config, DeepFMConfig)
 
@@ -39,16 +41,26 @@ class DeepFM(RankModel):
 
   def build_input_layer(self, model_config, feature_configs):
     # overwrite create input_layer to support wide_output_dim
+    self._wide_output_dim = model_config.deepfm.wide_output_dim
     has_final = len(model_config.deepfm.final_dnn.hidden_units) > 0
     if not has_final:
-      assert model_config.deepfm.wide_output_dim == model_config.num_class
-    self._wide_output_dim = model_config.deepfm.wide_output_dim
+      assert self._wide_output_dim == model_config.num_class
+    elif self._wide_output_dim != model_config.num_class:
+      logging.warning(
+          'wide_output_dim not equal to 1, it is not a standard model')
     super(DeepFM, self).build_input_layer(model_config, feature_configs)
 
   def build_predict_graph(self):
     # Wide
-    wide_fea = tf.reduce_sum(
-        self._wide_features, axis=1, keepdims=True, name='wide_feature')
+    if self._num_class > 1 and self._wide_output_dim == self._num_class:
+      wide_shape = tf.shape(self._wide_features)
+      new_shape = tf.stack(
+          [-1, wide_shape[1] // self._num_class, self._num_class])
+      wide_fea = tf.reshape(self._wide_features, new_shape)
+      wide_fea = tf.reduce_sum(wide_fea, axis=1, name='wide_feature')
+    else:
+      wide_fea = tf.reduce_sum(
+          self._wide_features, axis=1, keepdims=True, name='wide_feature')
 
     # FM
     fm_fea = fm.FM(name='fm_feature')(self._fm_features)
@@ -62,8 +74,12 @@ class DeepFM(RankModel):
     # Final
     if len(self._model_config.final_dnn.hidden_units) > 0:
       all_fea = tf.concat([wide_fea, fm_fea, deep_fea], axis=1)
-      final_dnn_layer = dnn.DNN(self._model_config.final_dnn, self._l2_reg,
-                                'final_dnn', self._is_training)
+      final_dnn_layer = dnn.DNN(
+          self._model_config.final_dnn,
+          self._l2_reg,
+          'final_dnn',
+          self._is_training,
+      )
       all_fea = final_dnn_layer(all_fea)
       output = tf.layers.dense(
           all_fea,
@@ -76,14 +92,16 @@ class DeepFM(RankModel):
             fm_fea,
             self._num_class,
             kernel_regularizer=self._l2_reg,
-            name='fm_logits')
+            name='fm_logits',
+        )
       else:
         fm_fea = tf.reduce_sum(fm_fea, 1, keepdims=True)
       deep_fea = tf.layers.dense(
           deep_fea,
           self._num_class,
           kernel_regularizer=self._l2_reg,
-          name='deep_logits')
+          name='deep_logits',
+      )
       output = wide_fea + fm_fea + deep_fea
 
     self._add_to_prediction_dict(output)
@@ -101,6 +119,6 @@ class DeepFM(RankModel):
                 tf.as_string(self._deep_features), axis=-1, separator=','),
         'fm_outputs':
             tf.reduce_join(
-                tf.as_string(self._fm_outputs), axis=-1, separator=',')
+                tf.as_string(self._fm_outputs), axis=-1, separator=','),
     })
     return outputs

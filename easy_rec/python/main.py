@@ -776,9 +776,9 @@ def export(export_dir,
   feature_configs = config_util.get_compatible_feature_configs(pipeline_config)
   # create estimator
   params = {'log_device_placement': verbose}
+  asset_file_dict = {}
   if asset_files:
     logging.info('will add asset files: %s' % asset_files)
-    asset_file_dict = {}
     for asset_file in asset_files.split(','):
       asset_file = asset_file.strip()
       if ':' not in asset_file or asset_file.startswith(
@@ -836,6 +836,22 @@ def export(export_dir,
   with tf.gfile.GFile(saved_pb_path, 'wb') as fout:
     fout.write(saved_model.SerializeToString())
 
+  # modify export path
+  assets_dir = os.path.join(final_export_dir, 'assets')
+  for asset_rel_path in asset_file_dict:
+    if not os.path.dirname(asset_rel_path):
+      continue
+    asset_file = os.path.basename(asset_file_dict[asset_rel_path])
+    asset_file = os.path.join(assets_dir, asset_file)
+    if not tf.gfile.Exists(asset_file):
+      logging.info('asset file %s does not exist' % asset_file)
+      continue
+    target_file = os.path.join(assets_dir, asset_rel_path)
+    target_dir = os.path.dirname(target_file)
+    if not tf.gfile.Exists(target_dir):
+      tf.gfile.MakeDirs(target_dir)
+    logging.info('will rename %s to %s' % (asset_file, target_file))
+    tf.gfile.Rename(asset_file, target_file)
   logging.info('model has been exported to %s successfully' % final_export_dir)
   return final_export_dir
 

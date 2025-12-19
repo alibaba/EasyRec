@@ -19,15 +19,14 @@ class BST(Layer):
     self.l2_reg = params.l2_regularizer
     self.config = params.get_pb_config()
 
-  def encode(self, seq_input, max_position):
+  def encode(self, seq_input, seq_mask, max_position, hidden_dropout,
+             attention_dropout, target_pos):
     seq_fea = multihead_cross_attention.embedding_postprocessor(
         seq_input,
         position_embedding_name=self.name,
         max_position_embeddings=max_position,
-        reuse_position_embedding=self.reuse)
-
-    n = tf.count_nonzero(seq_input, axis=-1)
-    seq_mask = tf.cast(n > 0, tf.int32)
+        reuse_position_embedding=self.reuse,
+        dropout_prob=hidden_dropout)
 
     attention_mask = multihead_cross_attention.create_attention_mask_from_input_mask(
         from_tensor=seq_fea, to_mask=seq_mask)
@@ -41,24 +40,29 @@ class BST(Layer):
         attention_mask=attention_mask,
         intermediate_size=self.config.intermediate_size,
         intermediate_act_fn=hidden_act,
-        hidden_dropout_prob=self.config.hidden_dropout_prob,
-        attention_probs_dropout_prob=self.config.attention_probs_dropout_prob,
+        hidden_dropout_prob=hidden_dropout,
+        attention_probs_dropout_prob=attention_dropout,
         initializer_range=self.config.initializer_range,
         name=self.name + '/transformer',
-        reuse=self.reuse)
+        reuse=self.reuse,
+    )
     # attention_fea shape: [batch_size, seq_length, hidden_size]
     if self.config.output_all_token_embeddings:
       out_fea = tf.reshape(attention_fea,
                            [-1, max_position * self.config.hidden_size])
-    else:
+    elif target_pos == 'head':
       out_fea = attention_fea[:, 0, :]  # target feature
+    else:
+      out_fea = attention_fea[:, -1, :]  # target feature
     print('bst output shape:', out_fea.shape)
     return out_fea
 
   def call(self, inputs, training=None, **kwargs):
-    if not training:
-      self.config.hidden_dropout_prob = 0.0
-      self.config.attention_probs_dropout_prob = 0.0
+    hidden_dropout = self.config.hidden_dropout_prob if training else 0.0
+    attention_dropout = self.config.attention_probs_dropout_prob if training else 0.0
+    tf.logging.info(
+        'BST config hidden_dropout_prob=%f, attention_probs_dropout_prob=%f',
+        hidden_dropout, attention_dropout)
     assert isinstance(inputs, (list, tuple))
     assert len(inputs) >= 2
     # seq_input: [batch_size, seq_len, embed_size]
@@ -73,14 +77,45 @@ class BST(Layer):
         max_position,
         message='sequence length is greater than `max_position_embeddings`:' +
         str(max_position) + ' in feature group:' + self.name +
-        ', you should set `max_seq_len` in sequence feature configs')
+        ', you should set `max_seq_len` in sequence feature configs',
+    )
 
+    orig_mask = tf.sequence_mask(
+        seq_len, maxlen=cur_batch_max_seq_len, dtype=tf.int32)
+    keep_target = self.config.target_item_position in ('head', 'tail')
     if self.config.output_all_token_embeddings:
       seq_input = tf.cond(
-          tf.constant(max_position) > cur_batch_max_seq_len, lambda: tf.pad(
-              seq_input, [[0, 0], [0, max_position - cur_batch_max_seq_len],
-                          [0, 0]], 'CONSTANT'),
-          lambda: tf.slice(seq_input, [0, 0, 0], [-1, max_position, -1]))
+          tf.constant(max_position) > cur_batch_max_seq_len,
+          lambda: tf.pad(
+              seq_input,
+              [[0, 0], [0, max_position - cur_batch_max_seq_len], [0, 0]],
+              'CONSTANT',
+          ),
+          lambda: tf.slice(seq_input, [0, 0, 0], [-1, max_position, -1]),
+      )
+      orig_mask = tf.cond(
+          tf.constant(max_position) > cur_batch_max_seq_len,
+          lambda: tf.pad(orig_mask, [[0, 0],
+                                     [0, max_position - cur_batch_max_seq_len]],
+                         'CONSTANT'),
+          lambda: tf.slice(orig_mask, [0, 0], [-1, max_position]),
+      )
+      # 再根据 target 拼接方式，对 orig_mask 做相同的 concat/pad
+      if target is not None and keep_target:
+        # target 位置一般是有效的 1，或者你也可以选择 0
+        target_mask = tf.ones([batch_size, 1], dtype=tf.int32)
+        if self.config.target_item_position == 'head':
+          orig_mask = tf.concat([target_mask, orig_mask], axis=1)
+        else:
+          orig_mask = tf.concat([orig_mask, target_mask], axis=1)
+      elif self.config.reserve_target_position:
+        target_mask = tf.ones([batch_size, 1], dtype=tf.int32)
+        if self.config.target_item_position == 'head':
+          orig_mask = tf.concat([target_mask, orig_mask], axis=1)
+        else:
+          orig_mask = tf.concat([orig_mask, target_mask], axis=1)
+
+    seq_mask = orig_mask
 
     if seq_embed_size != self.config.hidden_size:
       seq_input = tf.layers.dense(
@@ -89,13 +124,14 @@ class BST(Layer):
           activation=tf.nn.relu,
           kernel_regularizer=self.l2_reg,
           name=self.name + '/seq_project',
-          reuse=self.reuse)
+          reuse=self.reuse,
+      )
 
-    keep_target = self.config.target_item_position in ('head', 'tail')
     if target is not None and keep_target:
       target_size = target.shape.as_list()[-1]
-      assert seq_embed_size == target_size, 'the embedding size of sequence and target item is not equal' \
-                                            ' in feature group:' + self.name
+      assert seq_embed_size == target_size, (
+          'the embedding size of sequence and target item is not equal'
+          ' in feature group:' + self.name)
       if target_size != self.config.hidden_size:
         target = tf.layers.dense(
             target,
@@ -103,7 +139,8 @@ class BST(Layer):
             activation=tf.nn.relu,
             kernel_regularizer=self.l2_reg,
             name=self.name + '/target_project',
-            reuse=self.reuse)
+            reuse=self.reuse,
+        )
       # target_feature: [batch_size, 1, embed_size]
       target = tf.expand_dims(target, 1)
       # seq_input: [batch_size, seq_len+1, embed_size]
@@ -116,4 +153,5 @@ class BST(Layer):
       max_position += 1
 
     with tf.control_dependencies([valid_len]):
-      return self.encode(seq_input, max_position)
+      return self.encode(seq_input, seq_mask, max_position, hidden_dropout,
+                         attention_dropout, self.config.target_item_position)

@@ -182,7 +182,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
 - processor: easyrec processor, 目前最新的版本为easyrec-3.0, [历史版本](../predict/processor.md#release).
 - model_config: eas 部署配置。主要控制把 item 特征加载到内存中。目前数据源支持redis和holo
   - period: item feature reload period, 单位minutes
-  - url: holo url, 格式为postgresql://<AccessKeyID>:<AccessKeySecret>@<域名>:<port>/<database>
+  - url: holo url, 格式为postgresql://<AccessKeyID>:<AccessKeySecret>@\<域名>:<port>/<database>
   - fg_mode: 支持tf和normal两种模式, tf模式表示fg是以TF算子的方式执行的, 性能更好
   - tables: item特征存储在hologres表里面, 支持分多个表存储
     - key: 必填, itemId列的名字;
@@ -191,7 +191,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
     - timekey: 可选，用于item的增量更新，支持的格式: timestamp和int
     - static: 可选, 表示是静态特征，不用周期性更新
     - 支持多个item表, 如果多张表有重复的列, 后面的表覆盖前面的表
-      - "tables": [{"key":"table1", ...},{"key":"table2", ...}]
+      - "tables": \[{"key":"table1", ...},{"key":"table2", ...}\]
       - 如果多张表有重复的列，后面的表将覆盖前面的表
     - hologres表里面每一列存储一个item特征,示例:
       <table class="docutils" border=1>
@@ -202,7 +202,7 @@ eascmd -i <AccessKeyID>  -k  <AccessKeySecret>   -e <EndPoint> update ali_rec_rn
       </table>
   - remote_type: Item特征数据源, 目前支持：`hologres`, `none`
     - hologres：通过SQL接口进行数据读取和写入，适用于海量数据的存储和查询
-    - none: 不使用Item特征缓存，item特征通过请求传入，此时tables应设置为[]
+    - none: 不使用Item特征缓存，item特征通过请求传入，此时tables应设置为\[\]
 - storage: 将oss的模型目录mount到docker的指定目录下
   - mount_path: docker内部的挂载路径, 与示例保持一致即可
   - 配置了storage就不需要配置model_path了
