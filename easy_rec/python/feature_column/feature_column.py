@@ -165,8 +165,11 @@ class FeatureColumnParser(object):
         config = self._share_embed_infos[embed_name]
         max_seq_len = config.max_seq_len if config.HasField(
             'max_seq_len') else -1
+        pad_sequence_length = config.pad_sequence_length if config.HasField(
+            'pad_sequence_length') else -1
         for fc in share_embed_fcs:
           fc.max_seq_length = max_seq_len
+          fc.pad_sequence_length = pad_sequence_length
         self._deep_share_embed_columns[embed_name] = share_embed_fcs
 
       # for handling wide share embedding columns
@@ -182,8 +185,11 @@ class FeatureColumnParser(object):
         config = self._share_embed_infos[embed_name]
         max_seq_len = config.max_seq_len if config.HasField(
             'max_seq_len') else -1
+        pad_sequence_length = config.pad_sequence_length if config.HasField(
+            'pad_sequence_length') else -1
         for fc in share_embed_fcs:
           fc.max_seq_length = max_seq_len
+          fc.pad_sequence_length = pad_sequence_length
         self._wide_share_embed_columns[embed_name] = share_embed_fcs
 
     for fc_name in self._deep_columns:
