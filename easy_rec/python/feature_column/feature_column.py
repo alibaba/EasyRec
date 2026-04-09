@@ -647,6 +647,8 @@ class FeatureColumnParser(object):
           ev_params=ev_params)
       fc.max_seq_length = config.max_seq_len if config.HasField(
           'max_seq_len') else -1
+      fc.pad_sequence_length = config.pad_sequence_length if config.HasField(
+          'pad_sequence_length') else -1
 
     if config.feature_type != config.SequenceFeature:
       self._deep_columns[feature_name] = fc

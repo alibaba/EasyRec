@@ -80,6 +80,8 @@ message FeatureConfig {
     optional string seq_multi_sep = 101;
     // truncate sequence data to max_seq_len
     optional uint32 max_seq_len = 102;
+    // pad or truncate sequence to fixed length (enables padding for shorter sequences)
+    optional uint32 pad_sequence_length = 103;
 
     optional string vocab_file = 11;
     repeated string vocab_list = 12;

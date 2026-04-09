@@ -180,7 +180,11 @@ class InputLayer(object):
       with variable_scope.variable_scope('input_layer/' +
                                          fc.categorical_column.name):
         tmp_embedding, tmp_seq_len = fc._get_sequence_dense_tensor(builder)
-        if fc.max_seq_length > 0:
+        # If pad_sequence_length is set, pad or truncate to fixed length
+        if fc.pad_sequence_length > 0:
+          tmp_embedding, tmp_seq_len = shape_utils.pad_or_truncate_sequence(
+              tmp_embedding, tmp_seq_len, fc.pad_sequence_length)
+        elif fc.max_seq_length > 0:
           tmp_embedding, tmp_seq_len = shape_utils.truncate_sequence(
               tmp_embedding, tmp_seq_len, fc.max_seq_length)
         seq_features.append((tmp_embedding, tmp_seq_len))

@@ -295,6 +295,8 @@ Sequence类特征格式一般为“XX\|XX\|XX”，如用户行为序列特征�
 -  embedding_dim: embedding的dimension
 -  hash_bucket_size: 同离散值特征
 -  sub_feature_type: 用于描述序列特征里子特征的类型，目前支持 IdFeature 和 RawFeature 两种形式，默认为 IdFeature
+-  pad_sequence_length: 序列补齐或截断的长度
+-  max_seq_len: 最大序列长度，超过该长度的序列会被截断；当配置了`pad_sequence_length`时，`max_seq_len`会被忽略
 -  NOTE：SequenceFeature一般用在DIN算法或者BST算法里面。
 
 在模型中可支持对序列特征使用Target Attention（DIN)，方法如下：
