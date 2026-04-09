@@ -240,8 +240,7 @@ def build_kd_loss(kds, prediction_dict, label_dict, feature_dict):
   loss_dict = {}
   for kd in kds:
     assert kd.pred_name in prediction_dict, 'invalid predict_name: %s available ones: %s' % (
-        kd.pred_name,
-        ','.join(prediction_dict.keys()))
+        kd.pred_name, ','.join(prediction_dict.keys()))
 
     loss_name = kd.loss_name
     if not loss_name:
