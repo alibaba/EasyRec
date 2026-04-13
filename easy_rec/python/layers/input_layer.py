@@ -303,12 +303,15 @@ class InputLayer(object):
     group_columns, group_seq_columns = feature_group.select_columns(
         self._fc_parser)
     cols_to_output_tensors = OrderedDict()
-    output_features = feature_column.input_layer(
-        features,
-        group_columns,
-        cols_to_output_tensors=cols_to_output_tensors,
-        feature_name_to_output_tensors=feature_name_to_output_tensors,
-        is_training=self._is_training)
+    if group_columns:
+      output_features = feature_column.input_layer(
+          features,
+          group_columns,
+          cols_to_output_tensors=cols_to_output_tensors,
+          feature_name_to_output_tensors=feature_name_to_output_tensors,
+          is_training=self._is_training)
+    else:
+      output_features = None
 
     embedding_reg_lst = []
     builder = feature_column._LazyBuilder(features)
@@ -349,13 +352,14 @@ class InputLayer(object):
           cols_to_output_tensors[column] = cnn_feature
         else:
           raise NotImplementedError
+    all_features = ([output_features] if output_features is not None else []) \
+        + seq_features
     if self._variational_dropout_config is not None:
       features_dimension = OrderedDict([
           (k.raw_name, int(v.shape[-1]))
           for k, v in cols_to_output_tensors.items()
       ])
-      concat_features = array_ops.concat(
-          [output_features] + seq_features, axis=-1)
+      concat_features = array_ops.concat(all_features, axis=-1)
       variational_dropout = variational_dropout_layer.VariationalDropoutLayer(
           self._variational_dropout_config,
           features_dimension,
@@ -365,8 +369,7 @@ class InputLayer(object):
       group_features = tf.split(
           concat_features, list(features_dimension.values()), axis=-1)
     else:
-      concat_features = array_ops.concat(
-          [output_features] + seq_features, axis=-1)
+      concat_features = array_ops.concat(all_features, axis=-1)
       group_features = [cols_to_output_tensors[x] for x in group_columns] + \
                        [cols_to_output_tensors[x] for x in group_seq_columns]
 
