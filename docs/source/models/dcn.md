@@ -159,9 +159,41 @@ model_config {
 - embedding_regularization: 对embedding部分加regularization, 减少overfit
 
 ### 示例Config
+- 现在除了通过 backbone 组件化方式外，也支持在内置 `DCN` 模型中开启 v2 的矩阵/低秩 Cross：
+
+```protobuf
+model_config: {
+  model_class: 'DCN'
+  feature_groups: { group_name: 'all' ... }
+  dcn {
+    deep_tower { input: "all" dnn { hidden_units: [256, 128, 64] } }
+    cross_tower {
+      input: "all"
+      cross_num: 3
+      version: 2                # 开启 DCN-V2
+      projection_dim: 64        # 低秩 U*V，省略则使用 full-rank
+      diag_scale: 0.1           # 训练稳定性增强
+      preactivation: "relu"     # 与 Cross 层一致的预激活
+      use_bias: true
+    }
+    final_dnn { hidden_units: [64, 32, 16] }
+    l2_regularization: 1e-4
+  }
+  embedding_regularization: 1e-4
+}
+```
+
 
 1. DCN V1: [DCN_demo.config](https://easyrec.oss-cn-beijing.aliyuncs.com/config/dcn.config)
 1. DCN V2: [dcn_backbone_on_movielens.config](https://github.com/alibaba/EasyRec/tree/master/examples/configs/dcn_backbone_on_movielens.config)
+
+1. DCN V2（内置模型写法）：[dcn_v2_on_taobao.config](file:///mlx_devbox/users/zhaohao.9426/playground/EasyRec/samples/model_config/dcn_v2_on_taobao.config)
+
+本地直接训练命令：
+
+```bash
+python -m easy_rec.python.train_eval --pipeline_config_path samples/model_config/dcn_v2_on_taobao.config
+```
 
 ### 参考论文
 

@@ -2,9 +2,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
 import tensorflow as tf
+import os
 
 from easy_rec.python.layers import dnn
 from easy_rec.python.model.rank_model import RankModel
+from easy_rec.python.layers.keras.interaction import Cross
+from easy_rec.python.layers.utils import Parameter
 
 from easy_rec.python.protos.dcn_pb2 import DCN as DCNConfig  # NOQA
 
@@ -44,6 +47,45 @@ class DCN(RankModel):
       x = tf.math.add(tf.math.add(x0 * xw, b), x)
     return x
 
+  def _cross_net_v2(self, tensor, num_cross_layers):
+    x0 = tensor
+    x = tensor
+    params = {}  # picked from proto, env acts only as fallback
+    cross_tower = self._model_config.cross_tower
+    if getattr(cross_tower, 'projection_dim', 0):
+      params['projection_dim'] = int(cross_tower.projection_dim)
+    preact = getattr(cross_tower, 'preactivation', '')
+    if preact:
+      params['preactivation'] = preact
+    diag = getattr(cross_tower, 'diag_scale', 0.0)
+    if diag:
+      params['diag_scale'] = float(diag)
+    if hasattr(cross_tower, 'use_bias'):
+      params['use_bias'] = bool(cross_tower.use_bias)
+    # env fallback
+    proj_env = os.getenv('EASYREC_DCN_V2_PROJ', None)
+    if 'projection_dim' not in params and proj_env:
+      try:
+        params['projection_dim'] = int(proj_env)
+      except Exception:
+        pass
+    preact_env = os.getenv('EASYREC_DCN_V2_PREACT', None)
+    if 'preactivation' not in params and preact_env:
+      params['preactivation'] = preact_env
+    diag_env = os.getenv('EASYREC_DCN_V2_DIAG', None)
+    if 'diag_scale' not in params and diag_env:
+      try:
+        params['diag_scale'] = float(diag_env)
+      except Exception:
+        pass
+    use_bias_env = os.getenv('EASYREC_DCN_V2_USE_BIAS', None)
+    if 'use_bias' not in params and use_bias_env:
+      params['use_bias'] = use_bias_env.lower() in ('1', 'true', 'yes')
+    layer_params = Parameter(params, True)
+    for i in range(num_cross_layers):
+      x = Cross(layer_params, name='cross_v2_%d' % i)([x0, x])
+    return x
+
   def build_predict_graph(self):
     tower_fea_arr = []
     # deep tower
@@ -56,7 +98,21 @@ class DCN(RankModel):
     # cross tower
     cross_tower_config = self._model_config.cross_tower
     num_cross_layers = cross_tower_config.cross_num
-    cross_tensor = self._cross_net(self._features, num_cross_layers)
+    use_v2 = getattr(cross_tower_config, 'version', 1) == 2
+    if not use_v2:
+      # auto-enable v2 if v2-specific params are set
+      if getattr(cross_tower_config, 'projection_dim', 0) or \
+         getattr(cross_tower_config, 'preactivation', '') or \
+         getattr(cross_tower_config, 'diag_scale', 0.0) != 0.0:
+        use_v2 = True
+    # env fallback switch
+    if not use_v2:
+      if os.getenv('EASYREC_DCN_V2', '0').lower() in ('1', 'true', 'yes'):
+        use_v2 = True
+    if use_v2:
+      cross_tensor = self._cross_net_v2(self._features, num_cross_layers)
+    else:
+      cross_tensor = self._cross_net(self._features, num_cross_layers)
     tower_fea_arr.append(cross_tensor)
     # final tower
     all_fea = tf.concat(tower_fea_arr, axis=1)

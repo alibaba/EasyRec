@@ -8,6 +8,17 @@ message CrossTower {
     required string input = 1;
     // The number of cross layers
     required uint32 cross_num = 2 [default = 3];
+    // DCN version: 1 for vector cross, 2 for matrix/low-rank cross
+    optional uint32 version = 3 [default = 1];
+    // Parameters for DCN v2 (matrix/low-rank)
+    // If projection_dim is set, use low-rank U*V; otherwise use full-rank.
+    optional uint32 projection_dim = 4;
+    // Add diag scale to improve stability: W + diag_scale * I
+    optional float diag_scale = 5 [default = 0.0];
+    // Preactivation applied to Dense output before element-wise product with x0
+    optional string preactivation = 6;
+    // Whether to include bias terms in cross layers
+    optional bool use_bias = 7 [default = true];
 };
 
 message DCN {
