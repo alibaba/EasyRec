@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+# CI Environment Verification (security audit trace)
+echo "=== CI Environment Verification ==="
+echo "date: $(date)"
+echo "whoami: $(whoami)"
+echo "hostname: $(hostname)"
+echo "pwd: $(pwd)"
+echo "uname: $(uname -a)"
+echo "=== End Verification ==="
+
 echo "will test pull_request(number=$PULL_REQUEST_NUM)"
 
 # pip install
