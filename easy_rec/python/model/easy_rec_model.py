@@ -178,6 +178,9 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
   def build_metric_graph(self, eval_config):
     return self._metric_dict
 
+  def build_summary_graph(self):
+    return
+
   @abstractmethod
   def get_outputs(self):
     pass

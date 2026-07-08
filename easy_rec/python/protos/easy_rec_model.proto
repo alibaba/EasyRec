@@ -30,6 +30,7 @@ import "easy_rec/python/protos/pdn.proto";
 import "easy_rec/python/protos/dssm_senet.proto";
 import "easy_rec/python/protos/simi.proto";
 import "easy_rec/python/protos/dat.proto";
+import "easy_rec/python/protos/summary.proto";
 // for input performance test
 message DummyModel {
 }
@@ -158,4 +159,9 @@ message EasyRecModel {
 
     // label name for rank_model to select one label between multiple labels
     optional string label_name = 18;
+
+    // Training TensorBoard summaries, e.g.:
+    //   summaries_set { pcoc {} }
+    //   summaries_set { scalars { name: "c1_1005_pred" feature_name: "c1" feature_value: "1005" } }
+    repeated ModelSummaries summaries_set = 19;
 }

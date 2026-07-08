@@ -1,0 +1,21 @@
+syntax = "proto2";
+package protos;
+
+message PCOC {
+  optional float epsilon = 1 [default = 1e-7];
+  optional string pred_name = 2 [default = "probs"];
+}
+
+message Scalars {
+  required string name = 1;
+  optional string pred_name = 2 [default = "probs"];
+  optional string feature_name = 3;
+  optional string feature_value = 4;
+}
+
+message ModelSummaries {
+  oneof summary {
+    PCOC pcoc = 1;
+    Scalars scalars = 2;
+  }
+}
