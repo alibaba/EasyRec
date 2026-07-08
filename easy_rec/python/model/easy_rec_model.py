@@ -178,8 +178,103 @@ class EasyRecModel(six.with_metaclass(_meta_type, object)):
   def build_metric_graph(self, eval_config):
     return self._metric_dict
 
+  def _get_summary_label_name(self, label_name=None):
+    if label_name:
+      return label_name
+    if hasattr(self, '_label_name'):
+      return self._label_name
+    if self._base_model_config.HasField('label_name'):
+      return self._base_model_config.label_name
+    if self._labels:
+      return list(self._labels.keys())[0]
+    raise ValueError(
+        'summaries pcoc requires labels; set pcoc.label_name or model_config.label_name'
+    )
+
+  def _resolve_pred_tensor(self, pred_name):
+    if pred_name not in self._prediction_dict:
+      raise ValueError(
+          'summaries pred_name "%s" not found in prediction_dict keys: %s' %
+          (pred_name, sorted(self._prediction_dict.keys())))
+    pred = tf.to_float(self._prediction_dict[pred_name])
+    if pred_name == 'logits' or pred_name.startswith('logits'):
+      pred = tf.sigmoid(pred)
+    if pred.shape.ndims is not None and pred.shape.ndims > 1:
+      if pred.shape.ndims == 2 and int(pred.shape[-1]) == 2:
+        pred = pred[:, 1]
+      else:
+        pred = tf.reshape(pred, [-1])
+    return pred
+
+  def _build_feature_mask(self, feature_name, feature_value):
+    if feature_name not in self._feature_dict:
+      raise ValueError(
+          'summaries feature_name "%s" not found in feature_dict keys: %s' %
+          (feature_name, sorted(self._feature_dict.keys())))
+    feat = self._feature_dict[feature_name]
+    if isinstance(feat, tf.SparseTensor):
+      dense = tf.sparse_to_dense(
+          feat.indices,
+          feat.dense_shape,
+          feat.values,
+          default_value='' if feat.values.dtype == tf.string else 0)
+      feat = tf.reshape(dense, [-1])
+    else:
+      feat = tf.reshape(feat, [-1])
+    if feat.dtype in (tf.float32, tf.float64, tf.int32, tf.int64):
+      try:
+        target = float(feature_value)
+      except (TypeError, ValueError):
+        target = None
+      if target is not None:
+        return tf.equal(tf.to_float(feat), tf.constant(target, dtype=tf.float32))
+    if feat.dtype != tf.string:
+      feat = tf.as_string(feat)
+    return tf.equal(feat, str(feature_value))
+
+  def _masked_mean(self, values, mask):
+    values = tf.reshape(tf.to_float(values), [-1])
+    masked = tf.boolean_mask(values, mask)
+    count = tf.size(masked)
+    return tf.cond(
+        count > 0,
+        lambda: tf.reduce_mean(masked),
+        lambda: tf.constant(0.0, dtype=tf.float32))
+
+  def _build_summary_impl(self, summary):
+    summary_type = summary.WhichOneof('summary')
+    if summary_type == 'pcoc':
+      if self._labels is None:
+        return
+      pred_name = summary.pcoc.pred_name or 'probs'
+      preds = self._resolve_pred_tensor(pred_name)
+      label_name = self._get_summary_label_name(
+          summary.pcoc.label_name if summary.pcoc.HasField('label_name') else None)
+      label = tf.to_float(self._labels[label_name])
+      label = tf.reshape(label, [-1])
+      predicted_ctr = tf.reduce_mean(preds)
+      observed_ctr = tf.reduce_mean(label)
+      epsilon = summary.pcoc.epsilon
+      pcoc = predicted_ctr / (observed_ctr + epsilon)
+      tf.summary.scalar('summary/predicted_ctr', predicted_ctr)
+      tf.summary.scalar('summary/observed_ctr', observed_ctr)
+      tf.summary.scalar('summary/pcoc', pcoc)
+    elif summary_type == 'scalars':
+      cfg = summary.scalars
+      pred_name = cfg.pred_name or 'probs'
+      preds = self._resolve_pred_tensor(pred_name)
+      if cfg.HasField('feature_name') and cfg.HasField('feature_value'):
+        mask = self._build_feature_mask(cfg.feature_name, cfg.feature_value)
+        value = self._masked_mean(preds, mask)
+      else:
+        value = tf.reduce_mean(preds)
+      tf.summary.scalar('summary/%s' % cfg.name, value)
+    elif summary_type is not None:
+      raise ValueError('unsupported summary type: %s' % summary_type)
+
   def build_summary_graph(self):
-    return
+    for summary in self._base_model_config.summaries_set:
+      self._build_summary_impl(summary)
 
   @abstractmethod
   def get_outputs(self):

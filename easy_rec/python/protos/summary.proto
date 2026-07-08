@@ -4,6 +4,8 @@ package protos;
 message PCOC {
   optional float epsilon = 1 [default = 1e-7];
   optional string pred_name = 2 [default = "probs"];
+  // optional; default model_config.label_name or the first label
+  optional string label_name = 3;
 }
 
 message Scalars {
