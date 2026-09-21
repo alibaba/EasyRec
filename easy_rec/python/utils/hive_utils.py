@@ -22,7 +22,7 @@ class TableInfo(object):
       res = []
       for k, v in self.partition_kv.items():
         res.append('{}={}'.format(k, v))
-      part = ' '.join(res)
+      part = ' and '.join(res)
     sql = """select {}
     from {}""".format(self.selected_cols, self.tablename)
 
