@@ -84,13 +84,12 @@ class UtilTest(tf.test.TestCase):
     assert leaf == ['c', 'd']
 
   def test_hive_gen_sql_multi_partitions(self):
-    # table_name may contain more than one partition, such as
-    # sample_table/dt=2014-11-23/name=a, see HiveUtils._construct_table_info
-    partition_kv = OrderedDict([('dt', '2014-11-23'), ('name', 'a')])
+    # Use SQL literals to isolate the multi-partition predicate separator.
+    partition_kv = OrderedDict([('dt', "'2014-11-23'"), ('name', "'a'")])
     table_info = TableInfo('sample_table', 'col1,col2', partition_kv, None)
     sql = table_info.gen_sql()
     where_clause = sql.split('where')[1].strip()
-    assert where_clause == 'dt=2014-11-23 and name=a', \
+    assert where_clause == "dt='2014-11-23' and name='a'", \
         'invalid where clause: %s' % where_clause
 
   def test_hive_gen_sql_single_partition(self):
