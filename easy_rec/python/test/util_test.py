@@ -1,11 +1,14 @@
 # -*- encoding:utf-8 -*-
 # Copyright (c) Alibaba, Inc. and its affiliates.
 
+from collections import OrderedDict
+
 import tensorflow as tf
 
 from easy_rec.python.utils import estimator_utils
 from easy_rec.python.utils.dag import DAG
 from easy_rec.python.utils.expr_util import get_expression
+from easy_rec.python.utils.hive_utils import TableInfo
 
 if tf.__version__ >= '2.0':
   tf = tf.compat.v1
@@ -79,6 +82,22 @@ class UtilTest(tf.test.TestCase):
     assert c == ['c']
     leaf = dag.all_leaves()
     assert leaf == ['c', 'd']
+
+  def test_hive_gen_sql_multi_partitions(self):
+    # Use SQL literals to isolate the multi-partition predicate separator.
+    partition_kv = OrderedDict([('dt', "'2014-11-23'"), ('name', "'a'")])
+    table_info = TableInfo('sample_table', 'col1,col2', partition_kv, None)
+    sql = table_info.gen_sql()
+    where_clause = sql.split('where')[1].strip()
+    assert where_clause == "dt='2014-11-23' and name='a'", \
+        'invalid where clause: %s' % where_clause
+
+  def test_hive_gen_sql_single_partition(self):
+    partition_kv = OrderedDict([('dt', '20141123')])
+    table_info = TableInfo('sample_table', 'col1,col2', partition_kv, 10)
+    sql = table_info.gen_sql()
+    assert 'where dt=20141123' in sql, 'invalid sql: %s' % sql
+    assert sql.endswith(' limit 10'), 'invalid sql: %s' % sql
 
 
 if __name__ == '__main__':
